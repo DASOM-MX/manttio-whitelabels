@@ -1,0 +1,39 @@
+<div class="min-h-screen flex items-center justify-center bg-surface p-4">
+    <div class="w-full max-w-2xl bg-background border border-secondary rounded-xl shadow-md p-6 space-y-4"
+        *ngIf="report">
+        <h2 class="text-2xl font-bold text-primary">Reporte Folio {{ report.folio }}</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <p><span class="font-semibold text-dark">Fecha:</span> {{ report.fecha }}</p>
+            <p><span class="font-semibold text-dark">Cliente:</span> {{ report.cliente }}</p>
+            <p><span class="font-semibold text-dark">Dirección:</span> {{ report.direccion }}</p>
+            <p><span class="font-semibold text-dark">Responsable:</span> {{ report.responsable }}</p>
+            <p><span class="font-semibold text-dark">Equipo:</span> {{ report.equipo }}</p>
+            <p><span class="font-semibold text-dark">Marca:</span> {{ report.marca }}</p>
+            <p><span class="font-semibold text-dark">Modelo:</span> {{ report.modelo }}</p>
+            <p><span class="font-semibold text-dark">Número Serie:</span> {{ report.numeroSerie }}</p>
+            <p class="md:col-span-2"><span class="font-semibold text-dark">Tipo de mantenimiento:</span> {{
+                report.tipoMantenimiento }}</p>
+            <p class="md:col-span-2"><span class="font-semibold text-dark">Observaciones:</span> {{ report.observaciones
+                }}</p>
+        </div>
+
+        <div>
+            <h3 class="font-semibold text-dark mt-4 mb-2">Fotos:</h3>
+            <div class="grid grid-cols-3 gap-2">
+                <img *ngFor="let foto of report.fotos" [src]="foto" alt="Foto" class="rounded object-cover w-full" />
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mt-4">
+            <div>
+                <h3 class="font-semibold text-dark">Firma Responsable</h3>
+                <img [src]="report.firmaResponsable" alt="Firma Responsable" class="border rounded w-full" />
+            </div>
+            <div>
+                <h3 class="font-semibold text-dark">Firma Cliente</h3>
+                <img [src]="report.firmaCliente" alt="Firma Cliente" class="border rounded w-full" />
+            </div>
+        </div>
+    </div>
+</div>

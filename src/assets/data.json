@@ -1,0 +1,95 @@
+[
+    {
+        "fecha": "2025-07-04",
+        "folio": "1234567890",
+        "cliente": "Juan Perez",
+        "direccion": "Calle 123, Colonia 456, Ciudad 789",
+        "responsable": "Miguel Campos",
+        "equipo": "lorem ipsum",
+        "marca": "Carrier",
+        "modelo": "1234567890",
+        "numeroSerie": "1234567890",
+        "tipoMantenimiento": "Preventivo",
+        "parametrosAguaHelada": {
+            "tempInyeccionAgua": "20",
+            "tempRetornoAgua": "20",
+            "tipoEnfriamiento": "Aire"
+        },
+        "parametrosAguaCondensador": {
+            "tempInyeccionAgua": "20",
+            "tempRetornoAgua": "20",
+            "tipoEnfriamiento": "Aire"
+        },
+        "observaciones": "lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.",
+        "fotos": [
+            "https://via.placeholder.com/150",
+            "https://via.placeholder.com/150",
+            "https://via.placeholder.com/150",
+            "https://via.placeholder.com/150"
+        ],
+        "firmaResponsable": "https://via.placeholder.com/150",
+        "firmaCliente": "https://via.placeholder.com/150"
+    },
+    {
+        "fecha": "2025-08-15",
+        "folio": "9876543210",
+        "cliente": "Maria Rodriguez",
+        "direccion": "Avenida Principal 789, Centro Comercial, Monterrey",
+        "responsable": "Carlos Mendoza",
+        "equipo": "Sistema de refrigeración industrial",
+        "marca": "Trane",
+        "modelo": "XRV-4500",
+        "numeroSerie": "TRN2024-789",
+        "tipoMantenimiento": "Correctivo",
+        "parametrosAguaHelada": {
+            "tempInyeccionAgua": "18",
+            "tempRetornoAgua": "25",
+            "tipoEnfriamiento": "Agua"
+        },
+        "parametrosAguaCondensador": {
+            "tempInyeccionAgua": "32",
+            "tempRetornoAgua": "38",
+            "tipoEnfriamiento": "Agua"
+        },
+        "observaciones": "Se realizó limpieza de filtros y ajuste de presiones. El equipo presenta funcionamiento normal después de la intervención.",
+        "fotos": [
+            "https://via.placeholder.com/150",
+            "https://via.placeholder.com/150",
+            "https://via.placeholder.com/150"
+        ],
+        "firmaResponsable": "https://via.placeholder.com/150",
+        "firmaCliente": "https://via.placeholder.com/150"
+    },
+    {
+        "fecha": "2025-09-22",
+        "folio": "5556667778",
+        "cliente": "Empresa Industrial del Norte S.A.",
+        "direccion": "Zona Industrial 456, Parque Tecnológico, Guadalajara",
+        "responsable": "Ana Sofia Torres",
+        "equipo": "Chiller de absorción",
+        "marca": "York",
+        "modelo": "YCAE-1200",
+        "numeroSerie": "YK2023-456",
+        "tipoMantenimiento": "Preventivo",
+        "parametrosAguaHelada": {
+            "tempInyeccionAgua": "22",
+            "tempRetornoAgua": "28",
+            "tipoEnfriamiento": "Aire"
+        },
+        "parametrosAguaCondensador": {
+            "tempInyeccionAgua": "30",
+            "tempRetornoAgua": "35",
+            "tipoEnfriamiento": "Aire"
+        },
+        "observaciones": "Mantenimiento preventivo completado exitosamente. Se reemplazaron filtros de aire y se verificó el funcionamiento de todos los componentes principales.",
+        "fotos": [
+            "https://via.placeholder.com/150",
+            "https://via.placeholder.com/150",
+            "https://via.placeholder.com/150",
+            "https://via.placeholder.com/150",
+            "https://via.placeholder.com/150"
+        ],
+        "firmaResponsable": "https://via.placeholder.com/150",
+        "firmaCliente": "https://via.placeholder.com/150"
+    }
+]
