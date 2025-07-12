@@ -26,6 +26,10 @@ export const routes: Routes = [
                 loadComponent: () => import('./pages/search/search').then(m => m.Search)
             },
             {
+                path: 'report-add',
+                loadComponent: () => import('./pages/report-add/report-add').then(m => m.ReportAdd)
+            },
+            {
                 path: '',
                 redirectTo: 'home',
                 pathMatch: 'full'

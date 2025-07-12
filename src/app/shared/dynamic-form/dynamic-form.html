@@ -1,0 +1,40 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="">
+    <ng-container *ngFor="let field of fields">
+        <div class="space-y-1 mb-4">
+            <label class="block font-semibold text-dark ">
+                {{ field.label }}
+            </label>
+
+            <ng-container [ngSwitch]="field.type">
+                <!-- Text input -->
+                <input *ngSwitchCase="'text'" type="text" [formControlName]="field.name"
+                    class="w-full border p-2 rounded" />
+
+                <!-- Number input -->
+                <input *ngSwitchCase="'number'" type="number" [formControlName]="field.name"
+                    class="w-full border p-2 rounded" />
+
+                <!-- Select input -->
+                <select *ngSwitchCase="'select'" [formControlName]="field.name" class="w-full border p-2 rounded">
+                    <option *ngFor="let option of field.options" [value]="option">{{ option }}</option>
+                </select>
+
+                <!-- DateTime input -->
+                <input *ngSwitchCase="'datetime-local'" type="datetime-local" [formControlName]="field.name"
+                    class="w-full border p-2 rounded" />
+
+                <!-- Image picker (componente personalizado) -->
+                <app-image-picker *ngSwitchCase="'image'" [formControlName]="field.name"
+                    [placeholder]="field.label"></app-image-picker>
+
+                <!-- Unsupported type -->
+                <div *ngSwitchDefault class="text-red-600">Tipo no soportado: {{ field.type }}</div>
+            </ng-container>
+        </div>
+    </ng-container>
+
+
+    <button type="submit" class="bg-primary text-white px-4 py-2 rounded w-full">
+        Enviar
+    </button>
+</form>
