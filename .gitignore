@@ -1,15 +1,37 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# === Angular ===
 
 # Compiled output
-/dist
-/tmp
-/out-tsc
-/bazel-out
+/frontend/dist
+/frontend/tmp
+/frontend/out-tsc
+/frontend/bazel-out
 
-# Node
-/node_modules
-npm-debug.log
-yarn-error.log
+# Angular Cache
+/frontend/.angular/cache
+/frontend/sass-cache/
+
+# Node 
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Logs
+logs
+*.log
+
+# Test coverage
+coverage
+/typings
+testem.log
+
+# System files
+.DS_Store
+Thumbs.db
+libpeerconnection.log
+connect.lock
 
 # IDEs and editors
 .idea/
@@ -20,19 +42,40 @@ yarn-error.log
 .settings/
 *.sublime-workspace
 
-# Visual Studio Code
+# VS Code
 .vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 
+---
 
-# Miscellaneous
-/.angular/cache
-.sass-cache/
-/connect.lock
-/coverage
-/libpeerconnection.log
-testem.log
-/typings
+# === NestJS ===
 
-# System files
-.DS_Store
-Thumbs.db
+# Build outputs
+/backend/dist
+/backend/build
+
+# Tests
+/.nyc_output
+
+# dotenv files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Temp
+.temp
+.tmp
