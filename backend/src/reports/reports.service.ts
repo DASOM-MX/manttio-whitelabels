@@ -1,15 +1,23 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable prettier/prettier */
 import { Injectable } from '@nestjs/common';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
+import { ReportsRepository } from './repositories/reports.repository';
 
 @Injectable()
 export class ReportsService {
-  create(createReportDto: CreateReportDto) {
-    return 'This action adds a new report';
+  constructor(private readonly repo: ReportsRepository) { }
+  create(dto: CreateReportDto) {
+    return this.repo.create(dto);
   }
 
   findAll() {
-    return `This action returns all reports`;
+    return this.repo.findAll();
+  }
+
+  findByUser(userId: string) {
+    return this.repo.findByUser(userId);
   }
 
   findOne(id: number) {
