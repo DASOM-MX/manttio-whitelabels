@@ -8,13 +8,16 @@ import {
   Patch,
   Param,
   Delete,
-  Query
+  Query,
+  UseGuards
 } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('reports')
+@UseGuards(JwtAuthGuard)
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) { }
 

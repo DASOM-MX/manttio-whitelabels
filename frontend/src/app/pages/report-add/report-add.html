@@ -1,7 +1,14 @@
 <div class="min-h-screen flex items-center justify-center bg-surface p-4">
 
+
+
     <div class="max-w-xl mx-auto p-6 bg-white shadow-md rounded-xl w-full">
+        <select id="customer" name="customer_id" [(ngModel)]="selectedCustomerId">
+            <option *ngFor="let customer of customers" [value]="customer.id">
+                {{ customer.name }} - {{ customer.identification }}
+            </option>
+        </select>
         <h2 class="text-xl font-bold mb-4">Nuevo Reporte</h2>
-        <app-dynamic-form [fields]="formFields"></app-dynamic-form>
+        <app-dynamic-form [fields]="formFields" (submitForm)="onFormSubmit($event)"></app-dynamic-form>
     </div>
 </div>

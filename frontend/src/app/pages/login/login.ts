@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { HlmInputDirective } from '@spartan-ng/helm/input';
 import { Router } from '@angular/router';
 import { Register } from '../register/register';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-login',
@@ -21,7 +22,7 @@ export class Login {
   loginForm;
   showRegister = false;
 
-  constructor(private fb: FormBuilder, private router: Router) {
+  constructor(private fb: FormBuilder, private router: Router, private http: HttpClient) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
@@ -31,8 +32,25 @@ export class Login {
   onSubmit() {
     if (this.loginForm.valid) {
       const { email, password } = this.loginForm.value;
-      console.log('Datos del login:', email, password);
-      this.router.navigate(['/reports']);
+
+      this.http.post('http://localhost:3000/auth/login', { email, password })
+        .subscribe({
+          next: (response: any) => {
+            console.log('Login exitoso', response);
+
+            //Guardar el token
+            localStorage.setItem('token', response.token)
+            //redirigir
+            this.router.navigate(['/reports']);
+
+          },
+          error: (error) => {
+            console.error('Error al iniciar sesión', error);
+            alert('Credenciales invalidas');
+          }
+        })
+
+      //console.log('Datos del login:', email, password);
     }
   }
 

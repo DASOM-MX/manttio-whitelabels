@@ -10,5 +10,9 @@ import { UserJsonRepository } from './repositories/user-json.repository';
     UserService,
     { provide: UserRepository, useClass: UserJsonRepository },
   ],
+  exports: [
+    UserService,
+    UserRepository
+  ]
 })
 export class UserModule { }

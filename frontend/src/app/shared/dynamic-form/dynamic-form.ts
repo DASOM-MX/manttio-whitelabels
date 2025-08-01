@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, inject } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { FieldConfig } from './models/field-config.model';
@@ -24,7 +24,13 @@ export class DynamicForm implements OnInit {
     this.form = this.fb.group(group);
   }
 
+  ///
+  @Output() submitForm = new EventEmitter<any>();
+
   onSubmit() {
+    if (this.form.valid) {
+      this.submitForm.emit(this.form.value);
+    }
     console.log('Formulario enviado:', this.form.value);
   }
 }

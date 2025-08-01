@@ -22,7 +22,7 @@ export class Reports {
         console.log('Datos recibidos:', data);
 
         this.reports = data;
-        this.cdr.detectChanges(); // 👈 IMPORTANTE
+        this.cdr.detectChanges();
 
       });
   }
