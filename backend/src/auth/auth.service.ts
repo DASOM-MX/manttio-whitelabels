@@ -33,7 +33,7 @@ export class AuthService {
         return { user, token };
     }
 
-    async validateUser(userId: string) {
+    async validateUser(userId: number) {
         return this.usersRepo.findOne(userId);
     }
 }
