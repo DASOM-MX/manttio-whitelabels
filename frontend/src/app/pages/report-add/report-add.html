@@ -9,6 +9,8 @@
             </option>
         </select>
         <h2 class="text-xl font-bold mb-4">Nuevo Reporte</h2>
-        <app-dynamic-form [fields]="formFields" (submitForm)="onFormSubmit($event)"></app-dynamic-form>
+        <app-dynamic-form [fields]="formFields" (submitForm)="onFormSubmit($event)"
+            (filesSelected)="onFilesSelected($event)"></app-dynamic-form>
+
     </div>
 </div>

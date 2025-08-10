@@ -9,12 +9,15 @@ import {
   Param,
   Delete,
   Query,
-  UseGuards
+  UseGuards,
+  UseInterceptors,
+  UploadedFiles
 } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('reports')
 @UseGuards(JwtAuthGuard)
@@ -22,9 +25,13 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) { }
 
   @Post()
-  create(@Body() dto: CreateReportDto) {
-    return this.reportsService.create(dto);
+  @UseInterceptors(FilesInterceptor('pictures'))
+  async create(@UploadedFiles() files: Express.Multer.File[], @Body() dto: CreateReportDto) {
+    console.log("Verifying files:", files);
+    console.log(files);
+    return await this.reportsService.create(dto, files);
   }
+
 
   @Get()
   findAll(@Query('userId') userId?: string) {

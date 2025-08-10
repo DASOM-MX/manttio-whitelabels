@@ -12,6 +12,7 @@ import { ImagePickerComponent } from '../../components/image-picker/image-picker
 })
 export class DynamicForm implements OnInit {
   @Input() fields: FieldConfig[] = [];
+  @Output() filesSelected = new EventEmitter<File[]>();
 
   form!: FormGroup;
   private fb = inject(FormBuilder);
@@ -32,5 +33,11 @@ export class DynamicForm implements OnInit {
       this.submitForm.emit(this.form.value);
     }
     console.log('Formulario enviado:', this.form.value);
+  }
+
+
+
+  onFilesSelected(files: File[]) {
+    this.filesSelected.emit(files);
   }
 }

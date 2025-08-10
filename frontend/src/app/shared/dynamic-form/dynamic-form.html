@@ -24,7 +24,7 @@
                     class="w-full border p-2 rounded" />
 
                 <!-- Image picker (componente personalizado) -->
-                <app-image-picker *ngSwitchCase="'image'" [formControlName]="field.name"
+                <app-image-picker *ngSwitchCase="'image'" (filesSelected)="onFilesSelected($event)"
                     [placeholder]="field.label"></app-image-picker>
 
                 <!-- Unsupported type -->

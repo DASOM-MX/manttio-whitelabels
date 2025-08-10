@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ReportsService } from '../../../services/reports';
 import { jwtDecode } from 'jwt-decode';
+import { HttpClient } from '@angular/common/http';
 
 interface JwtPayload {
   sub: string;
@@ -22,8 +23,11 @@ interface JwtPayload {
 export class ReportAdd implements OnInit {
   selectedCustomerId: string = '';
   customers: Customer[] = [];
+  selectedFiles: File[] = [];
 
-  constructor(private customersService: CustomersService, private reportsService: ReportsService) { }
+  constructor(private customersService: CustomersService,
+    private reportsService: ReportsService,
+    private http: HttpClient) { }
 
   ngOnInit(): void {
     this.customersService.getCustomers().subscribe({
@@ -38,7 +42,17 @@ export class ReportAdd implements OnInit {
   }
 
 
-  onFormSubmit(formData: any) {
+  onFileSelect(event: any) {
+    if (event.target.files && event.target.files.length > 0) {
+      //this.selectedFiles = event.target.files[0];
+      this.selectedFiles = Array.from(event.target.files);
+      console.log('Archivos seleccionados:', this.selectedFiles);
+
+    }
+  }
+
+
+  async onFormSubmit(formData: any) {
     const token = localStorage.getItem('token');
     let userId = ''
     if (token) {
@@ -46,25 +60,31 @@ export class ReportAdd implements OnInit {
       userId = decoded.sub;
       console.log('User ID del token:', userId);
     }
-    // const userId = localStorage.getItem('userId');
-    //console.log(userId);
+
     const customerId = this.selectedCustomerId;
     console.log(customerId);
 
-    //const toBool = (val: string) => val === 'Sí';
+    const fd = new FormData();
+    Object.keys(formData).forEach(key => {
+      fd.append(key, formData[key]);
+    });
+
+    fd.append('user_id', userId);
+    fd.append('client_id', this.selectedCustomerId);
 
 
-    const reportData = {
-      ...formData,
-      user_id: userId,
-      client_id: customerId,
-      // is_operating: toBool(formData.is_operating),
-      //remote_working: toBool(formData.remote_working),
-      //filter: toBool(formData.filter),
-      //unusual_noise: toBool(formData.unusual_noise),
-    };
 
-    this.reportsService.createReport(reportData).subscribe({
+
+    for (const file of this.selectedFiles) {
+      fd.append('pictures', file); // Mismo nombre que en el interceptor
+    }
+
+    this.http.post('http://localhost:3000/reports', fd, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+
+    }).subscribe({
       next: (res) => {
         console.log('Reporte creado:', res);
         alert('Reporte enviado correctamente');
@@ -73,7 +93,49 @@ export class ReportAdd implements OnInit {
         console.log('Error al crear reporte', err);
         alert('Error al enviar reporte');
       }
-    })
+    });
+
+    //----------------
+
+    // let imageUrl = ' ';
+    // if (this.selectedFile) {
+    //   const fd = new FormData();
+    //   fd.append('file', this.selectedFile);
+
+    //   const uploadRes: any = await this.http
+    //     .post('http://localhost:3000/upload/image', fd)
+    //     .toPromise();
+    //   imageUrl = uploadRes.url;
+    // }
+
+    // //const toBool = (val: string) => val === 'Sí';
+
+
+    // const reportData = {
+    //   ...formData,
+    //   user_id: userId,
+    //   client_id: customerId,
+    //   pictures: imageUrl
+    //   // is_operating: toBool(formData.is_operating),
+    //   //remote_working: toBool(formData.remote_working),
+    //   //filter: toBool(formData.filter),
+    //   //unusual_noise: toBool(formData.unusual_noise),
+    // };
+
+    // //reportData.append('file')
+
+    // this.reportsService.createReport(reportData).subscribe({
+    //   next: (res) => {
+    //     console.log('Reporte creado:', res);
+    //     alert('Reporte enviado correctamente');
+    //   },
+    //   error: (err) => {
+    //     console.log('Error al crear reporte', err);
+    //     alert('Error al enviar reporte');
+    //   }
+    // })
+
+    //---------------
   }
 
   formFields: FieldConfig[] = [

@@ -1,15 +1,23 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable prettier/prettier */
 import { Injectable } from '@nestjs/common';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
 import { ReportsRepository } from './repositories/reports.repository';
+import { UploadService } from '../storage/upload.service';
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly repo: ReportsRepository) { }
-  create(dto: CreateReportDto) {
-    return this.repo.create(dto);
+  constructor(private readonly repo: ReportsRepository, private readonly uploadService: UploadService) { }
+
+  async create(dto: CreateReportDto, files: Express.Multer.File[]) {
+    const pictureUrls = await this.uploadService.uploadFiles(files);
+    dto.pictures = pictureUrls;
+    const report = await this.repo.create(dto);
+    return report;
   }
 
   findAll() {
