@@ -51,6 +51,12 @@ export class ReportAdd implements OnInit {
     }
   }
 
+  onFilesSelected(files: File[]) {
+    this.selectedFiles = files;
+    console.log('Archivos recibidos desde formulario:', this.selectedFiles);
+  }
+
+
 
   async onFormSubmit(formData: any) {
     const token = localStorage.getItem('token');
@@ -211,7 +217,7 @@ export class ReportAdd implements OnInit {
     },
     {
       type: 'image',
-      label: 'Foto 1',
+      label: 'Fotos',
       name: 'pictures',
       defaultValue: ''
     }

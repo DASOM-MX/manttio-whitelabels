@@ -24,8 +24,7 @@
                     class="w-full border p-2 rounded" />
 
                 <!-- Image picker (componente personalizado) -->
-                <app-image-picker *ngSwitchCase="'image'" (filesSelected)="onFilesSelected($event)"
-                    [placeholder]="field.label"></app-image-picker>
+                <app-image-picker *ngSwitchCase="'image'" (filesSelected)="onFilesSelected($event)"></app-image-picker>
 
                 <!-- Unsupported type -->
                 <div *ngSwitchDefault class="text-red-600">Tipo no soportado: {{ field.type }}</div>

@@ -3,12 +3,21 @@
 
 
     <div class="max-w-xl mx-auto p-6 bg-white shadow-md rounded-xl w-full">
-        <select id="customer" name="customer_id" [(ngModel)]="selectedCustomerId">
-            <option *ngFor="let customer of customers" [value]="customer.id">
-                {{ customer.name }} - {{ customer.identification }}
-            </option>
-        </select>
         <h2 class="text-xl font-bold mb-4">Nuevo Reporte</h2>
+        <div class="space-y-1 mb-4">
+
+            <label class="block font-semibold text-dark">
+                Cliente
+            </label>
+            <select id="customer" name="customer_id" [(ngModel)]="selectedCustomerId" class="w-full border p-2 rounded">
+                <option *ngFor="let customer of customers" [value]="customer.id">
+                    {{ customer.name }} - {{ customer.identification }}
+                </option>
+            </select>
+
+        </div>
+
+
         <app-dynamic-form [fields]="formFields" (submitForm)="onFormSubmit($event)"
             (filesSelected)="onFilesSelected($event)"></app-dynamic-form>
 
