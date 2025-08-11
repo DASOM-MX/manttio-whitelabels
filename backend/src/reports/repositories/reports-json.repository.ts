@@ -25,7 +25,7 @@ export class ReportsJsonRepository implements ReportsRepository {
         const report: Report = {
             id: uuid(), manttio_type: dto.manttio_type, date_arrival: dto.date_arrival, date_departure: dto.date_departure, user_id: dto.user_id, client_id: dto.client_id,
             is_operating: dto.is_operating, remote_working: dto.remote_working, amperage: dto.amperage, filter: dto.filter, inner_voltage: dto.inner_voltage,
-            unusual_noise: dto.unusual_noise, observations: dto.observations, pictures: dto.pictures
+            unusual_noise: dto.unusual_noise, observations: dto.observations, pictures: dto.pictures, signature: dto.signature
         };
         this.reports.push(report);
         return report;

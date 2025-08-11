@@ -28,6 +28,12 @@
 
                 <!-- Unsupported type -->
                 <div *ngSwitchDefault class="text-red-600">Tipo no soportado: {{ field.type }}</div>
+
+                <app-signature *ngSwitchCase="'signature'"
+                    (signatureChanged)="onSignatureChanged($event)"></app-signature>
+
+
+
             </ng-container>
         </div>
     </ng-container>

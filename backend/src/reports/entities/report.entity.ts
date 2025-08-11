@@ -14,6 +14,7 @@ export interface Report {
     unusual_noise: boolean;
     observations: string;
     pictures: Array<string>;
+    signature: string;
 
 
 

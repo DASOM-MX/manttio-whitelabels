@@ -11,6 +11,7 @@ import { Report } from "../entities/report.entity";
 import { CreateReportDto } from "../dto/create-report.dto";
 import { v4 as uuid } from 'uuid';
 import { db } from "../../../libs/firebase/firebase"; // Adjust the import path as necessary
+import { sign } from "crypto";
 
 @Injectable()
 export class ReportFirestoreRepository implements ReportsRepository {
@@ -52,7 +53,8 @@ export class ReportFirestoreRepository implements ReportsRepository {
             inner_voltage: dto.inner_voltage,
             unusual_noise: dto.unusual_noise,
             observations: dto.observations,
-            pictures: dto.pictures
+            pictures: dto.pictures,
+            signature: dto.signature
         };
         await this.collection.doc(report.id).set(report);
         //this.reports.push(report);

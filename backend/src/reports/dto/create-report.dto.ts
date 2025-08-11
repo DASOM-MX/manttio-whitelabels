@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable prettier/prettier */
+
 export class CreateReportDto {
     manttio_type!: string;
     date_arrival!: Date;
@@ -13,4 +15,6 @@ export class CreateReportDto {
     unusual_noise!: boolean;
     observations!: string;
     pictures!: Array<string>;
+
+    signature!: string;
 }

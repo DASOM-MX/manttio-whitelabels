@@ -24,6 +24,7 @@ export class ReportAdd implements OnInit {
   selectedCustomerId: string = '';
   customers: Customer[] = [];
   selectedFiles: File[] = [];
+  signatureFile: File | null = null;
 
   constructor(private customersService: CustomersService,
     private reportsService: ReportsService,
@@ -56,6 +57,24 @@ export class ReportAdd implements OnInit {
     console.log('Archivos recibidos desde formulario:', this.selectedFiles);
   }
 
+  onSignatureChange(file: File) {
+    this.signatureFile = file;
+    console.log('Firma capturada2:', file);
+  }
+
+
+  private dataURLtoFile(dataURL: string, filename: string): File {
+    const arr = dataURL.split(',');
+    const mime = arr[0].match(/:(.*?);/)![1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+
+  }
 
 
   async onFormSubmit(formData: any) {
@@ -72,17 +91,26 @@ export class ReportAdd implements OnInit {
 
     const fd = new FormData();
     Object.keys(formData).forEach(key => {
-      fd.append(key, formData[key]);
+      if (key === 'signature' && formData[key]) {
+        const file = this.dataURLtoFile(formData[key], `signature-${Date.now()}.png`);
+        fd.append('signature', file);
+      }
+      else {
+        fd.append(key, formData[key]);
+      }
+
     });
 
     fd.append('user_id', userId);
     fd.append('client_id', this.selectedCustomerId);
 
 
-
-
     for (const file of this.selectedFiles) {
       fd.append('pictures', file); // Mismo nombre que en el interceptor
+    }
+
+    if (this.signatureFile) {
+      fd.append('signature', this.signatureFile); // Mismo nombre que en el interceptor
     }
 
     this.http.post('http://localhost:3000/reports', fd, {
@@ -101,48 +129,14 @@ export class ReportAdd implements OnInit {
       }
     });
 
-    //----------------
-
-    // let imageUrl = ' ';
-    // if (this.selectedFile) {
-    //   const fd = new FormData();
-    //   fd.append('file', this.selectedFile);
-
-    //   const uploadRes: any = await this.http
-    //     .post('http://localhost:3000/upload/image', fd)
-    //     .toPromise();
-    //   imageUrl = uploadRes.url;
-    // }
-
-    // //const toBool = (val: string) => val === 'Sí';
 
 
-    // const reportData = {
-    //   ...formData,
-    //   user_id: userId,
-    //   client_id: customerId,
-    //   pictures: imageUrl
-    //   // is_operating: toBool(formData.is_operating),
-    //   //remote_working: toBool(formData.remote_working),
-    //   //filter: toBool(formData.filter),
-    //   //unusual_noise: toBool(formData.unusual_noise),
-    // };
 
-    // //reportData.append('file')
-
-    // this.reportsService.createReport(reportData).subscribe({
-    //   next: (res) => {
-    //     console.log('Reporte creado:', res);
-    //     alert('Reporte enviado correctamente');
-    //   },
-    //   error: (err) => {
-    //     console.log('Error al crear reporte', err);
-    //     alert('Error al enviar reporte');
-    //   }
-    // })
-
-    //---------------
   }
+
+
+
+
 
   formFields: FieldConfig[] = [
     {
@@ -220,7 +214,16 @@ export class ReportAdd implements OnInit {
       label: 'Fotos',
       name: 'pictures',
       defaultValue: ''
+    },
+
+    {
+      type: 'signature',
+      label: 'Firma',
+      name: 'signature',
+      defaultValue: ''
     }
   ];
+
+
 
 }
