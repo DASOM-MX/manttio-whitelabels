@@ -9,7 +9,7 @@ import { Injectable } from "@nestjs/common";
 import { ReportsRepository } from "./reports.repository";
 import { Report } from "../entities/report.entity";
 import { CreateReportDto } from "../dto/create-report.dto";
-import { v4 as uuid } from 'uuid';
+//import { v4 as uuid } from 'uuid';
 import { db } from "../../../libs/firebase/firebase"; // Adjust the import path as necessary
 
 @Injectable()
@@ -38,8 +38,26 @@ export class ReportFirestoreRepository implements ReportsRepository {
     }
 
     async create(dto: CreateReportDto): Promise<Report> {
+        const today = new Date();
+        const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+        const counterRef = db.collection('counters').doc(`report-${dateStr}`);
+
+        const newNumber = await db.runTransaction(async (transaction) => {
+            const counterDoc = await transaction.get(counterRef);
+            let lastNumber = 0;
+            if (counterDoc.exists) {
+                lastNumber = counterDoc.data()?.lastNumber || 0;
+            }
+            const nextNumber = lastNumber + 1;
+            transaction.set(counterRef, { lastNumber: nextNumber }, { merge: true });
+            return nextNumber;
+        })
+
+        const paddedNumber = String(newNumber).padStart(4, '0');
+        const reportId = `R-${dateStr}-${paddedNumber}`;
+
         const report: Report = {
-            id: uuid(),
+            id: reportId,
             manttio_type: dto.manttio_type,
             date_arrival: dto.date_arrival,
             date_departure: dto.date_departure,
