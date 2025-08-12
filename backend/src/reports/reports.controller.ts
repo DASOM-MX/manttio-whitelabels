@@ -18,6 +18,7 @@ import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { FileFieldsInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import * as sharp from 'sharp';
 
 @Controller('reports')
 @UseGuards(JwtAuthGuard)
@@ -48,7 +49,7 @@ export class ReportsController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.reportsService.findOne(+id);
+    return this.reportsService.findOne(id);
   }
 
   @Patch(':id')

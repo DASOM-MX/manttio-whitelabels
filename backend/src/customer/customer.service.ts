@@ -17,8 +17,8 @@ export class CustomersService {
     return this.repo.findAll();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} customer`;
+  findOne(id: string) {
+    return this.repo.findOne(id);
   }
 
 

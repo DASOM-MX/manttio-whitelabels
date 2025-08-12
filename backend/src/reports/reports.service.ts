@@ -55,8 +55,8 @@ export class ReportsService {
     return this.repo.findByUser(userId);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} report`;
+  findOne(id: string) {
+    return this.repo.findOne(id);
   }
 
   update(id: number, updateReportDto: UpdateReportDto) {

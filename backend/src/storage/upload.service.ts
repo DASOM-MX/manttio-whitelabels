@@ -5,6 +5,7 @@
 import { Injectable } from '@nestjs/common';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { NodeHttpHandler } from "@smithy/node-http-handler";
+import sharp from 'sharp';
 
 import * as https from "https";
 
@@ -48,12 +49,17 @@ export class UploadService {
 
     async uploadFile(file: Express.Multer.File) {
 
+        const compressedBuffer = await sharp(file.buffer)
+            .resize({ width: 1080, withoutEnlargement: true }) // no agranda si es más pequeña
+            .jpeg({ quality: 80 }) // calidad del 0 al 100
+            .toBuffer();
+
         const key = `reports/${Date.now()}-${file.originalname}`;
 
         const command = new PutObjectCommand({
             Bucket: BUCKET_NAME,
             Key: key,
-            Body: file.buffer,
+            Body: compressedBuffer,
             ContentType: file.mimetype,
         });
 

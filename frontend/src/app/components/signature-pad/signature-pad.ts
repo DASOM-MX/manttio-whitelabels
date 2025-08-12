@@ -10,7 +10,7 @@ import SignaturePad from 'signature_pad';
         <button type="button" (click)="saveSignature()" class="bg-primary  rounded text-white font-semibold py-2 px-4">
           Guardar Firma
         </button>
-        <button type="button" (click)="clearSignature()" class="border-2 border-primary   text-dark font-semibold py-2 px-4 rounded">
+        <button type="button" (click)="clearSignature()" class="border-2 border-primary text-primary   text-dark font-semibold py-2 px-4 rounded">
           Limpiar Firma
         </button>
       </div>

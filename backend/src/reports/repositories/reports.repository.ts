@@ -7,4 +7,5 @@ export abstract class ReportsRepository {
     abstract findAll(): Promise<Report[]>;
     abstract findByUser(userId: string): Promise<Report[]>;
     abstract create(dto: CreateReportDto): Promise<Report>;
+    abstract findOne(id: string): Promise<Report | undefined>;
 }

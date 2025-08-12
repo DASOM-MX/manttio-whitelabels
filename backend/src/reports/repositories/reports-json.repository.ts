@@ -30,4 +30,8 @@ export class ReportsJsonRepository implements ReportsRepository {
         this.reports.push(report);
         return report;
     }
+
+    async findOne(id: string): Promise<Report | undefined> {
+        return this.reports.find(r => r.id === id);
+    }
 }

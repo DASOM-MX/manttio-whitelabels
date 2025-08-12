@@ -23,7 +23,7 @@ export class CustomersFirestoreRepository implements CustomersRepository {
         return snapshot.docs.map(doc => doc.data() as Customer);
     }
 
-    async findOne(id: number): Promise<Customer | undefined> {
+    async findOne(id: string): Promise<Customer | undefined> {
         const doc = await this.collection.doc(id.toString()).get();
         return doc.exists ? (doc.data() as Customer) : undefined;
     }

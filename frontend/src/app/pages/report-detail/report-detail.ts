@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
+import { Reports } from '../reports/reports';
 
 @Component({
   selector: 'app-report-detail',
@@ -13,18 +14,42 @@ import { ChangeDetectorRef } from '@angular/core';
 })
 export class ReportDetail implements OnInit {
   report: any = null;
+  customer: any = null;
   constructor(
     private route: ActivatedRoute,
     private http: HttpClient,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
   ) { }
 
-  ngOnInit() {
-    const folio = this.route.snapshot.paramMap.get('folio');
+  ngOnInit(): void {
 
-    this.http.get<any[]>('assets/data.json').subscribe(data => {
-      this.report = data.find(r => r.folio === folio);
-      this.cdr.detectChanges();
-    });
+
+    const id = this.route.snapshot.paramMap.get('id');
+    if (id) {
+      this.http.get(`http://localhost:3000/reports/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+
+      }).subscribe(data => {
+        this.report = data;
+        this.cdr.detectChanges();
+
+
+        this.http.get<any[]>(`http://localhost:3000/customers/${this.report.client_id}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }).subscribe(clients => {
+          console.log('Cliente unico recibido:', clients);
+
+          this.customer = clients;
+          this.cdr.detectChanges();
+
+        });
+
+      })
+    }
+
   }
 }

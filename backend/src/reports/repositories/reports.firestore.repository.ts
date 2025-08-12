@@ -11,7 +11,6 @@ import { Report } from "../entities/report.entity";
 import { CreateReportDto } from "../dto/create-report.dto";
 import { v4 as uuid } from 'uuid';
 import { db } from "../../../libs/firebase/firebase"; // Adjust the import path as necessary
-import { sign } from "crypto";
 
 @Injectable()
 export class ReportFirestoreRepository implements ReportsRepository {

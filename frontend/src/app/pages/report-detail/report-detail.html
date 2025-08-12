@@ -1,39 +1,100 @@
 <div class="min-h-screen flex items-center justify-center bg-surface p-4">
-    <div class="w-full max-w-2xl bg-background border border-secondary rounded-xl shadow-md p-6 space-y-4"
-        *ngIf="report">
-        <h2 class="text-2xl font-bold text-primary">Reporte Folio {{ report.folio }}</h2>
+    <div *ngIf="report" class="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md space-y-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            Detalle del Reporte <span class="text-primary">{{ report.id }}</span>
+        </h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <p><span class="font-semibold text-dark">Fecha:</span> {{ report.fecha }}</p>
-            <p><span class="font-semibold text-dark">Cliente:</span> {{ report.cliente }}</p>
-            <p><span class="font-semibold text-dark">Dirección:</span> {{ report.direccion }}</p>
-            <p><span class="font-semibold text-dark">Responsable:</span> {{ report.responsable }}</p>
-            <p><span class="font-semibold text-dark">Equipo:</span> {{ report.equipo }}</p>
-            <p><span class="font-semibold text-dark">Marca:</span> {{ report.marca }}</p>
-            <p><span class="font-semibold text-dark">Modelo:</span> {{ report.modelo }}</p>
-            <p><span class="font-semibold text-dark">Número Serie:</span> {{ report.numeroSerie }}</p>
-            <p class="md:col-span-2"><span class="font-semibold text-dark">Tipo de mantenimiento:</span> {{
-                report.tipoMantenimiento }}</p>
-            <p class="md:col-span-2"><span class="font-semibold text-dark">Observaciones:</span> {{ report.observaciones
-                }}</p>
+        <!-- Información del cliente -->
+        <div *ngIf="customer" class="bg-gray-50 p-4 rounded-lg shadow-inner">
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Información del Cliente</h3>
+            <p><span class="font-semibold">Nombre:</span> {{ customer.name }}</p>
+            <p><span class="font-semibold">Identificación:</span> {{ customer.identification }}</p>
+            <p><span class="font-semibold">Teléfono:</span> {{ customer.phone }}</p>
+            <p><span class="font-semibold">Email:</span> {{ customer.email }}</p>
         </div>
 
+        <!-- Información del reporte -->
+        <div class="bg-gray-50 p-4 rounded-lg shadow-inner flex flex-col space-y-4">
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Información de las actividades</h3>
+            <div>
+                <p><span class="font-semibold">Tipo:</span> {{ report.manttio_type }}</p>
+                <p><span class="font-semibold">Usuario ID:</span> {{ report.user_id }}</p>
+                <p><span class="font-semibold">Fecha de llegada:</span> {{ report.date_arrival | date:'mediumDate' }}
+                </p>
+                <p><span class="font-semibold">Fecha de salida:</span> {{ report.date_departure | date:'mediumDate' }}
+                </p>
+            </div>
+            <!--Informacion-->
+
+        </div>
+
+        <div class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
+            <!-- Título -->
+            <h3 class="text-lg font-bold text-gray-800 mb-4 text-start">
+                Mantenimiento minisplit
+            </h3>
+
+            <!-- Contenedor de dos columnas -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <p>
+                    <span class="font-semibold">¿Está operando?:</span>
+                    <span [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                        {{ report.is_operating ? 'Sí' : 'No' }}
+                    </span>
+                </p>
+                <p>
+                    <span class="font-semibold">Trabajo remoto:</span>
+                    <span
+                        [class]="report.remote_working ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                        {{ report.remote_working ? 'Sí' : 'No' }}
+                    </span>
+                </p>
+                <p>
+                    <span class="font-semibold">Amperaje:</span> {{ report.amperage }}
+                </p>
+                <p>
+                    <span class="font-semibold">Filtro:</span>
+                    <span [class]="report.filter ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                        {{ report.filter ? 'Sí' : 'No' }}
+                    </span>
+                </p>
+                <p>
+                    <span class="font-semibold">Voltaje interno:</span> {{ report.inner_voltage }}
+                </p>
+                <p>
+                    <span class="font-semibold">Ruido inusual:</span>
+                    <span
+                        [class]="report.unusual_noise ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                        {{ report.unusual_noise ? 'Sí' : 'No' }}
+                    </span>
+                </p>
+            </div>
+        </div>
+
+
+
+        <!-- Observaciones -->
         <div>
-            <h3 class="font-semibold text-dark mt-4 mb-2">Fotos:</h3>
-            <div class="grid grid-cols-3 gap-2">
-                <img *ngFor="let foto of report.fotos" [src]="foto" alt="Foto" class="rounded object-cover w-full" />
+            <h3 class="font-semibold text-gray-800 mb-2">Observaciones</h3>
+            <p class="text-gray-600 whitespace-pre-line">{{ report.observations || 'Ninguna' }}</p>
+        </div>
+
+        <!-- Imágenes -->
+        <div>
+            <h3 class="font-semibold text-gray-800 mb-2">Imágenes</h3>
+            <div class="flex flex-wrap gap-4">
+                <img *ngFor="let pic of report.pictures" [src]="pic" alt="Imagen del reporte"
+                    class="w-32 h-24 object-cover rounded border" />
+                <p *ngIf="!report.pictures || report.pictures.length === 0" class="text-gray-500">No hay imágenes
+                    disponibles.</p>
             </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4 mt-4">
-            <div>
-                <h3 class="font-semibold text-dark">Firma Responsable</h3>
-                <img [src]="report.firmaResponsable" alt="Firma Responsable" class="border rounded w-full" />
-            </div>
-            <div>
-                <h3 class="font-semibold text-dark">Firma Cliente</h3>
-                <img [src]="report.firmaCliente" alt="Firma Cliente" class="border rounded w-full" />
-            </div>
+        <!-- Firma -->
+        <div>
+            <h3 class="font-semibold text-gray-800 mb-2">Firma</h3>
+            <img *ngIf="report.signature" [src]="report.signature" alt="Firma" class="w-48 h-auto border rounded" />
+            <p *ngIf="!report.signature" class="text-gray-500">No hay firma disponible.</p>
         </div>
     </div>
 </div>

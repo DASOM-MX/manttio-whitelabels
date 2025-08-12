@@ -7,6 +7,9 @@ import { CommonModule } from '@angular/common';
 import { ReportsService } from '../../../services/reports';
 import { jwtDecode } from 'jwt-decode';
 import { HttpClient } from '@angular/common/http';
+import { ChangeDetectorRef } from '@angular/core';
+import { ToastService } from '../../../services/toast.service';
+
 
 interface JwtPayload {
   sub: string;
@@ -28,13 +31,18 @@ export class ReportAdd implements OnInit {
 
   constructor(private customersService: CustomersService,
     private reportsService: ReportsService,
-    private http: HttpClient) { }
+    private http: HttpClient,
+    private cdr: ChangeDetectorRef,
+    private toast: ToastService) { }
+
 
   ngOnInit(): void {
     this.customersService.getCustomers().subscribe({
       next: (data) => {
         console.log('Clientes recibidos:', data); // <-- Aquí verificas
         this.customers = data;
+        this.cdr.detectChanges(); // Asegúrate de detectar cambios después de actualizar los clientes
+
       },
       error: (err) => {
         console.error('Error al obtener clientes:', err);
@@ -121,11 +129,14 @@ export class ReportAdd implements OnInit {
     }).subscribe({
       next: (res) => {
         console.log('Reporte creado:', res);
+        this.toast.show('Reporte guardado con éxito', 'success');
+
         alert('Reporte enviado correctamente');
       },
       error: (err) => {
         console.log('Error al crear reporte', err);
-        alert('Error al enviar reporte');
+
+        this.toast.show('Error al enviar reporte', 'error');
       }
     });
 
