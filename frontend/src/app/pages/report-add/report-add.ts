@@ -29,12 +29,86 @@ export class ReportAdd implements OnInit {
   selectedFiles: File[] = [];
   signatureFile: File | null = null;
 
+  reportTypes: ['minisplit', 'chiller', 'uma'] = ['minisplit', 'chiller', 'uma'];
+  selectedReportType = 'minisplit';
+
+  //animating form change
+  isAnimating = false;
+  tempType: string = '';
+
+  formConfigs: { [key: string]: any[] } = {
+    minisplit: [
+      { type: 'text', label: 'Para', name: 'para', defaultValue: '' },
+      { type: 'text', label: 'Tipo de tarea', name: 'manttio_type', defaultValue: '' },
+      { type: 'datetime-local', label: 'Fecha de llegada', name: 'date_arrival', defaultValue: '' },
+      { type: 'datetime-local', label: 'Fecha de salida', name: 'date_departure', defaultValue: '' },
+      { type: 'select', label: '¿Equipo se encuentra operando?', name: 'is_operating', defaultValue: '', options: ['Sí', 'No'] },
+      { type: 'select', label: '¿Control remoto funciona?', name: 'remote_working', defaultValue: '', options: ['Sí', 'No'] },
+      { type: 'number', label: 'Amperaje general', name: 'amperage', defaultValue: '' },
+      { type: 'select', label: '¿Cuenta con filtro de evaporador?', name: 'filter', defaultValue: '', options: ['Sí', 'No'] },
+      { type: 'number', label: 'Voltaje de entrada', name: 'inner_voltage', defaultValue: '' },
+      { type: 'select', label: '¿Ruido fuera de lo normal?', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
+      { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
+      { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
+      { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' }
+    ],
+    chiller: [
+      { type: 'text', label: 'Para', name: 'para', defaultValue: '' },
+      { type: 'text', label: 'Tipo de tarea', name: 'manttio_type', defaultValue: '' },
+      { type: 'datetime-local', label: 'Fecha de llegada', name: 'date_arrival', defaultValue: '' },
+      { type: 'datetime-local', label: 'Fecha de salida', name: 'date_departure', defaultValue: '' },
+      { type: 'select', label: '¿Equipo se encuentra operando?', name: 'is_operating', defaultValue: '', options: ['Sí', 'No'] },
+      { type: 'text', label: 'Temperatura interiorrr', name: 'inner_temperature', defaultValue: '' },
+      { type: 'text', label: 'Temperatura exterior', name: 'outer_temperature', defaultValue: '' },
+      { type: 'text', label: 'Voltaje interior', name: 'inner_voltage', defaultValue: '' },
+      { type: 'select', label: '¿PLC funciona?', name: 'plc_keys_working', defaultValue: '', options: ['Sí', 'No'] },
+      { type: 'text', label: 'Amperaje del motor', name: 'motor_amperage', defaultValue: '' },
+      { type: 'text', label: 'Presión del sistema', name: 'system_pressure_1', defaultValue: '' },
+      { type: 'text', label: 'Presión del sistema', name: 'system_pressure_2', defaultValue: '' },
+      { type: 'text', label: 'Presión del sistema', name: 'system_pressure_3', defaultValue: '' },
+      { type: 'text', label: 'Presión de aceite', name: 'oil_pressure', defaultValue: '' },
+      { type: 'text', label: 'Nivel de aceite', name: 'oil_level', defaultValue: '' },
+      { type: 'select', label: 'Switch de flujo funciona', name: 'flux_switch_working', defaultValue: '', options: ['Sí', 'No'] },
+      { type: 'select', label: 'Ruido inusual', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
+      { type: 'select', label: 'Observaciones', name: 'observations', defaultValue: '' }
+    ],
+
+    uma: [
+      { type: 'text', label: 'Para', name: 'para', defaultValue: '' },
+      { type: 'select', label: '¿Se ajusto la banda?', name: 'air_band_adjustment', defaultValue: '', options: ['Sí', 'No'] },
+
+    ]
+
+  }
+
+
   constructor(private customersService: CustomersService,
     private reportsService: ReportsService,
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
     private toast: ToastService) { }
 
+  get formFields() {
+    return this.formConfigs[this.selectedReportType];
+  }
+
+  animateFormChange() {
+    this.isAnimating = true;
+
+    setTimeout(() => {
+      this.isAnimating = false;
+    }, 500);
+  }
+
+  onReportTypeChange(newType: string) {
+    this.isAnimating = true;
+    this.tempType = newType;
+
+    setTimeout(() => {
+      this.selectedReportType = this.tempType;
+      this.isAnimating = false;
+    }, 500);
+  }
 
   ngOnInit(): void {
     this.customersService.getCustomers().subscribe({
@@ -142,98 +216,97 @@ export class ReportAdd implements OnInit {
 
 
 
-
   }
 
 
 
 
 
-  formFields: FieldConfig[] = [
-    {
-      type: 'text',
-      label: 'Para',
-      name: 'para',
-      defaultValue: ''
-    },
-    {
-      type: 'text',
-      label: 'Tipo de tarea',
-      name: 'manttio_type',
-      defaultValue: 'Mantenimiento Preventivo'
-    },
-    {
-      type: 'datetime-local',
-      label: 'Fecha de llegada',
-      name: 'date_arrival',
-      defaultValue: ''
-    },
-    {
-      type: 'datetime-local',
-      label: 'Fecha de salida',
-      name: 'date_departure',
-      defaultValue: ''
-    },
-    {
-      type: 'select',
-      label: '¿Equipo se encuentra operando?',
-      name: 'is_operating',
-      defaultValue: '',
-      options: ['Sí', 'No']
-    },
-    {
-      type: 'select',
-      label: '¿Control remoto funciona?',
-      name: 'remote_working',
-      defaultValue: '',
-      options: ['Sí', 'No']
-    },
-    {
-      type: 'number',
-      label: 'Amperaje general',
-      name: 'amperage',
-      defaultValue: ''
-    },
-    {
-      type: 'select',
-      label: '¿Cuenta con filtro de evaporador?',
-      name: 'filter',
-      defaultValue: '',
-      options: ['Sí', 'No']
-    },
-    {
-      type: 'number',
-      label: 'Voltaje de entrada',
-      name: 'inner_voltage',
-      defaultValue: ''
-    },
-    {
-      type: 'select',
-      label: '¿Ruido fuera de lo normal?',
-      name: 'unusual_noise',
-      defaultValue: '',
-      options: ['Sí', 'No']
-    },
-    {
-      type: 'text',
-      label: 'Observaciones',
-      name: 'observations',
-      defaultValue: ''
-    },
-    {
-      type: 'image',
-      label: 'Fotos',
-      name: 'pictures',
-      defaultValue: ''
-    },
+  // formFields: FieldConfig[] = [
+  //   {
+  //     type: 'text',
+  //     label: 'Para',
+  //     name: 'para',
+  //     defaultValue: ''
+  //   },
+  //   {
+  //     type: 'text',
+  //     label: 'Tipo de tarea',
+  //     name: 'manttio_type',
+  //     defaultValue: 'Mantenimiento Preventivo'
+  //   },
+  //   {
+  //     type: 'datetime-local',
+  //     label: 'Fecha de llegada',
+  //     name: 'date_arrival',
+  //     defaultValue: ''
+  //   },
+  //   {
+  //     type: 'datetime-local',
+  //     label: 'Fecha de salida',
+  //     name: 'date_departure',
+  //     defaultValue: ''
+  //   },
+  //   {
+  //     type: 'select',
+  //     label: '¿Equipo se encuentra operando?',
+  //     name: 'is_operating',
+  //     defaultValue: '',
+  //     options: ['Sí', 'No']
+  //   },
+  //   {
+  //     type: 'select',
+  //     label: '¿Control remoto funciona?',
+  //     name: 'remote_working',
+  //     defaultValue: '',
+  //     options: ['Sí', 'No']
+  //   },
+  //   {
+  //     type: 'number',
+  //     label: 'Amperaje general',
+  //     name: 'amperage',
+  //     defaultValue: ''
+  //   },
+  //   {
+  //     type: 'select',
+  //     label: '¿Cuenta con filtro de evaporador?',
+  //     name: 'filter',
+  //     defaultValue: '',
+  //     options: ['Sí', 'No']
+  //   },
+  //   {
+  //     type: 'number',
+  //     label: 'Voltaje de entrada',
+  //     name: 'inner_voltage',
+  //     defaultValue: ''
+  //   },
+  //   {
+  //     type: 'select',
+  //     label: '¿Ruido fuera de lo normal?',
+  //     name: 'unusual_noise',
+  //     defaultValue: '',
+  //     options: ['Sí', 'No']
+  //   },
+  //   {
+  //     type: 'text',
+  //     label: 'Observaciones',
+  //     name: 'observations',
+  //     defaultValue: ''
+  //   },
+  //   {
+  //     type: 'image',
+  //     label: 'Fotos',
+  //     name: 'pictures',
+  //     defaultValue: ''
+  //   },
 
-    {
-      type: 'signature',
-      label: 'Firma',
-      name: 'signature',
-      defaultValue: ''
-    }
-  ];
+  //   {
+  //     type: 'signature',
+  //     label: 'Firma',
+  //     name: 'signature',
+  //     defaultValue: ''
+  //   }
+  // ];
 
 
 
