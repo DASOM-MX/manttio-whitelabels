@@ -1,19 +1,15 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable prettier/prettier */
 
-export class CreateReportDto {
-    manttio_type!: string;
+export class BaseReportDto {
+
+    manttio_type!: string; // Assuming this is a typo in the original code, it should match manttio_type
+    report_type!: 'minisplit' | 'chiller' | 'uma';
+
     date_arrival!: Date;
     date_departure!: Date;
     user_id!: string;
     client_id!: string;
-    is_operating!: boolean;
-    remote_working!: boolean;
-    amperage!: string;
-    filter!: boolean;
-    inner_voltage!: string;
-    unusual_noise!: boolean;
-    observations!: string;
     pictures!: Array<string>;
     signature!: string;
 }

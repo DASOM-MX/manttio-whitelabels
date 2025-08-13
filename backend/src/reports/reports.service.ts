@@ -8,24 +8,30 @@ import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
 import { ReportsRepository } from './repositories/reports.repository';
 import { UploadService } from '../storage/upload.service';
+import { MinisplitReport } from './entities/minisplit-report.entity';
+import { MinisplitReportDto } from './dto/minisplit-report.dto';
+import { ChillerReportDto } from './dto/chiller-report.dto';
+import { UmaReportDto } from './dto/uma-report.dto';
 
 @Injectable()
 export class ReportsService {
   constructor(private readonly repo: ReportsRepository, private readonly uploadService: UploadService) { }
 
-  async create(dto: CreateReportDto, files: Express.Multer.File[], signature: Express.Multer.File | null) {
+  async create(dto: MinisplitReportDto | ChillerReportDto | UmaReportDto, files: Express.Multer.File[], signature: Express.Multer.File | null) {
+
+    const dtoWithCommon = dto as { pictures?: string[], signature?: string };
 
     //Subir imagenes 
     const pictureUrls = await this.uploadService.uploadFiles(files);
-    dto.pictures = pictureUrls;
+    dtoWithCommon.pictures = pictureUrls;
 
     //Subir firma
     if (signature) {
       const signatureUrl = await this.uploadService.uploadFile(signature);
-      dto.signature = signatureUrl;
-    } else if (dto.signature && dto.signature.startsWith('data:image')) {
+      dtoWithCommon.signature = signatureUrl;
+    } else if (dtoWithCommon.signature && dtoWithCommon.signature.startsWith('data:image')) {
       // Caso: firma enviada en Base64 desde el front
-      const base64Data = dto.signature.split(',')[1];
+      const base64Data = dtoWithCommon.signature.split(',')[1];
       const buffer = Buffer.from(base64Data, 'base64');
       const signatureFile: Express.Multer.File = {
         fieldname: 'signature',
@@ -40,7 +46,7 @@ export class ReportsService {
         path: ''
 
       };
-      dto.signature = await this.uploadService.uploadFile(signatureFile);
+      dtoWithCommon.signature = await this.uploadService.uploadFile(signatureFile);
     }
 
     const report = await this.repo.create(dto);

@@ -19,6 +19,9 @@ import { UpdateReportDto } from './dto/update-report.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { FileFieldsInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import * as sharp from 'sharp';
+import { MinisplitReportDto } from './dto/minisplit-report.dto';
+import { ChillerReportDto } from './dto/chiller-report.dto';
+import { UmaReportDto } from './dto/uma-report.dto';
 
 @Controller('reports')
 @UseGuards(JwtAuthGuard)
@@ -29,11 +32,14 @@ export class ReportsController {
   @UseInterceptors(FileFieldsInterceptor([
     { name: 'pictures', maxCount: 3 },
     { name: 'signature', maxCount: 1 }]))
-  async create(@UploadedFiles() files: { pictures?: Express.Multer.File[], signature?: Express.Multer.File[] }, @Body() dto: CreateReportDto) {
+  async create(@UploadedFiles() files: { pictures?: Express.Multer.File[], signature?: Express.Multer.File[] },
+    @Body() dto: MinisplitReportDto | ChillerReportDto | UmaReportDto) {
     console.log("Verifying files:", files);
     console.log(files);
 
+
     const pictures = files.pictures || [];
+    console.log("Pictures:", pictures);
     const signature = files.signature && files.signature.length > 0 ? files.signature[0] : null;
     return await this.reportsService.create(dto, pictures, signature);
   }
