@@ -128,7 +128,7 @@ export class ReportFirestoreRepository implements ReportsRepository {
                     observations: dto.observations
                 } as BaseReport;
                 break;
-            default: throw new Error(`Unknown manttio type`);
+            default: throw new Error(`Unknown report type`);
 
         }
 
