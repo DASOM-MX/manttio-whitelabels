@@ -34,6 +34,7 @@ export class ReportDetail implements OnInit {
       }).subscribe(data => {
         this.report = data;
         this.cdr.detectChanges();
+        console.log(data)
 
 
         this.http.get<any[]>(`http://localhost:3000/customers/${this.report.client_id}`, {

@@ -2,6 +2,8 @@ import { Component } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { HlmInputDirective } from '@spartan-ng/helm/input';
+import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-register',
@@ -13,7 +15,9 @@ import { HlmInputDirective } from '@spartan-ng/helm/input';
 export class Register {
   registerForm;
 
-  constructor(private fb: FormBuilder) {
+  constructor(private fb: FormBuilder,
+    private http: HttpClient,
+    private router: Router) {
     this.registerForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
@@ -37,6 +41,24 @@ export class Register {
       const { email, password, confirmPassword } = this.registerForm.value;
       console.log('Datos del registro:', { email, password, confirmPassword });
       // Aquí se debe llamar al servicio de registro
+
+
+      this.http.post('http://localhost:3000/auth/register', {
+        email, password
+      })
+        .subscribe({
+          next: (response: any) => {
+            console.log('Registro exitoso', response);
+
+            //Guardar token
+            //localStorage.setItem('token', response.token)
+            this.router.navigate(['/reports']);
+          },
+          error: (error) => {
+            console.error('Error al registrar usuario', error);
+            alert('Credenciales invalidas')
+          }
+        })
     }
   }
 

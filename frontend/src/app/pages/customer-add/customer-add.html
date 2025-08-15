@@ -1,0 +1,9 @@
+<div class="min-h-screen flex items-center justify-center bg-surface p-4">
+    <div class="max-w-xl mx-auto p-6 bg-white shadow-md rounded-xl w-full">
+        <h2 class="text-xl font-bold mb-4">Nuevo Cliente</h2>
+
+
+        <app-dynamic-form [fields]="formFields" (submitForm)="onFormSubmit($event)"></app-dynamic-form>
+
+    </div>
+</div>

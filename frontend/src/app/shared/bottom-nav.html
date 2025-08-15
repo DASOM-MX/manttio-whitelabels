@@ -30,16 +30,25 @@
             </a>
         </li>
 
-        <li>
-            <a routerLink="/others" routerLinkActive="text-blue-500" class="flex flex-col items-center py-2">
+        <li class="relative">
+
+            <button (click)="toggleMenu()" class="flex flex-col items-center py-2 focus:outline-none">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
                 </svg>
-
                 <span class="text-xs">Otros</span>
-            </a>
+            </button>
+
+
+            <div *ngIf="showMenu" class="absolute bottom-12 right-0 bg-white text-black rounded-lg shadow-lg w-40 z-50">
+                <a routerLink="/customer-add" class="block px-4 py-2 hover:bg-gray-100">Agregar cliente</a>
+                <a routerLink="/user-add" class="block px-4 py-2 hover:bg-gray-100">Agregar usuario</a>
+                <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Cerrar
+                    sesión</button>
+            </div>
+
         </li>
     </ul>
 </nav>
