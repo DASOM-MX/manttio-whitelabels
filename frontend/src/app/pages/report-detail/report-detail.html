@@ -1,218 +1,227 @@
 <div class="min-h-screen flex items-center justify-center bg-surface p-4">
-    <div *ngIf="report" class="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md space-y-6">
-        <h2 class="text-2xl font-bold text-gray-800 mb-4">
-            Detalle del Reporte <span class="text-primary">{{ report.id }}</span>
-        </h2>
+    <div #pdfContent>
+        <div *ngIf="report" class="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md space-y-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                Detalle del Reporte <span class="text-primary">{{ report.id }}</span>
+            </h2>
 
-        <!-- Información del cliente -->
-        <div *ngIf="customer" class="bg-gray-50 p-4 rounded-lg shadow-inner">
-            <h3 class="text-lg font-bold text-gray-800 mb-2">Información del Cliente</h3>
-            <p><span class="font-semibold">Nombre:</span> {{ customer.name }}</p>
-            <p><span class="font-semibold">Identificación:</span> {{ customer.identification }}</p>
-            <p><span class="font-semibold">Teléfono:</span> {{ customer.phone }}</p>
-            <p><span class="font-semibold">Email:</span> {{ customer.email }}</p>
-        </div>
-
-        <!-- Información del reporte -->
-        <div class="bg-gray-50 p-4 rounded-lg shadow-inner flex flex-col space-y-4">
-            <h3 class="text-lg font-bold text-gray-800 mb-2">Información de las actividades</h3>
-            <div>
-                <p><span class="font-semibold">Tipo:</span> {{ report.manttio_type }}</p>
-                <p><span class="font-semibold">Usuario ID:</span> {{ report.user_id }}</p>
-                <p><span class="font-semibold">Fecha de llegada:</span> {{ report.date_arrival | date:'mediumDate' }}
-                </p>
-                <p><span class="font-semibold">Fecha de salida:</span> {{ report.date_departure | date:'mediumDate' }}
-                </p>
-            </div>
-            <!--Informacion-->
-
-        </div>
-
-        <div *ngIf="report.report_type === 'minisplit'" class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4 ">
-            <!-- Título -->
-            <h3 class="text-lg font-bold text-gray-800 mb-4 text-start">
-                Mantenimiento minisplit
-            </h3>
-
-            <!-- Contenedor de dos columnas -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p>
-                    <span class="font-semibold">¿Está operando?:</span>
-                    <span [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                        {{ report.is_operating ? 'Sí' : 'No' }}
-                    </span>
-                </p>
-                <p>
-                    <span class="font-semibold">Control remoto funcionando:</span>
-                    <span
-                        [class]="report.remote_working ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                        {{ report.remote_working ? 'Sí' : 'No' }}
-                    </span>
-                </p>
-                <p>
-                    <span class="font-semibold">Amperaje:</span> {{ report.amperage }}
-                </p>
-                <p>
-                    <span class="font-semibold">Filtro:</span>
-                    <span [class]="report.filter ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                        {{ report.filter ? 'Sí' : 'No' }}
-                    </span>
-                </p>
-                <p>
-                    <span class="font-semibold">Voltaje interno:</span> {{ report.inner_voltage }}
-                </p>
-                <p>
-                    <span class="font-semibold">Ruido inusual:</span>
-                    <span
-                        [class]="report.unusual_noise ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                        {{ report.unusual_noise ? 'Sí' : 'No' }}
-                    </span>
-                </p>
-            </div>
-        </div>
-
-        <div *ngIf="report.report_type === 'chiller'" class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
-            <!-- Título -->
-            <h3 class="text-lg font-bold text-gray-800 mb-4 text-start">
-                Mantenimiento Chiller
-            </h3>
-
-            <!-- Contenedor de dos columnas -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p>
-                    <span class="font-semibold">¿Está operando?:</span>
-                    <span [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                        {{ report.is_operating ? 'Sí' : 'No' }}
-                    </span>
-                </p>
-                <p>
-                    <span class="font-semibold">Temperatura entrada:</span> {{ report.inner_temperature }}
-                </p>
-                <p>
-                    <span class="font-semibold">Temperatura salida:</span> {{ report.outer_temperature }}
-                </p>
-                <p>
-                    <span class="font-semibold">Voltaje interno:</span> {{ report.inner_voltage }}
-                </p>
-                <p>
-                    <span class="font-semibold">PLC funcionando:</span>
-                    <span
-                        [class]="report.plc_keys_working ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                        {{ report.plc_keys_working ? 'Sí' : 'No' }}
-                    </span>
-                </p>
-                <p>
-                    <span class="font-semibold">Amperaje motor:</span> {{ report.motor_amperage }}
-                </p>
-                <p>
-                    <span class="font-semibold">Presión sistema 1:</span> {{ report.system_pressure_1 }}
-                </p>
-                <p>
-                    <span class="font-semibold">Presión sistema 2:</span> {{ report.system_pressure_2 }}
-                </p>
-                <p>
-                    <span class="font-semibold">Presión sistema 3:</span> {{ report.system_pressure_3 }}
-                </p>
-                <p>
-                    <span class="font-semibold">Presión aceite:</span> {{ report.oil_pressure }}
-                </p>
-                <p>
-                    <span class="font-semibold">Nivel de aceite:</span> {{ report.oil_level }}
-                </p>
-                <p>
-                    <span class="font-semibold">Switch de flujo funcionando:</span>
-                    <span
-                        [class]="report.flux_switch_working ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                        {{ report.flux_switch_working ? 'Sí' : 'No' }}
-                    </span>
-                </p>
-                <p>
-                    <span class="font-semibold">Ruido inusual:</span>
-                    <span
-                        [class]="report.unusual_noise ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                        {{ report.unusual_noise ? 'Sí' : 'No' }}
-                    </span>
-                </p>
+            <!-- Información del cliente -->
+            <div *ngIf="customer" class="bg-gray-50 p-4 rounded-lg shadow-inner">
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Información del Cliente</h3>
+                <p><span class="font-semibold">Nombre:</span> {{ customer.name }}</p>
+                <p><span class="font-semibold">Identificación:</span> {{ customer.identification }}</p>
+                <p><span class="font-semibold">Teléfono:</span> {{ customer.phone }}</p>
+                <p><span class="font-semibold">Email:</span> {{ customer.email }}</p>
             </div>
 
-        </div>
+            <!-- Información del reporte -->
+            <div class="bg-gray-50 p-4 rounded-lg shadow-inner flex flex-col space-y-4">
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Información de las actividades</h3>
+                <div>
+                    <p><span class="font-semibold">Tipo:</span> {{ report.manttio_type }}</p>
+                    <p><span class="font-semibold">Usuario ID:</span> {{ report.user_id }}</p>
+                    <p><span class="font-semibold">Fecha de llegada:</span> {{ report.date_arrival | date:'mediumDate'
+                        }}
+                    </p>
+                    <p><span class="font-semibold">Fecha de salida:</span> {{ report.date_departure | date:'mediumDate'
+                        }}
+                    </p>
+                </div>
+                <!--Informacion-->
 
-        <div *ngIf="report.report_type === 'uma'" class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
-            <!--TITULO-->
-            <h3 class="text-lg font-bold text-gray-800 mb-4 text-start">
-                Mantenimiento UMA
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p>
-                    <span class="font-semibold">¿Está operando?:</span>
-                    <span [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                        {{ report.is_operating ? 'Sí' : 'No' }}
-                    </span>
-                </p>
-                <p>
-                    <span class="font-semibold">Ajuste de banda:</span>
-                    <span
-                        [class]="report.air_band_adjustment ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                        {{ report.air_band_adjustment ? 'Sí' : 'No' }}
-                    </span>
-                </p>
-                <p>
-                    <span class="font-semibold">Temperatura entrada:</span> {{ report.inner_temperature }}
-                </p>
-                <p>
-                    <span class="font-semibold">Temperatura salida:</span> {{ report.outer_temperature }}
-                </p>
-                <p>
-                    <span class="font-semibold">Rejilla aire en buenas condiciones:</span>
-                    <span
-                        [class]="report.air_good_quality ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                        {{ report.air_good_quality ? 'Sí' : 'No' }}
-                    </span>
-                </p>
-                <p>
-                    <span class="font-semibold">Voltaje interno:</span> {{ report.inner_voltage }}
-                </p>
-                <p>
-                    <span class="font-semibold">Amperaje motor:</span> {{ report.motor_amperage }}
-                </p>
-                <p>
-                    <span class="font-semibold">Ruido inusual:</span>
-                    <span
-                        [class]="report.unusual_noise ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                        {{ report.unusual_noise ? 'Sí' : 'No' }}
-                    </span>
-                </p>
+            </div>
+
+            <div *ngIf="report.report_type === 'minisplit'" class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4 ">
+                <!-- Título -->
+                <h3 class="text-lg font-bold text-gray-800 mb-4 text-start">
+                    Mantenimiento minisplit
+                </h3>
+
+                <!-- Contenedor de dos columnas -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <p>
+                        <span class="font-semibold">¿Está operando?:</span>
+                        <span
+                            [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                            {{ report.is_operating ? 'Sí' : 'No' }}
+                        </span>
+                    </p>
+                    <p>
+                        <span class="font-semibold">Control remoto funcionando:</span>
+                        <span
+                            [class]="report.remote_working ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                            {{ report.remote_working ? 'Sí' : 'No' }}
+                        </span>
+                    </p>
+                    <p>
+                        <span class="font-semibold">Amperaje:</span> {{ report.amperage }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">Filtro:</span>
+                        <span [class]="report.filter ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                            {{ report.filter ? 'Sí' : 'No' }}
+                        </span>
+                    </p>
+                    <p>
+                        <span class="font-semibold">Voltaje interno:</span> {{ report.inner_voltage }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">Ruido inusual:</span>
+                        <span
+                            [class]="report.unusual_noise ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                            {{ report.unusual_noise ? 'Sí' : 'No' }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+
+            <div *ngIf="report.report_type === 'chiller'" class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
+                <!-- Título -->
+                <h3 class="text-lg font-bold text-gray-800 mb-4 text-start">
+                    Mantenimiento Chiller
+                </h3>
+
+                <!-- Contenedor de dos columnas -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <p>
+                        <span class="font-semibold">¿Está operando?:</span>
+                        <span
+                            [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                            {{ report.is_operating ? 'Sí' : 'No' }}
+                        </span>
+                    </p>
+                    <p>
+                        <span class="font-semibold">Temperatura entrada:</span> {{ report.inner_temperature }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">Temperatura salida:</span> {{ report.outer_temperature }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">Voltaje interno:</span> {{ report.inner_voltage }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">PLC funcionando:</span>
+                        <span
+                            [class]="report.plc_keys_working ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                            {{ report.plc_keys_working ? 'Sí' : 'No' }}
+                        </span>
+                    </p>
+                    <p>
+                        <span class="font-semibold">Amperaje motor:</span> {{ report.motor_amperage }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">Presión sistema 1:</span> {{ report.system_pressure_1 }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">Presión sistema 2:</span> {{ report.system_pressure_2 }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">Presión sistema 3:</span> {{ report.system_pressure_3 }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">Presión aceite:</span> {{ report.oil_pressure }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">Nivel de aceite:</span> {{ report.oil_level }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">Switch de flujo funcionando:</span>
+                        <span
+                            [class]="report.flux_switch_working ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                            {{ report.flux_switch_working ? 'Sí' : 'No' }}
+                        </span>
+                    </p>
+                    <p>
+                        <span class="font-semibold">Ruido inusual:</span>
+                        <span
+                            [class]="report.unusual_noise ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                            {{ report.unusual_noise ? 'Sí' : 'No' }}
+                        </span>
+                    </p>
+                </div>
+
+            </div>
+
+            <div *ngIf="report.report_type === 'uma'" class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
+                <!--TITULO-->
+                <h3 class="text-lg font-bold text-gray-800 mb-4 text-start">
+                    Mantenimiento UMA
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <p>
+                        <span class="font-semibold">¿Está operando?:</span>
+                        <span
+                            [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                            {{ report.is_operating ? 'Sí' : 'No' }}
+                        </span>
+                    </p>
+                    <p>
+                        <span class="font-semibold">Ajuste de banda:</span>
+                        <span
+                            [class]="report.air_band_adjustment ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                            {{ report.air_band_adjustment ? 'Sí' : 'No' }}
+                        </span>
+                    </p>
+                    <p>
+                        <span class="font-semibold">Temperatura entrada:</span> {{ report.inner_temperature }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">Temperatura salida:</span> {{ report.outer_temperature }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">Rejilla aire en buenas condiciones:</span>
+                        <span
+                            [class]="report.air_good_quality ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                            {{ report.air_good_quality ? 'Sí' : 'No' }}
+                        </span>
+                    </p>
+                    <p>
+                        <span class="font-semibold">Voltaje interno:</span> {{ report.inner_voltage }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">Amperaje motor:</span> {{ report.motor_amperage }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">Ruido inusual:</span>
+                        <span
+                            [class]="report.unusual_noise ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                            {{ report.unusual_noise ? 'Sí' : 'No' }}
+                        </span>
+                    </p>
+                </div>
+
+            </div>
+
+
+            <!-- Observaciones -->
+            <div class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
+                <h3 class="font-semibold text-gray-800 mb-2">Observaciones</h3>
+                <p class="text-gray-600 whitespace-pre-line">{{ report.observations || 'Ninguna' }}</p>
+            </div>
+
+            <!-- Imágenes -->
+            <div class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
+                <h3 class="font-semibold text-gray-800 mb-2">Imágenes</h3>
+                <div class="flex flex-wrap gap-4">
+                    <img *ngFor="let pic of report.pictures" [src]="pic" alt="Imagen del reporte"
+                        class="w-32 h-24 object-cover rounded border" />
+                    <p *ngIf="!report.pictures || report.pictures.length === 0" class="text-gray-500">No hay imágenes
+                        disponibles.</p>
+                </div>
+            </div>
+
+            <!-- Firma -->
+            <div class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
+                <h3 class="font-semibold text-gray-800 mb-2">Firma</h3>
+                <img *ngIf="report.signature" [src]="report.signature" alt="Firma" class="w-48 h-auto border rounded" />
+                <p *ngIf="!report.signature" class="text-gray-500">No hay firma disponible.</p>
             </div>
 
         </div>
 
-
-
-
-
-
-        <!-- Observaciones -->
-        <div class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
-            <h3 class="font-semibold text-gray-800 mb-2">Observaciones</h3>
-            <p class="text-gray-600 whitespace-pre-line">{{ report.observations || 'Ninguna' }}</p>
-        </div>
-
-        <!-- Imágenes -->
-        <div class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
-            <h3 class="font-semibold text-gray-800 mb-2">Imágenes</h3>
-            <div class="flex flex-wrap gap-4">
-                <img *ngFor="let pic of report.pictures" [src]="pic" alt="Imagen del reporte"
-                    class="w-32 h-24 object-cover rounded border" />
-                <p *ngIf="!report.pictures || report.pictures.length === 0" class="text-gray-500">No hay imágenes
-                    disponibles.</p>
-            </div>
-        </div>
-
-        <!-- Firma -->
-        <div class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
-            <h3 class="font-semibold text-gray-800 mb-2">Firma</h3>
-            <img *ngIf="report.signature" [src]="report.signature" alt="Firma" class="w-48 h-auto border rounded" />
-            <p *ngIf="!report.signature" class="text-gray-500">No hay firma disponible.</p>
-        </div>
+        <button (click)="downloadPDF()" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
+            Descargar PDF
+        </button>
     </div>
+
 </div>

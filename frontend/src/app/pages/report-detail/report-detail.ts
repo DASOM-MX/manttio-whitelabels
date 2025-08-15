@@ -1,9 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
 import { Reports } from '../reports/reports';
+
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 @Component({
   selector: 'app-report-detail',
@@ -21,8 +24,25 @@ export class ReportDetail implements OnInit {
     private cdr: ChangeDetectorRef,
   ) { }
 
-  ngOnInit(): void {
+  @ViewChild('pdfContent', { static: false }) pdfContent!: ElementRef;
 
+  downloadPDF() {
+    const DATA = this.pdfContent.nativeElement;
+
+    html2canvas(DATA, { scale: 2 }).then(canvas => {
+      const imgData = canvas.toDataURL('image/png');
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('reporte.pdf');
+    });
+  }
+
+  ngOnInit(): void {
 
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {

@@ -32,6 +32,8 @@
     "@spartan-ng/brain": "0.0.1-alpha.480",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.1",
     "jwt-decode": "^4.0.0",
     "rxjs": "~7.8.0",
     "signature_pad": "^5.0.10",
