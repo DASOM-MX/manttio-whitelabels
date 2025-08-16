@@ -5,8 +5,13 @@ import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
 import { Reports } from '../reports/reports';
 
+//import pdfMake from 'pdfmake/build/pdfmake';
+//import pdfFonts from 'pdfmake/build/vfs_fonts';
+
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+
+//pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
 @Component({
   selector: 'app-report-detail',
@@ -40,6 +45,27 @@ export class ReportDetail implements OnInit {
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save('reporte.pdf');
     });
+  }
+
+  downloadTextPDF() {
+
+    //TODO
+    const toBase64 = (url: string) =>
+      fetch(url)
+        .then(response => response.blob())
+        .then(
+          blob =>
+            new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            })
+        );
+
+    //const imageBase64 = await toBase64(this.report);
+
+
   }
 
   ngOnInit(): void {

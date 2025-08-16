@@ -64,7 +64,7 @@ export class UploadService {
         });
 
         await this.s3.send(command);
-        return `https://${ACCOUNT_ID}.r2.cloudflarestorage.com/${BUCKET_NAME}/${key}`;
+        return `https://cdn.penanevadachillers.com/${key}`;
     }
 
     async uploadFiles(files: Express.Multer.File[]): Promise<string[]> {
