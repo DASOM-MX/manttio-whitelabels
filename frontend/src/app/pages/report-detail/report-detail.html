@@ -40,7 +40,7 @@
                 <!-- Contenedor de dos columnas -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <p>
-                        <span class="font-semibold">¿Está operando?:</span>
+                        <span class="font-semibold">Equipo de encuentra operando:</span>
                         <span
                             [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
                             {{ report.is_operating ? 'Sí' : 'No' }}
@@ -57,7 +57,7 @@
                         <span class="font-semibold">Amperaje:</span> {{ report.amperage }}
                     </p>
                     <p>
-                        <span class="font-semibold">Filtro:</span>
+                        <span class="font-semibold">Cuenta con filtro evaporador:</span>
                         <span [class]="report.filter ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
                             {{ report.filter ? 'Sí' : 'No' }}
                         </span>
@@ -219,7 +219,7 @@
 
         </div>
 
-        <button (click)="downloadPDF()" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
+        <button (click)="downloadTextPDF()" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
             Descargar PDF
         </button>
     </div>

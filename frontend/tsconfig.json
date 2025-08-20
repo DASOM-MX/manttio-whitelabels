@@ -36,5 +36,9 @@
     {
       "path": "./tsconfig.spec.json"
     }
+  ],
+  "include": [
+    "src/**/*.ts",
+    "src/typings/**/*.d.ts"
   ]
 }

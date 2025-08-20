@@ -39,7 +39,6 @@ export class ReportsController {
 
 
     const pictures = files.pictures || [];
-    console.log("Pictures:", pictures);
     const signature = files.signature && files.signature.length > 0 ? files.signature[0] : null;
     return await this.reportsService.create(dto, pictures, signature);
   }
@@ -67,4 +66,6 @@ export class ReportsController {
   remove(@Param('id') id: string) {
     return this.reportsService.remove(+id);
   }
+
+
 }

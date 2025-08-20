@@ -205,7 +205,7 @@ export class ReportAdd implements OnInit {
     fd.append('report_type', this.selectedReportType);
     Object.keys(formData).forEach(key => {
       if (key === 'signature' && formData[key]) {
-        const file = this.dataURLtoFile(formData[key], `signature-${Date.now()}.png`);
+        const file = this.dataURLtoFile(formData[key], `signature-${Date.now()}.jpg`);
         fd.append('signature', file);
       }
       else {
