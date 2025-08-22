@@ -20,10 +20,13 @@
                 <div>
                     <p><span class="font-semibold">Tipo:</span> {{ report.manttio_type }}</p>
                     <p><span class="font-semibold">Usuario ID:</span> {{ report.user_id }}</p>
-                    <p><span class="font-semibold">Fecha de llegada:</span> {{ report.date_arrival | date:'mediumDate'
+                    <p><span class="font-semibold">Fecha:</span> {{ report.date_arrival | date:'mediumDate'
                         }}
                     </p>
-                    <p><span class="font-semibold">Fecha de salida:</span> {{ report.date_departure | date:'mediumDate'
+                    <p><span class="font-semibold">Fecha de llegada:</span> {{ report.date_arrival | date:'medium'
+                        }}
+                    </p>
+                    <p><span class="font-semibold">Fecha de salida:</span> {{ report.date_departure | date:'medium'
                         }}
                     </p>
                 </div>

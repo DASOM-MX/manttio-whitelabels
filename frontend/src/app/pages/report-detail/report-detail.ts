@@ -8,13 +8,12 @@ import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 pdfMake.vfs = pdfFonts.vfs;
 
-//import pdfMake from 'pdfmake/build/pdfmake';
-//import pdfFonts from 'pdfmake/build/vfs_fonts';
+
 
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-//pdfMake.vfs = pdfFonts.pdfMake.vfs;
+
 
 @Component({
   selector: 'app-report-detail',
@@ -26,6 +25,7 @@ import html2canvas from 'html2canvas';
 export class ReportDetail implements OnInit {
   report: any = null;
   customer: any = null;
+  reportUser: any = null;
   constructor(
     private route: ActivatedRoute,
     private http: HttpClient,
@@ -50,26 +50,7 @@ export class ReportDetail implements OnInit {
     });
   }
 
-  // async toBase64(url: string): Promise<string | null> {
-  //   try {
-  //     const res = await fetch(url, { mode: "cors" });
-  //     if (!res.ok) {
-  //       console.error(`Error al obtener la imagen: ${url}`, res.status)
-  //       return null;
-  //     }
-  //     const blob = await res.blob();
-  //     return new Promise<string>((resolve, reject) => {
-  //       const reader = new FileReader();
-  //       reader.onloadend = () => resolve(reader.result as string);
-  //       reader.onerror = reject;
-  //       reader.readAsDataURL(blob);
-  //     });
-  //   } catch (err) {
-  //     console.log("Error en tobase64", err)
-  //     return null;
-  //   }
 
-  // }
 
   async toBase64(url: string): Promise<string> {
     console.log("🔎 Intentando convertir a Base64:", url);
@@ -116,21 +97,35 @@ export class ReportDetail implements OnInit {
           table: {
             widths: ['25%', '25%', '25%', '25%'],
             body: [
+
               [
-                { text: "Equipo se encuentra operando", bold: true }, this.report.is_operating,
-                { text: "Cuenta con filtro evaporador", bold: true }, this.report.filter
+                {
+                  text: 'Formulario: Mantenimiento Minisplit',
+                  colSpan: 4,
+                  alignment: 'center',
+                  fillColor: '#DCDCDC',
+                  bold: true,
+                  color: 'dark',
+                  margin: [0, 5, 0, 5]
+                },
+                {}, {}, {}
+              ],
+
+              [
+                { text: "Equipo se encuentra operando", bold: true }, this.report.is_operating || "",
+                { text: "Cuenta con filtro evaporador", bold: true }, this.report.filter || ""
               ],
               [
-                { text: "Control remoto funciona", bold: true }, this.report.remote_working,
-                { text: "Voltaje de entrada", bold: true }, this.report.inner_voltage
+                { text: "Control remoto funciona", bold: true }, this.report.remote_working || "",
+                { text: "Voltaje de entrada", bold: true }, this.report.inner_voltage || ""
               ],
               [
-                { text: "Amperaje general", bold: true }, this.report.amperage,
-                { text: "Ruido fuera de lo normal", bold: true }, this.report.unusual_noise
+                { text: "Amperaje general", bold: true }, this.report.amperage || "",
+                { text: "Ruido fuera de lo normal", bold: true }, this.report.unusual_noise || ""
 
               ],
               [
-                { text: "Observaciones", bold: true }, this.report.observations,
+                { text: "Observaciones", bold: true }, this.report.observations || "Ninguna",
                 { text: " ", border: [false, false, false, false] },
                 { text: " ", border: [false, false, false, false] }
               ],
@@ -140,25 +135,122 @@ export class ReportDetail implements OnInit {
         };
 
       case "chiller":
+        console.log("chillertest")
         return {
           table: {
-            widths: ['*', '*'],
+            widths: ['35%', '15%', '35%', '15%'],
             body: [
-              [{ text: "PLC", bold: true }, this.report.plc_keys_working],
-              [{ text: "Presión del Sistema", bold: true }, this.report.system_pressure_1],
-              [{ text: "Nivel de aceite", bold: true }, this.report.oil_level],
+              [
+                {
+                  text: 'Informaciones de las actividades',
+                  colSpan: 4,
+                  alignment: 'center',
+                  fillColor: '#DCDCDC',
+                  bold: true,
+                  color: 'dark',
+                  margin: [0, 5, 0, 5]
+                },
+                { text: '' },
+                { text: '' },
+                { text: '' }
+              ],
+              [
+                { text: "Equipo se encuentra operando", bold: true },
+                { text: this.report.is_operating || '' },
+                { text: "Switch de flujo funciona", bold: true },
+                { text: this.report.flux_switch_working || '' },
+              ],
+              [
+                { text: "Temperatura de entrada", bold: true },
+                { text: this.report.inner_temperature || '' },
+                { text: "Temperatura de salida", bold: true },
+                { text: this.report.outer_temperature || '' }
+
+              ],
+              [
+                { text: "Teclas del PLC funcionan", bold: true },
+                { text: this.report.plc_keys_working || '' },
+                { text: "Voltaje de entrada", bold: true },
+                { text: this.report.inner_voltage || '' }
+
+              ],
+              [
+                { text: "Amperaje de motor condensador general", bold: true },
+                { text: this.report.motor_amperage || '' },
+                { text: "Presiones del sistema 1", bold: true },
+                { text: this.report.system_pressure_1 || '' }
+
+              ],
+              [
+                { text: "Presiones del sistema 2", bold: true },
+                { text: this.report.system_pressure_2 || '' },
+                { text: "Presiones del sistema 3", bold: true },
+                { text: this.report.system_pressure_3 || '' }
+
+              ],
+
+              [
+                { text: "Presiones del sistema 2", bold: true },
+                { text: this.report.system_pressure_2 || '' },
+                { text: "Presiones del sistema 3", bold: true },
+                { text: this.report.system_pressure_3 || '' }
+
+              ],
+              [
+                { text: "Presión de aceite", bold: true },
+                { text: this.report.oil_pressure || '' },
+                { text: "Nivel de aceite", bold: true },
+                { text: this.report.oil_level || '' }
+
+              ],
             ]
           },
           margin: [0, 10, 0, 10]
         };
 
       case "uma":
+        console.log("uma test");
         return {
           table: {
-            widths: ['*', '*'],
+            widths: ['25%', '25%', '25%', '25%'],
             body: [
-              [{ text: "Rejilla de aire", bold: true }, this.report.air_good_quality],
-              [{ text: "Ajuste de banda", bold: true }, this.report.air_band_adjustment],
+              [
+                { text: 'Formulario UMAS', colSpan: 4, alignment: 'center', fillColor: '#DCDCDC', bold: true, margin: [0, 5, 0, 5] },
+                { text: '' },
+                { text: '' },
+                { text: '' }
+              ],
+              [
+                { text: "Equipo se encuentra operando", bold: true },
+                { text: this.report.is_operating || '' },
+                { text: "Se ajustó la banda de la UMA", bold: true },
+                { text: this.report.air_band_adjustment || '' }
+              ],
+              [
+                { text: "Temperatura de entrada", bold: true },
+                { text: this.report.inner_temperature || '' },
+                { text: "Temperatura de salida", bold: true },
+                { text: this.report.outer_temperature || '' }
+              ],
+              [
+                { text: "Rejilla de aire en buenas condiciones", bold: true },
+                { text: this.report.air_good_quality || '' },
+                { text: "Voltaje de entrada", bold: true },
+                { text: this.report.inner_voltage || '' }
+              ],
+              [
+                { text: "Amperaje del motor", bold: true },
+                { text: this.report.motor_amperage || '' },
+                { text: "Ruido fuera de lo normal", bold: true },
+                { text: this.report.unusual_noise || '' }
+
+              ],
+              [
+                { text: "Observaciones", bold: true },
+                { text: this.report.observations || 'Ninguna' },
+                { text: '', border: [false, false, false, false] },
+                { text: '', border: [false, false, false, false] }
+              ]
             ]
           },
           margin: [0, 10, 0, 10]
@@ -196,7 +288,7 @@ export class ReportDetail implements OnInit {
     console.log("========== DEPURACIÓN PDF ==========");
 
     // Fotos
-    console.log("📷 Procesando pictures:", this.report.pictures);
+    console.log(" Procesando pictures:", this.report.pictures);
     const picturesBase64 = await Promise.all(
       (this.report.pictures || []).map((pic: string, i: number) =>
         this.toBase64(pic).catch(err => {
@@ -208,7 +300,7 @@ export class ReportDetail implements OnInit {
 
     // Firma
     if (this.report.signature) {
-      console.log("✍️ Procesando signature:", this.report.signature);
+      console.log(" Procesando signature:", this.report.signature);
     }
     const signatureBase64 = this.report.signature
       ? await this.toBase64(this.report.signature).catch(err => {
@@ -217,42 +309,151 @@ export class ReportDetail implements OnInit {
       })
       : null;
 
-    console.log("📷 Pictures convertidos:", picturesBase64.filter(Boolean).length);
-    console.log("✍️ Firma convertida:", !!signatureBase64);
+    console.log(" Pictures convertidos:", picturesBase64.filter(Boolean).length);
+    console.log(" Firma convertida:", !!signatureBase64);
 
+
+    const formatDate = (dateString: string) => {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('es-MX', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+
+      })
+    }
 
 
     const docDefinition: any = {
       content: [
-        { text: `Reporte ID: ${this.report.id}`, style: 'header' },
-        { text: `Cliente: ${this.customer.name}`, style: 'subheader' },
-        { text: `Email: ${this.customer.email}`, margin: [0, 0, 0, 10] },
-
-        { text: `Mantenimiento ${this.report.report_type}`, style: 'subheader' },
-        this.getTableForReportType(this.report.report_type),
-
-        { text: 'Observaciones:', style: 'subheader' },
-        { text: this.report.observations || 'Ninguna', margin: [0, 0, 0, 10] },
         {
           table: {
             widths: ['*', '*'],
             body: [
-              [{ text: "lorem", bold: true }, "lorem ipsum"],
-              [{ text: "lorem", bold: true }, "lorem ipsum 2"],
+              [
+                { text: `${this.customer.name}`, style: 'header', border: [false, false, false, true] },
+                { text: `${this.report.id}`, style: 'subheader', alignment: "right", border: [false, false, false, true] }
+              ],
             ]
           }
         },
 
+        {
 
-        { text: 'Fotos:', style: 'subheader' },
+          table: {
+            widths: ['*', '*',], // dos columnas
+            body: [
+              [
+                {
+                  text: 'Datos del Cliente',
+                  colSpan: 2,
+                  alignment: 'center',
+                  fillColor: '#DCDCDC',
+                  bold: true,
+                  color: 'dark',
+                  margin: [0, 5, 0, 5]
+                },
+                {} // celda vacía porque usamos colSpan
+              ],
+
+              [
+                { text: 'Identificación', bold: true, border: [true, true, true, true] },
+                { text: this.customer.identification || '', border: [true, true, true, true] }
+              ],
+              [
+                { text: 'Teléfono', bold: true, border: [true, true, true, true] },
+                { text: this.customer.phone || '', border: [true, true, true, true] }
+              ],
+              [
+                { text: 'Email', bold: true, border: [true, true, true, true] },
+                { text: this.customer.email || '', border: [true, true, true, true] }
+              ],
+              [
+                { text: 'Observación', bold: true, border: [true, true, true, true] },
+                { text: this.customer.observation || '', border: [true, true, true, true] }
+              ]
+            ]
+          }
+        },
+        {
+          table: {
+            widths: ['25%', '25%', '25%', '25%'],
+            body: [
+
+              [
+                {
+                  text: 'Informaciones de las actividades',
+                  colSpan: 4,
+                  alignment: 'center',
+                  fillColor: '#DCDCDC',
+                  bold: true,
+                  color: 'dark',
+                  margin: [0, 5, 0, 5]
+                },
+                {}, {}, {}
+              ],
+
+              [
+                { text: "Para:", bold: true }, this.reportUser.name,
+                { text: "Tipo de tarea:", bold: true }, this.report.manttio_type,
+              ],
+              [
+                { text: "Fecha Llegada:", bold: true }, formatDate(this.report.date_arrival),
+                { text: "Fecha Salida", bold: true }, formatDate(this.report.date_departure),
+              ],
+
+              [
+                { text: "Observaciones", bold: true }, this.report.observations,
+                { text: " ", border: [false, false, false, false] },
+                { text: " ", border: [false, false, false, false] }
+              ],
+            ]
+          },
+          margin: [0, 10, 0, 10]
+        },
+
+        this.getTableForReportType(this.report.report_type),
+
 
         {
           table: {
-            widths: ['*', '*', '*'], // 3 columnas iguales
-            body: buildImageRows(picturesBase64.filter(Boolean), 3) // función que creamos abajo
+            widths: ['*', '*', '*'],
+            body: [
+              // 🔹 Fila de título que ocupa las 3 columnas
+              [
+                {
+                  text: 'Fotos del Reporte',
+                  colSpan: 3,
+                  alignment: 'center',
+                  bold: true,
+                  color: 'dark',
+                  fillColor: '#DCDCDC', // oro
+                  margin: [0, 5, 0, 5]
+                },
+                {},
+                {}
+              ],
+
+              // 🔹 Aquí van las imágenes en filas de 3
+              ...(() => {
+                const rows: any[] = [];
+                const imgs = picturesBase64.filter(Boolean);
+
+                for (let i = 0; i < imgs.length; i += 3) {
+                  rows.push([
+                    { image: imgs[i], width: 150, margin: [0, 5, 0, 5] },
+                    imgs[i + 1] ? { image: imgs[i + 1], width: 150, margin: [0, 5, 0, 5] } : {},
+                    imgs[i + 2] ? { image: imgs[i + 2], width: 150, margin: [0, 5, 0, 5] } : {},
+                  ]);
+                }
+                return rows;
+              })()
+            ]
           },
-          layout: 'noBorders',
-          margin: [0, 5, 0, 5]
+          layout: '',
+          margin: [0, 10, 0, 10]
         },
 
         signatureBase64
@@ -302,6 +503,16 @@ export class ReportDetail implements OnInit {
           this.cdr.detectChanges();
 
         });
+
+        this.http.get<any>(`http://localhost:3000/user/${this.report.user_id}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }).subscribe(user => {
+          this.reportUser = user;
+          this.cdr.detectChanges();
+          console.log("Usuario del reporte:", user);
+        })
 
       })
     }
