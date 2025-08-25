@@ -6,19 +6,21 @@ import { ChangeDetectorRef } from '@angular/core';
 import { Reports } from '../reports/reports';
 import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
+import { Form, FormBuilder, FormGroup, ReactiveFormsModule, FormControl } from '@angular/forms';
 pdfMake.vfs = pdfFonts.vfs;
 
 
 
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { ReportsService } from '../../../services/reports';
 
 
 
 @Component({
   selector: 'app-report-detail',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './report-detail.html',
   styleUrl: './report-detail.scss'
 })
@@ -26,10 +28,16 @@ export class ReportDetail implements OnInit {
   report: any = null;
   customer: any = null;
   reportUser: any = null;
+
+  reportForm!: FormGroup;
+  editMode = false;
+
   constructor(
     private route: ActivatedRoute,
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
+    private fb: FormBuilder,
+    private reportsService: ReportsService
   ) { }
 
   @ViewChild('pdfContent', { static: false }) pdfContent!: ElementRef;
@@ -479,6 +487,11 @@ export class ReportDetail implements OnInit {
 
   ngOnInit(): void {
 
+    this.reportForm = new FormGroup({
+      observations: new FormControl(''),
+      unusual_noise: new FormControl(this.report?.unusual_noise || false),
+    });
+
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.http.get(`http://localhost:3000/reports/${id}`, {
@@ -490,6 +503,15 @@ export class ReportDetail implements OnInit {
         this.report = data;
         this.cdr.detectChanges();
         console.log(data)
+
+        //for editing report
+        this.reportForm = this.fb.group({
+          //is_operating: [this.report.is_operating],
+          observations: [this.report.observations],
+          //amperage: [this.report.amperage],
+          //inner_voltage: [this.report.inner_voltage],
+          unusual_noise: [this.report.unusual_noise],
+        })
 
 
         this.http.get<any[]>(`http://localhost:3000/customers/${this.report.client_id}`, {
@@ -514,8 +536,27 @@ export class ReportDetail implements OnInit {
           console.log("Usuario del reporte:", user);
         })
 
+
+
       })
     }
 
+  }
+
+  toggleEdit() {
+    this.editMode = !this.editMode;
+    if (this.editMode) {
+      this.reportForm.patchValue(this.report);
+    }
+  }
+
+  saveChanges() {
+    if (this.reportForm.valid) {
+      this.reportsService.updateReport(this.report.id, this.reportForm.value)
+        .subscribe(updated => {
+          this.report = updated;
+          this.editMode = false;
+        })
+    }
   }
 }

@@ -2,9 +2,10 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+
 @Injectable({ providedIn: 'root' })
 export class ReportsService {
-  private baseUrl = 'http://localhost:3000/reports'; // Asegúrate de que coincida con tu backend
+  private baseUrl = 'http://localhost:3000/reports';
 
   constructor(private http: HttpClient) { }
 
@@ -16,5 +17,11 @@ export class ReportsService {
       Authorization: `Bearer ${token}`,
     });
     return this.http.post(`${this.baseUrl}`, reportData, { headers });
+  }
+
+  updateReport(id: string, changes: Partial<any>): Observable<any> {
+    return this.http.patch<any>(`${this.baseUrl}/${id}`, changes, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    });
   }
 }
