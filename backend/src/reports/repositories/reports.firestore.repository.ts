@@ -7,10 +7,8 @@
 /* eslint-disable prettier/prettier */
 import { Injectable } from "@nestjs/common";
 import { ReportsRepository } from "./reports.repository";
-//import { Report } from "../entities/report.entity";
 import { BaseReport } from "../entities/base-report.entity";
 import { CreateReportDto } from "../dto/create-report.dto";
-//import { v4 as uuid } from 'uuid';
 import { db } from "../../../libs/firebase/firebase"; // Adjust the import path as necessary
 import { BaseReportDto } from "../dto/base-report.dto";
 import { MinisplitReportDto } from "../dto/minisplit-report.dto";
@@ -135,4 +133,19 @@ export class ReportFirestoreRepository implements ReportsRepository {
         await this.collection.doc(reportId).set(fullReport);
         return fullReport;
     }
+
+    async update(id: string, dto: Partial<BaseReport>): Promise<BaseReport | null> {
+        const docRef = this.collection.doc(id);
+        const doc = await docRef.get();
+
+        if (!doc.exists) {
+            return null;
+        }
+
+        await docRef.update(dto);
+
+        const updatedDoc = await docRef.get();
+        return updatedDoc.data() as BaseReport;
+    }
+
 }

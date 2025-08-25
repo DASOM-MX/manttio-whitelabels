@@ -457,10 +457,10 @@ export class ReportDetail implements OnInit {
         },
 
         signatureBase64
-          ? { text: 'Firma', style: 'subheader' }
+          ? { text: 'Firma', style: 'subheader', alignment: 'center' }
           : null,
         signatureBase64
-          ? { image: signatureBase64, width: 150 }
+          ? { image: signatureBase64, width: 150, alignment: 'center' }
           : null
 
       ],

@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable prettier/prettier */
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
 import { ReportsRepository } from './repositories/reports.repository';
@@ -65,11 +65,18 @@ export class ReportsService {
     return this.repo.findOne(id);
   }
 
-  update(id: number, updateReportDto: UpdateReportDto) {
-    return `This action updates a #${id} report`;
+  async update(id: string, dto: UpdateReportDto) {
+    //return `This action updates a #${id} report`;
+    const existing = await this.repo.findOne(id);
+    if (!existing) throw new NotFoundException(`Reporte ${id} no encontrado`);
+
+    await this.repo.update(id, dto);
+    return this.repo.findOne(id);
   }
 
   remove(id: number) {
     return `This action removes a #${id} report`;
   }
+
+
 }
