@@ -9,4 +9,6 @@ export interface BaseReport {
     client_id: string;
     pictures: Array<string>;
     signature: string;
+    signed_by: string;
+    report_status: boolean;
 }

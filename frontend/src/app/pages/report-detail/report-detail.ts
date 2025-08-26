@@ -482,7 +482,66 @@ export class ReportDetail implements OnInit {
   }
 
 
+  private buildReportForm() {
+    if (!this.report) return;
 
+    // Campos comunes a todos los reportes
+    const commonControls: any = {
+      observations: [this.report.observations || ''],
+      unusual_noise: [this.report.unusual_noise || false],
+      date_arrival: [this.report.date_arrival || ''],
+      date_departure: [this.report.date_departure || ''],
+    };
+
+    let specificControls: any = {};
+
+    switch (this.report.report_type) {
+      case 'minisplit':
+        specificControls = {
+          is_operating: [this.report.is_operating || false],
+          remote_working: [this.report.remote_working || false],
+          amperage: [this.report.amperage || ''],
+          inner_voltage: [this.report.inner_voltage || ''],
+          filter: [this.report.filter || false],
+        };
+        break;
+
+      case 'chiller':
+        specificControls = {
+          is_operating: [this.report.is_operating || false],
+          inner_temperature: [this.report.inner_temperature || ''],
+          outer_temperature: [this.report.outer_temperature || ''],
+          inner_voltage: [this.report.inner_voltage || ''],
+          plc_keys_working: [this.report.plc_keys_working || false],
+          motor_amperage: [this.report.motor_amperage || ''],
+          system_pressure_1: [this.report.system_pressure_1 || ''],
+          system_pressure_2: [this.report.system_pressure_2 || ''],
+          system_pressure_3: [this.report.system_pressure_3 || ''],
+          oil_pressure: [this.report.oil_pressure || ''],
+          oil_level: [this.report.oil_level || ''],
+          flux_switch_working: [this.report.flux_switch_working || false],
+        };
+        break;
+
+      case 'uma':
+        specificControls = {
+          is_operating: [this.report.is_operating || false],
+          air_band_adjustment: [this.report.air_band_adjustment || false],
+          inner_temperature: [this.report.inner_temperature || ''],
+          outer_temperature: [this.report.outer_temperature || ''],
+          air_good_quality: [this.report.air_good_quality || false],
+          inner_voltage: [this.report.inner_voltage || ''],
+          motor_amperage: [this.report.motor_amperage || ''],
+        };
+        break;
+    }
+
+    // Combinar controles comunes y específicos
+    this.reportForm = this.fb.group({
+      ...commonControls,
+      ...specificControls,
+    });
+  }
 
 
   ngOnInit(): void {
@@ -504,14 +563,9 @@ export class ReportDetail implements OnInit {
         this.cdr.detectChanges();
         console.log(data)
 
-        //for editing report
-        this.reportForm = this.fb.group({
-          //is_operating: [this.report.is_operating],
-          observations: [this.report.observations],
-          //amperage: [this.report.amperage],
-          //inner_voltage: [this.report.inner_voltage],
-          unusual_noise: [this.report.unusual_noise],
-        })
+        //for editing report: minisplit
+        this.buildReportForm();
+
 
 
         this.http.get<any[]>(`http://localhost:3000/customers/${this.report.client_id}`, {
@@ -559,4 +613,6 @@ export class ReportDetail implements OnInit {
         })
     }
   }
+
+
 }

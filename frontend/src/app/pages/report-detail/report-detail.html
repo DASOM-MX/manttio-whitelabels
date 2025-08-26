@@ -20,130 +20,85 @@
                     <h3 class="text-lg font-bold text-gray-800 mb-2">Información de las actividades</h3>
                     <div>
                         <p><span class="font-semibold">Tipo:</span> {{ report.manttio_type }}</p>
-                        <p><span class="font-semibold">Usuario ID:</span> {{ report.user_id }}</p>
+                        <p><span class="font-semibold">Usuario ID:</span> {{ reportUser?.name }}</p>
                         <p><span class="font-semibold">Fecha:</span> {{ report.date_arrival | date:'mediumDate'
                             }}
                         </p>
-                        <p><span class="font-semibold">Fecha de llegada:</span> {{ report.date_arrival | date:'medium'
-                            }}
-                        </p>
-                        <p><span class="font-semibold">Fecha de salida:</span> {{ report.date_departure | date:'medium'
-                            }}
-                        </p>
+                        <div *ngIf="!editMode">
+                            <p><span class="font-semibold">Fecha de llegada:</span> {{ report.date_arrival |
+                                date:'medium' }}</p>
+                            <p><span class="font-semibold">Fecha de salida:</span> {{ report.date_departure |
+                                date:'medium' }}</p>
+                        </div>
+                        <div *ngIf="editMode" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label class="block font-semibold">Fecha de llegada</label>
+                            <input type="datetime-local" formControlName="date_arrival"
+                                class="border rounded px-2 py-1" />
+
+                            <label class="block font-semibold">Fecha de salida</label>
+                            <input type="datetime-local" formControlName="date_departure"
+                                class="border rounded px-2 py-1" />
+                        </div>
                     </div>
                     <!--Informacion-->
 
                 </div>
 
                 <div *ngIf="report.report_type === 'minisplit'"
-                    class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4 ">
-                    <!-- Título -->
-                    <h3 class="text-lg font-bold text-gray-800 mb-4 text-start">
-                        Mantenimiento minisplit
-                    </h3>
+                    class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 text-start">Mantenimiento minisplit</h3>
 
-                    <!-- Contenedor de dos columnas -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <p>
-                            <span class="font-semibold">Equipo de encuentra operando:</span>
-                            <span
-                                [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                {{ report.is_operating ? 'Sí' : 'No' }}
-                            </span>
-                        </p>
-                        <p>
-                            <span class="font-semibold">Control remoto funcionando:</span>
-                            <span
-                                [class]="report.remote_working ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                {{ report.remote_working ? 'Sí' : 'No' }}
-                            </span>
-                        </p>
-                        <p>
-                            <span class="font-semibold">Amperaje:</span> {{ report.amperage }}
-                        </p>
-                        <p>
-                            <span class="font-semibold">Cuenta con filtro evaporador:</span>
-                            <span
-                                [class]="report.filter ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                {{ report.filter ? 'Sí' : 'No' }}
-                            </span>
-                        </p>
-                        <p>
-                            <span class="font-semibold">Voltaje interno:</span> {{ report.inner_voltage }}
-                        </p>
+                        <!-- Equipo operando -->
                         <div *ngIf="!editMode">
                             <p>
-                                <span class="font-semibold">Ruido inusual:</span>
+                                <span class="font-semibold">Equipo se encuentra operando:</span>
                                 <span
-                                    [class]="report.unusual_noise ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                    {{ report.unusual_noise ? 'Sí' : 'No' }}
+                                    [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                                    {{ report.is_operating ? 'Sí' : 'No' }}
                                 </span>
                             </p>
                         </div>
                         <div *ngIf="editMode">
-                            <label class="block font-semibold">Ruido inusual</label>
-                            <input type="checkbox" formControlName="report.unusual_noise" />
-
+                            <label class="block font-semibold">Equipo se encuentra operando</label>
+                            <input type="checkbox" formControlName="is_operating" />
                         </div>
-                    </div>
-                </div>
 
-                <div *ngIf="report.report_type === 'chiller'" class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
-                    <!-- Título -->
-                    <h3 class="text-lg font-bold text-gray-800 mb-4 text-start">
-                        Mantenimiento Chiller
-                    </h3>
+                        <!-- Control remoto -->
+                        <div *ngIf="!editMode">
+                            <p>
+                                <span class="font-semibold">Control remoto funcionando:</span>
+                                <span
+                                    [class]="report.remote_working ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                                    {{ report.remote_working ? 'Sí' : 'No' }}
+                                </span>
+                            </p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Control remoto funcionando</label>
+                            <input type="checkbox" formControlName="remote_working" />
+                        </div>
 
-                    <!-- Contenedor de dos columnas -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <p>
-                            <span class="font-semibold">¿Está operando?:</span>
-                            <span
-                                [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                {{ report.is_operating ? 'Sí' : 'No' }}
-                            </span>
-                        </p>
-                        <p>
-                            <span class="font-semibold">Temperatura entrada:</span> {{ report.inner_temperature }}
-                        </p>
-                        <p>
-                            <span class="font-semibold">Temperatura salida:</span> {{ report.outer_temperature }}
-                        </p>
-                        <p>
-                            <span class="font-semibold">Voltaje interno:</span> {{ report.inner_voltage }}
-                        </p>
-                        <p>
-                            <span class="font-semibold">PLC funcionando:</span>
-                            <span
-                                [class]="report.plc_keys_working ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                {{ report.plc_keys_working ? 'Sí' : 'No' }}
-                            </span>
-                        </p>
-                        <p>
-                            <span class="font-semibold">Amperaje motor:</span> {{ report.motor_amperage }}
-                        </p>
-                        <p>
-                            <span class="font-semibold">Presión sistema 1:</span> {{ report.system_pressure_1 }}
-                        </p>
-                        <p>
-                            <span class="font-semibold">Presión sistema 2:</span> {{ report.system_pressure_2 }}
-                        </p>
-                        <p>
-                            <span class="font-semibold">Presión sistema 3:</span> {{ report.system_pressure_3 }}
-                        </p>
-                        <p>
-                            <span class="font-semibold">Presión aceite:</span> {{ report.oil_pressure }}
-                        </p>
-                        <p>
-                            <span class="font-semibold">Nivel de aceite:</span> {{ report.oil_level }}
-                        </p>
-                        <p>
-                            <span class="font-semibold">Switch de flujo funcionando:</span>
-                            <span
-                                [class]="report.flux_switch_working ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                {{ report.flux_switch_working ? 'Sí' : 'No' }}
-                            </span>
-                        </p>
+                        <!-- Amperaje -->
+                        <div *ngIf="!editMode">
+                            <p><span class="font-semibold">Amperaje:</span> {{ report.amperage }}</p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Amperaje</label>
+                            <input type="number" formControlName="amperage" class="border rounded px-2 py-1 w-full" />
+                        </div>
+
+                        <!-- Voltaje interno -->
+                        <div *ngIf="!editMode">
+                            <p><span class="font-semibold">Voltaje interno:</span> {{ report.inner_voltage }}</p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Voltaje interno</label>
+                            <input type="number" formControlName="inner_voltage"
+                                class="border rounded px-2 py-1 w-full" />
+                        </div>
+
+                        <!-- Ruido inusual -->
                         <div *ngIf="!editMode">
                             <p>
                                 <span class="font-semibold">Ruido inusual:</span>
@@ -153,64 +108,277 @@
                                 </span>
                             </p>
                         </div>
-
                         <div *ngIf="editMode">
                             <label class="block font-semibold">Ruido inusual</label>
                             <input type="checkbox" formControlName="unusual_noise" />
-
                         </div>
                     </div>
-
                 </div>
 
-                <div *ngIf="report.report_type === 'uma'" class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
-                    <!--TITULO-->
-                    <h3 class="text-lg font-bold text-gray-800 mb-4 text-start">
-                        Mantenimiento UMA
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <p>
-                            <span class="font-semibold">¿Está operando?:</span>
-                            <span
-                                [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                {{ report.is_operating ? 'Sí' : 'No' }}
-                            </span>
-                        </p>
-                        <p>
-                            <span class="font-semibold">Ajuste de banda:</span>
-                            <span
-                                [class]="report.air_band_adjustment ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                {{ report.air_band_adjustment ? 'Sí' : 'No' }}
-                            </span>
-                        </p>
-                        <p>
-                            <span class="font-semibold">Temperatura entrada:</span> {{ report.inner_temperature }}
-                        </p>
-                        <p>
-                            <span class="font-semibold">Temperatura salida:</span> {{ report.outer_temperature }}
-                        </p>
-                        <p>
-                            <span class="font-semibold">Rejilla aire en buenas condiciones:</span>
-                            <span
-                                [class]="report.air_good_quality ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                {{ report.air_good_quality ? 'Sí' : 'No' }}
-                            </span>
-                        </p>
-                        <p>
-                            <span class="font-semibold">Voltaje interno:</span> {{ report.inner_voltage }}
-                        </p>
-                        <p>
-                            <span class="font-semibold">Amperaje motor:</span> {{ report.motor_amperage }}
-                        </p>
-                        <p>
-                            <span class="font-semibold">Ruido inusual:</span>
-                            <span
-                                [class]="report.unusual_noise ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                {{ report.unusual_noise ? 'Sí' : 'No' }}
-                            </span>
-                        </p>
-                    </div>
+                <!--CHILLER-->
 
+                <div *ngIf="report.report_type === 'chiller'" class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 text-start">Mantenimiento Chiller</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Está operando -->
+                        <div *ngIf="!editMode">
+                            <p>
+                                <span class="font-semibold">¿Está operando?:</span>
+                                <span
+                                    [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                                    {{ report.is_operating ? 'Sí' : 'No' }}
+                                </span>
+                            </p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">¿Está operando?</label>
+                            <input type="checkbox" formControlName="is_operating" />
+                        </div>
+
+                        <!-- Temperatura entrada -->
+                        <div *ngIf="!editMode">
+                            <p><span class="font-semibold">Temperatura entrada:</span> {{ report.inner_temperature }}
+                            </p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Temperatura entrada</label>
+                            <input type="number" formControlName="inner_temperature"
+                                class="border rounded px-2 py-1 w-full" />
+                        </div>
+
+                        <!-- Temperatura salida -->
+                        <div *ngIf="!editMode">
+                            <p><span class="font-semibold">Temperatura salida:</span> {{ report.outer_temperature }}</p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Temperatura salida</label>
+                            <input type="number" formControlName="outer_temperature"
+                                class="border rounded px-2 py-1 w-full" />
+                        </div>
+
+                        <!-- Voltaje interno -->
+                        <div *ngIf="!editMode">
+                            <p><span class="font-semibold">Voltaje interno:</span> {{ report.inner_voltage }}</p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Voltaje interno</label>
+                            <input type="number" formControlName="inner_voltage"
+                                class="border rounded px-2 py-1 w-full" />
+                        </div>
+
+                        <!-- PLC funcionando -->
+                        <div *ngIf="!editMode">
+                            <p>
+                                <span class="font-semibold">PLC funcionando:</span>
+                                <span
+                                    [class]="report.plc_keys_working ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                                    {{ report.plc_keys_working ? 'Sí' : 'No' }}
+                                </span>
+                            </p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">PLC funcionando</label>
+                            <input type="checkbox" formControlName="plc_keys_working" />
+                        </div>
+
+                        <!-- Amperaje motor -->
+                        <div *ngIf="!editMode">
+                            <p><span class="font-semibold">Amperaje motor:</span> {{ report.motor_amperage }}</p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Amperaje motor</label>
+                            <input type="number" formControlName="motor_amperage"
+                                class="border rounded px-2 py-1 w-full" />
+                        </div>
+
+                        <!-- Presión sistema 1 -->
+                        <div *ngIf="!editMode">
+                            <p><span class="font-semibold">Presión sistema 1:</span> {{ report.system_pressure_1 }}</p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Presión sistema 1</label>
+                            <input type="number" formControlName="system_pressure_1"
+                                class="border rounded px-2 py-1 w-full" />
+                        </div>
+
+                        <!-- Presión sistema 2 -->
+                        <div *ngIf="!editMode">
+                            <p><span class="font-semibold">Presión sistema 2:</span> {{ report.system_pressure_2 }}</p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Presión sistema 2</label>
+                            <input type="number" formControlName="system_pressure_2"
+                                class="border rounded px-2 py-1 w-full" />
+                        </div>
+
+                        <!-- Presión sistema 3 -->
+                        <div *ngIf="!editMode">
+                            <p><span class="font-semibold">Presión sistema 3:</span> {{ report.system_pressure_3 }}</p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Presión sistema 3</label>
+                            <input type="number" formControlName="system_pressure_3"
+                                class="border rounded px-2 py-1 w-full" />
+                        </div>
+
+                        <!-- Presión aceite -->
+                        <div *ngIf="!editMode">
+                            <p><span class="font-semibold">Presión aceite:</span> {{ report.oil_pressure }}</p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Presión aceite</label>
+                            <input type="number" formControlName="oil_pressure"
+                                class="border rounded px-2 py-1 w-full" />
+                        </div>
+
+                        <!-- Nivel de aceite -->
+                        <div *ngIf="!editMode">
+                            <p><span class="font-semibold">Nivel de aceite:</span> {{ report.oil_level }}</p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Nivel de aceite</label>
+                            <input type="text" formControlName="oil_level" class="border rounded px-2 py-1 w-full" />
+                        </div>
+
+                        <!-- Switch de flujo funcionando -->
+                        <div *ngIf="!editMode">
+                            <p>
+                                <span class="font-semibold">Switch de flujo funcionando:</span>
+                                <span
+                                    [class]="report.flux_switch_working ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                                    {{ report.flux_switch_working ? 'Sí' : 'No' }}
+                                </span>
+                            </p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Switch de flujo funcionando</label>
+                            <input type="checkbox" formControlName="flux_switch_working" />
+                        </div>
+
+                        <!-- Ruido inusual -->
+                        <div *ngIf="!editMode">
+                            <p>
+                                <span class="font-semibold">Ruido inusual:</span>
+                                <span
+                                    [class]="report.unusual_noise ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                                    {{ report.unusual_noise ? 'Sí' : 'No' }}
+                                </span>
+                            </p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Ruido inusual</label>
+                            <input type="checkbox" formControlName="unusual_noise" />
+                        </div>
+                    </div>
+                </div>
+
+                <!--UMA-->
+                <div *ngIf="report.report_type === 'uma'" class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 text-start">Mantenimiento UMA</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Está operando -->
+                        <div *ngIf="!editMode">
+                            <p>
+                                <span class="font-semibold">¿Está operando?:</span>
+                                <span
+                                    [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                                    {{ report.is_operating ? 'Sí' : 'No' }}
+                                </span>
+                            </p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">¿Está operando?</label>
+                            <input type="checkbox" formControlName="is_operating" />
+                        </div>
+
+                        <!-- Ajuste de banda -->
+                        <div *ngIf="!editMode">
+                            <p>
+                                <span class="font-semibold">Ajuste de banda:</span>
+                                <span
+                                    [class]="report.air_band_adjustment ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                                    {{ report.air_band_adjustment ? 'Sí' : 'No' }}
+                                </span>
+                            </p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Ajuste de banda</label>
+                            <input type="checkbox" formControlName="air_band_adjustment" />
+                        </div>
+
+                        <!-- Temperatura entrada -->
+                        <div *ngIf="!editMode">
+                            <p><span class="font-semibold">Temperatura entrada:</span> {{ report.inner_temperature }}
+                            </p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Temperatura entrada</label>
+                            <input type="number" formControlName="inner_temperature"
+                                class="border rounded px-2 py-1 w-full" />
+                        </div>
+
+                        <!-- Temperatura salida -->
+                        <div *ngIf="!editMode">
+                            <p><span class="font-semibold">Temperatura salida:</span> {{ report.outer_temperature }}</p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Temperatura salida</label>
+                            <input type="number" formControlName="outer_temperature"
+                                class="border rounded px-2 py-1 w-full" />
+                        </div>
+
+                        <!-- Rejilla aire buena calidad -->
+                        <div *ngIf="!editMode">
+                            <p>
+                                <span class="font-semibold">Rejilla aire en buenas condiciones:</span>
+                                <span
+                                    [class]="report.air_good_quality ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                                    {{ report.air_good_quality ? 'Sí' : 'No' }}
+                                </span>
+                            </p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Rejilla aire en buenas condiciones</label>
+                            <input type="checkbox" formControlName="air_good_quality" />
+                        </div>
+
+                        <!-- Voltaje interno -->
+                        <div *ngIf="!editMode">
+                            <p><span class="font-semibold">Voltaje interno:</span> {{ report.inner_voltage }}</p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Voltaje interno</label>
+                            <input type="number" formControlName="inner_voltage"
+                                class="border rounded px-2 py-1 w-full" />
+                        </div>
+
+                        <!-- Amperaje motor -->
+                        <div *ngIf="!editMode">
+                            <p><span class="font-semibold">Amperaje motor:</span> {{ report.motor_amperage }}</p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Amperaje motor</label>
+                            <input type="number" formControlName="motor_amperage"
+                                class="border rounded px-2 py-1 w-full" />
+                        </div>
+
+                        <!-- Ruido inusual -->
+                        <div *ngIf="!editMode">
+                            <p>
+                                <span class="font-semibold">Ruido inusual:</span>
+                                <span
+                                    [class]="report.unusual_noise ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                                    {{ report.unusual_noise ? 'Sí' : 'No' }}
+                                </span>
+                            </p>
+                        </div>
+                        <div *ngIf="editMode">
+                            <label class="block font-semibold">Ruido inusual</label>
+                            <input type="checkbox" formControlName="unusual_noise" />
+                        </div>
+                    </div>
                 </div>
 
 
@@ -247,11 +415,12 @@
 
             </div>
 
-            <button (click)="downloadTextPDF()" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
-                Descargar PDF
-            </button>
 
-            <div class="flex justify-end gap-2">
+
+            <div class="flex justify-end gap-2 mt-4">
+                <button (click)="downloadTextPDF()" class=" px-4 py-2 bg-blue-500 text-white rounded">
+                    Descargar PDF
+                </button>
                 <button *ngIf="!editMode" (click)="toggleEdit()" class="px-4 py-2 bg-yellow-500 text-white rounded">
                     Editar
                 </button>

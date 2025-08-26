@@ -3,7 +3,7 @@
 
 export class BaseReportDto {
 
-    manttio_type!: string; // Assuming this is a typo in the original code, it should match manttio_type
+    manttio_type!: string;
     report_type!: 'minisplit' | 'chiller' | 'uma';
 
     date_arrival!: Date;
@@ -12,4 +12,6 @@ export class BaseReportDto {
     client_id!: string;
     pictures!: Array<string>;
     signature!: string;
+    signed_by!: string;
+    report_status!: boolean;
 }

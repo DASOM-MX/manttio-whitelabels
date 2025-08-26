@@ -19,7 +19,7 @@ export class ReportsService {
 
   async create(dto: MinisplitReportDto | ChillerReportDto | UmaReportDto, files: Express.Multer.File[], signature: Express.Multer.File | null) {
 
-    const dtoWithCommon = dto as { pictures?: string[], signature?: string };
+    const dtoWithCommon = dto as { pictures?: string[]; signature?: string; signed_by?: string; report_status?: boolean };
 
     //Subir imagenes 
     const pictureUrls = await this.uploadService.uploadFiles(files);
@@ -29,6 +29,9 @@ export class ReportsService {
     if (signature) {
       const signatureUrl = await this.uploadService.uploadFile(signature);
       dtoWithCommon.signature = signatureUrl;
+
+      //dto.signature = signatureUrl;
+
     } else if (dtoWithCommon.signature && dtoWithCommon.signature.startsWith('data:image')) {
       // Caso: firma enviada en Base64 desde el front
       const base64Data = dtoWithCommon.signature.split(',')[1];
@@ -48,6 +51,9 @@ export class ReportsService {
       };
       dtoWithCommon.signature = await this.uploadService.uploadFile(signatureFile);
     }
+
+    //check if the report is signed
+    dto.report_status = !!dto.signature && !!dto.signed_by;
 
     const report = await this.repo.create(dto);
     return report;

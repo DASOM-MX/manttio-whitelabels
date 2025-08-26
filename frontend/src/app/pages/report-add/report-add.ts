@@ -88,7 +88,8 @@ export class ReportAdd implements OnInit {
           { type: 'select', label: '¿Ruido fuera de lo normal?', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
-          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' }
+          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' },
+          { type: 'text', label: 'Firmado por', name: 'signed_by', defaultValue: '' }
         ];
 
       case 'chiller':
@@ -112,7 +113,8 @@ export class ReportAdd implements OnInit {
           { type: 'select', label: 'Ruido inusual', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
-          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' }
+          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' },
+          { type: 'text', label: 'Firmado por', name: 'signed_by', defaultValue: '' }
         ];
 
       case 'uma':
@@ -131,7 +133,8 @@ export class ReportAdd implements OnInit {
           { type: 'select', label: 'Ruido inusual', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
-          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' }
+          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' },
+          { type: 'text', label: 'Firmado por', name: 'signed_by', defaultValue: '' }
         ];
 
       default:

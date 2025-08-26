@@ -74,7 +74,9 @@ export class ReportFirestoreRepository implements ReportsRepository {
             user_id: baseDto.user_id,
             client_id: baseDto.client_id,
             pictures: baseDto.pictures || [],
-            signature: baseDto.signature || ''
+            signature: baseDto.signature || '',
+            signed_by: baseDto.signed_by,
+            report_status: baseDto.report_status
         };
 
         let fullReport: BaseReport;
