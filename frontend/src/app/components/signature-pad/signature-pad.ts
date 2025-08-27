@@ -1,5 +1,6 @@
 import { Component, ViewChild, ElementRef, AfterViewInit, Output, EventEmitter } from '@angular/core';
 import SignaturePad from 'signature_pad';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-signature',
@@ -41,7 +42,12 @@ export class SignatureComponent implements AfterViewInit {
 
   saveSignature(): void {
     if (this.signaturePad.isEmpty()) {
-      alert('Por favor, firme antes de guardar.');
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Por favor, firme antes de guardar",
+
+      });
       return;
     }
 

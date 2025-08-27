@@ -12,6 +12,7 @@ import { MinisplitReport } from './entities/minisplit-report.entity';
 import { MinisplitReportDto } from './dto/minisplit-report.dto';
 import { ChillerReportDto } from './dto/chiller-report.dto';
 import { UmaReportDto } from './dto/uma-report.dto';
+import { BaseReport } from './entities/base-report.entity';
 
 @Injectable()
 export class ReportsService {
@@ -78,6 +79,23 @@ export class ReportsService {
 
     await this.repo.update(id, dto);
     return this.repo.findOne(id);
+  }
+
+
+  async updateSignature(id: string, signature: Express.Multer.File, signedBy: string) {
+
+    const report = await this.repo.findOne(id);
+
+    if (!report) throw new NotFoundException('Reporte no encontrado');
+
+    if (signature) {
+      const signatureUrl = await this.uploadService.uploadFile(signature);
+      report.signature = signatureUrl;
+      report.signed_by = signedBy;
+      report.report_status = true;
+    }
+
+    return this.repo.update(id, report);
   }
 
   remove(id: number) {

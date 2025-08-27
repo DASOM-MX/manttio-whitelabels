@@ -3,15 +3,17 @@ import { Login } from './pages/login/login';
 import { Reports } from './pages/reports/reports';
 import { Search } from './pages/search/search';
 import { AuthenticatedLayoutAdmin } from './layouts/authenticated-layout-admin';
+import { AuthInterceptor } from './auth/auth-interceptor';
 
 export const routes: Routes = [
     {
         path: '',
         component: AuthenticatedLayoutAdmin,
+        canActivate: [AuthInterceptor],
         children: [
             {
                 path: 'home',
-                loadComponent: () => import('./pages/reports/reports').then(m => m.Reports)
+                loadComponent: () => import('./pages/reports/reports').then(m => m.Reports,)
             },
             {
                 path: 'reports',

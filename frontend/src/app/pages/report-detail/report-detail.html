@@ -407,10 +407,22 @@
 
                 <!-- Firma -->
                 <div class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
-                    <h3 class="font-semibold text-gray-800 mb-2">Firma</h3>
-                    <img *ngIf="report.signature" [src]="report.signature" alt="Firma"
-                        class="w-48 h-auto border rounded" />
-                    <p *ngIf="!report.signature" class="text-gray-500">No hay firma disponible.</p>
+                    <h3 class="font-semibold text-gray-800 mb-2">Firmado por: {{report.signed_by}}</h3>
+                    <!-- Caso 1: El reporte ya tiene firma -->
+                    <div *ngIf="report?.signature; else noSignature" class="text-center">
+                        <img [src]="report.signature" alt="Firma" class="mx-auto max-h-32 border p-2 rounded" />
+                        <p class="mt-2 font-semibold">Firmado por: {{ report.signed_by }}</p>
+                    </div>
+
+                    <!-- Caso 2: El reporte NO tiene firma -->
+                    <ng-template #noSignature>
+                        <div *ngIf="!report?.report_status">
+                            <app-signature (signatureChanged)="onSignatureSaved($event)"></app-signature>
+                        </div>
+                        <div *ngIf="report?.report_status">
+                            <p class="text-gray-500 italic">Este reporte está finalizado y no se puede firmar.</p>
+                        </div>
+                    </ng-template>
                 </div>
 
             </div>
@@ -421,7 +433,8 @@
                 <button (click)="downloadTextPDF()" class=" px-4 py-2 bg-blue-500 text-white rounded">
                     Descargar PDF
                 </button>
-                <button *ngIf="!editMode" (click)="toggleEdit()" class="px-4 py-2 bg-yellow-500 text-white rounded">
+                <button *ngIf="!editMode && report?.report_status === false" (click)="toggleEdit()"
+                    class="px-4 py-2 bg-yellow-500 text-white rounded">
                     Editar
                 </button>
                 <button *ngIf="editMode" (click)="saveChanges()" class="px-4 py-2 bg-green-500 text-white rounded">

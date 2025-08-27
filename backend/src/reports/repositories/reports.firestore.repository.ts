@@ -8,12 +8,10 @@
 import { Injectable } from "@nestjs/common";
 import { ReportsRepository } from "./reports.repository";
 import { BaseReport } from "../entities/base-report.entity";
-import { CreateReportDto } from "../dto/create-report.dto";
 import { db } from "../../../libs/firebase/firebase"; // Adjust the import path as necessary
 import { BaseReportDto } from "../dto/base-report.dto";
 import { MinisplitReportDto } from "../dto/minisplit-report.dto";
 import { ChillerReportDto } from "../dto/chiller-report.dto";
-import { UmaReport } from "../entities/uma-report.enity";
 import { UmaReportDto } from "../dto/uma-report.dto";
 
 @Injectable()
@@ -28,10 +26,10 @@ export class ReportFirestoreRepository implements ReportsRepository {
 
     }
 
-    async findOne(id: string): Promise<Report | undefined> {
+    async findOne(id: string): Promise<BaseReport | undefined> {
         // Implementation for fetching a report by ID from Firestore
         const doc = await this.collection.doc(id).get();
-        return doc.exists ? (doc.data() as Report) : undefined;
+        return doc.exists ? (doc.data() as BaseReport) : undefined;
     }
 
 

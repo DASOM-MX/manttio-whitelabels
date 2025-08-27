@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, EventEmitter, Output } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -6,7 +6,10 @@ import { ChangeDetectorRef } from '@angular/core';
 import { Reports } from '../reports/reports';
 import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
+import { SignatureComponent } from '../../components/signature-pad/signature-pad';
 import { Form, FormBuilder, FormGroup, ReactiveFormsModule, FormControl } from '@angular/forms';
+import { Router } from '@angular/router'
+import Swal from 'sweetalert2';
 pdfMake.vfs = pdfFonts.vfs;
 
 
@@ -20,11 +23,14 @@ import { ReportsService } from '../../../services/reports';
 @Component({
   selector: 'app-report-detail',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, SignatureComponent],
   templateUrl: './report-detail.html',
   styleUrl: './report-detail.scss'
 })
 export class ReportDetail implements OnInit {
+  @Output() signatureChanged = new EventEmitter<string>();
+
+
   report: any = null;
   customer: any = null;
   reportUser: any = null;
@@ -37,7 +43,8 @@ export class ReportDetail implements OnInit {
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
     private fb: FormBuilder,
-    private reportsService: ReportsService
+    private reportsService: ReportsService,
+    private router: Router
   ) { }
 
   @ViewChild('pdfContent', { static: false }) pdfContent!: ElementRef;
@@ -464,11 +471,12 @@ export class ReportDetail implements OnInit {
           margin: [0, 10, 0, 10]
         },
 
-        signatureBase64
-          ? { text: 'Firma', style: 'subheader', alignment: 'center' }
-          : null,
+
         signatureBase64
           ? { image: signatureBase64, width: 150, alignment: 'center' }
+          : null,
+        signatureBase64
+          ? { text: `Firmado por: ${this.report.signed_by}`, style: 'subheader', alignment: 'center' }
           : null
 
       ],
@@ -613,6 +621,93 @@ export class ReportDetail implements OnInit {
         })
     }
   }
+
+
+  async onSignatureSaved(signatureData: string) {
+
+    if (signatureData) {
+
+
+
+      const result = await Swal.fire({
+        title: '¿Deseas firmar este reporte?',
+        text: "Una vez firmado, no podrá ser modificado",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, firmar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33'
+      });
+
+      if (result.isConfirmed) {
+
+        const token = localStorage.getItem('token');
+
+        const file = this.dataURLtoFile(signatureData, `signature-${Date.now()}.jpg`);
+
+        const fd = new FormData();
+        fd.append('signature', file);
+        fd.append('signed_by', localStorage.getItem('username') || 'Técnico');
+        fd.append('report_status', 'true');
+
+        this.http.put(`http://localhost:3000/reports/${this.report.id}/signature`, fd, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }).subscribe({
+          next: (updated: any) => {
+            this.report = updated;
+            this.editMode = false;
+
+
+            Swal.fire({
+              title: 'Reporte firmado exitosamente',
+              icon: 'success'
+            })
+            this.reloadComponent();
+
+          },
+          error: (err) => {
+            console.error('Error guardando firma:', err);
+
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: "Ha ocurrido un error al firmar el reporte",
+
+            });
+          }
+        });
+
+      }
+
+    }
+  }
+
+
+  reloadComponent(): void {
+    this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
+      this.router.navigate([this.router.url]);
+    });
+  }
+
+
+
+  // Copiar la misma función que ya tienes en report-add.ts
+  private dataURLtoFile(dataURL: string, filename: string): File {
+    const arr = dataURL.split(',');
+    const mime = arr[0].match(/:(.*?);/)![1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  }
+
+
 
 
 }

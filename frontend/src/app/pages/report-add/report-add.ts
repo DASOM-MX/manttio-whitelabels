@@ -9,7 +9,7 @@ import { jwtDecode } from 'jwt-decode';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
 import { ToastService } from '../../../services/toast.service';
-
+import Swal from 'sweetalert2';
 
 interface JwtPayload {
   sub: string;
@@ -229,6 +229,24 @@ export class ReportAdd implements OnInit {
       fd.append('signature', this.signatureFile); // Mismo nombre que en el interceptor
     }
 
+    if (!this.signatureFile && !formData.signature) {
+      const result = await Swal.fire({
+        title: 'Falta firma',
+        text: "Este reporte no contiene una firma. ¿Deseas continuar sin firmar?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, continuar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33'
+      });
+
+      if (!result.isConfirmed) {
+        // El usuario canceló, abortamos
+        return;
+      }
+    }
+
     this.http.post('http://localhost:3000/reports', fd, {
       headers: {
         'Authorization': `Bearer ${token}`
@@ -237,7 +255,11 @@ export class ReportAdd implements OnInit {
     }).subscribe({
       next: (res) => {
         console.log('Reporte creado:', res);
-        this.toast.show('Reporte guardado con éxito', 'success');
+        Swal.fire({
+          title: 'Reporte agregado exitosamente',
+          icon: 'success'
+        })
+        //this.toast.show('Reporte guardado con éxito', 'success');
 
         alert('Reporte enviado correctamente');
         this.selectedFiles = [];

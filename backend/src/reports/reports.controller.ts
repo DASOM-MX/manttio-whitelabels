@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable prettier/prettier */
 import {
@@ -6,12 +7,14 @@ import {
   Post,
   Body,
   Patch,
+  Put,
   Param,
   Delete,
   Query,
   UseGuards,
   UseInterceptors,
-  UploadedFiles
+  UploadedFiles,
+  BadRequestException
 } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { CreateReportDto } from './dto/create-report.dto';
@@ -61,6 +64,22 @@ export class ReportsController {
   update(@Param('id') id: string, @Body() updateReportDto: UpdateReportDto) {
     return this.reportsService.update(id, updateReportDto);
   }
+
+  @Put(':id/signature')
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'signature', maxCount: 1 }]))
+  updateSignature(
+    @Param('id') id: string,
+    @UploadedFiles() files: { signature?: Express.Multer.File[] },
+
+    @Body('signed_by') signedBy: string,
+  ) {
+    const signatureFile = files.signature ? files.signature[0] : null;
+    if (!signatureFile) {
+      throw new BadRequestException('No se proporcionó la firma');
+    }
+    return this.reportsService.updateSignature(id, signatureFile, signedBy);
+  }
+
 
   @Delete(':id')
   remove(@Param('id') id: string) {
