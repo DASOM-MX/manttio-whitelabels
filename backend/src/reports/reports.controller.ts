@@ -80,6 +80,16 @@ export class ReportsController {
     return this.reportsService.updateSignature(id, signatureFile, signedBy);
   }
 
+  @Put(':id/pictures')
+  @UseInterceptors(FilesInterceptor('pictures'))
+  async updatePictures(
+    @Param('id') id: string,
+    @UploadedFiles() pictures: Express.Multer.File[],
+
+  ) {
+    return this.reportsService.updatePictures(id, pictures);
+  }
+
 
   @Delete(':id')
   remove(@Param('id') id: string) {

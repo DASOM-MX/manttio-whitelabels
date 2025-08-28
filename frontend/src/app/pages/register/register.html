@@ -1,55 +1,63 @@
 <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-    <h2 class="text-2xl font-bold text-center text-dark mb-6">
-        Registrarse
-    </h2>
 
-    <!-- Email -->
-    <div class="mb-4">
-        <input type="email" formControlName="email"
-            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm transition-colors duration-200 bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
-            [class.border-red-500]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched"
-            placeholder="Email" />
-        <div class="text-red-500 text-xs mt-2 flex items-center gap-1"
-            *ngIf="registerForm.get('email')?.invalid && registerForm.get('email')?.touched">
-            <span>⚠</span>
-            <span *ngIf="registerForm.get('email')?.hasError('required')">El email es obligatorio.</span>
-            <span *ngIf="registerForm.get('email')?.hasError('email')">Ingresa un email válido.</span>
+    <div class="min-h-screen flex items-center justify-center bg-surface p-4">
+        <div class="bg-background rounded-xl shadow-lg border border-gray-200 p-8 w-full max-w-md">
+            <h2 class="text-2xl font-bold text-center text-dark mb-6">
+                Registrar Usuario
+            </h2>
+
+            <!-- Email -->
+            <div class="mb-4">
+                <input type="email" formControlName="email"
+                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm transition-colors duration-200 bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                    [class.border-red-500]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched"
+                    placeholder="Email" />
+                <div class="text-red-500 text-xs mt-2 flex items-center gap-1"
+                    *ngIf="registerForm.get('email')?.invalid && registerForm.get('email')?.touched">
+                    <span>⚠</span>
+                    <span *ngIf="registerForm.get('email')?.hasError('required')">El email es obligatorio.</span>
+                    <span *ngIf="registerForm.get('email')?.hasError('email')">Ingresa un email válido.</span>
+                </div>
+            </div>
+
+            <!-- Password -->
+            <div class="mb-4">
+                <input type="password" formControlName="password"
+                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm transition-colors duration-200 bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                    [class.border-red-500]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched"
+                    placeholder="Contraseña" />
+                <div class="text-red-500 text-xs mt-2 flex items-center gap-1"
+                    *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
+                    <span>⚠</span>
+                    <span *ngIf="registerForm.get('password')?.hasError('required')">La contraseña es
+                        obligatoria.</span>
+                    <span *ngIf="registerForm.get('password')?.hasError('minlength')">La contraseña debe tener al menos
+                        8
+                        caracteres.</span>
+                </div>
+            </div>
+
+            <!-- Confirm Password -->
+            <div class="mb-6">
+                <input type="password" formControlName="confirmPassword"
+                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm transition-colors duration-200 bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                    [class.border-red-500]="(registerForm.get('confirmPassword')?.invalid || getPasswordMismatchError()) && registerForm.get('confirmPassword')?.touched"
+                    placeholder="Confirmar Contraseña" />
+                <div class="text-red-500 text-xs mt-2 flex items-center gap-1"
+                    *ngIf="(registerForm.get('confirmPassword')?.invalid || getPasswordMismatchError()) && registerForm.get('confirmPassword')?.touched">
+                    <span>⚠</span>
+                    <span *ngIf="registerForm.get('confirmPassword')?.hasError('required')">Confirma tu
+                        contraseña.</span>
+                    <span *ngIf="getPasswordMismatchError()">Las contraseñas no coinciden.</span>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit"
+                class="w-full bg-primary text-white py-3 rounded-xl font-semibold text-sm transition-colors duration-200 hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                [disabled]="registerForm.invalid">
+                Registrarse
+            </button>
         </div>
     </div>
-
-    <!-- Password -->
-    <div class="mb-4">
-        <input type="password" formControlName="password"
-            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm transition-colors duration-200 bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
-            [class.border-red-500]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched"
-            placeholder="Contraseña" />
-        <div class="text-red-500 text-xs mt-2 flex items-center gap-1"
-            *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
-            <span>⚠</span>
-            <span *ngIf="registerForm.get('password')?.hasError('required')">La contraseña es obligatoria.</span>
-            <span *ngIf="registerForm.get('password')?.hasError('minlength')">La contraseña debe tener al menos 8
-                caracteres.</span>
-        </div>
-    </div>
-
-    <!-- Confirm Password -->
-    <div class="mb-6">
-        <input type="password" formControlName="confirmPassword"
-            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm transition-colors duration-200 bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
-            [class.border-red-500]="(registerForm.get('confirmPassword')?.invalid || getPasswordMismatchError()) && registerForm.get('confirmPassword')?.touched"
-            placeholder="Confirmar Contraseña" />
-        <div class="text-red-500 text-xs mt-2 flex items-center gap-1"
-            *ngIf="(registerForm.get('confirmPassword')?.invalid || getPasswordMismatchError()) && registerForm.get('confirmPassword')?.touched">
-            <span>⚠</span>
-            <span *ngIf="registerForm.get('confirmPassword')?.hasError('required')">Confirma tu contraseña.</span>
-            <span *ngIf="getPasswordMismatchError()">Las contraseñas no coinciden.</span>
-        </div>
-    </div>
-
-    <!-- Submit Button -->
-    <button type="submit"
-        class="w-full bg-primary text-white py-3 rounded-lg font-semibold text-sm transition-colors duration-200 hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-        [disabled]="registerForm.invalid">
-        Registrarse
-    </button>
 </form>

@@ -27,8 +27,9 @@ export class UserFirestoreRepository implements UserRepository {
     }
 
     async create(dto: CreateUserDto): Promise<User> {
-        const user: User = { id: uuid(), ...dto };
-        await this.collection.doc(user.id).set(user);
+        const docRef = this.collection.doc();
+        const user: User = { id: docRef.id, ...dto };
+        await docRef.set(user);
         return user;
     }
 

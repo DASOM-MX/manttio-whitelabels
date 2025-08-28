@@ -98,6 +98,17 @@ export class ReportsService {
     return this.repo.update(id, report);
   }
 
+
+  async updatePictures(id: string, pictures: Express.Multer.File[]) {
+    const report = await this.repo.findOne(id);
+    if (!report) throw new NotFoundException('Reporte no encontrado');
+    if (pictures && pictures.length > 0) {
+      const pictureUrls = await this.uploadService.uploadFiles(pictures);
+      report.pictures = pictureUrls;
+    }
+    return this.repo.update(id, report);
+  }
+
   remove(id: number) {
     return `This action removes a #${id} report`;
   }
