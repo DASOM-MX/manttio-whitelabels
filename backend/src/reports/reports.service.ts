@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable prettier/prettier */
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
 import { ReportsRepository } from './repositories/reports.repository';
@@ -100,12 +100,45 @@ export class ReportsService {
 
 
   async updatePictures(id: string, pictures: Express.Multer.File[]) {
+    // const report = await this.repo.findOne(id);
+    // if (!report) throw new NotFoundException('Reporte no encontrado');
+    // if (pictures && pictures.length > 0) {
+    //   const pictureUrls = await this.uploadService.uploadFiles(pictures);
+    //   report.pictures = pictureUrls;
+    // }
+    // return this.repo.update(id, report);
     const report = await this.repo.findOne(id);
     if (!report) throw new NotFoundException('Reporte no encontrado');
+
     if (pictures && pictures.length > 0) {
+      console.log("contiene imagenes");
       const pictureUrls = await this.uploadService.uploadFiles(pictures);
-      report.pictures = pictureUrls;
+      report.pictures = [...(report.pictures || []), ...pictureUrls];
     }
+
+    return this.repo.update(id, report);
+  }
+
+
+  async removePictures(id: string, pictures: string[]) {
+    const report = await this.repo.findOne(id);
+    if (!report) throw new NotFoundException('Reporte no encontrado');
+
+    // Asegurarse de que report.pictures sea un array
+    if (!Array.isArray(report.pictures)) {
+      report.pictures = [];
+    }
+
+    // Asegurarse de que pictures (del body) sea un array
+    if (!Array.isArray(pictures) || pictures.length === 0) {
+      throw new BadRequestException('Debe enviar un arreglo de imágenes a eliminar');
+    }
+
+    // Filtrar quitando las imágenes que el cliente pidió borrar
+    report.pictures = report.pictures.filter(
+      (p) => !pictures.includes(p),
+    );
+
     return this.repo.update(id, report);
   }
 

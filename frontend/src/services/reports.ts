@@ -24,4 +24,10 @@ export class ReportsService {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     });
   }
+
+  getReport(id: string): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/${id}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    });
+  }
 }

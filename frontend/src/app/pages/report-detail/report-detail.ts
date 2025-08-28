@@ -17,13 +17,14 @@ pdfMake.vfs = pdfFonts.vfs;
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { ReportsService } from '../../../services/reports';
+import { ImagePickerComponent } from '../../components/image-picker/image-picker';
 
 
 
 @Component({
   selector: 'app-report-detail',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, SignatureComponent],
+  imports: [CommonModule, ReactiveFormsModule, SignatureComponent, ImagePickerComponent],
   templateUrl: './report-detail.html',
   styleUrl: './report-detail.scss'
 })
@@ -37,6 +38,9 @@ export class ReportDetail implements OnInit {
 
   reportForm!: FormGroup;
   editMode = false;
+
+  newPictures: File[] = [];
+  removedPictures: string[] = [];
 
   constructor(
     private route: ActivatedRoute,
@@ -598,8 +602,6 @@ export class ReportDetail implements OnInit {
           console.log("Usuario del reporte:", user);
         })
 
-
-
       })
     }
 
@@ -612,13 +614,31 @@ export class ReportDetail implements OnInit {
     }
   }
 
-  saveChanges() {
-    if (this.reportForm.valid) {
-      this.reportsService.updateReport(this.report.id, this.reportForm.value)
-        .subscribe(updated => {
-          this.report = updated;
-          this.editMode = false;
-        })
+  async saveChanges() {
+    if (this.reportForm.invalid) return;
+
+    try {
+      //  Guardar los cambios normales del formulario
+      await this.reportsService.updateReport(this.report.id, this.reportForm.value).toPromise();
+
+      //  Subir las nuevas imágenes (si hay)
+      if ((this.newPictures && this.newPictures.length > 0) || (this.removedPictures && this.removedPictures.length > 0)) {
+        await this.savePictures(this.newPictures);
+        // this.newPictures = [];
+      }
+
+      //terminar edicion
+      this.editMode = false;
+      Swal.fire("Éxito", "Reporte actualizado correctamente", "success");
+      this.editMode = false;
+      this.cdr.detectChanges();
+
+      //  Refrescar el reporte desde el backend
+      // this.report = await this.reportsService.getReport(this.report.id).toPromise();
+
+      // this.editMode = false;
+    } catch (error) {
+      Swal.fire("Error", "No se pudieron guardar los cambios", "error");
     }
   }
 
@@ -686,6 +706,72 @@ export class ReportDetail implements OnInit {
   }
 
 
+
+  onNewPicturesSelected(files: File[]) {
+    this.newPictures = files; // imágenes nuevas
+  }
+
+  onExistingPicturesRemoved(removed: string[]) {
+    this.removedPictures.push(...removed); // guardamos URLs a borrar
+    console.log("imagenes a remover", this.removedPictures);
+  }
+
+  async savePictures(files: File[]) {
+    const token = localStorage.getItem('token');
+
+    try {
+      let updatedReport = this.report;
+
+      // Subir nuevas imágenes si existen
+      if (files.length > 0) {
+        const fd = new FormData();
+        files.forEach(file => fd.append('pictures', file));
+
+        updatedReport = await this.http.put<any>(
+          `http://localhost:3000/reports/${this.report.id}/pictures`,
+          fd,
+          { headers: { Authorization: `Bearer ${token}` } }
+        ).toPromise();
+      }
+
+      // Borrar imágenes si hay URLs a eliminar
+
+      console.log("a remover:", this.removedPictures);
+      if (this.removedPictures.length > 0) {
+        await this.http.request(
+          'delete',
+          `http://localhost:3000/reports/${this.report.id}/pictures`,
+          {
+            body: { images: this.removedPictures },
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        ).toPromise();
+      }
+
+      // Refrescar reporte desde backend
+      const freshReport = await this.reportsService.getReport(this.report.id).toPromise();
+
+      // Actualizar estado del componente
+      this.report = freshReport;
+      this.newPictures = [];
+      this.removedPictures = [];
+      this.cdr.detectChanges();
+
+      console.log("Reporte actualizado correctamente", this.report);
+
+    } catch (err) {
+      console.error("Error al guardar imágenes:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudieron guardar los cambios en las imágenes"
+      });
+    }
+  }
+
+
+
+
   reloadComponent(): void {
     this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
       this.router.navigate([this.router.url]);
@@ -694,7 +780,6 @@ export class ReportDetail implements OnInit {
 
 
 
-  // Copiar la misma función que ya tienes en report-add.ts
   private dataURLtoFile(dataURL: string, filename: string): File {
     const arr = dataURL.split(',');
     const mime = arr[0].match(/:(.*?);/)![1];
@@ -706,8 +791,5 @@ export class ReportDetail implements OnInit {
     }
     return new File([u8arr], filename, { type: mime });
   }
-
-
-
 
 }

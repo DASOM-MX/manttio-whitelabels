@@ -394,15 +394,25 @@
                 </div>
 
                 <!-- Imágenes -->
-                <div class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
-                    <h3 class="font-semibold text-gray-800 mb-2">Imágenes</h3>
-                    <div class="flex flex-wrap gap-4">
-                        <img *ngFor="let pic of report.pictures" [src]="pic" alt="Imagen del reporte"
-                            class="w-32 h-24 object-cover rounded border" />
-                        <p *ngIf="!report.pictures || report.pictures.length === 0" class="text-gray-500">No hay
-                            imágenes
-                            disponibles.</p>
+
+                <div *ngIf="editMode" class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
+                    <app-image-picker [existingImages]="report?.pictures || []"
+                        (filesSelected)="onNewPicturesSelected($event)"
+                        (imagesRemoved)="onExistingPicturesRemoved($event)">
+
+                    </app-image-picker>
+                    <!-- <label for="pictures">Subir imágenes:</label>
+                    <input type="file" id="pictures" (change)="onPicturesSelected($event)" multiple accept="image/*" /> -->
+                </div>
+
+                <div *ngIf="!editMode" class="imagenes-reporte bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
+                    <label class="block font-semibold">Fotos</label>
+                    <div *ngIf="report?.pictures?.length; else noPics" class="flex flex-wrap gap-4 justify-center">
+                        <img *ngFor="let pic of report.pictures" [src]="pic" width="150" style="margin:5px" />
                     </div>
+                    <ng-template #noPics>
+                        <p>No hay imágenes aún.</p>
+                    </ng-template>
                 </div>
 
                 <!-- Firma -->

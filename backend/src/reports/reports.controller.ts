@@ -90,6 +90,15 @@ export class ReportsController {
     return this.reportsService.updatePictures(id, pictures);
   }
 
+  // DELETE para eliminar imágenes existentes
+  @Delete(':id/pictures')
+  async removePictures(
+    @Param('id') id: string,
+    @Body('images') images: string[],
+  ) {
+    return this.reportsService.removePictures(id, images);
+  }
+
 
   @Delete(':id')
   remove(@Param('id') id: string) {
