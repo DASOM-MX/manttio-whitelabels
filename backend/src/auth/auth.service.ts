@@ -20,7 +20,7 @@ export class AuthService {
     async register(dto: RegisterDto) {
         const hash = await bcrypt.hash(dto.password, 10);
         const user = await this.usersRepo.create({ ...dto, password: hash });
-        const token = this.jwtService.sign({ sub: user.id });
+        const token = this.jwtService.sign({ sub: user.id, role: user.role });
         return { user, token };
     }
 
@@ -29,7 +29,7 @@ export class AuthService {
         if (!user) throw new UnauthorizedException('Invalid credentials');
         const match = await bcrypt.compare(dto.password, user.password);
         if (!match) throw new UnauthorizedException('Invalid credentials');
-        const token = this.jwtService.sign({ sub: user.id });
+        const token = this.jwtService.sign({ sub: user.id, role: user.role });
 
         console.log('User login:', user.id, user.email);
         return { user, token };

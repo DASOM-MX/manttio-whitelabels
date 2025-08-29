@@ -43,9 +43,13 @@
 
 
             <div *ngIf="showMenu" class="absolute bottom-12 right-0 bg-white text-black rounded-lg shadow-lg w-40 z-50">
+                <div class="px-4 py-2 border-b text-sm text-gray-700">
+                    {{ email }}
+                </div>
                 <a routerLink="/customer-add" class="block px-4 py-2 hover:bg-gray-100">Agregar cliente</a>
-                <a routerLink="/register" class="block px-4 py-2 hover:bg-gray-100">Agregar usuario</a>
-                <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Cerrar
+                <a *ngIf="role" routerLink="/register" class="block px-4 py-2 hover:bg-gray-100">Agregar
+                    usuario</a>
+                <button (click)="logout()" class="block w-full text-left px-4 py-2 hover:bg-gray-100">Cerrar
                     sesión</button>
             </div>
 

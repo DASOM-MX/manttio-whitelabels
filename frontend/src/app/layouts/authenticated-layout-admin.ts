@@ -7,11 +7,11 @@ import { BottomNav } from '../shared/bottom-nav';
   standalone: true,
   imports: [RouterModule, BottomNav],
   template: `
-    <main class="pb-16">
-      <router-outlet></router-outlet>
-    </main>
-    <app-bottom-nav></app-bottom-nav>
-  `,
+      <main class="pb-16">
+        <router-outlet></router-outlet>
+      </main>
+      <app-bottom-nav></app-bottom-nav>
+    `,
   styleUrl: './authenticated-layout-admin.scss'
 })
 export class AuthenticatedLayoutAdmin {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
@@ -7,12 +8,15 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRepository } from './repositories/user.repository';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
   constructor(private readonly repo: UserRepository) { }
-  create(dto: CreateUserDto) {
-    return this.repo.create(dto);
+  async create(dto: CreateUserDto) {
+    const hash = await bcrypt.hash(dto.password, 10);
+    const user = await this.repo.create({ ...dto, password: hash });
+    return user; // solo devolvemos user, sin token
   }
 
   findAll() {

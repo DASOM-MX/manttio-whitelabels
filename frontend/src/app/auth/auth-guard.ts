@@ -8,7 +8,7 @@ import { jwtDecode } from 'jwt-decode';
   providedIn: 'root',
 })
 
-export class AuthInterceptor implements CanActivate {
+export class AuthGuard implements CanActivate {
 
   constructor(private router: Router) { }
 

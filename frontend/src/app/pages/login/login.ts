@@ -40,6 +40,8 @@ export class Login {
 
             //Guardar el token
             localStorage.setItem('token', response.token)
+            localStorage.setItem('role', response.user.role ? 'true' : 'false')
+            localStorage.setItem('email', response.user.email);
             //redirigir
             this.router.navigate(['/reports']);
 

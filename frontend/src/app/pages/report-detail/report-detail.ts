@@ -598,6 +598,7 @@ export class ReportDetail implements OnInit {
           }
         }).subscribe(user => {
           this.reportUser = user;
+
           this.cdr.detectChanges();
           console.log("Usuario del reporte:", user);
         })

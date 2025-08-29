@@ -28,6 +28,7 @@ export class ReportAdd implements OnInit {
   customers: Customer[] = [];
   selectedFiles: File[] = [];
   signatureFile: File | null = null;
+  signedBy: string = '';
 
   reportTypes: ['minisplit', 'chiller', 'uma'] = ['minisplit', 'chiller', 'uma'];
   selectedReportType = 'minisplit';

@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { HlmInputDirective } from '@spartan-ng/helm/input';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-register',
@@ -19,9 +20,12 @@ export class Register {
     private http: HttpClient,
     private router: Router) {
     this.registerForm = this.fb.group({
+
+      name: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
-      confirmPassword: ['', [Validators.required]]
+      confirmPassword: ['', [Validators.required]],
+      role: [false, Validators.required]
     }, { validators: this.passwordMatchValidator });
   }
 
@@ -38,17 +42,21 @@ export class Register {
 
   onSubmit() {
     if (this.registerForm.valid) {
-      const { email, password, confirmPassword } = this.registerForm.value;
-      console.log('Datos del registro:', { email, password, confirmPassword });
+      const { name, email, password, confirmPassword, role } = this.registerForm.value;
+      console.log('Datos del registro:', { name, email, password, confirmPassword, role });
       // Aquí se debe llamar al servicio de registro
 
 
       this.http.post('http://localhost:3000/auth/register', {
-        email, password
+        name, email, password, role
       })
         .subscribe({
           next: (response: any) => {
             console.log('Registro exitoso', response);
+            Swal.fire({
+              title: 'Usuario registrado exitosamente',
+              icon: 'success'
+            })
 
             //Guardar token
             //localStorage.setItem('token', response.token)

@@ -12,11 +12,17 @@ import { filter } from 'rxjs/operators'
   styleUrl: './bottom-nav.scss'
 })
 export class BottomNav {
+  role: boolean | null = null;
+  email: string | null = null;
 
 
   showMenu = false;
 
   constructor(private router: Router) {
+    this.email = localStorage.getItem('email');
+    const storedRole = localStorage.getItem('role');
+    this.role = storedRole === 'true'
+
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(() => {
@@ -31,7 +37,10 @@ export class BottomNav {
 
   logout() {
     console.log("Cerrar sesión");
-    // Aquí va tu lógica de logout
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('email');
+    this.router.navigate(['/login'])
   }
 
 }

@@ -3,13 +3,13 @@ import { Login } from './pages/login/login';
 import { Reports } from './pages/reports/reports';
 import { Search } from './pages/search/search';
 import { AuthenticatedLayoutAdmin } from './layouts/authenticated-layout-admin';
-import { AuthInterceptor } from './auth/auth-interceptor';
+import { AuthGuard } from './auth/auth-guard';
 
 export const routes: Routes = [
     {
         path: '',
         component: AuthenticatedLayoutAdmin,
-        canActivate: [AuthInterceptor],
+        canActivate: [AuthGuard],
         children: [
             {
                 path: 'home',
