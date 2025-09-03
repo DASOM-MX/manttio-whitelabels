@@ -9,6 +9,7 @@ import { jwtDecode } from 'jwt-decode';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
 import { ToastService } from '../../../services/toast.service';
+import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
 
 interface JwtPayload {
@@ -50,7 +51,8 @@ export class ReportAdd implements OnInit {
     private reportsService: ReportsService,
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
-    private toast: ToastService) { }
+    private toast: ToastService,
+    private router: Router) { }
 
   onReportTypeChange(newType: string) {
     this.isAnimating = true;
@@ -179,6 +181,8 @@ export class ReportAdd implements OnInit {
   }
 
 
+
+
   private dataURLtoFile(dataURL: string, filename: string): File {
     const arr = dataURL.split(',');
     const mime = arr[0].match(/:(.*?);/)![1];
@@ -262,13 +266,15 @@ export class ReportAdd implements OnInit {
         })
         //this.toast.show('Reporte guardado con éxito', 'success');
 
-        alert('Reporte enviado correctamente');
+        //alert('Reporte enviado correctamente');
         this.selectedFiles = [];
         this.signatureFile = null;
         this.selectedCustomerId = '';
         //this.selectedReportType =;
         this.formConfigs[this.selectedReportType] = this.getFieldsForType(this.selectedReportType);
         this.cdr.detectChanges();
+        this.router.navigate(['/reports']);
+
       },
       error: (err) => {
         console.log('Error al crear reporte', err);

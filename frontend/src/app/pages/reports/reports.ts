@@ -51,6 +51,25 @@ export class Reports implements OnInit {
     console.log('Reportes iniciales:', this.reports);
   }
 
+  sortReports(criteria: 'date' | 'client-asc' | 'client-desc') {
+    if (criteria === 'date') {
+      this.reports = [...this.reports].sort((a, b) =>
+
+        new Date(b.date_departure).getTime() - new Date(a.date_departure).getTime()
+      );
+    }
+    if (criteria === 'client-asc') {
+      this.reports = [...this.reports].sort((a, b) =>
+        a.client_name.localeCompare(b.client_name)
+      );
+    }
+    if (criteria === 'client-desc') {
+      this.reports = [...this.reports].sort((a, b) =>
+        b.client_name.localeCompare(a.client_name)
+      )
+    }
+  }
+
 
   goToReportDetail(reportId: string) {
     console.log('Navegando al detalle del reporte con ID:', reportId);
@@ -58,4 +77,7 @@ export class Reports implements OnInit {
     this.router.navigate([`/reports/${reportId}`]);
     // this.router.navigate([`/reports/${reportId}`]);
   }
+
+
+
 }

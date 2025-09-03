@@ -21,16 +21,16 @@
         <hr class="border-t border-gray-300 my-4">
         <!-- Botones de ordenamiento -->
         <div class="flex justify-start gap-2 mb-4 w-full">
-            <button type="button"
+            <button type="button" (click)="sortReports('date')"
                 class="px-4 py-2  text-primary border-2 border-primary rounded hover:bg-primary/80 hover:text-white transition">
                 Ordenar por Fecha ↑
             </button>
 
-            <button type="button"
+            <button type="button " (click)="sortReports('client-asc')"
                 class="px-4 py-2  text-primary border-2 border-primary rounded hover:bg-primary/80 hover:text-white transition">
                 Ordenar por Cliente A-Z
             </button>
-            <button type="button"
+            <button type="button" (click)="sortReports('client-desc')"
                 class="px-4 py-2 text-primary border-2 border-primary rounded hover:bg-primary/80 hover:text-white transition">
                 Ordenar por Cliente Z-A
             </button>
