@@ -260,9 +260,6 @@ export class ReportAdd implements OnInit {
           title: 'Reporte agregado exitosamente',
           icon: 'success'
         })
-        //this.toast.show('Reporte guardado con éxito', 'success');
-
-        //alert('Reporte enviado correctamente');
         this.selectedFiles = [];
         this.signatureFile = null;
         this.selectedCustomerId = '';
