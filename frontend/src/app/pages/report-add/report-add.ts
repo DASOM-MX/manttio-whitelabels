@@ -165,19 +165,16 @@ export class ReportAdd implements OnInit {
     if (event.target.files && event.target.files.length > 0) {
       //this.selectedFiles = event.target.files[0];
       this.selectedFiles = Array.from(event.target.files);
-      console.log('Archivos seleccionados:', this.selectedFiles);
 
     }
   }
 
   onFilesSelected(files: File[]) {
     this.selectedFiles = files;
-    console.log('Archivos recibidos desde formulario:', this.selectedFiles);
   }
 
   onSignatureChange(file: File) {
     this.signatureFile = file;
-    console.log('Firma capturada2:', file);
   }
 
 
@@ -259,7 +256,6 @@ export class ReportAdd implements OnInit {
 
     }).subscribe({
       next: (res) => {
-        console.log('Reporte creado:', res);
         Swal.fire({
           title: 'Reporte agregado exitosamente',
           icon: 'success'
@@ -277,8 +273,6 @@ export class ReportAdd implements OnInit {
 
       },
       error: (err) => {
-        console.log('Error al crear reporte', err);
-
         this.toast.show('Error al enviar reporte', 'error');
       }
     });
