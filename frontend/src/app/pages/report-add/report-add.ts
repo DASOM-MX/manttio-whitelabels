@@ -11,6 +11,7 @@ import { ChangeDetectorRef } from '@angular/core';
 import { ToastService } from '../../../services/toast.service';
 import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
+import { environment } from '../../../environments/environment';
 
 interface JwtPayload {
   sub: string;
@@ -252,7 +253,7 @@ export class ReportAdd implements OnInit {
       }
     }
 
-    this.http.post('http://localhost:3000/reports', fd, {
+    this.http.post(`${environment.apiUrl}reports`, fd, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
