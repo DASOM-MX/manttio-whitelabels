@@ -5,6 +5,7 @@ import { HlmInputDirective } from '@spartan-ng/helm/input';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-register',
@@ -47,7 +48,7 @@ export class Register {
       // Aquí se debe llamar al servicio de registro
 
 
-      this.http.post('http://localhost:3000/auth/register', {
+      this.http.post(`${environment.apiUrl}auth/register`, {
         name, email, password, role
       })
         .subscribe({

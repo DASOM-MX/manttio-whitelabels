@@ -6,6 +6,7 @@ import { jwtDecode } from 'jwt-decode';
 import { DynamicForm } from '../../shared/dynamic-form/dynamic-form';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { environment } from '../../../environments/environment';
 
 interface JwtPayload {
   sub: string;
@@ -74,7 +75,7 @@ export class CustomerAdd {
     };
 
 
-    this.http.post('http://localhost:3000/customers', payload, {
+    this.http.post(`${environment.apiUrl}customers`, payload, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -82,9 +83,7 @@ export class CustomerAdd {
     }).subscribe({
       next: (res) => {
         console.log('CLIENTE creado:', res);
-        this.toast.show('cLIENTE guardado con éxito', 'success');
-
-        alert('Cliente enviado correctamente');
+        this.toast.show('Cliente registrado con éxito', 'success');
 
       },
       error: (err) => {

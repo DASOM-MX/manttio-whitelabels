@@ -1,4 +1,11 @@
-import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  OnInit,
+  Output,
+  inject,
+} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { FieldConfig } from './models/field-config.model';
@@ -7,9 +14,14 @@ import { SignatureComponent } from '../../components/signature-pad/signature-pad
 
 @Component({
   selector: 'app-dynamic-form',
-  imports: [CommonModule, ReactiveFormsModule, ImagePickerComponent, SignatureComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    ImagePickerComponent,
+    SignatureComponent,
+  ],
   templateUrl: './dynamic-form.html',
-  styleUrl: './dynamic-form.scss'
+  styleUrl: './dynamic-form.scss',
 })
 export class DynamicForm implements OnInit {
   @Input() fields: FieldConfig[] = [];
@@ -21,7 +33,7 @@ export class DynamicForm implements OnInit {
 
   ngOnInit() {
     const group: { [key: string]: any } = {};
-    this.fields.forEach(field => {
+    this.fields.forEach((field) => {
       group[field.name] = [field.defaultValue];
     });
 
@@ -30,7 +42,6 @@ export class DynamicForm implements OnInit {
     }
 
     this.form = this.fb.group(group);
-
   }
 
   ///
@@ -43,17 +54,13 @@ export class DynamicForm implements OnInit {
     console.log('Formulario enviado:', this.form.value);
   }
 
-
   onFilesSelected(files: File[]) {
     this.filesSelected.emit(files);
   }
-
 
   onSignatureChanged(signaturedataURL: string) {
     this.form.patchValue({ signature: signaturedataURL });
     this.signatureChanged.emit(signaturedataURL);
     console.log('Firma capturada(base64):', signaturedataURL);
-
-
   }
 }

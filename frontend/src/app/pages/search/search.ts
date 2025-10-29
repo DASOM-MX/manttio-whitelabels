@@ -13,10 +13,6 @@ import { DynamicForm } from '../../shared/dynamic-form/dynamic-form';
 })
 export class Search {
 
-
-
-
-
 }
 
 

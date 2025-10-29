@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../environments/environment';
 
 export interface Customer {
   id: string;
@@ -16,12 +17,11 @@ export interface Customer {
   providedIn: 'root'
 })
 export class CustomersService {
-  private baseUrl = 'http://localhost:3000/customers';
+  private baseUrl = 'customers';
 
   constructor(private http: HttpClient) { }
 
   getCustomers(): Observable<Customer[]> {
-
-    return this.http.get<Customer[]>(this.baseUrl);
+    return this.http.get<Customer[]>(`${environment.apiUrl}${this.baseUrl}`);
   }
 }
