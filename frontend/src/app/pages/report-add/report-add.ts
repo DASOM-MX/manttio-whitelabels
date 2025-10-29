@@ -150,9 +150,8 @@ export class ReportAdd implements OnInit {
   ngOnInit(): void {
     this.customersService.getCustomers().subscribe({
       next: (data) => {
-        console.log('Clientes recibidos:', data); // <-- Aquí verificas
         this.customers = data;
-        this.cdr.detectChanges(); // Asegúrate de detectar cambios después de actualizar los clientes
+        this.cdr.detectChanges();
 
       },
       error: (err) => {
