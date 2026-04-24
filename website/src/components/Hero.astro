@@ -1,0 +1,113 @@
+---
+// TODO: replace with the direct videos.pexels.com CDN URL (grab it from
+// https://www.pexels.com/video/30900353/ — right-click the <video> element
+// in DevTools and copy the .mp4 src). Leaving empty falls back to the gradient.
+const heroVideoUrl = '';
+---
+
+<section class="relative isolate flex min-h-screen items-center overflow-hidden bg-granite-900">
+  {heroVideoUrl && (
+    <video
+      class="absolute inset-0 size-full object-cover"
+      src={heroVideoUrl}
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="auto"
+      aria-hidden="true"
+    ></video>
+  )}
+
+  <div
+    class="absolute inset-0 bg-gradient-to-br from-granite-950/85 via-granite-900/70 to-granite-800/60"
+    aria-hidden="true"
+  ></div>
+
+  <div
+    class="pointer-events-none absolute -left-32 top-1/3 size-96 rounded-full bg-coral-500/25 blur-3xl"
+    aria-hidden="true"
+  ></div>
+  <div
+    class="pointer-events-none absolute -right-24 bottom-10 size-80 rounded-full bg-royal-500/25 blur-3xl"
+    aria-hidden="true"
+  ></div>
+
+  <div class="relative mx-auto flex w-full max-w-7xl flex-col items-start px-6 py-32 lg:px-10 lg:py-40">
+    <h1 class="max-w-3xl font-heading text-4xl font-bold leading-[1.05] text-white sm:text-5xl lg:text-7xl">
+      Clima bajo control para tu
+      <span class="mt-2 block">
+        <span
+          class="inline-block text-coral-400"
+          data-hero-rotator
+        >Nave Industrial</span>
+      </span>
+    </h1>
+
+    <p class="mt-6 max-w-2xl text-lg text-white/80 sm:text-xl">
+      Mantenimiento, renta y venta de equipos de aire acondicionado, calefacción y refrigeración. Soluciones confiables diseñadas para el clima del norte.
+    </p>
+
+    <div class="mt-10 flex flex-col gap-3 sm:flex-row">
+      <a
+        href="#contacto"
+        class="inline-flex items-center justify-center rounded-md bg-coral-500 px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-coral-500/25 transition hover:bg-coral-600 focus:outline-none focus:ring-2 focus:ring-coral-300 focus:ring-offset-2 focus:ring-offset-granite-900"
+      >
+        Solicitar cotización
+      </a>
+      <a
+        href="#servicios"
+        class="inline-flex items-center justify-center rounded-md border border-white/25 bg-white/5 px-7 py-3.5 text-base font-semibold text-white backdrop-blur-sm transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50"
+      >
+        Ver nuestros servicios
+      </a>
+    </div>
+
+    <p class="mt-16 border-t border-white/10 pt-8 text-lg font-medium uppercase tracking-[0.18em] text-golden-300 sm:text-xl">
+      Orgullosamente regiomontanos
+    </p>
+  </div>
+</section>
+
+<script>
+  import anime from 'animejs';
+
+  const rotator = document.querySelector<HTMLElement>('[data-hero-rotator]');
+  if (rotator) {
+    const words = ['Nave Industrial', 'Fabrica', 'Negocio', 'Hogar'];
+    let idx = 0;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const intervalMs = 2800;
+
+    const swap = () => {
+      const nextIdx = (idx + 1) % words.length;
+
+      if (prefersReducedMotion) {
+        idx = nextIdx;
+        rotator.textContent = words[idx];
+        return;
+      }
+
+      anime({
+        targets: rotator,
+        opacity: [1, 0],
+        translateY: [0, -14],
+        duration: 320,
+        easing: 'easeInQuad',
+        complete: () => {
+          idx = nextIdx;
+          rotator.textContent = words[idx];
+          anime({
+            targets: rotator,
+            opacity: [0, 1],
+            translateY: [14, 0],
+            duration: 420,
+            easing: 'easeOutQuad',
+          });
+        },
+      });
+    };
+
+    setInterval(swap, intervalMs);
+  }
+</script>

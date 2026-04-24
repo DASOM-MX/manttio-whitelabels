@@ -1,0 +1,140 @@
+---
+const navLinks = [
+  { href: '#servicios', label: 'Servicios' },
+  { href: '#ubicacion', label: 'Ubicación' },
+  { href: '#marcas', label: 'Marcas' },
+  { href: '#contacto', label: 'Contacto' },
+];
+---
+
+<header
+  class="fixed inset-x-0 top-0 z-50 transition-colors duration-300"
+  data-site-header
+>
+  <div
+    class="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 transition-all duration-300 lg:px-10"
+    data-site-header-inner
+  >
+    <a
+      href="/"
+      class="font-heading text-xl font-bold leading-tight tracking-tight text-white sm:text-2xl"
+    >
+      Peña Nevada <span class="text-coral-400">Chillers</span>
+    </a>
+
+    <nav class="hidden items-center gap-8 md:flex" aria-label="Navegación principal">
+      {navLinks.map(({ href, label }) => (
+        <a
+          href={href}
+          data-nav-link
+          data-target={href.slice(1)}
+          class="relative text-sm font-medium text-white/85 transition hover:text-white"
+        >
+          <span>{label}</span>
+          <span
+            class="pointer-events-none absolute -bottom-1 left-0 h-0.5 w-full origin-left scale-x-0 rounded-full bg-coral-400 transition-transform duration-300"
+            data-nav-underline
+            aria-hidden="true"
+          ></span>
+        </a>
+      ))}
+    </nav>
+
+    <a
+      href="#contacto"
+      class="rounded-md bg-coral-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-coral-600 focus:outline-none focus:ring-2 focus:ring-coral-300 focus:ring-offset-2 focus:ring-offset-granite-900"
+    >
+      Cotiza ahora
+    </a>
+  </div>
+</header>
+
+<script>
+  const header = document.querySelector<HTMLElement>('[data-site-header]');
+  const headerInner = document.querySelector<HTMLElement>('[data-site-header-inner]');
+  const navLinks = document.querySelectorAll<HTMLAnchorElement>('[data-nav-link]');
+
+  const SCROLLED_CLASSES = [
+    'bg-granite-950/90',
+    'backdrop-blur',
+    'shadow-lg',
+    'shadow-granite-950/20',
+  ];
+  const INNER_NORMAL = ['py-5'];
+  const INNER_COMPACT = ['py-3'];
+
+  if (header && headerInner) {
+    let isScrolled = false;
+    const handleScroll = () => {
+      const shouldScroll = window.scrollY > 40;
+      if (shouldScroll && !isScrolled) {
+        isScrolled = true;
+        header.classList.add(...SCROLLED_CLASSES);
+        headerInner.classList.remove(...INNER_NORMAL);
+        headerInner.classList.add(...INNER_COMPACT);
+      } else if (!shouldScroll && isScrolled) {
+        isScrolled = false;
+        header.classList.remove(...SCROLLED_CLASSES);
+        headerInner.classList.remove(...INNER_COMPACT);
+        headerInner.classList.add(...INNER_NORMAL);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+  }
+
+  const ACTIVE_TEXT = 'text-white';
+  const INACTIVE_TEXT = 'text-white/85';
+
+  const setActive = (id: string | null) => {
+    navLinks.forEach((link) => {
+      const underline = link.querySelector<HTMLElement>('[data-nav-underline]');
+      const isActive = link.dataset.target === id;
+      if (isActive) {
+        link.classList.remove(INACTIVE_TEXT);
+        link.classList.add(ACTIVE_TEXT);
+        underline?.classList.remove('scale-x-0');
+        underline?.classList.add('scale-x-100');
+      } else {
+        link.classList.remove(ACTIVE_TEXT);
+        link.classList.add(INACTIVE_TEXT);
+        underline?.classList.remove('scale-x-100');
+        underline?.classList.add('scale-x-0');
+      }
+    });
+  };
+
+  const sectionIds = Array.from(navLinks)
+    .map((link) => link.dataset.target)
+    .filter((id): id is string => !!id);
+
+  const sections = sectionIds
+    .map((id) => document.getElementById(id))
+    .filter((el): el is HTMLElement => !!el);
+
+  if (sections.length) {
+    const visibility = new Map<string, number>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const id = (entry.target as HTMLElement).id;
+          visibility.set(id, entry.intersectionRatio);
+        });
+        let activeId: string | null = null;
+        let highest = 0;
+        visibility.forEach((ratio, id) => {
+          if (ratio > highest) {
+            highest = ratio;
+            activeId = id;
+          }
+        });
+        setActive(highest > 0 ? activeId : null);
+      },
+      {
+        rootMargin: '-30% 0px -50% 0px',
+        threshold: [0, 0.15, 0.3, 0.5, 0.75, 1],
+      },
+    );
+    sections.forEach((s) => observer.observe(s));
+  }
+</script>

@@ -1,0 +1,226 @@
+---
+const services = [
+  {
+    title: 'Mantenimiento',
+    description:
+      'Programas preventivos y correctivos para chillers, manejadoras y sistemas industriales de alta demanda. Minimizamos paros en planta y prolongamos la vida útil de tus activos críticos.',
+    bullets: [
+      'Rutinas preventivas para chillers, UMAs y torres de enfriamiento',
+      'Diagnóstico y reparación 24/7 para líneas de producción',
+      'Servicio complementario a equipos residenciales',
+    ],
+    iconBg: 'bg-coral-500/15',
+    iconText: 'text-coral-600',
+    dot: 'bg-coral-500',
+    iconPath:
+      'M14.7 6.3a5 5 0 0 0-6.4 6.4L3 18l3 3 5.3-5.3a5 5 0 0 0 6.4-6.4l-2.6 2.6-2.1-2.1 2.7-2.5z',
+  },
+  {
+    title: 'Renta',
+    description:
+      'Chillers portátiles, enfriadores y unidades industriales para respaldar tu operación durante paros programados, picos estacionales o montajes temporales.',
+    bullets: [
+      'Chillers y enfriadores de alta capacidad (tonelaje industrial)',
+      'Entrega, montaje y puesta en marcha en sitio',
+      'Contratos flexibles por día, mes o temporada',
+    ],
+    iconBg: 'bg-royal-500/15',
+    iconText: 'text-royal-600',
+    dot: 'bg-royal-500',
+    iconPath:
+      'M4 4v6h6M20 20v-6h-6M20 4l-7 7M4 20l7-7',
+  },
+  {
+    title: 'Venta',
+    description:
+      'Proyectos llave en mano de climatización industrial: diseño, suministro e instalación de chillers, sistemas HVAC y refrigeración de proceso para naves y plantas productivas.',
+    bullets: [
+      'Ingeniería y dimensionamiento para naves industriales',
+      'Chillers, HVAC y refrigeración de proceso de marcas líderes',
+      'Soluciones residenciales bajo pedido',
+    ],
+    iconBg: 'bg-golden-500/15',
+    iconText: 'text-golden-600',
+    dot: 'bg-golden-500',
+    iconPath:
+      'M20.6 12.6L12.6 4.6A2 2 0 0 0 11.2 4H5a1 1 0 0 0-1 1v6.2a2 2 0 0 0 .6 1.4l8 8a2 2 0 0 0 2.8 0l5.2-5.2a2 2 0 0 0 0-2.8zM8 9a1 1 0 1 1 0-2 1 1 0 0 1 0 2z',
+  },
+];
+---
+
+<section
+  id="servicios"
+  class="bg-white py-20 lg:flex lg:min-h-screen lg:items-center lg:py-14"
+  data-services-section
+>
+  <div class="mx-auto w-full max-w-7xl px-6 lg:px-10">
+    <div class="max-w-3xl">
+      <p class="text-sm font-semibold uppercase tracking-[0.18em] text-coral-600" data-services-eyebrow>
+        Servicios
+      </p>
+      <h2 class="mt-3 font-heading text-3xl font-bold text-granite-900 sm:text-4xl lg:text-4xl xl:text-5xl" data-services-heading>
+        Climatización industrial, sin comprometer la producción
+      </h2>
+      <p class="mt-4 text-base text-granite-700 sm:text-lg" data-services-lede>
+        Especialistas en chillers, HVAC de nave y refrigeración de proceso para plantas, almacenes y líneas productivas del norte del país. También atendemos proyectos residenciales bajo solicitud.
+      </p>
+    </div>
+
+    <div class="mt-10 grid gap-6 md:grid-cols-3 lg:mt-12 lg:gap-6 xl:gap-8">
+      {services.map((s) => (
+        <article
+          class="group relative flex flex-col rounded-2xl border border-granite-200 bg-granite-50 p-6 transition duration-300 hover:-translate-y-1 hover:border-granite-300 hover:shadow-xl hover:shadow-granite-900/5 lg:p-6 xl:p-8"
+          data-service-card
+        >
+          <div
+            class={`inline-flex size-11 items-center justify-center rounded-lg ${s.iconBg} ${s.iconText} xl:size-12`}
+            data-service-icon
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="size-5 xl:size-6"
+              aria-hidden="true"
+            >
+              <path d={s.iconPath} />
+            </svg>
+          </div>
+          <h3 class="mt-5 font-heading text-xl font-bold text-granite-900 xl:text-2xl">
+            {s.title}
+          </h3>
+          <p class="mt-2 text-sm text-granite-700 xl:text-base">{s.description}</p>
+          <ul class="mt-5 space-y-2 text-sm text-granite-600">
+            {s.bullets.map((b) => (
+              <li class="flex items-start gap-3" data-service-bullet>
+                <span
+                  class={`mt-2 size-1.5 shrink-0 rounded-full ${s.dot}`}
+                  aria-hidden="true"
+                ></span>
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  import anime from 'animejs';
+
+  const section = document.querySelector<HTMLElement>('[data-services-section]');
+  if (section) {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const eyebrow = section.querySelector<HTMLElement>('[data-services-eyebrow]');
+    const heading = section.querySelector<HTMLElement>('[data-services-heading]');
+    const lede = section.querySelector<HTMLElement>('[data-services-lede]');
+    const cards = section.querySelectorAll<HTMLElement>('[data-service-card]');
+    const icons = section.querySelectorAll<HTMLElement>('[data-service-icon]');
+    const bullets = section.querySelectorAll<HTMLElement>('[data-service-bullet]');
+
+    const introTargets = [eyebrow, heading, lede].filter((el): el is HTMLElement => !!el);
+
+    if (prefersReducedMotion) {
+      introTargets.forEach((el) => { el.style.opacity = '1'; });
+      cards.forEach((c) => { c.style.opacity = '1'; });
+      bullets.forEach((b) => { b.style.opacity = '1'; });
+    } else {
+      introTargets.forEach((el) => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(18px)';
+      });
+      cards.forEach((c) => {
+        c.style.opacity = '0';
+        c.style.transform = 'translateY(32px)';
+      });
+      bullets.forEach((b) => {
+        b.style.opacity = '0';
+      });
+
+      const playIntro = () => {
+        anime({
+          targets: introTargets,
+          opacity: [0, 1],
+          translateY: [18, 0],
+          duration: 720,
+          delay: anime.stagger(90),
+          easing: 'easeOutCubic',
+        });
+
+        anime({
+          targets: cards,
+          opacity: [0, 1],
+          translateY: [32, 0],
+          duration: 820,
+          delay: anime.stagger(140, { start: 220 }),
+          easing: 'easeOutCubic',
+        });
+
+        anime({
+          targets: icons,
+          scale: [0.6, 1],
+          rotate: [-8, 0],
+          duration: 700,
+          delay: anime.stagger(140, { start: 360 }),
+          easing: 'easeOutBack',
+        });
+
+        anime({
+          targets: bullets,
+          opacity: [0, 1],
+          translateX: [-10, 0],
+          duration: 520,
+          delay: anime.stagger(55, { start: 640 }),
+          easing: 'easeOutQuad',
+        });
+      };
+
+      const observer = new IntersectionObserver(
+        (entries, obs) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              playIntro();
+              obs.disconnect();
+            }
+          });
+        },
+        { threshold: 0.2 },
+      );
+      observer.observe(section);
+    }
+
+    cards.forEach((card) => {
+      const icon = card.querySelector<HTMLElement>('[data-service-icon]');
+      if (!icon || prefersReducedMotion) return;
+
+      card.addEventListener('mouseenter', () => {
+        anime.remove(icon);
+        anime({
+          targets: icon,
+          scale: [1, 1.08],
+          rotate: [0, -6],
+          duration: 420,
+          easing: 'easeOutBack',
+        });
+      });
+
+      card.addEventListener('mouseleave', () => {
+        anime.remove(icon);
+        anime({
+          targets: icon,
+          scale: [1.08, 1],
+          rotate: [-6, 0],
+          duration: 380,
+          easing: 'easeOutQuad',
+        });
+      });
+    });
+  }
+</script>

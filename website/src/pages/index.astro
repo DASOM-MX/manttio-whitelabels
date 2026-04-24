@@ -1,0 +1,28 @@
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+import Services from '../components/Services.astro';
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Peña Nevada Chillers — Mantenimiento, renta y venta de climatización</title>
+    <meta
+      name="description"
+      content="Peña Nevada Chillers: mantenimiento, renta y venta de equipos de aire acondicionado, calefacción y refrigeración para hogar e industria. Orgullosamente regiomontanos."
+    />
+  </head>
+  <body class="min-h-screen bg-granite-50 text-granite-900 antialiased">
+    <Header />
+    <main>
+      <Hero />
+      <Services />
+    </main>
+  </body>
+</html>
