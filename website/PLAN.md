@@ -28,9 +28,9 @@ Usage: `bg-coral-500`, `text-granite-800`, `border-royal-600`, etc.
   - Mantenimiento
   - Renta
   - Venta
-- [ ] **4. Location section.** Business info card + embedded Google Maps pin at: **Vereda Tropical #265, Dos Ríos, Guadalupe, Nuevo León 67134**.
-- [ ] **5. Manufacturer partners.** Logo grid/strip: Carrier, York, Aqua Force, Trane, Lennox, Lenomex, Danfoss, Honeywell, BOSCH.
-- [ ] **6. Footer.** Contact info (phone, email, address), social links if any, copyright line.
+- [x] **4. Location section.** Business info card + embedded Google Maps pin at: **Vereda Tropical #265, Dos Ríos, Guadalupe, Nuevo León 67134**.
+- [x] **5. Manufacturer partners.** Logo grid/strip: Carrier, York, Aqua Force, Trane, Lennox, Lenomex, Danfoss, Honeywell, BOSCH.
+- [x] **6. Footer.** Contact info (phone, email, address), social links if any, copyright line.
 
 ## House rules (see `CLAUDE.md`)
 - Tailwind 3.4.17 only; extend `tailwind.config.mjs` for any new tokens — no arbitrary values.

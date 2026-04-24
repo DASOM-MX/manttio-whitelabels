@@ -55,7 +55,7 @@ const services = [
 >
   <div class="mx-auto w-full max-w-7xl px-6 lg:px-10">
     <div class="max-w-3xl">
-      <p class="text-sm font-semibold uppercase tracking-[0.18em] text-coral-600" data-services-eyebrow>
+      <p class="text-sm font-semibold uppercase tracking-caps text-coral-600" data-services-eyebrow>
         Servicios
       </p>
       <h2 class="mt-3 font-heading text-3xl font-bold text-granite-900 sm:text-4xl lg:text-4xl xl:text-5xl" data-services-heading>
@@ -127,71 +127,72 @@ const services = [
 
     const introTargets = [eyebrow, heading, lede].filter((el): el is HTMLElement => !!el);
 
+    const reset = () => {
+      anime.set(introTargets, { opacity: 0, translateY: 18 });
+      anime.set(cards, { opacity: 0, translateY: 32 });
+      anime.set(icons, { opacity: 1, scale: 0.6, rotate: -8 });
+      anime.set(bullets, { opacity: 0, translateX: -10 });
+    };
+
+    const playIntro = () => {
+      anime({
+        targets: introTargets,
+        opacity: [0, 1],
+        translateY: [18, 0],
+        duration: 720,
+        delay: anime.stagger(90),
+        easing: 'easeOutCubic',
+      });
+
+      anime({
+        targets: cards,
+        opacity: [0, 1],
+        translateY: [32, 0],
+        duration: 820,
+        delay: anime.stagger(140, { start: 220 }),
+        easing: 'easeOutCubic',
+      });
+
+      anime({
+        targets: icons,
+        scale: [0.6, 1],
+        rotate: [-8, 0],
+        duration: 700,
+        delay: anime.stagger(140, { start: 360 }),
+        easing: 'easeOutBack',
+      });
+
+      anime({
+        targets: bullets,
+        opacity: [0, 1],
+        translateX: [-10, 0],
+        duration: 520,
+        delay: anime.stagger(55, { start: 640 }),
+        easing: 'easeOutQuad',
+      });
+    };
+
     if (prefersReducedMotion) {
-      introTargets.forEach((el) => { el.style.opacity = '1'; });
-      cards.forEach((c) => { c.style.opacity = '1'; });
-      bullets.forEach((b) => { b.style.opacity = '1'; });
+      [...introTargets, ...cards, ...bullets].forEach((el) => {
+        el.style.opacity = '1';
+      });
     } else {
-      introTargets.forEach((el) => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(18px)';
-      });
-      cards.forEach((c) => {
-        c.style.opacity = '0';
-        c.style.transform = 'translateY(32px)';
-      });
-      bullets.forEach((b) => {
-        b.style.opacity = '0';
-      });
+      reset();
 
-      const playIntro = () => {
-        anime({
-          targets: introTargets,
-          opacity: [0, 1],
-          translateY: [18, 0],
-          duration: 720,
-          delay: anime.stagger(90),
-          easing: 'easeOutCubic',
-        });
-
-        anime({
-          targets: cards,
-          opacity: [0, 1],
-          translateY: [32, 0],
-          duration: 820,
-          delay: anime.stagger(140, { start: 220 }),
-          easing: 'easeOutCubic',
-        });
-
-        anime({
-          targets: icons,
-          scale: [0.6, 1],
-          rotate: [-8, 0],
-          duration: 700,
-          delay: anime.stagger(140, { start: 360 }),
-          easing: 'easeOutBack',
-        });
-
-        anime({
-          targets: bullets,
-          opacity: [0, 1],
-          translateX: [-10, 0],
-          duration: 520,
-          delay: anime.stagger(55, { start: 640 }),
-          easing: 'easeOutQuad',
-        });
-      };
-
+      let hasPlayed = false;
       const observer = new IntersectionObserver(
-        (entries, obs) => {
+        (entries) => {
           entries.forEach((entry) => {
-            if (entry.isIntersecting) {
+            if (entry.intersectionRatio >= 0.2 && !hasPlayed) {
+              hasPlayed = true;
               playIntro();
-              obs.disconnect();
+            } else if (entry.intersectionRatio <= 0 && hasPlayed) {
+              hasPlayed = false;
+              reset();
             }
           });
         },
-        { threshold: 0.2 },
+        { threshold: [0, 0.2] },
       );
       observer.observe(section);
     }

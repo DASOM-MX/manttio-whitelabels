@@ -7,6 +7,9 @@ export default {
         sans: ['"Work Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         heading: ['Rubik', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
+      letterSpacing: {
+        caps: '0.18em',
+      },
       colors: {
         granite: {
           50: '#F6F7F7',

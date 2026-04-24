@@ -1,0 +1,144 @@
+---
+// Logo files live in /public/logos/ — see /public/logos/README.md for expected
+// filenames. The <img> falls back to the alt text if the asset is missing.
+const manufacturers = [
+  { name: 'Carrier', src: '/logos/carrier.png' },
+  { name: 'York', src: '/logos/york.png' },
+  { name: 'Trane', src: '/logos/trane.png' },
+  { name: 'Lennox', src: '/logos/lennox.png' },
+  { name: 'Lenomex', src: '/logos/lenomex.png' },
+  { name: 'Danfoss', src: '/logos/danfoss.png' },
+  { name: 'Honeywell', src: '/logos/honeywell.png' },
+  { name: 'BOSCH', src: '/logos/bosch.png' },
+];
+---
+
+<section id="marcas" class="bg-granite-50 py-20 lg:py-24" data-manufacturers-section>
+  <div class="mx-auto max-w-7xl px-6 lg:px-10">
+    <div class="max-w-3xl">
+      <p class="text-sm font-semibold uppercase tracking-caps text-royal-600" data-manufacturers-eyebrow>
+        Marcas
+      </p>
+      <h2 class="mt-3 font-heading text-3xl font-bold text-granite-900 sm:text-4xl lg:text-5xl" data-manufacturers-heading>
+        Respaldados por los fabricantes líderes
+      </h2>
+      <p class="mt-5 text-lg text-granite-700" data-manufacturers-lede>
+        Trabajamos con equipo original y garantía directa. Esta es una muestra de las marcas que integramos en nuestros proyectos.
+      </p>
+    </div>
+
+    <div class="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:mt-14" data-manufacturers-grid>
+      {manufacturers.map((m) => (
+        <div
+          class="group flex h-24 items-center justify-center rounded-xl border border-granite-200 bg-white px-6 transition duration-300 hover:-translate-y-0.5 hover:border-granite-300 hover:shadow-lg hover:shadow-granite-900/5 sm:h-28"
+          data-manufacturer-logo
+        >
+          <img
+            src={m.src}
+            alt={m.name}
+            loading="lazy"
+            decoding="async"
+            class="max-h-10 w-auto max-w-full object-contain opacity-70 grayscale transition duration-300 group-hover:opacity-100 group-hover:grayscale-0 sm:max-h-12"
+          />
+        </div>
+      ))}
+    </div>
+
+    <p class="mt-10 text-sm text-granite-500">
+      Las marcas y logos mostrados son propiedad de sus respectivos dueños.
+    </p>
+  </div>
+</section>
+
+<script>
+  import anime from 'animejs';
+
+  const section = document.querySelector<HTMLElement>('[data-manufacturers-section]');
+  if (section) {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const eyebrow = section.querySelector<HTMLElement>('[data-manufacturers-eyebrow]');
+    const heading = section.querySelector<HTMLElement>('[data-manufacturers-heading]');
+    const lede = section.querySelector<HTMLElement>('[data-manufacturers-lede]');
+    const logos = section.querySelectorAll<HTMLElement>('[data-manufacturer-logo]');
+
+    const introTargets = [eyebrow, heading, lede].filter(
+      (el): el is HTMLElement => !!el,
+    );
+
+    const reset = () => {
+      anime.set(introTargets, { opacity: 0, translateY: 16 });
+      anime.set(logos, { opacity: 0, translateY: 20, scale: 0.96 });
+    };
+
+    const playIntro = () => {
+      anime({
+        targets: introTargets,
+        opacity: [0, 1],
+        translateY: [16, 0],
+        duration: 720,
+        delay: anime.stagger(90),
+        easing: 'easeOutCubic',
+      });
+      anime({
+        targets: logos,
+        opacity: [0, 1],
+        translateY: [20, 0],
+        scale: [0.96, 1],
+        duration: 640,
+        delay: anime.stagger(60, { start: 260, grid: [3, 3], from: 'center' }),
+        easing: 'easeOutCubic',
+      });
+    };
+
+    if (prefersReducedMotion) {
+      [...introTargets, ...logos].forEach((el) => {
+        el.style.opacity = '1';
+      });
+    } else {
+      reset();
+
+      let hasPlayed = false;
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.intersectionRatio >= 0.2 && !hasPlayed) {
+              hasPlayed = true;
+              playIntro();
+            } else if (entry.intersectionRatio <= 0 && hasPlayed) {
+              hasPlayed = false;
+              reset();
+            }
+          });
+        },
+        { threshold: [0, 0.2] },
+      );
+      observer.observe(section);
+    }
+
+    logos.forEach((card) => {
+      const img = card.querySelector<HTMLElement>('img');
+      if (!img || prefersReducedMotion) return;
+
+      card.addEventListener('mouseenter', () => {
+        anime.remove(img);
+        anime({
+          targets: img,
+          scale: 1.08,
+          duration: 360,
+          easing: 'easeOutBack',
+        });
+      });
+
+      card.addEventListener('mouseleave', () => {
+        anime.remove(img);
+        anime({
+          targets: img,
+          scale: 1,
+          duration: 320,
+          easing: 'easeOutQuad',
+        });
+      });
+    });
+  }
+</script>
