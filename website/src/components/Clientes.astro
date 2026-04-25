@@ -1,48 +1,172 @@
 ---
 // Drop client logos into /public/clients/ — see /public/clients/README.md.
-// Rename `name` to the real company once you have it (drives alt + aria-label).
 const clients = [
-  { name: 'Cliente 1', src: '/clients/client_1.png' },
-  { name: 'Cliente 2', src: '/clients/client_2.png' },
-  { name: 'Cliente 3', src: '/clients/client_3.png' },
-  { name: 'Cliente 4', src: '/clients/client_4.png' },
-  { name: 'Cliente 5', src: '/clients/client_5.png' },
-  { name: 'Cliente 6', src: '/clients/client_6.png' },
+  {
+    name: 'Oriente Sobre Hielo',
+    sector: 'Cadena de frío',
+    src: '/clients/oriente-sobre-hielo.png',
+  },
+  {
+    name: 'FIMEX',
+    legal: 'Fluidos Industriales Mexicanos',
+    sector: 'Fluidos industriales',
+    src: '/clients/fimex.png',
+  },
+  {
+    name: 'Coverpack',
+    sector: 'Empaque industrial',
+    src: '/clients/coverpack.png',
+  },
+  {
+    name: 'Ice Dreams',
+    sector: 'Cadena de frío',
+    src: '/clients/ice-dreams.png',
+  },
+  {
+    name: 'ISSSTE',
+    sector: 'Sector salud',
+    src: '/clients/issste.png',
+  },
+  {
+    name: 'NG Equipos Especializados en Renta',
+    sector: 'Renta industrial',
+    src: '/clients/ng-equipos.png',
+  },
+];
+
+const industries = [
+  'Cadena de frío',
+  'Fluidos industriales',
+  'Empaque industrial',
+  'Sector salud',
+  'Renta industrial',
 ];
 ---
 
-<section id="clientes" class="bg-white py-20 lg:py-24" data-clients-section>
-  <div class="mx-auto max-w-7xl px-6 lg:px-10">
+<section
+  id="clientes"
+  class="relative isolate overflow-hidden bg-granite-50 py-20 lg:py-28"
+  data-clients-section
+>
+  <div
+    class="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-golden-200/40 blur-3xl"
+    aria-hidden="true"
+  ></div>
+  <div
+    class="pointer-events-none absolute -left-24 bottom-0 size-80 rounded-full bg-coral-200/30 blur-3xl"
+    aria-hidden="true"
+  ></div>
+
+  <div class="relative mx-auto max-w-7xl px-6 lg:px-10">
     <div class="max-w-3xl">
-      <p class="text-sm font-semibold uppercase tracking-caps text-golden-600" data-clients-eyebrow>
-        Clientes
-      </p>
-      <h2 class="mt-3 font-heading text-3xl font-bold text-granite-900 sm:text-4xl lg:text-5xl" data-clients-heading>
-        Empresas que confían en nosotros
+      <div class="flex items-center gap-3">
+        <span
+          class="block h-px w-10 origin-left bg-coral-500"
+          data-clients-line
+          aria-hidden="true"
+        ></span>
+        <p
+          class="text-sm font-semibold uppercase tracking-caps text-coral-600"
+          data-clients-eyebrow
+        >
+          Clientes
+        </p>
+      </div>
+      <h2
+        class="mt-4 font-heading text-3xl font-bold text-granite-900 sm:text-4xl lg:text-5xl"
+        data-clients-heading
+      >
+        Construyendo confianza,
+        <span class="text-coral-600">proyecto por proyecto</span>.
       </h2>
-      <p class="mt-5 text-lg text-granite-700" data-clients-lede>
-        Una muestra de plantas, naves industriales y operaciones para las que hemos diseñado, instalado o mantenido infraestructura de climatización.
+      <p
+        class="mt-5 text-lg text-granite-700"
+        data-clients-lede
+      >
+        Una selección de empresas que han elegido a Peña Nevada Chillers para diseñar, instalar y mantener su climatización industrial — desde cadena de frío y empaque hasta servicios públicos y renta de equipo.
       </p>
     </div>
 
-    <div class="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:mt-14" data-clients-grid>
-      {clients.map((c) => (
-        <div
-          class="group flex h-24 items-center justify-center rounded-xl border border-granite-200 bg-white px-6 transition duration-300 hover:-translate-y-0.5 hover:border-granite-300 hover:shadow-lg hover:shadow-granite-900/5 sm:h-28"
-          data-client-logo
+    <div class="mt-8 flex flex-wrap gap-2" data-clients-chips-row>
+      {industries.map((tag) => (
+        <span
+          class="inline-flex items-center rounded-full border border-granite-200 bg-white px-3 py-1 text-xs font-medium text-granite-700 shadow-sm"
+          data-clients-chip
         >
-          <img
-            src={c.src}
-            alt={c.name}
-            loading="lazy"
-            decoding="async"
-            class="max-h-10 w-auto max-w-full object-contain opacity-70 grayscale transition duration-300 group-hover:opacity-100 group-hover:grayscale-0 sm:max-h-12"
-          />
-        </div>
+          {tag}
+        </span>
       ))}
     </div>
 
-    <p class="mt-10 text-sm text-granite-500">
+    <div
+      class="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:mt-14 lg:grid-cols-3 lg:gap-6"
+      data-clients-grid
+    >
+      {clients.map((c) => (
+        <article
+          class="group relative flex flex-col overflow-hidden rounded-2xl border border-granite-200 bg-white transition-colors duration-300 hover:border-coral-300 hover:shadow-xl hover:shadow-coral-500/10"
+          data-client-card
+        >
+          <div class="flex h-28 items-center justify-center px-6 sm:h-32">
+            <img
+              src={c.src}
+              alt={c.name}
+              loading="lazy"
+              decoding="async"
+              class="max-h-12 w-auto max-w-full object-contain opacity-75 grayscale transition duration-500 group-hover:opacity-100 group-hover:grayscale-0 sm:max-h-14"
+            />
+          </div>
+          <div class="border-t border-granite-100 px-6 py-4">
+            <p class="line-clamp-2 font-heading text-base font-bold text-granite-900">
+              {c.name}
+            </p>
+            {c.legal && (
+              <p class="mt-0.5 text-xs text-granite-400">{c.legal}</p>
+            )}
+            <p class="mt-1 text-sm text-granite-500">{c.sector}</p>
+          </div>
+          <span
+            class="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-coral-500 transition-transform duration-500 group-hover:scale-x-100"
+            aria-hidden="true"
+          ></span>
+        </article>
+      ))}
+    </div>
+
+    <div
+      class="mt-12 flex flex-col items-start gap-4 rounded-2xl border border-granite-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-8"
+      data-clients-cta
+    >
+      <div>
+        <p class="font-heading text-lg font-bold text-granite-900 sm:text-xl">
+          ¿Quieres ser nuestro próximo proyecto?
+        </p>
+        <p class="mt-1 text-sm text-granite-600">
+          Cuéntanos qué necesitas y un especialista te contacta en menos de 24 horas.
+        </p>
+      </div>
+      <a
+        href="#contacto"
+        class="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-coral-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-coral-500/20 transition hover:bg-coral-600 focus:outline-none focus:ring-2 focus:ring-coral-300 focus:ring-offset-2 focus:ring-offset-granite-50"
+      >
+        Solicitar cotización
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="size-4"
+          aria-hidden="true"
+        >
+          <path d="M5 12h14M13 5l7 7-7 7" />
+        </svg>
+      </a>
+    </div>
+
+    <p class="mt-8 text-sm text-granite-500">
       Los nombres y logos de clientes son propiedad de sus respectivos dueños.
     </p>
   </div>
@@ -55,44 +179,116 @@ const clients = [
   if (section) {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    const line = section.querySelector<HTMLElement>('[data-clients-line]');
     const eyebrow = section.querySelector<HTMLElement>('[data-clients-eyebrow]');
     const heading = section.querySelector<HTMLElement>('[data-clients-heading]');
     const lede = section.querySelector<HTMLElement>('[data-clients-lede]');
-    const logos = section.querySelectorAll<HTMLElement>('[data-client-logo]');
-
-    const introTargets = [eyebrow, heading, lede].filter(
-      (el): el is HTMLElement => !!el,
-    );
+    const chips = section.querySelectorAll<HTMLElement>('[data-clients-chip]');
+    const cards = section.querySelectorAll<HTMLElement>('[data-client-card]');
+    const cta = section.querySelector<HTMLElement>('[data-clients-cta]');
 
     const reset = () => {
-      anime.set(introTargets, { opacity: 0, translateY: 16 });
-      anime.set(logos, { opacity: 0, translateY: 20, scale: 0.96 });
+      if (line) anime.set(line, { scaleX: 0 });
+      if (eyebrow) anime.set(eyebrow, { opacity: 0, translateX: -8 });
+      if (heading) anime.set(heading, { opacity: 0, translateY: 24 });
+      if (lede) anime.set(lede, { opacity: 0, translateY: 18 });
+      if (chips.length) anime.set(chips, { opacity: 0, translateY: 12 });
+      if (cards.length) anime.set(cards, { opacity: 0, translateY: 30, scale: 0.94 });
+      if (cta) anime.set(cta, { opacity: 0, translateY: 16 });
     };
 
     const playIntro = () => {
-      anime({
-        targets: introTargets,
-        opacity: [0, 1],
-        translateY: [16, 0],
-        duration: 720,
-        delay: anime.stagger(90),
-        easing: 'easeOutCubic',
-      });
-      anime({
-        targets: logos,
-        opacity: [0, 1],
-        translateY: [20, 0],
-        scale: [0.96, 1],
-        duration: 640,
-        delay: anime.stagger(60, { start: 260, grid: [3, 2], from: 'center' }),
-        easing: 'easeOutCubic',
-      });
+      const tl = anime.timeline({ easing: 'easeOutCubic' });
+
+      if (line) {
+        tl.add({
+          targets: line,
+          scaleX: [0, 1],
+          duration: 600,
+          easing: 'easeOutQuart',
+        });
+      }
+      if (eyebrow) {
+        tl.add(
+          {
+            targets: eyebrow,
+            opacity: [0, 1],
+            translateX: [-8, 0],
+            duration: 500,
+          },
+          '-=400',
+        );
+      }
+      if (heading) {
+        tl.add(
+          {
+            targets: heading,
+            opacity: [0, 1],
+            translateY: [24, 0],
+            duration: 700,
+          },
+          '-=300',
+        );
+      }
+      if (lede) {
+        tl.add(
+          {
+            targets: lede,
+            opacity: [0, 1],
+            translateY: [18, 0],
+            duration: 600,
+          },
+          '-=400',
+        );
+      }
+      if (chips.length) {
+        tl.add(
+          {
+            targets: chips,
+            opacity: [0, 1],
+            translateY: [12, 0],
+            duration: 500,
+            delay: anime.stagger(60),
+          },
+          '-=300',
+        );
+      }
+      if (cards.length) {
+        tl.add(
+          {
+            targets: cards,
+            opacity: [0, 1],
+            translateY: [30, 0],
+            scale: [0.94, 1],
+            duration: 760,
+            delay: anime.stagger(110, { grid: [3, 2], from: 'center' }),
+            complete: () => {
+              cards.forEach((c) => {
+                c.style.transform = '';
+              });
+            },
+          },
+          '-=200',
+        );
+      }
+      if (cta) {
+        tl.add(
+          {
+            targets: cta,
+            opacity: [0, 1],
+            translateY: [16, 0],
+            duration: 600,
+          },
+          '-=400',
+        );
+      }
     };
 
     if (prefersReducedMotion) {
-      [...introTargets, ...logos].forEach((el) => {
-        el.style.opacity = '1';
+      [line, eyebrow, heading, lede, cta, ...chips, ...cards].forEach((el) => {
+        if (el) el.style.opacity = '1';
       });
+      if (line) line.style.transform = 'scaleX(1)';
     } else {
       reset();
 
@@ -100,7 +296,7 @@ const clients = [
       const observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
-            if (entry.intersectionRatio >= 0.2 && !hasPlayed) {
+            if (entry.intersectionRatio >= 0.15 && !hasPlayed) {
               hasPlayed = true;
               playIntro();
             } else if (entry.intersectionRatio <= 0 && hasPlayed) {
@@ -109,33 +305,51 @@ const clients = [
             }
           });
         },
-        { threshold: [0, 0.2] },
+        { threshold: [0, 0.15] },
       );
       observer.observe(section);
     }
 
-    logos.forEach((card) => {
+    cards.forEach((card) => {
       const img = card.querySelector<HTMLElement>('img');
-      if (!img || prefersReducedMotion) return;
+      if (prefersReducedMotion) return;
 
       card.addEventListener('mouseenter', () => {
-        anime.remove(img);
+        anime.remove(card);
         anime({
-          targets: img,
-          scale: 1.08,
+          targets: card,
+          translateY: -6,
           duration: 360,
           easing: 'easeOutBack',
         });
+        if (img) {
+          anime.remove(img);
+          anime({
+            targets: img,
+            scale: 1.06,
+            duration: 380,
+            easing: 'easeOutBack',
+          });
+        }
       });
 
       card.addEventListener('mouseleave', () => {
-        anime.remove(img);
+        anime.remove(card);
         anime({
-          targets: img,
-          scale: 1,
+          targets: card,
+          translateY: 0,
           duration: 320,
           easing: 'easeOutQuad',
         });
+        if (img) {
+          anime.remove(img);
+          anime({
+            targets: img,
+            scale: 1,
+            duration: 320,
+            easing: 'easeOutQuad',
+          });
+        }
       });
     });
   }

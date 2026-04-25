@@ -1,29 +1,28 @@
 # Client logos
 
-Drop one image per client into this folder using the placeholder pattern below.
-The `Clientes.astro` component currently references six slots:
+Drop one image per client into this folder using the filenames below.
+The component (`src/components/Clientes.astro`) references these exact paths,
+so the image will swap in automatically once the file lands.
 
-| Slot       | Filename         |
-|------------|------------------|
-| Cliente 1  | `client_1.png`   |
-| Cliente 2  | `client_2.png`   |
-| Cliente 3  | `client_3.png`   |
-| Cliente 4  | `client_4.png`   |
-| Cliente 5  | `client_5.png`   |
-| Cliente 6  | `client_6.png`   |
+| Client                                | Sector                | Filename                       |
+|---------------------------------------|-----------------------|--------------------------------|
+| Oriente Sobre Hielo                   | Cadena de frío        | `oriente-sobre-hielo.png`      |
+| FIMEX (Fluidos Industriales Mexicanos)| Fluidos industriales  | `fimex.png`                    |
+| Coverpack                             | Empaque industrial    | `coverpack.png`                |
+| Ice Dreams                            | Cadena de frío        | `ice-dreams.png`               |
+| ISSSTE                                | Sector salud          | `issste.png`                   |
+| NG Equipos Especializados en Renta    | Renta industrial      | `ng-equipos.png`               |
 
-Add or remove entries by editing the `clients` array in
-`src/components/Clientes.astro`. Replace `name` with the real company name so
-the alt text and `aria-label` are accurate; rename the file to something
-human-readable (e.g. `cervezas-cuauhtemoc.png`) and update the `src` to match.
+To add or remove clients, edit the `clients` array in
+`src/components/Clientes.astro` and update this table to match.
 
 ## Expected asset specs
 - **Format:** SVG preferred for crisp rendering at any size; transparent-PNG is
   an acceptable fallback. Aim for ~96px tall source files so the wall stays
   sharp on retina displays.
-- **Aspect:** horizontal lockups read best in the grid.
+- **Aspect:** horizontal lockups read best in the 3-column grid.
 - **Color:** any source color works — the wall uses a `grayscale` +
-  `opacity-70` treatment that fades to full color on hover, so logos read as
+  `opacity-75` treatment that fades to full color on hover, so logos read as
   a uniform set at rest.
 - **Padding:** no internal margin or background — the card itself provides
   breathing room.
