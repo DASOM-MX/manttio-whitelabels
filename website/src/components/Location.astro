@@ -16,6 +16,7 @@ const contactItems = [
     label: 'Teléfono',
     value: '+52 81 0000 0000',
     sub: 'Lun a vie, 8:00 – 18:00',
+    href: 'tel:+528100000000',
     iconPath:
       'M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.8 12.8 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.8 12.8 0 0 0 2.81.7A2 2 0 0 1 22 16.92z',
   },
@@ -23,6 +24,7 @@ const contactItems = [
     label: 'Correo',
     value: 'contacto@penanevadachillers.com',
     sub: 'Respondemos en menos de 24 h',
+    href: 'mailto:contacto@penanevadachillers.com',
     iconPath:
       'M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zM22 8l-10 7L2 8',
   },
@@ -34,8 +36,8 @@ const contactItems = [
   class="overflow-x-clip bg-granite-900 py-20 lg:flex lg:min-h-screen lg:items-center lg:py-14"
   data-location-section
 >
-  <div class="mx-auto w-full max-w-7xl px-6 lg:px-10">
-    <div class="max-w-3xl">
+  <div class="mx-auto w-full max-w-7xl lg:px-10">
+    <div class="max-w-3xl px-6 lg:px-0">
       <p class="text-sm font-semibold uppercase tracking-caps text-golden-400" data-location-eyebrow>
         Ubicación
       </p>
@@ -48,10 +50,10 @@ const contactItems = [
     </div>
 
     <div class="mt-10 grid gap-8 lg:mt-12 lg:grid-cols-5 lg:items-stretch lg:gap-10">
-      <div class="space-y-6 lg:col-span-2" data-location-info>
-        <ul class="space-y-4">
+      <div class="min-w-0 space-y-6 px-6 lg:col-span-2 lg:px-0" data-location-info>
+        <ul class="min-w-0 space-y-4">
           {contactItems.map((item) => (
-            <li class="flex items-start gap-4 rounded-xl border border-white/10 bg-white/5 p-5 transition hover:border-white/20 hover:bg-white/10">
+            <li class="flex min-w-0 items-start gap-4 rounded-xl border border-white/10 bg-white/5 p-5 transition hover:border-white/20 hover:bg-white/10">
               <div class="inline-flex size-11 shrink-0 items-center justify-center rounded-lg bg-coral-500/20 text-coral-300">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -67,14 +69,23 @@ const contactItems = [
                   <path d={item.iconPath} />
                 </svg>
               </div>
-              <div class="min-w-0">
+              <div class="min-w-0 flex-1">
                 <p class="text-xs font-semibold uppercase tracking-wider text-white/60">
                   {item.label}
                 </p>
-                <p class="mt-1 font-heading text-lg font-semibold text-white">
-                  {item.value}
-                </p>
-                <p class="mt-0.5 text-sm text-white/70">{item.sub}</p>
+                {item.href ? (
+                  <a
+                    href={item.href}
+                    class="mt-1 block break-words font-heading text-lg font-semibold text-white transition hover:text-coral-300 focus:outline-none focus:text-coral-300"
+                  >
+                    {item.value}
+                  </a>
+                ) : (
+                  <p class="mt-1 break-words font-heading text-lg font-semibold text-white">
+                    {item.value}
+                  </p>
+                )}
+                <p class="mt-0.5 break-words text-sm text-white/70">{item.sub}</p>
               </div>
             </li>
           ))}
@@ -104,17 +115,21 @@ const contactItems = [
       </div>
 
       <div
-        class="min-w-0 overflow-hidden rounded-2xl border border-white/10 shadow-2xl shadow-granite-950/50 lg:col-span-3"
+        class="w-full min-w-0 max-w-full overflow-hidden lg:col-span-3 lg:rounded-2xl lg:border lg:border-white/10 lg:shadow-2xl lg:shadow-granite-950/50"
         data-location-map
       >
-        <iframe
-          title="Mapa — Peña Nevada Chillers"
-          src={mapEmbedSrc}
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-          class="block h-80 w-full max-w-full border-0 sm:h-96 lg:size-full"
-          allowfullscreen
-        ></iframe>
+        <div
+          class="relative h-80 w-full sm:h-96 lg:h-full"
+          data-location-map-frame
+          data-map-src={mapEmbedSrc}
+        >
+          <div
+            class="absolute inset-0 flex items-center justify-center bg-granite-800/60 text-sm text-white/60"
+            data-location-map-placeholder
+          >
+            Cargando mapa…
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -122,6 +137,61 @@ const contactItems = [
 
 <script>
   import anime from 'animejs';
+
+  const mapFrame = document.querySelector<HTMLElement>('[data-location-map-frame]');
+  if (mapFrame) {
+    const mapSrc = mapFrame.dataset.mapSrc;
+    const placeholder = mapFrame.querySelector<HTMLElement>('[data-location-map-placeholder]');
+
+    const measureWidth = () => {
+      const frameWidth = Math.floor(mapFrame.getBoundingClientRect().width);
+      const viewportWidth = Math.floor(document.documentElement.clientWidth || window.innerWidth);
+      const usable = Math.min(frameWidth, viewportWidth);
+      return usable > 0 ? usable : 0;
+    };
+
+    const mountMap = () => {
+      if (!mapSrc || mapFrame.querySelector('iframe')) return;
+
+      const width = measureWidth();
+      if (width <= 0) return;
+
+      const iframe = document.createElement('iframe');
+      iframe.title = 'Mapa — Peña Nevada Chillers';
+      iframe.src = mapSrc;
+      iframe.loading = 'lazy';
+      iframe.referrerPolicy = 'no-referrer-when-downgrade';
+      iframe.allowFullscreen = true;
+      iframe.className = 'absolute inset-0 block h-full border-0';
+      iframe.style.width = `${width}px`;
+      iframe.style.maxWidth = '100%';
+
+      iframe.addEventListener('load', () => {
+        if (placeholder) placeholder.remove();
+      }, { once: true });
+
+      mapFrame.appendChild(iframe);
+    };
+
+    const updateWidth = () => {
+      const iframe = mapFrame.querySelector<HTMLIFrameElement>('iframe');
+      if (!iframe) return;
+      const width = measureWidth();
+      if (width > 0) iframe.style.width = `${width}px`;
+    };
+
+    if (document.readyState === 'complete') {
+      mountMap();
+    } else {
+      window.addEventListener('load', mountMap, { once: true });
+    }
+
+    let resizeTimer: number | undefined;
+    window.addEventListener('resize', () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(updateWidth, 150);
+    });
+  }
 
   const section = document.querySelector<HTMLElement>('[data-location-section]');
   if (section) {
