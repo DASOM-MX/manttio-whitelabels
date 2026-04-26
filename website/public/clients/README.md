@@ -1,20 +1,18 @@
 # Client logos
 
-Drop one image per client into this folder using the filenames below.
-The component (`src/components/Clientes.astro`) references these exact paths,
-so the image will swap in automatically once the file lands.
+The component (`src/components/Clients.astro`) references these exact paths.
 
 | Client                                | Sector                | Filename                       |
 |---------------------------------------|-----------------------|--------------------------------|
-| Oriente Sobre Hielo                   | Cadena de frío        | `oriente-sobre-hielo.png`      |
-| FIMEX (Fluidos Industriales Mexicanos)| Fluidos industriales  | `fimex.png`                    |
-| Coverpack                             | Empaque industrial    | `coverpack.png`                |
-| Ice Dreams                            | Cadena de frío        | `ice-dreams.png`               |
-| ISSSTE                                | Sector salud          | `issste.png`                   |
-| NG Equipos Especializados en Renta    | Renta industrial      | `ng-equipos.png`               |
+| Oriente Sobre Hielo                   | Cadena de frío        | `oriente-sobre-hielo.jpg`      |
+| FIMEX (Fluidos Industriales Mexicanos)| Fluidos industriales  | `fimex.jpg`                    |
+| Coverpack                             | Empaque industrial    | `coverpack.jpg`                |
+| Ice Dreams                            | Cadena de frío        | `ice-dreams.jpeg`              |
+| ISSSTE                                | Sector salud          | `ISSSTE.png`                   |
+| NG Equipos Especializados en Renta    | Renta industrial      | `ng-equipos.jpg`               |
 
 To add or remove clients, edit the `clients` array in
-`src/components/Clientes.astro` and update this table to match.
+`src/components/Clients.astro` and update this table to match.
 
 ## Expected asset specs
 - **Format:** SVG preferred for crisp rendering at any size; transparent-PNG is

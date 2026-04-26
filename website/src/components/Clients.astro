@@ -1,42 +1,41 @@
 ---
-// Drop client logos into /public/clients/ — see /public/clients/README.md.
 const clients = [
   {
     name: 'Oriente Sobre Hielo',
-    sector: 'Cadena de frío',
-    src: '/clients/oriente-sobre-hielo.png',
+    sector: 'Pistas de patinaje sobre hielo',
+    src: '/clients/oriente-sobre-hielo.jpg',
   },
   {
     name: 'FIMEX',
     legal: 'Fluidos Industriales Mexicanos',
     sector: 'Fluidos industriales',
-    src: '/clients/fimex.png',
+    src: '/clients/fimex.jpg',
   },
   {
     name: 'Coverpack',
     sector: 'Empaque industrial',
-    src: '/clients/coverpack.png',
+    src: '/clients/coverpack.jpg',
   },
   {
     name: 'Ice Dreams',
-    sector: 'Cadena de frío',
-    src: '/clients/ice-dreams.png',
+    sector: 'Pistas de patinaje sobre hielo',
+    src: '/clients/ice-dreams.jpeg',
   },
   {
     name: 'ISSSTE',
     legal: 'Instituto de Seguridad y Servicios Sociales de los Trabajadores del Estado',
     sector: 'Sector salud',
-    src: '/clients/issste.png',
+    src: '/clients/ISSSTE.png',
   },
   {
     name: 'NG Equipos Especializados en Renta',
     sector: 'Renta industrial',
-    src: '/clients/ng-equipos.png',
+    src: '/clients/ng-equipos.jpg',
   },
 ];
 
 const industries = [
-  'Cadena de frío',
+  'Pistas de patinaje sobre hielo',
   'Fluidos industriales',
   'Empaque industrial',
   'Sector salud',
@@ -50,11 +49,11 @@ const industries = [
   data-clients-section
 >
   <div
-    class="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-golden-200/40 blur-3xl"
+    class="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-sky-200/40 blur-3xl"
     aria-hidden="true"
   ></div>
   <div
-    class="pointer-events-none absolute -left-24 bottom-0 size-80 rounded-full bg-coral-200/30 blur-3xl"
+    class="pointer-events-none absolute -left-24 bottom-0 size-80 rounded-full bg-cyan-200/30 blur-3xl"
     aria-hidden="true"
   ></div>
 
@@ -62,12 +61,12 @@ const industries = [
     <div class="max-w-3xl">
       <div class="flex items-center gap-3">
         <span
-          class="block h-px w-10 origin-left bg-coral-500"
+          class="block h-px w-10 origin-left bg-cyan-500"
           data-clients-line
           aria-hidden="true"
         ></span>
         <p
-          class="text-sm font-semibold uppercase tracking-caps text-coral-600"
+          class="text-sm font-semibold uppercase tracking-caps text-cyan-600"
           data-clients-eyebrow
         >
           Clientes
@@ -78,7 +77,7 @@ const industries = [
         data-clients-heading
       >
         Construyendo confianza,
-        <span class="text-coral-600">proyecto por proyecto</span>.
+        <span class="text-cyan-600">proyecto por proyecto</span>.
       </h2>
       <p
         class="mt-5 text-lg text-granite-700"
@@ -105,7 +104,7 @@ const industries = [
     >
       {clients.map((c) => (
         <article
-          class="group relative flex flex-col overflow-hidden rounded-2xl border border-granite-200 bg-white transition-colors duration-300 hover:border-coral-300 hover:shadow-xl hover:shadow-coral-500/10"
+          class="group relative flex flex-col overflow-hidden rounded-2xl border border-granite-200 bg-white transition-colors duration-300 hover:border-cyan-300 hover:shadow-xl hover:shadow-cyan-500/10"
           data-client-card
         >
           <div class="flex h-28 items-center justify-center px-6 sm:h-32">
@@ -127,7 +126,7 @@ const industries = [
             <p class="mt-1 text-sm text-granite-500">{c.sector}</p>
           </div>
           <span
-            class="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-coral-500 transition-transform duration-500 group-hover:scale-x-100"
+            class="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-cyan-500 transition-transform duration-500 group-hover:scale-x-100"
             aria-hidden="true"
           ></span>
         </article>
@@ -148,7 +147,7 @@ const industries = [
       </div>
       <a
         href="#contacto"
-        class="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-coral-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-coral-500/20 transition hover:bg-coral-600 focus:outline-none focus:ring-2 focus:ring-coral-300 focus:ring-offset-2 focus:ring-offset-granite-50"
+        class="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-cyan-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 transition hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-granite-50"
       >
         Solicitar cotización
         <svg

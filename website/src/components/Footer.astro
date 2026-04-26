@@ -1,11 +1,8 @@
 ---
-const year = new Date().getFullYear();
+import { contact } from '../lib/contact';
 
-// TODO: replace phone / email placeholders with real business contact data.
-const phone = '+52 81 0000 0000';
-const phoneHref = 'tel:+528100000000';
-const email = 'contacto@penanevadachillers.com';
-const emailHref = `mailto:${email}`;
+const year = new Date().getFullYear();
+const { phone, phoneHref, email, emailHref } = contact;
 
 const quickLinks = [
   { href: '#servicios', label: 'Servicios' },
@@ -28,7 +25,7 @@ const contactItems = [
     <div class="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-24">
       <div class="grid gap-10 lg:grid-cols-5 lg:items-center lg:gap-16">
         <div class="lg:col-span-3" data-footer-cta-text>
-          <p class="text-sm font-semibold uppercase tracking-caps text-coral-400">
+          <p class="text-sm font-semibold uppercase tracking-caps text-cyan-400">
             Contacto
           </p>
           <h2 class="mt-3 font-heading text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
@@ -42,7 +39,7 @@ const contactItems = [
         <div class="flex flex-col gap-3 lg:col-span-2" data-footer-cta-actions>
           <a
             href={phoneHref}
-            class="inline-flex items-center justify-center gap-3 rounded-md bg-coral-500 px-6 py-4 text-base font-semibold text-white shadow-lg shadow-coral-500/25 transition hover:bg-coral-600 focus:outline-none focus:ring-2 focus:ring-coral-300 focus:ring-offset-2 focus:ring-offset-granite-950"
+            class="inline-flex items-center justify-center gap-3 rounded-md bg-cyan-500 px-6 py-4 text-base font-semibold text-white shadow-lg shadow-cyan-500/25 transition hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-granite-950"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -88,14 +85,21 @@ const contactItems = [
       <div>
         <a
           href="/"
-          class="font-heading text-xl font-bold leading-tight tracking-tight text-white sm:text-2xl"
+          class="inline-flex items-center"
+          aria-label="Peña Nevada Chillers"
         >
-          Peña Nevada <span class="text-coral-400">Chillers</span>
+          <img
+            src="/brand/penanevada-mark-light.png"
+            alt="Peña Nevada Chillers"
+            width="64"
+            height="64"
+            class="size-14 rounded-full bg-white p-0.5 shadow-sm sm:size-16"
+          />
         </a>
         <p class="mt-4 max-w-xs text-sm text-white/65">
           Climatización industrial, sin comprometer la producción. Chillers, HVAC de nave y refrigeración de proceso para el noreste de México.
         </p>
-        <p class="mt-5 text-xs font-semibold uppercase tracking-caps text-golden-300">
+        <p class="mt-5 text-xs font-semibold uppercase tracking-caps text-sky-300">
           Orgullosamente regiomontanos
         </p>
       </div>
@@ -107,7 +111,7 @@ const contactItems = [
         <ul class="mt-4 space-y-2 text-sm text-white/80">
           {quickLinks.map((l) => (
             <li>
-              <a href={l.href} class="transition hover:text-coral-300">
+              <a href={l.href} class="transition hover:text-cyan-300">
                 {l.label}
               </a>
             </li>
@@ -126,7 +130,7 @@ const contactItems = [
               {item.href ? (
                 <a
                   href={item.href}
-                  class="mt-0.5 block font-medium text-white transition hover:text-coral-300"
+                  class="mt-0.5 block font-medium text-white transition hover:text-cyan-300"
                 >
                   {item.value}
                 </a>
