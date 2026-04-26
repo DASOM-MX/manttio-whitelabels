@@ -3,45 +3,45 @@ const services = [
   {
     title: 'Mantenimiento',
     description:
-      'Programas preventivos y correctivos para chillers, manejadoras y sistemas industriales de alta demanda. Minimizamos paros en planta y prolongamos la vida útil de tus activos críticos.',
-    bullets: [
-      'Rutinas preventivas para chillers, UMAs y torres de enfriamiento',
-      'Diagnóstico y reparación 24/7 para líneas de producción',
-      'Servicio complementario a equipos residenciales',
-    ],
-    iconBg: 'bg-cyan-500/15',
-    iconText: 'text-cyan-600',
-    dot: 'bg-cyan-500',
+      'Programas preventivos y correctivos para chillers, manejadoras y sistemas industriales. Minimizamos paros en planta y prolongamos la vida útil de tus equipos.',
+    tags: ['Preventivo', 'Correctivo 24/7', 'Industrial + residencial'],
+    iconBg: 'bg-cyan-500/10',
+    iconText: 'text-cyan-700',
+    tagBg: 'bg-cyan-500/10',
+    tagText: 'text-cyan-800',
+    linkText: 'text-cyan-700',
+    linkHover: 'group-hover:text-cyan-900',
+    accent: 'bg-cyan-500',
     iconPath:
       'M14.7 6.3a5 5 0 0 0-6.4 6.4L3 18l3 3 5.3-5.3a5 5 0 0 0 6.4-6.4l-2.6 2.6-2.1-2.1 2.7-2.5z',
   },
   {
     title: 'Renta',
     description:
-      'Chillers portátiles, enfriadores y unidades industriales para respaldar tu operación durante paros programados, picos estacionales o montajes temporales.',
-    bullets: [
-      'Chillers y enfriadores de alta capacidad (tonelaje industrial)',
-      'Entrega, montaje y puesta en marcha en sitio',
-      'Contratos flexibles por día, mes o temporada',
-    ],
-    iconBg: 'bg-navy-500/15',
-    iconText: 'text-navy-600',
-    dot: 'bg-navy-500',
+      'Chillers portátiles y enfriadores industriales para respaldar tu operación durante paros programados, picos estacionales o montajes temporales.',
+    tags: ['Chillers portátiles', 'Entrega + montaje', 'Día / mes / temporada'],
+    iconBg: 'bg-navy-500/10',
+    iconText: 'text-navy-700',
+    tagBg: 'bg-navy-500/10',
+    tagText: 'text-navy-800',
+    linkText: 'text-navy-700',
+    linkHover: 'group-hover:text-navy-900',
+    accent: 'bg-navy-500',
     iconPath:
       'M4 4v6h6M20 20v-6h-6M20 4l-7 7M4 20l7-7',
   },
   {
     title: 'Venta',
     description:
-      'Proyectos llave en mano de climatización industrial: diseño, suministro e instalación de chillers, sistemas HVAC y refrigeración de proceso para naves y plantas productivas.',
-    bullets: [
-      'Ingeniería y dimensionamiento para naves industriales',
-      'Chillers, HVAC y refrigeración de proceso de marcas líderes',
-      'Soluciones residenciales bajo pedido',
-    ],
-    iconBg: 'bg-sky-500/15',
-    iconText: 'text-sky-600',
-    dot: 'bg-sky-500',
+      'Proyectos llave en mano: diseño, suministro e instalación de chillers, HVAC de nave y refrigeración de proceso para plantas productivas.',
+    tags: ['Ingeniería en sitio', 'Marcas líderes', 'Llave en mano'],
+    iconBg: 'bg-sky-500/10',
+    iconText: 'text-sky-700',
+    tagBg: 'bg-sky-500/10',
+    tagText: 'text-sky-800',
+    linkText: 'text-sky-700',
+    linkHover: 'group-hover:text-sky-900',
+    accent: 'bg-sky-500',
     iconPath:
       'M20.6 12.6L12.6 4.6A2 2 0 0 0 11.2 4H5a1 1 0 0 0-1 1v6.2a2 2 0 0 0 .6 1.4l8 8a2 2 0 0 0 2.8 0l5.2-5.2a2 2 0 0 0 0-2.8zM8 9a1 1 0 1 1 0-2 1 1 0 0 1 0 2z',
   },
@@ -50,7 +50,7 @@ const services = [
 
 <section
   id="servicios"
-  class="bg-white py-20 lg:flex lg:min-h-screen lg:items-center lg:py-14"
+  class="bg-granite-50 py-20 lg:flex lg:min-h-screen lg:items-center lg:py-14"
   data-services-section
 >
   <div class="mx-auto w-full max-w-7xl px-6 lg:px-10">
@@ -62,18 +62,23 @@ const services = [
         Climatización industrial, sin comprometer la producción
       </h2>
       <p class="mt-4 text-base text-granite-700 sm:text-lg" data-services-lede>
-        Especialistas en chillers, HVAC de nave y refrigeración de proceso para plantas, almacenes y líneas productivas del norte del país. También atendemos proyectos residenciales bajo solicitud.
+        Especialistas en chillers, HVAC de nave y refrigeración de proceso para plantas, almacenes y líneas productivas del norte. También atendemos proyectos residenciales bajo solicitud.
       </p>
     </div>
 
-    <div class="mt-10 grid gap-6 md:grid-cols-3 lg:mt-12 lg:gap-6 xl:gap-8">
+    <div class="mt-12 grid gap-6 md:grid-cols-3 lg:gap-7 xl:gap-8">
       {services.map((s) => (
         <article
-          class="group relative flex flex-col rounded-2xl border border-granite-200 bg-granite-50 p-6 transition duration-300 hover:-translate-y-1 hover:border-granite-300 hover:shadow-xl hover:shadow-granite-900/5 lg:p-6 xl:p-8"
+          class="group relative flex flex-col overflow-hidden rounded-2xl border border-granite-200 bg-white p-7 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-granite-300 hover:shadow-xl hover:shadow-granite-900/10 xl:p-8"
           data-service-card
         >
+          <span
+            class={`absolute inset-x-0 top-0 h-1 origin-left scale-x-0 ${s.accent} transition-transform duration-300 ease-out group-hover:scale-x-100`}
+            aria-hidden="true"
+          ></span>
+
           <div
-            class={`inline-flex size-11 items-center justify-center rounded-lg ${s.iconBg} ${s.iconText} xl:size-12`}
+            class={`inline-flex size-14 items-center justify-center rounded-xl ${s.iconBg} ${s.iconText}`}
             data-service-icon
           >
             <svg
@@ -84,27 +89,52 @@ const services = [
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="size-5 xl:size-6"
+              class="size-7"
               aria-hidden="true"
             >
               <path d={s.iconPath} />
             </svg>
           </div>
-          <h3 class="mt-5 font-heading text-xl font-bold text-granite-900 xl:text-2xl">
+
+          <h3 class="mt-7 font-heading text-2xl font-bold text-granite-900">
             {s.title}
           </h3>
-          <p class="mt-2 text-sm text-granite-700 xl:text-base">{s.description}</p>
-          <ul class="mt-5 space-y-2 text-sm text-granite-600">
-            {s.bullets.map((b) => (
-              <li class="flex items-start gap-3" data-service-bullet>
-                <span
-                  class={`mt-2 size-1.5 shrink-0 rounded-full ${s.dot}`}
-                  aria-hidden="true"
-                ></span>
-                <span>{b}</span>
+          <p class="mt-3 text-base leading-relaxed text-granite-600">
+            {s.description}
+          </p>
+
+          <ul class="mt-6 flex flex-wrap gap-2">
+            {s.tags.map((t) => (
+              <li
+                class={`rounded-full ${s.tagBg} px-3 py-1 text-xs font-medium ${s.tagText}`}
+                data-service-tag
+              >
+                {t}
               </li>
             ))}
           </ul>
+
+          <div class="mt-auto pt-8">
+            <a
+              href="#contacto"
+              class={`inline-flex items-center gap-2 text-sm font-semibold ${s.linkText} ${s.linkHover} transition-colors`}
+            >
+              Solicitar este servicio
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="size-4 transition-transform duration-300 group-hover:translate-x-1"
+                aria-hidden="true"
+              >
+                <path d="M5 12h14M13 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
         </article>
       ))}
     </div>
@@ -123,7 +153,7 @@ const services = [
     const lede = section.querySelector<HTMLElement>('[data-services-lede]');
     const cards = section.querySelectorAll<HTMLElement>('[data-service-card]');
     const icons = section.querySelectorAll<HTMLElement>('[data-service-icon]');
-    const bullets = section.querySelectorAll<HTMLElement>('[data-service-bullet]');
+    const tags = section.querySelectorAll<HTMLElement>('[data-service-tag]');
 
     const introTargets = [eyebrow, heading, lede].filter((el): el is HTMLElement => !!el);
 
@@ -131,7 +161,7 @@ const services = [
       anime.set(introTargets, { opacity: 0, translateY: 18 });
       anime.set(cards, { opacity: 0, translateY: 32 });
       anime.set(icons, { opacity: 1, scale: 0.6, rotate: -8 });
-      anime.set(bullets, { opacity: 0, translateX: -10 });
+      anime.set(tags, { opacity: 0, translateY: 8 });
     };
 
     const playIntro = () => {
@@ -163,17 +193,17 @@ const services = [
       });
 
       anime({
-        targets: bullets,
+        targets: tags,
         opacity: [0, 1],
-        translateX: [-10, 0],
-        duration: 520,
-        delay: anime.stagger(55, { start: 640 }),
+        translateY: [8, 0],
+        duration: 480,
+        delay: anime.stagger(50, { start: 640 }),
         easing: 'easeOutQuad',
       });
     };
 
     if (prefersReducedMotion) {
-      [...introTargets, ...cards, ...bullets].forEach((el) => {
+      [...introTargets, ...cards, ...tags].forEach((el) => {
         el.style.opacity = '1';
       });
     } else {
