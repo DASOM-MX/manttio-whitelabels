@@ -1,0 +1,30 @@
+name: Trigger Cloudflare Workers build (website)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - '.github/workflows/astro.yml'
+
+concurrency:
+  group: cloudflare-website-deploy
+  cancel-in-progress: false
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST Cloudflare deploy hook
+        env:
+          DEPLOY_HOOK_URL: ${{ secrets.CF_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$DEPLOY_HOOK_URL" ]; then
+            echo "::error::CF_DEPLOY_HOOK_URL repo secret is not set"
+            exit 1
+          fi
+          response=$(curl -sS -o /tmp/body -w "%{http_code}" -X POST "$DEPLOY_HOOK_URL")
+          echo "HTTP $response"
+          cat /tmp/body
+          [ "$response" -lt 400 ]
