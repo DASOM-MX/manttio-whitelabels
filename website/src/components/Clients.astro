@@ -14,7 +14,7 @@ const clients = [
   {
     name: 'Coverpack',
     sector: 'Empaque industrial',
-    src: '/clients/coverpack.jpg',
+    src: '/clients/coverpack.png',
   },
   {
     name: 'Ice Dreams',
@@ -32,6 +32,11 @@ const clients = [
     sector: 'Renta industrial',
     src: '/clients/ng-equipos.jpg',
   },
+  {
+    name: 'Grupo Collado',
+    sector: 'Industria del acero',
+    src: '/clients/grupo-collado.png',
+  },
 ];
 
 const industries = [
@@ -40,6 +45,7 @@ const industries = [
   'Empaque industrial',
   'Sector salud',
   'Renta industrial',
+  'Industria del acero',
 ];
 ---
 
@@ -113,7 +119,7 @@ const industries = [
               alt={c.name}
               loading="lazy"
               decoding="async"
-              class="max-h-12 w-auto max-w-full object-contain opacity-75 grayscale transition duration-500 group-hover:opacity-100 group-hover:grayscale-0 sm:max-h-14"
+              class="max-h-16 w-auto max-w-full object-contain opacity-75 grayscale transition duration-500 group-hover:opacity-100 group-hover:grayscale-0 sm:max-h-20"
             />
           </div>
           <div class="border-t border-granite-100 px-6 py-4">
@@ -265,7 +271,7 @@ const industries = [
             translateY: [30, 0],
             scale: [0.94, 1],
             duration: 760,
-            delay: anime.stagger(110, { grid: [3, 2], from: 'center' }),
+            delay: anime.stagger(110, { grid: [3, 3], from: 'center' }),
             complete: () => {
               cards.forEach((c) => {
                 c.style.transform = '';
