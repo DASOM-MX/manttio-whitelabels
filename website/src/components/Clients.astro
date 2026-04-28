@@ -125,10 +125,14 @@ const industries = [
             )}
             <p class="mt-1 text-sm text-granite-500">{c.sector}</p>
           </div>
-          <span
-            class="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-cyan-500 transition-transform duration-500 group-hover:scale-x-100"
-            aria-hidden="true"
-          ></span>
+          <span class="pointer-events-none absolute inset-0" aria-hidden="true">
+            <span class="absolute bottom-0 left-0 right-1/2 h-0.5 origin-right scale-x-0 bg-cyan-500" data-trail="bl"></span>
+            <span class="absolute bottom-0 left-1/2 right-0 h-0.5 origin-left scale-x-0 bg-cyan-500" data-trail="br"></span>
+            <span class="absolute inset-y-0 left-0 w-0.5 origin-bottom scale-y-0 bg-cyan-500" data-trail="l"></span>
+            <span class="absolute inset-y-0 right-0 w-0.5 origin-bottom scale-y-0 bg-cyan-500" data-trail="r"></span>
+            <span class="absolute left-0 right-1/2 top-0 h-0.5 origin-left scale-x-0 bg-cyan-500" data-trail="tl"></span>
+            <span class="absolute left-1/2 right-0 top-0 h-0.5 origin-right scale-x-0 bg-cyan-500" data-trail="tr"></span>
+          </span>
         </article>
       ))}
     </div>
@@ -314,6 +318,17 @@ const industries = [
       const img = card.querySelector<HTMLElement>('img');
       if (prefersReducedMotion) return;
 
+      const trailBL = card.querySelector<HTMLElement>('[data-trail="bl"]');
+      const trailBR = card.querySelector<HTMLElement>('[data-trail="br"]');
+      const trailL = card.querySelector<HTMLElement>('[data-trail="l"]');
+      const trailR = card.querySelector<HTMLElement>('[data-trail="r"]');
+      const trailTL = card.querySelector<HTMLElement>('[data-trail="tl"]');
+      const trailTR = card.querySelector<HTMLElement>('[data-trail="tr"]');
+      const trailBottom = [trailBL, trailBR].filter((el): el is HTMLElement => !!el);
+      const trailSides = [trailL, trailR].filter((el): el is HTMLElement => !!el);
+      const trailTop = [trailTL, trailTR].filter((el): el is HTMLElement => !!el);
+      const allTrails = [...trailBottom, ...trailSides, ...trailTop];
+
       card.addEventListener('mouseenter', () => {
         anime.remove(card);
         anime({
@@ -330,6 +345,20 @@ const industries = [
             duration: 380,
             easing: 'easeOutBack',
           });
+        }
+
+        if (allTrails.length) {
+          anime.remove(allTrails);
+          const tl = anime.timeline({ easing: 'easeOutQuad' });
+          if (trailBottom.length) {
+            tl.add({ targets: trailBottom, scaleX: [0, 1], duration: 220 });
+          }
+          if (trailSides.length) {
+            tl.add({ targets: trailSides, scaleY: [0, 1], duration: 280 }, '-=60');
+          }
+          if (trailTop.length) {
+            tl.add({ targets: trailTop, scaleX: [0, 1], duration: 220 }, '-=60');
+          }
         }
       });
 
@@ -349,6 +378,20 @@ const industries = [
             duration: 320,
             easing: 'easeOutQuad',
           });
+        }
+
+        if (allTrails.length) {
+          anime.remove(allTrails);
+          const tl = anime.timeline({ easing: 'easeInQuad' });
+          if (trailTop.length) {
+            tl.add({ targets: trailTop, scaleX: 0, duration: 200 });
+          }
+          if (trailSides.length) {
+            tl.add({ targets: trailSides, scaleY: 0, duration: 240 }, '-=60');
+          }
+          if (trailBottom.length) {
+            tl.add({ targets: trailBottom, scaleX: 0, duration: 200 }, '-=60');
+          }
         }
       });
     });

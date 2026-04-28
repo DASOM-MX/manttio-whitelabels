@@ -5,11 +5,7 @@ const manufacturers = [
   { name: 'Carrier', src: '/logos/carrier.png' },
   { name: 'York', src: '/logos/york.png' },
   { name: 'Trane', src: '/logos/trane.png' },
-  { name: 'Lennox', src: '/logos/lennox.png' },
-  { name: 'Lenomex', src: '/logos/lenomex.png' },
-  { name: 'Danfoss', src: '/logos/danfoss.png' },
-  { name: 'Honeywell', src: '/logos/honeywell.png' },
-  { name: 'BOSCH', src: '/logos/bosch.png' },
+  { name: 'Daikin', src: '/logos/daikin.png' },
 ];
 ---
 
@@ -27,7 +23,7 @@ const manufacturers = [
       </p>
     </div>
 
-    <div class="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:mt-14" data-manufacturers-grid>
+    <div class="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:mt-14" data-manufacturers-grid>
       {manufacturers.map((m) => (
         <div
           class="group flex h-24 items-center justify-center rounded-xl border border-granite-200 bg-white px-6 transition duration-300 hover:-translate-y-0.5 hover:border-granite-300 hover:shadow-lg hover:shadow-granite-900/5 sm:h-28"
@@ -86,7 +82,7 @@ const manufacturers = [
         translateY: [20, 0],
         scale: [0.96, 1],
         duration: 640,
-        delay: anime.stagger(60, { start: 260, grid: [3, 3], from: 'center' }),
+        delay: anime.stagger(60, { start: 260, grid: [4, 1], from: 'center' }),
         easing: 'easeOutCubic',
       });
     };
