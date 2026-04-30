@@ -7,20 +7,76 @@ import Clients from '../components/Clients.astro';
 import Location from '../components/Location.astro';
 import Manufacturers from '../components/Manufacturers.astro';
 import Footer from '../components/Footer.astro';
+
+const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? 'https://penanevadachillers.com';
+const canonicalUrl = new URL(Astro.url.pathname, `${siteUrl}/`).toString();
+const pageTitle = 'Peña Nevada Chillers — Climatización industrial: chillers, HVAC y refrigeración';
+const pageDescription =
+  'Mantenimiento, renta y venta de chillers, HVAC y refrigeración de proceso para plantas, almacenes y líneas productivas del noreste de México. Orgullosamente regiomontanos.';
+const ogImage = `${siteUrl}/brand/penanevada-full.png`;
+const instagramUrl = 'https://www.instagram.com/penanevadachillers/';
+const tiktokUrl = 'https://www.tiktok.com/@pena.nevada.chillers';
+
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'LocalBusiness',
+  name: 'Peña Nevada Chillers',
+  url: siteUrl,
+  logo: `${siteUrl}/brand/penanevada-full.png`,
+  image: ogImage,
+  description: pageDescription,
+  areaServed: 'MX-NL',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: 'Gral. Plutarco Elías Calles 2403',
+    addressLocality: 'Guadalupe',
+    addressRegion: 'Nuevo León',
+    postalCode: '67169',
+    addressCountry: 'MX',
+  },
+  sameAs: [instagramUrl, tiktokUrl],
+};
 ---
 
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/png" href="/brand/penanevada-full-light.png" />
-    <link rel="apple-touch-icon" href="/brand/penanevada-full-light.png" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
-    <title>Peña Nevada Chillers — Mantenimiento, renta y venta de climatización</title>
+    <meta name="theme-color" content="#0c4a6e" />
+    <link rel="icon" type="image/png" href="/brand/penanevada-mark.png" />
+    <link rel="apple-touch-icon" href="/brand/penanevada-mark-light.png" />
+    <link rel="canonical" href={canonicalUrl} />
+
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDescription} />
     <meta
-      name="description"
-      content="Peña Nevada Chillers: mantenimiento, renta y venta de equipos de aire acondicionado, calefacción y refrigeración para hogar e industria. Orgullosamente regiomontanos."
+      name="keywords"
+      content="chillers, HVAC, refrigeración industrial, climatización industrial, mantenimiento de chillers, renta de chillers, Monterrey, Nuevo León, Carrier, York, Trane, Daikin"
     />
+    <meta name="author" content="Peña Nevada Chillers" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="geo.region" content="MX-NL" />
+    <meta name="geo.placename" content="Guadalupe, Nuevo León" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Peña Nevada Chillers" />
+    <meta property="og:locale" content="es_MX" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDescription} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:alt" content="Peña Nevada Chillers" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={pageDescription} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <link rel="me" href={instagramUrl} />
+    <link rel="me" href={tiktokUrl} />
+
+    <script type="application/ld+json" set:html={JSON.stringify(organizationSchema)} />
   </head>
   <body class="min-h-screen bg-granite-50 text-granite-900 antialiased">
     <Header />

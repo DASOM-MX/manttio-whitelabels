@@ -1,0 +1,7 @@
+# Send the bare *.pages.dev / *.workers.dev preview hostnames to the canonical domain.
+# Replace `peñanevadachillers.com` with the production domain once it's live.
+https://manttio.pages.dev/* https://xn--peanevadachillers-loc.com/:splat 301!
+https://*.manttio.pages.dev/* https://xn--peanevadachillers-loc.com/:splat 301!
+
+# Optional: redirect www → apex (uncomment and adjust once DNS is set)
+# https://www.xn--peanevadachillers-loc.com/* https://xn--peanevadachillers-loc.com/:splat 301!
