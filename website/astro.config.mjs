@@ -5,6 +5,6 @@ import cloudflare from '@astrojs/cloudflare';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://penanevadachillers.com',
+  site: 'https://www.penanevadachillers.com',
   adapter: cloudflare(),
 });
