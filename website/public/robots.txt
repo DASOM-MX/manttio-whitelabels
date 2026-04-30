@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.penanevadachillers.com/sitemap.xml
+Sitemap: https://penanevadachillers.com/sitemap.xml
