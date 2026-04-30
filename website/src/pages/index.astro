@@ -10,10 +10,12 @@ import Footer from '../components/Footer.astro';
 
 const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? 'https://www.penanevadachillers.com';
 const canonicalUrl = new URL(Astro.url.pathname, `${siteUrl}/`).toString();
+const requestOrigin = new URL(Astro.request.url).origin;
 const pageTitle = 'Peña Nevada Chillers — Climatización industrial: chillers, HVAC y refrigeración';
 const pageDescription =
   'Mantenimiento, renta y venta de chillers, HVAC y refrigeración de proceso para plantas, almacenes y líneas productivas del noreste de México. Orgullosamente regiomontanos.';
-const ogImage = `${siteUrl}/brand/penanevada-full-light.png`;
+const ogImagePath = '/brand/penanevada-full-light.png';
+const ogImage = `${requestOrigin}${ogImagePath}`;
 const ogImageWidth = 1024;
 const ogImageHeight = 931;
 const instagramUrl = 'https://www.instagram.com/penanevadachillers/';
@@ -24,7 +26,7 @@ const organizationSchema = {
   '@type': 'LocalBusiness',
   name: 'Peña Nevada Chillers',
   url: siteUrl,
-  logo: `${siteUrl}/brand/penanevada-full-light.png`,
+  logo: `${requestOrigin}${ogImagePath}`,
   image: ogImage,
   description: pageDescription,
   areaServed: 'MX-NL',
