@@ -408,7 +408,7 @@
                 <div *ngIf="!editMode" class="imagenes-reporte bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
                     <label class="block font-semibold">Fotos</label>
                     <div *ngIf="report?.pictures?.length; else noPics" class="flex flex-wrap gap-4 justify-center">
-                        <img *ngFor="let pic of report.pictures" [src]="pic" width="150" style="margin:5px" />
+                        <img *ngFor="let pic of report.pictures" [src]="pic" width="150" />
                     </div>
                     <ng-template #noPics>
                         <p>No hay imágenes aún.</p>
