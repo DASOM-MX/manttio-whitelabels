@@ -1,43 +1,42 @@
-<div class="min-h-screen flex items-center justify-center bg-surface p-4">
-
-
-
-    <div class="max-w-xl mx-auto p-6 bg-white shadow-md rounded-xl w-full">
-        <h2 class="text-xl font-bold mb-4">Nuevo Reporte</h2>
-
-        <!--Report type selector-->
-        <label class="block mb-2 font-medium font-semibold text-dark">Tipo de reporte</label>
-        <select [(ngModel)]="selectedReportType" class="border p-2 rounded mb-4 w-full"
-            (ngModelChange)="onReportTypeChange($event)">
-
-            <option *ngFor="let type of reportTypes" [value]="type">
-                {{ type | titlecase }}
-            </option>
-        </select>
-
-        <div [ngClass]="{}" class="transition-opacity duration-500 space-y-1 mb-4" [class.opacity-0]="isAnimating"
-            [class.opacity-100]="!isAnimating">
-            <div class="space-y-1 mb-4">
-
-                <label class="block font-semibold text-dark">
-                    Cliente
-                </label>
-                <select id="customer" name="customer_id" [(ngModel)]="selectedCustomerId"
-                    class="w-full border p-2 rounded">
-                    <option *ngFor="let customer of customers" [value]="customer.id">
-                        {{ customer.name }} - {{ customer.identification }}
-                    </option>
-                </select>
-
-            </div>
-
-
-            <app-dynamic-form *ngIf="!isAnimating" [fields]="formFields" (submitForm)="onFormSubmit($event)"
-                (filesSelected)="onFilesSelected($event)">
-
-            </app-dynamic-form>
+<div class="min-h-screen bg-background pb-24">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        <!-- Header -->
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">Nuevo</p>
+            <h1 class="text-2xl sm:text-3xl font-bold text-granite-900 leading-tight">
+                Crear reporte
+            </h1>
         </div>
 
+        <!-- Form card -->
+        <div class="card-section space-y-5">
+            <div>
+                <label for="reportType" class="field-label">Tipo de reporte</label>
+                <select id="reportType" [(ngModel)]="selectedReportType" class="field-input"
+                    (ngModelChange)="onReportTypeChange($event)">
+                    <option *ngFor="let type of reportTypes" [value]="type">
+                        {{ type | titlecase }}
+                    </option>
+                </select>
+            </div>
 
+            <div class="transition-opacity duration-300 space-y-5"
+                [class.opacity-0]="isAnimating" [class.opacity-100]="!isAnimating">
+                <div>
+                    <label for="customer" class="field-label">Cliente</label>
+                    <select id="customer" name="customer_id" [(ngModel)]="selectedCustomerId"
+                        class="field-input">
+                        <option *ngFor="let customer of customers" [value]="customer.id">
+                            {{ customer.name }} — {{ customer.identification }}
+                        </option>
+                    </select>
+                </div>
+
+                <app-dynamic-form *ngIf="!isAnimating" [fields]="formFields"
+                    (submitForm)="onFormSubmit($event)"
+                    (filesSelected)="onFilesSelected($event)">
+                </app-dynamic-form>
+            </div>
+        </div>
     </div>
 </div>

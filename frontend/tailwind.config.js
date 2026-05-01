@@ -69,8 +69,8 @@ module.exports = {
             },
 
             fontFamily: {
-                sans: ['Inter', 'sans-serif'],
-                //roboto: ['Roboto', 'sans-serif'],
+                sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                data: ['"Atkinson Hyperlegible"', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
             },
         },
     },

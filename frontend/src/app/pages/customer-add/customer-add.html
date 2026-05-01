@@ -1,9 +1,14 @@
-<div class="min-h-screen flex items-center justify-center bg-surface p-4">
-    <div class="max-w-xl mx-auto p-6 bg-white shadow-md rounded-xl w-full">
-        <h2 class="text-xl font-bold mb-4">Nuevo Cliente</h2>
+<div class="min-h-screen bg-background pb-24">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">Nuevo</p>
+            <h1 class="text-2xl sm:text-3xl font-bold text-granite-900 leading-tight">
+                Crear cliente
+            </h1>
+        </div>
 
-
-        <app-dynamic-form [fields]="formFields" (submitForm)="onFormSubmit($event)"></app-dynamic-form>
-
+        <div class="card-section">
+            <app-dynamic-form [fields]="formFields" (submitForm)="onFormSubmit($event)"></app-dynamic-form>
+        </div>
     </div>
 </div>

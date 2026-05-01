@@ -1,16 +1,16 @@
 <nav
-  class="fixed bottom-0 left-0 right-0 bg-dark border-t shadow z-50 text-background"
+  class="fixed bottom-0 left-0 right-0 bg-navy-900 border-t border-navy-700 shadow-lg z-50 text-white"
 >
   <ul class="flex justify-around">
-    <li>
+    <li class="flex-1">
       <a
         routerLink="/reports"
-        routerLinkActive="text-blue-500"
-        class="flex flex-col items-center py-2"
+        routerLinkActive="text-sky-300 bg-navy-800"
+        class="flex flex-col items-center gap-0.5 min-h-16 py-2.5 text-granite-100 hover:bg-navy-800 active:bg-navy-700 transition-colors"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          class="size-6 mb-1"
+          class="size-7"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -22,18 +22,18 @@
             d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z"
           />
         </svg>
-        <span class="text-xs">Reportes</span>
+        <span class="text-xs font-semibold">Reportes</span>
       </a>
     </li>
-    <li>
+    <li class="flex-1">
       <a
         routerLink="/search"
-        routerLinkActive="text-blue-500"
-        class="flex flex-col items-center py-2"
+        routerLinkActive="text-sky-300 bg-navy-800"
+        class="flex flex-col items-center gap-0.5 min-h-16 py-2.5 text-granite-100 hover:bg-navy-800 active:bg-navy-700 transition-colors"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          class="size-6 mb-1"
+          class="size-7"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -45,18 +45,18 @@
             d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
           />
         </svg>
-        <span class="text-xs">Buscar</span>
+        <span class="text-xs font-semibold">Buscar</span>
       </a>
     </li>
-    <li>
+    <li class="flex-1">
       <a
         routerLink="/report-add"
-        routerLinkActive="text-blue-500"
-        class="flex flex-col items-center py-2"
+        routerLinkActive="text-sky-300 bg-navy-800"
+        class="flex flex-col items-center gap-0.5 min-h-16 py-2.5 text-granite-100 hover:bg-navy-800 active:bg-navy-700 transition-colors"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          class="size-6 mb-1"
+          class="size-7"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -64,22 +64,23 @@
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
-            stroke-width="2"
+            stroke-width="2.5"
             d="M12 4.5v15m7.5-7.5h-15"
           />
         </svg>
-        <span class="text-xs">Crear</span>
+        <span class="text-xs font-semibold">Crear</span>
       </a>
     </li>
 
-    <li class="relative">
+    <li class="relative flex-1">
       <button
+        type="button"
         (click)="toggleMenu()"
-        class="flex flex-col items-center py-2 focus:outline-none"
+        class="flex flex-col items-center gap-0.5 min-h-16 w-full py-2.5 text-granite-100 hover:bg-navy-800 active:bg-navy-700 focus:outline-none focus-visible:bg-navy-800 transition-colors"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          class="size-6 mb-1"
+          class="size-7"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -91,28 +92,26 @@
             d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"
           />
         </svg>
-        <span class="text-xs">Otros</span>
+        <span class="text-xs font-semibold">Otros</span>
       </button>
 
       <div
         *ngIf="showMenu"
-        class="absolute bottom-12 right-0 bg-white text-black rounded-lg shadow-lg w-40 z-50"
+        class="absolute bottom-full right-2 mb-2 bg-white text-granite-900 rounded-xl shadow-xl border border-granite-200 w-56 overflow-hidden"
       >
-        <div class="px-4 py-2 border-b text-sm text-gray-700">
+        <div class="px-4 py-3 border-b border-granite-200 text-sm text-granite-600 truncate">
           {{ email }}
         </div>
-        <a routerLink="/customer-add" class="block px-4 py-2 hover:bg-gray-100"
-          >Agregar cliente</a
-        >
-        <a
-          *ngIf="role"
-          routerLink="/register"
-          class="block px-4 py-2 hover:bg-gray-100"
-          >Agregar usuario</a
-        >
+        <a routerLink="/customer-add" class="block px-4 py-3 text-base font-medium hover:bg-sky-50 active:bg-sky-100 transition-colors">
+          Agregar cliente
+        </a>
+        <a *ngIf="role" routerLink="/register" class="block px-4 py-3 text-base font-medium hover:bg-sky-50 active:bg-sky-100 transition-colors">
+          Agregar usuario
+        </a>
         <button
+          type="button"
           (click)="logout()"
-          class="block w-full text-left px-4 py-2 hover:bg-gray-100"
+          class="block w-full text-left px-4 py-3 text-base font-semibold text-red-700 hover:bg-red-50 active:bg-red-100 transition-colors border-t border-granite-200"
         >
           Cerrar sesión
         </button>
