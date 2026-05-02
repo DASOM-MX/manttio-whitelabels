@@ -5,6 +5,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* PrimeNG component theme (per-component sheets in src/theme/*) */
+@import './theme/index';
+
 @layer base {
   html {
     @apply text-granite-900 antialiased;
@@ -12,6 +15,11 @@
   body {
     @apply bg-background;
   }
+}
+
+/* PrimeNG icon sizing fallback */
+.p-icon {
+  @apply size-4 inline-block;
 }
 
 @layer components {

@@ -8,8 +8,7 @@
             <!-- Nombre -->
             <div class="mb-5">
                 <label for="regName" class="field-label">Nombre</label>
-                <input id="regName" type="text" formControlName="name" autocomplete="name"
-                    class="field-input"
+                <input pInputText id="regName" type="text" formControlName="name" autocomplete="name"
                     [class.field-input--error]="registerForm.get('name')?.invalid && registerForm.get('name')?.touched"
                     placeholder="Nombre completo" />
                 <div class="text-red-700 text-sm font-semibold mt-2 flex items-center gap-1.5"
@@ -22,8 +21,7 @@
             <!-- Email -->
             <div class="mb-5">
                 <label for="regEmail" class="field-label">Email</label>
-                <input id="regEmail" type="email" formControlName="email" autocomplete="email"
-                    class="field-input"
+                <input pInputText id="regEmail" type="email" formControlName="email" autocomplete="email"
                     [class.field-input--error]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched"
                     placeholder="tu@correo.com" />
                 <div class="text-red-700 text-sm font-semibold mt-2 flex items-center gap-1.5"
@@ -37,10 +35,10 @@
             <!-- Password -->
             <div class="mb-5">
                 <label for="regPassword" class="field-label">Contraseña</label>
-                <input id="regPassword" type="password" formControlName="password" autocomplete="new-password"
-                    class="field-input"
-                    [class.field-input--error]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched"
-                    placeholder="••••••••" />
+                <p-password inputId="regPassword" formControlName="password" [feedback]="true" [toggleMask]="true"
+                    autocomplete="new-password" placeholder="••••••••" styleClass="w-full"
+                    [inputStyleClass]="(registerForm.get('password')?.invalid && registerForm.get('password')?.touched) ? 'field-input field-input--error' : 'field-input'">
+                </p-password>
                 <div class="text-red-700 text-sm font-semibold mt-2 flex items-center gap-1.5"
                     *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
                     <span aria-hidden="true">⚠</span>
@@ -52,10 +50,10 @@
             <!-- Confirm Password -->
             <div class="mb-5">
                 <label for="regConfirm" class="field-label">Confirmar contraseña</label>
-                <input id="regConfirm" type="password" formControlName="confirmPassword" autocomplete="new-password"
-                    class="field-input"
-                    [class.field-input--error]="(registerForm.get('confirmPassword')?.invalid || getPasswordMismatchError()) && registerForm.get('confirmPassword')?.touched"
-                    placeholder="••••••••" />
+                <p-password inputId="regConfirm" formControlName="confirmPassword" [feedback]="false"
+                    [toggleMask]="true" autocomplete="new-password" placeholder="••••••••" styleClass="w-full"
+                    [inputStyleClass]="((registerForm.get('confirmPassword')?.invalid || getPasswordMismatchError()) && registerForm.get('confirmPassword')?.touched) ? 'field-input field-input--error' : 'field-input'">
+                </p-password>
                 <div class="text-red-700 text-sm font-semibold mt-2 flex items-center gap-1.5"
                     *ngIf="(registerForm.get('confirmPassword')?.invalid || getPasswordMismatchError()) && registerForm.get('confirmPassword')?.touched">
                     <span aria-hidden="true">⚠</span>
@@ -67,11 +65,9 @@
             <!-- User Role -->
             <div class="mb-8">
                 <label for="role" class="field-label">Rol</label>
-                <select id="role" formControlName="role" class="field-input"
-                    [class.field-input--error]="registerForm.get('role')?.invalid && registerForm.get('role')?.touched">
-                    <option [ngValue]="false">Técnico</option>
-                    <option [ngValue]="true">Administrador</option>
-                </select>
+                <p-select inputId="role" formControlName="role" [options]="roleOptions" optionLabel="label"
+                    optionValue="value" placeholder="Selecciona un rol" appendTo="body" styleClass="w-full">
+                </p-select>
                 <div class="text-red-700 text-sm font-semibold mt-2 flex items-center gap-1.5"
                     *ngIf="registerForm.get('role')?.invalid && registerForm.get('role')?.touched">
                     <span aria-hidden="true">⚠</span>
@@ -79,7 +75,7 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn-primary w-full" [disabled]="registerForm.invalid">
+            <button pButton type="submit" class="btn-primary w-full" [disabled]="registerForm.invalid">
                 Registrarse
             </button>
         </div>

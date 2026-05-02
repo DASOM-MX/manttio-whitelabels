@@ -5,16 +5,33 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
 import { environment } from '../../../environments/environment';
+import { InputTextModule } from 'primeng/inputtext';
+import { PasswordModule } from 'primeng/password';
+import { SelectModule } from 'primeng/select';
+import { ButtonModule } from 'primeng/button';
+
+interface RoleOption { label: string; value: boolean; }
 
 @Component({
   selector: 'app-register',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    InputTextModule,
+    PasswordModule,
+    SelectModule,
+    ButtonModule,
+  ],
   templateUrl: './register.html',
   styleUrl: './register.scss',
   standalone: true
 })
 export class Register {
   registerForm;
+  roleOptions: RoleOption[] = [
+    { label: 'Técnico', value: false },
+    { label: 'Administrador', value: true },
+  ];
 
   constructor(private fb: FormBuilder,
     private http: HttpClient,

@@ -1,0 +1,23 @@
+/* PrimeNG Tag */
+.p-tag {
+  @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold;
+
+  &.p-tag-success {
+    @apply bg-emerald-100 text-emerald-900;
+  }
+  &.p-tag-warn {
+    @apply bg-amber-100 text-amber-900;
+  }
+  &.p-tag-danger {
+    @apply bg-red-100 text-red-900;
+  }
+  &.p-tag-info {
+    @apply bg-sky-100 text-sky-900;
+  }
+  &.p-tag-secondary {
+    @apply bg-granite-100 text-granite-800;
+  }
+}
+.p-tag-icon {
+  @apply size-3.5;
+}

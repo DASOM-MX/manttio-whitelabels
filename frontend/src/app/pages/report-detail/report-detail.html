@@ -10,17 +10,17 @@
                             <span class="font-data tabular-nums text-sky-700">#{{ report.id | slice:0:8 }}</span>
                         </h1>
                     </div>
-                    <span *ngIf="report.report_status; else headerPending"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-900 text-sm font-bold">
-                        <span class="size-2 rounded-full bg-emerald-600" aria-hidden="true"></span>
-                        Finalizado
-                    </span>
+                    <p-tag *ngIf="report.report_status; else headerPending" severity="success" value="Finalizado">
+                        <ng-template pTemplate="icon">
+                            <span class="size-2 rounded-full bg-emerald-600" aria-hidden="true"></span>
+                        </ng-template>
+                    </p-tag>
                     <ng-template #headerPending>
-                        <span
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 text-amber-900 text-sm font-bold">
-                            <span class="size-2 rounded-full bg-amber-600" aria-hidden="true"></span>
-                            Pendiente
-                        </span>
+                        <p-tag severity="warn" value="Pendiente">
+                            <ng-template pTemplate="icon">
+                                <span class="size-2 rounded-full bg-amber-600" aria-hidden="true"></span>
+                            </ng-template>
+                        </p-tag>
                     </ng-template>
                 </div>
 
@@ -78,13 +78,17 @@
                         <ng-container *ngIf="editMode">
                             <div>
                                 <label for="dateArrival" class="field-label">Fecha de llegada</label>
-                                <input id="dateArrival" type="datetime-local" formControlName="date_arrival"
-                                    class="field-input" />
+                                <p-datepicker inputId="dateArrival" formControlName="date_arrival"
+                                    [showTime]="true" hourFormat="24" dateFormat="dd/mm/yy" appendTo="body"
+                                    styleClass="w-full">
+                                </p-datepicker>
                             </div>
                             <div>
                                 <label for="dateDeparture" class="field-label">Fecha de salida</label>
-                                <input id="dateDeparture" type="datetime-local" formControlName="date_departure"
-                                    class="field-input" />
+                                <p-datepicker inputId="dateDeparture" formControlName="date_departure"
+                                    [showTime]="true" hourFormat="24" dateFormat="dd/mm/yy" appendTo="body"
+                                    styleClass="w-full">
+                                </p-datepicker>
                             </div>
                         </ng-container>
                     </dl>
@@ -94,86 +98,66 @@
                 <section *ngIf="report.report_type === 'minisplit'" class="card-section">
                     <h2 class="text-lg font-bold text-granite-900 mb-4">Mantenimiento minisplit</h2>
                     <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                        <!-- Operando -->
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">Equipo operando</dt>
                             <dd>
-                                <span [class]="report.is_operating
-                                        ? 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-sm font-bold'
-                                        : 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-900 text-sm font-bold'">
-                                    {{ report.is_operating ? 'Sí' : 'No' }}
-                                </span>
+                                <p-tag [severity]="report.is_operating ? 'success' : 'danger'"
+                                    [value]="report.is_operating ? 'Sí' : 'No'"></p-tag>
                             </dd>
                         </div>
                         <div *ngIf="editMode">
                             <label class="field-label">Equipo operando</label>
-                            <label class="inline-flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" formControlName="is_operating"
-                                    class="size-6 rounded border-2 border-granite-300 text-sky-600 focus:ring-4 focus:ring-sky-600/20" />
-                                <span class="text-base text-granite-900">Sí</span>
-                            </label>
+                            <p-checkbox formControlName="is_operating" [binary]="true" inputId="msOperating">
+                            </p-checkbox>
+                            <label for="msOperating" class="ml-3 text-base text-granite-900 cursor-pointer">Sí</label>
                         </div>
 
-                        <!-- Control remoto -->
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">Control remoto funcionando</dt>
                             <dd>
-                                <span [class]="report.remote_working
-                                        ? 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-sm font-bold'
-                                        : 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-900 text-sm font-bold'">
-                                    {{ report.remote_working ? 'Sí' : 'No' }}
-                                </span>
+                                <p-tag [severity]="report.remote_working ? 'success' : 'danger'"
+                                    [value]="report.remote_working ? 'Sí' : 'No'"></p-tag>
                             </dd>
                         </div>
                         <div *ngIf="editMode">
                             <label class="field-label">Control remoto funcionando</label>
-                            <label class="inline-flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" formControlName="remote_working"
-                                    class="size-6 rounded border-2 border-granite-300 text-sky-600 focus:ring-4 focus:ring-sky-600/20" />
-                                <span class="text-base text-granite-900">Sí</span>
-                            </label>
+                            <p-checkbox formControlName="remote_working" [binary]="true" inputId="msRemote">
+                            </p-checkbox>
+                            <label for="msRemote" class="ml-3 text-base text-granite-900 cursor-pointer">Sí</label>
                         </div>
 
-                        <!-- Amperaje -->
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">Amperaje</dt>
                             <dd class="text-base font-data tabular-nums text-granite-900">{{ report.amperage }}</dd>
                         </div>
                         <div *ngIf="editMode">
                             <label for="amperage" class="field-label">Amperaje</label>
-                            <input id="amperage" type="number" inputmode="decimal" formControlName="amperage"
-                                class="field-input" />
+                            <p-inputnumber inputId="amperage" formControlName="amperage" mode="decimal"
+                                [useGrouping]="false" styleClass="w-full"></p-inputnumber>
                         </div>
 
-                        <!-- Voltaje interno -->
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">Voltaje interno</dt>
                             <dd class="text-base font-data tabular-nums text-granite-900">{{ report.inner_voltage }}</dd>
                         </div>
                         <div *ngIf="editMode">
                             <label for="innerVoltage" class="field-label">Voltaje interno</label>
-                            <input id="innerVoltage" type="number" inputmode="decimal" formControlName="inner_voltage"
-                                class="field-input" />
+                            <p-inputnumber inputId="innerVoltage" formControlName="inner_voltage" mode="decimal"
+                                [useGrouping]="false" styleClass="w-full"></p-inputnumber>
                         </div>
 
-                        <!-- Ruido inusual -->
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">Ruido inusual</dt>
                             <dd>
-                                <span [class]="report.unusual_noise
-                                        ? 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-900 text-sm font-bold'
-                                        : 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-sm font-bold'">
-                                    {{ report.unusual_noise ? 'Sí' : 'No' }}
-                                </span>
+                                <p-tag [severity]="report.unusual_noise ? 'danger' : 'success'"
+                                    [value]="report.unusual_noise ? 'Sí' : 'No'"></p-tag>
                             </dd>
                         </div>
                         <div *ngIf="editMode">
                             <label class="field-label">Ruido inusual</label>
-                            <label class="inline-flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" formControlName="unusual_noise"
-                                    class="size-6 rounded border-2 border-granite-300 text-sky-600 focus:ring-4 focus:ring-sky-600/20" />
-                                <span class="text-base text-granite-900">Sí</span>
-                            </label>
+                            <p-checkbox formControlName="unusual_noise" [binary]="true" inputId="msNoise">
+                            </p-checkbox>
+                            <label for="msNoise" class="ml-3 text-base text-granite-900 cursor-pointer">Sí</label>
                         </div>
                     </dl>
                 </section>
@@ -182,99 +166,82 @@
                 <section *ngIf="report.report_type === 'chiller'" class="card-section">
                     <h2 class="text-lg font-bold text-granite-900 mb-4">Mantenimiento Chiller</h2>
                     <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                        <!-- Operando -->
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">¿Está operando?</dt>
                             <dd>
-                                <span [class]="report.is_operating
-                                        ? 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-sm font-bold'
-                                        : 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-900 text-sm font-bold'">
-                                    {{ report.is_operating ? 'Sí' : 'No' }}
-                                </span>
+                                <p-tag [severity]="report.is_operating ? 'success' : 'danger'"
+                                    [value]="report.is_operating ? 'Sí' : 'No'"></p-tag>
                             </dd>
                         </div>
                         <div *ngIf="editMode">
                             <label class="field-label">¿Está operando?</label>
-                            <label class="inline-flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" formControlName="is_operating"
-                                    class="size-6 rounded border-2 border-granite-300 text-sky-600 focus:ring-4 focus:ring-sky-600/20" />
-                                <span class="text-base text-granite-900">Sí</span>
-                            </label>
+                            <p-checkbox formControlName="is_operating" [binary]="true" inputId="chOperating">
+                            </p-checkbox>
+                            <label for="chOperating" class="ml-3 text-base text-granite-900 cursor-pointer">Sí</label>
                         </div>
 
-                        <!-- Temperatura entrada -->
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">Temperatura entrada</dt>
                             <dd class="text-base font-data tabular-nums text-granite-900">{{ report.inner_temperature }}</dd>
                         </div>
                         <div *ngIf="editMode">
                             <label for="innerTemp" class="field-label">Temperatura entrada</label>
-                            <input id="innerTemp" type="number" inputmode="decimal" formControlName="inner_temperature"
-                                class="field-input" />
+                            <p-inputnumber inputId="innerTemp" formControlName="inner_temperature" mode="decimal"
+                                [useGrouping]="false" styleClass="w-full"></p-inputnumber>
                         </div>
 
-                        <!-- Temperatura salida -->
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">Temperatura salida</dt>
                             <dd class="text-base font-data tabular-nums text-granite-900">{{ report.outer_temperature }}</dd>
                         </div>
                         <div *ngIf="editMode">
                             <label for="outerTemp" class="field-label">Temperatura salida</label>
-                            <input id="outerTemp" type="number" inputmode="decimal" formControlName="outer_temperature"
-                                class="field-input" />
+                            <p-inputnumber inputId="outerTemp" formControlName="outer_temperature" mode="decimal"
+                                [useGrouping]="false" styleClass="w-full"></p-inputnumber>
                         </div>
 
-                        <!-- Voltaje interno -->
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">Voltaje interno</dt>
                             <dd class="text-base font-data tabular-nums text-granite-900">{{ report.inner_voltage }}</dd>
                         </div>
                         <div *ngIf="editMode">
                             <label for="innerVoltageC" class="field-label">Voltaje interno</label>
-                            <input id="innerVoltageC" type="number" inputmode="decimal" formControlName="inner_voltage"
-                                class="field-input" />
+                            <p-inputnumber inputId="innerVoltageC" formControlName="inner_voltage" mode="decimal"
+                                [useGrouping]="false" styleClass="w-full"></p-inputnumber>
                         </div>
 
-                        <!-- PLC -->
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">PLC funcionando</dt>
                             <dd>
-                                <span [class]="report.plc_keys_working
-                                        ? 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-sm font-bold'
-                                        : 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-900 text-sm font-bold'">
-                                    {{ report.plc_keys_working ? 'Sí' : 'No' }}
-                                </span>
+                                <p-tag [severity]="report.plc_keys_working ? 'success' : 'danger'"
+                                    [value]="report.plc_keys_working ? 'Sí' : 'No'"></p-tag>
                             </dd>
                         </div>
                         <div *ngIf="editMode">
                             <label class="field-label">PLC funcionando</label>
-                            <label class="inline-flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" formControlName="plc_keys_working"
-                                    class="size-6 rounded border-2 border-granite-300 text-sky-600 focus:ring-4 focus:ring-sky-600/20" />
-                                <span class="text-base text-granite-900">Sí</span>
-                            </label>
+                            <p-checkbox formControlName="plc_keys_working" [binary]="true" inputId="chPlc">
+                            </p-checkbox>
+                            <label for="chPlc" class="ml-3 text-base text-granite-900 cursor-pointer">Sí</label>
                         </div>
 
-                        <!-- Amperaje motor -->
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">Amperaje motor</dt>
                             <dd class="text-base font-data tabular-nums text-granite-900">{{ report.motor_amperage }}</dd>
                         </div>
                         <div *ngIf="editMode">
                             <label for="motorAmp" class="field-label">Amperaje motor</label>
-                            <input id="motorAmp" type="number" inputmode="decimal" formControlName="motor_amperage"
-                                class="field-input" />
+                            <p-inputnumber inputId="motorAmp" formControlName="motor_amperage" mode="decimal"
+                                [useGrouping]="false" styleClass="w-full"></p-inputnumber>
                         </div>
 
-                        <!-- Presiones -->
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">Presión sistema 1</dt>
                             <dd class="text-base font-data tabular-nums text-granite-900">{{ report.system_pressure_1 }}</dd>
                         </div>
                         <div *ngIf="editMode">
                             <label for="sysP1" class="field-label">Presión sistema 1</label>
-                            <input id="sysP1" type="number" inputmode="decimal" formControlName="system_pressure_1"
-                                class="field-input" />
+                            <p-inputnumber inputId="sysP1" formControlName="system_pressure_1" mode="decimal"
+                                [useGrouping]="false" styleClass="w-full"></p-inputnumber>
                         </div>
 
                         <div *ngIf="!editMode">
@@ -283,8 +250,8 @@
                         </div>
                         <div *ngIf="editMode">
                             <label for="sysP2" class="field-label">Presión sistema 2</label>
-                            <input id="sysP2" type="number" inputmode="decimal" formControlName="system_pressure_2"
-                                class="field-input" />
+                            <p-inputnumber inputId="sysP2" formControlName="system_pressure_2" mode="decimal"
+                                [useGrouping]="false" styleClass="w-full"></p-inputnumber>
                         </div>
 
                         <div *ngIf="!editMode">
@@ -293,19 +260,18 @@
                         </div>
                         <div *ngIf="editMode">
                             <label for="sysP3" class="field-label">Presión sistema 3</label>
-                            <input id="sysP3" type="number" inputmode="decimal" formControlName="system_pressure_3"
-                                class="field-input" />
+                            <p-inputnumber inputId="sysP3" formControlName="system_pressure_3" mode="decimal"
+                                [useGrouping]="false" styleClass="w-full"></p-inputnumber>
                         </div>
 
-                        <!-- Aceite -->
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">Presión aceite</dt>
                             <dd class="text-base font-data tabular-nums text-granite-900">{{ report.oil_pressure }}</dd>
                         </div>
                         <div *ngIf="editMode">
                             <label for="oilP" class="field-label">Presión aceite</label>
-                            <input id="oilP" type="number" inputmode="decimal" formControlName="oil_pressure"
-                                class="field-input" />
+                            <p-inputnumber inputId="oilP" formControlName="oil_pressure" mode="decimal"
+                                [useGrouping]="false" styleClass="w-full"></p-inputnumber>
                         </div>
 
                         <div *ngIf="!editMode">
@@ -314,47 +280,35 @@
                         </div>
                         <div *ngIf="editMode">
                             <label for="oilL" class="field-label">Nivel de aceite</label>
-                            <input id="oilL" type="text" formControlName="oil_level" class="field-input" />
+                            <input pInputText id="oilL" type="text" formControlName="oil_level" />
                         </div>
 
-                        <!-- Switch flujo -->
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">Switch de flujo funcionando</dt>
                             <dd>
-                                <span [class]="report.flux_switch_working
-                                        ? 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-sm font-bold'
-                                        : 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-900 text-sm font-bold'">
-                                    {{ report.flux_switch_working ? 'Sí' : 'No' }}
-                                </span>
+                                <p-tag [severity]="report.flux_switch_working ? 'success' : 'danger'"
+                                    [value]="report.flux_switch_working ? 'Sí' : 'No'"></p-tag>
                             </dd>
                         </div>
                         <div *ngIf="editMode">
                             <label class="field-label">Switch de flujo funcionando</label>
-                            <label class="inline-flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" formControlName="flux_switch_working"
-                                    class="size-6 rounded border-2 border-granite-300 text-sky-600 focus:ring-4 focus:ring-sky-600/20" />
-                                <span class="text-base text-granite-900">Sí</span>
-                            </label>
+                            <p-checkbox formControlName="flux_switch_working" [binary]="true" inputId="chFlux">
+                            </p-checkbox>
+                            <label for="chFlux" class="ml-3 text-base text-granite-900 cursor-pointer">Sí</label>
                         </div>
 
-                        <!-- Ruido inusual -->
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">Ruido inusual</dt>
                             <dd>
-                                <span [class]="report.unusual_noise
-                                        ? 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-900 text-sm font-bold'
-                                        : 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-sm font-bold'">
-                                    {{ report.unusual_noise ? 'Sí' : 'No' }}
-                                </span>
+                                <p-tag [severity]="report.unusual_noise ? 'danger' : 'success'"
+                                    [value]="report.unusual_noise ? 'Sí' : 'No'"></p-tag>
                             </dd>
                         </div>
                         <div *ngIf="editMode">
                             <label class="field-label">Ruido inusual</label>
-                            <label class="inline-flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" formControlName="unusual_noise"
-                                    class="size-6 rounded border-2 border-granite-300 text-sky-600 focus:ring-4 focus:ring-sky-600/20" />
-                                <span class="text-base text-granite-900">Sí</span>
-                            </label>
+                            <p-checkbox formControlName="unusual_noise" [binary]="true" inputId="chNoise">
+                            </p-checkbox>
+                            <label for="chNoise" class="ml-3 text-base text-granite-900 cursor-pointer">Sí</label>
                         </div>
                     </dl>
                 </section>
@@ -366,39 +320,29 @@
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">¿Está operando?</dt>
                             <dd>
-                                <span [class]="report.is_operating
-                                        ? 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-sm font-bold'
-                                        : 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-900 text-sm font-bold'">
-                                    {{ report.is_operating ? 'Sí' : 'No' }}
-                                </span>
+                                <p-tag [severity]="report.is_operating ? 'success' : 'danger'"
+                                    [value]="report.is_operating ? 'Sí' : 'No'"></p-tag>
                             </dd>
                         </div>
                         <div *ngIf="editMode">
                             <label class="field-label">¿Está operando?</label>
-                            <label class="inline-flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" formControlName="is_operating"
-                                    class="size-6 rounded border-2 border-granite-300 text-sky-600 focus:ring-4 focus:ring-sky-600/20" />
-                                <span class="text-base text-granite-900">Sí</span>
-                            </label>
+                            <p-checkbox formControlName="is_operating" [binary]="true" inputId="umaOperating">
+                            </p-checkbox>
+                            <label for="umaOperating" class="ml-3 text-base text-granite-900 cursor-pointer">Sí</label>
                         </div>
 
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">Ajuste de banda</dt>
                             <dd>
-                                <span [class]="report.air_band_adjustment
-                                        ? 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-sm font-bold'
-                                        : 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-900 text-sm font-bold'">
-                                    {{ report.air_band_adjustment ? 'Sí' : 'No' }}
-                                </span>
+                                <p-tag [severity]="report.air_band_adjustment ? 'success' : 'danger'"
+                                    [value]="report.air_band_adjustment ? 'Sí' : 'No'"></p-tag>
                             </dd>
                         </div>
                         <div *ngIf="editMode">
                             <label class="field-label">Ajuste de banda</label>
-                            <label class="inline-flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" formControlName="air_band_adjustment"
-                                    class="size-6 rounded border-2 border-granite-300 text-sky-600 focus:ring-4 focus:ring-sky-600/20" />
-                                <span class="text-base text-granite-900">Sí</span>
-                            </label>
+                            <p-checkbox formControlName="air_band_adjustment" [binary]="true" inputId="umaBand">
+                            </p-checkbox>
+                            <label for="umaBand" class="ml-3 text-base text-granite-900 cursor-pointer">Sí</label>
                         </div>
 
                         <div *ngIf="!editMode">
@@ -407,8 +351,8 @@
                         </div>
                         <div *ngIf="editMode">
                             <label for="umaInTemp" class="field-label">Temperatura entrada</label>
-                            <input id="umaInTemp" type="number" inputmode="decimal" formControlName="inner_temperature"
-                                class="field-input" />
+                            <p-inputnumber inputId="umaInTemp" formControlName="inner_temperature" mode="decimal"
+                                [useGrouping]="false" styleClass="w-full"></p-inputnumber>
                         </div>
 
                         <div *ngIf="!editMode">
@@ -417,27 +361,22 @@
                         </div>
                         <div *ngIf="editMode">
                             <label for="umaOutTemp" class="field-label">Temperatura salida</label>
-                            <input id="umaOutTemp" type="number" inputmode="decimal" formControlName="outer_temperature"
-                                class="field-input" />
+                            <p-inputnumber inputId="umaOutTemp" formControlName="outer_temperature" mode="decimal"
+                                [useGrouping]="false" styleClass="w-full"></p-inputnumber>
                         </div>
 
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">Rejilla aire en buenas condiciones</dt>
                             <dd>
-                                <span [class]="report.air_good_quality
-                                        ? 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-sm font-bold'
-                                        : 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-900 text-sm font-bold'">
-                                    {{ report.air_good_quality ? 'Sí' : 'No' }}
-                                </span>
+                                <p-tag [severity]="report.air_good_quality ? 'success' : 'danger'"
+                                    [value]="report.air_good_quality ? 'Sí' : 'No'"></p-tag>
                             </dd>
                         </div>
                         <div *ngIf="editMode">
                             <label class="field-label">Rejilla aire en buenas condiciones</label>
-                            <label class="inline-flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" formControlName="air_good_quality"
-                                    class="size-6 rounded border-2 border-granite-300 text-sky-600 focus:ring-4 focus:ring-sky-600/20" />
-                                <span class="text-base text-granite-900">Sí</span>
-                            </label>
+                            <p-checkbox formControlName="air_good_quality" [binary]="true" inputId="umaAirQ">
+                            </p-checkbox>
+                            <label for="umaAirQ" class="ml-3 text-base text-granite-900 cursor-pointer">Sí</label>
                         </div>
 
                         <div *ngIf="!editMode">
@@ -446,8 +385,8 @@
                         </div>
                         <div *ngIf="editMode">
                             <label for="umaVolt" class="field-label">Voltaje interno</label>
-                            <input id="umaVolt" type="number" inputmode="decimal" formControlName="inner_voltage"
-                                class="field-input" />
+                            <p-inputnumber inputId="umaVolt" formControlName="inner_voltage" mode="decimal"
+                                [useGrouping]="false" styleClass="w-full"></p-inputnumber>
                         </div>
 
                         <div *ngIf="!editMode">
@@ -456,27 +395,22 @@
                         </div>
                         <div *ngIf="editMode">
                             <label for="umaAmp" class="field-label">Amperaje motor</label>
-                            <input id="umaAmp" type="number" inputmode="decimal" formControlName="motor_amperage"
-                                class="field-input" />
+                            <p-inputnumber inputId="umaAmp" formControlName="motor_amperage" mode="decimal"
+                                [useGrouping]="false" styleClass="w-full"></p-inputnumber>
                         </div>
 
                         <div *ngIf="!editMode">
                             <dt class="field-label mb-0.5">Ruido inusual</dt>
                             <dd>
-                                <span [class]="report.unusual_noise
-                                        ? 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-900 text-sm font-bold'
-                                        : 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-sm font-bold'">
-                                    {{ report.unusual_noise ? 'Sí' : 'No' }}
-                                </span>
+                                <p-tag [severity]="report.unusual_noise ? 'danger' : 'success'"
+                                    [value]="report.unusual_noise ? 'Sí' : 'No'"></p-tag>
                             </dd>
                         </div>
                         <div *ngIf="editMode">
                             <label class="field-label">Ruido inusual</label>
-                            <label class="inline-flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" formControlName="unusual_noise"
-                                    class="size-6 rounded border-2 border-granite-300 text-sky-600 focus:ring-4 focus:ring-sky-600/20" />
-                                <span class="text-base text-granite-900">Sí</span>
-                            </label>
+                            <p-checkbox formControlName="unusual_noise" [binary]="true" inputId="umaNoise">
+                            </p-checkbox>
+                            <label for="umaNoise" class="ml-3 text-base text-granite-900 cursor-pointer">Sí</label>
                         </div>
                     </dl>
                 </section>
@@ -489,8 +423,7 @@
 
                 <section *ngIf="editMode" class="card-section">
                     <label for="observations" class="field-label">Observaciones</label>
-                    <textarea id="observations" formControlName="observations" rows="4"
-                        class="field-input min-h-32 resize-y leading-relaxed"></textarea>
+                    <textarea pTextarea id="observations" formControlName="observations" rows="4"></textarea>
                 </section>
 
                 <!-- Imágenes -->
@@ -534,19 +467,13 @@
             <!-- Sticky action bar -->
             <div class="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t-2 border-granite-200">
                 <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap justify-end gap-2">
-                    <button type="button" (click)="downloadTextPDF()" class="btn-neutral">
-                        Descargar PDF
-                    </button>
-                    <button type="button" *ngIf="!editMode && report?.report_status === false" (click)="toggleEdit()"
-                        class="btn-secondary">
-                        Editar
-                    </button>
-                    <button type="button" *ngIf="editMode" (click)="saveChanges()" class="btn-primary">
-                        Guardar
-                    </button>
-                    <button type="button" *ngIf="editMode" (click)="toggleEdit()" class="btn-neutral">
-                        Cancelar
-                    </button>
+                    <p-button type="button" (onClick)="downloadTextPDF()" severity="secondary" label="Descargar PDF">
+                    </p-button>
+                    <p-button type="button" *ngIf="!editMode && report?.report_status === false"
+                        (onClick)="toggleEdit()" severity="secondary" label="Editar"></p-button>
+                    <p-button type="button" *ngIf="editMode" (onClick)="saveChanges()" label="Guardar"></p-button>
+                    <p-button type="button" *ngIf="editMode" (onClick)="toggleEdit()" severity="secondary"
+                        label="Cancelar"></p-button>
                 </div>
             </div>
         </form>

@@ -11,6 +11,11 @@ import { CommonModule } from '@angular/common';
 import { FieldConfig } from './models/field-config.model';
 import { ImagePickerComponent } from '../../components/image-picker/image-picker';
 import { SignatureComponent } from '../../components/signature-pad/signature-pad';
+import { InputTextModule } from 'primeng/inputtext';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { SelectModule } from 'primeng/select';
+import { DatePickerModule } from 'primeng/datepicker';
+import { ButtonModule } from 'primeng/button';
 
 @Component({
   selector: 'app-dynamic-form',
@@ -19,6 +24,11 @@ import { SignatureComponent } from '../../components/signature-pad/signature-pad
     ReactiveFormsModule,
     ImagePickerComponent,
     SignatureComponent,
+    InputTextModule,
+    InputNumberModule,
+    SelectModule,
+    DatePickerModule,
+    ButtonModule,
   ],
   templateUrl: './dynamic-form.html',
   styleUrl: './dynamic-form.scss',

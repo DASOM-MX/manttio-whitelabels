@@ -5,13 +5,23 @@ import { Router } from '@angular/router';
 import { Register } from '../register/register';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { InputTextModule } from 'primeng/inputtext';
+import { PasswordModule } from 'primeng/password';
+import { ButtonModule } from 'primeng/button';
 
 @Component({
   selector: 'app-login',
   standalone: true,
   templateUrl: './login.html',
   styleUrl: './login.scss',
-  imports: [CommonModule, ReactiveFormsModule, Register],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    Register,
+    InputTextModule,
+    PasswordModule,
+    ButtonModule,
+  ],
 })
 export class Login {
   loginForm;

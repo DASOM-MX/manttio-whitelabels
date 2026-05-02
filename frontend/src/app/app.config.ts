@@ -14,8 +14,10 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(),
     provideRouter(routes),
     provideAnimationsAsync(),
-    // Unstyled mode — components ship without theme CSS so the existing
-    // Tailwind design system (palette, .field-input, .btn-*, .card) drives styling.
+    // Unstyled mode — components ship without theme CSS. Visuals are driven
+    // by the per-component stylesheets in src/theme/* (imported from
+    // src/styles.scss) which target PrimeNG's class hooks via @apply on our
+    // Tailwind design tokens.
     providePrimeNG({ ripple: false, theme: 'none' }),
     importProvidersFrom(HttpClientModule),
   ],

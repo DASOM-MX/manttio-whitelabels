@@ -12,6 +12,7 @@ import { ToastService } from '../../../services/toast.service';
 import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
 import { environment } from '../../../environments/environment';
+import { SelectModule } from 'primeng/select';
 
 interface JwtPayload {
   sub: string;
@@ -21,7 +22,7 @@ interface JwtPayload {
 @Component({
   selector: 'app-report-add',
   standalone: true,
-  imports: [DynamicForm, FormsModule, CommonModule],
+  imports: [DynamicForm, FormsModule, CommonModule, SelectModule],
   templateUrl: './report-add.html',
   styleUrl: './report-add.scss'
 })

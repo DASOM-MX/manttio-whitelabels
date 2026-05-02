@@ -1,0 +1,74 @@
+/* PrimeNG Table */
+.p-datatable {
+  @apply w-full bg-white border border-granite-200 rounded-xl shadow-sm overflow-hidden;
+}
+.p-datatable-table-container {
+  @apply w-full overflow-x-auto;
+}
+.p-datatable-table {
+  @apply min-w-full;
+}
+.p-datatable-thead {
+  @apply bg-navy-900 text-white sticky top-0 z-10;
+
+  > tr > th {
+    @apply px-4 sm:px-6 py-4 text-left text-xs font-bold uppercase tracking-wider;
+
+    &.p-sortable-column {
+      @apply cursor-pointer select-none;
+
+      &:hover {
+        @apply bg-navy-800;
+      }
+    }
+  }
+}
+.p-sortable-column-icon {
+  @apply ml-1 inline-block align-middle size-3.5 text-sky-300;
+}
+.p-datatable-sort-badge {
+  @apply ml-1 inline-flex items-center justify-center size-5 rounded-full bg-sky-600 text-white text-xs font-bold;
+}
+.p-datatable-tbody {
+  @apply bg-white divide-y divide-granite-200;
+
+  > tr {
+    @apply transition-colors duration-100;
+
+    &:hover {
+      @apply bg-sky-50;
+    }
+    &:active {
+      @apply bg-sky-100;
+    }
+    &:nth-child(even) {
+      @apply bg-granite-50/40;
+    }
+    &.p-row-selected {
+      @apply bg-sky-100;
+    }
+    > td {
+      @apply px-4 sm:px-6 py-5 whitespace-nowrap text-base text-granite-800;
+    }
+  }
+}
+.p-datatable-empty-message {
+  @apply px-6 py-12 text-center text-granite-600;
+}
+.p-paginator {
+  @apply flex items-center justify-end gap-2 px-4 py-3 border-t border-granite-200 bg-white;
+}
+.p-paginator-page,
+.p-paginator-prev,
+.p-paginator-next,
+.p-paginator-first,
+.p-paginator-last {
+  @apply size-10 inline-flex items-center justify-center rounded-md text-granite-700 hover:bg-sky-50 cursor-pointer transition-colors;
+
+  &.p-paginator-page-selected {
+    @apply bg-sky-600 text-white font-semibold hover:bg-sky-700;
+  }
+  &.p-disabled {
+    @apply opacity-30 cursor-not-allowed;
+  }
+}

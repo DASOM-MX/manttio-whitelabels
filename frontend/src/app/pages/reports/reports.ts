@@ -5,11 +5,14 @@ import { ChangeDetectorRef } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
+import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
+import { ButtonModule } from 'primeng/button';
 
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, TableModule, TagModule, ButtonModule],
   templateUrl: './reports.html',
   styleUrl: './reports.scss',
 })

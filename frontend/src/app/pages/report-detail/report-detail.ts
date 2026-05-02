@@ -28,6 +28,13 @@ import html2canvas from 'html2canvas';
 import { ReportsService } from '../../../services/reports';
 import { ImagePickerComponent } from '../../components/image-picker/image-picker';
 import { environment } from '../../../environments/environment';
+import { InputTextModule } from 'primeng/inputtext';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { TextareaModule } from 'primeng/textarea';
+import { CheckboxModule } from 'primeng/checkbox';
+import { DatePickerModule } from 'primeng/datepicker';
+import { ButtonModule } from 'primeng/button';
+import { TagModule } from 'primeng/tag';
 
 @Component({
   selector: 'app-report-detail',
@@ -37,6 +44,13 @@ import { environment } from '../../../environments/environment';
     ReactiveFormsModule,
     SignatureComponent,
     ImagePickerComponent,
+    InputTextModule,
+    InputNumberModule,
+    TextareaModule,
+    CheckboxModule,
+    DatePickerModule,
+    ButtonModule,
+    TagModule,
   ],
   templateUrl: './report-detail.html',
   styleUrl: './report-detail.scss',
