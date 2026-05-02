@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { HlmInputDirective } from '@spartan-ng/helm/input';
 import { Router } from '@angular/router';
 import { Register } from '../register/register';
 import { HttpClient } from '@angular/common/http';
@@ -12,7 +11,7 @@ import { environment } from '../../../environments/environment';
   standalone: true,
   templateUrl: './login.html',
   styleUrl: './login.scss',
-  imports: [CommonModule, ReactiveFormsModule, HlmInputDirective, Register],
+  imports: [CommonModule, ReactiveFormsModule, Register],
 })
 export class Login {
   loginForm;

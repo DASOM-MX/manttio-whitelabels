@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { HlmInputDirective } from '@spartan-ng/helm/input';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
@@ -9,7 +8,7 @@ import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-register',
-  imports: [CommonModule, ReactiveFormsModule, HlmInputDirective],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './register.html',
   styleUrl: './register.scss',
   standalone: true
