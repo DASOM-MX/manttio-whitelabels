@@ -1,0 +1,37 @@
+name = "manttio-api"
+main = "src/index.ts"
+compatibility_date = "2026-04-30"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "dev"
+CDN_BASE_URL = "https://cdn.penanevadachillers.com"
+API_BASE_URL = "http://localhost:8787"
+RESEND_FROM = "reports@penanevadachillers.com"
+BRAND_NAME = "Peña Nevada Chillers"
+BRAND_SITE_URL = "https://penanevadachillers.com"
+BRAND_LOGO_URL = "https://penanevadachillers.com/brand/penanevada-full.png"
+
+[[r2_buckets]]
+binding = "MANTTIO_REPORTS"
+bucket_name = "manttio-reports"
+
+# Production deploy: `wrangler deploy --env production`.
+# Wrangler v4 inherits top-level config; only ENVIRONMENT is overridden here.
+[env.production.vars]
+ENVIRONMENT = "production"
+CDN_BASE_URL = "https://cdn.penanevadachillers.com"
+API_BASE_URL = "https://api.penanevadachillers.com"
+RESEND_FROM = "reports@penanevadachillers.com"
+BRAND_NAME = "Peña Nevada Chillers"
+BRAND_SITE_URL = "https://penanevadachillers.com"
+BRAND_LOGO_URL = "https://penanevadachillers.com/brand/penanevada-full.png"
+
+[[env.production.r2_buckets]]
+binding = "MANTTIO_REPORTS"
+bucket_name = "manttio-reports"
+
+# Secrets are set via `wrangler secret put [--env production]` and are NOT declared here:
+#   DATABASE_URL    Neon Postgres connection string
+#   JWT_SECRET      HS256 signing secret for jose
+#   RESEND_API_KEY  Resend API key for outbound report emails

@@ -1,0 +1,6 @@
+# Local-dev secrets for `wrangler dev`. Copy to `.dev.vars` and fill in.
+# `.dev.vars` is gitignored.
+
+DATABASE_URL=""
+JWT_SECRET=""
+RESEND_API_KEY=""

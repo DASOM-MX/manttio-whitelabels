@@ -1,0 +1,16 @@
+import { z } from 'zod';
+
+export const createCustomerSchema = z.object({
+  name: z.string().min(1),
+  identification: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email().optional(),
+  observation: z.string().optional(),
+});
+
+export const updateCustomerSchema = createCustomerSchema
+  .partial()
+  .refine((v) => Object.keys(v).length > 0, { message: 'no fields to update' });
+
+export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
+export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;
