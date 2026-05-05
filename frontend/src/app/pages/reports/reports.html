@@ -1,141 +1,207 @@
 <div class="min-h-full bg-background">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        <!-- Header -->
-        <div class="flex flex-wrap items-center justify-between gap-4">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">Mantenimiento</p>
-                <h1 class="text-2xl sm:text-3xl font-bold text-granite-900 leading-tight">
-                    Reportes
-                </h1>
-            </div>
-            <p-button routerLink="/report-add" label="Nuevo reporte" icon="pi pi-plus"></p-button>
-        </div>
-
-        <!-- Reports table -->
-        <p-table #dt [value]="reports" [paginator]="reports.length > 10" [rows]="10"
-            [rowsPerPageOptions]="[10, 25, 50]" sortMode="single" [rowHover]="true">
-            <ng-template pTemplate="caption">
-                <div class="border-b border-granite-200">
-                    <!-- Always-visible toggle bar -->
-                    <button type="button" (click)="filtersOpen = !filtersOpen"
-                        [attr.aria-expanded]="filtersOpen"
-                        class="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-granite-100 active:bg-granite-200 transition-colors">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <i class="pi pi-filter text-sky-700"></i>
-                            <span class="font-semibold text-granite-900">Filtros</span>
-                            <span *ngIf="activeFilterCount > 0"
-                                class="inline-flex items-center px-2 py-0.5 rounded-full bg-sky-600 text-white text-xs font-bold">
-                                {{ activeFilterCount }}
-                            </span>
-                            <span class="text-sm text-granite-600 truncate">
-                                · {{ dt.totalRecords ?? reports.length }} reporte{{ (dt.totalRecords ?? reports.length) === 1 ? '' : 's' }}
-                            </span>
-                        </div>
-                        <i class="pi pi-chevron-down text-granite-700 transition-transform duration-200"
-                            [class.rotate-180]="filtersOpen"></i>
-                    </button>
-
-                    <!-- Collapsible filter grid -->
-                    <div *ngIf="filtersOpen" class="px-4 pb-4 pt-1 space-y-4">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-                            <div>
-                                <label for="folioFilter" class="field-label">Folio</label>
-                                <input pInputText id="folioFilter" type="search" placeholder="Buscar folio…"
-                                    [ngModel]="folioQuery" (ngModelChange)="onFolioFilter($event)"
-                                    class="w-full" />
-                            </div>
-                            <div>
-                                <label for="clienteFilter" class="field-label">Cliente</label>
-                                <p-select inputId="clienteFilter" [(ngModel)]="selectedCliente"
-                                    [options]="clienteOptions" optionLabel="label" optionValue="value"
-                                    placeholder="Todos" [showClear]="true" [filter]="true" filterBy="label"
-                                    [autoOptionFocus]="false" styleClass="w-full"
-                                    (onChange)="onClienteFilter($event.value)"
-                                    (onClear)="onClienteFilter(null)">
-                                </p-select>
-                            </div>
-                            <div>
-                                <label for="fechaFilter" class="field-label">Fecha</label>
-                                <p-datepicker inputId="fechaFilter" [(ngModel)]="selectedDateRange"
-                                    selectionMode="range" [readonlyInput]="true" [showButtonBar]="true"
-                                    dateFormat="dd/mm/yy" placeholder="Rango de fechas"
-                                    styleClass="w-full"
-                                    (onSelect)="onDateRangeFilter(selectedDateRange)"
-                                    (onClear)="onDateRangeFilter(null)">
-                                </p-datepicker>
-                            </div>
-                            <div>
-                                <label for="estatusFilter" class="field-label">Estatus</label>
-                                <p-select inputId="estatusFilter" [(ngModel)]="selectedEstatus"
-                                    [options]="estatusOptions" optionLabel="label" optionValue="value"
-                                    placeholder="Todos" [showClear]="true" [autoOptionFocus]="false"
-                                    styleClass="w-full"
-                                    (onChange)="onEstatusFilter($event.value)"
-                                    (onClear)="onEstatusFilter(null)">
-                                </p-select>
-                            </div>
-                            <div>
-                                <label for="estadoFilter" class="field-label">Estado</label>
-                                <p-select inputId="estadoFilter" [(ngModel)]="selectedEstado"
-                                    [options]="estadoOptions" optionLabel="label" optionValue="value"
-                                    placeholder="Todos" [showClear]="true" [autoOptionFocus]="false"
-                                    styleClass="w-full"
-                                    (onChange)="onEstadoFilter($event.value)"
-                                    (onClear)="onEstadoFilter(null)">
-                                </p-select>
-                            </div>
-                        </div>
-                        <div class="flex justify-end">
-                            <button type="button" *ngIf="activeFilterCount > 0"
-                                class="text-sm font-semibold text-sky-700 hover:text-sky-900 inline-flex items-center gap-1.5"
-                                (click)="clearFilters()">
-                                <i class="pi pi-times"></i>
-                                Limpiar filtros
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </ng-template>
-            <ng-template pTemplate="header">
-                <tr>
-                    <th pSortableColumn="id">
-                        ID <p-sortIcon field="id"></p-sortIcon>
-                    </th>
-                    <th pSortableColumn="manttio_type">
-                        Tipo <p-sortIcon field="manttio_type"></p-sortIcon>
-                    </th>
-                    <th pSortableColumn="client_name">
-                        Cliente <p-sortIcon field="client_name"></p-sortIcon>
-                    </th>
-                    <th pSortableColumn="date_departure">
-                        Fecha <p-sortIcon field="date_departure"></p-sortIcon>
-                    </th>
-                    <th pSortableColumn="report_status">
-                        Estatus <p-sortIcon field="report_status"></p-sortIcon>
-                    </th>
-                </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-r>
-                <tr (click)="goToReportDetail(r.id)" class="cursor-pointer">
-                    <td class="font-data tabular-nums font-semibold text-granite-900">
-                        {{ r.id | slice:0:6 }}{{ r.id.length > 8 ? '…' : '' }}
-                    </td>
-                    <td class="capitalize">{{ r.manttio_type }}</td>
-                    <td>{{ r.client_name }}</td>
-                    <td class="font-data tabular-nums">{{ r.date_departure | date:'shortDate' }}</td>
-                    <td>
-                        <p-tag *ngIf="r.report_status; else pending" severity="success" value="Finalizado"></p-tag>
-                        <ng-template #pending>
-                            <p-tag severity="warn" value="Pendiente"></p-tag>
-                        </ng-template>
-                    </td>
-                </tr>
-            </ng-template>
-            <ng-template pTemplate="emptymessage">
-                <tr class="p-datatable-emptymessage">
-                    <td colspan="5">Aún no hay reportes.</td>
-                </tr>
-            </ng-template>
-        </p-table>
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <!-- Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">
+          Mantenimiento
+        </p>
+        <h1
+          class="text-2xl sm:text-3xl font-bold text-granite-900 leading-tight"
+        >
+          Reportes
+        </h1>
+      </div>
+      <p-button
+        routerLink="/report-add"
+        label="Nuevo reporte"
+        icon="pi pi-plus"
+      ></p-button>
     </div>
+
+    <!-- Reports table -->
+    <p-table
+      #dt
+      [value]="reports"
+      [paginator]="reports.length > 10"
+      [rows]="10"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      sortMode="single"
+      [rowHover]="true"
+    >
+      <ng-template pTemplate="caption">
+        <div class="border-b border-granite-200">
+          <!-- Always-visible toggle bar -->
+          <button
+            type="button"
+            (click)="filtersOpen = !filtersOpen"
+            [attr.aria-expanded]="filtersOpen"
+            class="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-granite-100 active:bg-granite-200 transition-colors"
+          >
+            <div class="flex items-center gap-3 min-w-0">
+              <i class="pi pi-filter text-sky-700"></i>
+              <span class="font-semibold text-granite-900">Filtros</span>
+              <span
+                *ngIf="activeFilterCount > 0"
+                class="inline-flex items-center px-2 py-0.5 rounded-full bg-sky-600 text-white text-xs font-bold"
+              >
+                {{ activeFilterCount }}
+              </span>
+              <span class="text-sm text-granite-600 truncate">
+                · {{ dt.totalRecords ?? reports.length }} reporte{{
+                  (dt.totalRecords ?? reports.length) === 1 ? "" : "s"
+                }}
+              </span>
+            </div>
+            <i
+              class="pi pi-chevron-down text-granite-700 transition-transform duration-200"
+              [class.rotate-180]="filtersOpen"
+            ></i>
+          </button>
+
+          <!-- Collapsible filter grid -->
+          <div *ngIf="filtersOpen" class="px-4 pb-4 pt-1 space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+              <div>
+                <label for="folioFilter" class="field-label">Folio</label>
+                <input
+                  pInputText
+                  id="folioFilter"
+                  type="search"
+                  placeholder="Buscar folio…"
+                  [ngModel]="folioQuery"
+                  (ngModelChange)="onFolioFilter($event)"
+                  class="w-full"
+                />
+              </div>
+              <div>
+                <label for="clienteFilter" class="field-label">Cliente</label>
+                <p-select
+                  inputId="clienteFilter"
+                  [(ngModel)]="selectedCliente"
+                  [options]="clienteOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Todos"
+                  [showClear]="true"
+                  [filter]="true"
+                  filterBy="label"
+                  [autoOptionFocus]="false"
+                  styleClass="w-full"
+                  (onChange)="onClienteFilter($event.value)"
+                  (onClear)="onClienteFilter(null)"
+                >
+                </p-select>
+              </div>
+              <div>
+                <label for="fechaFilter" class="field-label">Fecha</label>
+                <p-datepicker
+                  inputId="fechaFilter"
+                  [(ngModel)]="selectedDateRange"
+                  selectionMode="range"
+                  [readonlyInput]="true"
+                  [showButtonBar]="true"
+                  dateFormat="dd/mm/yy"
+                  placeholder="Rango de fechas"
+                  styleClass="w-full"
+                  (onSelect)="onDateRangeFilter(selectedDateRange)"
+                  (onClear)="onDateRangeFilter(null)"
+                >
+                </p-datepicker>
+              </div>
+              <div>
+                <label for="estatusFilter" class="field-label">Estatus</label>
+                <p-select
+                  inputId="estatusFilter"
+                  [(ngModel)]="selectedEstatus"
+                  [options]="estatusOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Todos"
+                  [showClear]="true"
+                  [autoOptionFocus]="false"
+                  styleClass="w-full"
+                  (onChange)="onEstatusFilter($event.value)"
+                  (onClear)="onEstatusFilter(null)"
+                >
+                </p-select>
+              </div>
+              <div>
+                <label for="estadoFilter" class="field-label">Estado</label>
+                <p-select
+                  inputId="estadoFilter"
+                  [(ngModel)]="selectedEstado"
+                  [options]="estadoOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Todos"
+                  [showClear]="true"
+                  [autoOptionFocus]="false"
+                  styleClass="w-full"
+                  (onChange)="onEstadoFilter($event.value)"
+                  (onClear)="onEstadoFilter(null)"
+                >
+                </p-select>
+              </div>
+            </div>
+            <div class="flex justify-end">
+              <button
+                type="button"
+                *ngIf="activeFilterCount > 0"
+                class="text-sm font-semibold text-sky-700 hover:text-sky-900 inline-flex items-center gap-1.5"
+                (click)="clearFilters()"
+              >
+                <i class="pi pi-times"></i>
+                Limpiar filtros
+              </button>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="id">ID <p-sortIcon field="id"></p-sortIcon></th>
+          <th pSortableColumn="manttio_type">
+            Tipo <p-sortIcon field="manttio_type"></p-sortIcon>
+          </th>
+          <th pSortableColumn="client_name">
+            Cliente <p-sortIcon field="client_name"></p-sortIcon>
+          </th>
+          <th pSortableColumn="date_departure">
+            Fecha <p-sortIcon field="date_departure"></p-sortIcon>
+          </th>
+          <th pSortableColumn="report_status">
+            Estatus <p-sortIcon field="report_status"></p-sortIcon>
+          </th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-r>
+        <tr (click)="goToReportDetail(r.id)" class="cursor-pointer">
+          <td class="font-data tabular-nums font-semibold text-granite-900">
+            {{ r.id | slice: 0 : 6 }}{{ r.id.length > 8 ? "…" : "" }}
+          </td>
+          <td class="capitalize">{{ r.manttio_type }}</td>
+          <td>{{ r.client_name }}</td>
+          <td class="font-data tabular-nums">
+            {{ r.date_departure | date: "shortDate" }}
+          </td>
+          <td>
+            <p-tag
+              *ngIf="r.report_status; else pending"
+              severity="success"
+              value="Finalizado"
+            ></p-tag>
+            <ng-template #pending>
+              <p-tag severity="warn" value="Pendiente"></p-tag>
+            </ng-template>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr class="p-datatable-emptymessage">
+          <td colspan="5">Aún no hay reportes.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
 </div>
