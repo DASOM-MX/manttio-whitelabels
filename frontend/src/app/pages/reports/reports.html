@@ -60,77 +60,78 @@
           </button>
 
           <!-- Collapsible filter grid -->
-          <div *ngIf="filtersOpen" class="px-4 pb-4 pt-1 space-y-4">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-              <div>
-                <label for="folioFilter" class="field-label">Folio</label>
-                <input
-                  pInputText
-                  id="folioFilter"
-                  type="search"
-                  placeholder="Buscar folio…"
-                  [ngModel]="folioQuery"
-                  (ngModelChange)="onFolioFilter($event)"
-                  class="w-full"
-                />
+          <form
+            *ngIf="filtersOpen"
+            [formGroup]="filtersForm"
+            class="px-4 pb-4 pt-1 space-y-4"
+          >
+            <div class="space-y-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+                <div>
+                  <label for="folioFilter" class="field-label">Folio</label>
+                  <input
+                    pInputText
+                    id="folioFilter"
+                    type="search"
+                    placeholder="Buscar folio…"
+                    formControlName="folio"
+                    class="w-full"
+                  />
+                </div>
+                <div>
+                  <label for="clienteFilter" class="field-label">Cliente</label>
+                  <p-select
+                    inputId="clienteFilter"
+                    formControlName="cliente"
+                    [options]="clienteOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Todos"
+                    [showClear]="true"
+                    [filter]="true"
+                    filterBy="label"
+                    [autoOptionFocus]="false"
+                    styleClass="w-full"
+                  >
+                  </p-select>
+                </div>
               </div>
-              <div>
-                <label for="clienteFilter" class="field-label">Cliente</label>
-                <p-select
-                  inputId="clienteFilter"
-                  [(ngModel)]="selectedCliente"
-                  [options]="clienteOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  placeholder="Todos"
-                  [showClear]="true"
-                  [filter]="true"
-                  filterBy="label"
-                  [autoOptionFocus]="false"
-                  styleClass="w-full"
-                  (onChange)="onClienteFilter($event.value)"
-                  (onClear)="onClienteFilter(null)"
-                >
-                </p-select>
-              </div>
-              <div>
-                <label for="fechaFilter" class="field-label">Fecha</label>
-                <p-datepicker
-                  inputId="fechaFilter"
-                  [(ngModel)]="selectedDateRange"
-                  selectionMode="range"
-                  [readonlyInput]="true"
-                  [showButtonBar]="true"
-                  dateFormat="dd/mm/yy"
-                  placeholder="Rango de fechas"
-                  styleClass="w-full"
-                  (onSelect)="onDateRangeFilter(selectedDateRange)"
-                  (onClear)="onDateRangeFilter(null)"
-                >
-                </p-datepicker>
-              </div>
-              <div>
-                <label for="estatusFilter" class="field-label">Estatus</label>
-                <p-select
-                  inputId="estatusFilter"
-                  [(ngModel)]="selectedEstatus"
-                  [options]="estatusOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  placeholder="Todos"
-                  [showClear]="true"
-                  [autoOptionFocus]="false"
-                  styleClass="w-full"
-                  (onChange)="onEstatusFilter($event.value)"
-                  (onClear)="onEstatusFilter(null)"
-                >
-                </p-select>
+              <div class="grid grid-cols-2 gap-x-4 gap-y-3">
+                <div>
+                  <label for="fechaFilter" class="field-label">Fecha</label>
+                  <p-datepicker
+                    inputId="fechaFilter"
+                    formControlName="dateRange"
+                    selectionMode="range"
+                    [readonlyInput]="true"
+                    [showButtonBar]="true"
+                    dateFormat="dd/mm/yy"
+                    placeholder="Rango de fechas"
+                    styleClass="w-full"
+                  >
+                  </p-datepicker>
+                </div>
+                <div>
+                  <label for="estatusFilter" class="field-label">Estatus</label>
+                  <p-select
+                    inputId="estatusFilter"
+                    formControlName="estatus"
+                    [options]="estatusOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Todos"
+                    [showClear]="true"
+                    [autoOptionFocus]="false"
+                    styleClass="w-full"
+                  >
+                  </p-select>
+                </div>
               </div>
               <div>
                 <label for="estadoFilter" class="field-label">Estado</label>
                 <p-select
                   inputId="estadoFilter"
-                  [(ngModel)]="selectedEstado"
+                  formControlName="estado"
                   [options]="estadoOptions"
                   optionLabel="label"
                   optionValue="value"
@@ -138,8 +139,6 @@
                   [showClear]="true"
                   [autoOptionFocus]="false"
                   styleClass="w-full"
-                  (onChange)="onEstadoFilter($event.value)"
-                  (onClear)="onEstadoFilter(null)"
                 >
                 </p-select>
               </div>
@@ -155,7 +154,7 @@
                 Limpiar filtros
               </button>
             </div>
-          </div>
+          </form>
         </div>
       </ng-template>
       <ng-template pTemplate="header">

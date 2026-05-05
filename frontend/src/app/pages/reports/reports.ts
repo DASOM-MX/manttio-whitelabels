@@ -1,9 +1,10 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Table, TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
@@ -44,7 +45,7 @@ const NORTHERN_MEXICAN_STATES = [
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
+    ReactiveFormsModule,
     RouterModule,
     TableModule,
     TagModule,
@@ -56,7 +57,7 @@ const NORTHERN_MEXICAN_STATES = [
   templateUrl: './reports.html',
   styleUrl: './reports.scss',
 })
-export class Reports implements OnInit {
+export class Reports implements OnInit, OnDestroy {
   @ViewChild('dt') dt!: Table;
 
   reports: any[] = [];
@@ -72,30 +73,36 @@ export class Reports implements OnInit {
     { label: 'Finalizado', value: true },
   ];
 
-  folioQuery = '';
-  selectedCliente: string | null = null;
-  selectedEstado: string | null = null;
-  selectedEstatus: boolean | null = null;
-  selectedDateRange: Date[] | null = null;
   filtersOpen = true;
 
+  private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef);
+  private router = inject(Router);
+  private fb = inject(FormBuilder);
+
+  filtersForm: FormGroup = this.fb.group({
+    folio: [''],
+    cliente: [null as string | null],
+    estado: [null as string | null],
+    estatus: [null as boolean | null],
+    dateRange: [null as Date[] | null],
+  });
+
+  private destroy$ = new Subject<void>();
+
   get activeFilterCount(): number {
+    const v = this.filtersForm.value;
     let n = 0;
-    if (this.folioQuery?.trim()) n++;
-    if (this.selectedCliente) n++;
-    if (this.selectedEstado) n++;
-    if (this.selectedEstatus !== null && this.selectedEstatus !== undefined) n++;
-    if (this.selectedDateRange?.[0]) n++;
+    if (v.folio?.trim()) n++;
+    if (v.cliente) n++;
+    if (v.estado) n++;
+    if (v.estatus !== null && v.estatus !== undefined) n++;
+    if (v.dateRange?.[0]) n++;
     return n;
   }
 
-  constructor(
-    private http: HttpClient,
-    private cdr: ChangeDetectorRef,
-    private router: Router
-  ) {}
-
   ngOnInit(): void {
+    this.wireFilters();
     this.http
       .get<any[]>(`${environment.apiUrl}reports`, {
         headers: {
@@ -151,42 +158,60 @@ export class Reports implements OnInit {
     return options.sort((a, b) => a.label.localeCompare(b.label));
   }
 
-  onFolioFilter(value: string) {
-    this.folioQuery = value;
-    this.dt.filter(value, 'id', 'contains');
-  }
+  private wireFilters(): void {
+    const ctrl = this.filtersForm.controls;
 
-  onClienteFilter(value: string | null) {
-    this.dt.filter(value, 'client_name', 'equals');
-  }
+    ctrl['folio'].valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((v: string) => this.dt?.filter(v, 'id', 'contains'));
 
-  onEstadoFilter(value: string | null) {
-    this.dt.filter(value, 'client_state', 'equals');
-  }
+    ctrl['cliente'].valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((v: string | null) =>
+        this.dt?.filter(v, 'client_name', 'equals')
+      );
 
-  onEstatusFilter(value: boolean | null) {
-    this.dt.filter(value, 'report_status', 'equals');
-  }
+    ctrl['estado'].valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((v: string | null) =>
+        this.dt?.filter(v, 'client_state', 'equals')
+      );
 
-  onDateRangeFilter(range: Date[] | null) {
-    if (!range || !range[0]) {
-      this.dt.filter(null, 'date_ts', 'between');
-      return;
-    }
-    const start = new Date(range[0]).setHours(0, 0, 0, 0);
-    const end = range[1]
-      ? new Date(range[1]).setHours(23, 59, 59, 999)
-      : new Date(range[0]).setHours(23, 59, 59, 999);
-    this.dt.filter([start, end], 'date_ts', 'between');
+    ctrl['estatus'].valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((v: boolean | null) =>
+        this.dt?.filter(v, 'report_status', 'equals')
+      );
+
+    ctrl['dateRange'].valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((range: Date[] | null) => {
+        if (!range || !range[0]) {
+          this.dt?.filter(null, 'date_ts', 'between');
+          return;
+        }
+        const start = new Date(range[0]).setHours(0, 0, 0, 0);
+        const end = range[1]
+          ? new Date(range[1]).setHours(23, 59, 59, 999)
+          : new Date(range[0]).setHours(23, 59, 59, 999);
+        this.dt?.filter([start, end], 'date_ts', 'between');
+      });
   }
 
   clearFilters() {
-    this.folioQuery = '';
-    this.selectedCliente = null;
-    this.selectedEstado = null;
-    this.selectedEstatus = null;
-    this.selectedDateRange = null;
-    this.dt.clear();
+    this.filtersForm.reset({
+      folio: '',
+      cliente: null,
+      estado: null,
+      estatus: null,
+      dateRange: null,
+    });
+    this.dt?.clear();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   goToReportDetail(reportId: string) {
