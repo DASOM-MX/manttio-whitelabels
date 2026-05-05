@@ -1,7 +1,7 @@
 // Bootstrap the first admin user. Run after `pnpm db:migrate`.
-// Reads DATABASE_URL from `.dev.vars` (or process env).
+// Reads DATABASE_URL and SEEDED_ADMIN_PASSWORD from `.dev.vars` (or process env).
 //
-// usage: pnpm seed:admin <email> <password> [name]
+// usage: pnpm seed:admin <email> [name]
 
 import { config } from 'dotenv';
 config({ path: '.dev.vars' });
@@ -12,12 +12,18 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { eq } from 'drizzle-orm';
 import * as schema from '../src/db/schema';
 
-const usage = 'usage: pnpm seed:admin <email> <password> [name]';
+const usage = 'usage: pnpm seed:admin <email> [name]   (password is read from SEEDED_ADMIN_PASSWORD)';
 
 const main = async () => {
-  const [email, password, name = 'Admin'] = process.argv.slice(2);
-  if (!email || !password) {
+  const [email, name = 'Admin'] = process.argv.slice(2);
+  if (!email) {
     console.error(usage);
+    process.exit(1);
+  }
+
+  const password = process.env.SEEDED_ADMIN_PASSWORD;
+  if (!password) {
+    console.error('SEEDED_ADMIN_PASSWORD is not set (check `.dev.vars`).');
     process.exit(1);
   }
 

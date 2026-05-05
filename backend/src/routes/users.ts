@@ -18,9 +18,19 @@ import { createUserSchema, updateUserSchema } from '../validators/users';
 
 export const users = new Hono<AppBindings>();
 
+// `GET /users/me` is available to any authenticated user — registered before the
+// admin gate so it bypasses `requireRole('admin')`.
+users.get('/me', async (c) => {
+  const me = c.get('user');
+  const db = createDb(c.env.DATABASE_URL);
+  const user = await findUserById(db, me.id);
+  if (!user) return c.json({ error: 'not_found' }, 404);
+  return c.json({ user: toPublicUser(user) });
+});
+
 users.use('*', requireRole('admin'));
 
-users.get('/', async (c) => {
+users.get('/list', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const rows = await listUsers(db);
   return c.json({ users: rows.map(toPublicUser) });

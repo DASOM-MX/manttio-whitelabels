@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import type { AppBindings } from '../env';
 import { createDb } from '../db/client';
-import { findUserByEmail, toPublicUser } from '../db/repositories/users';
+import { findUserByEmail } from '../db/repositories/users';
 import { verifyPassword } from '../lib/password';
 import { signAuthToken } from '../lib/jwt';
 import { loginSchema } from '../validators/auth';
@@ -29,5 +29,5 @@ auth.post('/login', zValidator('json', loginSchema), async (c) => {
     role: user.role,
   });
 
-  return c.json({ token, user: toPublicUser(user) });
+  return c.json({ token });
 });
