@@ -1,10 +1,7 @@
-import { Component, OnInit } from '@angular/core';
-import { FieldConfig } from '../../shared/dynamic-form/models/field-config.model';
+import { Component, OnInit, inject } from '@angular/core';
 import { DynamicForm } from '../../shared/dynamic-form/dynamic-form';
 import { CustomersService, Customer } from '../../../services/customers';
 import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-import { ReportsService } from '../../../services/reports';
 import { jwtDecode } from 'jwt-decode';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
@@ -13,16 +10,12 @@ import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
 import { environment } from '../../../environments/environment';
 import { SelectModule } from 'primeng/select';
-
-interface JwtPayload {
-  sub: string;
-  email?: string;
-}
+import { JwtPayload } from '../../interfaces/jwt-payload';
 
 @Component({
   selector: 'app-report-add',
   standalone: true,
-  imports: [DynamicForm, FormsModule, CommonModule, SelectModule],
+  imports: [DynamicForm, FormsModule, SelectModule],
   templateUrl: './report-add.html',
   styleUrl: './report-add.scss'
 })
@@ -54,12 +47,11 @@ export class ReportAdd implements OnInit {
   }
 
 
-  constructor(private customersService: CustomersService,
-    private reportsService: ReportsService,
-    private http: HttpClient,
-    private cdr: ChangeDetectorRef,
-    private toast: ToastService,
-    private router: Router) { }
+  private customersService = inject(CustomersService);
+  private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef);
+  private toast = inject(ToastService);
+  private router = inject(Router);
 
   onReportTypeChange(newType: string) {
     this.isAnimating = true;

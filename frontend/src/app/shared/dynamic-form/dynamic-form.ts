@@ -7,8 +7,7 @@ import {
   inject,
 } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-import { FieldConfig } from './models/field-config.model';
+import { FieldConfig } from '../../interfaces/field-config';
 import { ImagePickerComponent } from '../../components/image-picker/image-picker';
 import { SignatureComponent } from '../../components/signature-pad/signature-pad';
 import { InputTextModule } from 'primeng/inputtext';
@@ -20,7 +19,6 @@ import { ButtonModule } from 'primeng/button';
 @Component({
   selector: 'app-dynamic-form',
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     ImagePickerComponent,
     SignatureComponent,

@@ -1,24 +1,25 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject } from '@angular/core';
+import { NgClass } from '@angular/common';
 import { ToastService, ToastMessage } from '../../../services/toast.service';
 
 @Component({
   selector: 'app-toast',
   standalone: true,
-  imports: [CommonModule],
+  imports: [NgClass],
   template: `
-    <div
-      *ngIf="toast"
-      class="fixed top-5 right-5 px-4 py-3 rounded-lg shadow-lg text-white transition-all duration-300 animate-fade-in"
-      [ngClass]="{
-        'bg-green-500': toast.type === 'success',
-        'bg-red-500': toast.type === 'error',
-        'bg-blue-500': toast.type === 'info',
-        'bg-yellow-500': toast.type === 'warning'
-      }"
-    >
-      {{ toast.text }}
-    </div>
+    @if (toast) {
+      <div
+        class="fixed top-5 right-5 px-4 py-3 rounded-lg shadow-lg text-white transition-all duration-300 animate-fade-in"
+        [ngClass]="{
+          'bg-green-500': toast.type === 'success',
+          'bg-red-500': toast.type === 'error',
+          'bg-blue-500': toast.type === 'info',
+          'bg-yellow-500': toast.type === 'warning'
+        }"
+      >
+        {{ toast.text }}
+      </div>
+    }
   `,
   styles: [`
     @keyframes fadeIn {
@@ -31,9 +32,10 @@ import { ToastService, ToastMessage } from '../../../services/toast.service';
   `]
 })
 export class ToastComponent {
+  private toastService = inject(ToastService);
   toast: ToastMessage | null = null;
 
-  constructor(private toastService: ToastService) {
+  constructor() {
     this.toastService.toast$.subscribe(msg => {
       this.toast = msg;
     });

@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe, SlicePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
@@ -12,39 +12,19 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
-
-interface ClienteOption {
-  label: string;
-  value: string;
-}
-
-interface EstadoOption {
-  label: string;
-  value: string;
-}
-
-interface EstatusOption {
-  label: string;
-  value: boolean;
-}
-
-const NORTHERN_MEXICAN_STATES = [
-  'Baja California',
-  'Baja California Sur',
-  'Chihuahua',
-  'Coahuila',
-  'Durango',
-  'Nuevo León',
-  'Sinaloa',
-  'Sonora',
-  'Tamaulipas',
-];
+import {
+  ClienteOption,
+  EstadoOption,
+  EstatusOption,
+} from '../../interfaces/filter-option';
+import { NORTHERN_MEXICAN_STATES } from '../../constants/mexican-states';
 
 @Component({
   selector: 'app-reports',
   standalone: true,
   imports: [
-    CommonModule,
+    DatePipe,
+    SlicePipe,
     ReactiveFormsModule,
     RouterModule,
     TableModule,

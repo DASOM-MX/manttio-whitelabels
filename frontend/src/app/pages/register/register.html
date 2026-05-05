@@ -6,73 +6,92 @@
             </h1>
 
             <!-- Nombre -->
-            <div class="mb-5">
+            <div class="field-group mb-5">
                 <label for="regName" class="field-label">Nombre</label>
                 <input pInputText id="regName" type="text" formControlName="name" autocomplete="name"
                     [class.field-input--error]="registerForm.get('name')?.invalid && registerForm.get('name')?.touched"
                     placeholder="Nombre completo" />
-                <div class="text-red-700 text-sm font-semibold mt-2 flex items-center gap-1.5"
-                    *ngIf="registerForm.get('name')?.invalid && registerForm.get('name')?.touched">
-                    <span aria-hidden="true">⚠</span>
-                    <span *ngIf="registerForm.get('name')?.hasError('required')">El nombre es obligatorio.</span>
-                </div>
+                @if (registerForm.get('name')?.invalid && registerForm.get('name')?.touched) {
+                    <div class="text-red-700 text-sm font-semibold flex items-center gap-1.5">
+                        <span aria-hidden="true">⚠</span>
+                        @if (registerForm.get('name')?.hasError('required')) {
+                            <span>El nombre es obligatorio.</span>
+                        }
+                    </div>
+                }
             </div>
 
             <!-- Email -->
-            <div class="mb-5">
+            <div class="field-group mb-5">
                 <label for="regEmail" class="field-label">Email</label>
                 <input pInputText id="regEmail" type="email" formControlName="email" autocomplete="email"
                     [class.field-input--error]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched"
                     placeholder="tu@correo.com" />
-                <div class="text-red-700 text-sm font-semibold mt-2 flex items-center gap-1.5"
-                    *ngIf="registerForm.get('email')?.invalid && registerForm.get('email')?.touched">
-                    <span aria-hidden="true">⚠</span>
-                    <span *ngIf="registerForm.get('email')?.hasError('required')">El email es obligatorio.</span>
-                    <span *ngIf="registerForm.get('email')?.hasError('email')">Ingresa un email válido.</span>
-                </div>
+                @if (registerForm.get('email')?.invalid && registerForm.get('email')?.touched) {
+                    <div class="text-red-700 text-sm font-semibold flex items-center gap-1.5">
+                        <span aria-hidden="true">⚠</span>
+                        @if (registerForm.get('email')?.hasError('required')) {
+                            <span>El email es obligatorio.</span>
+                        }
+                        @if (registerForm.get('email')?.hasError('email')) {
+                            <span>Ingresa un email válido.</span>
+                        }
+                    </div>
+                }
             </div>
 
             <!-- Password -->
-            <div class="mb-5">
+            <div class="field-group mb-5">
                 <label for="regPassword" class="field-label">Contraseña</label>
                 <p-password inputId="regPassword" formControlName="password" [feedback]="true" [toggleMask]="true"
                     autocomplete="new-password" placeholder="••••••••" styleClass="w-full"
                     [inputStyleClass]="(registerForm.get('password')?.invalid && registerForm.get('password')?.touched) ? 'field-input field-input--error' : 'field-input'">
                 </p-password>
-                <div class="text-red-700 text-sm font-semibold mt-2 flex items-center gap-1.5"
-                    *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
-                    <span aria-hidden="true">⚠</span>
-                    <span *ngIf="registerForm.get('password')?.hasError('required')">La contraseña es obligatoria.</span>
-                    <span *ngIf="registerForm.get('password')?.hasError('minlength')">La contraseña debe tener al menos 8 caracteres.</span>
-                </div>
+                @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
+                    <div class="text-red-700 text-sm font-semibold flex items-center gap-1.5">
+                        <span aria-hidden="true">⚠</span>
+                        @if (registerForm.get('password')?.hasError('required')) {
+                            <span>La contraseña es obligatoria.</span>
+                        }
+                        @if (registerForm.get('password')?.hasError('minlength')) {
+                            <span>La contraseña debe tener al menos 8 caracteres.</span>
+                        }
+                    </div>
+                }
             </div>
 
             <!-- Confirm Password -->
-            <div class="mb-5">
+            <div class="field-group mb-5">
                 <label for="regConfirm" class="field-label">Confirmar contraseña</label>
                 <p-password inputId="regConfirm" formControlName="confirmPassword" [feedback]="false"
                     [toggleMask]="true" autocomplete="new-password" placeholder="••••••••" styleClass="w-full"
                     [inputStyleClass]="((registerForm.get('confirmPassword')?.invalid || getPasswordMismatchError()) && registerForm.get('confirmPassword')?.touched) ? 'field-input field-input--error' : 'field-input'">
                 </p-password>
-                <div class="text-red-700 text-sm font-semibold mt-2 flex items-center gap-1.5"
-                    *ngIf="(registerForm.get('confirmPassword')?.invalid || getPasswordMismatchError()) && registerForm.get('confirmPassword')?.touched">
-                    <span aria-hidden="true">⚠</span>
-                    <span *ngIf="registerForm.get('confirmPassword')?.hasError('required')">Confirma tu contraseña.</span>
-                    <span *ngIf="getPasswordMismatchError()">Las contraseñas no coinciden.</span>
-                </div>
+                @if ((registerForm.get('confirmPassword')?.invalid || getPasswordMismatchError()) && registerForm.get('confirmPassword')?.touched) {
+                    <div class="text-red-700 text-sm font-semibold flex items-center gap-1.5">
+                        <span aria-hidden="true">⚠</span>
+                        @if (registerForm.get('confirmPassword')?.hasError('required')) {
+                            <span>Confirma tu contraseña.</span>
+                        }
+                        @if (getPasswordMismatchError()) {
+                            <span>Las contraseñas no coinciden.</span>
+                        }
+                    </div>
+                }
             </div>
 
             <!-- User Role -->
-            <div class="mb-8">
+            <div class="field-group mb-8">
                 <label for="role" class="field-label">Rol</label>
                 <p-select inputId="role" formControlName="role" [options]="roleOptions" optionLabel="label"
                     optionValue="value" placeholder="Selecciona un rol" styleClass="w-full">
                 </p-select>
-                <div class="text-red-700 text-sm font-semibold mt-2 flex items-center gap-1.5"
-                    *ngIf="registerForm.get('role')?.invalid && registerForm.get('role')?.touched">
-                    <span aria-hidden="true">⚠</span>
-                    <span>Selecciona un rol válido.</span>
-                </div>
+                @if (registerForm.get('role')?.invalid && registerForm.get('role')?.touched) {
+                    <div class="text-red-700 text-sm font-semibold flex items-center gap-1.5">
+                        <span aria-hidden="true">⚠</span>
+                        <span>Selecciona un rol válido.</span>
+                    </div>
+                }
             </div>
 
             <button pButton type="submit" class="btn-primary w-full" [disabled]="registerForm.invalid">

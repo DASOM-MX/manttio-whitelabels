@@ -9,6 +9,7 @@
 ## Angular
 - Always use the **`inject()`** function for dependency injection — never constructor-parameter injection. Declare each dependency as a class field: `private http = inject(HttpClient);`. Do not write `constructor(private http: HttpClient) {}`.
 - Prefer **Reactive Forms** (`FormBuilder` + `FormGroup` + `formControlName`) over template-driven `[(ngModel)]` for any form group.
+- Use the **new built-in control flow syntax** in templates: `@if`, `@else if`, `@else`, `@for (item of items; track item.id) { }`, `@switch / @case / @default`. Do not use `*ngIf`, `*ngFor`, `*ngSwitch`, `*ngSwitchCase`, `*ngSwitchDefault`, `[ngIfElse]`, or `<ng-template>`-based fallbacks. When migrating, also drop `CommonModule` imports if `@if`/`@for`/`@switch` are the only directives used.
 
 ## Animations
 - Use **anime.js** for animations only. Do not use it as a general utility library.

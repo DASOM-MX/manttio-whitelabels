@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { FieldConfig } from '../../shared/dynamic-form/models/field-config.model';
+import { FieldConfig } from '../../interfaces/field-config';
 import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../../services/toast.service';
 import { jwtDecode } from 'jwt-decode';
@@ -7,11 +7,7 @@ import { DynamicForm } from '../../shared/dynamic-form/dynamic-form';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { environment } from '../../../environments/environment';
-
-interface JwtPayload {
-  sub: string;
-  email?: string;
-}
+import { JwtPayload } from '../../interfaces/jwt-payload';
 
 @Component({
   selector: 'app-customer-add',

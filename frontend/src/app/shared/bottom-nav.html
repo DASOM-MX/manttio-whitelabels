@@ -72,27 +72,28 @@
         <span class="text-xs font-semibold">Otros</span>
       </button>
 
-      <div
-        *ngIf="showMenu"
-        class="absolute bottom-full right-2 mb-2 bg-white text-granite-900 rounded-xl shadow-xl border border-granite-200 w-56 overflow-hidden"
-      >
-        <div class="px-4 py-3 border-b border-granite-200 text-sm text-granite-600 truncate">
-          {{ email }}
+      @if (showMenu) {
+        <div class="absolute bottom-full right-2 mb-2 bg-white text-granite-900 rounded-xl shadow-xl border border-granite-200 w-56 overflow-hidden">
+          <div class="px-4 py-3 border-b border-granite-200 text-sm text-granite-600 truncate">
+            {{ email }}
+          </div>
+          <a routerLink="/customer-add" class="block px-4 py-3 text-base font-medium hover:bg-sky-50 active:bg-sky-100 transition-colors">
+            Agregar cliente
+          </a>
+          @if (role) {
+            <a routerLink="/register" class="block px-4 py-3 text-base font-medium hover:bg-sky-50 active:bg-sky-100 transition-colors">
+              Agregar usuario
+            </a>
+          }
+          <button
+            type="button"
+            (click)="logout()"
+            class="block w-full text-left px-4 py-3 text-base font-semibold text-red-700 hover:bg-red-50 active:bg-red-100 transition-colors border-t border-granite-200"
+          >
+            Cerrar sesión
+          </button>
         </div>
-        <a routerLink="/customer-add" class="block px-4 py-3 text-base font-medium hover:bg-sky-50 active:bg-sky-100 transition-colors">
-          Agregar cliente
-        </a>
-        <a *ngIf="role" routerLink="/register" class="block px-4 py-3 text-base font-medium hover:bg-sky-50 active:bg-sky-100 transition-colors">
-          Agregar usuario
-        </a>
-        <button
-          type="button"
-          (click)="logout()"
-          class="block w-full text-left px-4 py-3 text-base font-semibold text-red-700 hover:bg-red-50 active:bg-red-100 transition-colors border-t border-granite-200"
-        >
-          Cerrar sesión
-        </button>
-      </div>
+      }
     </li>
   </ul>
 </nav>

@@ -1,6 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Register } from '../register/register';
 import { HttpClient } from '@angular/common/http';
@@ -15,7 +14,6 @@ import { ButtonModule } from 'primeng/button';
   templateUrl: './login.html',
   styleUrl: './login.scss',
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     Register,
     InputTextModule,
@@ -24,19 +22,15 @@ import { ButtonModule } from 'primeng/button';
   ],
 })
 export class Login {
-  loginForm;
-  showRegister = false;
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private http = inject(HttpClient);
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private http: HttpClient
-  ) {
-    this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(8)]],
-    });
-  }
+  loginForm = this.fb.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(8)]],
+  });
+  showRegister = false;
 
   onSubmit() {
     if (this.loginForm.valid) {
@@ -46,13 +40,9 @@ export class Login {
         .post(`${environment.apiUrl}auth/login`, { email, password })
         .subscribe({
           next: (response: any) => {
-            console.log('Login exitoso', response);
-
-            //Guardar el token
             localStorage.setItem('token', response.token);
             localStorage.setItem('role', response.user.role ? 'true' : 'false');
             localStorage.setItem('email', response.user.email);
-            //redirigir
             this.router.navigate(['/reports']);
           },
           error: (error) => {
@@ -60,8 +50,6 @@ export class Login {
             alert('Credenciales invalidas');
           },
         });
-
-      //console.log('Datos del login:', email, password);
     }
   }
 
