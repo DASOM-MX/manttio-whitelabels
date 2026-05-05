@@ -34,6 +34,11 @@ export class ReportAdd implements OnInit {
   signedBy: string = '';
 
   reportTypes: ['minisplit', 'chiller', 'uma'] = ['minisplit', 'chiller', 'uma'];
+  reportTypeOptions = [
+    { label: 'Minisplit', value: 'minisplit' },
+    { label: 'Chiller', value: 'chiller' },
+    { label: 'UMA', value: 'uma' },
+  ];
   selectedReportType = 'minisplit';
 
   //animating form change
@@ -81,7 +86,6 @@ export class ReportAdd implements OnInit {
     switch (type) {
       case 'minisplit':
         return [
-          { type: 'text', label: 'Para', name: 'para', defaultValue: '' },
           { type: 'text', label: 'Tipo de tarea', name: 'manttio_type', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de llegada', name: 'date_arrival', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de salida', name: 'date_departure', defaultValue: '' },
@@ -93,13 +97,11 @@ export class ReportAdd implements OnInit {
           { type: 'select', label: '¿Ruido fuera de lo normal?', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
-          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' },
-          { type: 'text', label: 'Firmado por', name: 'signed_by', defaultValue: '' }
+          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' }
         ];
 
       case 'chiller':
         return [
-          { type: 'text', label: 'Para', name: 'para', defaultValue: '' },
           { type: 'text', label: 'Tipo de tarea', name: 'manttio_type', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de llegada', name: 'date_arrival', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de salida', name: 'date_departure', defaultValue: '' },
@@ -118,13 +120,11 @@ export class ReportAdd implements OnInit {
           { type: 'select', label: 'Ruido inusual', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
-          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' },
-          { type: 'text', label: 'Firmado por', name: 'signed_by', defaultValue: '' }
+          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' }
         ];
 
       case 'uma':
         return [
-          { type: 'text', label: 'Para', name: 'para', defaultValue: '' },
           { type: 'text', label: 'Tipo de tarea', name: 'manttio_type', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de llegada', name: 'date_arrival', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de salida', name: 'date_departure', defaultValue: '' },
@@ -138,8 +138,7 @@ export class ReportAdd implements OnInit {
           { type: 'select', label: 'Ruido inusual', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
-          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' },
-          { type: 'text', label: 'Firmado por', name: 'signed_by', defaultValue: '' }
+          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' }
         ];
 
       default:

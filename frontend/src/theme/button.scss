@@ -31,11 +31,12 @@
   }
 }
 .p-button-icon {
-  @apply size-5;
+  @apply inline-flex items-center justify-center size-5 leading-none shrink-0;
+  font-size: 1rem;
 }
 .p-button-label {
-  @apply inline-flex items-center;
+  @apply leading-none;
 }
 .p-button-loading-icon {
-  @apply animate-spin size-5;
+  @apply animate-spin size-5 leading-none;
 }

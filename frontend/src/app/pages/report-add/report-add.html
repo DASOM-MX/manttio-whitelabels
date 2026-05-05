@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-background pb-24">
+<div class="min-h-full bg-background">
     <div class="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-6">
         <!-- Header -->
         <div>
@@ -13,14 +13,9 @@
             <div>
                 <label for="reportType" class="field-label">Tipo de reporte</label>
                 <p-select inputId="reportType" [(ngModel)]="selectedReportType"
-                    [options]="reportTypes" appendTo="body" styleClass="w-full"
+                    [options]="reportTypeOptions" optionLabel="label" optionValue="value"
+                    [autoOptionFocus]="false" styleClass="w-full"
                     (ngModelChange)="onReportTypeChange($event)">
-                    <ng-template let-option pTemplate="selectedItem">
-                        <span class="capitalize">{{ option }}</span>
-                    </ng-template>
-                    <ng-template let-option pTemplate="item">
-                        <span class="capitalize">{{ option }}</span>
-                    </ng-template>
                 </p-select>
             </div>
 
@@ -30,19 +25,8 @@
                     <label for="customer" class="field-label">Cliente</label>
                     <p-select inputId="customer" [(ngModel)]="selectedCustomerId"
                         [options]="customers" optionLabel="name" optionValue="id"
-                        appendTo="body" styleClass="w-full" [filter]="true" filterBy="name,identification"
-                        placeholder="Selecciona un cliente">
-                        <ng-template let-customer pTemplate="selectedItem">
-                            <span>{{ customer.name }} — {{ customer.identification }}</span>
-                        </ng-template>
-                        <ng-template let-customer pTemplate="item">
-                            <div class="flex flex-col">
-                                <span class="font-semibold">{{ customer.name }}</span>
-                                <span class="text-xs text-granite-600 font-data tabular-nums">
-                                    {{ customer.identification }}
-                                </span>
-                            </div>
-                        </ng-template>
+                        [autoOptionFocus]="false" styleClass="w-full" [filter]="true"
+                        filterBy="name,identification" placeholder="Selecciona un cliente">
                     </p-select>
                 </div>
 

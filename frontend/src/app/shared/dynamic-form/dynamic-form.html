@@ -15,13 +15,13 @@
                 </p-inputnumber>
 
                 <p-select *ngSwitchCase="'select'" [inputId]="field.name" [formControlName]="field.name"
-                    [options]="field.options" appendTo="body" styleClass="w-full"
+                    [options]="field.options" styleClass="w-full"
                     placeholder="Selecciona una opción">
                 </p-select>
 
                 <p-datepicker *ngSwitchCase="'datetime-local'" [inputId]="field.name"
                     [formControlName]="field.name" [showTime]="true" hourFormat="24"
-                    dateFormat="dd/mm/yy" appendTo="body" styleClass="w-full">
+                    dateFormat="dd/mm/yy" styleClass="w-full">
                 </p-datepicker>
 
                 <app-image-picker *ngSwitchCase="'image'"

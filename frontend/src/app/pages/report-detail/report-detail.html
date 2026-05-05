@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-background pb-32">
+<div class="min-h-full bg-background">
     <div #pdfContent>
         <form [formGroup]="reportForm">
             <div *ngIf="report" class="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
@@ -464,8 +464,8 @@
                 </section>
             </div>
 
-            <!-- Sticky action bar -->
-            <div class="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t-2 border-granite-200">
+            <!-- Sticky action bar (sticks to scroll-container bottom, above the bottom-nav) -->
+            <div class="sticky bottom-0 z-40 bg-white/95 backdrop-blur border-t-2 border-granite-200">
                 <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap justify-end gap-2">
                     <p-button type="button" (onClick)="downloadTextPDF()" severity="secondary" label="Descargar PDF">
                     </p-button>

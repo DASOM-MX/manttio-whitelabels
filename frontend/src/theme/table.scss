@@ -1,15 +1,26 @@
 /* PrimeNG Table */
 .p-datatable {
-  @apply w-full bg-white border border-granite-200 rounded-xl shadow-sm overflow-hidden;
+  @apply block w-full max-w-full bg-white border border-granite-200 rounded-xl shadow-sm overflow-hidden;
 }
+
+/* Wrappers PrimeNG always renders but that should stay hidden until active. */
+.p-datatable-mask,
+.p-datatable-loading-overlay {
+  @apply hidden;
+}
+.p-datatable-mask.p-overlay-mask,
+.p-datatable-loading-overlay.p-component-overlay {
+  @apply absolute inset-0 flex items-center justify-center bg-white/70 z-20;
+}
+
 .p-datatable-table-container {
-  @apply w-full overflow-x-auto;
+  @apply w-full max-w-full overflow-x-auto;
 }
 .p-datatable-table {
-  @apply min-w-full;
+  @apply w-full border-collapse;
 }
 .p-datatable-thead {
-  @apply bg-navy-900 text-white sticky top-0 z-10;
+  @apply bg-navy-900 text-white;
 
   > tr > th {
     @apply px-4 sm:px-6 py-4 text-left text-xs font-bold uppercase tracking-wider;
@@ -30,31 +41,37 @@
   @apply ml-1 inline-flex items-center justify-center size-5 rounded-full bg-sky-600 text-white text-xs font-bold;
 }
 .p-datatable-tbody {
-  @apply bg-white divide-y divide-granite-200;
+  @apply bg-white;
 
   > tr {
-    @apply transition-colors duration-100;
+    @apply transition-colors duration-100 border-t border-granite-200;
 
+    &:first-child {
+      @apply border-t-0;
+    }
     &:hover {
       @apply bg-sky-50;
     }
     &:active {
       @apply bg-sky-100;
     }
-    &:nth-child(even) {
-      @apply bg-granite-50/40;
-    }
     &.p-row-selected {
       @apply bg-sky-100;
+    }
+    &.p-datatable-emptymessage {
+      @apply hover:bg-transparent;
+
+      > td {
+        @apply px-6 py-12 text-center text-base text-granite-600 whitespace-normal;
+      }
     }
     > td {
       @apply px-4 sm:px-6 py-5 whitespace-nowrap text-base text-granite-800;
     }
   }
 }
-.p-datatable-empty-message {
-  @apply px-6 py-12 text-center text-granite-600;
-}
+
+/* Paginator (rendered when [paginator]="true") */
 .p-paginator {
   @apply flex items-center justify-end gap-2 px-4 py-3 border-t border-granite-200 bg-white;
 }
@@ -71,4 +88,18 @@
   &.p-disabled {
     @apply opacity-30 cursor-not-allowed;
   }
+}
+
+/* Caption / footer slots — PrimeNG renders empty wrappers; collapse them
+   when there's no template content. With content, the header gets a soft
+   surface that flows into the thead below. */
+.p-datatable-header:empty,
+.p-datatable-footer:empty {
+  @apply hidden;
+}
+.p-datatable-header {
+  @apply bg-granite-50;
+}
+.p-datatable-footer {
+  @apply px-4 py-3 border-t border-granite-200 bg-granite-50;
 }

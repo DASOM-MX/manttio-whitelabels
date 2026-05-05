@@ -1,5 +1,5 @@
 <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-    <div class="min-h-screen flex items-center justify-center bg-surface p-4">
+    <div class="min-h-full flex items-center justify-center bg-surface p-4">
         <div class="card w-full max-w-md p-8">
             <h1 class="text-2xl font-bold text-center text-granite-900 mb-8">
                 Registrar usuario
@@ -66,7 +66,7 @@
             <div class="mb-8">
                 <label for="role" class="field-label">Rol</label>
                 <p-select inputId="role" formControlName="role" [options]="roleOptions" optionLabel="label"
-                    optionValue="value" placeholder="Selecciona un rol" appendTo="body" styleClass="w-full">
+                    optionValue="value" placeholder="Selecciona un rol" styleClass="w-full">
                 </p-select>
                 <div class="text-red-700 text-sm font-semibold mt-2 flex items-center gap-1.5"
                     *ngIf="registerForm.get('role')?.invalid && registerForm.get('role')?.touched">

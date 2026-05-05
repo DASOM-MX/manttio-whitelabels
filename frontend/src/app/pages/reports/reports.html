@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-background pb-24">
+<div class="min-h-full bg-background">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
         <!-- Header -->
         <div class="flex flex-wrap items-center justify-between gap-4">
@@ -12,10 +12,90 @@
         </div>
 
         <!-- Reports table -->
-        <p-table [value]="reports" [paginator]="reports.length > 10" [rows]="10"
-            [rowsPerPageOptions]="[10, 25, 50]" [globalFilterFields]="['id', 'manttio_type', 'client_name']"
-            [tableStyle]="{ 'min-width': '100%' }" sortMode="single" [rowHover]="true"
-            (onRowSelect)="goToReportDetail($event.data.id)" selectionMode="single">
+        <p-table #dt [value]="reports" [paginator]="reports.length > 10" [rows]="10"
+            [rowsPerPageOptions]="[10, 25, 50]" sortMode="single" [rowHover]="true">
+            <ng-template pTemplate="caption">
+                <div class="border-b border-granite-200">
+                    <!-- Always-visible toggle bar -->
+                    <button type="button" (click)="filtersOpen = !filtersOpen"
+                        [attr.aria-expanded]="filtersOpen"
+                        class="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-granite-100 active:bg-granite-200 transition-colors">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <i class="pi pi-filter text-sky-700"></i>
+                            <span class="font-semibold text-granite-900">Filtros</span>
+                            <span *ngIf="activeFilterCount > 0"
+                                class="inline-flex items-center px-2 py-0.5 rounded-full bg-sky-600 text-white text-xs font-bold">
+                                {{ activeFilterCount }}
+                            </span>
+                            <span class="text-sm text-granite-600 truncate">
+                                · {{ dt.totalRecords ?? reports.length }} reporte{{ (dt.totalRecords ?? reports.length) === 1 ? '' : 's' }}
+                            </span>
+                        </div>
+                        <i class="pi pi-chevron-down text-granite-700 transition-transform duration-200"
+                            [class.rotate-180]="filtersOpen"></i>
+                    </button>
+
+                    <!-- Collapsible filter grid -->
+                    <div *ngIf="filtersOpen" class="px-4 pb-4 pt-1 space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+                            <div>
+                                <label for="folioFilter" class="field-label">Folio</label>
+                                <input pInputText id="folioFilter" type="search" placeholder="Buscar folio…"
+                                    [ngModel]="folioQuery" (ngModelChange)="onFolioFilter($event)"
+                                    class="w-full" />
+                            </div>
+                            <div>
+                                <label for="clienteFilter" class="field-label">Cliente</label>
+                                <p-select inputId="clienteFilter" [(ngModel)]="selectedCliente"
+                                    [options]="clienteOptions" optionLabel="label" optionValue="value"
+                                    placeholder="Todos" [showClear]="true" [filter]="true" filterBy="label"
+                                    [autoOptionFocus]="false" styleClass="w-full"
+                                    (onChange)="onClienteFilter($event.value)"
+                                    (onClear)="onClienteFilter(null)">
+                                </p-select>
+                            </div>
+                            <div>
+                                <label for="fechaFilter" class="field-label">Fecha</label>
+                                <p-datepicker inputId="fechaFilter" [(ngModel)]="selectedDateRange"
+                                    selectionMode="range" [readonlyInput]="true" [showButtonBar]="true"
+                                    dateFormat="dd/mm/yy" placeholder="Rango de fechas"
+                                    styleClass="w-full"
+                                    (onSelect)="onDateRangeFilter(selectedDateRange)"
+                                    (onClear)="onDateRangeFilter(null)">
+                                </p-datepicker>
+                            </div>
+                            <div>
+                                <label for="estatusFilter" class="field-label">Estatus</label>
+                                <p-select inputId="estatusFilter" [(ngModel)]="selectedEstatus"
+                                    [options]="estatusOptions" optionLabel="label" optionValue="value"
+                                    placeholder="Todos" [showClear]="true" [autoOptionFocus]="false"
+                                    styleClass="w-full"
+                                    (onChange)="onEstatusFilter($event.value)"
+                                    (onClear)="onEstatusFilter(null)">
+                                </p-select>
+                            </div>
+                            <div>
+                                <label for="estadoFilter" class="field-label">Estado</label>
+                                <p-select inputId="estadoFilter" [(ngModel)]="selectedEstado"
+                                    [options]="estadoOptions" optionLabel="label" optionValue="value"
+                                    placeholder="Todos" [showClear]="true" [autoOptionFocus]="false"
+                                    styleClass="w-full"
+                                    (onChange)="onEstadoFilter($event.value)"
+                                    (onClear)="onEstadoFilter(null)">
+                                </p-select>
+                            </div>
+                        </div>
+                        <div class="flex justify-end">
+                            <button type="button" *ngIf="activeFilterCount > 0"
+                                class="text-sm font-semibold text-sky-700 hover:text-sky-900 inline-flex items-center gap-1.5"
+                                (click)="clearFilters()">
+                                <i class="pi pi-times"></i>
+                                Limpiar filtros
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </ng-template>
             <ng-template pTemplate="header">
                 <tr>
                     <th pSortableColumn="id">
@@ -31,12 +111,12 @@
                         Fecha <p-sortIcon field="date_departure"></p-sortIcon>
                     </th>
                     <th pSortableColumn="report_status">
-                        Estado <p-sortIcon field="report_status"></p-sortIcon>
+                        Estatus <p-sortIcon field="report_status"></p-sortIcon>
                     </th>
                 </tr>
             </ng-template>
             <ng-template pTemplate="body" let-r>
-                <tr [pSelectableRow]="r" (click)="goToReportDetail(r.id)" class="cursor-pointer">
+                <tr (click)="goToReportDetail(r.id)" class="cursor-pointer">
                     <td class="font-data tabular-nums font-semibold text-granite-900">
                         {{ r.id | slice:0:6 }}{{ r.id.length > 8 ? '…' : '' }}
                     </td>
@@ -52,8 +132,8 @@
                 </tr>
             </ng-template>
             <ng-template pTemplate="emptymessage">
-                <tr>
-                    <td colspan="5" class="p-datatable-empty-message">Aún no hay reportes.</td>
+                <tr class="p-datatable-emptymessage">
+                    <td colspan="5">Aún no hay reportes.</td>
                 </tr>
             </ng-template>
         </p-table>

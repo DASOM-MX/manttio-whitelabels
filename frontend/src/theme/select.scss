@@ -1,6 +1,7 @@
 /* PrimeNG Select (formerly Dropdown) */
 .p-select {
   @apply field-input flex items-center justify-between cursor-pointer;
+  position: relative;
 }
 .p-select-label {
   @apply flex-1 text-left truncate;
@@ -16,7 +17,17 @@
   @apply ml-2 inline-flex items-center justify-center text-granite-500;
 }
 .p-select-overlay {
-  @apply mt-1 bg-white border-2 border-granite-200 rounded-lg shadow-lg overflow-hidden z-50;
+  @apply bg-white border-2 border-granite-200 rounded-lg shadow-lg overflow-hidden z-50;
+  /* Force absolute anchoring — overrides any inline `position: fixed`
+     PrimeNG's overlay manager may set, which can otherwise pin the panel
+     to viewport coords and de-sync it when <main> scrolls. */
+  position: absolute !important;
+  top: calc(100% + 4px) !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  inset-inline: 0 auto !important;
+  width: 100%;
 }
 .p-select-header {
   @apply p-2 border-b border-granite-200;

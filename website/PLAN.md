@@ -45,7 +45,7 @@ Usage: `bg-navy-900`, `text-cyan-400`, `border-sky-500`, etc. Old `coral` / `gol
 ## Pending
 
 - [ ] Self-hosted hero video URL → `Hero.astro` `heroVideoUrl` constant (Cloudflare-hosted).
-- [ ] Commit + push the brand asset / palette overhaul + env-var wiring + Clients rename.
+- [x] Commit + push the brand asset / palette overhaul + env-var wiring + Clients rename.
 
 ## House rules (see `CLAUDE.md`)
 - Tailwind 3.4.17 only; extend `tailwind.config.mjs` for any new tokens — no arbitrary values.

@@ -1,13 +1,22 @@
 /* PrimeNG DatePicker (formerly Calendar) */
 .p-datepicker {
   @apply block w-full;
+  position: relative;
 
   .p-datepicker-input {
     @apply field-input;
   }
 }
 .p-datepicker-panel {
-  @apply mt-1 bg-white border-2 border-granite-200 rounded-lg shadow-lg p-3 z-50;
+  @apply bg-white border-2 border-granite-200 rounded-lg shadow-lg p-3 z-50;
+  /* Same anchoring strategy as p-select — override any inline position. */
+  position: absolute !important;
+  top: calc(100% + 4px) !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: max-content;
+  max-width: min(22rem, 90vw);
 }
 .p-datepicker-calendar-container {
   @apply flex flex-col gap-2;
