@@ -1,8 +1,11 @@
+import { sql } from 'drizzle-orm';
 import { env } from 'cloudflare:test';
 import { createDb } from '../../src/db/client';
 import { insertCustomer } from '../../src/db/repositories/customers';
 import { insertUser } from '../../src/db/repositories/users';
 import { hashPassword } from '../../src/lib/password';
+import { reportCounters, reportDetails, reports } from '../../src/db/schema';
+import type { ReportStatus } from '../../src/lib/report-lifecycle';
 import { request, json, jsonHeaders } from './request';
 
 const tag = () => Math.random().toString(36).slice(2, 10);
@@ -81,4 +84,71 @@ export const seedTechnicianAndLogin = async () => {
   const tech = await seedTechnician();
   const token = await loginAs(tech);
   return { tech, token };
+};
+
+type SeedReportOpts = {
+  reportType?: 'minisplit' | 'chiller' | 'uma';
+  status?: ReportStatus;
+  createdBy: string;
+  assignedTo?: string;
+  clientId: string;
+  data?: Record<string, unknown>;
+  workType?: string | null;
+};
+
+type SeededReport = {
+  id: string;
+  reportType: 'minisplit' | 'chiller' | 'uma';
+  status: ReportStatus;
+  createdBy: string;
+  assignedTo: string;
+  clientId: string;
+};
+
+const defaultMinisplitData = () => ({
+  is_operating: true,
+  remote_working: true,
+  amperage: '5.2',
+  filter: true,
+  inner_voltage: '220',
+  unusual_noise: false,
+  observations: 'seeded',
+});
+
+// Plants a report directly via Drizzle in the year-2099 folio partition so it cannot
+// collide with real same-day reports. The route layer is not exercised here — use POST
+// /reports for tests that need to validate the create path itself.
+export const seedReport = async (opts: SeedReportOpts): Promise<SeededReport> => {
+  const reportType = opts.reportType ?? 'minisplit';
+  const status: ReportStatus = opts.status ?? 'created';
+  const assignedTo = opts.assignedTo ?? opts.createdBy;
+  const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
+
+  const day = '2099-12-31';
+  const [counter] = await db
+    .insert(reportCounters)
+    .values({ day, lastNumber: 1 })
+    .onConflictDoUpdate({
+      target: reportCounters.day,
+      set: { lastNumber: sql`${reportCounters.lastNumber} + 1` },
+    })
+    .returning({ lastNumber: reportCounters.lastNumber });
+  if (!counter) throw new Error('seedReport: counter upsert returned no row');
+  const seq = String(counter.lastNumber).padStart(4, '0');
+  const id = `R-20991231-${seq}`;
+
+  await db.insert(reports).values({
+    id,
+    reportType,
+    workType: opts.workType ?? null,
+    createdBy: opts.createdBy,
+    assignedTo,
+    clientId: opts.clientId,
+    status,
+  });
+  await db
+    .insert(reportDetails)
+    .values({ reportId: id, data: opts.data ?? defaultMinisplitData() });
+
+  return { id, reportType, status, createdBy: opts.createdBy, assignedTo, clientId: opts.clientId };
 };
