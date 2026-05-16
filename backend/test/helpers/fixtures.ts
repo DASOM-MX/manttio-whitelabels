@@ -1,5 +1,6 @@
 import { env } from 'cloudflare:test';
 import { createDb } from '../../src/db/client';
+import { insertCustomer } from '../../src/db/repositories/customers';
 import { insertUser } from '../../src/db/repositories/users';
 import { hashPassword } from '../../src/lib/password';
 import { request, json, jsonHeaders } from './request';
@@ -42,6 +43,20 @@ const seedUser = async (role: 'admin' | 'technician'): Promise<SeededUser> => {
 
 export const seedAdmin = () => seedUser('admin');
 export const seedTechnician = () => seedUser('technician');
+
+type SeededCustomer = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+export const seedCustomer = async (): Promise<SeededCustomer> => {
+  const name = uniqueName('customer');
+  const email = uniqueRecipientEmail('customer');
+  const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
+  const row = await insertCustomer(db, { name, email });
+  return { id: row.id, name, email };
+};
 
 export const loginAs = async (creds: { email: string; password: string }) => {
   const res = await request('/auth/login', {
