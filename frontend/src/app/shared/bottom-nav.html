@@ -74,9 +74,11 @@
 
       @if (showMenu()) {
         <div class="absolute bottom-full right-2 mb-2 bg-white text-granite-900 rounded-xl shadow-xl border border-granite-200 w-56 overflow-hidden">
-          <div class="px-4 py-3 border-b border-granite-200 text-sm text-granite-600 truncate">
-            {{ user()?.email }}
-          </div>
+          @if (user()?.email; as email) {
+            <div class="px-4 py-3 border-b border-granite-200 text-sm text-granite-600 truncate">
+              {{ email }}
+            </div>
+          }
           <a routerLink="/customer-add" class="block px-4 py-3 text-base font-medium hover:bg-sky-50 active:bg-sky-100 transition-colors">
             Agregar cliente
           </a>

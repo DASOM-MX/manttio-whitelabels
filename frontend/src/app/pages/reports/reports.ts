@@ -64,7 +64,7 @@ export class Reports implements OnInit, OnDestroy {
     this.buildClienteOptions(this.reports()),
   );
 
-  filtersOpen = signal(true);
+  filtersOpen = signal(false);
 
   filtersForm: FormGroup = this.fb.group({
     folio: [''],
