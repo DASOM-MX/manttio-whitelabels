@@ -11,7 +11,9 @@ The plan introduces:
 - a functional `authInterceptor` that pins the JWT to outgoing requests,
 - a `/http` folder containing one service file per backend entity,
 - a `/theme` folder for UI-only services (toasts, future modals, etc.),
-- a `/dtos` folder for typed request/response shapes mirroring the backend,
+- a `/dtos` folder housing **one type or interface per file**, grouped by
+  entity in subfolders, with a barrel `index.ts` per folder so consumer
+  import lists stay clean,
 - a `/state` folder housing **NgXs** state classes (auth + per-entity), with
   the auth slice transparently persisted via `@ngxs/storage-plugin`,
 - a consistent home for Angular-native primitives (guards, interceptors,
@@ -34,9 +36,11 @@ free-standing `BehaviorSubject`s.
 3. **JWT injection happens once.** A functional HTTP interceptor reads the
    token from `AuthState` and adds the `Authorization` header. Components
    and services never build that header.
-4. **Typed end-to-end.** Every request, response, action payload, and state
-   slice has a named DTO/interface matching the backend. No `any` in HTTP
-   signatures or state models.
+4. **Typed end-to-end, one type per file.** Every request, response, action
+   payload, and state slice has a named DTO/interface matching the backend.
+   Each type or interface lives in its own file so it can be tracked,
+   audited, and grep'd individually. No `any` in HTTP signatures or state
+   models.
 5. **Angular 20 idiomatic.** `inject()` over constructor DI, functional
    guards/interceptors over class-based equivalents, `provideStore()` over
    `NgxsModule.forRoot()`, no deprecated `HttpClientModule` import.
@@ -71,7 +75,7 @@ frontend/src/
 ├── state/
 │   ├── auth/
 │   │   ├── auth.state.ts             # @State, selectors, action handlers
-│   │   └── auth.actions.ts           # Login, Logout, LoadCurrentUser
+│   │   └── auth.actions.ts           # Login, LoadCurrentUser, Logout
 │   ├── customers/
 │   │   ├── customers.state.ts
 │   │   └── customers.actions.ts
@@ -85,19 +89,66 @@ frontend/src/
 ├── theme/
 │   └── toast.service.ts              # moved from /services/toast.service.ts
 │
-├── dtos/
-│   ├── api-error.type.ts             # ApiError + asApiError helper
-│   ├── jwt-payload.type.ts           # JwtPayload (sub, role, exp, iat)
-│   ├── auth.dto.ts                   # LoginRequest, LoginResponse
-│   ├── user.dto.ts                   # PublicUser, CreateUser*, UpdateUser*, list/single/delete responses
-│   ├── user-type.type.ts             # UserType = 'admin' | 'technician'
-│   ├── customer.dto.ts               # CustomerRow, Create/UpdateCustomerRequest, list/single/delete responses
-│   ├── report.dto.ts                 # ReportRow, ReportDetailRow, CreateReportFields, UpdateReportRequest, ListReportsQuery
-│   ├── report-type.type.ts           # ReportType = 'minisplit' | 'chiller' | 'uma'
-│   ├── report-status.type.ts         # ReportStatus = 'created' | 'in-progress' | 'finished' | 'mailed'
-│   ├── report-data.type.ts           # MinisplitData, ChillerData, UmaData, ReportData (union)
-│   ├── report-email.dto.ts           # ReportEmailRow, Send/RevokeEmail DTOs
-│   └── upload.dto.ts                 # UploadImageResponse
+├── dtos/                             # ONE type / interface per file, grouped by entity
+│   ├── api-error/
+│   │   ├── api-error.type.ts
+│   │   ├── as-api-error.ts           # helper (not a type → no suffix)
+│   │   └── index.ts                  # barrel
+│   ├── auth/
+│   │   ├── login-request.dto.ts
+│   │   ├── login-response.dto.ts
+│   │   └── index.ts
+│   ├── customer/
+│   │   ├── customer-row.dto.ts
+│   │   ├── create-customer-request.dto.ts
+│   │   ├── update-customer-request.dto.ts
+│   │   ├── customer-response.dto.ts
+│   │   ├── customer-list-response.dto.ts
+│   │   ├── delete-customer-response.dto.ts
+│   │   └── index.ts
+│   ├── jwt/
+│   │   ├── jwt-payload.type.ts
+│   │   └── index.ts
+│   ├── report/
+│   │   ├── report-row.dto.ts
+│   │   ├── report-detail-row.dto.ts
+│   │   ├── report-list-query.dto.ts
+│   │   ├── create-report-fields.dto.ts
+│   │   ├── update-report-request.dto.ts
+│   │   ├── update-assignee-request.dto.ts
+│   │   ├── add-signature-fields.dto.ts
+│   │   ├── delete-pictures-request.dto.ts
+│   │   ├── report-response.dto.ts
+│   │   ├── report-header-response.dto.ts
+│   │   ├── report-details-response.dto.ts
+│   │   ├── report-list-response.dto.ts
+│   │   ├── delete-report-response.dto.ts
+│   │   ├── report-type.type.ts
+│   │   ├── report-status.type.ts
+│   │   ├── minisplit-data.type.ts
+│   │   ├── chiller-data.type.ts
+│   │   ├── uma-data.type.ts
+│   │   ├── report-data.type.ts       # union of the three above
+│   │   └── index.ts
+│   ├── report-email/
+│   │   ├── report-email-row.dto.ts
+│   │   ├── send-report-email-request.dto.ts
+│   │   ├── send-report-email-response.dto.ts
+│   │   ├── report-email-list-response.dto.ts
+│   │   ├── revoke-email-response.dto.ts
+│   │   └── index.ts
+│   ├── upload/
+│   │   ├── upload-image-response.dto.ts
+│   │   └── index.ts
+│   └── user/
+│       ├── public-user.dto.ts
+│       ├── create-user-request.dto.ts
+│       ├── update-user-request.dto.ts
+│       ├── user-response.dto.ts
+│       ├── user-list-response.dto.ts
+│       ├── delete-user-response.dto.ts
+│       ├── user-type.type.ts
+│       └── index.ts
 │
 ├── app/
 │   ├── guards/
@@ -123,18 +174,64 @@ frontend/src/
 | Pattern | Use for | Example |
 | --- | --- | --- |
 | `<entity>.service.ts` | HTTP entity services (`/http`) and UI services (`/theme`) | `customers.service.ts`, `toast.service.ts` |
-| `<entity>.dto.ts` | Request and response payload interfaces | `customer.dto.ts` |
-| `<descriptive-name>.type.ts` | Supporting types: enums, unions, primitives. The filename describes what's inside (not just the entity it relates to) — one primary type per file, file name maps to PascalCase type name. | `user-type.type.ts` → `UserType`; `report-status.type.ts` → `ReportStatus`; `jwt-payload.type.ts` → `JwtPayload` |
-| `<entity>.state.ts` | NgXs `@State` class with selectors and action handlers | `auth.state.ts` |
-| `<entity>.actions.ts` | NgXs action classes (one per intent) | `customers.actions.ts` |
+| `<type-or-interface-name>.dto.ts` | A **single** `interface` representing a request or response payload. Filename is kebab-case of the interface name. | `login-request.dto.ts` → `LoginRequest`; `customer-row.dto.ts` → `CustomerRow` |
+| `<type-name>.type.ts` | A **single** `type` alias (enum / union / primitive brand). Filename is kebab-case of the type name. | `user-type.type.ts` → `UserType`; `report-status.type.ts` → `ReportStatus`; `report-data.type.ts` → `ReportData` |
+| `<helper>.ts` (no suffix) | Non-type runtime helpers that live next to a related DTO/type | `as-api-error.ts` (the `asApiError` function) |
+| `index.ts` | Per-entity barrel under `/dtos/<entity>/` re-exporting every type in the folder | `dtos/user/index.ts` |
+| `<entity>.state.ts` | NgXs `@State` class with selectors and action handlers (one per state) | `auth.state.ts` |
+| `<entity>.actions.ts` | NgXs action classes grouped per state (action classes are **not** types and are exempt from the one-per-file rule) | `customers.actions.ts` |
 | `<name>.interceptor.ts` | Functional `HttpInterceptorFn` (in `/app/interceptors/`) | `auth.interceptor.ts` |
 | `<name>-guard.ts` | Functional guard (`CanActivateFn`, `CanMatchFn`, etc.) (in `/app/guards/`) | `auth-guard.ts` |
 
-A DTO file may contain multiple related interfaces (request, response, list
-response, etc.). A type file should contain a **single primary type** named
-to match the filename — if a feature has multiple distinct types (e.g.
-`ReportType` and `ReportStatus`), give each its own file. An actions file
-groups every action for one state.
+### The one-type-per-file rule
+
+Every TypeScript `interface` declaration and every `type` alias in `/dtos`
+lives in its own file. The file name is kebab-case of the type name. The
+file contains exactly one `export` of a type/interface (plus its own
+imports). This makes every type:
+- **trackable** — there's exactly one place to look for `ReportRow`,
+- **grep-able** — `grep -r 'export interface ReportRow' frontend/src/` hits
+  exactly one file,
+- **diff-friendly** — adding a field to one DTO doesn't show up in a
+  multi-type file's diff.
+
+**Exceptions** (intentional, narrow):
+- **Action classes** in `<entity>.actions.ts` stay grouped per state. NgXs
+  convention co-locates all actions for one state; action classes are
+  runtime constructs (classes), not types.
+- **Runtime helpers** that operate on a single type (e.g. `asApiError`) sit
+  in a sibling `.ts` file (no `.dto`/`.type` suffix), inside the same entity
+  folder.
+
+### Barrel files
+
+Every `/dtos/<entity>/` folder has an `index.ts` that re-exports every type
+in the folder:
+
+```ts
+// dtos/user/index.ts
+export type { PublicUser } from './public-user.dto';
+export type { CreateUserRequest } from './create-user-request.dto';
+export type { UpdateUserRequest } from './update-user-request.dto';
+export type { UserResponse } from './user-response.dto';
+export type { UserListResponse } from './user-list-response.dto';
+export type { DeleteUserResponse } from './delete-user-response.dto';
+export type { UserType } from './user-type.type';
+```
+
+Consumers import from the barrel, not from individual files:
+
+```ts
+import type {
+  CreateUserRequest, UpdateUserRequest,
+  UserResponse, UserListResponse, DeleteUserResponse,
+} from '../dtos/user';
+```
+
+Why `export type` not `export *`? It signals to TS that these are pure type
+re-exports — they get fully erased at runtime and survive `isolatedModules`
+without complaint. Runtime helpers (like `asApiError`) are re-exported with
+a plain `export { asApiError } from './as-api-error';`.
 
 ### Angular-primitive home
 
@@ -151,7 +248,11 @@ The backend exposes `/customers` and the existing service is
 `services/customers.ts`. The plan keeps **`customers`** as the canonical
 entity name on the frontend too (not `clients`), so route, DTO, service,
 state, and action names line up 1:1. UI copy can still say "Cliente" —
-that's a translation concern, not a code-identifier concern.
+that's a translation concern, not a code-identifier concern. The `/dtos/`
+folder uses the **singular** form (`customer/`, `report/`, `user/`) because
+each contains types describing a single entity; the `/http/` and `/state/`
+folders use plural names (`customers.service.ts`, `customers.state.ts`)
+because they manage collections.
 
 ---
 
@@ -244,8 +345,10 @@ because of `@ngxs/storage-plugin`.
 
 ### 5.1 `state/auth/auth.actions.ts`
 
+NgXs action classes for one state stay grouped (see §3 exception):
+
 ```ts
-import type { LoginRequest } from '../../dtos/auth.dto';
+import type { LoginRequest } from '../../dtos/auth';
 
 export class Login {
   static readonly type = '[Auth] Login';
@@ -271,8 +374,7 @@ import { switchMap, tap } from 'rxjs/operators';
 import { AuthService } from '../../http/auth.service';
 import { UsersService } from '../../http/users.service';
 import { Login, LoadCurrentUser, Logout } from './auth.actions';
-import type { PublicUser } from '../../dtos/user.dto';
-import type { UserType } from '../../dtos/user-type.type';
+import type { PublicUser, UserType } from '../../dtos/user';
 
 export interface AuthStateModel {
   token: string | null;
@@ -318,6 +420,10 @@ export class AuthState {
   }
 }
 ```
+
+> `AuthStateModel` is the *state shape*, not a wire DTO — it stays in
+> `auth.state.ts` next to the class that owns it. Wire DTOs live under
+> `/dtos`; internal state models live next to their state class.
 
 ### 5.3 Persistence
 
@@ -373,7 +479,7 @@ import { Store } from '@ngxs/store';
 import { jwtDecode } from 'jwt-decode';
 import { AuthState } from '../../state/auth/auth.state';
 import { Logout } from '../../state/auth/auth.actions';
-import type { JwtPayload } from '../../dtos/jwt-payload.type';
+import type { JwtPayload } from '../../dtos/jwt';
 
 export const authGuard: CanActivateFn = () => {
   const store = inject(Store);
@@ -422,12 +528,13 @@ interface <Entity>StateModel {
 
 Selectors expose: `list` (resolved `EntityRow[]` in `ids` order),
 `selected` (the entity at `selectedId`), `byId(id)` (factory selector), and
-`loading`.
+`loading`. The `<Entity>StateModel` interface lives next to the state class
+(not in `/dtos`) — it's the internal shape of the slice, not a wire DTO.
 
 ### 6.1 `state/customers/customers.actions.ts`
 
 ```ts
-import type { CreateCustomerRequest, UpdateCustomerRequest } from '../../dtos/customer.dto';
+import type { CreateCustomerRequest, UpdateCustomerRequest } from '../../dtos/customer';
 
 export class LoadCustomers { static readonly type = '[Customers] Load List'; }
 export class LoadCustomer { static readonly type = '[Customers] Load One'; constructor(public id: string) {} }
@@ -448,7 +555,7 @@ import {
   LoadCustomers, LoadCustomer, SelectCustomer,
   CreateCustomer, UpdateCustomer, DeleteCustomer,
 } from './customers.actions';
-import type { CustomerRow } from '../../dtos/customer.dto';
+import type { CustomerRow } from '../../dtos/customer';
 
 export interface CustomersStateModel {
   entities: Record<string, CustomerRow>;
@@ -669,24 +776,103 @@ export const environment = {
 
 ---
 
-## 9. DTOs and types
+## 9. DTOs and types — file by file
 
-This section is the contract. Each interface mirrors a backend response or
-request body verbatim. The full backend API catalog is in
-[`/backend/test/`](../../backend/test/) — these DTOs are derived directly
-from the zod schemas and route handlers there.
+This is the contract. Each block below is one folder under `/dtos/`. Inside
+each block, every file holds exactly one `export interface` or one
+`export type`. Use the barrel `index.ts` shown at the end of each block
+when importing from consumer code.
 
-### 9.1 `dtos/jwt-payload.type.ts`
+> **Source of truth:** these shapes are derived directly from the backend
+> zod schemas and route handlers in `/backend/test/*` and
+> `/backend/src/routes/*`. If a backend test ever disagrees with a DTO here,
+> the test wins — update this plan and the DTO.
+
+### 9.1 `dtos/api-error/`
 
 ```ts
-import type { UserType } from './user-type.type';
+// dtos/api-error/api-error.type.ts
+import type { ReportStatus } from '../report/report-status.type';
+
+export interface ApiError {
+  error: string;          // machine code: 'not_found', 'invalid_credentials', ...
+  message?: string;       // optional human-readable detail
+  status?: ReportStatus;  // present on 'not_editable' / 'already_signed' / 'report_not_ready'
+}
+```
+
+```ts
+// dtos/api-error/as-api-error.ts
+import type { HttpErrorResponse } from '@angular/common/http';
+import type { ApiError } from './api-error.type';
+
+export const asApiError = (e: HttpErrorResponse): ApiError =>
+  (e.error && typeof e.error === 'object' ? e.error : { error: 'unknown' }) as ApiError;
+```
+
+```ts
+// dtos/api-error/index.ts
+export type { ApiError } from './api-error.type';
+export { asApiError } from './as-api-error';
+```
+
+Usage pattern in action handlers / components:
+
+```ts
+catchError((err: HttpErrorResponse) => {
+  const e = asApiError(err);
+  this.toast.show(e.message ?? e.error, 'error');
+  return EMPTY;
+});
+```
+
+### 9.2 `dtos/auth/`
+
+```ts
+// dtos/auth/login-request.dto.ts
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+```
+
+```ts
+// dtos/auth/login-response.dto.ts
+export interface LoginResponse {
+  token: string;
+}
+```
+
+```ts
+// dtos/auth/index.ts
+export type { LoginRequest } from './login-request.dto';
+export type { LoginResponse } from './login-response.dto';
+```
+
+> The backend's `/auth/login` returns **only** `{ token }`. The current
+> frontend assumes a `{ token, user: { role, email } }` shape (from the old
+> Vercel backend) — that must be removed. The new flow lives in the `Login`
+> action handler (§5.2): POST `/auth/login` → store token → GET `/users/me`
+> → store user. Components dispatch one action and the state ends in the
+> right shape.
+
+### 9.3 `dtos/jwt/`
+
+```ts
+// dtos/jwt/jwt-payload.type.ts
+import type { UserType } from '../user/user-type.type';
 
 export interface JwtPayload {
   sub: string;     // user UUID
-  role: UserType;
+  role: UserType;  // wire field stays `role`; the type describing it is UserType
   iat: number;     // epoch seconds
   exp: number;     // epoch seconds
 }
+```
+
+```ts
+// dtos/jwt/index.ts
+export type { JwtPayload } from './jwt-payload.type';
 ```
 
 Replaces three inline duplicate definitions in:
@@ -694,21 +880,15 @@ Replaces three inline duplicate definitions in:
 - `app/pages/customer-add/customer-add.ts`
 - `app/pages/report-add/report-add.ts`
 
-### 9.2 `dtos/user-type.type.ts`
+### 9.4 `dtos/user/`
 
 ```ts
+// dtos/user/user-type.type.ts
 export type UserType = 'admin' | 'technician';
 ```
 
-> File renamed from `user.type.ts` for self-explanation, and the contained
-> type renamed from `UserRole` to `UserType` so the filename and the export
-> agree. The backend JSON wire field stays `role` — the field name and the
-> type name are intentionally different (the field describes the *attribute*
-> on the user; the type describes the *taxonomy*).
-
-### 9.3 `dtos/user.dto.ts`
-
 ```ts
+// dtos/user/public-user.dto.ts
 import type { UserType } from './user-type.type';
 
 export interface PublicUser {
@@ -719,6 +899,11 @@ export interface PublicUser {
   createdAt: string;   // ISO datetime
   updatedAt: string;   // ISO datetime
 }
+```
+
+```ts
+// dtos/user/create-user-request.dto.ts
+import type { UserType } from './user-type.type';
 
 export interface CreateUserRequest {
   name: string;
@@ -726,6 +911,11 @@ export interface CreateUserRequest {
   password: string;    // min 8 chars
   role: UserType;
 }
+```
+
+```ts
+// dtos/user/update-user-request.dto.ts
+import type { UserType } from './user-type.type';
 
 export interface UpdateUserRequest {
   name?: string;
@@ -733,35 +923,49 @@ export interface UpdateUserRequest {
   password?: string;
   role?: UserType;
 }
-
-export interface UserResponse { user: PublicUser; }
-export interface UserListResponse { users: PublicUser[]; }
-export interface DeleteUserResponse { id: string; deleted: true; }
 ```
 
-### 9.4 `dtos/auth.dto.ts`
-
 ```ts
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
+// dtos/user/user-response.dto.ts
+import type { PublicUser } from './public-user.dto';
 
-export interface LoginResponse {
-  token: string;
+export interface UserResponse {
+  user: PublicUser;
 }
 ```
 
-> Note: the backend's `/auth/login` returns **only** `{ token }`. The current
-> frontend assumes a `{ token, user: { role, email } }` shape — that came
-> from the old Vercel backend and must be removed. The new flow is the
-> `Login` action in `AuthState` (§5.2): POST `/auth/login` → store token →
-> GET `/users/me` → store user. Components only ever dispatch `Login` and
-> select from `AuthState`.
+```ts
+// dtos/user/user-list-response.dto.ts
+import type { PublicUser } from './public-user.dto';
 
-### 9.5 `dtos/customer.dto.ts`
+export interface UserListResponse {
+  users: PublicUser[];
+}
+```
 
 ```ts
+// dtos/user/delete-user-response.dto.ts
+export interface DeleteUserResponse {
+  id: string;
+  deleted: true;
+}
+```
+
+```ts
+// dtos/user/index.ts
+export type { UserType } from './user-type.type';
+export type { PublicUser } from './public-user.dto';
+export type { CreateUserRequest } from './create-user-request.dto';
+export type { UpdateUserRequest } from './update-user-request.dto';
+export type { UserResponse } from './user-response.dto';
+export type { UserListResponse } from './user-list-response.dto';
+export type { DeleteUserResponse } from './delete-user-response.dto';
+```
+
+### 9.5 `dtos/customer/`
+
+```ts
+// dtos/customer/customer-row.dto.ts
 export interface CustomerRow {
   id: string;
   name: string;
@@ -769,10 +973,13 @@ export interface CustomerRow {
   phone: string | null;
   email: string | null;
   observation: string | null;
-  createdAt: string;   // ISO datetime
-  updatedAt: string;   // ISO datetime
+  createdAt: string;
+  updatedAt: string;
 }
+```
 
+```ts
+// dtos/customer/create-customer-request.dto.ts
 export interface CreateCustomerRequest {
   name: string;
   identification?: string;
@@ -780,23 +987,70 @@ export interface CreateCustomerRequest {
   email?: string;
   observation?: string;
 }
-
-export type UpdateCustomerRequest = Partial<CreateCustomerRequest>;
-
-export interface CustomerResponse { customer: CustomerRow; }
-export interface CustomerListResponse { customers: CustomerRow[]; }
-export interface DeleteCustomerResponse { id: string; deleted: true; }
 ```
 
-### 9.6 `dtos/report-type.type.ts`
+```ts
+// dtos/customer/update-customer-request.dto.ts
+import type { CreateCustomerRequest } from './create-customer-request.dto';
+
+export type UpdateCustomerRequest = Partial<CreateCustomerRequest>;
+```
 
 ```ts
+// dtos/customer/customer-response.dto.ts
+import type { CustomerRow } from './customer-row.dto';
+
+export interface CustomerResponse {
+  customer: CustomerRow;
+}
+```
+
+```ts
+// dtos/customer/customer-list-response.dto.ts
+import type { CustomerRow } from './customer-row.dto';
+
+export interface CustomerListResponse {
+  customers: CustomerRow[];
+}
+```
+
+```ts
+// dtos/customer/delete-customer-response.dto.ts
+export interface DeleteCustomerResponse {
+  id: string;
+  deleted: true;
+}
+```
+
+```ts
+// dtos/customer/index.ts
+export type { CustomerRow } from './customer-row.dto';
+export type { CreateCustomerRequest } from './create-customer-request.dto';
+export type { UpdateCustomerRequest } from './update-customer-request.dto';
+export type { CustomerResponse } from './customer-response.dto';
+export type { CustomerListResponse } from './customer-list-response.dto';
+export type { DeleteCustomerResponse } from './delete-customer-response.dto';
+```
+
+### 9.6 `dtos/report/`
+
+Largest folder. Grouped here by purpose for readability — actual files are
+flat in the folder.
+
+**Enums:**
+
+```ts
+// dtos/report/report-type.type.ts
 export type ReportType = 'minisplit' | 'chiller' | 'uma';
 ```
 
-### 9.7 `dtos/report-status.type.ts`
-
 ```ts
+// dtos/report/report-status.type.ts
+// Lifecycle:
+//   'created' → 'in-progress' (auto on first PATCH or picture upload)
+//   → 'finished' (after signature; locked)
+//   → 'mailed' (auto after first email send; locked)
+// Editable: 'created', 'in-progress'.
 export type ReportStatus =
   | 'created'
   | 'in-progress'
@@ -804,14 +1058,12 @@ export type ReportStatus =
   | 'mailed';
 ```
 
-> Lifecycle: `created` → `in-progress` (auto-bumped on first PATCH or
-> picture upload) → `finished` (after signature; locked) → `mailed`
-> (auto-bumped after first email send; locked). Editable statuses are
-> `created` and `in-progress`.
-
-### 9.8 `dtos/report-data.type.ts`
+**Report `data` blob (one file per equipment type, plus a union):**
 
 ```ts
+// dtos/report/minisplit-data.type.ts
+// snake_case fields are deliberate — they round-trip verbatim through
+// report_details.data (JSONB) on the backend.
 export interface MinisplitData {
   is_operating: boolean;
   remote_working: boolean;
@@ -821,7 +1073,10 @@ export interface MinisplitData {
   unusual_noise: boolean;
   observations: string;
 }
+```
 
+```ts
+// dtos/report/chiller-data.type.ts
 export interface ChillerData {
   is_operating: boolean;
   inner_temperature: string;
@@ -838,7 +1093,10 @@ export interface ChillerData {
   unusual_noise: boolean;
   observations: string;
 }
+```
 
+```ts
+// dtos/report/uma-data.type.ts
 export interface UmaData {
   is_operating: boolean;
   air_band_adjustment: boolean;
@@ -850,56 +1108,78 @@ export interface UmaData {
   unusual_noise: boolean;
   observations: string;
 }
+```
+
+```ts
+// dtos/report/report-data.type.ts
+import type { MinisplitData } from './minisplit-data.type';
+import type { ChillerData } from './chiller-data.type';
+import type { UmaData } from './uma-data.type';
 
 export type ReportData = MinisplitData | ChillerData | UmaData;
 ```
 
-> Field names stay **snake_case** because the backend stores them that way in
-> `report_details.data` JSONB and round-trips them verbatim. Don't convert.
-
-### 9.9 `dtos/report.dto.ts`
+**Row shapes:**
 
 ```ts
+// dtos/report/report-row.dto.ts
 import type { ReportType } from './report-type.type';
 import type { ReportStatus } from './report-status.type';
-import type { ReportData } from './report-data.type';
 
 export interface ReportRow {
   id: string;                          // format: R-YYYYMMDD-NNNN
   reportType: ReportType;
   workType: string | null;
-  dateArrival: string | null;          // ISO datetime
-  dateDeparture: string | null;        // ISO datetime
+  dateArrival: string | null;
+  dateDeparture: string | null;
   createdBy: string;                   // user UUID
   assignedTo: string;                  // user UUID
   clientId: string;                    // customer UUID
   signedBy: string | null;
   status: ReportStatus;
-  signedAt: string | null;             // ISO datetime
-  finishedAt: string | null;           // ISO datetime
-  mailedAt: string | null;             // ISO datetime
-  createdAt: string;                   // ISO datetime
-  updatedAt: string;                   // ISO datetime
+  signedAt: string | null;
+  finishedAt: string | null;
+  mailedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
+```
+
+```ts
+// dtos/report/report-detail-row.dto.ts
+import type { ReportData } from './report-data.type';
 
 export interface ReportDetailRow {
   reportId: string;
   data: ReportData;
   pictures: string[];                  // CDN URLs
   signature: string | null;            // CDN URL
-  contentFilledAt: string | null;      // ISO datetime
-  updatedAt: string;                   // ISO datetime
+  contentFilledAt: string | null;
+  updatedAt: string;
 }
+```
+
+**Query and write payloads:**
+
+```ts
+// dtos/report/report-list-query.dto.ts
+import type { ReportStatus } from './report-status.type';
 
 export interface ReportListQuery {
   status?: ReportStatus;
   client_id?: string;
-  assigned_to?: string;                // admin-only filter; technicians auto-scoped
+  assigned_to?: string;                // admin-only; technicians auto-scoped to own
   work_type?: string;
   folio?: string;                      // prefix match on report id
-  date_from?: string;                  // ISO datetime
-  date_to?: string;                    // ISO datetime
+  date_from?: string;
+  date_to?: string;
 }
+```
+
+```ts
+// dtos/report/create-report-fields.dto.ts
+import type { ReportType } from './report-type.type';
+import type { ReportData } from './report-data.type';
 
 export interface CreateReportFields {
   report_type: ReportType;
@@ -909,11 +1189,16 @@ export interface CreateReportFields {
   date_departure?: string;
   assigned_to?: string;                // admin only
   signed_by?: string;
-  data: ReportData;                    // serialized to JSON by the service
+  data: ReportData;                    // service serializes to JSON
   pictures?: File[];
   signature?: File;
   signature_base64?: string;
 }
+```
+
+```ts
+// dtos/report/update-report-request.dto.ts
+import type { ReportData } from './report-data.type';
 
 export interface UpdateReportRequest {
   work_type?: string;
@@ -922,31 +1207,108 @@ export interface UpdateReportRequest {
   client_id?: string;
   data?: Partial<ReportData>;
 }
+```
 
-export interface UpdateAssigneeRequest { assigned_to: string; }
+```ts
+// dtos/report/update-assignee-request.dto.ts
+export interface UpdateAssigneeRequest {
+  assigned_to: string;
+}
+```
 
+```ts
+// dtos/report/add-signature-fields.dto.ts
 export interface AddSignatureFields {
   signed_by: string;
   signature?: File;
   signature_base64?: string;
 }
+```
 
-export interface DeletePicturesRequest { urls: string[]; }
+```ts
+// dtos/report/delete-pictures-request.dto.ts
+export interface DeletePicturesRequest {
+  urls: string[];
+}
+```
+
+**Response envelopes:**
+
+```ts
+// dtos/report/report-response.dto.ts
+import type { ReportRow } from './report-row.dto';
+import type { ReportDetailRow } from './report-detail-row.dto';
 
 export interface ReportResponse {
   report: ReportRow;
   details: ReportDetailRow;
 }
-
-export interface ReportHeaderResponse { report: ReportRow; }
-export interface ReportDetailsResponse { details: ReportDetailRow; }
-export interface ReportListResponse { reports: ReportRow[]; }
-export interface DeleteReportResponse { id: string; deleted: true; }
 ```
 
-### 9.10 `dtos/report-email.dto.ts`
+```ts
+// dtos/report/report-header-response.dto.ts
+import type { ReportRow } from './report-row.dto';
+
+export interface ReportHeaderResponse {
+  report: ReportRow;
+}
+```
 
 ```ts
+// dtos/report/report-details-response.dto.ts
+import type { ReportDetailRow } from './report-detail-row.dto';
+
+export interface ReportDetailsResponse {
+  details: ReportDetailRow;
+}
+```
+
+```ts
+// dtos/report/report-list-response.dto.ts
+import type { ReportRow } from './report-row.dto';
+
+export interface ReportListResponse {
+  reports: ReportRow[];
+}
+```
+
+```ts
+// dtos/report/delete-report-response.dto.ts
+export interface DeleteReportResponse {
+  id: string;
+  deleted: true;
+}
+```
+
+**Barrel:**
+
+```ts
+// dtos/report/index.ts
+export type { ReportType } from './report-type.type';
+export type { ReportStatus } from './report-status.type';
+export type { MinisplitData } from './minisplit-data.type';
+export type { ChillerData } from './chiller-data.type';
+export type { UmaData } from './uma-data.type';
+export type { ReportData } from './report-data.type';
+export type { ReportRow } from './report-row.dto';
+export type { ReportDetailRow } from './report-detail-row.dto';
+export type { ReportListQuery } from './report-list-query.dto';
+export type { CreateReportFields } from './create-report-fields.dto';
+export type { UpdateReportRequest } from './update-report-request.dto';
+export type { UpdateAssigneeRequest } from './update-assignee-request.dto';
+export type { AddSignatureFields } from './add-signature-fields.dto';
+export type { DeletePicturesRequest } from './delete-pictures-request.dto';
+export type { ReportResponse } from './report-response.dto';
+export type { ReportHeaderResponse } from './report-header-response.dto';
+export type { ReportDetailsResponse } from './report-details-response.dto';
+export type { ReportListResponse } from './report-list-response.dto';
+export type { DeleteReportResponse } from './delete-report-response.dto';
+```
+
+### 9.7 `dtos/report-email/`
+
+```ts
+// dtos/report-email/report-email-row.dto.ts
 export interface ReportEmailRow {
   id: string;
   reportId: string;
@@ -959,56 +1321,65 @@ export interface ReportEmailRow {
   revokedAt: string | null;
   resendMessageId: string | null;
 }
+```
 
+```ts
+// dtos/report-email/send-report-email-request.dto.ts
 export interface SendReportEmailRequest {
   to?: string;
   cc?: string[];
   expiresInDays?: number;              // 1..365
   message?: string;                    // <= 2000 chars
 }
+```
 
+```ts
+// dtos/report-email/send-report-email-response.dto.ts
 export interface SendReportEmailResponse {
   emailId: string;
   sentAt: string;
 }
-
-export interface ReportEmailListResponse { emails: ReportEmailRow[]; }
-export interface RevokeEmailResponse { id: string; revoked: true; }
 ```
 
-### 9.11 `dtos/upload.dto.ts`
+```ts
+// dtos/report-email/report-email-list-response.dto.ts
+import type { ReportEmailRow } from './report-email-row.dto';
+
+export interface ReportEmailListResponse {
+  emails: ReportEmailRow[];
+}
+```
 
 ```ts
+// dtos/report-email/revoke-email-response.dto.ts
+export interface RevokeEmailResponse {
+  id: string;
+  revoked: true;
+}
+```
+
+```ts
+// dtos/report-email/index.ts
+export type { ReportEmailRow } from './report-email-row.dto';
+export type { SendReportEmailRequest } from './send-report-email-request.dto';
+export type { SendReportEmailResponse } from './send-report-email-response.dto';
+export type { ReportEmailListResponse } from './report-email-list-response.dto';
+export type { RevokeEmailResponse } from './revoke-email-response.dto';
+```
+
+### 9.8 `dtos/upload/`
+
+```ts
+// dtos/upload/upload-image-response.dto.ts
 export interface UploadImageResponse {
   url: string;     // CDN URL
   key: string;     // R2 object key (reports/<ms>-<sanitized-name>)
 }
 ```
 
-### 9.12 `dtos/api-error.type.ts`
-
 ```ts
-import type { HttpErrorResponse } from '@angular/common/http';
-import type { ReportStatus } from './report-status.type';
-
-export interface ApiError {
-  error: string;          // machine code, e.g. 'not_found', 'invalid_credentials'
-  message?: string;       // human-readable detail (optional)
-  status?: ReportStatus;  // present on 'not_editable' / 'already_signed' / 'report_not_ready'
-}
-
-export const asApiError = (e: HttpErrorResponse): ApiError =>
-  (e.error && typeof e.error === 'object' ? e.error : { error: 'unknown' }) as ApiError;
-```
-
-Action handlers typically swallow errors and surface them as toasts:
-
-```ts
-catchError((err: HttpErrorResponse) => {
-  const e = asApiError(err);
-  this.toast.show(e.message ?? e.error, 'error');
-  return EMPTY;
-});
+// dtos/upload/index.ts
+export type { UploadImageResponse } from './upload-image-response.dto';
 ```
 
 ---
@@ -1025,13 +1396,17 @@ dispatches it, and selects the result. The only exception is the public PDF
 download (`ReportsService.downloadByToken`), which has no associated state
 slice (the file is consumed once and discarded).
 
+**Imports come from the per-entity barrels.** Don't import individual DTO
+files into services — go through the `dtos/<entity>/index.ts` barrel so the
+import list is one line per entity.
+
 ### 10.1 `http/auth.service.ts`
 
 ```ts
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
-import type { LoginRequest, LoginResponse } from '../dtos/auth.dto';
+import type { LoginRequest, LoginResponse } from '../dtos/auth';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -1052,7 +1427,7 @@ import { RemoteService } from './remote.service';
 import type {
   CreateUserRequest, UpdateUserRequest,
   UserResponse, UserListResponse, DeleteUserResponse,
-} from '../dtos/user.dto';
+} from '../dtos/user';
 
 @Injectable({ providedIn: 'root' })
 export class UsersService {
@@ -1076,7 +1451,7 @@ import { RemoteService } from './remote.service';
 import type {
   CreateCustomerRequest, UpdateCustomerRequest,
   CustomerResponse, CustomerListResponse, DeleteCustomerResponse,
-} from '../dtos/customer.dto';
+} from '../dtos/customer';
 
 @Injectable({ providedIn: 'root' })
 export class CustomersService {
@@ -1106,11 +1481,11 @@ import type {
   AddSignatureFields, DeletePicturesRequest,
   ReportResponse, ReportHeaderResponse, ReportDetailsResponse,
   ReportListResponse, DeleteReportResponse,
-} from '../dtos/report.dto';
+} from '../dtos/report';
 import type {
   SendReportEmailRequest, SendReportEmailResponse,
   ReportEmailListResponse, RevokeEmailResponse,
-} from '../dtos/report-email.dto';
+} from '../dtos/report-email';
 
 const appendIf = (fd: FormData, k: string, v: unknown): void => {
   if (v === undefined || v === null || v === '') return;
@@ -1203,7 +1578,7 @@ export class ReportsService {
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
-import type { UploadImageResponse } from '../dtos/upload.dto';
+import type { UploadImageResponse } from '../dtos/upload';
 
 @Injectable({ providedIn: 'root' })
 export class UploadService {
@@ -1248,6 +1623,8 @@ now-empty `services/` folder.
 
 ### 12.1 ADD (new files)
 
+**`/http/`:**
+
 | Path | Purpose |
 | --- | --- |
 | `frontend/src/http/remote.service.ts` | HttpClient wrapper |
@@ -1256,10 +1633,20 @@ now-empty `services/` folder.
 | `frontend/src/http/customers.service.ts` | `/customers/*` |
 | `frontend/src/http/reports.service.ts` | `/reports/*` |
 | `frontend/src/http/upload.service.ts` | `/upload/image` |
+
+**`/app/`:**
+
+| Path | Purpose |
+| --- | --- |
 | `frontend/src/app/interceptors/auth.interceptor.ts` | Bearer header + 401 → `Logout` |
 | `frontend/src/app/guards/auth-guard.ts` | Functional `authGuard` (replaces `app/auth/auth-guard.ts`) |
-| `frontend/src/app/directives/.gitkeep` | Reserve the folder for future custom directives |
-| `frontend/src/app/pipes/.gitkeep` | Reserve the folder for future custom pipes |
+| `frontend/src/app/directives/.gitkeep` | Reserve folder for future custom directives |
+| `frontend/src/app/pipes/.gitkeep` | Reserve folder for future custom pipes |
+
+**`/state/`:**
+
+| Path | Purpose |
+| --- | --- |
 | `frontend/src/state/auth/auth.state.ts` | AuthState (persisted) |
 | `frontend/src/state/auth/auth.actions.ts` | `Login`, `LoadCurrentUser`, `Logout` |
 | `frontend/src/state/users/users.state.ts` | UsersState |
@@ -1268,19 +1655,29 @@ now-empty `services/` folder.
 | `frontend/src/state/customers/customers.actions.ts` | `LoadCustomers`, `LoadCustomer`, `SelectCustomer`, `CreateCustomer`, `UpdateCustomer`, `DeleteCustomer` |
 | `frontend/src/state/reports/reports.state.ts` | ReportsState (entities + details + query) |
 | `frontend/src/state/reports/reports.actions.ts` | `LoadReports`, `LoadReport`, `CreateReport`, `UpdateReport`, `SetAssignee`, `AddSignature`, `AddPictures`, `RemovePictures`, `DeleteReport`, `SendReportEmail`, `LoadReportEmails`, `RevokeReportEmail`, `SetReportsQuery` |
-| `frontend/src/dtos/api-error.type.ts` | `ApiError` + `asApiError` helper |
-| `frontend/src/dtos/jwt-payload.type.ts` | `JwtPayload` |
-| `frontend/src/dtos/auth.dto.ts` | login req/resp |
-| `frontend/src/dtos/user.dto.ts` | user DTOs |
-| `frontend/src/dtos/user-type.type.ts` | `UserType` |
-| `frontend/src/dtos/customer.dto.ts` | customer DTOs |
-| `frontend/src/dtos/report.dto.ts` | report DTOs |
-| `frontend/src/dtos/report-type.type.ts` | `ReportType` |
-| `frontend/src/dtos/report-status.type.ts` | `ReportStatus` |
-| `frontend/src/dtos/report-data.type.ts` | minisplit/chiller/uma data |
-| `frontend/src/dtos/report-email.dto.ts` | email subresource DTOs |
-| `frontend/src/dtos/upload.dto.ts` | upload response |
-| `frontend/src/theme/toast.service.ts` | moved from `/services` |
+
+**`/dtos/` — one file per type, grouped by entity:**
+
+| Folder | Files |
+| --- | --- |
+| `dtos/api-error/` | `api-error.type.ts`, `as-api-error.ts`, `index.ts` |
+| `dtos/auth/` | `login-request.dto.ts`, `login-response.dto.ts`, `index.ts` |
+| `dtos/jwt/` | `jwt-payload.type.ts`, `index.ts` |
+| `dtos/user/` | `user-type.type.ts`, `public-user.dto.ts`, `create-user-request.dto.ts`, `update-user-request.dto.ts`, `user-response.dto.ts`, `user-list-response.dto.ts`, `delete-user-response.dto.ts`, `index.ts` |
+| `dtos/customer/` | `customer-row.dto.ts`, `create-customer-request.dto.ts`, `update-customer-request.dto.ts`, `customer-response.dto.ts`, `customer-list-response.dto.ts`, `delete-customer-response.dto.ts`, `index.ts` |
+| `dtos/report/` | `report-type.type.ts`, `report-status.type.ts`, `minisplit-data.type.ts`, `chiller-data.type.ts`, `uma-data.type.ts`, `report-data.type.ts`, `report-row.dto.ts`, `report-detail-row.dto.ts`, `report-list-query.dto.ts`, `create-report-fields.dto.ts`, `update-report-request.dto.ts`, `update-assignee-request.dto.ts`, `add-signature-fields.dto.ts`, `delete-pictures-request.dto.ts`, `report-response.dto.ts`, `report-header-response.dto.ts`, `report-details-response.dto.ts`, `report-list-response.dto.ts`, `delete-report-response.dto.ts`, `index.ts` |
+| `dtos/report-email/` | `report-email-row.dto.ts`, `send-report-email-request.dto.ts`, `send-report-email-response.dto.ts`, `report-email-list-response.dto.ts`, `revoke-email-response.dto.ts`, `index.ts` |
+| `dtos/upload/` | `upload-image-response.dto.ts`, `index.ts` |
+
+Totals: 42 type/interface files + 8 barrels + 1 helper = 51 files under
+`/dtos/`. The split is intentional — each type has its own grep target and
+its own diff line.
+
+**`/theme/`:**
+
+| Path | Purpose |
+| --- | --- |
+| `frontend/src/theme/toast.service.ts` | Moved from `/services` |
 
 ### 12.2 UPDATE (existing files)
 
@@ -1293,7 +1690,7 @@ now-empty `services/` folder.
 | `frontend/src/environments/environment.development.ts` | `production: false`, `apiUrl: 'http://127.0.0.1:8787'` |
 | `frontend/src/app/pages/login/*` | Dispatch `new Login({ email, password })`; remove direct HttpClient calls and any `localStorage.setItem('token', ...)` |
 | `frontend/src/app/pages/register/*` | Dispatch `new CreateUser(payload)`; remove direct HttpClient/fetch |
-| `frontend/src/app/pages/customer-add/customer-add.ts` | Dispatch `new CreateCustomer(payload)`; remove inline `JwtPayload`; remove `localStorage` reads (use `select(AuthState.user)`) |
+| `frontend/src/app/pages/customer-add/customer-add.ts` | Dispatch `new CreateCustomer(payload)`; remove inline `JwtPayload` (use `dtos/jwt`); remove `localStorage` reads (use `select(AuthState.user)`) |
 | `frontend/src/app/pages/reports/*` | Dispatch `new SetReportsQuery(filter)` + `new LoadReports()`; select `ReportsState.list` and `.loading` |
 | `frontend/src/app/pages/report-add/report-add.ts` | Dispatch `new CreateReport(fields)`; remove inline `JwtPayload`; remove manual `FormData` building |
 | `frontend/src/app/pages/report-detail/*` | Dispatch `new LoadReport(id)`, `new UpdateReport(id, payload)`, `new AddSignature(...)`, `new AddPictures(...)`, `new RemovePictures(...)`, `new SendReportEmail(id, ...)`; select `ReportsState.byId(id)` + details slice |
@@ -1310,10 +1707,10 @@ now-empty `services/` folder.
 | `frontend/src/services/reports.ts` | Replaced by `http/reports.service.ts` + `ReportsState` |
 | `frontend/src/services/toast.service.ts` | Moved to `theme/toast.service.ts` |
 | `frontend/src/services/` (empty folder) | Delete once contents migrated |
-| Inline `JwtPayload` in the old `app/auth/auth-guard.ts` | Replaced by import from `dtos/jwt-payload.type.ts` |
+| Inline `JwtPayload` in the old `app/auth/auth-guard.ts` | Replaced by import from `dtos/jwt` |
 | Inline `JwtPayload` in `app/pages/customer-add/customer-add.ts` | Same |
 | Inline `JwtPayload` in `app/pages/report-add/report-add.ts` | Same |
-| Inline `Customer` interface in `services/customers.ts` | Replaced by `dtos/customer.dto.ts` (shape changes — adds `createdAt`/`updatedAt`, fields become nullable) |
+| Inline `Customer` interface in `services/customers.ts` | Replaced by `dtos/customer/customer-row.dto.ts` (shape changes — adds `createdAt`/`updatedAt`, fields become nullable) |
 | All `localStorage.getItem/setItem/removeItem` calls outside the storage plugin | NgXs + `@ngxs/storage-plugin` is the only persistence mechanism |
 | `importProvidersFrom(HttpClientModule)` in `app.config.ts` | Deprecated; redundant with `provideHttpClient` |
 | `https://manttio.vercel.app/api/` references | Replaced by Cloudflare Workers URL in env files |
@@ -1333,8 +1730,7 @@ now-empty `services/` folder.
   stays `role`. Internal references like `role: UserRole` become
   `role: UserType`.
 - **Login response** drops the inline `user` object. Login becomes a
-  two-step flow inside the `Login` action handler (POST `/auth/login` →
-  GET `/users/me`).
+  two-step flow inside the `Login` action handler.
 - **Report `data` field** is now strongly typed via the discriminated union
   `ReportData`. Components that read `report.details.data.X` get
   IntelliSense but must narrow on `reportType` first when a specific field
@@ -1355,7 +1751,7 @@ depend on the foundation laid by earlier ones.
 
 | # | Title | Scope |
 | --- | --- | --- |
-| **1** | **Foundation: DTOs, RemoteService, NgXs setup, Angular folder layout** | Add all `/dtos/*` files. Add `RemoteService`. Install NgXs packages. Add empty `AuthState`/`UsersState`/`CustomersState`/`ReportsState` skeletons (state class + actions, no handlers yet). Create `/app/guards/`, `/app/interceptors/`, `/app/directives/`, `/app/pipes/` folders (with `.gitkeep` for the empty ones). Move `auth.interceptor.ts` into `/app/interceptors/`. Wire `provideStore`, `withNgxsStoragePlugin({ keys: ['auth'] })`, devtools, logger, and `withInterceptors([authInterceptor])` in `app.config.ts`. Update both environment files. No callers migrated yet — existing `services/customers.ts` and `services/reports.ts` keep working. Verify with `pnpm build`. |
+| **1** | **Foundation: DTOs, RemoteService, NgXs setup, Angular folder layout** | Add every file under `/dtos/<entity>/` (one type per file + per-folder `index.ts` barrels). Add `RemoteService`. Install NgXs packages. Add empty `AuthState`/`UsersState`/`CustomersState`/`ReportsState` skeletons (state class + actions, no handlers yet). Create `/app/guards/`, `/app/interceptors/`, `/app/directives/`, `/app/pipes/` folders (with `.gitkeep` where empty). Add `auth.interceptor.ts` to `/app/interceptors/`. Wire `provideStore`, `withNgxsStoragePlugin({ keys: ['auth'] })`, devtools, logger, and `withInterceptors([authInterceptor])` in `app.config.ts`. Update both environment files. No callers migrated yet — existing `services/customers.ts` and `services/reports.ts` keep working. Verify with `pnpm build`. |
 | **2** | **Auth migration** | Add `http/auth.service.ts` and `http/users.service.ts`. Fill in `AuthState` action handlers (`Login`, `LoadCurrentUser`, `Logout`). Fill in `UsersState.me` action. Move `app/auth/auth-guard.ts` → `app/guards/auth-guard.ts`, rewrite as functional `authGuard` reading from the store; delete the empty `app/auth/` folder. Update `app.routes.ts` to reference the functional guard. Update login page to dispatch `new Login(...)`. Update register page. Update `bottom-nav` and any other readers to use `select(AuthState.role/email)` — atomic switch from legacy `'true'/'false'` storage to `'admin'/'technician'`. Confirm persistence works via DevTools (Application → localStorage shows `auth` key). |
 | **3** | **Users management (admin)** | Fill in remaining `UsersState` handlers (list/get/create/update/delete). Build admin-only users page if scoped, or just expose the actions for future use. |
 | **4** | **Customers migration** | Fill in `CustomersState` action handlers using `http/customers.service.ts`. Migrate `customer-add` page and any list views to dispatch + select. Delete `services/customers.ts`. Remove inline `JwtPayload` and `Customer` interface duplicates. |
@@ -1391,14 +1787,30 @@ affected pages in a browser pointed at a `wrangler dev` backend.
 - **`Observable<T>` returns from `/http` services.** Don't `.toPromise()` /
   `firstValueFrom` in services — let the action handler / component choose.
 
+### Types and DTOs
+
+- **One `interface` or `type` per file** in `/dtos`. Filename is kebab-case
+  of the type name (`login-request.dto.ts` → `LoginRequest`).
+- **`.dto.ts` for interfaces** representing wire payloads; **`.type.ts` for
+  type aliases** (enums, unions, primitive brands).
+- **Entity subfolder + barrel.** Every entity has its own folder under
+  `/dtos/` with an `index.ts` that re-exports every type via `export type
+  { Foo } from './foo.dto'`. Consumers import from the barrel (`from
+  '../dtos/user'`), not from individual files.
+- **State models stay next to their state class.** `AuthStateModel`,
+  `CustomersStateModel`, etc. live in `<entity>.state.ts` — they're
+  internal slice shapes, not wire DTOs.
+- **No `any` in HTTP signatures or state models.** If a shape is genuinely
+  variable, use a union or `unknown` and narrow at the call site.
+
 ### NgXs
 
 - **`provideStore([...])` + plugin function APIs.** No `NgxsModule.forRoot`.
 - **One state class per entity.** Named `<Entity>State`, located in
   `state/<entity>/<entity>.state.ts`.
-- **Actions are plain classes** with `static readonly type` and an optional
-  constructor for the payload — one action per intent. Group all actions for
-  one state in `<entity>.actions.ts`.
+- **Action classes grouped per state** in `<entity>.actions.ts`. Action
+  classes are runtime constructs (not types) and are the documented
+  exception to the one-export-per-file rule.
 - **Selectors are static methods** on the state class with `@Selector()`.
   Components consume them via the functional `select()` helper or the
   `@Select` decorator. Snapshot reads (for interceptors/guards) go through
@@ -1410,12 +1822,34 @@ affected pages in a browser pointed at a `wrangler dev` backend.
   must reflect the response — NgXs waits for completion before resolving the
   dispatch.
 - **Persistence is opt-in per slice.** Only `auth` is persisted. All other
-  states default-initialize empty on bootstrap, which is correct behavior
-  (we want fresh entity reads after refresh).
+  states default-initialize empty on bootstrap.
 
 ---
 
 ## 15. Frequently-asked questions for the implementer
+
+**Q: Why one type per file? Won't that create dozens of files?**
+A: Yes — about 42 type/interface files under `/dtos`, plus 8 barrels and 1
+helper. The trade-off is intentional: each type gets its own grep target,
+its own commit history, and its own diff line. Grouping types into one file
+"because they're related" was the previous norm and made it harder to
+audit what each one looks like. The barrel `index.ts` per folder keeps
+consumer imports short, so the file count doesn't leak into the import
+ergonomics.
+
+**Q: Why are action classes exempt from the one-per-file rule?**
+A: Two reasons. (1) NgXs convention co-locates actions for one state — the
+ecosystem expects `auth.actions.ts` and tooling/docs assume it. (2) Action
+classes are runtime constructs, not types — the one-per-file rule was
+written for `interface` and `type` declarations to make tracking easier;
+action classes already get tracked via the action's `static readonly type`
+string and the state that handles them.
+
+**Q: Why barrels? I thought they hurt tree-shaking.**
+A: Tree-shaking concerns apply to runtime values, not pure type re-exports.
+Every entry in a `/dtos/<entity>/index.ts` is `export type { ... }` —
+TypeScript erases those at compile time, so they ship zero bytes. The one
+runtime entry (e.g. `asApiError`) is a re-export of a tiny helper.
 
 **Q: Why NgXs instead of NgRx / Signals Store / a service with `BehaviorSubject`?**
 A: NgXs gives the redux pattern (single store, immutable updates, devtools,
@@ -1452,8 +1886,7 @@ unless the cascade is intentional.
 
 **Q: Where do I put a new pipe / directive / resolver?**
 A: `/src/app/pipes/<name>.pipe.ts`, `/src/app/directives/<name>.directive.ts`,
-`/src/app/resolvers/<name>.resolver.ts`. Follow the `/app/<kind>s/` pattern —
-one folder per Angular concept, plural.
+`/src/app/resolvers/<name>.resolver.ts`. Follow the `/app/<kind>s/` pattern.
 
 **Q: What about offline / poor network?**
 A: Out of scope. Each action handler returns an `Observable<T>`; the
@@ -1470,7 +1903,7 @@ A: First check the backend test files — they're the source of truth:
 - `/backend/test/upload.test.ts`
 
 If a DTO here drifts from a test there, the test wins — update this plan
-and the DTOs.
+and the DTO.
 
 ---
 
