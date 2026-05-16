@@ -1,65 +1,36 @@
-import { Component } from '@angular/core';
-import { FieldConfig } from '../../interfaces/field-config';
+import { Component, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Store } from '@ngxs/store';
+import { FieldConfig } from '../../interfaces/field-config';
 import { ToastService } from '../../../services/toast.service';
-import { jwtDecode } from 'jwt-decode';
 import { DynamicForm } from '../../shared/dynamic-form/dynamic-form';
-import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
 import { environment } from '../../../environments/environment';
-import { JwtPayload } from '../../interfaces/jwt-payload';
+import { AuthState } from '../../store/auth/auth';
+import { LoadCustomers } from '../../store/customers/actions/load-customers';
 
 @Component({
   selector: 'app-customer-add',
+  standalone: true,
   imports: [DynamicForm],
   templateUrl: './customer-add.html',
-  styleUrl: './customer-add.scss'
+  styleUrl: './customer-add.scss',
 })
 export class CustomerAdd {
-  constructor(private http: HttpClient, private toast: ToastService) { }
+  private http = inject(HttpClient);
+  private toast = inject(ToastService);
+  private store = inject(Store);
 
-  formFields: FieldConfig[] = [
-    {
-      type: 'text',
-      label: 'Nombre',
-      name: 'name',
-      defaultValue: ''
-    },
-    {
-      type: 'text',
-      label: 'Email',
-      name: 'email',
-      defaultValue: ''
-    },
-    {
-      type: 'text',
-      label: 'Identificación',
-      name: 'identification',
-      defaultValue: ''
-    },
-    {
-      type: 'text',
-      label: 'Telefono',
-      name: 'phone',
-      defaultValue: ''
-    },
-    {
-      type: 'text',
-      label: 'Observaciones',
-      name: 'observation',
-      defaultValue: 'N/A'
-    }
-  ]
+  readonly formFields: FieldConfig[] = [
+    { type: 'text', label: 'Nombre', name: 'name', defaultValue: '' },
+    { type: 'text', label: 'Email', name: 'email', defaultValue: '' },
+    { type: 'text', label: 'Identificación', name: 'identification', defaultValue: '' },
+    { type: 'text', label: 'Telefono', name: 'phone', defaultValue: '' },
+    { type: 'text', label: 'Observaciones', name: 'observation', defaultValue: 'N/A' },
+  ];
 
-
-  async onFormSubmit(formData: any) {
-    const token = localStorage.getItem('token');
-    let userId = ''
-    if (token) {
-      const decoded = jwtDecode<JwtPayload>(token);
-      userId = decoded.sub;
-      console.log('User Id del token', userId);
-    }
+  onFormSubmit(formData: any) {
+    const token = this.store.selectSnapshot(AuthState.token);
+    const userId = this.store.selectSnapshot(AuthState.user)?.id ?? '';
 
     const payload = {
       name: formData.name,
@@ -67,29 +38,21 @@ export class CustomerAdd {
       identification: formData.identification,
       phone: formData.phone,
       observation: formData.observation,
-      createdBy: userId // si tu API guarda quién lo creó
+      createdBy: userId,
     };
 
-
-    this.http.post(`${environment.apiUrl}customers`, payload, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-
-    }).subscribe({
-      next: (res) => {
-        console.log('CLIENTE creado:', res);
-        this.toast.show('Cliente registrado con éxito', 'success');
-
-      },
-      error: (err) => {
-        console.log('Error al crear cliente', err);
-
-        this.toast.show('Error al enviar cliente', 'error');
-      }
-    });
-
+    this.http
+      .post(`${environment.apiUrl}customers`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .subscribe({
+        next: () => {
+          this.toast.show('Cliente registrado con éxito', 'success');
+          this.store.dispatch(new LoadCustomers(true));
+        },
+        error: () => {
+          this.toast.show('Error al enviar cliente', 'error');
+        },
+      });
   }
-
-
 }

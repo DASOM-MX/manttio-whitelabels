@@ -1,12 +1,12 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Store } from '@ngxs/store';
 import { Register } from '../register/register';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../environments/environment';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { ButtonModule } from 'primeng/button';
+import { Login as LoginAction } from '../../store/auth/actions/login';
 
 @Component({
   selector: 'app-login',
@@ -24,36 +24,33 @@ import { ButtonModule } from 'primeng/button';
 export class Login {
   private fb = inject(FormBuilder);
   private router = inject(Router);
-  private http = inject(HttpClient);
+  private store = inject(Store);
 
   loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
   });
-  showRegister = false;
+  showRegister = signal(false);
+  submitting = signal(false);
 
   onSubmit() {
-    if (this.loginForm.valid) {
-      const { email, password } = this.loginForm.value;
-
-      this.http
-        .post(`${environment.apiUrl}auth/login`, { email, password })
-        .subscribe({
-          next: (response: any) => {
-            localStorage.setItem('token', response.token);
-            localStorage.setItem('role', response.user.role ? 'true' : 'false');
-            localStorage.setItem('email', response.user.email);
-            this.router.navigate(['/reports']);
-          },
-          error: (error) => {
-            console.error('Error al iniciar sesión', error);
-            alert('Credenciales invalidas');
-          },
-        });
-    }
+    if (this.loginForm.invalid || this.submitting()) return;
+    const { email, password } = this.loginForm.value;
+    this.submitting.set(true);
+    this.store.dispatch(new LoginAction(email!, password!)).subscribe({
+      next: () => {
+        this.submitting.set(false);
+        this.router.navigate(['/reports']);
+      },
+      error: (error) => {
+        this.submitting.set(false);
+        console.error('Error al iniciar sesión', error);
+        alert('Credenciales invalidas');
+      },
+    });
   }
 
   toggleRegister() {
-    this.showRegister = !this.showRegister;
+    this.showRegister.update((v) => !v);
   }
 }

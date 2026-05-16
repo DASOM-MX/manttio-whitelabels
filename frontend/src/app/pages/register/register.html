@@ -65,15 +65,15 @@
                 <label for="regConfirm" class="field-label">Confirmar contraseña</label>
                 <p-password inputId="regConfirm" formControlName="confirmPassword" [feedback]="false"
                     [toggleMask]="true" autocomplete="new-password" placeholder="••••••••" styleClass="w-full"
-                    [inputStyleClass]="((registerForm.get('confirmPassword')?.invalid || getPasswordMismatchError()) && registerForm.get('confirmPassword')?.touched) ? 'field-input field-input--error' : 'field-input'">
+                    [inputStyleClass]="((registerForm.get('confirmPassword')?.invalid || passwordMismatch()) && registerForm.get('confirmPassword')?.touched) ? 'field-input field-input--error' : 'field-input'">
                 </p-password>
-                @if ((registerForm.get('confirmPassword')?.invalid || getPasswordMismatchError()) && registerForm.get('confirmPassword')?.touched) {
+                @if ((registerForm.get('confirmPassword')?.invalid || passwordMismatch()) && registerForm.get('confirmPassword')?.touched) {
                     <div class="text-red-700 text-sm font-semibold flex items-center gap-1.5">
                         <span aria-hidden="true">⚠</span>
                         @if (registerForm.get('confirmPassword')?.hasError('required')) {
                             <span>Confirma tu contraseña.</span>
                         }
-                        @if (getPasswordMismatchError()) {
+                        @if (passwordMismatch()) {
                             <span>Las contraseñas no coinciden.</span>
                         }
                     </div>

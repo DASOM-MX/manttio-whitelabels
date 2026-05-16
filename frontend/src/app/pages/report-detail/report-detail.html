@@ -1,7 +1,7 @@
 <div class="min-h-full bg-background">
     <div #pdfContent>
         <form [formGroup]="reportForm">
-            @if (report) {
+            @if (report(); as report) {
             <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
                 <!-- Header -->
                 <div class="flex flex-wrap items-start justify-between gap-4">
@@ -27,7 +27,7 @@
                 </div>
 
                 <!-- Información del cliente -->
-                @if (customer) {
+                @if (customer(); as customer) {
                 <section class="card-section">
                     <h2 class="text-lg font-bold text-granite-900 mb-4">Información del cliente</h2>
                     <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
@@ -61,14 +61,14 @@
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Técnico</dt>
-                            <dd class="text-base text-granite-900">{{ reportUser?.name }}</dd>
+                            <dd class="text-base text-granite-900">{{ reportUser()?.name }}</dd>
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Fecha</dt>
                             <dd class="text-base font-data tabular-nums text-granite-900">{{ report.date_arrival | date:'mediumDate' }}</dd>
                         </div>
 
-                        @if (!editMode) {
+                        @if (!editMode()) {
                             <div class="field-group">
                                 <dt class="field-label">Llegada</dt>
                                 <dd class="text-base font-data tabular-nums text-granite-900">{{ report.date_arrival | date:'medium' }}</dd>
@@ -101,7 +101,7 @@
                 <section class="card-section">
                     <h2 class="text-lg font-bold text-granite-900 mb-4">Mantenimiento minisplit</h2>
                     <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                        @if (!editMode) {
+                        @if (!editMode()) {
                             <div class="field-group">
                                 <dt class="field-label">Equipo operando</dt>
                                 <dd>
@@ -173,7 +173,7 @@
                 <section class="card-section">
                     <h2 class="text-lg font-bold text-granite-900 mb-4">Mantenimiento Chiller</h2>
                     <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                        @if (!editMode) {
+                        @if (!editMode()) {
                             <div class="field-group">
                                 <dt class="field-label">¿Está operando?</dt>
                                 <dd><p-tag [severity]="report.is_operating ? 'success' : 'danger'" [value]="report.is_operating ? 'Sí' : 'No'"></p-tag></dd>
@@ -301,7 +301,7 @@
                 <section class="card-section">
                     <h2 class="text-lg font-bold text-granite-900 mb-4">Mantenimiento UMA</h2>
                     <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                        @if (!editMode) {
+                        @if (!editMode()) {
                             <div class="field-group">
                                 <dt class="field-label">¿Está operando?</dt>
                                 <dd><p-tag [severity]="report.is_operating ? 'success' : 'danger'" [value]="report.is_operating ? 'Sí' : 'No'"></p-tag></dd>
@@ -385,7 +385,7 @@
                 }
 
                 <!-- Observaciones -->
-                @if (!editMode) {
+                @if (!editMode()) {
                 <section class="card-section">
                     <h2 class="text-lg font-bold text-granite-900 mb-3">Observaciones</h2>
                     <p class="text-base text-granite-800 whitespace-pre-line">{{ report.observations || 'Ninguna' }}</p>
@@ -398,9 +398,9 @@
                 }
 
                 <!-- Imágenes -->
-                @if (editMode) {
+                @if (editMode()) {
                 <section class="card-section">
-                    <app-image-picker [existingImages]="report?.pictures || []"
+                    <app-image-picker [existingImages]="report.pictures || []"
                         (filesSelected)="onNewPicturesSelected($event)"
                         (imagesRemoved)="onExistingPicturesRemoved($event)">
                     </app-image-picker>
@@ -408,7 +408,7 @@
                 } @else {
                 <section class="imagenes-reporte card-section">
                     <h2 class="text-lg font-bold text-granite-900 mb-4">Fotos</h2>
-                    @if (report?.pictures?.length) {
+                    @if (report.pictures?.length) {
                         <div class="flex flex-wrap gap-3">
                             @for (pic of report.pictures; track pic) {
                                 <img [src]="pic" width="150"
@@ -424,13 +424,13 @@
                 <!-- Firma -->
                 <section class="card-section">
                     <h2 class="text-lg font-bold text-granite-900 mb-3">Firma</h2>
-                    @if (report?.signature) {
+                    @if (report.signature) {
                         <div class="text-center">
                             <img [src]="report.signature" alt="Firma"
                                 class="mx-auto max-h-40 border-2 border-granite-200 p-2 rounded-lg bg-white" />
                             <p class="mt-3 text-base font-semibold text-granite-900">Firmado por: {{ report.signed_by }}</p>
                         </div>
-                    } @else if (!report?.report_status) {
+                    } @else if (!report.report_status) {
                         <app-signature (signatureChanged)="onSignatureSaved($event)"></app-signature>
                     } @else {
                         <p class="text-base text-granite-600 italic">Este reporte está finalizado y no se puede firmar.</p>
@@ -443,10 +443,10 @@
             <div class="sticky bottom-0 z-40 bg-white/95 backdrop-blur border-t-2 border-granite-200">
                 <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap justify-end gap-2">
                     <p-button type="button" (onClick)="downloadTextPDF()" severity="secondary" label="Descargar PDF"></p-button>
-                    @if (!editMode && report?.report_status === false) {
+                    @if (!editMode() && report()?.report_status === false) {
                         <p-button type="button" (onClick)="toggleEdit()" severity="secondary" label="Editar"></p-button>
                     }
-                    @if (editMode) {
+                    @if (editMode()) {
                         <p-button type="button" (onClick)="saveChanges()" label="Guardar"></p-button>
                         <p-button type="button" (onClick)="toggleEdit()" severity="secondary" label="Cancelar"></p-button>
                     }

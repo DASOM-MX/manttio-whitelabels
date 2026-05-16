@@ -1,11 +1,10 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
 
 @Component({
   selector: 'app-image-picker',
   standalone: true,
   template: `
     <div class="space-y-4">
-      <!-- Botón para seleccionar imágenes -->
       <label
         for="fileInput"
         class="block flex items-center justify-center w-full text-center border hover:bg-primary font-medium p-2 rounded cursor-pointer transition-colors"
@@ -42,9 +41,9 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
         </div>
       }
 
-      @if (previews.length > 0) {
+      @if (previews().length > 0) {
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-4">
-          @for (preview of previews; track preview; let i = $index) {
+          @for (preview of previews(); track preview; let i = $index) {
             <div class="relative group rounded-lg overflow-hidden shadow-md">
               <img [src]="preview" class="w-full h-32 object-cover rounded">
               <button type="button"
@@ -57,34 +56,35 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
         </div>
       }
     </div>
-  `
+  `,
 })
 export class ImagePickerComponent {
   @Input() existingImages: string[] = [];
   @Output() filesSelected = new EventEmitter<File[]>();
   @Output() imagesRemoved = new EventEmitter<string[]>();
 
-  selectedFiles: File[] = [];
-  previews: string[] = [];
+  selectedFiles = signal<File[]>([]);
+  previews = signal<string[]>([]);
 
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     if (!input.files) return;
 
     const files = Array.from(input.files);
-    files.forEach(file => {
-      this.selectedFiles.push(file);
-      this.previews.push(URL.createObjectURL(file));
-    });
+    this.selectedFiles.update((current) => [...current, ...files]);
+    this.previews.update((current) => [
+      ...current,
+      ...files.map((f) => URL.createObjectURL(f)),
+    ]);
 
-    this.filesSelected.emit(this.selectedFiles);
+    this.filesSelected.emit(this.selectedFiles());
     input.value = '';
   }
 
   removeNewImage(index: number) {
-    this.selectedFiles.splice(index, 1);
-    this.previews.splice(index, 1);
-    this.filesSelected.emit(this.selectedFiles);
+    this.selectedFiles.update((files) => files.filter((_, i) => i !== index));
+    this.previews.update((previews) => previews.filter((_, i) => i !== index));
+    this.filesSelected.emit(this.selectedFiles());
   }
 
   removeExistingImage(index: number) {

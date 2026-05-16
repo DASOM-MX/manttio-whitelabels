@@ -1,80 +1,80 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DynamicForm } from '../../shared/dynamic-form/dynamic-form';
-import { CustomersService, Customer } from '../../../services/customers';
 import { FormsModule } from '@angular/forms';
-import { jwtDecode } from 'jwt-decode';
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectorRef } from '@angular/core';
-import { ToastService } from '../../../services/toast.service';
 import { Router } from '@angular/router';
+import { Store } from '@ngxs/store';
 import Swal from 'sweetalert2';
 import { environment } from '../../../environments/environment';
 import { SelectModule } from 'primeng/select';
-import { JwtPayload } from '../../interfaces/jwt-payload';
+import { FieldConfig } from '../../interfaces/field-config';
+import { ToastService } from '../../../services/toast.service';
+import { AuthState } from '../../store/auth/auth';
+import { CustomersState } from '../../store/customers/customers';
+import { LoadCustomers } from '../../store/customers/actions/load-customers';
+import { LoadReports } from '../../store/reports/actions/load-reports';
+
+type ReportType = 'minisplit' | 'chiller' | 'uma';
 
 @Component({
   selector: 'app-report-add',
   standalone: true,
   imports: [DynamicForm, FormsModule, SelectModule],
   templateUrl: './report-add.html',
-  styleUrl: './report-add.scss'
+  styleUrl: './report-add.scss',
 })
 export class ReportAdd implements OnInit {
-  selectedCustomerId: string = '';
-  customers: Customer[] = [];
-  selectedFiles: File[] = [];
-  signatureFile: File | null = null;
-  signedBy: string = '';
+  private http = inject(HttpClient);
+  private toast = inject(ToastService);
+  private router = inject(Router);
+  private store = inject(Store);
 
-  reportTypes: ['minisplit', 'chiller', 'uma'] = ['minisplit', 'chiller', 'uma'];
-  reportTypeOptions = [
+  customers = this.store.selectSignal(CustomersState.items);
+
+  selectedCustomerId = signal('');
+  selectedFiles = signal<File[]>([]);
+  signatureFile = signal<File | null>(null);
+
+  readonly reportTypeOptions: { label: string; value: ReportType }[] = [
     { label: 'Minisplit', value: 'minisplit' },
     { label: 'Chiller', value: 'chiller' },
     { label: 'UMA', value: 'uma' },
   ];
-  selectedReportType = 'minisplit';
 
-  //animating form change
-  isAnimating = false;
-  tempType: string = '';
+  selectedReportType = signal<ReportType>('minisplit');
+  isAnimating = signal(false);
 
-  formConfigs: { [key: string]: any[] } = {
-    minisplit: this.getFieldsForType('minisplit'),
-    chiller: this.getFieldsForType('chiller'),
+  private formConfigs: Record<ReportType, FieldConfig[]> = {
+    minisplit: this.buildFields('minisplit'),
+    chiller: this.buildFields('chiller'),
+    uma: this.buildFields('uma'),
+  };
 
-    uma: this.getFieldsForType('uma')
+  formFields = computed<FieldConfig[]>(
+    () => this.formConfigs[this.selectedReportType()] || [],
+  );
 
+  ngOnInit(): void {
+    this.store.dispatch(new LoadCustomers());
   }
 
-
-  private customersService = inject(CustomersService);
-  private http = inject(HttpClient);
-  private cdr = inject(ChangeDetectorRef);
-  private toast = inject(ToastService);
-  private router = inject(Router);
-
-  onReportTypeChange(newType: string) {
-    this.isAnimating = true;
-
+  onReportTypeChange(newType: ReportType) {
+    this.isAnimating.set(true);
     setTimeout(() => {
-      this.selectedReportType = newType;
-
-      // Forzar detección de cambios
-      this.cdr.detectChanges();
-
-      setTimeout(() => {
-        this.isAnimating = false;
-        this.cdr.detectChanges();
-      }, 0);
-
+      this.selectedReportType.set(newType);
+      setTimeout(() => this.isAnimating.set(false), 0);
     }, 300);
   }
 
-  get formFields() {
-    return this.formConfigs[this.selectedReportType] || [];
+  onFilesSelected(files: File[]) {
+    this.selectedFiles.set(files);
   }
 
-  getFieldsForType(type: string) {
+  onSignatureChange(file: File) {
+    this.signatureFile.set(file);
+  }
+
+  private buildFields(type: ReportType): FieldConfig[] {
     switch (type) {
       case 'minisplit':
         return [
@@ -89,9 +89,8 @@ export class ReportAdd implements OnInit {
           { type: 'select', label: '¿Ruido fuera de lo normal?', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
-          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' }
+          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' },
         ];
-
       case 'chiller':
         return [
           { type: 'text', label: 'Tipo de tarea', name: 'manttio_type', defaultValue: '' },
@@ -112,9 +111,8 @@ export class ReportAdd implements OnInit {
           { type: 'select', label: 'Ruido inusual', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
-          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' }
+          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' },
         ];
-
       case 'uma':
         return [
           { type: 'text', label: 'Tipo de tarea', name: 'manttio_type', defaultValue: '' },
@@ -130,47 +128,10 @@ export class ReportAdd implements OnInit {
           { type: 'select', label: 'Ruido inusual', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
-          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' }
+          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' },
         ];
-
-      default:
-        return [];
     }
   }
-
-
-  ngOnInit(): void {
-    this.customersService.getCustomers().subscribe({
-      next: (data) => {
-        this.customers = data;
-        this.cdr.detectChanges();
-
-      },
-      error: (err) => {
-        console.error('Error al obtener clientes:', err);
-      },
-    });
-  }
-
-
-  onFileSelect(event: any) {
-    if (event.target.files && event.target.files.length > 0) {
-      //this.selectedFiles = event.target.files[0];
-      this.selectedFiles = Array.from(event.target.files);
-
-    }
-  }
-
-  onFilesSelected(files: File[]) {
-    this.selectedFiles = files;
-  }
-
-  onSignatureChange(file: File) {
-    this.signatureFile = file;
-  }
-
-
-
 
   private dataURLtoFile(dataURL: string, filename: string): File {
     const arr = dataURL.split(',');
@@ -182,90 +143,65 @@ export class ReportAdd implements OnInit {
       u8arr[n] = bstr.charCodeAt(n);
     }
     return new File([u8arr], filename, { type: mime });
-
   }
 
-
   async onFormSubmit(formData: any) {
-    const token = localStorage.getItem('token');
-    let userId = ''
-    if (token) {
-      const decoded = jwtDecode<JwtPayload>(token);
-      userId = decoded.sub;
-      console.log('User ID del token:', userId);
-    }
-
-    const customerId = this.selectedCustomerId;
-    console.log(customerId);
+    const token = this.store.selectSnapshot(AuthState.token);
+    const userId = this.store.selectSnapshot(AuthState.user)?.id ?? '';
 
     const fd = new FormData();
-    fd.append('report_type', this.selectedReportType);
-    Object.keys(formData).forEach(key => {
+    fd.append('report_type', this.selectedReportType());
+    Object.keys(formData).forEach((key) => {
       if (key === 'signature' && formData[key]) {
         const file = this.dataURLtoFile(formData[key], `signature-${Date.now()}.jpg`);
         fd.append('signature', file);
-      }
-      else {
+      } else {
         fd.append(key, formData[key]);
       }
-
     });
 
     fd.append('user_id', userId);
-    fd.append('client_id', this.selectedCustomerId);
+    fd.append('client_id', this.selectedCustomerId());
 
-
-    for (const file of this.selectedFiles) {
-      fd.append('pictures', file); // Mismo nombre que en el interceptor
+    for (const file of this.selectedFiles()) {
+      fd.append('pictures', file);
     }
 
-    if (this.signatureFile) {
-      fd.append('signature', this.signatureFile); // Mismo nombre que en el interceptor
+    const sig = this.signatureFile();
+    if (sig) {
+      fd.append('signature', sig);
     }
 
-    if (!this.signatureFile && !formData.signature) {
+    if (!sig && !formData.signature) {
       const result = await Swal.fire({
         title: 'Falta firma',
-        text: "Este reporte no contiene una firma. ¿Deseas continuar sin firmar?",
+        text: 'Este reporte no contiene una firma. ¿Deseas continuar sin firmar?',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Sí, continuar',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33'
+        cancelButtonColor: '#d33',
       });
-
-      if (!result.isConfirmed) {
-        // El usuario canceló, abortamos
-        return;
-      }
+      if (!result.isConfirmed) return;
     }
 
-    this.http.post(`${environment.apiUrl}reports`, fd, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-
-    }).subscribe({
-      next: (res) => {
-        Swal.fire({
-          title: 'Reporte agregado exitosamente',
-          icon: 'success'
-        })
-        this.selectedFiles = [];
-        this.signatureFile = null;
-        this.selectedCustomerId = '';
-        //this.selectedReportType =;
-        this.formConfigs[this.selectedReportType] = this.getFieldsForType(this.selectedReportType);
-        this.cdr.detectChanges();
-        this.router.navigate(['/reports']);
-
-      },
-      error: (err) => {
-        this.toast.show('Error al enviar reporte', 'error');
-      }
-    });
-
+    this.http
+      .post(`${environment.apiUrl}reports`, fd, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .subscribe({
+        next: () => {
+          Swal.fire({ title: 'Reporte agregado exitosamente', icon: 'success' });
+          this.selectedFiles.set([]);
+          this.signatureFile.set(null);
+          this.selectedCustomerId.set('');
+          this.store.dispatch(new LoadReports(true));
+          this.router.navigate(['/reports']);
+        },
+        error: () => {
+          this.toast.show('Error al enviar reporte', 'error');
+        },
+      });
   }
-
 }

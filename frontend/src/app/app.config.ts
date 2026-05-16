@@ -5,7 +5,12 @@ import { HttpClientModule } from '@angular/common/http';
 import { importProvidersFrom } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { providePrimeNG } from 'primeng/config';
+import { provideStore } from '@ngxs/store';
+import { withNgxsStoragePlugin } from '@ngxs/storage-plugin';
 import { routes } from './app.routes';
+import { AuthState } from './store/auth/auth';
+import { ReportsState } from './store/reports/reports';
+import { CustomersState } from './store/customers/customers';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -14,11 +19,11 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(),
     provideRouter(routes),
     provideAnimationsAsync(),
-    // Unstyled mode — components ship without theme CSS. Visuals are driven
-    // by the per-component stylesheets in src/theme/* (imported from
-    // src/styles.scss) which target PrimeNG's class hooks via @apply on our
-    // Tailwind design tokens.
     providePrimeNG({ ripple: false, theme: 'none' }),
+    provideStore(
+      [AuthState, ReportsState, CustomersState],
+      withNgxsStoragePlugin({ keys: ['auth', 'reports', 'customers'] }),
+    ),
     importProvidersFrom(HttpClientModule),
   ],
 };

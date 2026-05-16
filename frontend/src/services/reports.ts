@@ -1,36 +1,35 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Store } from '@ngxs/store';
 import { Observable } from 'rxjs';
 import { environment } from '../environments/environment';
+import { AuthState } from '../app/store/auth/auth';
 
 @Injectable({ providedIn: 'root' })
 export class ReportsService {
-  private baseUrl = 'reports';
+  private http = inject(HttpClient);
+  private store = inject(Store);
 
-  constructor(private http: HttpClient) {}
+  private get authHeaders() {
+    const token = this.store.selectSnapshot(AuthState.token);
+    return { Authorization: `Bearer ${token}` };
+  }
 
   createReport(reportData: any): Observable<any> {
-    const token = localStorage.getItem('token');
-
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${token}`,
+    return this.http.post(`${environment.apiUrl}reports`, reportData, {
+      headers: this.authHeaders,
     });
-    return this.http.post(`${this.baseUrl}`, reportData, { headers });
   }
 
   updateReport(id: string, changes: Partial<any>): Observable<any> {
-    return this.http.patch<any>(
-      `${environment.apiUrl}${this.baseUrl}/${id}`,
-      changes,
-      {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      }
-    );
+    return this.http.patch<any>(`${environment.apiUrl}reports/${id}`, changes, {
+      headers: this.authHeaders,
+    });
   }
 
   getReport(id: string): Observable<any> {
-    return this.http.get<any>(`${environment.apiUrl}${this.baseUrl}/${id}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    return this.http.get<any>(`${environment.apiUrl}reports/${id}`, {
+      headers: this.authHeaders,
     });
   }
 }
