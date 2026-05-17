@@ -1,62 +1,66 @@
 # Frontend ↔ Backend Integration Plan
 
-This document is the blueprint for wiring the Angular 20 frontend
-(`/frontend`) to the new Cloudflare Workers + Neon backend (`/backend`). It is
-written for the developer who will execute the migration: every section is
-actionable, and every file referenced is either created, updated, or deleted
-by a specific PR in the roadmap below.
+This document is the executable recipe for wiring the Angular 20 frontend
+(`/frontend`) to the Cloudflare Workers + Neon backend (`/backend`). It is
+written to be **executed by another Claude Code instance**, not just read.
+Every file has a known path. Every file's content is shown in full. Every
+PR has a checklist and pass/fail acceptance criteria.
 
-The plan introduces:
-- a single HTTP entry-point (`RemoteService`) wrapping `HttpClient`,
-- a functional `authInterceptor` that pins the JWT to outgoing requests,
-- a `/http` folder containing one service file per backend entity,
-- a `/theme` folder for UI-only services (toasts, future modals, etc.),
-- a `/dtos` folder housing **one type or interface per file**, grouped by
-  entity in subfolders, with a barrel `index.ts` per folder so consumer
-  import lists stay clean,
-- a `/state` folder housing **NgXs** state classes (auth + per-entity), with
-  the auth slice transparently persisted via `@ngxs/storage-plugin`,
-- a consistent home for Angular-native primitives (guards, interceptors,
-  directives, pipes) under `/app/<kind>s/`.
+## How to use this plan (for the executing agent)
 
-NgXs is the **only** state-management layer in this project. Components do
-not read from `localStorage`, do not subscribe directly to HTTP services for
-entity data, and do not own cross-feature state in component fields or
-free-standing `BehaviorSubject`s.
+1. Open §2 (Progress Tracker). Pick the **first unchecked** PR.
+2. Jump to its detailed section under §15 (PR Roadmap). Execute every
+   checklist item top to bottom.
+3. After each individual item, **commit the doc with the item ticked**
+   (`- [ ]` → `- [x]`) so progress survives across sessions. Use one
+   commit per item or one per logical group — your call.
+4. When all items in a PR are ticked, run the **Validation** block at the
+   end of that PR. If it passes, open a PR on GitHub, merge it, then
+   tick the PR's box in §2 and commit.
+5. Source of truth for DTO shapes is **`/backend/test/*`** and
+   **`/backend/src/routes/*`**. If a shape in this plan ever drifts from
+   those, the backend wins — update this plan in the same PR.
+6. Do **not** ask the user for permission on choices already decided in
+   this plan. Do ask if you hit something genuinely undecided.
 
 ---
 
-## 1. Goals
+## 1. Architectural decisions (frozen)
 
-1. **One source of truth per backend entity.** Every endpoint is reached
-   through exactly one method in exactly one `/http` service.
-2. **One source of truth for application state.** NgXs owns auth + entity
-   caches. Components select from the store and dispatch actions; they never
-   hold cross-feature state themselves and never touch `localStorage`.
-3. **JWT injection happens once.** A functional HTTP interceptor reads the
-   token from `AuthState` and adds the `Authorization` header. Components
-   and services never build that header.
-4. **Typed end-to-end, one type per file.** Every request, response, action
-   payload, and state slice has a named DTO/interface matching the backend.
-   Each type or interface lives in its own file so it can be tracked,
-   audited, and grep'd individually. No `any` in HTTP signatures or state
-   models.
-5. **Angular 20 idiomatic.** `inject()` over constructor DI, functional
-   guards/interceptors over class-based equivalents, `provideStore()` over
-   `NgxsModule.forRoot()`, no deprecated `HttpClientModule` import.
-6. **Friendly for the next developer.** Folder layout is self-explaining,
-   file names describe their contents, naming is consistent.
+These are committed. Don't relitigate.
 
-## 2. Non-goals
+- **State layer:** NgXs (v19+, standalone `provideStore` API). Auth slice
+  persisted via `@ngxs/storage-plugin`. No `localStorage` reads/writes
+  outside the storage plugin's own internals.
+- **HTTP layer:** `RemoteService` wraps `HttpClient`. One service per
+  backend entity under `/src/http/`. Services return `Observable<T>` and
+  are called from NgXs `@Action` handlers — not from components.
+- **JWT injection:** functional `HttpInterceptorFn` reading
+  `AuthState.token` via `store.selectSnapshot`. 401 dispatches `Logout`.
+- **DTOs/types:** one `interface` or `type` per file under
+  `/src/app/data/` split into three sibling folders (`dtos/`,
+  `interfaces/`, `types/`) with per-entity subfolders and per-folder
+  `index.ts` barrels.
+- **Angular primitives:** under `/src/app/<kind>s/` — `guards/`,
+  `interceptors/`, `directives/`, `pipes/`.
+- **UI services** (no network, no NgXs state) under `/src/theme/`.
+- **No NgRx / Akita / Signals Store. No SSR. No refresh tokens. No
+  request caching layer** (cache lives in state slices instead).
 
-- No alternative state library (NgRx, Akita, Component Store, Signals
-  Store). NgXs is the chosen layer.
-- No refresh-token flow. Backend issues a single short-lived JWT; the
-  interceptor dispatches `Logout` on 401 and the user is bounced to
-  `/login`. (Add later if the backend grows refresh endpoints.)
-- No SSR / Universal. Pure SPA.
-- No request caching layer. Each call hits the network; results are cached
-  in the relevant state slice instead.
+---
+
+## 2. Progress Tracker
+
+> Tick each box when the corresponding PR is **merged to main**. Per-PR
+> task checklists live in §15.
+
+- [ ] **PR #1** — Foundation: data folder, RemoteService, NgXs setup, Angular folder layout
+- [ ] **PR #2** — Auth migration (login, guard, interceptor, AuthState)
+- [ ] **PR #3** — Users HTTP + UsersState
+- [ ] **PR #4** — Customers migration
+- [ ] **PR #5** — Reports migration
+- [ ] **PR #6** — Upload service + image picker wiring
+- [ ] **PR #7** — Theme migration + final cleanup
 
 ---
 
@@ -65,223 +69,92 @@ free-standing `BehaviorSubject`s.
 ```
 frontend/src/
 ├── http/
-│   ├── remote.service.ts             # the wrapper around HttpClient
-│   ├── auth.service.ts               # POST /auth/login
-│   ├── users.service.ts              # /users/*
-│   ├── customers.service.ts          # /customers/*
-│   ├── reports.service.ts            # /reports/* (incl. signature, pictures, email, download)
-│   └── upload.service.ts             # POST /upload/image
+│   ├── remote.service.ts
+│   ├── auth.service.ts
+│   ├── users.service.ts
+│   ├── customers.service.ts
+│   ├── reports.service.ts
+│   └── upload.service.ts
 │
 ├── state/
-│   ├── auth/
-│   │   ├── auth.state.ts             # @State, selectors, action handlers
-│   │   └── auth.actions.ts           # Login, LoadCurrentUser, Logout
-│   ├── customers/
-│   │   ├── customers.state.ts
-│   │   └── customers.actions.ts
-│   ├── reports/
-│   │   ├── reports.state.ts
-│   │   └── reports.actions.ts
-│   └── users/
-│       ├── users.state.ts
-│       └── users.actions.ts
+│   ├── auth/        { auth.state.ts, auth.actions.ts }
+│   ├── customers/   { customers.state.ts, customers.actions.ts }
+│   ├── reports/     { reports.state.ts, reports.actions.ts }
+│   └── users/       { users.state.ts, users.actions.ts }
 │
 ├── theme/
-│   └── toast.service.ts              # moved from /services/toast.service.ts
-│
-├── dtos/                             # ONE type / interface per file, grouped by entity
-│   ├── api-error/
-│   │   ├── api-error.type.ts
-│   │   ├── as-api-error.ts           # helper (not a type → no suffix)
-│   │   └── index.ts                  # barrel
-│   ├── auth/
-│   │   ├── login-request.dto.ts
-│   │   ├── login-response.dto.ts
-│   │   └── index.ts
-│   ├── customer/
-│   │   ├── customer-row.dto.ts
-│   │   ├── create-customer-request.dto.ts
-│   │   ├── update-customer-request.dto.ts
-│   │   ├── customer-response.dto.ts
-│   │   ├── customer-list-response.dto.ts
-│   │   ├── delete-customer-response.dto.ts
-│   │   └── index.ts
-│   ├── jwt/
-│   │   ├── jwt-payload.type.ts
-│   │   └── index.ts
-│   ├── report/
-│   │   ├── report-row.dto.ts
-│   │   ├── report-detail-row.dto.ts
-│   │   ├── report-list-query.dto.ts
-│   │   ├── create-report-fields.dto.ts
-│   │   ├── update-report-request.dto.ts
-│   │   ├── update-assignee-request.dto.ts
-│   │   ├── add-signature-fields.dto.ts
-│   │   ├── delete-pictures-request.dto.ts
-│   │   ├── report-response.dto.ts
-│   │   ├── report-header-response.dto.ts
-│   │   ├── report-details-response.dto.ts
-│   │   ├── report-list-response.dto.ts
-│   │   ├── delete-report-response.dto.ts
-│   │   ├── report-type.type.ts
-│   │   ├── report-status.type.ts
-│   │   ├── minisplit-data.type.ts
-│   │   ├── chiller-data.type.ts
-│   │   ├── uma-data.type.ts
-│   │   ├── report-data.type.ts       # union of the three above
-│   │   └── index.ts
-│   ├── report-email/
-│   │   ├── report-email-row.dto.ts
-│   │   ├── send-report-email-request.dto.ts
-│   │   ├── send-report-email-response.dto.ts
-│   │   ├── report-email-list-response.dto.ts
-│   │   ├── revoke-email-response.dto.ts
-│   │   └── index.ts
-│   ├── upload/
-│   │   ├── upload-image-response.dto.ts
-│   │   └── index.ts
-│   └── user/
-│       ├── public-user.dto.ts
-│       ├── create-user-request.dto.ts
-│       ├── update-user-request.dto.ts
-│       ├── user-response.dto.ts
-│       ├── user-list-response.dto.ts
-│       ├── delete-user-response.dto.ts
-│       ├── user-type.type.ts
-│       └── index.ts
+│   └── toast.service.ts
 │
 ├── app/
+│   ├── app.config.ts
+│   ├── app.routes.ts
+│   ├── data/
+│   │   ├── utils.ts                     # shared helpers (toParams, ...)
+│   │   ├── dtos/<entity>/*.dto.ts       # wire payload shapes (+ index.ts barrels)
+│   │   ├── interfaces/                  # non-wire interfaces (reserved, currently .gitkeep)
+│   │   └── types/<entity>/*.type.ts     # domain enums/unions (+ index.ts barrels)
 │   ├── guards/
-│   │   └── auth-guard.ts             # functional CanActivateFn
+│   │   └── auth-guard.ts
 │   ├── interceptors/
-│   │   └── auth.interceptor.ts       # functional HttpInterceptorFn
-│   ├── directives/                   # (reserved for future custom directives)
-│   ├── pipes/                        # (reserved for future custom pipes)
+│   │   └── auth.interceptor.ts
+│   ├── directives/                      # reserved (.gitkeep)
+│   ├── pipes/                           # reserved (.gitkeep)
 │   ├── components/ ...
 │   ├── layouts/ ...
 │   ├── pages/ ...
 │   └── shared/ ...
 │
 ├── environments/
-│   ├── environment.ts                # production CF Workers URL
-│   └── environment.development.ts    # local `wrangler dev` URL, production: false
+│   ├── environment.ts
+│   └── environment.development.ts
 │
-└── services/                         # DELETED after migration (see §12)
+└── services/                            # DELETED in PR #7
 ```
 
-### Naming conventions
+### Categorization rules (decides which of dtos/ vs interfaces/ vs types/)
 
-| Pattern | Use for | Example |
-| --- | --- | --- |
-| `<entity>.service.ts` | HTTP entity services (`/http`) and UI services (`/theme`) | `customers.service.ts`, `toast.service.ts` |
-| `<type-or-interface-name>.dto.ts` | A **single** `interface` representing a request or response payload. Filename is kebab-case of the interface name. | `login-request.dto.ts` → `LoginRequest`; `customer-row.dto.ts` → `CustomerRow` |
-| `<type-name>.type.ts` | A **single** `type` alias (enum / union / primitive brand). Filename is kebab-case of the type name. | `user-type.type.ts` → `UserType`; `report-status.type.ts` → `ReportStatus`; `report-data.type.ts` → `ReportData` |
-| `<helper>.ts` (no suffix) | Non-type runtime helpers that live next to a related DTO/type | `as-api-error.ts` (the `asApiError` function) |
-| `index.ts` | Per-entity barrel under `/dtos/<entity>/` re-exporting every type in the folder | `dtos/user/index.ts` |
-| `<entity>.state.ts` | NgXs `@State` class with selectors and action handlers (one per state) | `auth.state.ts` |
-| `<entity>.actions.ts` | NgXs action classes grouped per state (action classes are **not** types and are exempt from the one-per-file rule) | `customers.actions.ts` |
-| `<name>.interceptor.ts` | Functional `HttpInterceptorFn` (in `/app/interceptors/`) | `auth.interceptor.ts` |
-| `<name>-guard.ts` | Functional guard (`CanActivateFn`, `CanMatchFn`, etc.) (in `/app/guards/`) | `auth-guard.ts` |
+| Folder | What goes here | Suffix | Examples |
+| --- | --- | --- | --- |
+| `app/data/dtos/<entity>/` | Anything that represents a wire payload (request body, response body, JWT payload, error response body, embedded wire shape like `ReportData` or `MinisplitData`). **Role-based**, regardless of `interface` vs `type` syntax. | `.dto.ts` | `login-request.dto.ts` (interface), `update-customer-request.dto.ts` (type alias `Partial<...>`), `report-data.dto.ts` (type alias union) |
+| `app/data/interfaces/<entity>/` | Non-wire `interface` declarations — internal app contracts not sent over the wire. **Currently empty.** Reserve for future shared component prop shapes, internal models, etc. | `.interface.ts` | (none yet) |
+| `app/data/types/<entity>/` | Domain primitive type aliases — enums, simple unions, branded primitives. Used as field values *inside* DTOs, but not themselves a payload. | `.type.ts` | `user-type.type.ts` (`'admin' \| 'technician'`), `report-status.type.ts` |
 
-### The one-type-per-file rule
-
-Every TypeScript `interface` declaration and every `type` alias in `/dtos`
-lives in its own file. The file name is kebab-case of the type name. The
-file contains exactly one `export` of a type/interface (plus its own
-imports). This makes every type:
-- **trackable** — there's exactly one place to look for `ReportRow`,
-- **grep-able** — `grep -r 'export interface ReportRow' frontend/src/` hits
-  exactly one file,
-- **diff-friendly** — adding a field to one DTO doesn't show up in a
-  multi-type file's diff.
-
-**Exceptions** (intentional, narrow):
-- **Action classes** in `<entity>.actions.ts` stay grouped per state. NgXs
-  convention co-locates all actions for one state; action classes are
-  runtime constructs (classes), not types.
-- **Runtime helpers** that operate on a single type (e.g. `asApiError`) sit
-  in a sibling `.ts` file (no `.dto`/`.type` suffix), inside the same entity
-  folder.
+**Notes:**
+- State models (`AuthStateModel`, `CustomersStateModel`, etc.) are NOT in
+  `/app/data/` — they live next to their state class, since they describe
+  internal slice shape.
+- Non-type runtime helpers (e.g. `asApiError`) sit next to the related
+  DTO file with no suffix (e.g. `as-api-error.ts`).
+- File name is kebab-case of the type name.
+- One `export interface` or one `export type` per file (NgXs action
+  classes are the documented exception — see §6).
 
 ### Barrel files
 
-Every `/dtos/<entity>/` folder has an `index.ts` that re-exports every type
-in the folder:
+Every leaf folder has an `index.ts` that re-exports its types via
+`export type { ... } from './...';` (pure type re-exports, erased at
+compile time). Consumers import from the barrel, never from individual
+files.
 
+Examples of consumer imports:
 ```ts
-// dtos/user/index.ts
-export type { PublicUser } from './public-user.dto';
-export type { CreateUserRequest } from './create-user-request.dto';
-export type { UpdateUserRequest } from './update-user-request.dto';
-export type { UserResponse } from './user-response.dto';
-export type { UserListResponse } from './user-list-response.dto';
-export type { DeleteUserResponse } from './delete-user-response.dto';
-export type { UserType } from './user-type.type';
+import type { LoginRequest, LoginResponse } from '../app/data/dtos/auth';
+import type { UserType } from '../app/data/types/user';
+import { toParams, type Query } from '../app/data/utils';
 ```
-
-Consumers import from the barrel, not from individual files:
-
-```ts
-import type {
-  CreateUserRequest, UpdateUserRequest,
-  UserResponse, UserListResponse, DeleteUserResponse,
-} from '../dtos/user';
-```
-
-Why `export type` not `export *`? It signals to TS that these are pure type
-re-exports — they get fully erased at runtime and survive `isolatedModules`
-without complaint. Runtime helpers (like `asApiError`) are re-exported with
-a plain `export { asApiError } from './as-api-error';`.
-
-### Angular-primitive home
-
-All Angular-native primitives (guards, interceptors, directives, pipes,
-resolvers, error handlers) live under `/src/app/<kind>s/` — one folder per
-Angular concept, named in the plural. This keeps anything the Angular DI /
-router / HttpClient discovers in a predictable location separate from
-backend-facing code (`/http`), state (`/state`), and view-model contracts
-(`/dtos`).
-
-### Entity naming note
-
-The backend exposes `/customers` and the existing service is
-`services/customers.ts`. The plan keeps **`customers`** as the canonical
-entity name on the frontend too (not `clients`), so route, DTO, service,
-state, and action names line up 1:1. UI copy can still say "Cliente" —
-that's a translation concern, not a code-identifier concern. The `/dtos/`
-folder uses the **singular** form (`customer/`, `report/`, `user/`) because
-each contains types describing a single entity; the `/http/` and `/state/`
-folders use plural names (`customers.service.ts`, `customers.state.ts`)
-because they manage collections.
 
 ---
 
-## 4. `RemoteService` — the HTTP wrapper
+## 4. `app/data/utils.ts`
 
-**Path:** `frontend/src/http/remote.service.ts`
-
-### Responsibilities
-
-- Prepend `environment.apiUrl` to every relative path.
-- Expose typed verbs (`get`, `post`, `patch`, `put`, `delete`) returning
-  `Observable<T>`.
-- Provide a `postForm<T>(path, form: FormData)` / `putForm<T>` for multipart
-  uploads.
-- Provide a `getBlob(path)` for binary downloads (PDF).
-- **Not** read or write the JWT — that's the interceptor's job. RemoteService
-  is auth-agnostic and state-agnostic.
-
-### Skeleton
+**Create:** `frontend/src/app/data/utils.ts`
 
 ```ts
-import { inject, Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { environment } from '../environments/environment';
+import { HttpParams } from '@angular/common/http';
 
-type Query = Record<string, string | number | boolean | undefined | null>;
+export type Query = Record<string, string | number | boolean | undefined | null>;
 
-const toParams = (q?: Query): HttpParams | undefined => {
+export const toParams = (q?: Query): HttpParams | undefined => {
   if (!q) return undefined;
   let p = new HttpParams();
   for (const [k, v] of Object.entries(q)) {
@@ -290,6 +163,24 @@ const toParams = (q?: Query): HttpParams | undefined => {
   }
   return p;
 };
+```
+
+Future shared helpers (e.g. `asApiError`-style narrowing, date parsers
+that aren't tied to a single DTO, etc.) go in this same file unless they
+grow enough to deserve splitting.
+
+---
+
+## 5. `http/remote.service.ts`
+
+**Create:** `frontend/src/http/remote.service.ts`
+
+```ts
+import { inject, Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../environments/environment';
+import { toParams, type Query } from '../app/data/utils';
 
 @Injectable({ providedIn: 'root' })
 export class RemoteService {
@@ -303,52 +194,62 @@ export class RemoteService {
   get<T>(path: string, query?: Query): Observable<T> {
     return this.http.get<T>(this.url(path), { params: toParams(query) });
   }
-
   post<T>(path: string, body: unknown): Observable<T> {
     return this.http.post<T>(this.url(path), body);
   }
-
   patch<T>(path: string, body: unknown): Observable<T> {
     return this.http.patch<T>(this.url(path), body);
   }
-
   put<T>(path: string, body: unknown): Observable<T> {
     return this.http.put<T>(this.url(path), body);
   }
-
   delete<T>(path: string, body?: unknown): Observable<T> {
     return this.http.request<T>('DELETE', this.url(path), { body });
   }
-
   postForm<T>(path: string, form: FormData): Observable<T> {
     return this.http.post<T>(this.url(path), form);
   }
-
   putForm<T>(path: string, form: FormData): Observable<T> {
     return this.http.put<T>(this.url(path), form);
   }
-
   getBlob(path: string): Observable<Blob> {
     return this.http.get(this.url(path), { responseType: 'blob' });
   }
 }
 ```
 
+RemoteService is **auth-agnostic and state-agnostic** — JWT injection is
+the interceptor's job (§7).
+
 ---
 
-## 5. `AuthState`, persistence, guard, and interceptor
+## 6. NgXs conventions
 
-The auth slice is the foundation: the interceptor reads its token, the guard
-checks its expiry, the bottom-nav reads the user's role and email. All other
-state slices can be flushed on `Logout`; this one survives a page refresh
-because of `@ngxs/storage-plugin`.
+- **State class:** one per entity at `state/<entity>/<entity>.state.ts`,
+  named `<Entity>State`. Has `@State<...>({ name: '<slice>', defaults })`
+  and `@Injectable()` decorators.
+- **Selectors:** static methods with `@Selector()`. Functional factory
+  selectors (e.g. `byId(id)`) are plain static methods returning a
+  function.
+- **Actions:** plain classes with `static readonly type = '[Slice] Verb'`
+  and constructor payload. **Grouped per state in `<entity>.actions.ts`** —
+  exempt from the one-per-file rule because action classes are runtime
+  constructs (not types) and the NgXs ecosystem expects them grouped.
+- **Action handlers:** `@Action(SomeAction) handler(ctx, action)` methods
+  on the state class. Return the inner `Observable<T>` from the HTTP call
+  via `pipe(tap(...))` so NgXs awaits completion before resolving the
+  dispatch.
+- **State models** (`<Entity>StateModel`) declared in the same file as
+  the state class. Not under `/app/data/`.
 
-### 5.1 `state/auth/auth.actions.ts`
+---
 
-NgXs action classes for one state stay grouped (see §3 exception):
+## 7. AuthState, persistence, interceptor, guard
+
+### 7.1 `state/auth/auth.actions.ts`
 
 ```ts
-import type { LoginRequest } from '../../dtos/auth';
+import type { LoginRequest } from '../../app/data/dtos/auth';
 
 export class Login {
   static readonly type = '[Auth] Login';
@@ -364,7 +265,7 @@ export class Logout {
 }
 ```
 
-### 5.2 `state/auth/auth.state.ts`
+### 7.2 `state/auth/auth.state.ts`
 
 ```ts
 import { Injectable, inject } from '@angular/core';
@@ -374,7 +275,8 @@ import { switchMap, tap } from 'rxjs/operators';
 import { AuthService } from '../../http/auth.service';
 import { UsersService } from '../../http/users.service';
 import { Login, LoadCurrentUser, Logout } from './auth.actions';
-import type { PublicUser, UserType } from '../../dtos/user';
+import type { PublicUser } from '../../app/data/dtos/user';
+import type { UserType } from '../../app/data/types/user';
 
 export interface AuthStateModel {
   token: string | null;
@@ -408,9 +310,7 @@ export class AuthState {
 
   @Action(LoadCurrentUser)
   loadCurrentUser(ctx: StateContext<AuthStateModel>) {
-    return this.users.me().pipe(
-      tap(({ user }) => ctx.patchState({ user })),
-    );
+    return this.users.me().pipe(tap(({ user }) => ctx.patchState({ user })));
   }
 
   @Action(Logout)
@@ -421,20 +321,7 @@ export class AuthState {
 }
 ```
 
-> `AuthStateModel` is the *state shape*, not a wire DTO — it stays in
-> `auth.state.ts` next to the class that owns it. Wire DTOs live under
-> `/dtos`; internal state models live next to their state class.
-
-### 5.3 Persistence
-
-`@ngxs/storage-plugin` mirrors the `'auth'` slice to `localStorage` on every
-mutation and rehydrates it on bootstrap. Wiring is in `app.config.ts` (§7).
-Consumers of auth data only ever see the store — they have no idea
-persistence exists.
-
-### 5.4 `auth.interceptor.ts`
-
-**Path:** `frontend/src/app/interceptors/auth.interceptor.ts`
+### 7.3 `app/interceptors/auth.interceptor.ts`
 
 ```ts
 import { HttpInterceptorFn } from '@angular/common/http';
@@ -447,12 +334,10 @@ import { Logout } from '../../state/auth/auth.actions';
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const store = inject(Store);
   const token = store.selectSnapshot(AuthState.token);
-
-  const authedReq = token
+  const authed = token
     ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
     : req;
-
-  return next(authedReq).pipe(
+  return next(authed).pipe(
     catchError((err) => {
       if (err?.status === 401) store.dispatch(new Logout());
       return throwError(() => err);
@@ -461,16 +346,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 };
 ```
 
-Two behaviors live here on purpose:
-- **Token attach:** every outgoing request gets the header if a token is in
-  state. The public `GET /reports/download/:token` endpoint ignores the
-  header on the server side, so there's no opt-out logic needed.
-- **401 dispatch:** any 401 dispatches `Logout`, which clears the auth slice
-  (and via the storage plugin, clears localStorage) and routes to `/login`.
-
-### 5.5 `auth-guard.ts` (rewritten as functional)
-
-**Path:** `frontend/src/app/guards/auth-guard.ts`
+### 7.4 `app/guards/auth-guard.ts`
 
 ```ts
 import { CanActivateFn, Router } from '@angular/router';
@@ -479,7 +355,7 @@ import { Store } from '@ngxs/store';
 import { jwtDecode } from 'jwt-decode';
 import { AuthState } from '../../state/auth/auth.state';
 import { Logout } from '../../state/auth/auth.actions';
-import type { JwtPayload } from '../../dtos/jwt';
+import type { JwtPayload } from '../data/dtos/jwt';
 
 export const authGuard: CanActivateFn = () => {
   const store = inject(Store);
@@ -500,41 +376,30 @@ export const authGuard: CanActivateFn = () => {
 };
 ```
 
-Register in `app.routes.ts` via `canActivate: [authGuard]`. The old
-class-based `AuthGuard` at `app/auth/auth-guard.ts` is removed and the
-`app/auth/` folder deleted (it has no other contents).
-
 ---
 
-## 6. Entity states (Customers, Reports, Users)
+## 8. Entity states (Customers, Reports, Users)
 
-Every backend entity gets its own NgXs state. The state owns the cache,
-exposes selectors components subscribe to, and contains action handlers that
-delegate IO to the matching `/http` service. Components never call the HTTP
-service directly for entity reads/writes — they dispatch an action and
-select from the store.
+Pattern shared by all three. Replace `<Entity>` / `<entity>` accordingly.
 
-The shape below is the convention every entity state follows:
-
-```
-interface <Entity>StateModel {
-  entities: Record<string, <EntityRow>>;   // normalized by id
-  ids: string[];                            // insertion order
-  selectedId: string | null;                // for detail pages
-  loading: boolean;                         // optional, for spinners
-  query: <EntityListQuery> | null;          // last query that produced `ids` (reports)
+```ts
+export interface <Entity>StateModel {
+  entities: Record<string, <EntityRow>>;
+  ids: string[];
+  selectedId: string | null;
+  loading: boolean;
+  query?: <EntityListQuery> | null;   // ReportsState only
 }
 ```
 
-Selectors expose: `list` (resolved `EntityRow[]` in `ids` order),
-`selected` (the entity at `selectedId`), `byId(id)` (factory selector), and
-`loading`. The `<Entity>StateModel` interface lives next to the state class
-(not in `/dtos`) — it's the internal shape of the slice, not a wire DTO.
+Standard selectors: `list`, `selected`, `loading`, factory
+`byId(id)`. Standard actions: `Load<Entities>`, `Load<Entity>`,
+`Select<Entity>`, `Create<Entity>`, `Update<Entity>`, `Delete<Entity>`.
 
-### 6.1 `state/customers/customers.actions.ts`
+### 8.1 `state/customers/customers.actions.ts`
 
 ```ts
-import type { CreateCustomerRequest, UpdateCustomerRequest } from '../../dtos/customer';
+import type { CreateCustomerRequest, UpdateCustomerRequest } from '../../app/data/dtos/customer';
 
 export class LoadCustomers { static readonly type = '[Customers] Load List'; }
 export class LoadCustomer { static readonly type = '[Customers] Load One'; constructor(public id: string) {} }
@@ -544,7 +409,7 @@ export class UpdateCustomer { static readonly type = '[Customers] Update'; const
 export class DeleteCustomer { static readonly type = '[Customers] Delete'; constructor(public id: string) {} }
 ```
 
-### 6.2 `state/customers/customers.state.ts` (skeleton)
+### 8.2 `state/customers/customers.state.ts`
 
 ```ts
 import { Injectable, inject } from '@angular/core';
@@ -555,7 +420,7 @@ import {
   LoadCustomers, LoadCustomer, SelectCustomer,
   CreateCustomer, UpdateCustomer, DeleteCustomer,
 } from './customers.actions';
-import type { CustomerRow } from '../../dtos/customer';
+import type { CustomerRow } from '../../app/data/dtos/customer';
 
 export interface CustomersStateModel {
   entities: Record<string, CustomerRow>;
@@ -653,40 +518,33 @@ export class CustomersState {
 }
 ```
 
-### 6.3 `state/reports/`
+### 8.3 `state/reports/`
 
-Same shape, with the addition of:
-- A `query: ReportListQuery | null` slice (so the current filter is part of
-  state and survives navigation away/back to the list page).
-- Actions for the report-specific subresources: `AddSignature`,
-  `AddPictures`, `RemovePictures`, `SetAssignee`, `SendReportEmail`,
-  `LoadReportEmails`, `RevokeReportEmail`.
-- A `details: Record<string, ReportDetailRow>` slice alongside `entities` —
-  the list response gives `ReportRow` only; `/reports/:id` gives both
-  `report` and `details`. Keep them in separate maps and select them
-  together when needed.
+Same pattern. Extras:
+- `query: ReportListQuery | null` in the model; action `SetReportsQuery`.
+- `details: Record<string, ReportDetailRow>` slice alongside `entities`.
+- Extra actions: `AddSignature`, `AddPictures`, `RemovePictures`,
+  `SetAssignee`, `SendReportEmail`, `LoadReportEmails`, `RevokeReportEmail`.
+- `LoadReport` populates BOTH `entities[id]` and `details[id]` from the
+  `ReportResponse`.
+- `LoadReports` only populates `entities` (the list endpoint returns
+  `ReportRow[]`, not details).
 
-### 6.4 `state/users/`
+### 8.4 `state/users/`
 
-Same shape. Two extra slices:
-- `me: PublicUser | null` — the result of `/users/me`. Distinct from the
-  admin-only `/users/list` cache because `me` is available to technicians
-  too and is what the bottom-nav reads.
-- Admin-only mutations (`CreateUser`, `UpdateUser`, `DeleteUser`) live here
-  too; non-admins will never dispatch them because their UI doesn't expose
-  them.
-
-> **Reusing AuthState.user vs UsersState.me?** AuthState owns the
-> currently-logged-in user (persisted, used by the interceptor/guard). The
-> `me` slice in UsersState is **not** duplicated — admin pages that list
-> users dispatch `LoadUsers` and read from `UsersState.list`; the bottom-nav
-> reads `AuthState.user`. No data lives in two slices.
+Same pattern. Extras:
+- `me: PublicUser | null` slice + `LoadMe` action wrapping
+  `UsersService.me()`. Note: `AuthState.user` already holds the current
+  user; `UsersState.me` is only used if admin pages need it separately.
+  Default: read from `AuthState.user`. Add `UsersState.me` only if a real
+  use case appears.
+- Admin-only mutations: `CreateUser`, `UpdateUser`, `DeleteUser`.
 
 ---
 
-## 7. `app.config.ts` — wiring
+## 9. `app/app.config.ts`
 
-**Update:** `frontend/src/app/app.config.ts`
+**Update:** `frontend/src/app/app.config.ts` — replace entire file.
 
 ```ts
 import {
@@ -724,39 +582,20 @@ export const appConfig: ApplicationConfig = {
 };
 ```
 
-Changes from current:
-- Adds `provideStore([...], withNgxsStoragePlugin(...), ...)`.
-- Adds `withInterceptors([authInterceptor])` to `provideHttpClient`.
-- Removes `importProvidersFrom(HttpClientModule)` — deprecated.
-
-### 7.1 NgXs packages to install
-
-Add to `frontend/package.json` dependencies (Angular 20 compatible
-versions — install the latest of each):
-
-- `@ngxs/store`
-- `@ngxs/storage-plugin`
-- `@ngxs/devtools-plugin`
-- `@ngxs/logger-plugin`
-
-```bash
-pnpm add @ngxs/store @ngxs/storage-plugin @ngxs/devtools-plugin @ngxs/logger-plugin
-```
-
-> NgXs v19+ ships the standalone `provideStore()` API used above. Earlier
-> versions used `NgxsModule.forRoot(...)` which is **not** compatible with
-> this plan.
+Diff from current: removes `importProvidersFrom(HttpClientModule)` (deprecated),
+adds `withInterceptors([authInterceptor])`, adds the entire `provideStore(...)`
+block.
 
 ---
 
-## 8. Environment configuration
+## 10. Environment files
 
 **Update:** `frontend/src/environments/environment.ts`
 
 ```ts
 export const environment = {
   production: true,
-  apiUrl: 'https://<cloudflare-workers-prod-url>', // fill in at deploy time
+  apiUrl: 'https://<cloudflare-workers-prod-url>', // fill at deploy time
 };
 ```
 
@@ -765,71 +604,51 @@ export const environment = {
 ```ts
 export const environment = {
   production: false,
-  apiUrl: 'http://127.0.0.1:8787', // default `wrangler dev` port
+  apiUrl: 'http://127.0.0.1:8787',
 };
 ```
 
-> The dev URL must match whatever port `pnpm wrangler dev` uses for the
-> backend worker. The implementing PR should also document the dev workflow
-> in the frontend README: "run `pnpm wrangler dev` in `/backend`, then
-> `pnpm start` in `/frontend`."
+> If `wrangler dev` uses a non-default port, update the dev URL to match.
 
 ---
 
-## 9. DTOs and types — file by file
+## 11. Files under `/app/data/` — every file in full
 
-This is the contract. Each block below is one folder under `/dtos/`. Inside
-each block, every file holds exactly one `export interface` or one
-`export type`. Use the barrel `index.ts` shown at the end of each block
-when importing from consumer code.
+Each block below is one entity folder. Create the files exactly as
+shown. The barrel `index.ts` is the last item in each folder.
 
-> **Source of truth:** these shapes are derived directly from the backend
-> zod schemas and route handlers in `/backend/test/*` and
-> `/backend/src/routes/*`. If a backend test ever disagrees with a DTO here,
-> the test wins — update this plan and the DTO.
-
-### 9.1 `dtos/api-error/`
+### 11.1 `app/data/dtos/api-error/`
 
 ```ts
-// dtos/api-error/api-error.type.ts
-import type { ReportStatus } from '../report/report-status.type';
+// app/data/dtos/api-error/api-error.dto.ts
+import type { ReportStatus } from '../../types/report';
 
 export interface ApiError {
-  error: string;          // machine code: 'not_found', 'invalid_credentials', ...
-  message?: string;       // optional human-readable detail
-  status?: ReportStatus;  // present on 'not_editable' / 'already_signed' / 'report_not_ready'
+  error: string;
+  message?: string;
+  status?: ReportStatus;
 }
 ```
 
 ```ts
-// dtos/api-error/as-api-error.ts
+// app/data/dtos/api-error/as-api-error.ts
 import type { HttpErrorResponse } from '@angular/common/http';
-import type { ApiError } from './api-error.type';
+import type { ApiError } from './api-error.dto';
 
 export const asApiError = (e: HttpErrorResponse): ApiError =>
   (e.error && typeof e.error === 'object' ? e.error : { error: 'unknown' }) as ApiError;
 ```
 
 ```ts
-// dtos/api-error/index.ts
-export type { ApiError } from './api-error.type';
+// app/data/dtos/api-error/index.ts
+export type { ApiError } from './api-error.dto';
 export { asApiError } from './as-api-error';
 ```
 
-Usage pattern in action handlers / components:
+### 11.2 `app/data/dtos/auth/`
 
 ```ts
-catchError((err: HttpErrorResponse) => {
-  const e = asApiError(err);
-  this.toast.show(e.message ?? e.error, 'error');
-  return EMPTY;
-});
-```
-
-### 9.2 `dtos/auth/`
-
-```ts
-// dtos/auth/login-request.dto.ts
+// app/data/dtos/auth/login-request.dto.ts
 export interface LoginRequest {
   email: string;
   password: string;
@@ -837,85 +656,68 @@ export interface LoginRequest {
 ```
 
 ```ts
-// dtos/auth/login-response.dto.ts
+// app/data/dtos/auth/login-response.dto.ts
 export interface LoginResponse {
   token: string;
 }
 ```
 
 ```ts
-// dtos/auth/index.ts
+// app/data/dtos/auth/index.ts
 export type { LoginRequest } from './login-request.dto';
 export type { LoginResponse } from './login-response.dto';
 ```
 
-> The backend's `/auth/login` returns **only** `{ token }`. The current
-> frontend assumes a `{ token, user: { role, email } }` shape (from the old
-> Vercel backend) — that must be removed. The new flow lives in the `Login`
-> action handler (§5.2): POST `/auth/login` → store token → GET `/users/me`
-> → store user. Components dispatch one action and the state ends in the
-> right shape.
-
-### 9.3 `dtos/jwt/`
+### 11.3 `app/data/dtos/jwt/`
 
 ```ts
-// dtos/jwt/jwt-payload.type.ts
-import type { UserType } from '../user/user-type.type';
+// app/data/dtos/jwt/jwt-payload.dto.ts
+import type { UserType } from '../../types/user';
 
 export interface JwtPayload {
-  sub: string;     // user UUID
-  role: UserType;  // wire field stays `role`; the type describing it is UserType
-  iat: number;     // epoch seconds
-  exp: number;     // epoch seconds
+  sub: string;
+  role: UserType;
+  iat: number;
+  exp: number;
 }
 ```
 
 ```ts
-// dtos/jwt/index.ts
-export type { JwtPayload } from './jwt-payload.type';
+// app/data/dtos/jwt/index.ts
+export type { JwtPayload } from './jwt-payload.dto';
 ```
 
-Replaces three inline duplicate definitions in:
-- `app/auth/auth-guard.ts` (which itself moves to `app/guards/auth-guard.ts`)
-- `app/pages/customer-add/customer-add.ts`
-- `app/pages/report-add/report-add.ts`
-
-### 9.4 `dtos/user/`
+### 11.4 `app/data/dtos/user/`
 
 ```ts
-// dtos/user/user-type.type.ts
-export type UserType = 'admin' | 'technician';
-```
-
-```ts
-// dtos/user/public-user.dto.ts
-import type { UserType } from './user-type.type';
+// app/data/dtos/user/public-user.dto.ts
+import type { UserType } from '../../types/user';
 
 export interface PublicUser {
   id: string;
   name: string;
   email: string;
   role: UserType;
-  createdAt: string;   // ISO datetime
-  updatedAt: string;   // ISO datetime
+  createdAt: string;
+  updatedAt: string;
 }
 ```
 
 ```ts
-// dtos/user/create-user-request.dto.ts
-import type { UserType } from './user-type.type';
+// app/data/dtos/user/create-user-request.dto.ts
+import type { UserType } from '../../types/user';
 
 export interface CreateUserRequest {
   name: string;
   email: string;
-  password: string;    // min 8 chars
+  password: string;
   role: UserType;
 }
 ```
 
 ```ts
-// dtos/user/update-user-request.dto.ts
-import type { UserType } from './user-type.type';
+// app/data/dtos/user/update-user-request.dto.ts
+import type { UserType } from '../../types/user';
 
 export interface UpdateUserRequest {
   name?: string;
@@ -926,7 +728,7 @@ export interface UpdateUserRequest {
 ```
 
 ```ts
-// dtos/user/user-response.dto.ts
+// app/data/dtos/user/user-response.dto.ts
 import type { PublicUser } from './public-user.dto';
 
 export interface UserResponse {
@@ -935,7 +737,7 @@ export interface UserResponse {
 ```
 
 ```ts
-// dtos/user/user-list-response.dto.ts
+// app/data/dtos/user/user-list-response.dto.ts
 import type { PublicUser } from './public-user.dto';
 
 export interface UserListResponse {
@@ -944,7 +746,7 @@ export interface UserListResponse {
 ```
 
 ```ts
-// dtos/user/delete-user-response.dto.ts
+// app/data/dtos/user/delete-user-response.dto.ts
 export interface DeleteUserResponse {
   id: string;
   deleted: true;
@@ -952,8 +754,7 @@ export interface DeleteUserResponse {
 ```
 
 ```ts
-// dtos/user/index.ts
-export type { UserType } from './user-type.type';
+// app/data/dtos/user/index.ts
 export type { PublicUser } from './public-user.dto';
 export type { CreateUserRequest } from './create-user-request.dto';
 export type { UpdateUserRequest } from './update-user-request.dto';
@@ -962,10 +763,10 @@ export type { UserListResponse } from './user-list-response.dto';
 export type { DeleteUserResponse } from './delete-user-response.dto';
 ```
 
-### 9.5 `dtos/customer/`
+### 11.5 `app/data/dtos/customer/`
 
 ```ts
-// dtos/customer/customer-row.dto.ts
+// app/data/dtos/customer/customer-row.dto.ts
 export interface CustomerRow {
   id: string;
   name: string;
@@ -979,7 +780,7 @@ export interface CustomerRow {
 ```
 
 ```ts
-// dtos/customer/create-customer-request.dto.ts
+// app/data/dtos/customer/create-customer-request.dto.ts
 export interface CreateCustomerRequest {
   name: string;
   identification?: string;
@@ -990,14 +791,14 @@ export interface CreateCustomerRequest {
 ```
 
 ```ts
-// dtos/customer/update-customer-request.dto.ts
+// app/data/dtos/customer/update-customer-request.dto.ts
 import type { CreateCustomerRequest } from './create-customer-request.dto';
 
 export type UpdateCustomerRequest = Partial<CreateCustomerRequest>;
 ```
 
 ```ts
-// dtos/customer/customer-response.dto.ts
+// app/data/dtos/customer/customer-response.dto.ts
 import type { CustomerRow } from './customer-row.dto';
 
 export interface CustomerResponse {
@@ -1006,7 +807,7 @@ export interface CustomerResponse {
 ```
 
 ```ts
-// dtos/customer/customer-list-response.dto.ts
+// app/data/dtos/customer/customer-list-response.dto.ts
 import type { CustomerRow } from './customer-row.dto';
 
 export interface CustomerListResponse {
@@ -1015,7 +816,7 @@ export interface CustomerListResponse {
 ```
 
 ```ts
-// dtos/customer/delete-customer-response.dto.ts
+// app/data/dtos/customer/delete-customer-response.dto.ts
 export interface DeleteCustomerResponse {
   id: string;
   deleted: true;
@@ -1023,7 +824,7 @@ export interface DeleteCustomerResponse {
 ```
 
 ```ts
-// dtos/customer/index.ts
+// app/data/dtos/customer/index.ts
 export type { CustomerRow } from './customer-row.dto';
 export type { CreateCustomerRequest } from './create-customer-request.dto';
 export type { UpdateCustomerRequest } from './update-customer-request.dto';
@@ -1032,38 +833,11 @@ export type { CustomerListResponse } from './customer-list-response.dto';
 export type { DeleteCustomerResponse } from './delete-customer-response.dto';
 ```
 
-### 9.6 `dtos/report/`
-
-Largest folder. Grouped here by purpose for readability — actual files are
-flat in the folder.
-
-**Enums:**
+### 11.6 `app/data/dtos/report/`
 
 ```ts
-// dtos/report/report-type.type.ts
-export type ReportType = 'minisplit' | 'chiller' | 'uma';
-```
-
-```ts
-// dtos/report/report-status.type.ts
-// Lifecycle:
-//   'created' → 'in-progress' (auto on first PATCH or picture upload)
-//   → 'finished' (after signature; locked)
-//   → 'mailed' (auto after first email send; locked)
-// Editable: 'created', 'in-progress'.
-export type ReportStatus =
-  | 'created'
-  | 'in-progress'
-  | 'finished'
-  | 'mailed';
-```
-
-**Report `data` blob (one file per equipment type, plus a union):**
-
-```ts
-// dtos/report/minisplit-data.type.ts
-// snake_case fields are deliberate — they round-trip verbatim through
-// report_details.data (JSONB) on the backend.
+// app/data/dtos/report/minisplit-data.dto.ts
+// snake_case is deliberate — round-trips verbatim through report_details.data (JSONB)
 export interface MinisplitData {
   is_operating: boolean;
   remote_working: boolean;
@@ -1076,7 +850,7 @@ export interface MinisplitData {
 ```
 
 ```ts
-// dtos/report/chiller-data.type.ts
+// app/data/dtos/report/chiller-data.dto.ts
 export interface ChillerData {
   is_operating: boolean;
   inner_temperature: string;
@@ -1096,7 +870,7 @@ export interface ChillerData {
 ```
 
 ```ts
-// dtos/report/uma-data.type.ts
+// app/data/dtos/report/uma-data.dto.ts
 export interface UmaData {
   is_operating: boolean;
   air_band_adjustment: boolean;
@@ -1111,30 +885,27 @@ export interface UmaData {
 ```
 
 ```ts
-// dtos/report/report-data.type.ts
-import type { MinisplitData } from './minisplit-data.type';
-import type { ChillerData } from './chiller-data.type';
-import type { UmaData } from './uma-data.type';
+// app/data/dtos/report/report-data.dto.ts
+import type { MinisplitData } from './minisplit-data.dto';
+import type { ChillerData } from './chiller-data.dto';
+import type { UmaData } from './uma-data.dto';
 
 export type ReportData = MinisplitData | ChillerData | UmaData;
 ```
 
-**Row shapes:**
-
 ```ts
-// dtos/report/report-row.dto.ts
-import type { ReportType } from './report-type.type';
-import type { ReportStatus } from './report-status.type';
+// app/data/dtos/report/report-row.dto.ts
+import type { ReportType, ReportStatus } from '../../types/report';
 
 export interface ReportRow {
-  id: string;                          // format: R-YYYYMMDD-NNNN
+  id: string;                  // format: R-YYYYMMDD-NNNN
   reportType: ReportType;
   workType: string | null;
   dateArrival: string | null;
   dateDeparture: string | null;
-  createdBy: string;                   // user UUID
-  assignedTo: string;                  // user UUID
-  clientId: string;                    // customer UUID
+  createdBy: string;
+  assignedTo: string;
+  clientId: string;
   signedBy: string | null;
   status: ReportStatus;
   signedAt: string | null;
@@ -1146,40 +917,38 @@ export interface ReportRow {
 ```
 
 ```ts
-// dtos/report/report-detail-row.dto.ts
-import type { ReportData } from './report-data.type';
+// app/data/dtos/report/report-detail-row.dto.ts
+import type { ReportData } from './report-data.dto';
 
 export interface ReportDetailRow {
   reportId: string;
   data: ReportData;
-  pictures: string[];                  // CDN URLs
-  signature: string | null;            // CDN URL
+  pictures: string[];
+  signature: string | null;
   contentFilledAt: string | null;
   updatedAt: string;
 }
 ```
 
-**Query and write payloads:**
-
 ```ts
-// dtos/report/report-list-query.dto.ts
-import type { ReportStatus } from './report-status.type';
+// app/data/dtos/report/report-list-query.dto.ts
+import type { ReportStatus } from '../../types/report';
 
 export interface ReportListQuery {
   status?: ReportStatus;
   client_id?: string;
-  assigned_to?: string;                // admin-only; technicians auto-scoped to own
+  assigned_to?: string;        // admin-only; technicians auto-scoped
   work_type?: string;
-  folio?: string;                      // prefix match on report id
+  folio?: string;
   date_from?: string;
   date_to?: string;
 }
 ```
 
 ```ts
-// dtos/report/create-report-fields.dto.ts
-import type { ReportType } from './report-type.type';
-import type { ReportData } from './report-data.type';
+// app/data/dtos/report/create-report-fields.dto.ts
+import type { ReportType } from '../../types/report';
+import type { ReportData } from './report-data.dto';
 
 export interface CreateReportFields {
   report_type: ReportType;
@@ -1187,9 +956,9 @@ export interface CreateReportFields {
   client_id: string;
   date_arrival?: string;
   date_departure?: string;
-  assigned_to?: string;                // admin only
+  assigned_to?: string;        // admin only
   signed_by?: string;
-  data: ReportData;                    // service serializes to JSON
+  data: ReportData;            // service serializes to JSON
   pictures?: File[];
   signature?: File;
   signature_base64?: string;
@@ -1197,8 +966,8 @@ export interface CreateReportFields {
 ```
 
 ```ts
-// dtos/report/update-report-request.dto.ts
-import type { ReportData } from './report-data.type';
+// app/data/dtos/report/update-report-request.dto.ts
+import type { ReportData } from './report-data.dto';
 
 export interface UpdateReportRequest {
   work_type?: string;
@@ -1210,14 +979,14 @@ export interface UpdateReportRequest {
 ```
 
 ```ts
-// dtos/report/update-assignee-request.dto.ts
+// app/data/dtos/report/update-assignee-request.dto.ts
 export interface UpdateAssigneeRequest {
   assigned_to: string;
 }
 ```
 
 ```ts
-// dtos/report/add-signature-fields.dto.ts
+// app/data/dtos/report/add-signature-fields.dto.ts
 export interface AddSignatureFields {
   signed_by: string;
   signature?: File;
@@ -1226,16 +995,14 @@ export interface AddSignatureFields {
 ```
 
 ```ts
-// dtos/report/delete-pictures-request.dto.ts
+// app/data/dtos/report/delete-pictures-request.dto.ts
 export interface DeletePicturesRequest {
   urls: string[];
 }
 ```
 
-**Response envelopes:**
-
 ```ts
-// dtos/report/report-response.dto.ts
+// app/data/dtos/report/report-response.dto.ts
 import type { ReportRow } from './report-row.dto';
 import type { ReportDetailRow } from './report-detail-row.dto';
 
@@ -1246,7 +1013,7 @@ export interface ReportResponse {
 ```
 
 ```ts
-// dtos/report/report-header-response.dto.ts
+// app/data/dtos/report/report-header-response.dto.ts
 import type { ReportRow } from './report-row.dto';
 
 export interface ReportHeaderResponse {
@@ -1255,7 +1022,7 @@ export interface ReportHeaderResponse {
 ```
 
 ```ts
-// dtos/report/report-details-response.dto.ts
+// app/data/dtos/report/report-details-response.dto.ts
 import type { ReportDetailRow } from './report-detail-row.dto';
 
 export interface ReportDetailsResponse {
@@ -1264,7 +1031,7 @@ export interface ReportDetailsResponse {
 ```
 
 ```ts
-// dtos/report/report-list-response.dto.ts
+// app/data/dtos/report/report-list-response.dto.ts
 import type { ReportRow } from './report-row.dto';
 
 export interface ReportListResponse {
@@ -1273,23 +1040,19 @@ export interface ReportListResponse {
 ```
 
 ```ts
-// dtos/report/delete-report-response.dto.ts
+// app/data/dtos/report/delete-report-response.dto.ts
 export interface DeleteReportResponse {
   id: string;
   deleted: true;
 }
 ```
 
-**Barrel:**
-
 ```ts
-// dtos/report/index.ts
-export type { ReportType } from './report-type.type';
-export type { ReportStatus } from './report-status.type';
-export type { MinisplitData } from './minisplit-data.type';
-export type { ChillerData } from './chiller-data.type';
-export type { UmaData } from './uma-data.type';
-export type { ReportData } from './report-data.type';
+// app/data/dtos/report/index.ts
+export type { MinisplitData } from './minisplit-data.dto';
+export type { ChillerData } from './chiller-data.dto';
+export type { UmaData } from './uma-data.dto';
+export type { ReportData } from './report-data.dto';
 export type { ReportRow } from './report-row.dto';
 export type { ReportDetailRow } from './report-detail-row.dto';
 export type { ReportListQuery } from './report-list-query.dto';
@@ -1305,10 +1068,10 @@ export type { ReportListResponse } from './report-list-response.dto';
 export type { DeleteReportResponse } from './delete-report-response.dto';
 ```
 
-### 9.7 `dtos/report-email/`
+### 11.7 `app/data/dtos/report-email/`
 
 ```ts
-// dtos/report-email/report-email-row.dto.ts
+// app/data/dtos/report-email/report-email-row.dto.ts
 export interface ReportEmailRow {
   id: string;
   reportId: string;
@@ -1324,17 +1087,17 @@ export interface ReportEmailRow {
 ```
 
 ```ts
-// dtos/report-email/send-report-email-request.dto.ts
+// app/data/dtos/report-email/send-report-email-request.dto.ts
 export interface SendReportEmailRequest {
   to?: string;
   cc?: string[];
-  expiresInDays?: number;              // 1..365
-  message?: string;                    // <= 2000 chars
+  expiresInDays?: number;       // 1..365
+  message?: string;             // <= 2000 chars
 }
 ```
 
 ```ts
-// dtos/report-email/send-report-email-response.dto.ts
+// app/data/dtos/report-email/send-report-email-response.dto.ts
 export interface SendReportEmailResponse {
   emailId: string;
   sentAt: string;
@@ -1342,7 +1105,7 @@ export interface SendReportEmailResponse {
 ```
 
 ```ts
-// dtos/report-email/report-email-list-response.dto.ts
+// app/data/dtos/report-email/report-email-list-response.dto.ts
 import type { ReportEmailRow } from './report-email-row.dto';
 
 export interface ReportEmailListResponse {
@@ -1351,7 +1114,7 @@ export interface ReportEmailListResponse {
 ```
 
 ```ts
-// dtos/report-email/revoke-email-response.dto.ts
+// app/data/dtos/report-email/revoke-email-response.dto.ts
 export interface RevokeEmailResponse {
   id: string;
   revoked: true;
@@ -1359,7 +1122,7 @@ export interface RevokeEmailResponse {
 ```
 
 ```ts
-// dtos/report-email/index.ts
+// app/data/dtos/report-email/index.ts
 export type { ReportEmailRow } from './report-email-row.dto';
 export type { SendReportEmailRequest } from './send-report-email-request.dto';
 export type { SendReportEmailResponse } from './send-report-email-response.dto';
@@ -1367,46 +1130,78 @@ export type { ReportEmailListResponse } from './report-email-list-response.dto';
 export type { RevokeEmailResponse } from './revoke-email-response.dto';
 ```
 
-### 9.8 `dtos/upload/`
+### 11.8 `app/data/dtos/upload/`
 
 ```ts
-// dtos/upload/upload-image-response.dto.ts
+// app/data/dtos/upload/upload-image-response.dto.ts
 export interface UploadImageResponse {
-  url: string;     // CDN URL
-  key: string;     // R2 object key (reports/<ms>-<sanitized-name>)
+  url: string;
+  key: string;
 }
 ```
 
 ```ts
-// dtos/upload/index.ts
+// app/data/dtos/upload/index.ts
 export type { UploadImageResponse } from './upload-image-response.dto';
 ```
 
+### 11.9 `app/data/types/user/`
+
+```ts
+// app/data/types/user/user-type.type.ts
+export type UserType = 'admin' | 'technician';
+```
+
+```ts
+// app/data/types/user/index.ts
+export type { UserType } from './user-type.type';
+```
+
+### 11.10 `app/data/types/report/`
+
+```ts
+// app/data/types/report/report-type.type.ts
+export type ReportType = 'minisplit' | 'chiller' | 'uma';
+```
+
+```ts
+// app/data/types/report/report-status.type.ts
+// Lifecycle:
+//   created → in-progress (auto on first PATCH or picture upload)
+//   → finished (after signature; locked)
+//   → mailed (auto after first email send; locked)
+// Editable statuses: 'created', 'in-progress'.
+export type ReportStatus =
+  | 'created'
+  | 'in-progress'
+  | 'finished'
+  | 'mailed';
+```
+
+```ts
+// app/data/types/report/index.ts
+export type { ReportType } from './report-type.type';
+export type { ReportStatus } from './report-status.type';
+```
+
+### 11.11 `app/data/interfaces/` and reserved folders
+
+Create empty folders with `.gitkeep`:
+- `frontend/src/app/data/interfaces/.gitkeep`
+- `frontend/src/app/directives/.gitkeep`
+- `frontend/src/app/pipes/.gitkeep`
+
 ---
 
-## 10. HTTP services
+## 12. HTTP services
 
-Every service in `/http` uses `inject(RemoteService)` and exposes one method
-per backend endpoint. No overloads. No alternative shapes. The method name
-mirrors the action; the parameter names mirror the path/body.
-
-**These services are called from `@Action` handlers inside the NgXs states,
-not directly from components.** A component imports an action class,
-dispatches it, and selects the result. The only exception is the public PDF
-download (`ReportsService.downloadByToken`), which has no associated state
-slice (the file is consumed once and discarded).
-
-**Imports come from the per-entity barrels.** Don't import individual DTO
-files into services — go through the `dtos/<entity>/index.ts` barrel so the
-import list is one line per entity.
-
-### 10.1 `http/auth.service.ts`
+### 12.1 `http/auth.service.ts`
 
 ```ts
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
-import type { LoginRequest, LoginResponse } from '../dtos/auth';
+import type { LoginRequest, LoginResponse } from '../app/data/dtos/auth';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -1418,7 +1213,7 @@ export class AuthService {
 }
 ```
 
-### 10.2 `http/users.service.ts`
+### 12.2 `http/users.service.ts`
 
 ```ts
 import { inject, Injectable } from '@angular/core';
@@ -1427,7 +1222,7 @@ import { RemoteService } from './remote.service';
 import type {
   CreateUserRequest, UpdateUserRequest,
   UserResponse, UserListResponse, DeleteUserResponse,
-} from '../dtos/user';
+} from '../app/data/dtos/user';
 
 @Injectable({ providedIn: 'root' })
 export class UsersService {
@@ -1442,7 +1237,7 @@ export class UsersService {
 }
 ```
 
-### 10.3 `http/customers.service.ts`
+### 12.3 `http/customers.service.ts`
 
 ```ts
 import { inject, Injectable } from '@angular/core';
@@ -1451,7 +1246,7 @@ import { RemoteService } from './remote.service';
 import type {
   CreateCustomerRequest, UpdateCustomerRequest,
   CustomerResponse, CustomerListResponse, DeleteCustomerResponse,
-} from '../dtos/customer';
+} from '../app/data/dtos/customer';
 
 @Injectable({ providedIn: 'root' })
 export class CustomersService {
@@ -1465,11 +1260,7 @@ export class CustomersService {
 }
 ```
 
-### 10.4 `http/reports.service.ts`
-
-The largest service. Some endpoints are multipart, some are JSON. Keep the
-form-building logic inside the service so callers (the action handlers) pass
-plain objects.
+### 12.4 `http/reports.service.ts`
 
 ```ts
 import { inject, Injectable } from '@angular/core';
@@ -1481,11 +1272,11 @@ import type {
   AddSignatureFields, DeletePicturesRequest,
   ReportResponse, ReportHeaderResponse, ReportDetailsResponse,
   ReportListResponse, DeleteReportResponse,
-} from '../dtos/report';
+} from '../app/data/dtos/report';
 import type {
   SendReportEmailRequest, SendReportEmailResponse,
   ReportEmailListResponse, RevokeEmailResponse,
-} from '../dtos/report-email';
+} from '../app/data/dtos/report-email';
 
 const appendIf = (fd: FormData, k: string, v: unknown): void => {
   if (v === undefined || v === null || v === '') return;
@@ -1499,11 +1290,9 @@ export class ReportsService {
   list(query?: ReportListQuery): Observable<ReportListResponse> {
     return this.remote.get<ReportListResponse>('/reports', query);
   }
-
   get(id: string): Observable<ReportResponse> {
     return this.remote.get<ReportResponse>(`/reports/${id}`);
   }
-
   create(fields: CreateReportFields): Observable<ReportResponse> {
     const fd = new FormData();
     appendIf(fd, 'report_type', fields.report_type);
@@ -1519,15 +1308,12 @@ export class ReportsService {
     appendIf(fd, 'signature_base64', fields.signature_base64);
     return this.remote.postForm<ReportResponse>('/reports', fd);
   }
-
   update(id: string, body: UpdateReportRequest): Observable<ReportResponse> {
     return this.remote.patch<ReportResponse>(`/reports/${id}`, body);
   }
-
   setAssignee(id: string, body: UpdateAssigneeRequest): Observable<ReportHeaderResponse> {
     return this.remote.put<ReportHeaderResponse>(`/reports/${id}/assignee`, body);
   }
-
   addSignature(id: string, fields: AddSignatureFields): Observable<ReportResponse> {
     const fd = new FormData();
     fd.set('signed_by', fields.signed_by);
@@ -1535,50 +1321,39 @@ export class ReportsService {
     appendIf(fd, 'signature_base64', fields.signature_base64);
     return this.remote.putForm<ReportResponse>(`/reports/${id}/signature`, fd);
   }
-
   addPictures(id: string, pictures: File[]): Observable<ReportDetailsResponse> {
     const fd = new FormData();
     for (const pic of pictures) fd.append('pictures', pic);
     return this.remote.putForm<ReportDetailsResponse>(`/reports/${id}/pictures`, fd);
   }
-
   removePictures(id: string, body: DeletePicturesRequest): Observable<ReportDetailsResponse> {
     return this.remote.delete<ReportDetailsResponse>(`/reports/${id}/pictures`, body);
   }
-
   remove(id: string): Observable<DeleteReportResponse> {
     return this.remote.delete<DeleteReportResponse>(`/reports/${id}`);
   }
-
-  // — Email subresource —
-
   sendEmail(id: string, body: SendReportEmailRequest): Observable<SendReportEmailResponse> {
     return this.remote.post<SendReportEmailResponse>(`/reports/${id}/email`, body);
   }
-
   listEmails(id: string): Observable<ReportEmailListResponse> {
     return this.remote.get<ReportEmailListResponse>(`/reports/${id}/emails`);
   }
-
   revokeEmail(emailId: string): Observable<RevokeEmailResponse> {
     return this.remote.post<RevokeEmailResponse>(`/reports/emails/${emailId}/revoke`, {});
   }
-
-  // — Public PDF download (no auth required, token is in URL) —
-
   downloadByToken(token: string): Observable<Blob> {
     return this.remote.getBlob(`/reports/download/${token}`);
   }
 }
 ```
 
-### 10.5 `http/upload.service.ts`
+### 12.5 `http/upload.service.ts`
 
 ```ts
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
-import type { UploadImageResponse } from '../dtos/upload';
+import type { UploadImageResponse } from '../app/data/dtos/upload';
 
 @Injectable({ providedIn: 'root' })
 export class UploadService {
@@ -1592,318 +1367,423 @@ export class UploadService {
 }
 ```
 
-> Upload is the one HTTP service with no matching state slice — uploads are
-> fire-and-forget from the component's perspective (the resulting URL is
-> immediately handed to a report `Create`/`AddPictures` action). If a future
-> feature needs an upload history or progress dashboard, add an
-> `UploadsState`.
-
 ---
 
-## 11. Theme services
-
-`frontend/src/theme/` holds UI services with no network involvement and no
-NgXs state — purely ephemeral browser-side concerns. Today that's just
-`toast.service.ts`; future additions (modal manager, loading spinner, etc.)
-that don't justify a state slice go here too.
+## 13. Theme services
 
 ### `theme/toast.service.ts`
 
-Moved verbatim from `services/toast.service.ts`. No code change — only the
-file location and import paths change. After the move, delete the
-now-empty `services/` folder.
-
-> Tempting alternative: model toasts as NgXs state. Skipped for now because
-> toasts are fire-and-forget with a 3s lifetime and no other slice needs to
-> observe them. Revisit if cross-feature replay/queue logic appears.
+Move `frontend/src/services/toast.service.ts` to
+`frontend/src/theme/toast.service.ts` **verbatim** (no code change).
+Update all importers to point at the new path.
 
 ---
 
-## 12. Migration: add / update / remove
+## 14. Pre-existing files: delete / update inventory
 
-### 12.1 ADD (new files)
+### 14.1 DELETE
 
-**`/http/`:**
-
-| Path | Purpose |
+| Path | Reason |
 | --- | --- |
-| `frontend/src/http/remote.service.ts` | HttpClient wrapper |
-| `frontend/src/http/auth.service.ts` | `/auth/login` |
-| `frontend/src/http/users.service.ts` | `/users/*` |
-| `frontend/src/http/customers.service.ts` | `/customers/*` |
-| `frontend/src/http/reports.service.ts` | `/reports/*` |
-| `frontend/src/http/upload.service.ts` | `/upload/image` |
+| `frontend/src/app/auth/auth-guard.ts` | Replaced by `app/guards/auth-guard.ts` |
+| `frontend/src/app/auth/` (empty folder) | No other contents |
+| `frontend/src/services/customers.ts` | Replaced by `http/customers.service.ts` + `CustomersState` |
+| `frontend/src/services/reports.ts` | Replaced by `http/reports.service.ts` + `ReportsState` |
+| `frontend/src/services/toast.service.ts` | Moved to `theme/toast.service.ts` |
+| `frontend/src/services/` (empty folder) | All contents moved |
+| Inline `JwtPayload` in `app/pages/customer-add/customer-add.ts` | Use `from '../../data/dtos/jwt'` |
+| Inline `JwtPayload` in `app/pages/report-add/report-add.ts` | Same |
+| Inline `Customer` interface in `services/customers.ts` (file is being deleted anyway) | Use `CustomerRow` from DTOs |
+| `importProvidersFrom(HttpClientModule)` in `app.config.ts` | Deprecated |
+| `console.log` calls in old `auth-guard.ts` (file being deleted anyway) | — |
+| Any `https://manttio.vercel.app/api/` string | Replaced by CF Workers URL in env files |
+| Any `localStorage.getItem('token' \| 'role' \| 'email')` or matching setters/removers outside `@ngxs/storage-plugin`'s internals | NgXs is the only persistence layer |
 
-**`/app/`:**
-
-| Path | Purpose |
-| --- | --- |
-| `frontend/src/app/interceptors/auth.interceptor.ts` | Bearer header + 401 → `Logout` |
-| `frontend/src/app/guards/auth-guard.ts` | Functional `authGuard` (replaces `app/auth/auth-guard.ts`) |
-| `frontend/src/app/directives/.gitkeep` | Reserve folder for future custom directives |
-| `frontend/src/app/pipes/.gitkeep` | Reserve folder for future custom pipes |
-
-**`/state/`:**
-
-| Path | Purpose |
-| --- | --- |
-| `frontend/src/state/auth/auth.state.ts` | AuthState (persisted) |
-| `frontend/src/state/auth/auth.actions.ts` | `Login`, `LoadCurrentUser`, `Logout` |
-| `frontend/src/state/users/users.state.ts` | UsersState |
-| `frontend/src/state/users/users.actions.ts` | `LoadUsers`, `LoadUser`, `CreateUser`, `UpdateUser`, `DeleteUser` |
-| `frontend/src/state/customers/customers.state.ts` | CustomersState |
-| `frontend/src/state/customers/customers.actions.ts` | `LoadCustomers`, `LoadCustomer`, `SelectCustomer`, `CreateCustomer`, `UpdateCustomer`, `DeleteCustomer` |
-| `frontend/src/state/reports/reports.state.ts` | ReportsState (entities + details + query) |
-| `frontend/src/state/reports/reports.actions.ts` | `LoadReports`, `LoadReport`, `CreateReport`, `UpdateReport`, `SetAssignee`, `AddSignature`, `AddPictures`, `RemovePictures`, `DeleteReport`, `SendReportEmail`, `LoadReportEmails`, `RevokeReportEmail`, `SetReportsQuery` |
-
-**`/dtos/` — one file per type, grouped by entity:**
-
-| Folder | Files |
-| --- | --- |
-| `dtos/api-error/` | `api-error.type.ts`, `as-api-error.ts`, `index.ts` |
-| `dtos/auth/` | `login-request.dto.ts`, `login-response.dto.ts`, `index.ts` |
-| `dtos/jwt/` | `jwt-payload.type.ts`, `index.ts` |
-| `dtos/user/` | `user-type.type.ts`, `public-user.dto.ts`, `create-user-request.dto.ts`, `update-user-request.dto.ts`, `user-response.dto.ts`, `user-list-response.dto.ts`, `delete-user-response.dto.ts`, `index.ts` |
-| `dtos/customer/` | `customer-row.dto.ts`, `create-customer-request.dto.ts`, `update-customer-request.dto.ts`, `customer-response.dto.ts`, `customer-list-response.dto.ts`, `delete-customer-response.dto.ts`, `index.ts` |
-| `dtos/report/` | `report-type.type.ts`, `report-status.type.ts`, `minisplit-data.type.ts`, `chiller-data.type.ts`, `uma-data.type.ts`, `report-data.type.ts`, `report-row.dto.ts`, `report-detail-row.dto.ts`, `report-list-query.dto.ts`, `create-report-fields.dto.ts`, `update-report-request.dto.ts`, `update-assignee-request.dto.ts`, `add-signature-fields.dto.ts`, `delete-pictures-request.dto.ts`, `report-response.dto.ts`, `report-header-response.dto.ts`, `report-details-response.dto.ts`, `report-list-response.dto.ts`, `delete-report-response.dto.ts`, `index.ts` |
-| `dtos/report-email/` | `report-email-row.dto.ts`, `send-report-email-request.dto.ts`, `send-report-email-response.dto.ts`, `report-email-list-response.dto.ts`, `revoke-email-response.dto.ts`, `index.ts` |
-| `dtos/upload/` | `upload-image-response.dto.ts`, `index.ts` |
-
-Totals: 42 type/interface files + 8 barrels + 1 helper = 51 files under
-`/dtos/`. The split is intentional — each type has its own grep target and
-its own diff line.
-
-**`/theme/`:**
-
-| Path | Purpose |
-| --- | --- |
-| `frontend/src/theme/toast.service.ts` | Moved from `/services` |
-
-### 12.2 UPDATE (existing files)
+### 14.2 UPDATE (touched by various PRs)
 
 | Path | Change |
 | --- | --- |
 | `frontend/package.json` | Add `@ngxs/store`, `@ngxs/storage-plugin`, `@ngxs/devtools-plugin`, `@ngxs/logger-plugin` |
-| `frontend/src/app/app.config.ts` | Replace providers per §7 (adds `provideStore` + plugins; interceptor imported from `./interceptors/auth.interceptor`) |
-| `frontend/src/app/app.routes.ts` | Replace `canActivate: [AuthGuard]` (class) with `canActivate: [authGuard]` (function); update import to `./guards/auth-guard` |
-| `frontend/src/environments/environment.ts` | Production CF Workers URL |
-| `frontend/src/environments/environment.development.ts` | `production: false`, `apiUrl: 'http://127.0.0.1:8787'` |
-| `frontend/src/app/pages/login/*` | Dispatch `new Login({ email, password })`; remove direct HttpClient calls and any `localStorage.setItem('token', ...)` |
+| `frontend/src/app/app.config.ts` | See §9 |
+| `frontend/src/app/app.routes.ts` | Replace `canActivate: [AuthGuard]` (class) with `canActivate: [authGuard]` (function); import from `./guards/auth-guard` |
+| `frontend/src/environments/environment.ts` | See §10 |
+| `frontend/src/environments/environment.development.ts` | See §10 |
+| `frontend/src/app/pages/login/*` | Dispatch `new Login({ email, password })`; remove direct HttpClient calls and any `localStorage.setItem` |
 | `frontend/src/app/pages/register/*` | Dispatch `new CreateUser(payload)`; remove direct HttpClient/fetch |
-| `frontend/src/app/pages/customer-add/customer-add.ts` | Dispatch `new CreateCustomer(payload)`; remove inline `JwtPayload` (use `dtos/jwt`); remove `localStorage` reads (use `select(AuthState.user)`) |
+| `frontend/src/app/pages/customer-add/customer-add.ts` | Dispatch `new CreateCustomer(payload)`; remove inline `JwtPayload`; remove `localStorage` reads (use `select(AuthState.user)`) |
 | `frontend/src/app/pages/reports/*` | Dispatch `new SetReportsQuery(filter)` + `new LoadReports()`; select `ReportsState.list` and `.loading` |
-| `frontend/src/app/pages/report-add/report-add.ts` | Dispatch `new CreateReport(fields)`; remove inline `JwtPayload`; remove manual `FormData` building |
-| `frontend/src/app/pages/report-detail/*` | Dispatch `new LoadReport(id)`, `new UpdateReport(id, payload)`, `new AddSignature(...)`, `new AddPictures(...)`, `new RemovePictures(...)`, `new SendReportEmail(id, ...)`; select `ReportsState.byId(id)` + details slice |
-| `frontend/src/app/shared/bottom-nav/*` | Read role/email via `select(AuthState.role)` and `select(AuthState.email)`; logout dispatches `new Logout()` |
-| All remaining `frontend/src/app/**` files importing from `../../services/*` | Update imports to `/http/*`, `/theme/*`, or use NgXs dispatches |
+| `frontend/src/app/pages/report-add/report-add.ts` | Dispatch `new CreateReport(fields)`; remove inline `JwtPayload`; remove manual FormData building |
+| `frontend/src/app/pages/report-detail/*` | Dispatch `LoadReport`, `UpdateReport`, `AddSignature`, `AddPictures`, `RemovePictures`, `SendReportEmail`; select `ReportsState.byId(id)` and details |
+| `frontend/src/app/shared/bottom-nav/*` | Read `select(AuthState.role)` / `select(AuthState.email)`; logout dispatches `new Logout()` |
 
-### 12.3 REMOVE (deletions)
+### 14.3 Wire/data behavioral changes the executor must notice
 
-| Path | Reason |
-| --- | --- |
-| `frontend/src/app/auth/auth-guard.ts` | Replaced by `frontend/src/app/guards/auth-guard.ts` (functional) |
-| `frontend/src/app/auth/` (empty folder) | Delete once `auth-guard.ts` moves out — no other contents |
-| `frontend/src/services/customers.ts` | Replaced by `http/customers.service.ts` + `CustomersState` |
-| `frontend/src/services/reports.ts` | Replaced by `http/reports.service.ts` + `ReportsState` |
-| `frontend/src/services/toast.service.ts` | Moved to `theme/toast.service.ts` |
-| `frontend/src/services/` (empty folder) | Delete once contents migrated |
-| Inline `JwtPayload` in the old `app/auth/auth-guard.ts` | Replaced by import from `dtos/jwt` |
-| Inline `JwtPayload` in `app/pages/customer-add/customer-add.ts` | Same |
-| Inline `JwtPayload` in `app/pages/report-add/report-add.ts` | Same |
-| Inline `Customer` interface in `services/customers.ts` | Replaced by `dtos/customer/customer-row.dto.ts` (shape changes — adds `createdAt`/`updatedAt`, fields become nullable) |
-| All `localStorage.getItem/setItem/removeItem` calls outside the storage plugin | NgXs + `@ngxs/storage-plugin` is the only persistence mechanism |
-| `importProvidersFrom(HttpClientModule)` in `app.config.ts` | Deprecated; redundant with `provideHttpClient` |
-| `https://manttio.vercel.app/api/` references | Replaced by Cloudflare Workers URL in env files |
-| `console.log` debug calls in the old `auth-guard.ts` | Cleanup; no longer needed once flow is verified |
-
-### 12.4 Type / interface / data changes the implementer must notice
-
-- **`Customer.identification | phone | email | observation`** are now
-  `string | null` (were `string`). All consumers should narrow before
-  rendering.
-- **Role storage** changes from the legacy `'true'/'false'` (meaning
-  `is_admin`) in `localStorage` to `'admin'/'technician'` inside
-  `AuthState.user.role`. Every reader of `localStorage.getItem('role')`
-  becomes `store.select(AuthState.role)`. The auth migration PR must do
-  this atomically — there is no compatibility shim.
-- **`UserRole` → `UserType` (frontend type name only).** The wire field
-  stays `role`. Internal references like `role: UserRole` become
-  `role: UserType`.
-- **Login response** drops the inline `user` object. Login becomes a
-  two-step flow inside the `Login` action handler.
-- **Report `data` field** is now strongly typed via the discriminated union
-  `ReportData`. Components that read `report.details.data.X` get
-  IntelliSense but must narrow on `reportType` first when a specific field
-  is needed:
+- **`Customer` field nullability:** `identification`, `phone`, `email`,
+  `observation` are now `string | null`. Narrow before rendering.
+- **Role storage value:** legacy `localStorage` stored `'true'/'false'`
+  (meaning `is_admin`). New value lives at `AuthState.user.role` and is
+  `'admin' \| 'technician'`. No compatibility shim.
+- **Login response:** new backend returns only `{ token }`. The `Login`
+  action handler does the two-step flow (login → `/users/me` → store
+  user).
+- **`ReportData` is discriminated by `reportType`:** narrow before
+  reading specific fields:
   ```ts
   if (report.reportType === 'minisplit') {
     const d = details.data as MinisplitData;
-    // d.amperage, d.filter, etc.
   }
   ```
 
 ---
 
-## 13. Implementation roadmap (PR sequence)
+## 15. PR Roadmap
 
-Each PR is independently shippable and reviewable. Order matters — later PRs
-depend on the foundation laid by earlier ones.
+Each PR below has: **Goal**, **Checklist** (tick items as you do them
+and commit), **Validation** (must all pass before merging), and
+optional **Notes**.
 
-| # | Title | Scope |
-| --- | --- | --- |
-| **1** | **Foundation: DTOs, RemoteService, NgXs setup, Angular folder layout** | Add every file under `/dtos/<entity>/` (one type per file + per-folder `index.ts` barrels). Add `RemoteService`. Install NgXs packages. Add empty `AuthState`/`UsersState`/`CustomersState`/`ReportsState` skeletons (state class + actions, no handlers yet). Create `/app/guards/`, `/app/interceptors/`, `/app/directives/`, `/app/pipes/` folders (with `.gitkeep` where empty). Add `auth.interceptor.ts` to `/app/interceptors/`. Wire `provideStore`, `withNgxsStoragePlugin({ keys: ['auth'] })`, devtools, logger, and `withInterceptors([authInterceptor])` in `app.config.ts`. Update both environment files. No callers migrated yet — existing `services/customers.ts` and `services/reports.ts` keep working. Verify with `pnpm build`. |
-| **2** | **Auth migration** | Add `http/auth.service.ts` and `http/users.service.ts`. Fill in `AuthState` action handlers (`Login`, `LoadCurrentUser`, `Logout`). Fill in `UsersState.me` action. Move `app/auth/auth-guard.ts` → `app/guards/auth-guard.ts`, rewrite as functional `authGuard` reading from the store; delete the empty `app/auth/` folder. Update `app.routes.ts` to reference the functional guard. Update login page to dispatch `new Login(...)`. Update register page. Update `bottom-nav` and any other readers to use `select(AuthState.role/email)` — atomic switch from legacy `'true'/'false'` storage to `'admin'/'technician'`. Confirm persistence works via DevTools (Application → localStorage shows `auth` key). |
-| **3** | **Users management (admin)** | Fill in remaining `UsersState` handlers (list/get/create/update/delete). Build admin-only users page if scoped, or just expose the actions for future use. |
-| **4** | **Customers migration** | Fill in `CustomersState` action handlers using `http/customers.service.ts`. Migrate `customer-add` page and any list views to dispatch + select. Delete `services/customers.ts`. Remove inline `JwtPayload` and `Customer` interface duplicates. |
-| **5** | **Reports migration** | Fill in `ReportsState` action handlers using `http/reports.service.ts`. Migrate reports list (filters dispatch `SetReportsQuery` then `LoadReports`), `report-add` (dispatches `CreateReport`), `report-detail` (dispatches `LoadReport`, `UpdateReport`, `AddSignature`, `AddPictures`, `RemovePictures`, `SendReportEmail`). Strong-typed `ReportData` access where needed. Delete `services/reports.ts`. |
-| **6** | **Upload + image picker** | Add `http/upload.service.ts`. Wire `image-picker` component to it for standalone uploads (if needed by any flow outside report creation). |
-| **7** | **Theme migration + final cleanup** | Move `services/toast.service.ts` → `theme/toast.service.ts`. Update all imports. Delete `services/` folder. Remove dead code (`console.log`s in the old guard, old Vercel URL strings). Verify `grep -r 'manttio.vercel.app' frontend/` and `grep -rn 'localStorage' frontend/src/` return nothing outside the storage plugin's own internals. |
-
-Each PR should: pass `pnpm tsc --noEmit`, pass `pnpm test` (if there are
-frontend tests by then), and be exercised by manually clicking through the
-affected pages in a browser pointed at a `wrangler dev` backend.
+Branch off `main` each time. PR title format:
+`<verb> <area>: <one-line summary>`.
 
 ---
 
-## 14. Angular 20 + NgXs coding standards used in this plan
+### PR #1 — Foundation: data folder, RemoteService, NgXs setup, Angular folder layout
+
+**Goal:** Scaffolding complete. App still compiles and runs unchanged
+for the user (existing `services/customers.ts`, `services/reports.ts`
+keep working). NgXs is wired but no state has handlers yet.
+
+**Checklist:**
+- [ ] Branch: `git checkout -b frontend-foundation`
+- [ ] `cd frontend && pnpm add @ngxs/store @ngxs/storage-plugin @ngxs/devtools-plugin @ngxs/logger-plugin`
+- [ ] Create folder `frontend/src/app/data/`
+- [ ] Create `frontend/src/app/data/utils.ts` per §4
+- [ ] Create `frontend/src/app/data/interfaces/.gitkeep`
+- [ ] Create all files under `frontend/src/app/data/dtos/api-error/` per §11.1
+- [ ] Create all files under `frontend/src/app/data/dtos/auth/` per §11.2
+- [ ] Create all files under `frontend/src/app/data/dtos/jwt/` per §11.3
+- [ ] Create all files under `frontend/src/app/data/dtos/user/` per §11.4
+- [ ] Create all files under `frontend/src/app/data/dtos/customer/` per §11.5
+- [ ] Create all files under `frontend/src/app/data/dtos/report/` per §11.6
+- [ ] Create all files under `frontend/src/app/data/dtos/report-email/` per §11.7
+- [ ] Create all files under `frontend/src/app/data/dtos/upload/` per §11.8
+- [ ] Create all files under `frontend/src/app/data/types/user/` per §11.9
+- [ ] Create all files under `frontend/src/app/data/types/report/` per §11.10
+- [ ] Create `frontend/src/http/remote.service.ts` per §5
+- [ ] Create empty state skeletons (state class + actions, no `@Action` handler bodies — the action classes exist, the state has the `@State` decorator and selectors but each `@Action` handler is `return ctx;` or omitted for now):
+  - [ ] `frontend/src/state/auth/auth.actions.ts` per §7.1
+  - [ ] `frontend/src/state/auth/auth.state.ts` — copy §7.2 but stub the handlers (no HTTP calls yet, since auth.service.ts is added in PR #2). Acceptable: have the state class compile with selectors only and action handlers as no-ops.
+  - [ ] `frontend/src/state/users/users.actions.ts` — minimal: `LoadCurrentUser` only
+  - [ ] `frontend/src/state/users/users.state.ts` — minimal state, no handler bodies
+  - [ ] `frontend/src/state/customers/customers.actions.ts` per §8.1
+  - [ ] `frontend/src/state/customers/customers.state.ts` — copy §8.2 but stub handlers (no HTTP)
+  - [ ] `frontend/src/state/reports/reports.actions.ts` — declare all action classes per §8.3
+  - [ ] `frontend/src/state/reports/reports.state.ts` — minimal state, stub handlers
+- [ ] Create folder `frontend/src/app/guards/` (empty for now — guard arrives in PR #2)
+- [ ] Create `frontend/src/app/interceptors/auth.interceptor.ts` per §7.3
+- [ ] Create `frontend/src/app/directives/.gitkeep`
+- [ ] Create `frontend/src/app/pipes/.gitkeep`
+- [ ] Update `frontend/src/app/app.config.ts` per §9
+- [ ] Update `frontend/src/environments/environment.ts` per §10 — set production URL (or leave the placeholder string and add a TODO comment; PR can still merge with the placeholder if production URL isn't decided)
+- [ ] Update `frontend/src/environments/environment.development.ts` per §10
+- [ ] **Tick this PR's box** in §2 of this doc and commit the doc update
+
+**Validation:**
+```bash
+cd frontend
+pnpm tsc --noEmit            # must pass
+pnpm build                   # must pass
+```
+Manual smoke: `pnpm start`, open app, log in via the **existing** code
+path. App still works because PR #1 didn't migrate any callers.
+
+In browser DevTools → Application → Local Storage, the
+`@ngxs/storage-plugin` key (default: `@@STATE` or similar) appears once
+the user logs in. (Note: PR #1 doesn't migrate login yet, so this
+verification only confirms the plugin is loaded. Real persistence
+verification happens in PR #2.)
+
+**Notes:**
+- Action handler stubs in this PR are intentional — they unblock the
+  state-class scaffolding without requiring HTTP services to exist yet.
+  PR #2 onwards fills them in.
+- DO NOT delete `frontend/src/services/*` in this PR.
+- DO NOT touch `frontend/src/app/auth/auth-guard.ts` in this PR.
+
+---
+
+### PR #2 — Auth migration
+
+**Goal:** Login, logout, guard, and interceptor all run through
+NgXs/AuthState. No `localStorage.getItem('token' | 'role' | 'email')`
+remains anywhere outside the storage plugin's internals.
+
+**Checklist:**
+- [ ] Branch: `git checkout -b frontend-auth-migration`
+- [ ] Create `frontend/src/http/auth.service.ts` per §12.1
+- [ ] Create `frontend/src/http/users.service.ts` per §12.2 (full surface — not just `me()`)
+- [ ] Replace `frontend/src/state/auth/auth.state.ts` with the full version per §7.2 (handlers filled in)
+- [ ] Replace `frontend/src/state/users/users.state.ts` with the full version implementing at least `me()` action; remaining handlers can stay stubbed until PR #3
+- [ ] Create `frontend/src/app/guards/auth-guard.ts` per §7.4
+- [ ] Update `frontend/src/app/app.routes.ts`: replace `canActivate: [AuthGuard]` (class) with `canActivate: [authGuard]` (function); update the import to `from './guards/auth-guard'`
+- [ ] Delete `frontend/src/app/auth/auth-guard.ts`
+- [ ] Delete `frontend/src/app/auth/` (folder) if empty
+- [ ] Update login page (`frontend/src/app/pages/login/*`): dispatch `new Login({ email, password })`. On success (action observable completes), navigate to `/home`. Remove direct HttpClient calls. Remove `localStorage.setItem('token' | 'role' | 'email', ...)`.
+- [ ] Update register page (`frontend/src/app/pages/register/*`): dispatch `new CreateUser(payload)`. On success, optionally auto-login by dispatching `new Login(...)`. Remove direct HttpClient.
+- [ ] Update bottom-nav (`frontend/src/app/shared/bottom-nav/*`): read `select(AuthState.role)` and `select(AuthState.email)`; logout button dispatches `new Logout()`. Remove `localStorage.getItem`.
+- [ ] Grep for stray `localStorage.getItem('token' | 'role' | 'email')` calls across `frontend/src/app/**` and replace each:
+  - For `'token'`: use `inject(Store).selectSnapshot(AuthState.token)` (or `select` for reactive contexts)
+  - For `'role'`: use `select(AuthState.role)`
+  - For `'email'`: use `select(AuthState.email)`
+- [ ] **Tick this PR's box** in §2 and commit
+
+**Validation:**
+```bash
+cd frontend
+pnpm tsc --noEmit
+pnpm build
+grep -rn "localStorage.getItem('token'\|localStorage.getItem(\"token\"" frontend/src/
+grep -rn "localStorage.setItem('token'\|localStorage.setItem(\"token\"" frontend/src/
+grep -rn "localStorage.getItem('role'\|localStorage.getItem('email'" frontend/src/
+# All four greps should return zero matches.
+```
+Manual: log in. DevTools → Application → Local Storage shows the
+`@ngxs/storage-plugin` entry containing `auth` slice with `token` and
+`user`. Refresh the page — user stays logged in, redirected to /home,
+bottom-nav shows correct email/role. Click logout — storage cleared,
+redirected to /login.
+
+---
+
+### PR #3 — Users HTTP + UsersState (admin)
+
+**Goal:** Full CRUD on users through state. If an admin users page
+exists, it works; if not, the actions are still ready for future use.
+
+**Checklist:**
+- [ ] Branch: `git checkout -b frontend-users-state`
+- [ ] Expand `frontend/src/state/users/users.actions.ts` to include `LoadUsers`, `LoadUser`, `CreateUser`, `UpdateUser`, `DeleteUser` (in addition to `LoadCurrentUser` from PR #2).
+- [ ] Implement all handlers in `frontend/src/state/users/users.state.ts`. Selectors: `list`, `selected`, `byId(id)`, `loading`, `me` (mirrors AuthState.user, or omit if not needed).
+- [ ] If an admin users page exists under `frontend/src/app/pages/`, migrate it to dispatch + select. Otherwise skip.
+- [ ] **Tick this PR's box** in §2 and commit
+
+**Validation:**
+```bash
+cd frontend
+pnpm tsc --noEmit
+pnpm build
+```
+Manual: if migrated UI exists, click through create/edit/delete user as
+admin. Each action should round-trip through the state.
+
+---
+
+### PR #4 — Customers migration
+
+**Goal:** All customer reads and writes go through `CustomersState`. Old
+`services/customers.ts` deleted.
+
+**Checklist:**
+- [ ] Branch: `git checkout -b frontend-customers-migration`
+- [ ] Replace `frontend/src/state/customers/customers.state.ts` with the full version per §8.2
+- [ ] Update `frontend/src/app/pages/customer-add/customer-add.ts`:
+  - [ ] Dispatch `new CreateCustomer(payload)` on submit
+  - [ ] Remove `import { CustomersService }` and direct HttpClient usage
+  - [ ] Remove inline `JwtPayload` declaration; import from `from '../../data/dtos/jwt'` if needed
+  - [ ] Replace any `localStorage.getItem('email')` with `select(AuthState.email)`
+- [ ] Update any customer list view (likely embedded in reports or customers page): dispatch `new LoadCustomers()` on init, `select(CustomersState.list)` for the rendered list
+- [ ] Replace any `import { Customer } from '../../services/customers'` with `import type { CustomerRow } from '../app/data/dtos/customer'` (note the type name change). Audit all callsites for null narrowing on `identification|phone|email|observation`.
+- [ ] Delete `frontend/src/services/customers.ts`
+- [ ] **Tick this PR's box** in §2 and commit
+
+**Validation:**
+```bash
+cd frontend
+pnpm tsc --noEmit
+pnpm build
+test ! -f frontend/src/services/customers.ts && echo OK
+grep -rn "from '.*services/customers'" frontend/src/ || echo "no stale imports"
+```
+Manual: list customers (renders from state), create a customer (appears
+in list without manual refresh), edit, delete.
+
+---
+
+### PR #5 — Reports migration
+
+**Goal:** All report flows go through `ReportsState`. Old
+`services/reports.ts` deleted.
+
+**Checklist:**
+- [ ] Branch: `git checkout -b frontend-reports-migration`
+- [ ] Implement full `frontend/src/state/reports/reports.actions.ts`: `LoadReports`, `LoadReport`, `SelectReport`, `SetReportsQuery`, `CreateReport`, `UpdateReport`, `SetAssignee`, `AddSignature`, `AddPictures`, `RemovePictures`, `DeleteReport`, `SendReportEmail`, `LoadReportEmails`, `RevokeReportEmail`.
+- [ ] Implement full `frontend/src/state/reports/reports.state.ts`:
+  - Model: `{ entities: Record<string, ReportRow>, details: Record<string, ReportDetailRow>, ids: string[], selectedId: string | null, query: ReportListQuery | null, loading: boolean, emails: Record<string, ReportEmailRow[]> }`
+  - Selectors: `list`, `selected` (combined `{ report, details }`), `byId(id)`, `detailsById(id)`, `emailsForReport(id)`, `loading`, `query`
+  - Handlers per the action list
+- [ ] Update reports list page (`frontend/src/app/pages/reports/*`):
+  - Bind filter inputs to dispatch `new SetReportsQuery(...)` + `new LoadReports()`
+  - Render `select(ReportsState.list)`, show spinner from `select(ReportsState.loading)`
+- [ ] Update report-add (`frontend/src/app/pages/report-add/report-add.ts`):
+  - Build `CreateReportFields` object from form state; dispatch `new CreateReport(fields)`
+  - Remove inline `FormData` building (the service does it now)
+  - Remove inline `JwtPayload`
+- [ ] Update report-detail (`frontend/src/app/pages/report-detail/*`):
+  - On init, dispatch `new LoadReport(id)`; bind to `select(ReportsState.byId(id))` and `detailsById(id)`
+  - Edit form submit: `new UpdateReport(id, payload)`
+  - Signature submit: `new AddSignature(id, fields)`
+  - Picture upload: `new AddPictures(id, files)`
+  - Picture delete: `new RemovePictures(id, { urls })`
+  - Send email: `new SendReportEmail(id, payload)`
+  - Type-narrow on `reportType` before reading `data.X` fields (see §14.3)
+- [ ] Delete `frontend/src/services/reports.ts`
+- [ ] **Tick this PR's box** in §2 and commit
+
+**Validation:**
+```bash
+cd frontend
+pnpm tsc --noEmit
+pnpm build
+test ! -f frontend/src/services/reports.ts && echo OK
+grep -rn "from '.*services/reports'" frontend/src/ || echo "no stale imports"
+```
+Manual: list reports with various filters, open one, edit it, sign it,
+add/remove pictures, send email.
+
+---
+
+### PR #6 — Upload service + image picker wiring
+
+**Goal:** Standalone image uploads (outside the report creation flow)
+flow through `UploadService`.
+
+**Checklist:**
+- [ ] Branch: `git checkout -b frontend-upload`
+- [ ] Create `frontend/src/http/upload.service.ts` per §12.5
+- [ ] Audit `frontend/src/app/components/image-picker/*`: if it uploads images standalone, replace direct HttpClient with `inject(UploadService).uploadImage(file)`. If it only collects File objects for the parent component to submit with the report, no change needed.
+- [ ] **Tick this PR's box** in §2 and commit
+
+**Validation:**
+```bash
+cd frontend
+pnpm tsc --noEmit
+pnpm build
+```
+Manual: if image-picker was migrated, exercise its upload flow.
+
+---
+
+### PR #7 — Theme migration + final cleanup
+
+**Goal:** `/services/` folder deleted. No `localStorage` reads/writes
+outside storage plugin. No old Vercel URL references. Doc fully ticked.
+
+**Checklist:**
+- [ ] Branch: `git checkout -b frontend-theme-cleanup`
+- [ ] Create folder `frontend/src/theme/`
+- [ ] Move `frontend/src/services/toast.service.ts` → `frontend/src/theme/toast.service.ts` (content unchanged)
+- [ ] Update every importer:
+      `grep -rln "from '.*services/toast.service'" frontend/src/` and rewrite each path to point at `theme/toast.service`
+- [ ] Delete `frontend/src/services/` folder (must be empty after move)
+- [ ] Remove any remaining `console.log` debug calls left over from PR #2 in the new guard if any slipped in
+- [ ] **Tick this PR's box** in §2 and commit
+
+**Validation:**
+```bash
+cd frontend
+pnpm tsc --noEmit
+pnpm build
+test ! -d frontend/src/services && echo "services dir gone"
+grep -rn 'manttio.vercel.app' frontend/   || echo "no vercel refs"
+grep -rn "localStorage\." frontend/src/ | grep -v "node_modules\|@ngxs" || echo "no stray localStorage"
+```
+Manual: full app smoke — login, list customers, list reports, open a
+report, edit, sign, send email. All should work end-to-end against the
+new backend.
+
+---
+
+## 16. Standards reference (for the executing agent)
 
 ### Angular 20
 
-- **`inject()` over constructor DI.** Services, components, and NgXs state
-  classes use `private readonly foo = inject(FooService)` field syntax.
-- **Functional interceptors** (`HttpInterceptorFn`) registered via
-  `provideHttpClient(withInterceptors([...]))`. No class-based
-  `HTTP_INTERCEPTORS` provider. All interceptors live in
-  `/src/app/interceptors/`.
-- **Functional guards** (`CanActivateFn`, etc.). All guards live in
-  `/src/app/guards/`. The current class-based `AuthGuard implements
-  CanActivate` is rewritten per §5.5.
-- **Angular primitives are folder-grouped under `/app`.** Guards in
-  `/app/guards/`, interceptors in `/app/interceptors/`, directives in
-  `/app/directives/`, pipes in `/app/pipes/`. When adding a new kind
-  (resolvers, error handlers, etc.), follow the same `/app/<kind>s/`
-  pattern.
-- **No `HttpClientModule` import.** `provideHttpClient` is the only API.
-- **`Observable<T>` returns from `/http` services.** Don't `.toPromise()` /
-  `firstValueFrom` in services — let the action handler / component choose.
-
-### Types and DTOs
-
-- **One `interface` or `type` per file** in `/dtos`. Filename is kebab-case
-  of the type name (`login-request.dto.ts` → `LoginRequest`).
-- **`.dto.ts` for interfaces** representing wire payloads; **`.type.ts` for
-  type aliases** (enums, unions, primitive brands).
-- **Entity subfolder + barrel.** Every entity has its own folder under
-  `/dtos/` with an `index.ts` that re-exports every type via `export type
-  { Foo } from './foo.dto'`. Consumers import from the barrel (`from
-  '../dtos/user'`), not from individual files.
-- **State models stay next to their state class.** `AuthStateModel`,
-  `CustomersStateModel`, etc. live in `<entity>.state.ts` — they're
-  internal slice shapes, not wire DTOs.
-- **No `any` in HTTP signatures or state models.** If a shape is genuinely
-  variable, use a union or `unknown` and narrow at the call site.
+- `inject()` field syntax over constructor DI in services, components,
+  guards, interceptors, state classes.
+- Functional `HttpInterceptorFn` registered via
+  `provideHttpClient(withInterceptors([...]))`. All interceptors live in
+  `frontend/src/app/interceptors/`.
+- Functional `CanActivateFn` (and similar). All guards live in
+  `frontend/src/app/guards/`.
+- Angular primitives folder-grouped under `/src/app/<kind>s/`: `guards/`,
+  `interceptors/`, `directives/`, `pipes/`. New kind (`resolvers/`, etc.)
+  follows the same plural pattern.
+- No `HttpClientModule` import (`provideHttpClient` is the only API).
+- HTTP services return `Observable<T>`. Don't `.toPromise()` /
+  `firstValueFrom` inside services.
 
 ### NgXs
 
-- **`provideStore([...])` + plugin function APIs.** No `NgxsModule.forRoot`.
-- **One state class per entity.** Named `<Entity>State`, located in
-  `state/<entity>/<entity>.state.ts`.
-- **Action classes grouped per state** in `<entity>.actions.ts`. Action
-  classes are runtime constructs (not types) and are the documented
-  exception to the one-export-per-file rule.
-- **Selectors are static methods** on the state class with `@Selector()`.
-  Components consume them via the functional `select()` helper or the
-  `@Select` decorator. Snapshot reads (for interceptors/guards) go through
-  `store.selectSnapshot(StateClass.selectorName)`.
-- **Components dispatch, never mutate.** Components call
-  `store.dispatch(new SomeAction(payload))` and never reach into a service
-  directly for entity reads/writes.
-- **Action handlers return the Observable** from the HTTP call when state
-  must reflect the response — NgXs waits for completion before resolving the
-  dispatch.
-- **Persistence is opt-in per slice.** Only `auth` is persisted. All other
-  states default-initialize empty on bootstrap.
+- `provideStore([...], ...plugins)` only. No `NgxsModule.forRoot`.
+- One `<Entity>State` class per slice; named `name: '<slice>'`.
+- Actions in `<entity>.actions.ts`, grouped per state.
+- Selectors as static methods with `@Selector()`. Factory selectors are
+  plain static methods returning a function.
+- Components dispatch and select; never call HTTP services directly for
+  entity reads/writes.
+- Action handlers return the inner `Observable<T>` so dispatch resolution
+  is awaited.
+- Persistence: only `auth` slice via `withNgxsStoragePlugin({ keys: ['auth'] })`.
+
+### Files and types
+
+- One `interface` or one `type` per file under `/src/app/data/`.
+  Exceptions: NgXs actions (grouped), runtime helpers (sibling `.ts`
+  with no suffix).
+- File name = kebab-case of the type name.
+- Suffix is **role-based**: `.dto.ts` (wire payload), `.type.ts`
+  (domain primitive/enum), `.interface.ts` (non-wire shared interface).
+- Each leaf folder has an `index.ts` barrel using `export type { ... }`
+  for type re-exports and `export { ... }` for runtime helpers.
+- Consumers import from the barrel, never from individual files.
 
 ---
 
-## 15. Frequently-asked questions for the implementer
+## 17. FAQ
 
-**Q: Why one type per file? Won't that create dozens of files?**
-A: Yes — about 42 type/interface files under `/dtos`, plus 8 barrels and 1
-helper. The trade-off is intentional: each type gets its own grep target,
-its own commit history, and its own diff line. Grouping types into one file
-"because they're related" was the previous norm and made it harder to
-audit what each one looks like. The barrel `index.ts` per folder keeps
-consumer imports short, so the file count doesn't leak into the import
-ergonomics.
+**Q: I see two ways to express a type — interface vs type alias. Which?**
+A: Use whichever the backend shape naturally maps to. Interfaces for
+composite shapes (`{ field: string; }`), type aliases for unions /
+`Partial<X>` / primitive aliases. The file SUFFIX is decided by ROLE
+(wire payload → `.dto.ts`, domain primitive → `.type.ts`),
+independently of the interface vs type choice.
 
-**Q: Why are action classes exempt from the one-per-file rule?**
-A: Two reasons. (1) NgXs convention co-locates actions for one state — the
-ecosystem expects `auth.actions.ts` and tooling/docs assume it. (2) Action
-classes are runtime constructs, not types — the one-per-file rule was
-written for `interface` and `type` declarations to make tracking easier;
-action classes already get tracked via the action's `static readonly type`
-string and the state that handles them.
+**Q: A DTO's type imports another DTO's type. Cross-folder?**
+A: Yes — import from the other folder's barrel. Example: in
+`report/report-row.dto.ts`, `import type { ReportType, ReportStatus }
+from '../../types/report';`.
 
-**Q: Why barrels? I thought they hurt tree-shaking.**
-A: Tree-shaking concerns apply to runtime values, not pure type re-exports.
-Every entry in a `/dtos/<entity>/index.ts` is `export type { ... }` —
-TypeScript erases those at compile time, so they ship zero bytes. The one
-runtime entry (e.g. `asApiError`) is a re-export of a tiny helper.
+**Q: Where do `<Entity>StateModel` interfaces go?**
+A: Next to the state class in `state/<entity>/<entity>.state.ts`. They
+describe internal slice shape and are not wire payloads.
 
-**Q: Why NgXs instead of NgRx / Signals Store / a service with `BehaviorSubject`?**
-A: NgXs gives the redux pattern (single store, immutable updates, devtools,
-time-travel, persistence plugin) with less boilerplate than NgRx (no
-reducer/effect split, action and handler co-located via the `@Action`
-decorator). It also pairs cleanly with NgXs's storage plugin which solves
-the JWT-survival-across-reload requirement without us writing any
-localStorage glue. The decision is recorded; new state-holding code must
-default to NgXs (see project memory).
+**Q: What if I need an HTTP call that has no corresponding state slice?**
+A: Inject the HTTP service directly into the component. The only
+canonical example is `ReportsService.downloadByToken(token)` for the
+public PDF link.
 
-**Q: Why does the login flow now make two requests?**
-A: The new backend's `/auth/login` returns only `{ token }`. The cleanest
-fix is the canonical pattern: log in, then fetch the user. `/users/me` is
-cheap and gives us the full `PublicUser` shape, role included. Both
-requests live inside the `Login` action handler, so callers dispatch one
-action and the state ends in the right shape.
+**Q: When do I split a runtime helper out of `app/data/utils.ts`?**
+A: When it has its own DTO neighbor (e.g. `asApiError` lives in
+`dtos/api-error/` next to `ApiError`), or when `utils.ts` grows past
+~200 lines.
 
-**Q: Should I keep `jwt-decode` or rely on the backend `/users/me`?**
-A: Keep `jwt-decode` only for **expiry checks** in the guard (avoids a
-network round-trip on every navigation). Role and identity come from
-`/users/me` once at login time and live in `AuthState.user`.
+**Q: Backend disagrees with this plan's DTO shape. Which wins?**
+A: Backend. Verify in `/backend/test/<entity>.test.ts` and
+`/backend/src/routes/<entity>.ts`. Update the DTO file and the plan in
+the same PR.
 
-**Q: Where do components go for the "currently logged-in user's email/role"?**
-A: `select(AuthState.email)` / `select(AuthState.role)`. Both come from
-`AuthState.user` which was set during `Login`.
-
-**Q: What if an action handler needs another state's value?**
-A: Inject `Store` and call `selectSnapshot`:
-```ts
-const userId = this.store.selectSnapshot(AuthState.user)?.id;
-```
-Don't import another state's action and dispatch it from inside a handler
-unless the cascade is intentional.
-
-**Q: Where do I put a new pipe / directive / resolver?**
-A: `/src/app/pipes/<name>.pipe.ts`, `/src/app/directives/<name>.directive.ts`,
-`/src/app/resolvers/<name>.resolver.ts`. Follow the `/app/<kind>s/` pattern.
-
-**Q: What about offline / poor network?**
-A: Out of scope. Each action handler returns an `Observable<T>`; the
-dispatch resolves with the same observable so the component can subscribe
-and show errors via `ToastService`. A shared error-toast `catchError`
-helper can be added in PR #7 if patterns emerge.
-
-**Q: Where do I report a DTO mismatch with the backend?**
-A: First check the backend test files — they're the source of truth:
-- `/backend/test/auth.test.ts`
-- `/backend/test/users.test.ts`
-- `/backend/test/customers.test.ts`
-- `/backend/test/reports.test.ts`
-- `/backend/test/upload.test.ts`
-
-If a DTO here drifts from a test there, the test wins — update this plan
-and the DTO.
+**Q: I see a `.gitkeep`. Can I delete it once the folder has files?**
+A: Yes. Once `app/data/interfaces/<entity>/` has real content, delete
+its `.gitkeep`. Same for `app/directives/`, `app/pipes/`.
 
 ---
 
