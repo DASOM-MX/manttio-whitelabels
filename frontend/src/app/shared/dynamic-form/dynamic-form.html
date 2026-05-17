@@ -1,45 +1,47 @@
-<form [formGroup]="form" (ngSubmit)="onSubmit()" class="">
-    <ng-container *ngFor="let field of fields">
-        <div class="space-y-1 mb-4">
-            <label class="block font-semibold text-dark ">
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-5">
+    @for (field of fields; track field.name) {
+        <div class="field-group">
+            <label class="field-label" [attr.for]="field.name">
                 {{ field.label }}
             </label>
 
-            <ng-container [ngSwitch]="field.type">
-                <!-- Text input -->
-                <input *ngSwitchCase="'text'" type="text" [formControlName]="field.name"
-                    class="w-full border p-2 rounded" />
-
-                <!-- Number input -->
-                <input *ngSwitchCase="'number'" type="number" [formControlName]="field.name"
-                    class="w-full border p-2 rounded" />
-
-                <!-- Select input -->
-                <select *ngSwitchCase="'select'" [formControlName]="field.name" class="w-full border p-2 rounded">
-                    <option *ngFor="let option of field.options" [value]="option">{{ option }}</option>
-                </select>
-
-                <!-- DateTime input -->
-                <input *ngSwitchCase="'datetime-local'" type="datetime-local" [formControlName]="field.name"
-                    class="w-full border p-2 rounded" />
-
-                <!-- Image picker (componente personalizado) -->
-                <app-image-picker *ngSwitchCase="'image'" (filesSelected)="onFilesSelected($event)"></app-image-picker>
-
-                <!-- Unsupported type -->
-                <div *ngSwitchDefault class="text-red-600">Tipo no soportado: {{ field.type }}</div>
-
-                <app-signature *ngSwitchCase="'signature'"
-                    (signatureChanged)="onSignatureChanged($event)"></app-signature>
-
-
-
-            </ng-container>
+            @switch (field.type) {
+                @case ('text') {
+                    <input pInputText type="text" [id]="field.name" [formControlName]="field.name" />
+                }
+                @case ('number') {
+                    <p-inputnumber [inputId]="field.name" [formControlName]="field.name"
+                        mode="decimal" [useGrouping]="false" styleClass="w-full"
+                        inputStyleClass="field-input">
+                    </p-inputnumber>
+                }
+                @case ('select') {
+                    <p-select [inputId]="field.name" [formControlName]="field.name"
+                        [options]="field.options" styleClass="w-full"
+                        placeholder="Selecciona una opción">
+                    </p-select>
+                }
+                @case ('datetime-local') {
+                    <p-datepicker [inputId]="field.name" [formControlName]="field.name"
+                        [showTime]="true" hourFormat="24" dateFormat="dd/mm/yy" styleClass="w-full">
+                    </p-datepicker>
+                }
+                @case ('image') {
+                    <app-image-picker (filesSelected)="onFilesSelected($event)"></app-image-picker>
+                }
+                @case ('signature') {
+                    <app-signature (signatureChanged)="onSignatureChanged($event)"></app-signature>
+                }
+                @default {
+                    <div class="text-sm font-semibold text-red-700">
+                        Tipo no soportado: {{ field.type }}
+                    </div>
+                }
+            }
         </div>
-    </ng-container>
+    }
 
-
-    <button type="submit" class="bg-primary text-white px-4 py-2 rounded w-full">
+    <button pButton type="submit" class="btn-primary w-full">
         Enviar
     </button>
 </form>

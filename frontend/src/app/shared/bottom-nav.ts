@@ -1,46 +1,38 @@
-import { Component } from '@angular/core';
-import { RouterModule } from '@angular/router';
-import { CommonModule, NgClass } from '@angular/common';
-import { Router, NavigationEnd } from '@angular/router'
-import { filter } from 'rxjs/operators'
+import { Component, inject, signal } from '@angular/core';
+import { NavigationEnd, Router, RouterModule } from '@angular/router';
+import { Store } from '@ngxs/store';
+import { filter } from 'rxjs/operators';
+import { AuthState } from '../store/auth/auth';
+import { Logout } from '../store/auth/actions/logout';
 
 @Component({
   selector: 'app-bottom-nav',
   standalone: true,
-  imports: [RouterModule, NgClass, CommonModule],
+  imports: [RouterModule],
   templateUrl: './bottom-nav.html',
-  styleUrl: './bottom-nav.scss'
+  styleUrl: './bottom-nav.scss',
 })
 export class BottomNav {
-  role: boolean | null = null;
-  email: string | null = null;
+  private router = inject(Router);
+  private store = inject(Store);
 
+  user = this.store.selectSignal(AuthState.user);
+  isAdmin = this.store.selectSignal(AuthState.isAdmin);
+  showMenu = signal(false);
 
-  showMenu = false;
-
-  constructor(private router: Router) {
-    this.email = localStorage.getItem('email');
-    const storedRole = localStorage.getItem('role');
-    this.role = storedRole === 'true'
-
+  constructor() {
     this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
-      .subscribe(() => {
-        this.showMenu = false;
-      })
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe(() => this.showMenu.set(false));
   }
 
   toggleMenu() {
-    this.showMenu = !this.showMenu;
-    console.log("menu");
+    this.showMenu.update((open) => !open);
   }
 
   logout() {
-    console.log("Cerrar sesión");
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('email');
-    this.router.navigate(['/login'])
+    this.store.dispatch(new Logout()).subscribe(() => {
+      this.router.navigate(['/login']);
+    });
   }
-
 }

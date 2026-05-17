@@ -11,15 +11,7 @@
     "experimentalDecorators": true,
     "importHelpers": true,
     "target": "ES2022",
-    "module": "preserve",
-    "paths": {
-      "@spartan-ng/helm/input": [
-        ".\\libs/ui/ui-input-helm/src/index.ts"
-      ],
-      "@spartan-ng/helm/tabs": [
-        ".\\libs/ui/ui-tabs-helm/src/index.ts"
-      ]
-    }
+    "module": "preserve"
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

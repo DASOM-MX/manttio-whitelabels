@@ -1,0 +1,23 @@
+/* PrimeNG InputNumber */
+.p-inputnumber {
+  @apply block w-full;
+
+  .p-inputnumber-input {
+    @apply field-input font-data tabular-nums;
+  }
+
+  /* Stepper buttons (showButtons mode) */
+  .p-inputnumber-button-group {
+    @apply flex flex-col;
+  }
+  .p-inputnumber-button {
+    @apply size-8 inline-flex items-center justify-center bg-granite-100 hover:bg-sky-50 border border-granite-200 text-granite-700 transition-colors cursor-pointer;
+
+    &:first-child {
+      @apply rounded-tr-md;
+    }
+    &:last-child {
+      @apply rounded-br-md border-t-0;
+    }
+  }
+}

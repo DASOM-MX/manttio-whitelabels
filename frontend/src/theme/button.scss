@@ -1,0 +1,42 @@
+/* PrimeNG Button (pButton directive on native <button>, or <p-button>) */
+
+/* Native <button pButton> — keep our .btn / .btn-primary / .btn-secondary etc.
+   classes from styles.scss; PrimeNG just adds the pButton directive without
+   overriding visuals when no severity is set. */
+
+/* <p-button> wrapper */
+.p-button {
+  @apply btn;
+
+  /* Severities — fall back to our .btn-* variants */
+  &.p-button-primary,
+  &:not(.p-button-secondary):not(.p-button-success):not(.p-button-warn):not(.p-button-danger):not(.p-button-info):not(.p-button-help):not(.p-button-text) {
+    @apply btn-primary;
+  }
+  &.p-button-secondary,
+  &.p-button-info {
+    @apply btn-secondary;
+  }
+  &.p-button-success {
+    @apply bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 active:bg-emerald-800;
+  }
+  &.p-button-warn {
+    @apply bg-amber-500 text-white border-amber-500 hover:bg-amber-600 active:bg-amber-700;
+  }
+  &.p-button-danger {
+    @apply btn-danger;
+  }
+  &.p-button-text {
+    @apply bg-transparent text-sky-700 hover:bg-sky-50 active:bg-sky-100 border-transparent;
+  }
+}
+.p-button-icon {
+  @apply inline-flex items-center justify-center size-5 leading-none shrink-0;
+  font-size: 1rem;
+}
+.p-button-label {
+  @apply leading-none;
+}
+.p-button-loading-icon {
+  @apply animate-spin size-5 leading-none;
+}

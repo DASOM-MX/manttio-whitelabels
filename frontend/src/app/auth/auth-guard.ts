@@ -1,50 +1,38 @@
-//TODO
-
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { CanActivate, Router } from '@angular/router';
+import { Store } from '@ngxs/store';
 import { jwtDecode } from 'jwt-decode';
+import { AuthState } from '../store/auth/auth';
+import { Logout } from '../store/auth/actions/logout';
+import { JwtPayload } from '../interfaces/jwt-payload';
 
 @Injectable({
   providedIn: 'root',
 })
-
 export class AuthGuard implements CanActivate {
-
-  constructor(private router: Router) { }
-
+  private router = inject(Router);
+  private store = inject(Store);
 
   canActivate(): boolean {
-    const token = localStorage.getItem('token');
-    console.log("Authguard canActivate called, token:", token)
+    const token = this.store.selectSnapshot(AuthState.token);
     if (!token) {
-      console.log("No token found, redirecting to /login");
-      this.router.navigate(['/login'])
-
+      this.router.navigate(['/login']);
       return false;
     }
 
     try {
       const decoded = jwtDecode<JwtPayload>(token);
       const now = Math.floor(Date.now() / 1000);
-      if (decoded.exp < now) {
-        console.log('Token expirado, redirigiendo a login');
-        localStorage.removeItem('token');
+      if ((decoded.exp ?? 0) < now) {
+        this.store.dispatch(new Logout());
         this.router.navigate(['/login']);
         return false;
       }
       return true;
-    } catch (err) {
-      console.log('Token invalido, redirigiendo a login');
-      localStorage.removeItem('token');
-      this.router.navigate(['/login'])
+    } catch {
+      this.store.dispatch(new Logout());
+      this.router.navigate(['/login']);
       return false;
     }
-
-
-
   }
-}
-interface JwtPayload {
-  exp: number;
-  sub: string;
 }

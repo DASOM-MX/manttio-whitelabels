@@ -1,86 +1,83 @@
-import { Component, OnInit } from '@angular/core';
-import { FieldConfig } from '../../shared/dynamic-form/models/field-config.model';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DynamicForm } from '../../shared/dynamic-form/dynamic-form';
-import { CustomersService, Customer } from '../../../services/customers';
 import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-import { ReportsService } from '../../../services/reports';
-import { jwtDecode } from 'jwt-decode';
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectorRef } from '@angular/core';
-import { ToastService } from '../../../services/toast.service';
 import { Router } from '@angular/router';
+import { Store } from '@ngxs/store';
 import Swal from 'sweetalert2';
 import { environment } from '../../../environments/environment';
+import { SelectModule } from 'primeng/select';
+import { FieldConfig } from '../../interfaces/field-config';
+import { ToastService } from '../../../services/toast.service';
+import { AuthState } from '../../store/auth/auth';
+import { CustomersState } from '../../store/customers/customers';
+import { LoadCustomers } from '../../store/customers/actions/load-customers';
+import { LoadReports } from '../../store/reports/actions/load-reports';
 
-interface JwtPayload {
-  sub: string;
-  email?: string;
-}
+type ReportType = 'minisplit' | 'chiller' | 'uma';
 
 @Component({
   selector: 'app-report-add',
   standalone: true,
-  imports: [DynamicForm, FormsModule, CommonModule],
+  imports: [DynamicForm, FormsModule, SelectModule],
   templateUrl: './report-add.html',
-  styleUrl: './report-add.scss'
+  styleUrl: './report-add.scss',
 })
 export class ReportAdd implements OnInit {
-  selectedCustomerId: string = '';
-  customers: Customer[] = [];
-  selectedFiles: File[] = [];
-  signatureFile: File | null = null;
-  signedBy: string = '';
+  private http = inject(HttpClient);
+  private toast = inject(ToastService);
+  private router = inject(Router);
+  private store = inject(Store);
 
-  reportTypes: ['minisplit', 'chiller', 'uma'] = ['minisplit', 'chiller', 'uma'];
-  selectedReportType = 'minisplit';
+  customers = this.store.selectSignal(CustomersState.items);
 
-  //animating form change
-  isAnimating = false;
-  tempType: string = '';
+  selectedCustomerId = signal('');
+  selectedFiles = signal<File[]>([]);
+  signatureFile = signal<File | null>(null);
 
-  formConfigs: { [key: string]: any[] } = {
-    minisplit: this.getFieldsForType('minisplit'),
-    chiller: this.getFieldsForType('chiller'),
+  readonly reportTypeOptions: { label: string; value: ReportType }[] = [
+    { label: 'Minisplit', value: 'minisplit' },
+    { label: 'Chiller', value: 'chiller' },
+    { label: 'UMA', value: 'uma' },
+  ];
 
-    uma: this.getFieldsForType('uma')
+  selectedReportType = signal<ReportType>('minisplit');
+  isAnimating = signal(false);
 
+  private formConfigs: Record<ReportType, FieldConfig[]> = {
+    minisplit: this.buildFields('minisplit'),
+    chiller: this.buildFields('chiller'),
+    uma: this.buildFields('uma'),
+  };
+
+  formFields = computed<FieldConfig[]>(
+    () => this.formConfigs[this.selectedReportType()] || [],
+  );
+
+  ngOnInit(): void {
+    this.store.dispatch(new LoadCustomers());
   }
 
-
-  constructor(private customersService: CustomersService,
-    private reportsService: ReportsService,
-    private http: HttpClient,
-    private cdr: ChangeDetectorRef,
-    private toast: ToastService,
-    private router: Router) { }
-
-  onReportTypeChange(newType: string) {
-    this.isAnimating = true;
-
+  onReportTypeChange(newType: ReportType) {
+    this.isAnimating.set(true);
     setTimeout(() => {
-      this.selectedReportType = newType;
-
-      // Forzar detección de cambios
-      this.cdr.detectChanges();
-
-      setTimeout(() => {
-        this.isAnimating = false;
-        this.cdr.detectChanges();
-      }, 0);
-
+      this.selectedReportType.set(newType);
+      setTimeout(() => this.isAnimating.set(false), 0);
     }, 300);
   }
 
-  get formFields() {
-    return this.formConfigs[this.selectedReportType] || [];
+  onFilesSelected(files: File[]) {
+    this.selectedFiles.set(files);
   }
 
-  getFieldsForType(type: string) {
+  onSignatureChange(file: File) {
+    this.signatureFile.set(file);
+  }
+
+  private buildFields(type: ReportType): FieldConfig[] {
     switch (type) {
       case 'minisplit':
         return [
-          { type: 'text', label: 'Para', name: 'para', defaultValue: '' },
           { type: 'text', label: 'Tipo de tarea', name: 'manttio_type', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de llegada', name: 'date_arrival', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de salida', name: 'date_departure', defaultValue: '' },
@@ -93,12 +90,9 @@ export class ReportAdd implements OnInit {
           { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
           { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' },
-          { type: 'text', label: 'Firmado por', name: 'signed_by', defaultValue: '' }
         ];
-
       case 'chiller':
         return [
-          { type: 'text', label: 'Para', name: 'para', defaultValue: '' },
           { type: 'text', label: 'Tipo de tarea', name: 'manttio_type', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de llegada', name: 'date_arrival', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de salida', name: 'date_departure', defaultValue: '' },
@@ -118,12 +112,9 @@ export class ReportAdd implements OnInit {
           { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
           { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' },
-          { type: 'text', label: 'Firmado por', name: 'signed_by', defaultValue: '' }
         ];
-
       case 'uma':
         return [
-          { type: 'text', label: 'Para', name: 'para', defaultValue: '' },
           { type: 'text', label: 'Tipo de tarea', name: 'manttio_type', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de llegada', name: 'date_arrival', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de salida', name: 'date_departure', defaultValue: '' },
@@ -138,47 +129,9 @@ export class ReportAdd implements OnInit {
           { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
           { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' },
-          { type: 'text', label: 'Firmado por', name: 'signed_by', defaultValue: '' }
         ];
-
-      default:
-        return [];
     }
   }
-
-
-  ngOnInit(): void {
-    this.customersService.getCustomers().subscribe({
-      next: (data) => {
-        this.customers = data;
-        this.cdr.detectChanges();
-
-      },
-      error: (err) => {
-        console.error('Error al obtener clientes:', err);
-      },
-    });
-  }
-
-
-  onFileSelect(event: any) {
-    if (event.target.files && event.target.files.length > 0) {
-      //this.selectedFiles = event.target.files[0];
-      this.selectedFiles = Array.from(event.target.files);
-
-    }
-  }
-
-  onFilesSelected(files: File[]) {
-    this.selectedFiles = files;
-  }
-
-  onSignatureChange(file: File) {
-    this.signatureFile = file;
-  }
-
-
-
 
   private dataURLtoFile(dataURL: string, filename: string): File {
     const arr = dataURL.split(',');
@@ -190,90 +143,65 @@ export class ReportAdd implements OnInit {
       u8arr[n] = bstr.charCodeAt(n);
     }
     return new File([u8arr], filename, { type: mime });
-
   }
 
-
   async onFormSubmit(formData: any) {
-    const token = localStorage.getItem('token');
-    let userId = ''
-    if (token) {
-      const decoded = jwtDecode<JwtPayload>(token);
-      userId = decoded.sub;
-      console.log('User ID del token:', userId);
-    }
-
-    const customerId = this.selectedCustomerId;
-    console.log(customerId);
+    const token = this.store.selectSnapshot(AuthState.token);
+    const userId = this.store.selectSnapshot(AuthState.user)?.id ?? '';
 
     const fd = new FormData();
-    fd.append('report_type', this.selectedReportType);
-    Object.keys(formData).forEach(key => {
+    fd.append('report_type', this.selectedReportType());
+    Object.keys(formData).forEach((key) => {
       if (key === 'signature' && formData[key]) {
         const file = this.dataURLtoFile(formData[key], `signature-${Date.now()}.jpg`);
         fd.append('signature', file);
-      }
-      else {
+      } else {
         fd.append(key, formData[key]);
       }
-
     });
 
     fd.append('user_id', userId);
-    fd.append('client_id', this.selectedCustomerId);
+    fd.append('client_id', this.selectedCustomerId());
 
-
-    for (const file of this.selectedFiles) {
-      fd.append('pictures', file); // Mismo nombre que en el interceptor
+    for (const file of this.selectedFiles()) {
+      fd.append('pictures', file);
     }
 
-    if (this.signatureFile) {
-      fd.append('signature', this.signatureFile); // Mismo nombre que en el interceptor
+    const sig = this.signatureFile();
+    if (sig) {
+      fd.append('signature', sig);
     }
 
-    if (!this.signatureFile && !formData.signature) {
+    if (!sig && !formData.signature) {
       const result = await Swal.fire({
         title: 'Falta firma',
-        text: "Este reporte no contiene una firma. ¿Deseas continuar sin firmar?",
+        text: 'Este reporte no contiene una firma. ¿Deseas continuar sin firmar?',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Sí, continuar',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33'
+        cancelButtonColor: '#d33',
       });
-
-      if (!result.isConfirmed) {
-        // El usuario canceló, abortamos
-        return;
-      }
+      if (!result.isConfirmed) return;
     }
 
-    this.http.post(`${environment.apiUrl}reports`, fd, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-
-    }).subscribe({
-      next: (res) => {
-        Swal.fire({
-          title: 'Reporte agregado exitosamente',
-          icon: 'success'
-        })
-        this.selectedFiles = [];
-        this.signatureFile = null;
-        this.selectedCustomerId = '';
-        //this.selectedReportType =;
-        this.formConfigs[this.selectedReportType] = this.getFieldsForType(this.selectedReportType);
-        this.cdr.detectChanges();
-        this.router.navigate(['/reports']);
-
-      },
-      error: (err) => {
-        this.toast.show('Error al enviar reporte', 'error');
-      }
-    });
-
+    this.http
+      .post(`${environment.apiUrl}reports`, fd, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .subscribe({
+        next: () => {
+          Swal.fire({ title: 'Reporte agregado exitosamente', icon: 'success' });
+          this.selectedFiles.set([]);
+          this.signatureFile.set(null);
+          this.selectedCustomerId.set('');
+          this.store.dispatch(new LoadReports(true));
+          this.router.navigate(['/reports']);
+        },
+        error: () => {
+          this.toast.show('Error al enviar reporte', 'error');
+        },
+      });
   }
-
 }

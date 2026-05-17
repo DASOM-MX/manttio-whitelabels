@@ -1,803 +1,212 @@
 import {
   Component,
-  OnInit,
-  ViewChild,
   ElementRef,
   EventEmitter,
+  OnInit,
   Output,
+  ViewChild,
+  inject,
+  signal,
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectorRef } from '@angular/core';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { Store } from '@ngxs/store';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
-import { SignatureComponent } from '../../components/signature-pad/signature-pad';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  FormControl
-} from '@angular/forms';
-import { Router } from '@angular/router';
-import Swal from 'sweetalert2';
-pdfMake.vfs = pdfFonts.vfs;
-
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { ReportsService } from '../../../services/reports';
+import Swal from 'sweetalert2';
+import { SignatureComponent } from '../../components/signature-pad/signature-pad';
 import { ImagePickerComponent } from '../../components/image-picker/image-picker';
+import { ReportsService } from '../../../services/reports';
 import { environment } from '../../../environments/environment';
+import { InputTextModule } from 'primeng/inputtext';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { TextareaModule } from 'primeng/textarea';
+import { CheckboxModule } from 'primeng/checkbox';
+import { DatePickerModule } from 'primeng/datepicker';
+import { ButtonModule } from 'primeng/button';
+import { TagModule } from 'primeng/tag';
+import { DatePipe, SlicePipe } from '@angular/common';
+import { AuthState } from '../../store/auth/auth';
+import { LoadReports } from '../../store/reports/actions/load-reports';
+
+pdfMake.vfs = pdfFonts.vfs;
 
 @Component({
   selector: 'app-report-detail',
   standalone: true,
   imports: [
-    CommonModule,
+    DatePipe,
+    SlicePipe,
     ReactiveFormsModule,
     SignatureComponent,
     ImagePickerComponent,
+    InputTextModule,
+    InputNumberModule,
+    TextareaModule,
+    CheckboxModule,
+    DatePickerModule,
+    ButtonModule,
+    TagModule,
   ],
   templateUrl: './report-detail.html',
   styleUrl: './report-detail.scss',
 })
 export class ReportDetail implements OnInit {
   @Output() signatureChanged = new EventEmitter<string>();
-
-  report: any = null;
-  customer: any = null;
-  reportUser: any = null;
-
-  reportForm!: FormGroup;
-  editMode = false;
-
-  newPictures: File[] = [];
-  removedPictures: string[] = [];
-
-  constructor(
-    private route: ActivatedRoute,
-    private http: HttpClient,
-    private cdr: ChangeDetectorRef,
-    private fb: FormBuilder,
-    private reportsService: ReportsService,
-    private router: Router
-  ) {}
-
   @ViewChild('pdfContent', { static: false }) pdfContent!: ElementRef;
 
-  downloadPDF() {
-    const DATA = this.pdfContent.nativeElement;
+  private route = inject(ActivatedRoute);
+  private http = inject(HttpClient);
+  private fb = inject(FormBuilder);
+  private reportsService = inject(ReportsService);
+  private router = inject(Router);
+  private store = inject(Store);
 
-    html2canvas(DATA, { scale: 2 }).then((canvas) => {
-      const imgData = canvas.toDataURL('image/png');
+  report = signal<any | null>(null);
+  customer = signal<any | null>(null);
+  reportUser = signal<any | null>(null);
+  editMode = signal(false);
+  newPictures = signal<File[]>([]);
+  removedPictures = signal<string[]>([]);
 
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save('reporte.pdf');
-    });
-  }
-
-  async toBase64(url: string): Promise<string> {
-    try {
-      const res = await fetch(url);
-
-      if (!res.ok) {
-        console.log(`❌ Error HTTP ${res.status}`);
-      }
-
-      const blob = await res.blob();
-      return new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          resolve(reader.result as string);
-        };
-        reader.onerror = (err) => {
-          reject(err);
-        };
-        reader.readAsDataURL(blob);
-      });
-    } catch (err) {
-      console.error('🔥 Error en toBase64 para', url, err);
-      throw err;
-    }
-  }
-
-  getTableForReportType(reportType: string) {
-    switch (reportType) {
-      case 'minisplit':
-        return {
-          table: {
-            widths: ['25%', '25%', '25%', '25%'],
-            body: [
-              [
-                {
-                  text: 'Formulario: Mantenimiento Minisplit',
-                  colSpan: 4,
-                  alignment: 'center',
-                  fillColor: '#DCDCDC',
-                  bold: true,
-                  color: 'dark',
-                  margin: [0, 5, 0, 5],
-                },
-                {},
-                {},
-                {},
-              ],
-
-              [
-                { text: 'Equipo se encuentra operando', bold: true },
-                this.report.is_operating || '',
-                { text: 'Cuenta con filtro evaporador', bold: true },
-                this.report.filter || '',
-              ],
-              [
-                { text: 'Control remoto funciona', bold: true },
-                this.report.remote_working || '',
-                { text: 'Voltaje de entrada', bold: true },
-                this.report.inner_voltage || '',
-              ],
-              [
-                { text: 'Amperaje general', bold: true },
-                this.report.amperage || '',
-                { text: 'Ruido fuera de lo normal', bold: true },
-                this.report.unusual_noise || '',
-              ],
-              [
-                { text: 'Observaciones', bold: true },
-                this.report.observations || 'Ninguna',
-                { text: ' ', border: [false, false, false, false] },
-                { text: ' ', border: [false, false, false, false] },
-              ],
-            ],
-          },
-          margin: [0, 10, 0, 10],
-        };
-
-      case 'chiller':
-        console.log('chillertest');
-        return {
-          table: {
-            widths: ['35%', '15%', '35%', '15%'],
-            body: [
-              [
-                {
-                  text: 'Informaciones de las actividades',
-                  colSpan: 4,
-                  alignment: 'center',
-                  fillColor: '#DCDCDC',
-                  bold: true,
-                  color: 'dark',
-                  margin: [0, 5, 0, 5],
-                },
-                { text: '' },
-                { text: '' },
-                { text: '' },
-              ],
-              [
-                { text: 'Equipo se encuentra operando', bold: true },
-                { text: this.report.is_operating || '' },
-                { text: 'Switch de flujo funciona', bold: true },
-                { text: this.report.flux_switch_working || '' },
-              ],
-              [
-                { text: 'Temperatura de entrada', bold: true },
-                { text: this.report.inner_temperature || '' },
-                { text: 'Temperatura de salida', bold: true },
-                { text: this.report.outer_temperature || '' },
-              ],
-              [
-                { text: 'Teclas del PLC funcionan', bold: true },
-                { text: this.report.plc_keys_working || '' },
-                { text: 'Voltaje de entrada', bold: true },
-                { text: this.report.inner_voltage || '' },
-              ],
-              [
-                { text: 'Amperaje de motor condensador general', bold: true },
-                { text: this.report.motor_amperage || '' },
-                { text: 'Presiones del sistema 1', bold: true },
-                { text: this.report.system_pressure_1 || '' },
-              ],
-              [
-                { text: 'Presiones del sistema 2', bold: true },
-                { text: this.report.system_pressure_2 || '' },
-                { text: 'Presiones del sistema 3', bold: true },
-                { text: this.report.system_pressure_3 || '' },
-              ],
-
-              [
-                { text: 'Presiones del sistema 2', bold: true },
-                { text: this.report.system_pressure_2 || '' },
-                { text: 'Presiones del sistema 3', bold: true },
-                { text: this.report.system_pressure_3 || '' },
-              ],
-              [
-                { text: 'Presión de aceite', bold: true },
-                { text: this.report.oil_pressure || '' },
-                { text: 'Nivel de aceite', bold: true },
-                { text: this.report.oil_level || '' },
-              ],
-            ],
-          },
-          margin: [0, 10, 0, 10],
-        };
-
-      case 'uma':
-        console.log('uma test');
-        return {
-          table: {
-            widths: ['25%', '25%', '25%', '25%'],
-            body: [
-              [
-                {
-                  text: 'Formulario UMAS',
-                  colSpan: 4,
-                  alignment: 'center',
-                  fillColor: '#DCDCDC',
-                  bold: true,
-                  margin: [0, 5, 0, 5],
-                },
-                { text: '' },
-                { text: '' },
-                { text: '' },
-              ],
-              [
-                { text: 'Equipo se encuentra operando', bold: true },
-                { text: this.report.is_operating || '' },
-                { text: 'Se ajustó la banda de la UMA', bold: true },
-                { text: this.report.air_band_adjustment || '' },
-              ],
-              [
-                { text: 'Temperatura de entrada', bold: true },
-                { text: this.report.inner_temperature || '' },
-                { text: 'Temperatura de salida', bold: true },
-                { text: this.report.outer_temperature || '' },
-              ],
-              [
-                { text: 'Rejilla de aire en buenas condiciones', bold: true },
-                { text: this.report.air_good_quality || '' },
-                { text: 'Voltaje de entrada', bold: true },
-                { text: this.report.inner_voltage || '' },
-              ],
-              [
-                { text: 'Amperaje del motor', bold: true },
-                { text: this.report.motor_amperage || '' },
-                { text: 'Ruido fuera de lo normal', bold: true },
-                { text: this.report.unusual_noise || '' },
-              ],
-              [
-                { text: 'Observaciones', bold: true },
-                { text: this.report.observations || 'Ninguna' },
-                { text: '', border: [false, false, false, false] },
-                { text: '', border: [false, false, false, false] },
-              ],
-            ],
-          },
-          margin: [0, 10, 0, 10],
-        };
-
-      default:
-        return {
-          text: 'Sin datos específicos de mantenimiento',
-          margin: [0, 10, 0, 10],
-        };
-    }
-  }
-
-  async downloadTextPDF() {
-    function buildImageRows(images: string[], columns: number) {
-      const rows = [];
-      for (let i = 0; i < images.length; i += columns) {
-        const row = images.slice(i, i + columns).map((img) => ({
-          image: img,
-          width: 150,
-          margin: [2, 2, 2, 2],
-        }));
-
-        // Si la última fila tiene menos imágenes que columnas, llenamos con celdas vacías
-        while (row.length < columns) {
-          row.push({ text: '', border: [false, false, false, false] } as any);
-        }
-
-        rows.push(row);
-      }
-      return rows;
-    }
-
-    // Fotos
-    console.log(' Procesando pictures:', this.report.pictures);
-    const picturesBase64 = await Promise.all(
-      (this.report.pictures || []).map((pic: string, i: number) =>
-        this.toBase64(pic).catch((err) => {
-          console.error(`❌ Error en picture[${i}]:`, pic, err);
-          return null;
-        })
-      )
-    );
-
-    // Firma
-    if (this.report.signature) {
-      console.log(' Procesando signature:', this.report.signature);
-    }
-    const signatureBase64 = this.report.signature
-      ? await this.toBase64(this.report.signature).catch((err) => {
-          return null;
-        })
-      : null;
-
-    const formatDate = (dateString: string) => {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('es-MX', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    };
-
-    const docDefinition: any = {
-      content: [
-        {
-          table: {
-            widths: ['*', '*'],
-            body: [
-              [
-                {
-                  text: `${this.customer.name}`,
-                  style: 'header',
-                  border: [false, false, false, true],
-                },
-                {
-                  text: `${this.report.id}`,
-                  style: 'subheader',
-                  alignment: 'right',
-                  border: [false, false, false, true],
-                },
-              ],
-            ],
-          },
-        },
-
-        {
-          table: {
-            widths: ['*', '*'], // dos columnas
-            body: [
-              [
-                {
-                  text: 'Datos del Cliente',
-                  colSpan: 2,
-                  alignment: 'center',
-                  fillColor: '#DCDCDC',
-                  bold: true,
-                  color: 'dark',
-                  margin: [0, 5, 0, 5],
-                },
-                {}, // celda vacía porque usamos colSpan
-              ],
-
-              [
-                {
-                  text: 'Identificación',
-                  bold: true,
-                  border: [true, true, true, true],
-                },
-                {
-                  text: this.customer.identification || '',
-                  border: [true, true, true, true],
-                },
-              ],
-              [
-                {
-                  text: 'Teléfono',
-                  bold: true,
-                  border: [true, true, true, true],
-                },
-                {
-                  text: this.customer.phone || '',
-                  border: [true, true, true, true],
-                },
-              ],
-              [
-                { text: 'Email', bold: true, border: [true, true, true, true] },
-                {
-                  text: this.customer.email || '',
-                  border: [true, true, true, true],
-                },
-              ],
-              [
-                {
-                  text: 'Observación',
-                  bold: true,
-                  border: [true, true, true, true],
-                },
-                {
-                  text: this.customer.observation || '',
-                  border: [true, true, true, true],
-                },
-              ],
-            ],
-          },
-        },
-        {
-          table: {
-            widths: ['25%', '25%', '25%', '25%'],
-            body: [
-              [
-                {
-                  text: 'Informaciones de las actividades',
-                  colSpan: 4,
-                  alignment: 'center',
-                  fillColor: '#DCDCDC',
-                  bold: true,
-                  color: 'dark',
-                  margin: [0, 5, 0, 5],
-                },
-                {},
-                {},
-                {},
-              ],
-
-              [
-                { text: 'Para:', bold: true },
-                this.reportUser.name,
-                { text: 'Tipo de tarea:', bold: true },
-                this.report.manttio_type,
-              ],
-              [
-                { text: 'Fecha Llegada:', bold: true },
-                formatDate(this.report.date_arrival),
-                { text: 'Fecha Salida', bold: true },
-                formatDate(this.report.date_departure),
-              ],
-
-              [
-                { text: 'Observaciones', bold: true },
-                this.report.observations,
-                { text: ' ', border: [false, false, false, false] },
-                { text: ' ', border: [false, false, false, false] },
-              ],
-            ],
-          },
-          margin: [0, 10, 0, 10],
-        },
-
-        this.getTableForReportType(this.report.report_type),
-
-        {
-          table: {
-            widths: ['*', '*', '*'],
-            body: [
-              // 🔹 Fila de título que ocupa las 3 columnas
-              [
-                {
-                  text: 'Fotos del Reporte',
-                  colSpan: 3,
-                  alignment: 'center',
-                  bold: true,
-                  color: 'dark',
-                  fillColor: '#DCDCDC', // oro
-                  margin: [0, 5, 0, 5],
-                },
-                {},
-                {},
-              ],
-
-              // 🔹 Aquí van las imágenes en filas de 3
-              ...(() => {
-                const rows: any[] = [];
-                const imgs = picturesBase64.filter(Boolean);
-
-                for (let i = 0; i < imgs.length; i += 3) {
-                  rows.push([
-                    { image: imgs[i], width: 150, margin: [0, 5, 0, 5] },
-                    imgs[i + 1]
-                      ? { image: imgs[i + 1], width: 150, margin: [0, 5, 0, 5] }
-                      : {},
-                    imgs[i + 2]
-                      ? { image: imgs[i + 2], width: 150, margin: [0, 5, 0, 5] }
-                      : {},
-                  ]);
-                }
-                return rows;
-              })(),
-            ],
-          },
-          layout: '',
-          margin: [0, 10, 0, 10],
-        },
-
-        signatureBase64
-          ? { image: signatureBase64, width: 150, alignment: 'center' }
-          : null,
-        signatureBase64
-          ? {
-              text: `Firmado por: ${this.report.signed_by}`,
-              style: 'subheader',
-              alignment: 'center',
-            }
-          : null,
-      ],
-      styles: {
-        header: { fontSize: 18, bold: true },
-        subheader: { fontSize: 14, bold: true, margin: [0, 0, 0, 5] },
-      },
-    };
-    pdfMake.createPdf(docDefinition).download(`reporte-${this.report.id}.pdf`);
-  }
-
-  private buildReportForm() {
-    if (!this.report) return;
-
-    // Campos comunes a todos los reportes
-    const commonControls: any = {
-      observations: [this.report.observations || ''],
-      unusual_noise: [this.report.unusual_noise || false],
-      date_arrival: [this.report.date_arrival || ''],
-      date_departure: [this.report.date_departure || ''],
-    };
-
-    let specificControls: any = {};
-
-    switch (this.report.report_type) {
-      case 'minisplit':
-        specificControls = {
-          is_operating: [this.report.is_operating || false],
-          remote_working: [this.report.remote_working || false],
-          amperage: [this.report.amperage || ''],
-          inner_voltage: [this.report.inner_voltage || ''],
-          filter: [this.report.filter || false],
-        };
-        break;
-
-      case 'chiller':
-        specificControls = {
-          is_operating: [this.report.is_operating || false],
-          inner_temperature: [this.report.inner_temperature || ''],
-          outer_temperature: [this.report.outer_temperature || ''],
-          inner_voltage: [this.report.inner_voltage || ''],
-          plc_keys_working: [this.report.plc_keys_working || false],
-          motor_amperage: [this.report.motor_amperage || ''],
-          system_pressure_1: [this.report.system_pressure_1 || ''],
-          system_pressure_2: [this.report.system_pressure_2 || ''],
-          system_pressure_3: [this.report.system_pressure_3 || ''],
-          oil_pressure: [this.report.oil_pressure || ''],
-          oil_level: [this.report.oil_level || ''],
-          flux_switch_working: [this.report.flux_switch_working || false],
-        };
-        break;
-
-      case 'uma':
-        specificControls = {
-          is_operating: [this.report.is_operating || false],
-          air_band_adjustment: [this.report.air_band_adjustment || false],
-          inner_temperature: [this.report.inner_temperature || ''],
-          outer_temperature: [this.report.outer_temperature || ''],
-          air_good_quality: [this.report.air_good_quality || false],
-          inner_voltage: [this.report.inner_voltage || ''],
-          motor_amperage: [this.report.motor_amperage || ''],
-        };
-        break;
-    }
-
-    // Combinar controles comunes y específicos
-    this.reportForm = this.fb.group({
-      ...commonControls,
-      ...specificControls,
-    });
-  }
+  reportForm: FormGroup = new FormGroup({
+    observations: new FormControl(''),
+    unusual_noise: new FormControl(false),
+  });
 
   ngOnInit(): void {
-    this.reportForm = new FormGroup({
-      observations: new FormControl(''),
-      unusual_noise: new FormControl(this.report?.unusual_noise || false),
-    });
-
     const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
+    if (!id) return;
+
+    const token = this.store.selectSnapshot(AuthState.token);
+    const headers = { Authorization: `Bearer ${token}` };
+
+    this.http.get(`${environment.apiUrl}reports/${id}`, { headers }).subscribe((data: any) => {
+      this.report.set(data);
+      this.buildReportForm();
+
       this.http
-        .get(`${environment.apiUrl}reports/${id}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        })
-        .subscribe((data) => {
-          this.report = data;
-          this.cdr.detectChanges();
-          console.log(data);
+        .get<any>(`${environment.apiUrl}customers/${data.client_id}`, { headers })
+        .subscribe((customer) => this.customer.set(customer));
 
-          //for editing report: minisplit
-          this.buildReportForm();
-
-          this.http
-            .get<any[]>(
-              `${environment.apiUrl}customers/${this.report.client_id}`,
-              {
-                headers: {
-                  Authorization: `Bearer ${localStorage.getItem('token')}`,
-                },
-              }
-            )
-            .subscribe((clients) => {
-              console.log('Cliente unico recibido:', clients);
-
-              this.customer = clients;
-              this.cdr.detectChanges();
-            });
-
-          this.http
-            .get<any>(`${environment.apiUrl}user/${this.report.user_id}`, {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            })
-            .subscribe((user) => {
-              this.reportUser = user;
-
-              this.cdr.detectChanges();
-              console.log('Usuario del reporte:', user);
-            });
-        });
-    }
+      this.http
+        .get<any>(`${environment.apiUrl}user/${data.user_id}`, { headers })
+        .subscribe((user) => this.reportUser.set(user));
+    });
   }
 
   toggleEdit() {
-    this.editMode = !this.editMode;
-    if (this.editMode) {
-      this.reportForm.patchValue(this.report);
+    this.editMode.update((v) => !v);
+    if (this.editMode()) {
+      this.reportForm.patchValue(this.report() ?? {});
     }
   }
 
   async saveChanges() {
     if (this.reportForm.invalid) return;
+    const r = this.report();
+    if (!r) return;
 
     try {
-      //  Guardar los cambios normales del formulario
-      await this.reportsService
-        .updateReport(this.report.id, this.reportForm.value)
-        .toPromise();
+      await this.reportsService.updateReport(r.id, this.reportForm.value).toPromise();
 
-      //  Subir las nuevas imágenes (si hay)
-      if (
-        (this.newPictures && this.newPictures.length > 0) ||
-        (this.removedPictures && this.removedPictures.length > 0)
-      ) {
-        await this.savePictures(this.newPictures);
-        // this.newPictures = [];
+      if (this.newPictures().length > 0 || this.removedPictures().length > 0) {
+        await this.savePictures(this.newPictures());
       }
 
-      //terminar edicion
-      this.editMode = false;
+      this.editMode.set(false);
+      this.store.dispatch(new LoadReports(true));
       Swal.fire('Éxito', 'Reporte actualizado correctamente', 'success');
-      this.editMode = false;
-      this.cdr.detectChanges();
-
-      //  Refrescar el reporte desde el backend
-      // this.report = await this.reportsService.getReport(this.report.id).toPromise();
-
-      // this.editMode = false;
-    } catch (error) {
+    } catch {
       Swal.fire('Error', 'No se pudieron guardar los cambios', 'error');
     }
   }
 
-  async onSignatureSaved(signatureData: string) {
-    if (signatureData) {
-      const result = await Swal.fire({
-        title: '¿Deseas firmar este reporte?',
-        text: 'Una vez firmado, no podrá ser modificado',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, firmar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-      });
-
-      if (result.isConfirmed) {
-        const token = localStorage.getItem('token');
-
-        const file = this.dataURLtoFile(
-          signatureData,
-          `signature-${Date.now()}.jpg`
-        );
-
-        const fd = new FormData();
-        fd.append('signature', file);
-        fd.append('signed_by', localStorage.getItem('username') || 'Técnico');
-        fd.append('report_status', 'true');
-
-        this.http
-          .put(
-            `${environment.apiUrl}reports/${this.report.id}/signature`,
-            fd,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          )
-          .subscribe({
-            next: (updated: any) => {
-              this.report = updated;
-              this.editMode = false;
-
-              Swal.fire({
-                title: 'Reporte firmado exitosamente',
-                icon: 'success',
-              });
-              this.reloadComponent();
-            },
-            error: (err) => {
-              console.error('Error guardando firma:', err);
-
-              Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Ha ocurrido un error al firmar el reporte',
-              });
-            },
-          });
-      }
-    }
-  }
-
   onNewPicturesSelected(files: File[]) {
-    this.newPictures = files; // imágenes nuevas
+    this.newPictures.set(files);
   }
 
   onExistingPicturesRemoved(removed: string[]) {
-    this.removedPictures.push(...removed); // guardamos URLs a borrar
-    console.log('imagenes a remover', this.removedPictures);
+    this.removedPictures.update((current) => [...current, ...removed]);
+  }
+
+  async onSignatureSaved(signatureData: string) {
+    if (!signatureData) return;
+    const r = this.report();
+    if (!r) return;
+
+    const result = await Swal.fire({
+      title: '¿Deseas firmar este reporte?',
+      text: 'Una vez firmado, no podrá ser modificado',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, firmar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+    });
+    if (!result.isConfirmed) return;
+
+    const token = this.store.selectSnapshot(AuthState.token);
+    const userEmail = this.store.selectSnapshot(AuthState.user)?.email ?? 'Técnico';
+    const file = this.dataURLtoFile(signatureData, `signature-${Date.now()}.jpg`);
+
+    const fd = new FormData();
+    fd.append('signature', file);
+    fd.append('signed_by', userEmail);
+    fd.append('report_status', 'true');
+
+    this.http
+      .put(`${environment.apiUrl}reports/${r.id}/signature`, fd, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .subscribe({
+        next: (updated: any) => {
+          this.report.set(updated);
+          this.editMode.set(false);
+          this.store.dispatch(new LoadReports(true));
+          Swal.fire({ title: 'Reporte firmado exitosamente', icon: 'success' });
+          this.reloadComponent();
+        },
+        error: (err) => {
+          console.error('Error guardando firma:', err);
+          Swal.fire({ icon: 'error', title: 'Error', text: 'Ha ocurrido un error al firmar el reporte' });
+        },
+      });
   }
 
   async savePictures(files: File[]) {
-    const token = localStorage.getItem('token');
+    const r = this.report();
+    if (!r) return;
+    const token = this.store.selectSnapshot(AuthState.token);
+    const headers = { Authorization: `Bearer ${token}` };
 
     try {
-      let updatedReport = this.report;
-
-      // Subir nuevas imágenes si existen
       if (files.length > 0) {
         const fd = new FormData();
         files.forEach((file) => fd.append('pictures', file));
-
-        updatedReport = await this.http
-          .put<any>(
-            `${environment.apiUrl}reports/${this.report.id}/pictures`,
-            fd,
-            { headers: { Authorization: `Bearer ${token}` } }
-          )
-          .toPromise();
-      }
-
-      // Borrar imágenes si hay URLs a eliminar
-      if (this.removedPictures.length > 0) {
         await this.http
-          .request(
-            'delete',
-            `${environment.apiUrl}reports/${this.report.id}/pictures`,
-            {
-              body: { images: this.removedPictures },
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          )
+          .put<any>(`${environment.apiUrl}reports/${r.id}/pictures`, fd, { headers })
           .toPromise();
       }
 
-      // Refrescar reporte desde backend
-      const freshReport = await this.reportsService
-        .getReport(this.report.id)
-        .toPromise();
+      const removed = this.removedPictures();
+      if (removed.length > 0) {
+        await this.http
+          .request('delete', `${environment.apiUrl}reports/${r.id}/pictures`, {
+            body: { images: removed },
+            headers,
+          })
+          .toPromise();
+      }
 
-      // Actualizar estado del componente
-      this.report = freshReport;
-      this.newPictures = [];
-      this.removedPictures = [];
-      this.cdr.detectChanges();
+      const fresh = await this.reportsService.getReport(r.id).toPromise();
+      this.report.set(fresh);
+      this.newPictures.set([]);
+      this.removedPictures.set([]);
     } catch (err) {
       console.error('Error al guardar imágenes:', err);
       Swal.fire({
@@ -806,6 +215,226 @@ export class ReportDetail implements OnInit {
         text: 'No se pudieron guardar los cambios en las imágenes',
       });
     }
+  }
+
+  downloadPDF() {
+    const DATA = this.pdfContent.nativeElement;
+    html2canvas(DATA, { scale: 2 }).then((canvas) => {
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('reporte.pdf');
+    });
+  }
+
+  async toBase64(url: string): Promise<string> {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async downloadTextPDF() {
+    const r = this.report();
+    const c = this.customer();
+    const u = this.reportUser();
+    if (!r || !c) return;
+
+    const picturesBase64 = await Promise.all(
+      (r.pictures || []).map((pic: string) => this.toBase64(pic).catch(() => null)),
+    );
+    const signatureBase64 = r.signature
+      ? await this.toBase64(r.signature).catch(() => null)
+      : null;
+
+    const formatDate = (dateString: string) =>
+      new Date(dateString).toLocaleDateString('es-MX', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+    const docDefinition: any = {
+      content: [
+        {
+          table: {
+            widths: ['*', '*'],
+            body: [[
+              { text: `${c.name}`, style: 'header', border: [false, false, false, true] },
+              { text: `${r.id}`, style: 'subheader', alignment: 'right', border: [false, false, false, true] },
+            ]],
+          },
+        },
+        {
+          table: {
+            widths: ['*', '*'],
+            body: [
+              [{ text: 'Datos del Cliente', colSpan: 2, alignment: 'center', fillColor: '#DCDCDC', bold: true, color: 'dark', margin: [0, 5, 0, 5] }, {}],
+              [{ text: 'Identificación', bold: true }, c.identification || ''],
+              [{ text: 'Teléfono', bold: true }, c.phone || ''],
+              [{ text: 'Email', bold: true }, c.email || ''],
+              [{ text: 'Observación', bold: true }, c.observation || ''],
+            ],
+          },
+        },
+        {
+          table: {
+            widths: ['25%', '25%', '25%', '25%'],
+            body: [
+              [{ text: 'Informaciones de las actividades', colSpan: 4, alignment: 'center', fillColor: '#DCDCDC', bold: true, color: 'dark', margin: [0, 5, 0, 5] }, {}, {}, {}],
+              [{ text: 'Para:', bold: true }, u?.name ?? '', { text: 'Tipo de tarea:', bold: true }, r.manttio_type],
+              [{ text: 'Fecha Llegada:', bold: true }, formatDate(r.date_arrival), { text: 'Fecha Salida', bold: true }, formatDate(r.date_departure)],
+              [{ text: 'Observaciones', bold: true }, r.observations, { text: ' ', border: [false, false, false, false] }, { text: ' ', border: [false, false, false, false] }],
+            ],
+          },
+          margin: [0, 10, 0, 10],
+        },
+        this.getTableForReportType(r.report_type, r),
+        {
+          table: {
+            widths: ['*', '*', '*'],
+            body: [
+              [{ text: 'Fotos del Reporte', colSpan: 3, alignment: 'center', bold: true, color: 'dark', fillColor: '#DCDCDC', margin: [0, 5, 0, 5] }, {}, {}],
+              ...(() => {
+                const rows: any[] = [];
+                const imgs = picturesBase64.filter(Boolean);
+                for (let i = 0; i < imgs.length; i += 3) {
+                  rows.push([
+                    { image: imgs[i], width: 150, margin: [0, 5, 0, 5] },
+                    imgs[i + 1] ? { image: imgs[i + 1], width: 150, margin: [0, 5, 0, 5] } : {},
+                    imgs[i + 2] ? { image: imgs[i + 2], width: 150, margin: [0, 5, 0, 5] } : {},
+                  ]);
+                }
+                return rows;
+              })(),
+            ],
+          },
+          margin: [0, 10, 0, 10],
+        },
+        signatureBase64 ? { image: signatureBase64, width: 150, alignment: 'center' } : null,
+        signatureBase64 ? { text: `Firmado por: ${r.signed_by}`, style: 'subheader', alignment: 'center' } : null,
+      ],
+      styles: {
+        header: { fontSize: 18, bold: true },
+        subheader: { fontSize: 14, bold: true, margin: [0, 0, 0, 5] },
+      },
+    };
+    pdfMake.createPdf(docDefinition).download(`reporte-${r.id}.pdf`);
+  }
+
+  private getTableForReportType(reportType: string, r: any) {
+    switch (reportType) {
+      case 'minisplit':
+        return {
+          table: {
+            widths: ['25%', '25%', '25%', '25%'],
+            body: [
+              [{ text: 'Formulario: Mantenimiento Minisplit', colSpan: 4, alignment: 'center', fillColor: '#DCDCDC', bold: true, color: 'dark', margin: [0, 5, 0, 5] }, {}, {}, {}],
+              [{ text: 'Equipo se encuentra operando', bold: true }, r.is_operating || '', { text: 'Cuenta con filtro evaporador', bold: true }, r.filter || ''],
+              [{ text: 'Control remoto funciona', bold: true }, r.remote_working || '', { text: 'Voltaje de entrada', bold: true }, r.inner_voltage || ''],
+              [{ text: 'Amperaje general', bold: true }, r.amperage || '', { text: 'Ruido fuera de lo normal', bold: true }, r.unusual_noise || ''],
+              [{ text: 'Observaciones', bold: true }, r.observations || 'Ninguna', { text: ' ', border: [false, false, false, false] }, { text: ' ', border: [false, false, false, false] }],
+            ],
+          },
+          margin: [0, 10, 0, 10],
+        };
+      case 'chiller':
+        return {
+          table: {
+            widths: ['35%', '15%', '35%', '15%'],
+            body: [
+              [{ text: 'Informaciones de las actividades', colSpan: 4, alignment: 'center', fillColor: '#DCDCDC', bold: true, color: 'dark', margin: [0, 5, 0, 5] }, {}, {}, {}],
+              [{ text: 'Equipo se encuentra operando', bold: true }, r.is_operating || '', { text: 'Switch de flujo funciona', bold: true }, r.flux_switch_working || ''],
+              [{ text: 'Temperatura de entrada', bold: true }, r.inner_temperature || '', { text: 'Temperatura de salida', bold: true }, r.outer_temperature || ''],
+              [{ text: 'Teclas del PLC funcionan', bold: true }, r.plc_keys_working || '', { text: 'Voltaje de entrada', bold: true }, r.inner_voltage || ''],
+              [{ text: 'Amperaje de motor condensador general', bold: true }, r.motor_amperage || '', { text: 'Presiones del sistema 1', bold: true }, r.system_pressure_1 || ''],
+              [{ text: 'Presiones del sistema 2', bold: true }, r.system_pressure_2 || '', { text: 'Presiones del sistema 3', bold: true }, r.system_pressure_3 || ''],
+              [{ text: 'Presión de aceite', bold: true }, r.oil_pressure || '', { text: 'Nivel de aceite', bold: true }, r.oil_level || ''],
+            ],
+          },
+          margin: [0, 10, 0, 10],
+        };
+      case 'uma':
+        return {
+          table: {
+            widths: ['25%', '25%', '25%', '25%'],
+            body: [
+              [{ text: 'Formulario UMAS', colSpan: 4, alignment: 'center', fillColor: '#DCDCDC', bold: true, margin: [0, 5, 0, 5] }, {}, {}, {}],
+              [{ text: 'Equipo se encuentra operando', bold: true }, r.is_operating || '', { text: 'Se ajustó la banda de la UMA', bold: true }, r.air_band_adjustment || ''],
+              [{ text: 'Temperatura de entrada', bold: true }, r.inner_temperature || '', { text: 'Temperatura de salida', bold: true }, r.outer_temperature || ''],
+              [{ text: 'Rejilla de aire en buenas condiciones', bold: true }, r.air_good_quality || '', { text: 'Voltaje de entrada', bold: true }, r.inner_voltage || ''],
+              [{ text: 'Amperaje del motor', bold: true }, r.motor_amperage || '', { text: 'Ruido fuera de lo normal', bold: true }, r.unusual_noise || ''],
+              [{ text: 'Observaciones', bold: true }, r.observations || 'Ninguna', { text: '', border: [false, false, false, false] }, { text: '', border: [false, false, false, false] }],
+            ],
+          },
+          margin: [0, 10, 0, 10],
+        };
+      default:
+        return { text: 'Sin datos específicos de mantenimiento', margin: [0, 10, 0, 10] };
+    }
+  }
+
+  private buildReportForm() {
+    const r = this.report();
+    if (!r) return;
+
+    const commonControls: any = {
+      observations: [r.observations || ''],
+      unusual_noise: [r.unusual_noise || false],
+      date_arrival: [r.date_arrival || ''],
+      date_departure: [r.date_departure || ''],
+    };
+
+    let specificControls: any = {};
+    switch (r.report_type) {
+      case 'minisplit':
+        specificControls = {
+          is_operating: [r.is_operating || false],
+          remote_working: [r.remote_working || false],
+          amperage: [r.amperage || ''],
+          inner_voltage: [r.inner_voltage || ''],
+          filter: [r.filter || false],
+        };
+        break;
+      case 'chiller':
+        specificControls = {
+          is_operating: [r.is_operating || false],
+          inner_temperature: [r.inner_temperature || ''],
+          outer_temperature: [r.outer_temperature || ''],
+          inner_voltage: [r.inner_voltage || ''],
+          plc_keys_working: [r.plc_keys_working || false],
+          motor_amperage: [r.motor_amperage || ''],
+          system_pressure_1: [r.system_pressure_1 || ''],
+          system_pressure_2: [r.system_pressure_2 || ''],
+          system_pressure_3: [r.system_pressure_3 || ''],
+          oil_pressure: [r.oil_pressure || ''],
+          oil_level: [r.oil_level || ''],
+          flux_switch_working: [r.flux_switch_working || false],
+        };
+        break;
+      case 'uma':
+        specificControls = {
+          is_operating: [r.is_operating || false],
+          air_band_adjustment: [r.air_band_adjustment || false],
+          inner_temperature: [r.inner_temperature || ''],
+          outer_temperature: [r.outer_temperature || ''],
+          air_good_quality: [r.air_good_quality || false],
+          inner_voltage: [r.inner_voltage || ''],
+          motor_amperage: [r.motor_amperage || ''],
+        };
+        break;
+    }
+
+    this.reportForm = this.fb.group({ ...commonControls, ...specificControls });
   }
 
   reloadComponent(): void {

@@ -1,462 +1,457 @@
-<div class="min-h-screen flex items-center justify-center bg-surface p-4">
+<div class="min-h-full bg-background">
     <div #pdfContent>
         <form [formGroup]="reportForm">
-            <div *ngIf="report" class="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md space-y-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">
-                    Detalle del Reporte <span class="text-primary">{{ report.id }}</span>
-                </h2>
+            @if (report(); as report) {
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+                <!-- Header -->
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">Detalle del reporte</p>
+                        <h1 class="text-2xl sm:text-3xl font-bold text-granite-900 leading-tight">
+                            <span class="font-data tabular-nums text-sky-700">#{{ report.id | slice:0:8 }}</span>
+                        </h1>
+                    </div>
+                    @if (report.report_status) {
+                        <p-tag severity="success" value="Finalizado">
+                            <ng-template pTemplate="icon">
+                                <span class="size-2 rounded-full bg-emerald-600" aria-hidden="true"></span>
+                            </ng-template>
+                        </p-tag>
+                    } @else {
+                        <p-tag severity="warn" value="Pendiente">
+                            <ng-template pTemplate="icon">
+                                <span class="size-2 rounded-full bg-amber-600" aria-hidden="true"></span>
+                            </ng-template>
+                        </p-tag>
+                    }
+                </div>
 
                 <!-- Información del cliente -->
-                <div *ngIf="customer" class="bg-gray-50 p-4 rounded-lg shadow-inner">
-                    <h3 class="text-lg font-bold text-gray-800 mb-2">Información del Cliente</h3>
-                    <p><span class="font-semibold">Nombre:</span> {{ customer.name }}</p>
-                    <p><span class="font-semibold">Identificación:</span> {{ customer.identification }}</p>
-                    <p><span class="font-semibold">Teléfono:</span> {{ customer.phone }}</p>
-                    <p><span class="font-semibold">Email:</span> {{ customer.email }}</p>
-                </div>
+                @if (customer(); as customer) {
+                <section class="card-section">
+                    <h2 class="text-lg font-bold text-granite-900 mb-4">Información del cliente</h2>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        <div class="field-group">
+                            <dt class="field-label">Nombre</dt>
+                            <dd class="text-base text-granite-900">{{ customer.name }}</dd>
+                        </div>
+                        <div class="field-group">
+                            <dt class="field-label">Identificación</dt>
+                            <dd class="text-base font-data tabular-nums text-granite-900">{{ customer.identification }}</dd>
+                        </div>
+                        <div class="field-group">
+                            <dt class="field-label">Teléfono</dt>
+                            <dd class="text-base font-data tabular-nums text-granite-900">{{ customer.phone }}</dd>
+                        </div>
+                        <div class="field-group">
+                            <dt class="field-label">Email</dt>
+                            <dd class="text-base text-granite-900 break-words">{{ customer.email }}</dd>
+                        </div>
+                    </dl>
+                </section>
+                }
 
                 <!-- Información del reporte -->
-                <div class="bg-gray-50 p-4 rounded-lg shadow-inner flex flex-col space-y-4">
-                    <h3 class="text-lg font-bold text-gray-800 mb-2">Información de las actividades</h3>
-                    <div>
-                        <p><span class="font-semibold">Tipo:</span> {{ report.manttio_type }}</p>
-                        <p><span class="font-semibold">Usuario ID:</span> {{ reportUser?.name }}</p>
-                        <p><span class="font-semibold">Fecha:</span> {{ report.date_arrival | date:'mediumDate'
-                            }}
-                        </p>
-                        <div *ngIf="!editMode">
-                            <p><span class="font-semibold">Fecha de llegada:</span> {{ report.date_arrival |
-                                date:'medium' }}</p>
-                            <p><span class="font-semibold">Fecha de salida:</span> {{ report.date_departure |
-                                date:'medium' }}</p>
+                <section class="card-section">
+                    <h2 class="text-lg font-bold text-granite-900 mb-4">Información de las actividades</h2>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        <div class="field-group">
+                            <dt class="field-label">Tipo</dt>
+                            <dd class="text-base text-granite-900 capitalize">{{ report.manttio_type }}</dd>
                         </div>
-                        <div *ngIf="editMode" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <label class="block font-semibold">Fecha de llegada</label>
-                            <input type="datetime-local" formControlName="date_arrival"
-                                class="border rounded px-2 py-1" />
-
-                            <label class="block font-semibold">Fecha de salida</label>
-                            <input type="datetime-local" formControlName="date_departure"
-                                class="border rounded px-2 py-1" />
+                        <div class="field-group">
+                            <dt class="field-label">Técnico</dt>
+                            <dd class="text-base text-granite-900">{{ reportUser()?.name }}</dd>
                         </div>
-                    </div>
-                    <!--Informacion-->
-
-                </div>
-
-                <div *ngIf="report.report_type === 'minisplit'"
-                    class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4 text-start">Mantenimiento minisplit</h3>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Equipo operando -->
-                        <div *ngIf="!editMode">
-                            <p>
-                                <span class="font-semibold">Equipo se encuentra operando:</span>
-                                <span
-                                    [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                    {{ report.is_operating ? 'Sí' : 'No' }}
-                                </span>
-                            </p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Equipo se encuentra operando</label>
-                            <input type="checkbox" formControlName="is_operating" />
+                        <div class="field-group">
+                            <dt class="field-label">Fecha</dt>
+                            <dd class="text-base font-data tabular-nums text-granite-900">{{ report.date_arrival | date:'mediumDate' }}</dd>
                         </div>
 
-                        <!-- Control remoto -->
-                        <div *ngIf="!editMode">
-                            <p>
-                                <span class="font-semibold">Control remoto funcionando:</span>
-                                <span
-                                    [class]="report.remote_working ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                    {{ report.remote_working ? 'Sí' : 'No' }}
-                                </span>
-                            </p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Control remoto funcionando</label>
-                            <input type="checkbox" formControlName="remote_working" />
-                        </div>
+                        @if (!editMode()) {
+                            <div class="field-group">
+                                <dt class="field-label">Llegada</dt>
+                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.date_arrival | date:'medium' }}</dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Salida</dt>
+                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.date_departure | date:'medium' }}</dd>
+                            </div>
+                        } @else {
+                            <div class="field-group">
+                                <label for="dateArrival" class="field-label">Fecha de llegada</label>
+                                <p-datepicker inputId="dateArrival" formControlName="date_arrival"
+                                    [showTime]="true" hourFormat="24" dateFormat="dd/mm/yy"
+                                    styleClass="w-full">
+                                </p-datepicker>
+                            </div>
+                            <div class="field-group">
+                                <label for="dateDeparture" class="field-label">Fecha de salida</label>
+                                <p-datepicker inputId="dateDeparture" formControlName="date_departure"
+                                    [showTime]="true" hourFormat="24" dateFormat="dd/mm/yy"
+                                    styleClass="w-full">
+                                </p-datepicker>
+                            </div>
+                        }
+                    </dl>
+                </section>
 
-                        <!-- Amperaje -->
-                        <div *ngIf="!editMode">
-                            <p><span class="font-semibold">Amperaje:</span> {{ report.amperage }}</p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Amperaje</label>
-                            <input type="number" formControlName="amperage" class="border rounded px-2 py-1 w-full" />
-                        </div>
+                <!-- Minisplit -->
+                @if (report.report_type === 'minisplit') {
+                <section class="card-section">
+                    <h2 class="text-lg font-bold text-granite-900 mb-4">Mantenimiento minisplit</h2>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                        @if (!editMode()) {
+                            <div class="field-group">
+                                <dt class="field-label">Equipo operando</dt>
+                                <dd>
+                                    <p-tag [severity]="report.is_operating ? 'success' : 'danger'"
+                                        [value]="report.is_operating ? 'Sí' : 'No'"></p-tag>
+                                </dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Control remoto funcionando</dt>
+                                <dd>
+                                    <p-tag [severity]="report.remote_working ? 'success' : 'danger'"
+                                        [value]="report.remote_working ? 'Sí' : 'No'"></p-tag>
+                                </dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Amperaje</dt>
+                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.amperage }}</dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Voltaje interno</dt>
+                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.inner_voltage }}</dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Ruido inusual</dt>
+                                <dd>
+                                    <p-tag [severity]="report.unusual_noise ? 'danger' : 'success'"
+                                        [value]="report.unusual_noise ? 'Sí' : 'No'"></p-tag>
+                                </dd>
+                            </div>
+                        } @else {
+                            <div class="field-group">
+                                <label class="field-label">Equipo operando</label>
+                                <div class="flex items-center gap-3">
+                                    <p-checkbox formControlName="is_operating" [binary]="true" inputId="msOperating"></p-checkbox>
+                                    <label for="msOperating" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Control remoto funcionando</label>
+                                <div class="flex items-center gap-3">
+                                    <p-checkbox formControlName="remote_working" [binary]="true" inputId="msRemote"></p-checkbox>
+                                    <label for="msRemote" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="amperage" class="field-label">Amperaje</label>
+                                <p-inputnumber inputId="amperage" formControlName="amperage" mode="decimal"
+                                    [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                            </div>
+                            <div class="field-group">
+                                <label for="innerVoltage" class="field-label">Voltaje interno</label>
+                                <p-inputnumber inputId="innerVoltage" formControlName="inner_voltage" mode="decimal"
+                                    [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Ruido inusual</label>
+                                <div class="flex items-center gap-3">
+                                    <p-checkbox formControlName="unusual_noise" [binary]="true" inputId="msNoise"></p-checkbox>
+                                    <label for="msNoise" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                </div>
+                            </div>
+                        }
+                    </dl>
+                </section>
+                }
 
-                        <!-- Voltaje interno -->
-                        <div *ngIf="!editMode">
-                            <p><span class="font-semibold">Voltaje interno:</span> {{ report.inner_voltage }}</p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Voltaje interno</label>
-                            <input type="number" formControlName="inner_voltage"
-                                class="border rounded px-2 py-1 w-full" />
-                        </div>
+                <!-- Chiller -->
+                @if (report.report_type === 'chiller') {
+                <section class="card-section">
+                    <h2 class="text-lg font-bold text-granite-900 mb-4">Mantenimiento Chiller</h2>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                        @if (!editMode()) {
+                            <div class="field-group">
+                                <dt class="field-label">¿Está operando?</dt>
+                                <dd><p-tag [severity]="report.is_operating ? 'success' : 'danger'" [value]="report.is_operating ? 'Sí' : 'No'"></p-tag></dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Temperatura entrada</dt>
+                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.inner_temperature }}</dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Temperatura salida</dt>
+                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.outer_temperature }}</dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Voltaje interno</dt>
+                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.inner_voltage }}</dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">PLC funcionando</dt>
+                                <dd><p-tag [severity]="report.plc_keys_working ? 'success' : 'danger'" [value]="report.plc_keys_working ? 'Sí' : 'No'"></p-tag></dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Amperaje motor</dt>
+                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.motor_amperage }}</dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Presión sistema 1</dt>
+                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.system_pressure_1 }}</dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Presión sistema 2</dt>
+                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.system_pressure_2 }}</dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Presión sistema 3</dt>
+                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.system_pressure_3 }}</dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Presión aceite</dt>
+                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.oil_pressure }}</dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Nivel de aceite</dt>
+                                <dd class="text-base text-granite-900">{{ report.oil_level }}</dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Switch de flujo funcionando</dt>
+                                <dd><p-tag [severity]="report.flux_switch_working ? 'success' : 'danger'" [value]="report.flux_switch_working ? 'Sí' : 'No'"></p-tag></dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Ruido inusual</dt>
+                                <dd><p-tag [severity]="report.unusual_noise ? 'danger' : 'success'" [value]="report.unusual_noise ? 'Sí' : 'No'"></p-tag></dd>
+                            </div>
+                        } @else {
+                            <div class="field-group">
+                                <label class="field-label">¿Está operando?</label>
+                                <div class="flex items-center gap-3">
+                                    <p-checkbox formControlName="is_operating" [binary]="true" inputId="chOperating"></p-checkbox>
+                                    <label for="chOperating" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="innerTemp" class="field-label">Temperatura entrada</label>
+                                <p-inputnumber inputId="innerTemp" formControlName="inner_temperature" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                            </div>
+                            <div class="field-group">
+                                <label for="outerTemp" class="field-label">Temperatura salida</label>
+                                <p-inputnumber inputId="outerTemp" formControlName="outer_temperature" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                            </div>
+                            <div class="field-group">
+                                <label for="innerVoltageC" class="field-label">Voltaje interno</label>
+                                <p-inputnumber inputId="innerVoltageC" formControlName="inner_voltage" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">PLC funcionando</label>
+                                <div class="flex items-center gap-3">
+                                    <p-checkbox formControlName="plc_keys_working" [binary]="true" inputId="chPlc"></p-checkbox>
+                                    <label for="chPlc" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="motorAmp" class="field-label">Amperaje motor</label>
+                                <p-inputnumber inputId="motorAmp" formControlName="motor_amperage" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                            </div>
+                            <div class="field-group">
+                                <label for="sysP1" class="field-label">Presión sistema 1</label>
+                                <p-inputnumber inputId="sysP1" formControlName="system_pressure_1" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                            </div>
+                            <div class="field-group">
+                                <label for="sysP2" class="field-label">Presión sistema 2</label>
+                                <p-inputnumber inputId="sysP2" formControlName="system_pressure_2" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                            </div>
+                            <div class="field-group">
+                                <label for="sysP3" class="field-label">Presión sistema 3</label>
+                                <p-inputnumber inputId="sysP3" formControlName="system_pressure_3" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                            </div>
+                            <div class="field-group">
+                                <label for="oilP" class="field-label">Presión aceite</label>
+                                <p-inputnumber inputId="oilP" formControlName="oil_pressure" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                            </div>
+                            <div class="field-group">
+                                <label for="oilL" class="field-label">Nivel de aceite</label>
+                                <input pInputText id="oilL" type="text" formControlName="oil_level" />
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Switch de flujo funcionando</label>
+                                <div class="flex items-center gap-3">
+                                    <p-checkbox formControlName="flux_switch_working" [binary]="true" inputId="chFlux"></p-checkbox>
+                                    <label for="chFlux" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Ruido inusual</label>
+                                <div class="flex items-center gap-3">
+                                    <p-checkbox formControlName="unusual_noise" [binary]="true" inputId="chNoise"></p-checkbox>
+                                    <label for="chNoise" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                </div>
+                            </div>
+                        }
+                    </dl>
+                </section>
+                }
 
-                        <!-- Ruido inusual -->
-                        <div *ngIf="!editMode">
-                            <p>
-                                <span class="font-semibold">Ruido inusual:</span>
-                                <span
-                                    [class]="report.unusual_noise ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                    {{ report.unusual_noise ? 'Sí' : 'No' }}
-                                </span>
-                            </p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Ruido inusual</label>
-                            <input type="checkbox" formControlName="unusual_noise" />
-                        </div>
-                    </div>
-                </div>
-
-                <!--CHILLER-->
-
-                <div *ngIf="report.report_type === 'chiller'" class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4 text-start">Mantenimiento Chiller</h3>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Está operando -->
-                        <div *ngIf="!editMode">
-                            <p>
-                                <span class="font-semibold">¿Está operando?:</span>
-                                <span
-                                    [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                    {{ report.is_operating ? 'Sí' : 'No' }}
-                                </span>
-                            </p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">¿Está operando?</label>
-                            <input type="checkbox" formControlName="is_operating" />
-                        </div>
-
-                        <!-- Temperatura entrada -->
-                        <div *ngIf="!editMode">
-                            <p><span class="font-semibold">Temperatura entrada:</span> {{ report.inner_temperature }}
-                            </p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Temperatura entrada</label>
-                            <input type="number" formControlName="inner_temperature"
-                                class="border rounded px-2 py-1 w-full" />
-                        </div>
-
-                        <!-- Temperatura salida -->
-                        <div *ngIf="!editMode">
-                            <p><span class="font-semibold">Temperatura salida:</span> {{ report.outer_temperature }}</p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Temperatura salida</label>
-                            <input type="number" formControlName="outer_temperature"
-                                class="border rounded px-2 py-1 w-full" />
-                        </div>
-
-                        <!-- Voltaje interno -->
-                        <div *ngIf="!editMode">
-                            <p><span class="font-semibold">Voltaje interno:</span> {{ report.inner_voltage }}</p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Voltaje interno</label>
-                            <input type="number" formControlName="inner_voltage"
-                                class="border rounded px-2 py-1 w-full" />
-                        </div>
-
-                        <!-- PLC funcionando -->
-                        <div *ngIf="!editMode">
-                            <p>
-                                <span class="font-semibold">PLC funcionando:</span>
-                                <span
-                                    [class]="report.plc_keys_working ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                    {{ report.plc_keys_working ? 'Sí' : 'No' }}
-                                </span>
-                            </p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">PLC funcionando</label>
-                            <input type="checkbox" formControlName="plc_keys_working" />
-                        </div>
-
-                        <!-- Amperaje motor -->
-                        <div *ngIf="!editMode">
-                            <p><span class="font-semibold">Amperaje motor:</span> {{ report.motor_amperage }}</p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Amperaje motor</label>
-                            <input type="number" formControlName="motor_amperage"
-                                class="border rounded px-2 py-1 w-full" />
-                        </div>
-
-                        <!-- Presión sistema 1 -->
-                        <div *ngIf="!editMode">
-                            <p><span class="font-semibold">Presión sistema 1:</span> {{ report.system_pressure_1 }}</p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Presión sistema 1</label>
-                            <input type="number" formControlName="system_pressure_1"
-                                class="border rounded px-2 py-1 w-full" />
-                        </div>
-
-                        <!-- Presión sistema 2 -->
-                        <div *ngIf="!editMode">
-                            <p><span class="font-semibold">Presión sistema 2:</span> {{ report.system_pressure_2 }}</p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Presión sistema 2</label>
-                            <input type="number" formControlName="system_pressure_2"
-                                class="border rounded px-2 py-1 w-full" />
-                        </div>
-
-                        <!-- Presión sistema 3 -->
-                        <div *ngIf="!editMode">
-                            <p><span class="font-semibold">Presión sistema 3:</span> {{ report.system_pressure_3 }}</p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Presión sistema 3</label>
-                            <input type="number" formControlName="system_pressure_3"
-                                class="border rounded px-2 py-1 w-full" />
-                        </div>
-
-                        <!-- Presión aceite -->
-                        <div *ngIf="!editMode">
-                            <p><span class="font-semibold">Presión aceite:</span> {{ report.oil_pressure }}</p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Presión aceite</label>
-                            <input type="number" formControlName="oil_pressure"
-                                class="border rounded px-2 py-1 w-full" />
-                        </div>
-
-                        <!-- Nivel de aceite -->
-                        <div *ngIf="!editMode">
-                            <p><span class="font-semibold">Nivel de aceite:</span> {{ report.oil_level }}</p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Nivel de aceite</label>
-                            <input type="text" formControlName="oil_level" class="border rounded px-2 py-1 w-full" />
-                        </div>
-
-                        <!-- Switch de flujo funcionando -->
-                        <div *ngIf="!editMode">
-                            <p>
-                                <span class="font-semibold">Switch de flujo funcionando:</span>
-                                <span
-                                    [class]="report.flux_switch_working ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                    {{ report.flux_switch_working ? 'Sí' : 'No' }}
-                                </span>
-                            </p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Switch de flujo funcionando</label>
-                            <input type="checkbox" formControlName="flux_switch_working" />
-                        </div>
-
-                        <!-- Ruido inusual -->
-                        <div *ngIf="!editMode">
-                            <p>
-                                <span class="font-semibold">Ruido inusual:</span>
-                                <span
-                                    [class]="report.unusual_noise ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                    {{ report.unusual_noise ? 'Sí' : 'No' }}
-                                </span>
-                            </p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Ruido inusual</label>
-                            <input type="checkbox" formControlName="unusual_noise" />
-                        </div>
-                    </div>
-                </div>
-
-                <!--UMA-->
-                <div *ngIf="report.report_type === 'uma'" class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4 text-start">Mantenimiento UMA</h3>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Está operando -->
-                        <div *ngIf="!editMode">
-                            <p>
-                                <span class="font-semibold">¿Está operando?:</span>
-                                <span
-                                    [class]="report.is_operating ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                    {{ report.is_operating ? 'Sí' : 'No' }}
-                                </span>
-                            </p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">¿Está operando?</label>
-                            <input type="checkbox" formControlName="is_operating" />
-                        </div>
-
-                        <!-- Ajuste de banda -->
-                        <div *ngIf="!editMode">
-                            <p>
-                                <span class="font-semibold">Ajuste de banda:</span>
-                                <span
-                                    [class]="report.air_band_adjustment ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                    {{ report.air_band_adjustment ? 'Sí' : 'No' }}
-                                </span>
-                            </p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Ajuste de banda</label>
-                            <input type="checkbox" formControlName="air_band_adjustment" />
-                        </div>
-
-                        <!-- Temperatura entrada -->
-                        <div *ngIf="!editMode">
-                            <p><span class="font-semibold">Temperatura entrada:</span> {{ report.inner_temperature }}
-                            </p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Temperatura entrada</label>
-                            <input type="number" formControlName="inner_temperature"
-                                class="border rounded px-2 py-1 w-full" />
-                        </div>
-
-                        <!-- Temperatura salida -->
-                        <div *ngIf="!editMode">
-                            <p><span class="font-semibold">Temperatura salida:</span> {{ report.outer_temperature }}</p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Temperatura salida</label>
-                            <input type="number" formControlName="outer_temperature"
-                                class="border rounded px-2 py-1 w-full" />
-                        </div>
-
-                        <!-- Rejilla aire buena calidad -->
-                        <div *ngIf="!editMode">
-                            <p>
-                                <span class="font-semibold">Rejilla aire en buenas condiciones:</span>
-                                <span
-                                    [class]="report.air_good_quality ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                    {{ report.air_good_quality ? 'Sí' : 'No' }}
-                                </span>
-                            </p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Rejilla aire en buenas condiciones</label>
-                            <input type="checkbox" formControlName="air_good_quality" />
-                        </div>
-
-                        <!-- Voltaje interno -->
-                        <div *ngIf="!editMode">
-                            <p><span class="font-semibold">Voltaje interno:</span> {{ report.inner_voltage }}</p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Voltaje interno</label>
-                            <input type="number" formControlName="inner_voltage"
-                                class="border rounded px-2 py-1 w-full" />
-                        </div>
-
-                        <!-- Amperaje motor -->
-                        <div *ngIf="!editMode">
-                            <p><span class="font-semibold">Amperaje motor:</span> {{ report.motor_amperage }}</p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Amperaje motor</label>
-                            <input type="number" formControlName="motor_amperage"
-                                class="border rounded px-2 py-1 w-full" />
-                        </div>
-
-                        <!-- Ruido inusual -->
-                        <div *ngIf="!editMode">
-                            <p>
-                                <span class="font-semibold">Ruido inusual:</span>
-                                <span
-                                    [class]="report.unusual_noise ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                                    {{ report.unusual_noise ? 'Sí' : 'No' }}
-                                </span>
-                            </p>
-                        </div>
-                        <div *ngIf="editMode">
-                            <label class="block font-semibold">Ruido inusual</label>
-                            <input type="checkbox" formControlName="unusual_noise" />
-                        </div>
-                    </div>
-                </div>
-
+                <!-- UMA -->
+                @if (report.report_type === 'uma') {
+                <section class="card-section">
+                    <h2 class="text-lg font-bold text-granite-900 mb-4">Mantenimiento UMA</h2>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                        @if (!editMode()) {
+                            <div class="field-group">
+                                <dt class="field-label">¿Está operando?</dt>
+                                <dd><p-tag [severity]="report.is_operating ? 'success' : 'danger'" [value]="report.is_operating ? 'Sí' : 'No'"></p-tag></dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Ajuste de banda</dt>
+                                <dd><p-tag [severity]="report.air_band_adjustment ? 'success' : 'danger'" [value]="report.air_band_adjustment ? 'Sí' : 'No'"></p-tag></dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Temperatura entrada</dt>
+                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.inner_temperature }}</dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Temperatura salida</dt>
+                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.outer_temperature }}</dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Rejilla aire en buenas condiciones</dt>
+                                <dd><p-tag [severity]="report.air_good_quality ? 'success' : 'danger'" [value]="report.air_good_quality ? 'Sí' : 'No'"></p-tag></dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Voltaje interno</dt>
+                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.inner_voltage }}</dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Amperaje motor</dt>
+                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.motor_amperage }}</dd>
+                            </div>
+                            <div class="field-group">
+                                <dt class="field-label">Ruido inusual</dt>
+                                <dd><p-tag [severity]="report.unusual_noise ? 'danger' : 'success'" [value]="report.unusual_noise ? 'Sí' : 'No'"></p-tag></dd>
+                            </div>
+                        } @else {
+                            <div class="field-group">
+                                <label class="field-label">¿Está operando?</label>
+                                <div class="flex items-center gap-3">
+                                    <p-checkbox formControlName="is_operating" [binary]="true" inputId="umaOperating"></p-checkbox>
+                                    <label for="umaOperating" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Ajuste de banda</label>
+                                <div class="flex items-center gap-3">
+                                    <p-checkbox formControlName="air_band_adjustment" [binary]="true" inputId="umaBand"></p-checkbox>
+                                    <label for="umaBand" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="umaInTemp" class="field-label">Temperatura entrada</label>
+                                <p-inputnumber inputId="umaInTemp" formControlName="inner_temperature" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                            </div>
+                            <div class="field-group">
+                                <label for="umaOutTemp" class="field-label">Temperatura salida</label>
+                                <p-inputnumber inputId="umaOutTemp" formControlName="outer_temperature" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Rejilla aire en buenas condiciones</label>
+                                <div class="flex items-center gap-3">
+                                    <p-checkbox formControlName="air_good_quality" [binary]="true" inputId="umaAirQ"></p-checkbox>
+                                    <label for="umaAirQ" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="umaVolt" class="field-label">Voltaje interno</label>
+                                <p-inputnumber inputId="umaVolt" formControlName="inner_voltage" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                            </div>
+                            <div class="field-group">
+                                <label for="umaAmp" class="field-label">Amperaje motor</label>
+                                <p-inputnumber inputId="umaAmp" formControlName="motor_amperage" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Ruido inusual</label>
+                                <div class="flex items-center gap-3">
+                                    <p-checkbox formControlName="unusual_noise" [binary]="true" inputId="umaNoise"></p-checkbox>
+                                    <label for="umaNoise" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                </div>
+                            </div>
+                        }
+                    </dl>
+                </section>
+                }
 
                 <!-- Observaciones -->
-                <div *ngIf="!editMode" class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
-                    <h3 class="font-semibold text-gray-800 mb-2">Observaciones</h3>
-                    <p class="text-gray-600 whitespace-pre-line">{{ report.observations || 'Ninguna' }}</p>
-                </div>
-
-                <div *ngIf="editMode">
-                    <label class="block font-semibold">Observaciones</label>
-                    <textarea formControlName="observations" class="w-full border rounded p-2"></textarea>
-                </div>
+                @if (!editMode()) {
+                <section class="card-section">
+                    <h2 class="text-lg font-bold text-granite-900 mb-3">Observaciones</h2>
+                    <p class="text-base text-granite-800 whitespace-pre-line">{{ report.observations || 'Ninguna' }}</p>
+                </section>
+                } @else {
+                <section class="card-section field-group">
+                    <label for="observations" class="field-label">Observaciones</label>
+                    <textarea pTextarea id="observations" formControlName="observations" rows="4"></textarea>
+                </section>
+                }
 
                 <!-- Imágenes -->
-
-                <div *ngIf="editMode" class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
-                    <app-image-picker [existingImages]="report?.pictures || []"
+                @if (editMode()) {
+                <section class="card-section">
+                    <app-image-picker [existingImages]="report.pictures || []"
                         (filesSelected)="onNewPicturesSelected($event)"
                         (imagesRemoved)="onExistingPicturesRemoved($event)">
-
                     </app-image-picker>
-                    <!-- <label for="pictures">Subir imágenes:</label>
-                    <input type="file" id="pictures" (change)="onPicturesSelected($event)" multiple accept="image/*" /> -->
-                </div>
-
-                <div *ngIf="!editMode" class="imagenes-reporte bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
-                    <label class="block font-semibold">Fotos</label>
-                    <div *ngIf="report?.pictures?.length; else noPics" class="flex flex-wrap gap-4 justify-center">
-                        <img *ngFor="let pic of report.pictures" [src]="pic" width="150" style="margin:5px" />
-                    </div>
-                    <ng-template #noPics>
-                        <p>No hay imágenes aún.</p>
-                    </ng-template>
-                </div>
+                </section>
+                } @else {
+                <section class="imagenes-reporte card-section">
+                    <h2 class="text-lg font-bold text-granite-900 mb-4">Fotos</h2>
+                    @if (report.pictures?.length) {
+                        <div class="flex flex-wrap gap-3">
+                            @for (pic of report.pictures; track pic) {
+                                <img [src]="pic" width="150"
+                                    class="rounded-lg border-2 border-granite-200" />
+                            }
+                        </div>
+                    } @else {
+                        <p class="text-base text-granite-600">No hay imágenes aún.</p>
+                    }
+                </section>
+                }
 
                 <!-- Firma -->
-                <div class="bg-gray-50 p-4 rounded-lg shadow-inner space-y-4">
-                    <h3 class="font-semibold text-gray-800 mb-2">Firmado por: {{report.signed_by}}</h3>
-                    <!-- Caso 1: El reporte ya tiene firma -->
-                    <div *ngIf="report?.signature; else noSignature" class="text-center">
-                        <img [src]="report.signature" alt="Firma" class="mx-auto max-h-32 border p-2 rounded" />
-                        <p class="mt-2 font-semibold">Firmado por: {{ report.signed_by }}</p>
-                    </div>
-
-                    <!-- Caso 2: El reporte NO tiene firma -->
-                    <ng-template #noSignature>
-                        <div *ngIf="!report?.report_status">
-                            <app-signature (signatureChanged)="onSignatureSaved($event)"></app-signature>
+                <section class="card-section">
+                    <h2 class="text-lg font-bold text-granite-900 mb-3">Firma</h2>
+                    @if (report.signature) {
+                        <div class="text-center">
+                            <img [src]="report.signature" alt="Firma"
+                                class="mx-auto max-h-40 border-2 border-granite-200 p-2 rounded-lg bg-white" />
+                            <p class="mt-3 text-base font-semibold text-granite-900">Firmado por: {{ report.signed_by }}</p>
                         </div>
-                        <div *ngIf="report?.report_status">
-                            <p class="text-gray-500 italic">Este reporte está finalizado y no se puede firmar.</p>
-                        </div>
-                    </ng-template>
-                </div>
-
+                    } @else if (!report.report_status) {
+                        <app-signature (signatureChanged)="onSignatureSaved($event)"></app-signature>
+                    } @else {
+                        <p class="text-base text-granite-600 italic">Este reporte está finalizado y no se puede firmar.</p>
+                    }
+                </section>
             </div>
+            }
 
-
-
-            <div class="flex justify-end gap-2 mt-4">
-                <button (click)="downloadTextPDF()" class=" px-4 py-2 bg-blue-500 text-white rounded">
-                    Descargar PDF
-                </button>
-                <button *ngIf="!editMode && report?.report_status === false" (click)="toggleEdit()"
-                    class="px-4 py-2 bg-yellow-500 text-white rounded">
-                    Editar
-                </button>
-                <button *ngIf="editMode" (click)="saveChanges()" class="px-4 py-2 bg-green-500 text-white rounded">
-                    Guardar
-                </button>
-                <button *ngIf="editMode" (click)="toggleEdit()" class="px-4 py-2 bg-gray-500 text-white rounded">
-                    Cancelar
-                </button>
-
-
+            <!-- Sticky action bar (sticks to scroll-container bottom, above the bottom-nav) -->
+            <div class="sticky bottom-0 z-40 bg-white/95 backdrop-blur border-t-2 border-granite-200">
+                <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap justify-end gap-2">
+                    <p-button type="button" (onClick)="downloadTextPDF()" severity="secondary" label="Descargar PDF"></p-button>
+                    @if (!editMode() && report()?.report_status === false) {
+                        <p-button type="button" (onClick)="toggleEdit()" severity="secondary" label="Editar"></p-button>
+                    }
+                    @if (editMode()) {
+                        <p-button type="button" (onClick)="saveChanges()" label="Guardar"></p-button>
+                        <p-button type="button" (onClick)="toggleEdit()" severity="secondary" label="Cancelar"></p-button>
+                    }
+                </div>
             </div>
         </form>
     </div>
-
 </div>
