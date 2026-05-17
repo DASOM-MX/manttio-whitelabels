@@ -8,20 +8,56 @@ PR has a checklist and pass/fail acceptance criteria.
 
 ## How to use this plan (for the executing agent)
 
-1. Open §2 (Progress Tracker). Pick the **first unchecked** PR.
-2. Jump to its detailed section under §15 (PR Roadmap). Execute every
-   checklist item top to bottom.
-3. After each individual item, **commit the doc with the item ticked**
-   (`- [ ]` → `- [x]`) so progress survives across sessions. Use one
-   commit per item or one per logical group — your call.
-4. When all items in a PR are ticked, run the **Validation** block at the
-   end of that PR. If it passes, open a PR on GitHub, merge it, then
-   tick the PR's box in §2 and commit.
-5. Source of truth for DTO shapes is **`/backend/test/*`** and
+**Cadence: one checkbox = one commit. Ship ASAP.** The executing agent
+optimizes for fast feedback and a moving PR, not for tidy logical
+batches.
+
+1. Open §2 (Progress Tracker). Pick the **first unchecked** PR. Branch
+   off `main` per its instructions.
+2. Open the PR on GitHub **as a draft after your first commit** —
+   don't wait for the checklist to be done. A draft PR with one commit
+   beats no PR with 20.
+3. Jump to the PR's detailed section under §15. Work top to bottom,
+   one checklist item at a time.
+4. **For each checklist item, make exactly ONE commit that does both:**
+   (a) the work for that item, AND (b) flips its `- [ ]` to `- [x]` in
+   this doc. The commit message should name the item so the PR history
+   reads as a literal walk of the checklist. Push after each commit (or
+   every few — push often, never let local-only work accumulate).
+5. After any code-touching commit, run `pnpm tsc --noEmit` locally to
+   confirm the tree still compiles. If it doesn't, fix it in the next
+   commit before continuing — don't proceed on a broken tree.
+6. When every box in the PR is ticked, run the PR's full **Validation**
+   block. If it passes, flip the draft PR to "ready for review" and
+   ping the user. **Do not self-merge** (project memory: confirm
+   substantial merges with the user even when they say "merge"). After
+   the user merges, tick the PR's box in §2 in a follow-up commit on
+   the next branch.
+7. Source of truth for DTO shapes is **`/backend/test/*`** and
    **`/backend/src/routes/*`**. If a shape in this plan ever drifts from
-   those, the backend wins — update this plan in the same PR.
-6. Do **not** ask the user for permission on choices already decided in
+   those, the backend wins — fix the DTO file and the plan in the same
+   commit.
+8. Do **not** ask the user for permission on choices already decided in
    this plan. Do ask if you hit something genuinely undecided.
+
+### Commit message format
+
+```
+PR#<N> item: <verb> <short subject>
+
+(optional: 1-2 lines of context if the item isn't self-evident)
+```
+
+Examples:
+- `PR#1 item: add app/data/utils.ts (toParams helper)`
+- `PR#1 item: add app/data/dtos/auth/login-request.dto.ts`
+- `PR#2 item: replace AuthGuard class with functional authGuard`
+- `PR#4 item: dispatch CreateCustomer from customer-add page`
+
+Each commit is small enough that the title alone explains it. No
+co-author trailer needed on intermediate item-commits — keep them
+lean. Optionally add the co-author trailer on the final PR-ready
+commit (after the full Validation block passes) as a marker.
 
 ---
 
