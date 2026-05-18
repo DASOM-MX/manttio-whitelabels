@@ -1502,7 +1502,7 @@ keep working). NgXs is wired but no state has handlers yet.
 - [x] Create all files under `frontend/src/app/data/dtos/customer/` per §11.5
 - [x] Create all files under `frontend/src/app/data/dtos/report/` per §11.6
 - [x] Create all files under `frontend/src/app/data/dtos/report-email/` per §11.7
-- [ ] Create all files under `frontend/src/app/data/dtos/upload/` per §11.8
+- [x] Create all files under `frontend/src/app/data/dtos/upload/` per §11.8
 - [ ] Create all files under `frontend/src/app/data/types/user/` per §11.9
 - [ ] Create all files under `frontend/src/app/data/types/report/` per §11.10
 - [ ] Create `frontend/src/http/remote.service.ts` per §5
