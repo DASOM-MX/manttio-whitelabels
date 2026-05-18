@@ -1497,7 +1497,7 @@ keep working). NgXs is wired but no state has handlers yet.
 - [x] Create `frontend/src/app/data/interfaces/.gitkeep`
 - [x] Create all files under `frontend/src/app/data/dtos/api-error/` per §11.1
 - [x] Create all files under `frontend/src/app/data/dtos/auth/` per §11.2
-- [ ] Create all files under `frontend/src/app/data/dtos/jwt/` per §11.3
+- [x] Create all files under `frontend/src/app/data/dtos/jwt/` per §11.3
 - [ ] Create all files under `frontend/src/app/data/dtos/user/` per §11.4
 - [ ] Create all files under `frontend/src/app/data/dtos/customer/` per §11.5
 - [ ] Create all files under `frontend/src/app/data/dtos/report/` per §11.6
