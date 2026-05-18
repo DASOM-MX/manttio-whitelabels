@@ -1494,7 +1494,7 @@ keep working). NgXs is wired but no state has handlers yet.
 - [x] `cd frontend && pnpm add @ngxs/store @ngxs/storage-plugin @ngxs/devtools-plugin @ngxs/logger-plugin`
 - [ ] Create folder `frontend/src/app/data/`
 - [x] Create `frontend/src/app/data/utils.ts` per §4
-- [ ] Create `frontend/src/app/data/interfaces/.gitkeep`
+- [x] Create `frontend/src/app/data/interfaces/.gitkeep`
 - [ ] Create all files under `frontend/src/app/data/dtos/api-error/` per §11.1
 - [ ] Create all files under `frontend/src/app/data/dtos/auth/` per §11.2
 - [ ] Create all files under `frontend/src/app/data/dtos/jwt/` per §11.3
