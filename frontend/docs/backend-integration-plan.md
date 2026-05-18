@@ -1491,7 +1491,7 @@ keep working). NgXs is wired but no state has handlers yet.
 
 **Checklist:**
 - [x] Branch: `git checkout -b feature/frontend-hono-backend-integration`
-- [ ] `cd frontend && pnpm add @ngxs/store @ngxs/storage-plugin @ngxs/devtools-plugin @ngxs/logger-plugin`
+- [x] `cd frontend && pnpm add @ngxs/store @ngxs/storage-plugin @ngxs/devtools-plugin @ngxs/logger-plugin`
 - [ ] Create folder `frontend/src/app/data/`
 - [ ] Create `frontend/src/app/data/utils.ts` per §4
 - [ ] Create `frontend/src/app/data/interfaces/.gitkeep`
