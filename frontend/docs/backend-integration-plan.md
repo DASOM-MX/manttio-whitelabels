@@ -1490,7 +1490,7 @@ for the user (existing `services/customers.ts`, `services/reports.ts`
 keep working). NgXs is wired but no state has handlers yet.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b frontend-foundation`
+- [x] Branch: `git checkout -b feature/frontend-hono-backend-integration`
 - [ ] `cd frontend && pnpm add @ngxs/store @ngxs/storage-plugin @ngxs/devtools-plugin @ngxs/logger-plugin`
 - [ ] Create folder `frontend/src/app/data/`
 - [ ] Create `frontend/src/app/data/utils.ts` per §4
@@ -1555,7 +1555,7 @@ NgXs/AuthState. No `localStorage.getItem('token' | 'role' | 'email')`
 remains anywhere outside the storage plugin's internals.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b frontend-auth-migration`
+- [ ] Branch: `git checkout -b feature/frontend-auth-migration`
 - [ ] Create `frontend/src/http/auth.service.ts` per §12.1
 - [ ] Create `frontend/src/http/users.service.ts` per §12.2 (full surface — not just `me()`)
 - [ ] Replace `frontend/src/state/auth/auth.state.ts` with the full version per §7.2 (handlers filled in)
@@ -1597,7 +1597,7 @@ redirected to /login.
 exists, it works; if not, the actions are still ready for future use.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b frontend-users-state`
+- [ ] Branch: `git checkout -b feature/frontend-users-state`
 - [ ] Expand `frontend/src/state/users/users.actions.ts` to include `LoadUsers`, `LoadUser`, `CreateUser`, `UpdateUser`, `DeleteUser` (in addition to `LoadCurrentUser` from PR #2).
 - [ ] Implement all handlers in `frontend/src/state/users/users.state.ts`. Selectors: `list`, `selected`, `byId(id)`, `loading`, `me` (mirrors AuthState.user, or omit if not needed).
 - [ ] If an admin users page exists under `frontend/src/app/pages/`, migrate it to dispatch + select. Otherwise skip.
@@ -1620,7 +1620,7 @@ admin. Each action should round-trip through the state.
 `services/customers.ts` deleted.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b frontend-customers-migration`
+- [ ] Branch: `git checkout -b feature/frontend-customers-migration`
 - [ ] Replace `frontend/src/state/customers/customers.state.ts` with the full version per §8.2
 - [ ] Update `frontend/src/app/pages/customer-add/customer-add.ts`:
   - [ ] Dispatch `new CreateCustomer(payload)` on submit
@@ -1651,7 +1651,7 @@ in list without manual refresh), edit, delete.
 `services/reports.ts` deleted.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b frontend-reports-migration`
+- [ ] Branch: `git checkout -b feature/frontend-reports-migration`
 - [ ] Implement full `frontend/src/state/reports/reports.actions.ts`: `LoadReports`, `LoadReport`, `SelectReport`, `SetReportsQuery`, `CreateReport`, `UpdateReport`, `SetAssignee`, `AddSignature`, `AddPictures`, `RemovePictures`, `DeleteReport`, `SendReportEmail`, `LoadReportEmails`, `RevokeReportEmail`.
 - [ ] Implement full `frontend/src/state/reports/reports.state.ts`:
   - Model: `{ entities: Record<string, ReportRow>, details: Record<string, ReportDetailRow>, ids: string[], selectedId: string | null, query: ReportListQuery | null, loading: boolean, emails: Record<string, ReportEmailRow[]> }`
@@ -1694,7 +1694,7 @@ add/remove pictures, send email.
 flow through `UploadService`.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b frontend-upload`
+- [ ] Branch: `git checkout -b feature/frontend-upload`
 - [ ] Create `frontend/src/http/upload.service.ts` per §12.5
 - [ ] Audit `frontend/src/app/components/image-picker/*`: if it uploads images standalone, replace direct HttpClient with `inject(UploadService).uploadImage(file)`. If it only collects File objects for the parent component to submit with the report, no change needed.
 - [ ] **Tick this PR's box** in §2 and commit
@@ -1715,7 +1715,7 @@ Manual: if image-picker was migrated, exercise its upload flow.
 outside storage plugin. No old Vercel URL references. Doc fully ticked.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b frontend-theme-cleanup`
+- [ ] Branch: `git checkout -b feature/frontend-theme-cleanup`
 - [ ] Create folder `frontend/src/theme/`
 - [ ] Move `frontend/src/services/toast.service.ts` → `frontend/src/theme/toast.service.ts` (content unchanged)
 - [ ] Update every importer:
