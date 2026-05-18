@@ -1517,7 +1517,7 @@ keep working). NgXs is wired but no state has handlers yet.
   - [x] `frontend/src/state/reports/reports.state.ts` — minimal state, stub handlers
 - [x] Create folder `frontend/src/app/guards/` (empty for now — guard arrives in PR #2)
 - [x] Create `frontend/src/app/interceptors/auth.interceptor.ts` per §7.3
-- [ ] Create `frontend/src/app/directives/.gitkeep`
+- [x] Create `frontend/src/app/directives/.gitkeep`
 - [ ] Create `frontend/src/app/pipes/.gitkeep`
 - [ ] Update `frontend/src/app/app.config.ts` per §9
 - [ ] Update `frontend/src/environments/environment.ts` per §10 — set production URL (or leave the placeholder string and add a TODO comment; PR can still merge with the placeholder if production URL isn't decided)
