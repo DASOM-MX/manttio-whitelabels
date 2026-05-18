@@ -1509,8 +1509,8 @@ keep working). NgXs is wired but no state has handlers yet.
 - [ ] Create empty state skeletons (state class + actions, no `@Action` handler bodies — the action classes exist, the state has the `@State` decorator and selectors but each `@Action` handler is `return ctx;` or omitted for now):
   - [x] `frontend/src/state/auth/auth.actions.ts` per §7.1
   - [x] `frontend/src/state/auth/auth.state.ts` — copy §7.2 but stub the handlers (no HTTP calls yet, since auth.service.ts is added in PR #2). Acceptable: have the state class compile with selectors only and action handlers as no-ops.
-  - [ ] `frontend/src/state/users/users.actions.ts` — minimal: `LoadCurrentUser` only
-  - [ ] `frontend/src/state/users/users.state.ts` — minimal state, no handler bodies
+  - [x] `frontend/src/state/users/users.actions.ts` — minimal: `LoadCurrentUser` only
+  - [x] `frontend/src/state/users/users.state.ts` — minimal state, no handler bodies
   - [ ] `frontend/src/state/customers/customers.actions.ts` per §8.1
   - [ ] `frontend/src/state/customers/customers.state.ts` — copy §8.2 but stub handlers (no HTTP)
   - [ ] `frontend/src/state/reports/reports.actions.ts` — declare all action classes per §8.3
