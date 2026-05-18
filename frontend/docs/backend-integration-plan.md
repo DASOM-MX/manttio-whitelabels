@@ -1505,7 +1505,7 @@ keep working). NgXs is wired but no state has handlers yet.
 - [x] Create all files under `frontend/src/app/data/dtos/upload/` per §11.8
 - [x] Create all files under `frontend/src/app/data/types/user/` per §11.9
 - [x] Create all files under `frontend/src/app/data/types/report/` per §11.10
-- [ ] Create `frontend/src/http/remote.service.ts` per §5
+- [x] Create `frontend/src/http/remote.service.ts` per §5
 - [ ] Create empty state skeletons (state class + actions, no `@Action` handler bodies — the action classes exist, the state has the `@State` decorator and selectors but each `@Action` handler is `return ctx;` or omitted for now):
   - [ ] `frontend/src/state/auth/auth.actions.ts` per §7.1
   - [ ] `frontend/src/state/auth/auth.state.ts` — copy §7.2 but stub the handlers (no HTTP calls yet, since auth.service.ts is added in PR #2). Acceptable: have the state class compile with selectors only and action handlers as no-ops.
