@@ -1500,7 +1500,7 @@ keep working). NgXs is wired but no state has handlers yet.
 - [x] Create all files under `frontend/src/app/data/dtos/jwt/` per §11.3
 - [x] Create all files under `frontend/src/app/data/dtos/user/` per §11.4
 - [x] Create all files under `frontend/src/app/data/dtos/customer/` per §11.5
-- [ ] Create all files under `frontend/src/app/data/dtos/report/` per §11.6
+- [x] Create all files under `frontend/src/app/data/dtos/report/` per §11.6
 - [ ] Create all files under `frontend/src/app/data/dtos/report-email/` per §11.7
 - [ ] Create all files under `frontend/src/app/data/dtos/upload/` per §11.8
 - [ ] Create all files under `frontend/src/app/data/types/user/` per §11.9
