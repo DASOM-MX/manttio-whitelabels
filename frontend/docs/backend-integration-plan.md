@@ -1513,8 +1513,8 @@ keep working). NgXs is wired but no state has handlers yet.
   - [x] `frontend/src/state/users/users.state.ts` — minimal state, no handler bodies
   - [x] `frontend/src/state/customers/customers.actions.ts` per §8.1
   - [x] `frontend/src/state/customers/customers.state.ts` — copy §8.2 but stub handlers (no HTTP)
-  - [ ] `frontend/src/state/reports/reports.actions.ts` — declare all action classes per §8.3
-  - [ ] `frontend/src/state/reports/reports.state.ts` — minimal state, stub handlers
+  - [x] `frontend/src/state/reports/reports.actions.ts` — declare all action classes per §8.3
+  - [x] `frontend/src/state/reports/reports.state.ts` — minimal state, stub handlers
 - [ ] Create folder `frontend/src/app/guards/` (empty for now — guard arrives in PR #2)
 - [ ] Create `frontend/src/app/interceptors/auth.interceptor.ts` per §7.3
 - [ ] Create `frontend/src/app/directives/.gitkeep`
