@@ -6,12 +6,12 @@ import { ToastService } from '../../../services/toast.service';
   selector: 'app-signature',
   template: `
     <div class="w-full max-w-full">
-      <canvas #canvas class="w-full h-48 border-2 border-gray-300 rounded-lg block"></canvas>
-      <div class="mt-2 flex gap-2">
-        <button type="button" (click)="saveSignature()" class="bg-primary  rounded text-white font-semibold py-2 px-4">
+      <canvas #canvas class="w-full h-56 border-2 border-granite-300 rounded-xl block bg-white"></canvas>
+      <div class="mt-4 flex flex-wrap gap-3">
+        <button type="button" (click)="saveSignature()" class="btn-primary">
           Guardar Firma
         </button>
-        <button type="button" (click)="clearSignature()" class="border-2 border-primary text-primary   text-dark font-semibold py-2 px-4 rounded">
+        <button type="button" (click)="clearSignature()" class="btn-secondary">
           Limpiar Firma
         </button>
       </div>

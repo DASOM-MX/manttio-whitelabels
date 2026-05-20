@@ -2,13 +2,13 @@
     <div #pdfContent>
         <form [formGroup]="reportForm">
             @if (report(); as report) {
-            <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+            <div class="max-w-4xl mx-auto px-4 sm:px-8 py-10 sm:py-12 space-y-8">
                 <!-- Header -->
-                <div class="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">Detalle del reporte</p>
-                        <h1 class="text-2xl sm:text-3xl font-bold text-granite-900 leading-tight">
-                            <span class="font-data tabular-nums text-sky-700">#{{ report.id | slice:0:8 }}</span>
+                <div class="flex flex-wrap items-start justify-between gap-5">
+                    <div class="flex flex-col gap-1">
+                        <p class="text-sm font-bold uppercase tracking-wider text-sky-800">Detalle del reporte</p>
+                        <h1 class="text-3xl sm:text-4xl font-extrabold text-granite-950 leading-tight tracking-tight">
+                            <span class="font-data tabular-nums text-sky-800">#{{ report.id | slice:0:8 }}</span>
                         </h1>
                     </div>
                     @if (report.report_status) {
@@ -29,23 +29,23 @@
                 <!-- Información del cliente -->
                 @if (customer(); as customer) {
                 <section class="card-section">
-                    <h2 class="text-lg font-bold text-granite-900 mb-4">Información del cliente</h2>
-                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-950 mb-6 tracking-tight">Información del cliente</h2>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
                         <div class="field-group">
                             <dt class="field-label">Nombre</dt>
-                            <dd class="text-base text-granite-900">{{ customer.name }}</dd>
+                            <dd class="text-lg text-granite-950">{{ customer.name }}</dd>
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Identificación</dt>
-                            <dd class="text-base font-data tabular-nums text-granite-900">{{ customer.identification }}</dd>
+                            <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ customer.identification }}</dd>
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Teléfono</dt>
-                            <dd class="text-base font-data tabular-nums text-granite-900">{{ customer.phone }}</dd>
+                            <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ customer.phone }}</dd>
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Email</dt>
-                            <dd class="text-base text-granite-900 break-words">{{ customer.email }}</dd>
+                            <dd class="text-lg text-granite-950 break-words">{{ customer.email }}</dd>
                         </div>
                     </dl>
                 </section>
@@ -53,29 +53,29 @@
 
                 <!-- Información del reporte -->
                 <section class="card-section">
-                    <h2 class="text-lg font-bold text-granite-900 mb-4">Información de las actividades</h2>
-                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-950 mb-6 tracking-tight">Información de las actividades</h2>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
                         <div class="field-group">
                             <dt class="field-label">Tipo</dt>
-                            <dd class="text-base text-granite-900 capitalize">{{ report.manttio_type }}</dd>
+                            <dd class="text-lg text-granite-950 capitalize">{{ report.manttio_type }}</dd>
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Técnico</dt>
-                            <dd class="text-base text-granite-900">{{ reportUser()?.name }}</dd>
+                            <dd class="text-lg text-granite-950">{{ reportUser()?.name }}</dd>
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Fecha</dt>
-                            <dd class="text-base font-data tabular-nums text-granite-900">{{ report.date_arrival | date:'mediumDate' }}</dd>
+                            <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.date_arrival | date:'mediumDate' }}</dd>
                         </div>
 
                         @if (!editMode()) {
                             <div class="field-group">
                                 <dt class="field-label">Llegada</dt>
-                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.date_arrival | date:'medium' }}</dd>
+                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.date_arrival | date:'medium' }}</dd>
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Salida</dt>
-                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.date_departure | date:'medium' }}</dd>
+                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.date_departure | date:'medium' }}</dd>
                             </div>
                         } @else {
                             <div class="field-group">
@@ -99,8 +99,8 @@
                 <!-- Minisplit -->
                 @if (report.report_type === 'minisplit') {
                 <section class="card-section">
-                    <h2 class="text-lg font-bold text-granite-900 mb-4">Mantenimiento minisplit</h2>
-                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-950 mb-6 tracking-tight">Mantenimiento minisplit</h2>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
                         @if (!editMode()) {
                             <div class="field-group">
                                 <dt class="field-label">Equipo operando</dt>
@@ -118,11 +118,11 @@
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Amperaje</dt>
-                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.amperage }}</dd>
+                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.amperage }}</dd>
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Voltaje interno</dt>
-                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.inner_voltage }}</dd>
+                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.inner_voltage }}</dd>
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Ruido inusual</dt>
@@ -136,14 +136,14 @@
                                 <label class="field-label">Equipo operando</label>
                                 <div class="flex items-center gap-3">
                                     <p-checkbox formControlName="is_operating" [binary]="true" inputId="msOperating"></p-checkbox>
-                                    <label for="msOperating" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                    <label for="msOperating" class="text-lg text-granite-950 font-semibold cursor-pointer">Sí</label>
                                 </div>
                             </div>
                             <div class="field-group">
                                 <label class="field-label">Control remoto funcionando</label>
                                 <div class="flex items-center gap-3">
                                     <p-checkbox formControlName="remote_working" [binary]="true" inputId="msRemote"></p-checkbox>
-                                    <label for="msRemote" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                    <label for="msRemote" class="text-lg text-granite-950 font-semibold cursor-pointer">Sí</label>
                                 </div>
                             </div>
                             <div class="field-group">
@@ -160,7 +160,7 @@
                                 <label class="field-label">Ruido inusual</label>
                                 <div class="flex items-center gap-3">
                                     <p-checkbox formControlName="unusual_noise" [binary]="true" inputId="msNoise"></p-checkbox>
-                                    <label for="msNoise" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                    <label for="msNoise" class="text-lg text-granite-950 font-semibold cursor-pointer">Sí</label>
                                 </div>
                             </div>
                         }
@@ -171,8 +171,8 @@
                 <!-- Chiller -->
                 @if (report.report_type === 'chiller') {
                 <section class="card-section">
-                    <h2 class="text-lg font-bold text-granite-900 mb-4">Mantenimiento Chiller</h2>
-                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-950 mb-6 tracking-tight">Mantenimiento Chiller</h2>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
                         @if (!editMode()) {
                             <div class="field-group">
                                 <dt class="field-label">¿Está operando?</dt>
@@ -180,15 +180,15 @@
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Temperatura entrada</dt>
-                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.inner_temperature }}</dd>
+                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.inner_temperature }}</dd>
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Temperatura salida</dt>
-                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.outer_temperature }}</dd>
+                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.outer_temperature }}</dd>
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Voltaje interno</dt>
-                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.inner_voltage }}</dd>
+                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.inner_voltage }}</dd>
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">PLC funcionando</dt>
@@ -196,27 +196,27 @@
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Amperaje motor</dt>
-                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.motor_amperage }}</dd>
+                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.motor_amperage }}</dd>
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Presión sistema 1</dt>
-                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.system_pressure_1 }}</dd>
+                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.system_pressure_1 }}</dd>
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Presión sistema 2</dt>
-                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.system_pressure_2 }}</dd>
+                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.system_pressure_2 }}</dd>
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Presión sistema 3</dt>
-                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.system_pressure_3 }}</dd>
+                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.system_pressure_3 }}</dd>
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Presión aceite</dt>
-                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.oil_pressure }}</dd>
+                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.oil_pressure }}</dd>
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Nivel de aceite</dt>
-                                <dd class="text-base text-granite-900">{{ report.oil_level }}</dd>
+                                <dd class="text-lg text-granite-950">{{ report.oil_level }}</dd>
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Switch de flujo funcionando</dt>
@@ -231,7 +231,7 @@
                                 <label class="field-label">¿Está operando?</label>
                                 <div class="flex items-center gap-3">
                                     <p-checkbox formControlName="is_operating" [binary]="true" inputId="chOperating"></p-checkbox>
-                                    <label for="chOperating" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                    <label for="chOperating" class="text-lg text-granite-950 font-semibold cursor-pointer">Sí</label>
                                 </div>
                             </div>
                             <div class="field-group">
@@ -250,7 +250,7 @@
                                 <label class="field-label">PLC funcionando</label>
                                 <div class="flex items-center gap-3">
                                     <p-checkbox formControlName="plc_keys_working" [binary]="true" inputId="chPlc"></p-checkbox>
-                                    <label for="chPlc" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                    <label for="chPlc" class="text-lg text-granite-950 font-semibold cursor-pointer">Sí</label>
                                 </div>
                             </div>
                             <div class="field-group">
@@ -281,14 +281,14 @@
                                 <label class="field-label">Switch de flujo funcionando</label>
                                 <div class="flex items-center gap-3">
                                     <p-checkbox formControlName="flux_switch_working" [binary]="true" inputId="chFlux"></p-checkbox>
-                                    <label for="chFlux" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                    <label for="chFlux" class="text-lg text-granite-950 font-semibold cursor-pointer">Sí</label>
                                 </div>
                             </div>
                             <div class="field-group">
                                 <label class="field-label">Ruido inusual</label>
                                 <div class="flex items-center gap-3">
                                     <p-checkbox formControlName="unusual_noise" [binary]="true" inputId="chNoise"></p-checkbox>
-                                    <label for="chNoise" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                    <label for="chNoise" class="text-lg text-granite-950 font-semibold cursor-pointer">Sí</label>
                                 </div>
                             </div>
                         }
@@ -299,8 +299,8 @@
                 <!-- UMA -->
                 @if (report.report_type === 'uma') {
                 <section class="card-section">
-                    <h2 class="text-lg font-bold text-granite-900 mb-4">Mantenimiento UMA</h2>
-                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-950 mb-6 tracking-tight">Mantenimiento UMA</h2>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
                         @if (!editMode()) {
                             <div class="field-group">
                                 <dt class="field-label">¿Está operando?</dt>
@@ -312,11 +312,11 @@
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Temperatura entrada</dt>
-                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.inner_temperature }}</dd>
+                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.inner_temperature }}</dd>
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Temperatura salida</dt>
-                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.outer_temperature }}</dd>
+                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.outer_temperature }}</dd>
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Rejilla aire en buenas condiciones</dt>
@@ -324,11 +324,11 @@
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Voltaje interno</dt>
-                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.inner_voltage }}</dd>
+                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.inner_voltage }}</dd>
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Amperaje motor</dt>
-                                <dd class="text-base font-data tabular-nums text-granite-900">{{ report.motor_amperage }}</dd>
+                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.motor_amperage }}</dd>
                             </div>
                             <div class="field-group">
                                 <dt class="field-label">Ruido inusual</dt>
@@ -339,14 +339,14 @@
                                 <label class="field-label">¿Está operando?</label>
                                 <div class="flex items-center gap-3">
                                     <p-checkbox formControlName="is_operating" [binary]="true" inputId="umaOperating"></p-checkbox>
-                                    <label for="umaOperating" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                    <label for="umaOperating" class="text-lg text-granite-950 font-semibold cursor-pointer">Sí</label>
                                 </div>
                             </div>
                             <div class="field-group">
                                 <label class="field-label">Ajuste de banda</label>
                                 <div class="flex items-center gap-3">
                                     <p-checkbox formControlName="air_band_adjustment" [binary]="true" inputId="umaBand"></p-checkbox>
-                                    <label for="umaBand" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                    <label for="umaBand" class="text-lg text-granite-950 font-semibold cursor-pointer">Sí</label>
                                 </div>
                             </div>
                             <div class="field-group">
@@ -361,7 +361,7 @@
                                 <label class="field-label">Rejilla aire en buenas condiciones</label>
                                 <div class="flex items-center gap-3">
                                     <p-checkbox formControlName="air_good_quality" [binary]="true" inputId="umaAirQ"></p-checkbox>
-                                    <label for="umaAirQ" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                    <label for="umaAirQ" class="text-lg text-granite-950 font-semibold cursor-pointer">Sí</label>
                                 </div>
                             </div>
                             <div class="field-group">
@@ -376,7 +376,7 @@
                                 <label class="field-label">Ruido inusual</label>
                                 <div class="flex items-center gap-3">
                                     <p-checkbox formControlName="unusual_noise" [binary]="true" inputId="umaNoise"></p-checkbox>
-                                    <label for="umaNoise" class="text-base text-granite-900 cursor-pointer">Sí</label>
+                                    <label for="umaNoise" class="text-lg text-granite-950 font-semibold cursor-pointer">Sí</label>
                                 </div>
                             </div>
                         }
@@ -387,8 +387,8 @@
                 <!-- Observaciones -->
                 @if (!editMode()) {
                 <section class="card-section">
-                    <h2 class="text-lg font-bold text-granite-900 mb-3">Observaciones</h2>
-                    <p class="text-base text-granite-800 whitespace-pre-line">{{ report.observations || 'Ninguna' }}</p>
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-950 mb-4 tracking-tight">Observaciones</h2>
+                    <p class="text-lg text-granite-900 whitespace-pre-line leading-relaxed">{{ report.observations || 'Ninguna' }}</p>
                 </section>
                 } @else {
                 <section class="card-section field-group">
@@ -407,41 +407,41 @@
                 </section>
                 } @else {
                 <section class="imagenes-reporte card-section">
-                    <h2 class="text-lg font-bold text-granite-900 mb-4">Fotos</h2>
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-950 mb-6 tracking-tight">Fotos</h2>
                     @if (report.pictures?.length) {
-                        <div class="flex flex-wrap gap-3">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                             @for (pic of report.pictures; track pic) {
-                                <img [src]="pic" width="150"
-                                    class="rounded-lg border-2 border-granite-200" />
+                                <img [src]="pic"
+                                    class="w-full aspect-square object-cover rounded-xl border-2 border-granite-200 shadow-sm" />
                             }
                         </div>
                     } @else {
-                        <p class="text-base text-granite-600">No hay imágenes aún.</p>
+                        <p class="text-lg text-granite-700 italic">No hay imágenes aún.</p>
                     }
                 </section>
                 }
 
                 <!-- Firma -->
                 <section class="card-section">
-                    <h2 class="text-lg font-bold text-granite-900 mb-3">Firma</h2>
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-950 mb-4 tracking-tight">Firma</h2>
                     @if (report.signature) {
                         <div class="text-center">
                             <img [src]="report.signature" alt="Firma"
-                                class="mx-auto max-h-40 border-2 border-granite-200 p-2 rounded-lg bg-white" />
-                            <p class="mt-3 text-base font-semibold text-granite-900">Firmado por: {{ report.signed_by }}</p>
+                                class="mx-auto max-h-48 border-2 border-granite-200 p-3 rounded-xl bg-white" />
+                            <p class="mt-4 text-lg font-bold text-granite-950">Firmado por: {{ report.signed_by }}</p>
                         </div>
                     } @else if (!report.report_status) {
                         <app-signature (signatureChanged)="onSignatureSaved($event)"></app-signature>
                     } @else {
-                        <p class="text-base text-granite-600 italic">Este reporte está finalizado y no se puede firmar.</p>
+                        <p class="text-lg text-granite-700 italic">Este reporte está finalizado y no se puede firmar.</p>
                     }
                 </section>
             </div>
             }
 
             <!-- Sticky action bar (sticks to scroll-container bottom, above the bottom-nav) -->
-            <div class="sticky bottom-0 z-40 bg-white/95 backdrop-blur border-t-2 border-granite-200">
-                <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap justify-end gap-2">
+            <div class="sticky bottom-0 z-40 bg-white/95 backdrop-blur border-t-2 border-granite-200 shadow-lg">
+                <div class="max-w-4xl mx-auto px-4 sm:px-8 py-4 flex flex-wrap justify-end gap-3">
                     <p-button type="button" (onClick)="downloadTextPDF()" severity="secondary" label="Descargar PDF"></p-button>
                     @if (!editMode() && report()?.report_status === false) {
                         <p-button type="button" (onClick)="toggleEdit()" severity="secondary" label="Editar"></p-button>

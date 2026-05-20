@@ -4,16 +4,13 @@ import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
   selector: 'app-image-picker',
   standalone: true,
   template: `
-    <div class="space-y-4">
+    <div class="space-y-5">
       <label
         for="fileInput"
-        class="block flex items-center justify-center w-full text-center border hover:bg-primary font-medium p-2 rounded cursor-pointer transition-colors"
+        class="flex items-center justify-center gap-3 w-full min-h-16 px-5 py-4 border-2 border-dashed border-granite-300 bg-granite-50 hover:bg-sky-50 hover:border-sky-700 text-granite-800 hover:text-sky-800 font-bold text-lg rounded-xl cursor-pointer transition-colors"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-          stroke-width="1.5" class="size-6 text-gray-500 stroke-blue-400">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
-        </svg>
-        <span class="text-gray-600">Agregar fotos</span>
+        <i class="pi pi-camera text-xl"></i>
+        <span>Agregar fotos</span>
       </label>
 
       <input
@@ -27,14 +24,14 @@ import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
       >
 
       @if (existingImages.length > 0) {
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           @for (img of existingImages; track img; let i = $index) {
-            <div class="relative group rounded-lg overflow-hidden shadow-md">
-              <img [src]="img" class="w-full h-32 object-cover rounded">
+            <div class="relative group rounded-xl overflow-hidden border-2 border-granite-200 shadow-sm">
+              <img [src]="img" class="w-full aspect-square object-cover">
               <button type="button"
-                class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white text-xs rounded-full px-2 py-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white size-8 rounded-full shadow-md inline-flex items-center justify-center font-bold transition-colors"
                 (click)="removeExistingImage(i)">
-                ✕
+                <i class="pi pi-times"></i>
               </button>
             </div>
           }
@@ -42,14 +39,14 @@ import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
       }
 
       @if (previews().length > 0) {
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           @for (preview of previews(); track preview; let i = $index) {
-            <div class="relative group rounded-lg overflow-hidden shadow-md">
-              <img [src]="preview" class="w-full h-32 object-cover rounded">
+            <div class="relative group rounded-xl overflow-hidden border-2 border-sky-300 shadow-sm">
+              <img [src]="preview" class="w-full aspect-square object-cover">
               <button type="button"
-                class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white text-xs rounded-full px-2 py-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white size-8 rounded-full shadow-md inline-flex items-center justify-center font-bold transition-colors"
                 (click)="removeNewImage(i)">
-                ✕
+                <i class="pi pi-times"></i>
               </button>
             </div>
           }
