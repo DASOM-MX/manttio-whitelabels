@@ -13,9 +13,9 @@ import type { ReportEmailRow } from '../../app/data/dtos/report-email';
 
 export interface ReportsStateModel {
   entities: Record<string, ReportRow>;
-  details: Record<string, ReportDetailRow>;
   ids: string[];
   selected: ReportRow | null;
+  selectedDetails: ReportDetailRow | null;
   query: ReportListQuery | null;
   loading: boolean;
   emails: Record<string, ReportEmailRow[]>;
@@ -25,9 +25,9 @@ export interface ReportsStateModel {
   name: 'reports',
   defaults: {
     entities: {},
-    details: {},
     ids: [],
     selected: null,
+    selectedDetails: null,
     query: null,
     loading: false,
     emails: {},
@@ -39,16 +39,13 @@ export class ReportsState {
     return s.ids.map((id) => s.entities[id]).filter(Boolean) as ReportRow[];
   }
   @Selector() static selected(s: ReportsStateModel): { report: ReportRow; details: ReportDetailRow | null } | null {
-    return s.selected ? { report: s.selected, details: s.details[s.selected.id] ?? null } : null;
+    return s.selected ? { report: s.selected, details: s.selectedDetails } : null;
   }
   @Selector() static loading(s: ReportsStateModel): boolean { return s.loading; }
   @Selector() static query(s: ReportsStateModel): ReportListQuery | null { return s.query; }
 
   static byId(id: string) {
     return (s: ReportsStateModel) => s.entities[id] ?? null;
-  }
-  static detailsById(id: string) {
-    return (s: ReportsStateModel) => s.details[id] ?? null;
   }
   static emailsForReport(id: string) {
     return (s: ReportsStateModel) => s.emails[id] ?? [];
@@ -61,12 +58,15 @@ export class ReportsState {
 
   @Action(LoadReport)
   loadOne(_ctx: StateContext<ReportsStateModel>, _action: LoadReport) {
-    // stub
+    // stub — PR #5 will GET /reports/:id and patch
+    //   { entities: { ...s.entities, [id]: report }, selected: report, selectedDetails: details }
   }
 
   @Action(SelectReport)
   select(ctx: StateContext<ReportsStateModel>, { report }: SelectReport) {
-    ctx.patchState({ selected: report });
+    // synchronous setter (e.g. from a list row click). Null `selectedDetails`
+    // — details only come from GET /reports/:id via LoadReport.
+    ctx.patchState({ selected: report, selectedDetails: null });
   }
 
   @Action(SetReportsQuery)

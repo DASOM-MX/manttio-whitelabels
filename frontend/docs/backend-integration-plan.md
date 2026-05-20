@@ -580,18 +580,30 @@ export class CustomersState {
 
 Same pattern. Extras:
 - `query: ReportListQuery | null` in the model; action `SetReportsQuery`.
-- `details: Record<string, ReportDetailRow>` slice alongside `entities`.
+- `selectedDetails: ReportDetailRow | null` slot — the full details for
+  the currently-selected report, stored directly (NOT a `Record<id, ...>`
+  map keyed by report id). Details only ever come from
+  `GET /reports/:id`, so caching them by id would just re-introduce the
+  partial/derive-from-map anti-pattern that `selected` was designed to
+  avoid.
 - Extra actions: `AddSignature`, `AddPictures`, `RemovePictures`,
   `SetAssignee`, `SendReportEmail`, `LoadReportEmails`, `RevokeReportEmail`.
-- `LoadReport` populates BOTH `entities[id]` and `details[id]` from the
-  `ReportResponse`, and also patches `selected` with the freshly-loaded
-  `ReportRow` (same coherence rule as the other states).
+- `LoadReport(id)` GETs `/reports/:id` and patches `entities[id]`,
+  `selected: report`, and `selectedDetails: details` from the
+  `ReportResponse` (lazy-load-and-show-detail).
 - `LoadReports` only populates `entities` (the list endpoint returns
-  `ReportRow[]`, not details).
-- `SelectReport(report)` takes a `ReportRow | null` payload (synchronous
-  setter); the `selected` selector exposes the combined
-  `{ report, details: details[selected.id] ?? null } | null` so detail
-  views read one signal.
+  `ReportRow[]`, no details).
+- `SelectReport(report)` takes a `ReportRow | null` payload — synchronous
+  setter. It nulls `selectedDetails` because details must come from
+  `LoadReport`; the caller is expected to dispatch `LoadReport(id)` next
+  to lazy-load the details.
+- The `selected` selector exposes the combined
+  `{ report: selected, details: selectedDetails } | null` so detail views
+  read one signal. `AddSignature`/`AddPictures`/`RemovePictures` refresh
+  `selectedDetails` when `selected?.id === id`.
+- `UpdateReport(id, ...)` refreshes `selected` if `selected?.id === id`.
+  `DeleteReport(id)` nulls BOTH `selected` and `selectedDetails` if
+  `selected?.id === id`.
 
 ### 8.4 `state/users/`
 
@@ -1678,8 +1690,8 @@ in list without manual refresh), edit, delete.
 - [ ] Branch: `git checkout -b feature/frontend-reports-migration`
 - [ ] Implement full `frontend/src/state/reports/reports.actions.ts`: `LoadReports`, `LoadReport`, `SelectReport`, `SetReportsQuery`, `CreateReport`, `UpdateReport`, `SetAssignee`, `AddSignature`, `AddPictures`, `RemovePictures`, `DeleteReport`, `SendReportEmail`, `LoadReportEmails`, `RevokeReportEmail`.
 - [ ] Implement full `frontend/src/state/reports/reports.state.ts`:
-  - Model: `{ entities: Record<string, ReportRow>, details: Record<string, ReportDetailRow>, ids: string[], selected: ReportRow | null, query: ReportListQuery | null, loading: boolean, emails: Record<string, ReportEmailRow[]> }`
-  - Selectors: `list`, `selected` (combined `{ report, details }`), `byId(id)`, `detailsById(id)`, `emailsForReport(id)`, `loading`, `query`
+  - Model: `{ entities: Record<string, ReportRow>, ids: string[], selected: ReportRow | null, selectedDetails: ReportDetailRow | null, query: ReportListQuery | null, loading: boolean, emails: Record<string, ReportEmailRow[]> }`
+  - Selectors: `list`, `selected` (combined `{ report, details }` from `selected` + `selectedDetails`), `byId(id)`, `emailsForReport(id)`, `loading`, `query`
   - Handlers per the action list
 - [ ] Update reports list page (`frontend/src/app/pages/reports/*`):
   - Bind filter inputs to dispatch `new SetReportsQuery(...)` + `new LoadReports()`
@@ -1689,7 +1701,7 @@ in list without manual refresh), edit, delete.
   - Remove inline `FormData` building (the service does it now)
   - Remove inline `JwtPayload`
 - [ ] Update report-detail (`frontend/src/app/pages/report-detail/*`):
-  - On init, dispatch `new LoadReport(id)`; bind to `select(ReportsState.byId(id))` and `detailsById(id)`
+  - On init, dispatch `new LoadReport(id)`; bind to `select(ReportsState.selected)` (combined `{ report, details }`)
   - Edit form submit: `new UpdateReport(id, payload)`
   - Signature submit: `new AddSignature(id, fields)`
   - Picture upload: `new AddPictures(id, files)`
