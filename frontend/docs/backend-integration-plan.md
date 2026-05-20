@@ -93,7 +93,7 @@ These are committed. Don't relitigate.
 - [x] **PR #1** — Foundation: data folder, RemoteService, NgXs setup, Angular folder layout (§9 `app.config.ts` swap carried into PR #2 — see PR #1 checklist note)
 - [x] **PR #2** — Auth migration (login, guard, interceptor, AuthState)
 - [x] **PR #3** — Users HTTP + UsersState
-- [ ] **PR #4** — Customers migration
+- [x] **PR #4** — Customers migration
 - [ ] **PR #5** — Reports migration
 - [ ] **PR #6** — Upload service + image picker wiring
 - [ ] **PR #7** — Theme migration + final cleanup
@@ -1656,17 +1656,26 @@ admin. Each action should round-trip through the state.
 `services/customers.ts` deleted.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b feature/frontend-customers-migration`
-- [ ] Replace `frontend/src/state/customers/customers.state.ts` with the full version per §8.2
-- [ ] Update `frontend/src/app/pages/customer-add/customer-add.ts`:
-  - [ ] Dispatch `new CreateCustomer(payload)` on submit
-  - [ ] Remove `import { CustomersService }` and direct HttpClient usage
-  - [ ] Remove inline `JwtPayload` declaration; import from `from '../../data/dtos/jwt'` if needed
-  - [ ] Replace any `localStorage.getItem('email')` with `select(AuthState.email)`
-- [ ] Update any customer list view (likely embedded in reports or customers page): dispatch `new LoadCustomers()` on init, `select(CustomersState.list)` for the rendered list
-- [ ] Replace any `import { Customer } from '../../services/customers'` with `import type { CustomerRow } from '../app/data/dtos/customer'` (note the type name change). Audit all callsites for null narrowing on `identification|phone|email|observation`.
-- [ ] Delete `frontend/src/services/customers.ts`
-- [ ] **Tick this PR's box** in §2 and commit
+- [x] Branch: `git checkout -b feature/frontend-customers-migration` (stacked on PR #3 since PR #3 still in review)
+- [x] Create `frontend/src/http/customers.service.ts` per §12.3 (full CRUD surface — `list`/`get`/`create`/`update`/`remove`)
+- [x] Replace `frontend/src/state/customers/customers.state.ts` stub with the full version per §8.2 (selected-as-full-reference; entities/ids/selected/loading slots; LoadCustomer sets selected; Update/Delete keep selected coherent)
+- [x] Update `frontend/src/app/pages/customer-add/customer-add.ts`:
+  - [x] Dispatch `new CreateCustomer(payload)` on submit
+  - [x] Remove direct `HttpClient` usage + `environment.apiUrl` + manual `Authorization` header (interceptor handles auth)
+  - [x] Drop the `createdBy` field from the payload (backend resolves the current user from the JWT — see backend `customers/create` handler)
+  - [x] Subscribe via NGXS Actions stream (`ofActionSuccessful(CreateCustomer)` / `ofActionErrored`) with `takeUntilDestroyed()` — never `dispatch().subscribe({next,error})`
+  - [x] On success: toast + navigate to `/reports` (matches register page UX; DynamicForm doesn't self-reset so we leave the page)
+- [x] Update the customer dropdown in `report-add.ts`:
+  - [x] Switch `CustomersState` import to `'../../../state/customers/customers.state'`
+  - [x] Switch `LoadCustomers` import to `'../../../state/customers/customers.actions'`
+  - [x] `CustomersState.items` → `CustomersState.list` (selectSignal-compatible)
+  - The rest of `report-add.ts` (HttpClient for reports, old reports store) is PR #5 scope
+- [x] Delete `frontend/src/services/customers.ts`
+- [x] Delete the entire old NGXS slice at `frontend/src/app/store/customers/` (actions/, types/, customers.ts) — the new slice at `frontend/src/state/customers/` is now the only `'customers'` slice registered in `app.config.ts`
+- [~] Keep `frontend/src/app/interfaces/customer.ts` for now — the OLD reports store at `frontend/src/app/store/reports/reports.ts` still imports `Customer` from it; that goes in PR #5
+- [~] No standalone customer list page exists in the app today — list rendering only happens via the report-add dropdown (handled above)
+- [~] No `Customer` interface callsites remain outside the old reports store (already PR #5 scope) — null-narrowing audit on `identification|phone|email|observation` deferred until those nullable fields are actually surfaced in a customer list/edit UI
+- [x] **Tick this PR's box** in §2 and commit
 
 **Validation:**
 ```bash

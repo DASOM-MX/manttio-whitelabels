@@ -10,8 +10,8 @@ import { SelectModule } from 'primeng/select';
 import { FieldConfig } from '../../interfaces/field-config';
 import { ToastService } from '../../../services/toast.service';
 import { AuthState } from '../../store/auth/auth';
-import { CustomersState } from '../../store/customers/customers';
-import { LoadCustomers } from '../../store/customers/actions/load-customers';
+import { CustomersState } from '../../../state/customers/customers.state';
+import { LoadCustomers } from '../../../state/customers/customers.actions';
 import { LoadReports } from '../../store/reports/actions/load-reports';
 
 type ReportType = 'minisplit' | 'chiller' | 'uma';
@@ -29,7 +29,7 @@ export class ReportAdd implements OnInit {
   private router = inject(Router);
   private store = inject(Store);
 
-  customers = this.store.selectSignal(CustomersState.items);
+  customers = this.store.selectSignal(CustomersState.list);
 
   selectedCustomerId = signal('');
   selectedFiles = signal<File[]>([]);
