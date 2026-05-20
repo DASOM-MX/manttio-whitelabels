@@ -422,24 +422,41 @@ Pattern shared by all three. Replace `<Entity>` / `<entity>` accordingly.
 export interface <Entity>StateModel {
   entities: Record<string, <EntityRow>>;
   ids: string[];
-  selectedId: string | null;
+  selected: <EntityRow> | null;       // full reference, NOT derived from entities[selectedId]
   loading: boolean;
   query?: <EntityListQuery> | null;   // ReportsState only
 }
 ```
 
+**Why `selected` holds the full row, not an id:** list endpoints may return
+partial/lightweight rows (e.g. when `LoadEntities` is paginated), while a
+detail flow lazy-loads the full row via `LoadEntity(id)`. Storing the
+selected row directly keeps the detail view from being downgraded to the
+partial list shape after `entities[id]` is overwritten or evicted.
+
 Standard selectors: `list`, `selected`, `loading`, factory
 `byId(id)`. Standard actions: `Load<Entities>`, `Load<Entity>`,
-`Select<Entity>`, `Create<Entity>`, `Update<Entity>`, `Delete<Entity>`.
+`Select<Entity>(entity | null)`, `Create<Entity>`, `Update<Entity>`,
+`Delete<Entity>`.
+
+**Coherence rules for `selected`:**
+- `Load<Entity>(id)` patches `entities[id]` AND patches `selected` with the
+  freshly-loaded full row (this IS the lazy-load-and-show-detail flow).
+- `Update<Entity>(id, ...)` patches `entities[id]`. If `selected?.id === id`,
+  it also refreshes `selected` with the updated row.
+- `Delete<Entity>(id)` removes from `entities`. If `selected?.id === id`,
+  it nulls out `selected`.
+- `Select<Entity>(entity | null)` is the synchronous setter (e.g. clicking
+  a row in a list and stashing the partial row before a full-load lands).
 
 ### 8.1 `state/customers/customers.actions.ts`
 
 ```ts
-import type { CreateCustomerRequest, UpdateCustomerRequest } from '../../app/data/dtos/customer';
+import type { CreateCustomerRequest, CustomerRow, UpdateCustomerRequest } from '../../app/data/dtos/customer';
 
 export class LoadCustomers { static readonly type = '[Customers] Load List'; }
 export class LoadCustomer { static readonly type = '[Customers] Load One'; constructor(public id: string) {} }
-export class SelectCustomer { static readonly type = '[Customers] Select'; constructor(public id: string | null) {} }
+export class SelectCustomer { static readonly type = '[Customers] Select'; constructor(public customer: CustomerRow | null) {} }
 export class CreateCustomer { static readonly type = '[Customers] Create'; constructor(public payload: CreateCustomerRequest) {} }
 export class UpdateCustomer { static readonly type = '[Customers] Update'; constructor(public id: string, public payload: UpdateCustomerRequest) {} }
 export class DeleteCustomer { static readonly type = '[Customers] Delete'; constructor(public id: string) {} }
@@ -461,13 +478,13 @@ import type { CustomerRow } from '../../app/data/dtos/customer';
 export interface CustomersStateModel {
   entities: Record<string, CustomerRow>;
   ids: string[];
-  selectedId: string | null;
+  selected: CustomerRow | null;
   loading: boolean;
 }
 
 @State<CustomersStateModel>({
   name: 'customers',
-  defaults: { entities: {}, ids: [], selectedId: null, loading: false },
+  defaults: { entities: {}, ids: [], selected: null, loading: false },
 })
 @Injectable()
 export class CustomersState {
@@ -476,9 +493,7 @@ export class CustomersState {
   @Selector() static list(s: CustomersStateModel): CustomerRow[] {
     return s.ids.map((id) => s.entities[id]).filter(Boolean);
   }
-  @Selector() static selected(s: CustomersStateModel): CustomerRow | null {
-    return s.selectedId ? s.entities[s.selectedId] ?? null : null;
-  }
+  @Selector() static selected(s: CustomersStateModel): CustomerRow | null { return s.selected; }
   @Selector() static loading(s: CustomersStateModel): boolean { return s.loading; }
 
   static byId(id: string) {
@@ -504,14 +519,18 @@ export class CustomersState {
       tap(({ customer }) => {
         const s = ctx.getState();
         const ids = s.ids.includes(id) ? s.ids : [...s.ids, id];
-        ctx.patchState({ entities: { ...s.entities, [id]: customer }, ids });
+        ctx.patchState({
+          entities: { ...s.entities, [id]: customer },
+          ids,
+          selected: customer,
+        });
       }),
     );
   }
 
   @Action(SelectCustomer)
-  select(ctx: StateContext<CustomersStateModel>, { id }: SelectCustomer) {
-    ctx.patchState({ selectedId: id });
+  select(ctx: StateContext<CustomersStateModel>, { customer }: SelectCustomer) {
+    ctx.patchState({ selected: customer });
   }
 
   @Action(CreateCustomer)
@@ -532,7 +551,10 @@ export class CustomersState {
     return this.api.update(id, payload).pipe(
       tap(({ customer }) => {
         const s = ctx.getState();
-        ctx.patchState({ entities: { ...s.entities, [id]: customer } });
+        ctx.patchState({
+          entities: { ...s.entities, [id]: customer },
+          selected: s.selected?.id === id ? customer : s.selected,
+        });
       }),
     );
   }
@@ -546,7 +568,7 @@ export class CustomersState {
         ctx.patchState({
           entities: rest,
           ids: s.ids.filter((x) => x !== id),
-          selectedId: s.selectedId === id ? null : s.selectedId,
+          selected: s.selected?.id === id ? null : s.selected,
         });
       }),
     );
@@ -562,9 +584,14 @@ Same pattern. Extras:
 - Extra actions: `AddSignature`, `AddPictures`, `RemovePictures`,
   `SetAssignee`, `SendReportEmail`, `LoadReportEmails`, `RevokeReportEmail`.
 - `LoadReport` populates BOTH `entities[id]` and `details[id]` from the
-  `ReportResponse`.
+  `ReportResponse`, and also patches `selected` with the freshly-loaded
+  `ReportRow` (same coherence rule as the other states).
 - `LoadReports` only populates `entities` (the list endpoint returns
   `ReportRow[]`, not details).
+- `SelectReport(report)` takes a `ReportRow | null` payload (synchronous
+  setter); the `selected` selector exposes the combined
+  `{ report, details: details[selected.id] ?? null } | null` so detail
+  views read one signal.
 
 ### 8.4 `state/users/`
 
@@ -1651,7 +1678,7 @@ in list without manual refresh), edit, delete.
 - [ ] Branch: `git checkout -b feature/frontend-reports-migration`
 - [ ] Implement full `frontend/src/state/reports/reports.actions.ts`: `LoadReports`, `LoadReport`, `SelectReport`, `SetReportsQuery`, `CreateReport`, `UpdateReport`, `SetAssignee`, `AddSignature`, `AddPictures`, `RemovePictures`, `DeleteReport`, `SendReportEmail`, `LoadReportEmails`, `RevokeReportEmail`.
 - [ ] Implement full `frontend/src/state/reports/reports.state.ts`:
-  - Model: `{ entities: Record<string, ReportRow>, details: Record<string, ReportDetailRow>, ids: string[], selectedId: string | null, query: ReportListQuery | null, loading: boolean, emails: Record<string, ReportEmailRow[]> }`
+  - Model: `{ entities: Record<string, ReportRow>, details: Record<string, ReportDetailRow>, ids: string[], selected: ReportRow | null, query: ReportListQuery | null, loading: boolean, emails: Record<string, ReportEmailRow[]> }`
   - Selectors: `list`, `selected` (combined `{ report, details }`), `byId(id)`, `detailsById(id)`, `emailsForReport(id)`, `loading`, `query`
   - Handlers per the action list
 - [ ] Update reports list page (`frontend/src/app/pages/reports/*`):

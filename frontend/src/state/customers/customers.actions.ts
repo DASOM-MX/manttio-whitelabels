@@ -1,4 +1,4 @@
-import type { CreateCustomerRequest, UpdateCustomerRequest } from '../../app/data/dtos/customer';
+import type { CreateCustomerRequest, CustomerRow, UpdateCustomerRequest } from '../../app/data/dtos/customer';
 
 export class LoadCustomers {
   static readonly type = '[Customers] Load List';
@@ -11,7 +11,7 @@ export class LoadCustomer {
 
 export class SelectCustomer {
   static readonly type = '[Customers] Select';
-  constructor(public id: string | null) {}
+  constructor(public customer: CustomerRow | null) {}
 }
 
 export class CreateCustomer {

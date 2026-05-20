@@ -1,4 +1,4 @@
-import type { CreateUserRequest, UpdateUserRequest } from '../../app/data/dtos/user';
+import type { CreateUserRequest, PublicUser, UpdateUserRequest } from '../../app/data/dtos/user';
 
 export class LoadCurrentUser {
   static readonly type = '[Users] Load Current';
@@ -15,7 +15,7 @@ export class LoadUser {
 
 export class SelectUser {
   static readonly type = '[Users] Select';
-  constructor(public id: string | null) {}
+  constructor(public user: PublicUser | null) {}
 }
 
 export class CreateUser {

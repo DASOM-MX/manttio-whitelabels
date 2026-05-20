@@ -15,7 +15,7 @@ export interface ReportsStateModel {
   entities: Record<string, ReportRow>;
   details: Record<string, ReportDetailRow>;
   ids: string[];
-  selectedId: string | null;
+  selected: ReportRow | null;
   query: ReportListQuery | null;
   loading: boolean;
   emails: Record<string, ReportEmailRow[]>;
@@ -27,7 +27,7 @@ export interface ReportsStateModel {
     entities: {},
     details: {},
     ids: [],
-    selectedId: null,
+    selected: null,
     query: null,
     loading: false,
     emails: {},
@@ -37,6 +37,9 @@ export interface ReportsStateModel {
 export class ReportsState {
   @Selector() static list(s: ReportsStateModel): ReportRow[] {
     return s.ids.map((id) => s.entities[id]).filter(Boolean) as ReportRow[];
+  }
+  @Selector() static selected(s: ReportsStateModel): { report: ReportRow; details: ReportDetailRow | null } | null {
+    return s.selected ? { report: s.selected, details: s.details[s.selected.id] ?? null } : null;
   }
   @Selector() static loading(s: ReportsStateModel): boolean { return s.loading; }
   @Selector() static query(s: ReportsStateModel): ReportListQuery | null { return s.query; }
@@ -62,8 +65,8 @@ export class ReportsState {
   }
 
   @Action(SelectReport)
-  select(ctx: StateContext<ReportsStateModel>, { id }: SelectReport) {
-    ctx.patchState({ selectedId: id });
+  select(ctx: StateContext<ReportsStateModel>, { report }: SelectReport) {
+    ctx.patchState({ selected: report });
   }
 
   @Action(SetReportsQuery)

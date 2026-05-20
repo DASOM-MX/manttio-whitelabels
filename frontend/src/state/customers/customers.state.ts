@@ -9,22 +9,20 @@ import type { CustomerRow } from '../../app/data/dtos/customer';
 export interface CustomersStateModel {
   entities: Record<string, CustomerRow>;
   ids: string[];
-  selectedId: string | null;
+  selected: CustomerRow | null;
   loading: boolean;
 }
 
 @State<CustomersStateModel>({
   name: 'customers',
-  defaults: { entities: {}, ids: [], selectedId: null, loading: false },
+  defaults: { entities: {}, ids: [], selected: null, loading: false },
 })
 @Injectable()
 export class CustomersState {
   @Selector() static list(s: CustomersStateModel): CustomerRow[] {
     return s.ids.map((id) => s.entities[id]).filter(Boolean) as CustomerRow[];
   }
-  @Selector() static selected(s: CustomersStateModel): CustomerRow | null {
-    return s.selectedId ? s.entities[s.selectedId] ?? null : null;
-  }
+  @Selector() static selected(s: CustomersStateModel): CustomerRow | null { return s.selected; }
   @Selector() static loading(s: CustomersStateModel): boolean { return s.loading; }
 
   static byId(id: string) {
@@ -38,12 +36,12 @@ export class CustomersState {
 
   @Action(LoadCustomer)
   loadOne(_ctx: StateContext<CustomersStateModel>, _action: LoadCustomer) {
-    // stub
+    // stub — PR #4 will fetch + patch entities[id] + set selected
   }
 
   @Action(SelectCustomer)
-  select(ctx: StateContext<CustomersStateModel>, { id }: SelectCustomer) {
-    ctx.patchState({ selectedId: id });
+  select(ctx: StateContext<CustomersStateModel>, { customer }: SelectCustomer) {
+    ctx.patchState({ selected: customer });
   }
 
   @Action(CreateCustomer)
