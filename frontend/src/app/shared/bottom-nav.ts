@@ -1,9 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { Store } from '@ngxs/store';
 import { filter } from 'rxjs/operators';
-import { AuthState } from '../store/auth/auth';
-import { Logout } from '../store/auth/actions/logout';
+import { AuthState } from '../../state/auth/auth.state';
+import { Logout } from '../../state/auth/auth.actions';
 
 @Component({
   selector: 'app-bottom-nav',
@@ -17,7 +17,8 @@ export class BottomNav {
   private store = inject(Store);
 
   user = this.store.selectSignal(AuthState.user);
-  isAdmin = this.store.selectSignal(AuthState.isAdmin);
+  role = this.store.selectSignal(AuthState.role);
+  isAdmin = computed(() => this.role() === 'admin');
   showMenu = signal(false);
 
   constructor() {
@@ -31,8 +32,6 @@ export class BottomNav {
   }
 
   logout() {
-    this.store.dispatch(new Logout()).subscribe(() => {
-      this.router.navigate(['/login']);
-    });
+    this.store.dispatch(new Logout());
   }
 }
