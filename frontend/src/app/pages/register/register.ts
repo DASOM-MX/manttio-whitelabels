@@ -1,8 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Store } from '@ngxs/store';
+import { Actions, Store, ofActionSuccessful, ofActionErrored } from '@ngxs/store';
 import { ToastService } from '../../../services/toast.service';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
@@ -29,6 +29,7 @@ export class Register {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private store = inject(Store);
+  private actions$ = inject(Actions);
   private toast = inject(ToastService);
 
   readonly roleOptions: RoleOption[] = [
@@ -61,6 +62,23 @@ export class Register {
     );
   });
 
+  constructor() {
+    this.actions$
+      .pipe(ofActionSuccessful(CreateUser), takeUntilDestroyed())
+      .subscribe(() => {
+        this.submitting.set(false);
+        this.toast.show('Usuario registrado exitosamente', 'success');
+        this.router.navigate(['/reports']);
+      });
+
+    this.actions$
+      .pipe(ofActionErrored(CreateUser), takeUntilDestroyed())
+      .subscribe(() => {
+        this.submitting.set(false);
+        this.toast.show('No se pudo registrar el usuario', 'error');
+      });
+  }
+
   private passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
     const password = control.get('password');
     const confirmPassword = control.get('confirmPassword');
@@ -74,20 +92,11 @@ export class Register {
     if (this.registerForm.invalid || this.submitting()) return;
     const { name, email, password, role } = this.registerForm.value;
     this.submitting.set(true);
-
-    this.store
-      .dispatch(new CreateUser({ name: name!, email: email!, password: password!, role: role as UserType }))
-      .subscribe({
-        next: () => {
-          this.submitting.set(false);
-          this.toast.show('Usuario registrado exitosamente', 'success');
-          this.router.navigate(['/reports']);
-        },
-        error: (error) => {
-          this.submitting.set(false);
-          console.error('Error al registrar usuario', error);
-          this.toast.show('No se pudo registrar el usuario', 'error');
-        },
-      });
+    this.store.dispatch(new CreateUser({
+      name: name!,
+      email: email!,
+      password: password!,
+      role: role as UserType,
+    }));
   }
 }
