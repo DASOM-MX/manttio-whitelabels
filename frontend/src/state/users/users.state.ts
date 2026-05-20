@@ -1,6 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
-import { LoadCurrentUser } from './users.actions';
+import { tap } from 'rxjs/operators';
+import { UsersService } from '../../http/users.service';
+import { LoadCurrentUser, CreateUser } from './users.actions';
 import type { PublicUser } from '../../app/data/dtos/user';
 
 export interface UsersStateModel {
@@ -17,6 +19,8 @@ export interface UsersStateModel {
 })
 @Injectable()
 export class UsersState {
+  private readonly users = inject(UsersService);
+
   @Selector() static list(s: UsersStateModel): PublicUser[] {
     return s.ids.map((id) => s.entities[id]).filter(Boolean) as PublicUser[];
   }
@@ -24,7 +28,21 @@ export class UsersState {
   @Selector() static me(s: UsersStateModel): PublicUser | null { return s.me; }
 
   @Action(LoadCurrentUser)
-  loadCurrentUser(_ctx: StateContext<UsersStateModel>) {
-    // stub — wired up in PR #2 once UsersService exists
+  loadCurrentUser(ctx: StateContext<UsersStateModel>) {
+    return this.users.me().pipe(tap(({ user }) => ctx.patchState({ me: user })));
+  }
+
+  @Action(CreateUser)
+  createUser(ctx: StateContext<UsersStateModel>, { payload }: CreateUser) {
+    return this.users.create(payload).pipe(
+      tap(({ user }) => {
+        const s = ctx.getState();
+        if (s.ids.includes(user.id)) return;
+        ctx.patchState({
+          entities: { ...s.entities, [user.id]: user },
+          ids: [...s.ids, user.id],
+        });
+      }),
+    );
   }
 }
