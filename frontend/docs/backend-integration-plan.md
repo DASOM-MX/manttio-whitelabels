@@ -91,7 +91,7 @@ These are committed. Don't relitigate.
 > task checklists live in §15.
 
 - [x] **PR #1** — Foundation: data folder, RemoteService, NgXs setup, Angular folder layout (§9 `app.config.ts` swap carried into PR #2 — see PR #1 checklist note)
-- [ ] **PR #2** — Auth migration (login, guard, interceptor, AuthState)
+- [x] **PR #2** — Auth migration (login, guard, interceptor, AuthState)
 - [ ] **PR #3** — Users HTTP + UsersState
 - [ ] **PR #4** — Customers migration
 - [ ] **PR #5** — Reports migration
@@ -1555,24 +1555,20 @@ NgXs/AuthState. No `localStorage.getItem('token' | 'role' | 'email')`
 remains anywhere outside the storage plugin's internals.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b feature/frontend-auth-migration`
-- [ ] **Carried from PR #1:** update `frontend/src/app/app.config.ts` per §9 (swap `provideStore([...])` to the new `state/*` classes, add `withInterceptors([authInterceptor])`, drop deprecated `importProvidersFrom(HttpClientModule)`). Keep `provideAnimationsAsync()` + `providePrimeNG(...)` from the existing config — the §9 spec omits them, but the UI depends on PrimeNG. Do this in the same commit as the auth-guard/bottom-nav import flips below so the app never boots with a half-swapped store.
-- [ ] Create `frontend/src/http/auth.service.ts` per §12.1
-- [ ] Create `frontend/src/http/users.service.ts` per §12.2 (full surface — not just `me()`)
-- [ ] Replace `frontend/src/state/auth/auth.state.ts` with the full version per §7.2 (handlers filled in)
-- [ ] Replace `frontend/src/state/users/users.state.ts` with the full version implementing at least `me()` action; remaining handlers can stay stubbed until PR #3
-- [ ] Create `frontend/src/app/guards/auth-guard.ts` per §7.4
-- [ ] Update `frontend/src/app/app.routes.ts`: replace `canActivate: [AuthGuard]` (class) with `canActivate: [authGuard]` (function); update the import to `from './guards/auth-guard'`
-- [ ] Delete `frontend/src/app/auth/auth-guard.ts`
-- [ ] Delete `frontend/src/app/auth/` (folder) if empty
-- [ ] Update login page (`frontend/src/app/pages/login/*`): dispatch `new Login({ email, password })`. On success (action observable completes), navigate to `/home`. Remove direct HttpClient calls. Remove `localStorage.setItem('token' | 'role' | 'email', ...)`.
-- [ ] Update register page (`frontend/src/app/pages/register/*`): dispatch `new CreateUser(payload)`. On success, optionally auto-login by dispatching `new Login(...)`. Remove direct HttpClient.
-- [ ] Update bottom-nav (`frontend/src/app/shared/bottom-nav/*`): read `select(AuthState.role)` and `select(AuthState.email)`; logout button dispatches `new Logout()`. Remove `localStorage.getItem`.
-- [ ] Grep for stray `localStorage.getItem('token' | 'role' | 'email')` calls across `frontend/src/app/**` and replace each:
-  - For `'token'`: use `inject(Store).selectSnapshot(AuthState.token)` (or `select` for reactive contexts)
-  - For `'role'`: use `select(AuthState.role)`
-  - For `'email'`: use `select(AuthState.email)`
-- [ ] **Tick this PR's box** in §2 and commit
+- [x] Branch: `git checkout -b feature/frontend-auth-migration`
+- [x] **Carried from PR #1:** update `frontend/src/app/app.config.ts` per §9 (swap `provideStore([...])` to the new `state/*` classes, add `withInterceptors([authInterceptor])`, drop deprecated `importProvidersFrom(HttpClientModule)`). Keep `provideAnimationsAsync()` + `providePrimeNG(...)` from the existing config — the §9 spec omits them, but the UI depends on PrimeNG. Now also registers `UsersState` and re-enables `withNgxsReduxDevtoolsPlugin` + `withNgxsLoggerPlugin` per §9.
+- [x] Create `frontend/src/http/auth.service.ts` per §12.1
+- [x] Create `frontend/src/http/users.service.ts` per §12.2 (full surface — not just `me()`)
+- [x] Replace `frontend/src/state/auth/auth.state.ts` with the full version per §7.2 (handlers filled in)
+- [x] Replace `frontend/src/state/users/users.state.ts` with the full version implementing `me()` action **and** `CreateUser` (needed by the register page below — forward-ported from PR #3). Remaining handlers (`LoadUsers`, `LoadUser`, `UpdateUser`, `DeleteUser`) still arrive in PR #3.
+- [x] Create `frontend/src/app/guards/auth-guard.ts` per §7.4
+- [x] Update `frontend/src/app/app.routes.ts`: re-enable `canActivate` with the new functional `authGuard` from `./guards/auth-guard` (the previous `AuthGuard` class import was commented out during the UI redesign).
+- [x] Delete `frontend/src/app/auth/auth-guard.ts` (+ `auth-guard.spec.ts` + the now-empty folder)
+- [x] Update login page (`frontend/src/app/pages/login/*`): dispatch `new Login({ email, password })`. On success, navigate to `/home`. Removed `alert()` in favor of `ToastService` per user convention. (No HttpClient/localStorage was present here — the old store had already absorbed both.)
+- [x] Update register page (`frontend/src/app/pages/register/*`): dispatch `new CreateUser(payload)`. HttpClient + environment imports removed. `RoleOption.value` retyped boolean → `UserType` and form values flipped `false`/`true` → `'technician'`/`'admin'` per §14.3. Swal swap to `ToastService` per user convention.
+- [x] Update bottom-nav (`frontend/src/app/shared/bottom-nav.ts`): imports flipped to `state/auth/*`; `isAdmin` is now `computed(() => role() === 'admin')` (the new `AuthState` doesn't expose an `isAdmin` selector); logout dispatches `new Logout()` — the action handler navigates to `/login` itself, so the redundant `router.navigate` was dropped.
+- [x] Grep for stray `localStorage.getItem('token' | 'role' | 'email')`: **zero hits** in `frontend/src/` — the old store already migrated off direct localStorage to the storage plugin in a prior pass, so this step was a no-op.
+- [x] **Tick this PR's box** in §2 and commit
 
 **Validation:**
 ```bash
@@ -1599,8 +1595,8 @@ exists, it works; if not, the actions are still ready for future use.
 
 **Checklist:**
 - [ ] Branch: `git checkout -b feature/frontend-users-state`
-- [ ] Expand `frontend/src/state/users/users.actions.ts` to include `LoadUsers`, `LoadUser`, `CreateUser`, `UpdateUser`, `DeleteUser` (in addition to `LoadCurrentUser` from PR #2).
-- [ ] Implement all handlers in `frontend/src/state/users/users.state.ts`. Selectors: `list`, `selected`, `byId(id)`, `loading`, `me` (mirrors AuthState.user, or omit if not needed).
+- [ ] Expand `frontend/src/state/users/users.actions.ts` to include `LoadUsers`, `LoadUser`, `UpdateUser`, `DeleteUser` (in addition to `LoadCurrentUser` + `CreateUser` already added in PR #2).
+- [ ] Implement remaining handlers in `frontend/src/state/users/users.state.ts` (`LoadCurrentUser` + `CreateUser` already wired in PR #2). Add selectors: `selected`, `byId(id)`. (`list`, `loading`, `me` already exist.)
 - [ ] If an admin users page exists under `frontend/src/app/pages/`, migrate it to dispatch + select. Otherwise skip.
 - [ ] **Tick this PR's box** in §2 and commit
 
