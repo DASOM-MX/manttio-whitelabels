@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Store } from '@ngxs/store';
-import Swal from 'sweetalert2';
+import { ToastService } from '../../../services/toast.service';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { SelectModule } from 'primeng/select';
@@ -29,6 +29,7 @@ export class Register {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private store = inject(Store);
+  private toast = inject(ToastService);
 
   readonly roleOptions: RoleOption[] = [
     { label: 'Técnico', value: 'technician' },
@@ -79,16 +80,13 @@ export class Register {
       .subscribe({
         next: () => {
           this.submitting.set(false);
-          Swal.fire({
-            title: 'Usuario registrado exitosamente',
-            icon: 'success',
-          });
+          this.toast.show('Usuario registrado exitosamente', 'success');
           this.router.navigate(['/reports']);
         },
         error: (error) => {
           this.submitting.set(false);
           console.error('Error al registrar usuario', error);
-          alert('No se pudo registrar el usuario');
+          this.toast.show('No se pudo registrar el usuario', 'error');
         },
       });
   }
