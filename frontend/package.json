@@ -30,6 +30,8 @@
     "@angular/router": "~20.0.7",
     "@ng-icons/core": "^32.0.0",
     "@ng-icons/lucide": "^32.0.0",
+    "@ngxs/devtools-plugin": "^21.0.0",
+    "@ngxs/logger-plugin": "^21.0.0",
     "@ngxs/storage-plugin": "^21.0.0",
     "@ngxs/store": "^21.0.0",
     "@sweetalert2/ngx-sweetalert2": "^14.0.0",

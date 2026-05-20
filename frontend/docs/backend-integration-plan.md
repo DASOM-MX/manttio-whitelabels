@@ -90,7 +90,7 @@ These are committed. Don't relitigate.
 > Tick each box when the corresponding PR is **merged to main**. Per-PR
 > task checklists live in §15.
 
-- [ ] **PR #1** — Foundation: data folder, RemoteService, NgXs setup, Angular folder layout
+- [x] **PR #1** — Foundation: data folder, RemoteService, NgXs setup, Angular folder layout (§9 `app.config.ts` swap carried into PR #2 — see PR #1 checklist note)
 - [ ] **PR #2** — Auth migration (login, guard, interceptor, AuthState)
 - [ ] **PR #3** — Users HTTP + UsersState
 - [ ] **PR #4** — Customers migration
@@ -1490,38 +1490,38 @@ for the user (existing `services/customers.ts`, `services/reports.ts`
 keep working). NgXs is wired but no state has handlers yet.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b frontend-foundation`
-- [ ] `cd frontend && pnpm add @ngxs/store @ngxs/storage-plugin @ngxs/devtools-plugin @ngxs/logger-plugin`
+- [x] Branch: `git checkout -b feature/frontend-hono-backend-integration`
+- [x] `cd frontend && pnpm add @ngxs/store @ngxs/storage-plugin @ngxs/devtools-plugin @ngxs/logger-plugin`
 - [ ] Create folder `frontend/src/app/data/`
-- [ ] Create `frontend/src/app/data/utils.ts` per §4
-- [ ] Create `frontend/src/app/data/interfaces/.gitkeep`
-- [ ] Create all files under `frontend/src/app/data/dtos/api-error/` per §11.1
-- [ ] Create all files under `frontend/src/app/data/dtos/auth/` per §11.2
-- [ ] Create all files under `frontend/src/app/data/dtos/jwt/` per §11.3
-- [ ] Create all files under `frontend/src/app/data/dtos/user/` per §11.4
-- [ ] Create all files under `frontend/src/app/data/dtos/customer/` per §11.5
-- [ ] Create all files under `frontend/src/app/data/dtos/report/` per §11.6
-- [ ] Create all files under `frontend/src/app/data/dtos/report-email/` per §11.7
-- [ ] Create all files under `frontend/src/app/data/dtos/upload/` per §11.8
-- [ ] Create all files under `frontend/src/app/data/types/user/` per §11.9
-- [ ] Create all files under `frontend/src/app/data/types/report/` per §11.10
-- [ ] Create `frontend/src/http/remote.service.ts` per §5
+- [x] Create `frontend/src/app/data/utils.ts` per §4
+- [x] Create `frontend/src/app/data/interfaces/.gitkeep`
+- [x] Create all files under `frontend/src/app/data/dtos/api-error/` per §11.1
+- [x] Create all files under `frontend/src/app/data/dtos/auth/` per §11.2
+- [x] Create all files under `frontend/src/app/data/dtos/jwt/` per §11.3
+- [x] Create all files under `frontend/src/app/data/dtos/user/` per §11.4
+- [x] Create all files under `frontend/src/app/data/dtos/customer/` per §11.5
+- [x] Create all files under `frontend/src/app/data/dtos/report/` per §11.6
+- [x] Create all files under `frontend/src/app/data/dtos/report-email/` per §11.7
+- [x] Create all files under `frontend/src/app/data/dtos/upload/` per §11.8
+- [x] Create all files under `frontend/src/app/data/types/user/` per §11.9
+- [x] Create all files under `frontend/src/app/data/types/report/` per §11.10
+- [x] Create `frontend/src/http/remote.service.ts` per §5
 - [ ] Create empty state skeletons (state class + actions, no `@Action` handler bodies — the action classes exist, the state has the `@State` decorator and selectors but each `@Action` handler is `return ctx;` or omitted for now):
-  - [ ] `frontend/src/state/auth/auth.actions.ts` per §7.1
-  - [ ] `frontend/src/state/auth/auth.state.ts` — copy §7.2 but stub the handlers (no HTTP calls yet, since auth.service.ts is added in PR #2). Acceptable: have the state class compile with selectors only and action handlers as no-ops.
-  - [ ] `frontend/src/state/users/users.actions.ts` — minimal: `LoadCurrentUser` only
-  - [ ] `frontend/src/state/users/users.state.ts` — minimal state, no handler bodies
-  - [ ] `frontend/src/state/customers/customers.actions.ts` per §8.1
-  - [ ] `frontend/src/state/customers/customers.state.ts` — copy §8.2 but stub handlers (no HTTP)
-  - [ ] `frontend/src/state/reports/reports.actions.ts` — declare all action classes per §8.3
-  - [ ] `frontend/src/state/reports/reports.state.ts` — minimal state, stub handlers
-- [ ] Create folder `frontend/src/app/guards/` (empty for now — guard arrives in PR #2)
-- [ ] Create `frontend/src/app/interceptors/auth.interceptor.ts` per §7.3
-- [ ] Create `frontend/src/app/directives/.gitkeep`
-- [ ] Create `frontend/src/app/pipes/.gitkeep`
-- [ ] Update `frontend/src/app/app.config.ts` per §9
-- [ ] Update `frontend/src/environments/environment.ts` per §10 — set production URL (or leave the placeholder string and add a TODO comment; PR can still merge with the placeholder if production URL isn't decided)
-- [ ] Update `frontend/src/environments/environment.development.ts` per §10
+  - [x] `frontend/src/state/auth/auth.actions.ts` per §7.1
+  - [x] `frontend/src/state/auth/auth.state.ts` — copy §7.2 but stub the handlers (no HTTP calls yet, since auth.service.ts is added in PR #2). Acceptable: have the state class compile with selectors only and action handlers as no-ops.
+  - [x] `frontend/src/state/users/users.actions.ts` — minimal: `LoadCurrentUser` only
+  - [x] `frontend/src/state/users/users.state.ts` — minimal state, no handler bodies
+  - [x] `frontend/src/state/customers/customers.actions.ts` per §8.1
+  - [x] `frontend/src/state/customers/customers.state.ts` — copy §8.2 but stub handlers (no HTTP)
+  - [x] `frontend/src/state/reports/reports.actions.ts` — declare all action classes per §8.3
+  - [x] `frontend/src/state/reports/reports.state.ts` — minimal state, stub handlers
+- [x] Create folder `frontend/src/app/guards/` (empty for now — guard arrives in PR #2)
+- [x] Create `frontend/src/app/interceptors/auth.interceptor.ts` per §7.3
+- [x] Create `frontend/src/app/directives/.gitkeep`
+- [x] Create `frontend/src/app/pipes/.gitkeep`
+- [~] Update `frontend/src/app/app.config.ts` per §9 — **deferred to PR #2** (kept old `provideStore(...)` block intact). Reason: §9 swaps `provideStore` to the new `state/*` classes only. Old callers (`app/store/auth/auth-guard.ts`, `shared/bottom-nav.ts`, login/customer-add/report-add/reports pages, `services/reports.ts`) still import the old `AuthState`/`CustomersState`/`ReportsState` classes from `app/store/*`. Registering only the new classes leaves the old class refs unregistered and breaks the app at runtime; registering both hits NGXS's duplicate-slice-name error (both use `name: 'auth' | 'customers' | 'reports'`). The §9 swap is the natural first step of PR #2 — done atomically with replacing the auth-guard and bottom-nav imports.
+- [x] Update `frontend/src/environments/environment.ts` per §10 (prod URL placeholder + TODO — fill at deploy time)
+- [x] Update `frontend/src/environments/environment.development.ts` per §10 (`http://127.0.0.1:8787`)
 - [ ] **Tick this PR's box** in §2 of this doc and commit the doc update
 
 **Validation:**
@@ -1555,7 +1555,8 @@ NgXs/AuthState. No `localStorage.getItem('token' | 'role' | 'email')`
 remains anywhere outside the storage plugin's internals.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b frontend-auth-migration`
+- [ ] Branch: `git checkout -b feature/frontend-auth-migration`
+- [ ] **Carried from PR #1:** update `frontend/src/app/app.config.ts` per §9 (swap `provideStore([...])` to the new `state/*` classes, add `withInterceptors([authInterceptor])`, drop deprecated `importProvidersFrom(HttpClientModule)`). Keep `provideAnimationsAsync()` + `providePrimeNG(...)` from the existing config — the §9 spec omits them, but the UI depends on PrimeNG. Do this in the same commit as the auth-guard/bottom-nav import flips below so the app never boots with a half-swapped store.
 - [ ] Create `frontend/src/http/auth.service.ts` per §12.1
 - [ ] Create `frontend/src/http/users.service.ts` per §12.2 (full surface — not just `me()`)
 - [ ] Replace `frontend/src/state/auth/auth.state.ts` with the full version per §7.2 (handlers filled in)
@@ -1597,7 +1598,7 @@ redirected to /login.
 exists, it works; if not, the actions are still ready for future use.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b frontend-users-state`
+- [ ] Branch: `git checkout -b feature/frontend-users-state`
 - [ ] Expand `frontend/src/state/users/users.actions.ts` to include `LoadUsers`, `LoadUser`, `CreateUser`, `UpdateUser`, `DeleteUser` (in addition to `LoadCurrentUser` from PR #2).
 - [ ] Implement all handlers in `frontend/src/state/users/users.state.ts`. Selectors: `list`, `selected`, `byId(id)`, `loading`, `me` (mirrors AuthState.user, or omit if not needed).
 - [ ] If an admin users page exists under `frontend/src/app/pages/`, migrate it to dispatch + select. Otherwise skip.
@@ -1620,7 +1621,7 @@ admin. Each action should round-trip through the state.
 `services/customers.ts` deleted.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b frontend-customers-migration`
+- [ ] Branch: `git checkout -b feature/frontend-customers-migration`
 - [ ] Replace `frontend/src/state/customers/customers.state.ts` with the full version per §8.2
 - [ ] Update `frontend/src/app/pages/customer-add/customer-add.ts`:
   - [ ] Dispatch `new CreateCustomer(payload)` on submit
@@ -1651,7 +1652,7 @@ in list without manual refresh), edit, delete.
 `services/reports.ts` deleted.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b frontend-reports-migration`
+- [ ] Branch: `git checkout -b feature/frontend-reports-migration`
 - [ ] Implement full `frontend/src/state/reports/reports.actions.ts`: `LoadReports`, `LoadReport`, `SelectReport`, `SetReportsQuery`, `CreateReport`, `UpdateReport`, `SetAssignee`, `AddSignature`, `AddPictures`, `RemovePictures`, `DeleteReport`, `SendReportEmail`, `LoadReportEmails`, `RevokeReportEmail`.
 - [ ] Implement full `frontend/src/state/reports/reports.state.ts`:
   - Model: `{ entities: Record<string, ReportRow>, details: Record<string, ReportDetailRow>, ids: string[], selectedId: string | null, query: ReportListQuery | null, loading: boolean, emails: Record<string, ReportEmailRow[]> }`
@@ -1694,7 +1695,7 @@ add/remove pictures, send email.
 flow through `UploadService`.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b frontend-upload`
+- [ ] Branch: `git checkout -b feature/frontend-upload`
 - [ ] Create `frontend/src/http/upload.service.ts` per §12.5
 - [ ] Audit `frontend/src/app/components/image-picker/*`: if it uploads images standalone, replace direct HttpClient with `inject(UploadService).uploadImage(file)`. If it only collects File objects for the parent component to submit with the report, no change needed.
 - [ ] **Tick this PR's box** in §2 and commit
@@ -1715,7 +1716,7 @@ Manual: if image-picker was migrated, exercise its upload flow.
 outside storage plugin. No old Vercel URL references. Doc fully ticked.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b frontend-theme-cleanup`
+- [ ] Branch: `git checkout -b feature/frontend-theme-cleanup`
 - [ ] Create folder `frontend/src/theme/`
 - [ ] Move `frontend/src/services/toast.service.ts` → `frontend/src/theme/toast.service.ts` (content unchanged)
 - [ ] Update every importer:
