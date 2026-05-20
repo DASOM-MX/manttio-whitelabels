@@ -6,7 +6,7 @@ import { Register } from '../register/register';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { ButtonModule } from 'primeng/button';
-import { Login as LoginAction } from '../../store/auth/actions/login';
+import { Login as LoginAction } from '../../../state/auth/auth.actions';
 
 @Component({
   selector: 'app-login',
@@ -37,10 +37,10 @@ export class Login {
     if (this.loginForm.invalid || this.submitting()) return;
     const { email, password } = this.loginForm.value;
     this.submitting.set(true);
-    this.store.dispatch(new LoginAction(email!, password!)).subscribe({
+    this.store.dispatch(new LoginAction({ email: email!, password: password! })).subscribe({
       next: () => {
         this.submitting.set(false);
-        this.router.navigate(['/reports']);
+        this.router.navigate(['/home']);
       },
       error: (error) => {
         this.submitting.set(false);
