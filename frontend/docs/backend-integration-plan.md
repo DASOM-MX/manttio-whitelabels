@@ -92,7 +92,7 @@ These are committed. Don't relitigate.
 
 - [x] **PR #1** — Foundation: data folder, RemoteService, NgXs setup, Angular folder layout (§9 `app.config.ts` swap carried into PR #2 — see PR #1 checklist note)
 - [x] **PR #2** — Auth migration (login, guard, interceptor, AuthState)
-- [ ] **PR #3** — Users HTTP + UsersState
+- [x] **PR #3** — Users HTTP + UsersState
 - [ ] **PR #4** — Customers migration
 - [ ] **PR #5** — Reports migration
 - [ ] **PR #6** — Upload service + image picker wiring
@@ -1594,11 +1594,11 @@ redirected to /login.
 exists, it works; if not, the actions are still ready for future use.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b feature/frontend-users-state`
-- [ ] Expand `frontend/src/state/users/users.actions.ts` to include `LoadUsers`, `LoadUser`, `UpdateUser`, `DeleteUser` (in addition to `LoadCurrentUser` + `CreateUser` already added in PR #2).
-- [ ] Implement remaining handlers in `frontend/src/state/users/users.state.ts` (`LoadCurrentUser` + `CreateUser` already wired in PR #2). Add selectors: `selected`, `byId(id)`. (`list`, `loading`, `me` already exist.)
-- [ ] If an admin users page exists under `frontend/src/app/pages/`, migrate it to dispatch + select. Otherwise skip.
-- [ ] **Tick this PR's box** in §2 and commit
+- [x] Branch: `git checkout -b feature/frontend-users-state`
+- [x] Expand `frontend/src/state/users/users.actions.ts` to include `LoadUsers`, `LoadUser`, `SelectUser`, `UpdateUser`, `DeleteUser` (in addition to `LoadCurrentUser` + `CreateUser` already added in PR #2).
+- [x] Implement remaining handlers in `frontend/src/state/users/users.state.ts` (`LoadCurrentUser` + `CreateUser` already wired in PR #2). Added selectors: `selected`, `byId(id)`. (`list`, `loading`, `me` already existed.)
+- [x] If an admin users page exists under `frontend/src/app/pages/`, migrate it to dispatch + select. **Skipped** — no admin users page in the app today; CRUD surface is wired and ready for one.
+- [x] **Tick this PR's box** in §2 and commit
 
 **Validation:**
 ```bash
