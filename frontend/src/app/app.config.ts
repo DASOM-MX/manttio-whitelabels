@@ -1,29 +1,37 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection } from '@angular/core';
+import {
+  ApplicationConfig,
+  provideBrowserGlobalErrorListeners,
+  provideZonelessChangeDetection,
+  isDevMode,
+} from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient } from '@angular/common/http';
-import { HttpClientModule } from '@angular/common/http';
-import { importProvidersFrom } from '@angular/core';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { providePrimeNG } from 'primeng/config';
 import { provideStore } from '@ngxs/store';
 import { withNgxsStoragePlugin } from '@ngxs/storage-plugin';
+import { withNgxsReduxDevtoolsPlugin } from '@ngxs/devtools-plugin';
+import { withNgxsLoggerPlugin } from '@ngxs/logger-plugin';
 import { routes } from './app.routes';
-import { AuthState } from './store/auth/auth';
-import { ReportsState } from './store/reports/reports';
-import { CustomersState } from './store/customers/customers';
+import { authInterceptor } from './interceptors/auth.interceptor';
+import { AuthState } from '../state/auth/auth.state';
+import { UsersState } from '../state/users/users.state';
+import { CustomersState } from '../state/customers/customers.state';
+import { ReportsState } from '../state/reports/reports.state';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
-    provideHttpClient(),
+    provideHttpClient(withInterceptors([authInterceptor])),
     provideRouter(routes),
     provideAnimationsAsync(),
     providePrimeNG({ ripple: false, theme: 'none' }),
     provideStore(
-      [AuthState, ReportsState, CustomersState],
-      withNgxsStoragePlugin({ keys: ['auth', 'reports', 'customers'] }),
+      [AuthState, UsersState, CustomersState, ReportsState],
+      withNgxsStoragePlugin({ keys: ['auth'] }),
+      withNgxsReduxDevtoolsPlugin({ disabled: !isDevMode() }),
+      withNgxsLoggerPlugin({ disabled: !isDevMode() }),
     ),
-    importProvidersFrom(HttpClientModule),
   ],
 };
