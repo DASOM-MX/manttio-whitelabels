@@ -1,15 +1,16 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { Store } from '@ngxs/store';
 import Swal from 'sweetalert2';
-import { environment } from '../../../environments/environment';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { SelectModule } from 'primeng/select';
 import { ButtonModule } from 'primeng/button';
 import { RoleOption } from '../../interfaces/role-option';
+import { CreateUser } from '../../../state/users/users.actions';
+import type { UserType } from '../../data/types/user';
 
 @Component({
   selector: 'app-register',
@@ -26,12 +27,12 @@ import { RoleOption } from '../../interfaces/role-option';
 })
 export class Register {
   private fb = inject(FormBuilder);
-  private http = inject(HttpClient);
   private router = inject(Router);
+  private store = inject(Store);
 
   readonly roleOptions: RoleOption[] = [
-    { label: 'Técnico', value: false },
-    { label: 'Administrador', value: true },
+    { label: 'Técnico', value: 'technician' },
+    { label: 'Administrador', value: 'admin' },
   ];
 
   registerForm = this.fb.group(
@@ -40,7 +41,7 @@ export class Register {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required]],
-      role: [false, Validators.required],
+      role: ['technician' as UserType, Validators.required],
     },
     { validators: this.passwordMatchValidator },
   );
@@ -73,8 +74,8 @@ export class Register {
     const { name, email, password, role } = this.registerForm.value;
     this.submitting.set(true);
 
-    this.http
-      .post(`${environment.apiUrl}auth/register`, { name, email, password, role })
+    this.store
+      .dispatch(new CreateUser({ name: name!, email: email!, password: password!, role: role as UserType }))
       .subscribe({
         next: () => {
           this.submitting.set(false);
@@ -87,7 +88,7 @@ export class Register {
         error: (error) => {
           this.submitting.set(false);
           console.error('Error al registrar usuario', error);
-          alert('Credenciales invalidas');
+          alert('No se pudo registrar el usuario');
         },
       });
   }
