@@ -1,20 +1,26 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DynamicForm } from '../../shared/dynamic-form/dynamic-form';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Store } from '@ngxs/store';
+import { Actions, Store, ofActionSuccessful, ofActionErrored } from '@ngxs/store';
 import Swal from 'sweetalert2';
-import { environment } from '../../../environments/environment';
 import { SelectModule } from 'primeng/select';
 import { FieldConfig } from '../../interfaces/field-config';
 import { ToastService } from '../../../services/toast.service';
-import { AuthState } from '../../store/auth/auth';
 import { CustomersState } from '../../../state/customers/customers.state';
 import { LoadCustomers } from '../../../state/customers/customers.actions';
-import { LoadReports } from '../../store/reports/actions/load-reports';
+import { CreateReport } from '../../../state/reports/reports.actions';
+import type {
+  CreateReportFields,
+  ReportData,
+  MinisplitData,
+  ChillerData,
+  UmaData,
+} from '../../data/dtos/report';
+import type { ReportType } from '../../data/types/report';
 
-type ReportType = 'minisplit' | 'chiller' | 'uma';
+const yesNoToBool = (v: unknown): boolean => v === 'Sí' || v === true;
 
 @Component({
   selector: 'app-report-add',
@@ -24,10 +30,10 @@ type ReportType = 'minisplit' | 'chiller' | 'uma';
   styleUrl: './report-add.scss',
 })
 export class ReportAdd implements OnInit {
-  private http = inject(HttpClient);
   private toast = inject(ToastService);
   private router = inject(Router);
   private store = inject(Store);
+  private actions$ = inject(Actions);
 
   customers = this.store.selectSignal(CustomersState.list);
 
@@ -54,6 +60,24 @@ export class ReportAdd implements OnInit {
     () => this.formConfigs[this.selectedReportType()] || [],
   );
 
+  constructor() {
+    this.actions$
+      .pipe(ofActionSuccessful(CreateReport), takeUntilDestroyed())
+      .subscribe(() => {
+        this.toast.show('Reporte agregado exitosamente', 'success');
+        this.selectedFiles.set([]);
+        this.signatureFile.set(null);
+        this.selectedCustomerId.set('');
+        this.router.navigate(['/reports']);
+      });
+
+    this.actions$
+      .pipe(ofActionErrored(CreateReport), takeUntilDestroyed())
+      .subscribe(() => {
+        this.toast.show('Error al enviar reporte', 'error');
+      });
+  }
+
   ngOnInit(): void {
     this.store.dispatch(new LoadCustomers());
   }
@@ -78,7 +102,7 @@ export class ReportAdd implements OnInit {
     switch (type) {
       case 'minisplit':
         return [
-          { type: 'text', label: 'Tipo de tarea', name: 'manttio_type', defaultValue: '' },
+          { type: 'text', label: 'Tipo de tarea', name: 'work_type', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de llegada', name: 'date_arrival', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de salida', name: 'date_departure', defaultValue: '' },
           { type: 'select', label: '¿Equipo se encuentra operando?', name: 'is_operating', defaultValue: '', options: ['Sí', 'No'] },
@@ -93,7 +117,7 @@ export class ReportAdd implements OnInit {
         ];
       case 'chiller':
         return [
-          { type: 'text', label: 'Tipo de tarea', name: 'manttio_type', defaultValue: '' },
+          { type: 'text', label: 'Tipo de tarea', name: 'work_type', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de llegada', name: 'date_arrival', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de salida', name: 'date_departure', defaultValue: '' },
           { type: 'select', label: '¿Equipo se encuentra operando?', name: 'is_operating', defaultValue: '', options: ['Sí', 'No'] },
@@ -115,7 +139,7 @@ export class ReportAdd implements OnInit {
         ];
       case 'uma':
         return [
-          { type: 'text', label: 'Tipo de tarea', name: 'manttio_type', defaultValue: '' },
+          { type: 'text', label: 'Tipo de tarea', name: 'work_type', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de llegada', name: 'date_arrival', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de salida', name: 'date_departure', defaultValue: '' },
           { type: 'select', label: '¿Se encuentra operando?', name: 'is_operating', defaultValue: '', options: ['Sí', 'No'] },
@@ -133,46 +157,67 @@ export class ReportAdd implements OnInit {
     }
   }
 
-  private dataURLtoFile(dataURL: string, filename: string): File {
-    const arr = dataURL.split(',');
-    const mime = arr[0].match(/:(.*?);/)![1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
+  private buildReportData(reportType: ReportType, formData: Record<string, unknown>): ReportData {
+    switch (reportType) {
+      case 'minisplit': {
+        const data: MinisplitData = {
+          is_operating: yesNoToBool(formData['is_operating']),
+          remote_working: yesNoToBool(formData['remote_working']),
+          amperage: String(formData['amperage'] ?? ''),
+          filter: yesNoToBool(formData['filter']),
+          inner_voltage: String(formData['inner_voltage'] ?? ''),
+          unusual_noise: yesNoToBool(formData['unusual_noise']),
+          observations: String(formData['observations'] ?? ''),
+        };
+        return data;
+      }
+      case 'chiller': {
+        const data: ChillerData = {
+          is_operating: yesNoToBool(formData['is_operating']),
+          inner_temperature: String(formData['inner_temperature'] ?? ''),
+          outer_temperature: String(formData['outer_temperature'] ?? ''),
+          inner_voltage: String(formData['inner_voltage'] ?? ''),
+          plc_keys_working: yesNoToBool(formData['plc_keys_working']),
+          motor_amperage: String(formData['motor_amperage'] ?? ''),
+          system_pressure_1: String(formData['system_pressure_1'] ?? ''),
+          system_pressure_2: String(formData['system_pressure_2'] ?? ''),
+          system_pressure_3: String(formData['system_pressure_3'] ?? ''),
+          oil_pressure: String(formData['oil_pressure'] ?? ''),
+          oil_level: String(formData['oil_level'] ?? ''),
+          flux_switch_working: yesNoToBool(formData['flux_switch_working']),
+          unusual_noise: yesNoToBool(formData['unusual_noise']),
+          observations: String(formData['observations'] ?? ''),
+        };
+        return data;
+      }
+      case 'uma': {
+        const data: UmaData = {
+          is_operating: yesNoToBool(formData['is_operating']),
+          air_band_adjustment: yesNoToBool(formData['air_band_adjustment']),
+          inner_temperature: String(formData['inner_temperature'] ?? ''),
+          outer_temperature: String(formData['outer_temperature'] ?? ''),
+          air_good_quality: yesNoToBool(formData['air_good_quality']),
+          inner_voltage: String(formData['inner_voltage'] ?? ''),
+          motor_amperage: String(formData['motor_amperage'] ?? ''),
+          unusual_noise: yesNoToBool(formData['unusual_noise']),
+          observations: String(formData['observations'] ?? ''),
+        };
+        return data;
+      }
     }
-    return new File([u8arr], filename, { type: mime });
   }
 
-  async onFormSubmit(formData: any) {
-    const token = this.store.selectSnapshot(AuthState.token);
-    const userId = this.store.selectSnapshot(AuthState.user)?.id ?? '';
-
-    const fd = new FormData();
-    fd.append('report_type', this.selectedReportType());
-    Object.keys(formData).forEach((key) => {
-      if (key === 'signature' && formData[key]) {
-        const file = this.dataURLtoFile(formData[key], `signature-${Date.now()}.jpg`);
-        fd.append('signature', file);
-      } else {
-        fd.append(key, formData[key]);
-      }
-    });
-
-    fd.append('user_id', userId);
-    fd.append('client_id', this.selectedCustomerId());
-
-    for (const file of this.selectedFiles()) {
-      fd.append('pictures', file);
+  async onFormSubmit(formData: Record<string, unknown>) {
+    if (!this.selectedCustomerId()) {
+      this.toast.show('Selecciona un cliente antes de enviar', 'error');
+      return;
     }
 
-    const sig = this.signatureFile();
-    if (sig) {
-      fd.append('signature', sig);
-    }
+    const signatureBase64 = typeof formData['signature'] === 'string' ? (formData['signature'] as string) : '';
+    const signatureFile = this.signatureFile();
+    const hasSignature = !!signatureFile || !!signatureBase64;
 
-    if (!sig && !formData.signature) {
+    if (!hasSignature) {
       const result = await Swal.fire({
         title: 'Falta firma',
         text: 'Este reporte no contiene una firma. ¿Deseas continuar sin firmar?',
@@ -186,22 +231,19 @@ export class ReportAdd implements OnInit {
       if (!result.isConfirmed) return;
     }
 
-    this.http
-      .post(`${environment.apiUrl}reports`, fd, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .subscribe({
-        next: () => {
-          Swal.fire({ title: 'Reporte agregado exitosamente', icon: 'success' });
-          this.selectedFiles.set([]);
-          this.signatureFile.set(null);
-          this.selectedCustomerId.set('');
-          this.store.dispatch(new LoadReports(true));
-          this.router.navigate(['/reports']);
-        },
-        error: () => {
-          this.toast.show('Error al enviar reporte', 'error');
-        },
-      });
+    const reportType = this.selectedReportType();
+    const fields: CreateReportFields = {
+      report_type: reportType,
+      work_type: (formData['work_type'] as string) || undefined,
+      client_id: this.selectedCustomerId(),
+      date_arrival: (formData['date_arrival'] as string) || undefined,
+      date_departure: (formData['date_departure'] as string) || undefined,
+      data: this.buildReportData(reportType, formData),
+      pictures: this.selectedFiles().length ? this.selectedFiles() : undefined,
+      ...(signatureFile ? { signature: signatureFile } : {}),
+      ...(!signatureFile && signatureBase64 ? { signature_base64: signatureBase64 } : {}),
+    };
+
+    this.store.dispatch(new CreateReport(fields));
   }
 }

@@ -12,15 +12,28 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
-import {
-  ClienteOption,
-  EstadoOption,
-  EstatusOption,
-} from '../../interfaces/filter-option';
-import { NORTHERN_MEXICAN_STATES } from '../../constants/mexican-states';
-import { LoadReports } from '../../store/reports/actions/load-reports';
-import { ReportsState } from '../../store/reports/reports';
-import { Report } from '../../store/reports/types/report';
+import { ClienteOption, EstatusOption } from '../../interfaces/filter-option';
+import { LoadReports } from '../../../state/reports/reports.actions';
+import { ReportsState } from '../../../state/reports/reports.state';
+import { LoadCustomers } from '../../../state/customers/customers.actions';
+import { CustomersState } from '../../../state/customers/customers.state';
+import type { ReportRow } from '../../data/dtos/report';
+import type { ReportStatus } from '../../data/types/report';
+
+type ReportListBucket = 'pending' | 'done';
+
+interface ReportRowVM extends ReportRow {
+  clientName: string;
+  dateTs: number;
+  bucket: ReportListBucket;
+}
+
+const STATUS_BUCKET: Record<ReportStatus, ReportListBucket> = {
+  created: 'pending',
+  'in-progress': 'pending',
+  finished: 'done',
+  mailed: 'done',
+};
 
 @Component({
   selector: 'app-reports',
@@ -47,30 +60,54 @@ export class Reports implements OnInit, OnDestroy {
   private router = inject(Router);
   private fb = inject(FormBuilder);
 
-  readonly estadoOptions: EstadoOption[] = NORTHERN_MEXICAN_STATES.map((s) => ({
-    label: s,
-    value: s,
-  }));
   readonly estatusOptions: EstatusOption[] = [
-    { label: 'Pendiente', value: false },
-    { label: 'Finalizado', value: true },
+    { label: 'Pendiente', value: 'pending' },
+    { label: 'Finalizado', value: 'done' },
   ];
 
-  reports = this.store.selectSignal(ReportsState.items);
-  total = this.store.selectSignal(ReportsState.total);
+  private reportRows = this.store.selectSignal(ReportsState.list);
+  private customerRows = this.store.selectSignal(CustomersState.list);
   loading = this.store.selectSignal(ReportsState.loading);
 
-  clienteOptions = computed<ClienteOption[]>(() =>
-    this.buildClienteOptions(this.reports()),
-  );
+  private customerNameById = computed(() => {
+    const map = new Map<string, string>();
+    for (const c of this.customerRows()) map.set(c.id, c.name);
+    return map;
+  });
+
+  reports = computed<ReportRowVM[]>(() => {
+    const names = this.customerNameById();
+    return this.reportRows().map((r) => {
+      const ts = r.dateDeparture ? new Date(r.dateDeparture).getTime() : 0;
+      return {
+        ...r,
+        clientName: names.get(r.clientId) ?? 'Desconocido',
+        dateTs: ts,
+        bucket: STATUS_BUCKET[r.status],
+      };
+    });
+  });
+
+  total = computed(() => this.reports().length);
+
+  clienteOptions = computed<ClienteOption[]>(() => {
+    const seen = new Set<string>();
+    const options: ClienteOption[] = [];
+    for (const r of this.reports()) {
+      if (r.clientName && !seen.has(r.clientName)) {
+        seen.add(r.clientName);
+        options.push({ label: r.clientName, value: r.clientName });
+      }
+    }
+    return options.sort((a, b) => a.label.localeCompare(b.label));
+  });
 
   filtersOpen = signal(false);
 
   filtersForm: FormGroup = this.fb.group({
     folio: [''],
     cliente: [null as string | null],
-    estado: [null as string | null],
-    estatus: [null as boolean | null],
+    estatus: [null as ReportListBucket | null],
     dateRange: [null as Date[] | null],
   });
 
@@ -83,7 +120,6 @@ export class Reports implements OnInit, OnDestroy {
     let n = 0;
     if (v.folio?.trim()) n++;
     if (v.cliente) n++;
-    if (v.estado) n++;
     if (v.estatus !== null && v.estatus !== undefined) n++;
     if (v.dateRange?.[0]) n++;
     return n;
@@ -93,24 +129,12 @@ export class Reports implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.store.dispatch(new LoadReports());
+    this.store.dispatch(new LoadCustomers());
     this.wireFilters();
   }
 
   toggleFilters(): void {
     this.filtersOpen.update((open) => !open);
-  }
-
-  private buildClienteOptions(reports: Report[]): ClienteOption[] {
-    const seen = new Set<string>();
-    const options: ClienteOption[] = [];
-    for (const r of reports) {
-      const name = r.client_name;
-      if (name && !seen.has(name)) {
-        seen.add(name);
-        options.push({ label: name, value: name });
-      }
-    }
-    return options.sort((a, b) => a.label.localeCompare(b.label));
   }
 
   private wireFilters(): void {
@@ -122,40 +146,36 @@ export class Reports implements OnInit, OnDestroy {
 
     ctrl['cliente'].valueChanges
       .pipe(takeUntil(this.destroy$))
-      .subscribe((v: string | null) => this.dt?.filter(v, 'client_name', 'equals'));
-
-    ctrl['estado'].valueChanges
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((v: string | null) => this.dt?.filter(v, 'client_state', 'equals'));
+      .subscribe((v: string | null) => this.dt?.filter(v, 'clientName', 'equals'));
 
     ctrl['estatus'].valueChanges
       .pipe(takeUntil(this.destroy$))
-      .subscribe((v: boolean | null) => this.dt?.filter(v, 'report_status', 'equals'));
+      .subscribe((v: ReportListBucket | null) => this.dt?.filter(v, 'bucket', 'equals'));
 
     ctrl['dateRange'].valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe((range: Date[] | null) => {
         if (!range || !range[0]) {
-          this.dt?.filter(null, 'date_ts', 'between');
+          this.dt?.filter(null, 'dateTs', 'between');
           return;
         }
         const start = new Date(range[0]).setHours(0, 0, 0, 0);
         const end = range[1]
           ? new Date(range[1]).setHours(23, 59, 59, 999)
           : new Date(range[0]).setHours(23, 59, 59, 999);
-        this.dt?.filter([start, end], 'date_ts', 'between');
+        this.dt?.filter([start, end], 'dateTs', 'between');
       });
   }
 
   refresh(): void {
-    this.store.dispatch(new LoadReports(true));
+    this.store.dispatch(new LoadReports());
+    this.store.dispatch(new LoadCustomers());
   }
 
   clearFilters() {
     this.filtersForm.reset({
       folio: '',
       cliente: null,
-      estado: null,
       estatus: null,
       dateRange: null,
     });

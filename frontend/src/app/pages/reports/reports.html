@@ -127,21 +127,6 @@
                   </p-select>
                 </div>
               </div>
-              <div class="field-group">
-                <label for="estadoFilter" class="field-label">Estado</label>
-                <p-select
-                  inputId="estadoFilter"
-                  formControlName="estado"
-                  [options]="estadoOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  placeholder="Todos"
-                  [showClear]="true"
-                  [autoOptionFocus]="false"
-                  styleClass="w-full"
-                >
-                </p-select>
-              </div>
             </div>
             <div class="flex justify-end">
               @if (activeFilterCount() > 0) {
@@ -162,17 +147,17 @@
       <ng-template pTemplate="header">
         <tr>
           <th pSortableColumn="id">ID <p-sortIcon field="id"></p-sortIcon></th>
-          <th pSortableColumn="manttio_type">
-            Tipo <p-sortIcon field="manttio_type"></p-sortIcon>
+          <th pSortableColumn="workType">
+            Tipo <p-sortIcon field="workType"></p-sortIcon>
           </th>
-          <th pSortableColumn="client_name">
-            Cliente <p-sortIcon field="client_name"></p-sortIcon>
+          <th pSortableColumn="clientName">
+            Cliente <p-sortIcon field="clientName"></p-sortIcon>
           </th>
-          <th pSortableColumn="date_departure">
-            Fecha <p-sortIcon field="date_departure"></p-sortIcon>
+          <th pSortableColumn="dateDeparture">
+            Fecha <p-sortIcon field="dateDeparture"></p-sortIcon>
           </th>
-          <th pSortableColumn="report_status">
-            Estatus <p-sortIcon field="report_status"></p-sortIcon>
+          <th pSortableColumn="bucket">
+            Estatus <p-sortIcon field="bucket"></p-sortIcon>
           </th>
         </tr>
       </ng-template>
@@ -181,13 +166,13 @@
           <td class="font-data tabular-nums font-semibold text-granite-900">
             {{ r.id | slice: 0 : 6 }}{{ r.id.length > 8 ? "…" : "" }}
           </td>
-          <td class="capitalize">{{ r.manttio_type }}</td>
-          <td>{{ r.client_name }}</td>
+          <td class="capitalize">{{ r.workType }}</td>
+          <td>{{ r.clientName }}</td>
           <td class="font-data tabular-nums">
-            {{ r.date_departure | date: "shortDate" }}
+            {{ r.dateDeparture | date: "shortDate" }}
           </td>
           <td>
-            @if (r.report_status) {
+            @if (r.bucket === 'done') {
               <p-tag severity="success" value="Finalizado"></p-tag>
             } @else {
               <p-tag severity="warn" value="Pendiente"></p-tag>
