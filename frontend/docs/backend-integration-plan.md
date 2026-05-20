@@ -90,7 +90,7 @@ These are committed. Don't relitigate.
 > Tick each box when the corresponding PR is **merged to main**. Per-PR
 > task checklists live in §15.
 
-- [ ] **PR #1** — Foundation: data folder, RemoteService, NgXs setup, Angular folder layout
+- [x] **PR #1** — Foundation: data folder, RemoteService, NgXs setup, Angular folder layout (§9 `app.config.ts` swap carried into PR #2 — see PR #1 checklist note)
 - [ ] **PR #2** — Auth migration (login, guard, interceptor, AuthState)
 - [ ] **PR #3** — Users HTTP + UsersState
 - [ ] **PR #4** — Customers migration
@@ -1519,9 +1519,9 @@ keep working). NgXs is wired but no state has handlers yet.
 - [x] Create `frontend/src/app/interceptors/auth.interceptor.ts` per §7.3
 - [x] Create `frontend/src/app/directives/.gitkeep`
 - [x] Create `frontend/src/app/pipes/.gitkeep`
-- [ ] Update `frontend/src/app/app.config.ts` per §9
-- [ ] Update `frontend/src/environments/environment.ts` per §10 — set production URL (or leave the placeholder string and add a TODO comment; PR can still merge with the placeholder if production URL isn't decided)
-- [ ] Update `frontend/src/environments/environment.development.ts` per §10
+- [~] Update `frontend/src/app/app.config.ts` per §9 — **deferred to PR #2** (kept old `provideStore(...)` block intact). Reason: §9 swaps `provideStore` to the new `state/*` classes only. Old callers (`app/store/auth/auth-guard.ts`, `shared/bottom-nav.ts`, login/customer-add/report-add/reports pages, `services/reports.ts`) still import the old `AuthState`/`CustomersState`/`ReportsState` classes from `app/store/*`. Registering only the new classes leaves the old class refs unregistered and breaks the app at runtime; registering both hits NGXS's duplicate-slice-name error (both use `name: 'auth' | 'customers' | 'reports'`). The §9 swap is the natural first step of PR #2 — done atomically with replacing the auth-guard and bottom-nav imports.
+- [x] Update `frontend/src/environments/environment.ts` per §10 (prod URL placeholder + TODO — fill at deploy time)
+- [x] Update `frontend/src/environments/environment.development.ts` per §10 (`http://127.0.0.1:8787`)
 - [ ] **Tick this PR's box** in §2 of this doc and commit the doc update
 
 **Validation:**
@@ -1556,6 +1556,7 @@ remains anywhere outside the storage plugin's internals.
 
 **Checklist:**
 - [ ] Branch: `git checkout -b feature/frontend-auth-migration`
+- [ ] **Carried from PR #1:** update `frontend/src/app/app.config.ts` per §9 (swap `provideStore([...])` to the new `state/*` classes, add `withInterceptors([authInterceptor])`, drop deprecated `importProvidersFrom(HttpClientModule)`). Keep `provideAnimationsAsync()` + `providePrimeNG(...)` from the existing config — the §9 spec omits them, but the UI depends on PrimeNG. Do this in the same commit as the auth-guard/bottom-nav import flips below so the app never boots with a half-swapped store.
 - [ ] Create `frontend/src/http/auth.service.ts` per §12.1
 - [ ] Create `frontend/src/http/users.service.ts` per §12.2 (full surface — not just `me()`)
 - [ ] Replace `frontend/src/state/auth/auth.state.ts` with the full version per §7.2 (handlers filled in)
