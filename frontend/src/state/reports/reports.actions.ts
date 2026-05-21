@@ -1,5 +1,6 @@
 import type {
   ReportListQuery,
+  ReportRow,
   CreateReportFields,
   UpdateReportRequest,
   AddSignatureFields,
@@ -18,7 +19,7 @@ export class LoadReport {
 
 export class SelectReport {
   static readonly type = '[Reports] Select';
-  constructor(public id: string | null) {}
+  constructor(public report: ReportRow | null) {}
 }
 
 export class SetReportsQuery {
