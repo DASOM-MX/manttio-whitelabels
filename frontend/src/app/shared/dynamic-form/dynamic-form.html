@@ -1,4 +1,4 @@
-<form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-7">
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="m-0 space-y-7">
     @for (field of fields; track field.name) {
         <div class="field-group">
             <label class="field-label" [attr.for]="field.name">

@@ -9,12 +9,10 @@
         </div>
 
         <!-- Form card -->
-        <div class="card-section space-y-7">
+        <div class="card-section space-y-7" [formGroup]="headerForm">
             <div class="field-group">
                 <label for="reportType" class="field-label">Tipo de reporte</label>
-                <p-select inputId="reportType"
-                    [ngModel]="selectedReportType()"
-                    (ngModelChange)="onReportTypeChange($event)"
+                <p-select inputId="reportType" formControlName="reportType"
                     [options]="reportTypeOptions" optionLabel="label" optionValue="value"
                     [autoOptionFocus]="false" styleClass="w-full">
                 </p-select>
@@ -24,12 +22,19 @@
                 [class.opacity-0]="isAnimating()" [class.opacity-100]="!isAnimating()">
                 <div class="field-group">
                     <label for="customer" class="field-label">Cliente</label>
-                    <p-select inputId="customer"
-                        [ngModel]="selectedCustomerId()"
-                        (ngModelChange)="selectedCustomerId.set($event)"
+                    <p-select inputId="customer" formControlName="customerId"
                         [options]="customers()" optionLabel="name" optionValue="id"
                         [autoOptionFocus]="false" styleClass="w-full" [filter]="true"
                         filterBy="name,identification" placeholder="Selecciona un cliente">
+                    </p-select>
+                </div>
+
+                <div class="field-group">
+                    <label for="workType" class="field-label">Tipo de tarea</label>
+                    <p-select inputId="workType" formControlName="workType"
+                        [options]="workTypeOptions" optionLabel="label" optionValue="value"
+                        [autoOptionFocus]="false" styleClass="w-full"
+                        placeholder="Selecciona un tipo">
                     </p-select>
                 </div>
 

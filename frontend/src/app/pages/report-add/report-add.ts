@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DynamicForm } from '../../shared/dynamic-form/dynamic-form';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Actions, Store, ofActionSuccessful, ofActionErrored } from '@ngxs/store';
 import { ConfirmationService } from 'primeng/api';
@@ -25,7 +25,7 @@ const yesNoToBool = (v: unknown): boolean => v === 'Sí' || v === true;
 @Component({
   selector: 'app-report-add',
   standalone: true,
-  imports: [DynamicForm, FormsModule, SelectModule],
+  imports: [DynamicForm, ReactiveFormsModule, SelectModule],
   templateUrl: './report-add.html',
   styleUrl: './report-add.scss',
 })
@@ -35,10 +35,10 @@ export class ReportAdd implements OnInit {
   private store = inject(Store);
   private actions$ = inject(Actions);
   private confirm = inject(ConfirmationService);
+  private fb = inject(FormBuilder);
 
   customers = this.store.selectSignal(CustomersState.list);
 
-  selectedCustomerId = signal('');
   selectedFiles = signal<File[]>([]);
   signatureFile = signal<File | null>(null);
 
@@ -48,6 +48,22 @@ export class ReportAdd implements OnInit {
     { label: 'UMA', value: 'uma' },
   ];
 
+  readonly workTypeOptions: { label: string; value: string }[] = [
+    { label: 'Preventivo', value: 'Preventivo' },
+    { label: 'Correctivo', value: 'Correctivo' },
+  ];
+
+  headerForm: FormGroup = this.fb.group({
+    reportType: ['minisplit' as ReportType],
+    customerId: [''],
+    workType: [''],
+  });
+
+  /**
+   * Renders the currently-mounted dynamic-form for `selectedReportType()`.
+   * Lags 300ms behind `headerForm.reportType` so the form can fade out,
+   * remount against the new field config, and fade back in.
+   */
   selectedReportType = signal<ReportType>('minisplit');
   isAnimating = signal(false);
 
@@ -62,13 +78,23 @@ export class ReportAdd implements OnInit {
   );
 
   constructor() {
+    this.headerForm.controls['reportType'].valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((newType: ReportType) => {
+        this.isAnimating.set(true);
+        setTimeout(() => {
+          this.selectedReportType.set(newType);
+          setTimeout(() => this.isAnimating.set(false), 0);
+        }, 300);
+      });
+
     this.actions$
       .pipe(ofActionSuccessful(CreateReport), takeUntilDestroyed())
       .subscribe(() => {
         this.toast.show('Reporte agregado exitosamente', 'success');
         this.selectedFiles.set([]);
         this.signatureFile.set(null);
-        this.selectedCustomerId.set('');
+        this.headerForm.patchValue({ customerId: '', workType: '' });
         this.router.navigate(['/reports']);
       });
 
@@ -83,14 +109,6 @@ export class ReportAdd implements OnInit {
     this.store.dispatch(new LoadCustomers());
   }
 
-  onReportTypeChange(newType: ReportType) {
-    this.isAnimating.set(true);
-    setTimeout(() => {
-      this.selectedReportType.set(newType);
-      setTimeout(() => this.isAnimating.set(false), 0);
-    }, 300);
-  }
-
   onFilesSelected(files: File[]) {
     this.selectedFiles.set(files);
   }
@@ -103,7 +121,6 @@ export class ReportAdd implements OnInit {
     switch (type) {
       case 'minisplit':
         return [
-          { type: 'text', label: 'Tipo de tarea', name: 'work_type', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de llegada', name: 'date_arrival', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de salida', name: 'date_departure', defaultValue: '' },
           { type: 'select', label: '¿Equipo se encuentra operando?', name: 'is_operating', defaultValue: '', options: ['Sí', 'No'] },
@@ -118,7 +135,6 @@ export class ReportAdd implements OnInit {
         ];
       case 'chiller':
         return [
-          { type: 'text', label: 'Tipo de tarea', name: 'work_type', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de llegada', name: 'date_arrival', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de salida', name: 'date_departure', defaultValue: '' },
           { type: 'select', label: '¿Equipo se encuentra operando?', name: 'is_operating', defaultValue: '', options: ['Sí', 'No'] },
@@ -140,7 +156,6 @@ export class ReportAdd implements OnInit {
         ];
       case 'uma':
         return [
-          { type: 'text', label: 'Tipo de tarea', name: 'work_type', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de llegada', name: 'date_arrival', defaultValue: '' },
           { type: 'datetime-local', label: 'Fecha de salida', name: 'date_departure', defaultValue: '' },
           { type: 'select', label: '¿Se encuentra operando?', name: 'is_operating', defaultValue: '', options: ['Sí', 'No'] },
@@ -209,7 +224,8 @@ export class ReportAdd implements OnInit {
   }
 
   onFormSubmit(formData: Record<string, unknown>) {
-    if (!this.selectedCustomerId()) {
+    const header = this.headerForm.value as { customerId?: string; workType?: string };
+    if (!header.customerId) {
       this.toast.show('Selecciona un cliente antes de enviar', 'error');
       return;
     }
@@ -238,13 +254,13 @@ export class ReportAdd implements OnInit {
     signatureFile: File | null,
     signatureBase64: string,
   ) {
-    const reportType = this.selectedReportType();
+    const header = this.headerForm.value as { customerId: string; workType?: string };
     const dateArrival = (formData['date_arrival'] as string) || '';
     const dateDeparture = (formData['date_departure'] as string) || '';
     const fields: CreateReportFields = {
       report_type: reportType,
-      work_type: (formData['work_type'] as string) || undefined,
-      client_id: this.selectedCustomerId(),
+      work_type: header.workType || undefined,
+      client_id: header.customerId,
       date_arrival: dateArrival ? new Date(dateArrival).toISOString() : undefined,
       date_departure: dateDeparture ? new Date(dateDeparture).toISOString() : undefined,
       data: this.buildReportData(reportType, formData),
