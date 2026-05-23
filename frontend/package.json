@@ -36,7 +36,6 @@
     "@ngxs/store": "^21.0.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.1",
-    "jwt-decode": "^4.0.0",
     "pdfmake": "^0.2.20",
     "primeicons": "^7.0.0",
     "primeng": "~20.4.0",

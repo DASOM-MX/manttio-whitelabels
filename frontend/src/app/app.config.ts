@@ -8,7 +8,7 @@ import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { providePrimeNG } from 'primeng/config';
-import { ConfirmationService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { provideStore } from '@ngxs/store';
 import { withNgxsStoragePlugin } from '@ngxs/storage-plugin';
 import { withNgxsReduxDevtoolsPlugin } from '@ngxs/devtools-plugin';
@@ -29,6 +29,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     providePrimeNG({ ripple: false, theme: 'none' }),
     ConfirmationService,
+    MessageService,
     provideStore(
       [AuthState, UsersState, CustomersState, ReportsState],
       withNgxsStoragePlugin({ keys: ['auth'] }),

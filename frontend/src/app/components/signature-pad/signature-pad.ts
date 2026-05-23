@@ -1,6 +1,6 @@
 import { Component, ViewChild, ElementRef, AfterViewInit, Output, EventEmitter, inject } from '@angular/core';
 import SignaturePad from 'signature_pad';
-import { ToastService } from '../../../services/toast.service';
+import { MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-signature',
@@ -22,7 +22,7 @@ export class SignatureComponent implements AfterViewInit {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
   @Output() signatureChanged = new EventEmitter<string>();
   private signaturePad!: SignaturePad;
-  private toast = inject(ToastService);
+  private messages = inject(MessageService);
 
   ngAfterViewInit(): void {
     this.signaturePad = new SignaturePad(this.canvasRef.nativeElement, {
@@ -43,7 +43,7 @@ export class SignatureComponent implements AfterViewInit {
 
   saveSignature(): void {
     if (this.signaturePad.isEmpty()) {
-      this.toast.show('Por favor, firme antes de guardar', 'error');
+      this.messages.add({ severity: 'error', summary: 'Por favor, firme antes de guardar' });
       return;
     }
 

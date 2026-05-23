@@ -16,7 +16,7 @@ import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { ConfirmationService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { SignatureComponent } from '../../components/signature-pad/signature-pad';
 import { ImagePickerComponent } from '../../components/image-picker/image-picker';
 import { InputTextModule } from 'primeng/inputtext';
@@ -27,7 +27,6 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { DatePipe, SlicePipe } from '@angular/common';
-import { ToastService } from '../../../services/toast.service';
 import { AuthState } from '../../../state/auth/auth.state';
 import { ReportsState } from '../../../state/reports/reports.state';
 import {
@@ -128,7 +127,7 @@ export class ReportDetail implements OnInit {
   private fb = inject(FormBuilder);
   private store = inject(Store);
   private actions$ = inject(Actions);
-  private toast = inject(ToastService);
+  private messages = inject(MessageService);
   private confirm = inject(ConfirmationService);
 
   private selected = this.store.selectSignal(ReportsState.selected);
@@ -176,12 +175,14 @@ export class ReportDetail implements OnInit {
       .pipe(ofActionSuccessful(AddSignature), takeUntilDestroyed())
       .subscribe(() => {
         this.editMode.set(false);
-        this.toast.show('Reporte firmado exitosamente', 'success');
+        this.messages.add({ severity: 'success', summary: 'Reporte firmado exitosamente' });
       });
 
     this.actions$
       .pipe(ofActionErrored(AddSignature), takeUntilDestroyed())
-      .subscribe(() => this.toast.show('Ha ocurrido un error al firmar el reporte', 'error'));
+      .subscribe(() =>
+        this.messages.add({ severity: 'error', summary: 'Ha ocurrido un error al firmar el reporte' }),
+      );
   }
 
   ngOnInit(): void {
@@ -205,10 +206,10 @@ export class ReportDetail implements OnInit {
     this.newPictures.set([]);
     this.removedPictures.set([]);
     this.editMode.set(false);
-    this.toast.show(
-      failed ? 'No se pudieron guardar los cambios' : 'Reporte actualizado correctamente',
-      failed ? 'error' : 'success',
-    );
+    this.messages.add({
+      severity: failed ? 'error' : 'success',
+      summary: failed ? 'No se pudieron guardar los cambios' : 'Reporte actualizado correctamente',
+    });
   }
 
   toggleEdit() {

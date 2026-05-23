@@ -3,7 +3,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Actions, Store, ofActionSuccessful, ofActionErrored } from '@ngxs/store';
-import { ToastService } from '../../../services/toast.service';
+import { MessageService } from 'primeng/api';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { SelectModule } from 'primeng/select';
@@ -30,7 +30,7 @@ export class Register {
   private router = inject(Router);
   private store = inject(Store);
   private actions$ = inject(Actions);
-  private toast = inject(ToastService);
+  private messages = inject(MessageService);
 
   readonly roleOptions: RoleOption[] = [
     { label: 'Técnico', value: 'technician' },
@@ -67,7 +67,7 @@ export class Register {
       .pipe(ofActionSuccessful(CreateUser), takeUntilDestroyed())
       .subscribe(() => {
         this.submitting.set(false);
-        this.toast.show('Usuario registrado exitosamente', 'success');
+        this.messages.add({ severity: 'success', summary: 'Usuario registrado exitosamente' });
         this.router.navigate(['/reports']);
       });
 
@@ -75,7 +75,7 @@ export class Register {
       .pipe(ofActionErrored(CreateUser), takeUntilDestroyed())
       .subscribe(() => {
         this.submitting.set(false);
-        this.toast.show('No se pudo registrar el usuario', 'error');
+        this.messages.add({ severity: 'error', summary: 'No se pudo registrar el usuario' });
       });
   }
 

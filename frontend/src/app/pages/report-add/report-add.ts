@@ -4,10 +4,9 @@ import { DynamicForm } from '../../shared/dynamic-form/dynamic-form';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Actions, Store, ofActionSuccessful, ofActionErrored } from '@ngxs/store';
-import { ConfirmationService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { SelectModule } from 'primeng/select';
 import { FieldConfig } from '../../interfaces/field-config';
-import { ToastService } from '../../../services/toast.service';
 import { CustomersState } from '../../../state/customers/customers.state';
 import { LoadCustomers } from '../../../state/customers/customers.actions';
 import { CreateReport } from '../../../state/reports/reports.actions';
@@ -30,7 +29,7 @@ const yesNoToBool = (v: unknown): boolean => v === 'Sí' || v === true;
   styleUrl: './report-add.scss',
 })
 export class ReportAdd implements OnInit {
-  private toast = inject(ToastService);
+  private messages = inject(MessageService);
   private router = inject(Router);
   private store = inject(Store);
   private actions$ = inject(Actions);
@@ -91,7 +90,7 @@ export class ReportAdd implements OnInit {
     this.actions$
       .pipe(ofActionSuccessful(CreateReport), takeUntilDestroyed())
       .subscribe(() => {
-        this.toast.show('Reporte agregado exitosamente', 'success');
+        this.messages.add({ severity: 'success', summary: 'Reporte agregado exitosamente' });
         this.selectedFiles.set([]);
         this.signatureFile.set(null);
         this.headerForm.patchValue({ customerId: '', workType: '' });
@@ -101,7 +100,7 @@ export class ReportAdd implements OnInit {
     this.actions$
       .pipe(ofActionErrored(CreateReport), takeUntilDestroyed())
       .subscribe(() => {
-        this.toast.show('Error al enviar reporte', 'error');
+        this.messages.add({ severity: 'error', summary: 'Error al enviar reporte' });
       });
   }
 
@@ -226,7 +225,7 @@ export class ReportAdd implements OnInit {
   onFormSubmit(formData: Record<string, unknown>) {
     const header = this.headerForm.value as { customerId?: string; workType?: string };
     if (!header.customerId) {
-      this.toast.show('Selecciona un cliente antes de enviar', 'error');
+      this.messages.add({ severity: 'error', summary: 'Selecciona un cliente antes de enviar' });
       return;
     }
 
@@ -254,6 +253,7 @@ export class ReportAdd implements OnInit {
     signatureFile: File | null,
     signatureBase64: string,
   ) {
+    const reportType = this.selectedReportType();
     const header = this.headerForm.value as { customerId: string; workType?: string };
     const dateArrival = (formData['date_arrival'] as string) || '';
     const dateDeparture = (formData['date_departure'] as string) || '';

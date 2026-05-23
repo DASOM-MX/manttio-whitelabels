@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Actions, Store, ofActionSuccessful, ofActionErrored } from '@ngxs/store';
-import { ToastService } from '../../../services/toast.service';
+import { MessageService } from 'primeng/api';
 import { Register } from '../register/register';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
@@ -28,7 +28,7 @@ export class Login {
   private router = inject(Router);
   private store = inject(Store);
   private actions$ = inject(Actions);
-  private toast = inject(ToastService);
+  private messages = inject(MessageService);
 
   loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -49,7 +49,7 @@ export class Login {
       .pipe(ofActionErrored(LoginAction), takeUntilDestroyed())
       .subscribe(() => {
         this.submitting.set(false);
-        this.toast.show('Credenciales inválidas', 'error');
+        this.messages.add({ severity: 'error', summary: 'Credenciales inválidas' });
       });
   }
 

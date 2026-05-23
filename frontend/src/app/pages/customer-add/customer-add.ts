@@ -2,8 +2,8 @@ import { Component, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { Actions, Store, ofActionSuccessful, ofActionErrored } from '@ngxs/store';
+import { MessageService } from 'primeng/api';
 import { FieldConfig } from '../../interfaces/field-config';
-import { ToastService } from '../../../services/toast.service';
 import { DynamicForm } from '../../shared/dynamic-form/dynamic-form';
 import { CreateCustomer } from '../../../state/customers/customers.actions';
 import type { CreateCustomerRequest } from '../../data/dtos/customer';
@@ -16,7 +16,7 @@ import type { CreateCustomerRequest } from '../../data/dtos/customer';
   styleUrl: './customer-add.scss',
 })
 export class CustomerAdd {
-  private toast = inject(ToastService);
+  private messages = inject(MessageService);
   private store = inject(Store);
   private actions$ = inject(Actions);
   private router = inject(Router);
@@ -33,14 +33,14 @@ export class CustomerAdd {
     this.actions$
       .pipe(ofActionSuccessful(CreateCustomer), takeUntilDestroyed())
       .subscribe(() => {
-        this.toast.show('Cliente registrado con éxito', 'success');
+        this.messages.add({ severity: 'success', summary: 'Cliente registrado con éxito' });
         this.router.navigate(['/customers']);
       });
 
     this.actions$
       .pipe(ofActionErrored(CreateCustomer), takeUntilDestroyed())
       .subscribe(() => {
-        this.toast.show('Error al enviar cliente', 'error');
+        this.messages.add({ severity: 'error', summary: 'Error al enviar cliente' });
       });
   }
 
