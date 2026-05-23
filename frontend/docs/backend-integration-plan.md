@@ -95,7 +95,7 @@ These are committed. Don't relitigate.
 - [x] **PR #3** — Users HTTP + UsersState
 - [x] **PR #4** — Customers migration
 - [x] **PR #5** — Reports migration
-- [ ] **PR #6** — Upload service + image picker wiring
+- [x] **PR #6** — Upload service + image picker wiring
 - [ ] **PR #7** — Theme migration + final cleanup
 
 ---
@@ -1752,10 +1752,10 @@ add/remove pictures, send email.
 flow through `UploadService`.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b feature/frontend-upload`
-- [ ] Create `frontend/src/http/upload.service.ts` per §12.5
-- [ ] Audit `frontend/src/app/components/image-picker/*`: if it uploads images standalone, replace direct HttpClient with `inject(UploadService).uploadImage(file)`. If it only collects File objects for the parent component to submit with the report, no change needed.
-- [ ] **Tick this PR's box** in §2 and commit
+- [x] Branch: `git checkout -b feature/frontend-upload-service` (stacked on PR #5)
+- [x] Create `frontend/src/http/upload.service.ts` per §12.5 (wraps `POST /upload/image` with a `FormData` shim around `RemoteService.postForm`).
+- [~] Audit `frontend/src/app/components/image-picker/*`: the picker only emits `File[]` via `(filesSelected)` for the parent component (`report-add`, `report-detail`) to submit with the report — it does NOT upload images standalone. No change needed per §15. The new `UploadService` is in place for any future standalone-upload use case.
+- [x] **Tick this PR's box** in §2 and commit
 
 **Validation:**
 ```bash
