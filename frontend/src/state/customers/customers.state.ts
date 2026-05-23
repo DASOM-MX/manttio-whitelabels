@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
-import { tap } from 'rxjs/operators';
+import { finalize, tap } from 'rxjs/operators';
 import { CustomersService } from '../../http/customers.service';
 import {
   LoadCustomers, LoadCustomer, SelectCustomer,
@@ -41,8 +41,9 @@ export class CustomersState {
         const entities: Record<string, CustomerRow> = {};
         const ids: string[] = [];
         for (const c of customers) { entities[c.id] = c; ids.push(c.id); }
-        ctx.patchState({ entities, ids, loading: false });
+        ctx.patchState({ entities, ids });
       }),
+      finalize(() => ctx.patchState({ loading: false })),
     );
   }
 
@@ -71,10 +72,9 @@ export class CustomersState {
     return this.api.create(payload).pipe(
       tap(({ customer }) => {
         const s = ctx.getState();
-        if (s.ids.includes(customer.id)) return;
         ctx.patchState({
           entities: { ...s.entities, [customer.id]: customer },
-          ids: [...s.ids, customer.id],
+          ids: s.ids.includes(customer.id) ? s.ids : [...s.ids, customer.id],
         });
       }),
     );
@@ -87,6 +87,7 @@ export class CustomersState {
         const s = ctx.getState();
         ctx.patchState({
           entities: { ...s.entities, [id]: customer },
+          ids: s.ids.includes(id) ? s.ids : [...s.ids, id],
           selected: s.selected?.id === id ? customer : s.selected,
         });
       }),

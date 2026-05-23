@@ -34,7 +34,7 @@ export class CustomerAdd {
       .pipe(ofActionSuccessful(CreateCustomer), takeUntilDestroyed())
       .subscribe(() => {
         this.toast.show('Cliente registrado con éxito', 'success');
-        this.router.navigate(['/reports']);
+        this.router.navigate(['/customers']);
       });
 
     this.actions$
