@@ -1,5 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
+import { finalize, tap } from 'rxjs/operators';
+import { ReportsService } from '../../http/reports.service';
 import {
   LoadReports, LoadReport, SelectReport, SetReportsQuery,
   CreateReport, UpdateReport, SetAssignee,
@@ -35,6 +37,8 @@ export interface ReportsStateModel {
 })
 @Injectable()
 export class ReportsState {
+  private readonly api = inject(ReportsService);
+
   @Selector() static list(s: ReportsStateModel): ReportRow[] {
     return s.ids.map((id) => s.entities[id]).filter(Boolean) as ReportRow[];
   }
@@ -52,21 +56,44 @@ export class ReportsState {
   }
 
   @Action(LoadReports)
-  loadList(_ctx: StateContext<ReportsStateModel>) {
-    // stub — wired up in PR #5 once ReportsService exists
+  loadList(ctx: StateContext<ReportsStateModel>) {
+    const { query } = ctx.getState();
+    ctx.patchState({ loading: true });
+    return this.api.list(query ?? undefined).pipe(
+      tap(({ reports }) => {
+        const entities: Record<string, ReportRow> = {};
+        const ids: string[] = [];
+        for (const r of reports) { entities[r.id] = r; ids.push(r.id); }
+        ctx.patchState({ entities, ids });
+      }),
+      finalize(() => ctx.patchState({ loading: false })),
+    );
   }
 
   @Action(LoadReport)
-  loadOne(_ctx: StateContext<ReportsStateModel>, _action: LoadReport) {
-    // stub — PR #5 will GET /reports/:id and patch
-    //   { entities: { ...s.entities, [id]: report }, selected: report, selectedDetails: details }
+  loadOne(ctx: StateContext<ReportsStateModel>, { id }: LoadReport) {
+    return this.api.get(id).pipe(
+      tap(({ report, details }) => {
+        const s = ctx.getState();
+        const ids = s.ids.includes(id) ? s.ids : [...s.ids, id];
+        ctx.patchState({
+          entities: { ...s.entities, [id]: report },
+          ids,
+          selected: report,
+          selectedDetails: details,
+        });
+      }),
+    );
   }
 
   @Action(SelectReport)
   select(ctx: StateContext<ReportsStateModel>, { report }: SelectReport) {
-    // synchronous setter (e.g. from a list row click). Null `selectedDetails`
-    // — details only come from GET /reports/:id via LoadReport.
-    ctx.patchState({ selected: report, selectedDetails: null });
+    const s = ctx.getState();
+    const sameRow = !!report && s.selected?.id === report.id;
+    ctx.patchState({
+      selected: report,
+      selectedDetails: sameRow ? s.selectedDetails : null,
+    });
   }
 
   @Action(SetReportsQuery)
@@ -75,52 +102,129 @@ export class ReportsState {
   }
 
   @Action(CreateReport)
-  create(_ctx: StateContext<ReportsStateModel>, _action: CreateReport) {
-    // stub
+  create(ctx: StateContext<ReportsStateModel>, { fields }: CreateReport) {
+    return this.api.create(fields).pipe(
+      tap(({ report, details }) => {
+        const s = ctx.getState();
+        ctx.patchState({
+          entities: { ...s.entities, [report.id]: report },
+          ids: s.ids.includes(report.id) ? s.ids : [...s.ids, report.id],
+          selected: report,
+          selectedDetails: details,
+        });
+      }),
+    );
   }
 
   @Action(UpdateReport)
-  update(_ctx: StateContext<ReportsStateModel>, _action: UpdateReport) {
-    // stub
+  update(ctx: StateContext<ReportsStateModel>, { id, payload }: UpdateReport) {
+    return this.api.update(id, payload).pipe(
+      tap(({ report, details }) => {
+        const s = ctx.getState();
+        ctx.patchState({
+          entities: { ...s.entities, [id]: report },
+          ids: s.ids.includes(id) ? s.ids : [...s.ids, id],
+          selected: s.selected?.id === id ? report : s.selected,
+          selectedDetails: s.selected?.id === id ? details : s.selectedDetails,
+        });
+      }),
+    );
   }
 
   @Action(SetAssignee)
-  setAssignee(_ctx: StateContext<ReportsStateModel>, _action: SetAssignee) {
-    // stub
+  setAssignee(ctx: StateContext<ReportsStateModel>, { id, assignedTo }: SetAssignee) {
+    return this.api.setAssignee(id, { assigned_to: assignedTo }).pipe(
+      tap(({ report }) => {
+        const s = ctx.getState();
+        ctx.patchState({
+          entities: { ...s.entities, [id]: report },
+          ids: s.ids.includes(id) ? s.ids : [...s.ids, id],
+          selected: s.selected?.id === id ? report : s.selected,
+        });
+      }),
+    );
   }
 
   @Action(AddSignature)
-  addSignature(_ctx: StateContext<ReportsStateModel>, _action: AddSignature) {
-    // stub
+  addSignature(ctx: StateContext<ReportsStateModel>, { id, fields }: AddSignature) {
+    return this.api.addSignature(id, fields).pipe(
+      tap(({ report, details }) => {
+        const s = ctx.getState();
+        ctx.patchState({
+          entities: { ...s.entities, [id]: report },
+          ids: s.ids.includes(id) ? s.ids : [...s.ids, id],
+          selected: s.selected?.id === id ? report : s.selected,
+          selectedDetails: s.selected?.id === id ? details : s.selectedDetails,
+        });
+      }),
+    );
   }
 
   @Action(AddPictures)
-  addPictures(_ctx: StateContext<ReportsStateModel>, _action: AddPictures) {
-    // stub
+  addPictures(ctx: StateContext<ReportsStateModel>, { id, pictures }: AddPictures) {
+    return this.api.addPictures(id, pictures).pipe(
+      tap(({ details }) => {
+        const s = ctx.getState();
+        if (s.selected?.id !== id) return;
+        ctx.patchState({ selectedDetails: details });
+      }),
+    );
   }
 
   @Action(RemovePictures)
-  removePictures(_ctx: StateContext<ReportsStateModel>, _action: RemovePictures) {
-    // stub
+  removePictures(ctx: StateContext<ReportsStateModel>, { id, payload }: RemovePictures) {
+    return this.api.removePictures(id, payload).pipe(
+      tap(({ details }) => {
+        const s = ctx.getState();
+        if (s.selected?.id !== id) return;
+        ctx.patchState({ selectedDetails: details });
+      }),
+    );
   }
 
   @Action(DeleteReport)
-  remove(_ctx: StateContext<ReportsStateModel>, _action: DeleteReport) {
-    // stub
+  remove(ctx: StateContext<ReportsStateModel>, { id }: DeleteReport) {
+    return this.api.remove(id).pipe(
+      tap(() => {
+        const s = ctx.getState();
+        const { [id]: _gone, ...rest } = s.entities;
+        const wasSelected = s.selected?.id === id;
+        ctx.patchState({
+          entities: rest,
+          ids: s.ids.filter((x) => x !== id),
+          selected: wasSelected ? null : s.selected,
+          selectedDetails: wasSelected ? null : s.selectedDetails,
+        });
+      }),
+    );
   }
 
   @Action(SendReportEmail)
-  sendEmail(_ctx: StateContext<ReportsStateModel>, _action: SendReportEmail) {
-    // stub
+  sendEmail(_ctx: StateContext<ReportsStateModel>, { id, payload }: SendReportEmail) {
+    return this.api.sendEmail(id, payload);
   }
 
   @Action(LoadReportEmails)
-  loadEmails(_ctx: StateContext<ReportsStateModel>, _action: LoadReportEmails) {
-    // stub
+  loadEmails(ctx: StateContext<ReportsStateModel>, { id }: LoadReportEmails) {
+    return this.api.listEmails(id).pipe(
+      tap(({ emails }) => {
+        const s = ctx.getState();
+        ctx.patchState({ emails: { ...s.emails, [id]: emails } });
+      }),
+    );
   }
 
   @Action(RevokeReportEmail)
-  revokeEmail(_ctx: StateContext<ReportsStateModel>, _action: RevokeReportEmail) {
-    // stub
+  revokeEmail(ctx: StateContext<ReportsStateModel>, { emailId }: RevokeReportEmail) {
+    return this.api.revokeEmail(emailId).pipe(
+      tap(() => {
+        const s = ctx.getState();
+        const next: Record<string, ReportEmailRow[]> = {};
+        for (const [rid, rows] of Object.entries(s.emails)) {
+          next[rid] = rows.map((r) => (r.id === emailId ? { ...r, revokedAt: new Date().toISOString() } : r));
+        }
+        ctx.patchState({ emails: next });
+      }),
+    );
   }
 }

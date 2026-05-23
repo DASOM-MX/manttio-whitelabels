@@ -1,26 +1,24 @@
 import {
   Component,
   ElementRef,
-  EventEmitter,
   OnInit,
-  Output,
   ViewChild,
+  computed,
   inject,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { Store } from '@ngxs/store';
+import { Actions, Store, ofActionSuccessful, ofActionErrored } from '@ngxs/store';
+import { take } from 'rxjs/operators';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import Swal from 'sweetalert2';
+import { ConfirmationService } from 'primeng/api';
 import { SignatureComponent } from '../../components/signature-pad/signature-pad';
 import { ImagePickerComponent } from '../../components/image-picker/image-picker';
-import { ReportsService } from '../../../services/reports';
-import { environment } from '../../../environments/environment';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TextareaModule } from 'primeng/textarea';
@@ -29,10 +27,79 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { DatePipe, SlicePipe } from '@angular/common';
-import { AuthState } from '../../store/auth/auth';
-import { LoadReports } from '../../store/reports/actions/load-reports';
+import { ToastService } from '../../../services/toast.service';
+import { AuthState } from '../../../state/auth/auth.state';
+import { ReportsState } from '../../../state/reports/reports.state';
+import {
+  LoadReport,
+  UpdateReport,
+  AddSignature,
+  AddPictures,
+  RemovePictures,
+} from '../../../state/reports/reports.actions';
+import { CustomersState } from '../../../state/customers/customers.state';
+import { LoadCustomer } from '../../../state/customers/customers.actions';
+import type {
+  ReportRow,
+  ReportDetailRow,
+  ReportData,
+  UpdateReportRequest,
+  AddSignatureFields,
+} from '../../data/dtos/report';
+import type { ReportType, ReportStatus } from '../../data/types/report';
 
 pdfMake.vfs = pdfFonts.vfs;
+
+const DONE_STATUSES: ReportStatus[] = ['finished', 'mailed'];
+
+interface ReportViewModel {
+  id: string;
+  report_type: ReportType;
+  manttio_type: string;
+  report_status: boolean;
+  date_arrival: string | null;
+  date_departure: string | null;
+  signature: string | null;
+  signed_by: string | null;
+  pictures: string[];
+  observations: string;
+  // discriminated fields, may be undefined per report_type — read with caution
+  is_operating?: boolean;
+  remote_working?: boolean;
+  amperage?: string;
+  filter?: boolean;
+  inner_voltage?: string;
+  unusual_noise?: boolean;
+  inner_temperature?: string;
+  outer_temperature?: string;
+  plc_keys_working?: boolean;
+  motor_amperage?: string;
+  system_pressure_1?: string;
+  system_pressure_2?: string;
+  system_pressure_3?: string;
+  oil_pressure?: string;
+  oil_level?: string;
+  flux_switch_working?: boolean;
+  air_band_adjustment?: boolean;
+  air_good_quality?: boolean;
+}
+
+const toViewModel = (report: ReportRow, details: ReportDetailRow | null): ReportViewModel => {
+  const data = (details?.data ?? {}) as Partial<ReportData>;
+  return {
+    id: report.id,
+    report_type: report.reportType,
+    manttio_type: report.workType ?? '',
+    report_status: DONE_STATUSES.includes(report.status),
+    date_arrival: report.dateArrival,
+    date_departure: report.dateDeparture,
+    signature: details?.signature ?? null,
+    signed_by: report.signedBy,
+    pictures: details?.pictures ?? [],
+    observations: (data as { observations?: string }).observations ?? '',
+    ...data,
+  };
+};
 
 @Component({
   selector: 'app-report-detail',
@@ -55,74 +122,126 @@ pdfMake.vfs = pdfFonts.vfs;
   styleUrl: './report-detail.scss',
 })
 export class ReportDetail implements OnInit {
-  @Output() signatureChanged = new EventEmitter<string>();
   @ViewChild('pdfContent', { static: false }) pdfContent!: ElementRef;
 
   private route = inject(ActivatedRoute);
-  private http = inject(HttpClient);
   private fb = inject(FormBuilder);
-  private reportsService = inject(ReportsService);
-  private router = inject(Router);
   private store = inject(Store);
+  private actions$ = inject(Actions);
+  private toast = inject(ToastService);
+  private confirm = inject(ConfirmationService);
 
-  report = signal<any | null>(null);
-  customer = signal<any | null>(null);
-  reportUser = signal<any | null>(null);
+  private selected = this.store.selectSignal(ReportsState.selected);
+  customer = this.store.selectSignal(CustomersState.selected);
+  private currentUser = this.store.selectSignal(AuthState.user);
+
+  report = computed<ReportViewModel | null>(() => {
+    const sel = this.selected();
+    return sel ? toViewModel(sel.report, sel.details) : null;
+  });
+
+  /** Best-effort technician display name. */
+  reportUser = computed(() => {
+    const sel = this.selected();
+    const me = this.currentUser();
+    if (sel && me && sel.report.assignedTo === me.id) return me;
+    // Tech not in state — full user lookup requires admin access; defer.
+    return null;
+  });
+
   editMode = signal(false);
   newPictures = signal<File[]>([]);
   removedPictures = signal<string[]>([]);
+
+  /** Counts in-flight actions dispatched by saveChanges so the success/error
+   *  handlers can settle on a single canonical toast regardless of order. */
+  private pendingSave = signal(0);
+  private saveErrored = signal(false);
 
   reportForm: FormGroup = new FormGroup({
     observations: new FormControl(''),
     unusual_noise: new FormControl(false),
   });
 
+  constructor() {
+    this.actions$
+      .pipe(ofActionSuccessful(UpdateReport, AddPictures, RemovePictures), takeUntilDestroyed())
+      .subscribe(() => this.settleOneSave(false));
+
+    this.actions$
+      .pipe(ofActionErrored(UpdateReport, AddPictures, RemovePictures), takeUntilDestroyed())
+      .subscribe(() => this.settleOneSave(true));
+
+    this.actions$
+      .pipe(ofActionSuccessful(AddSignature), takeUntilDestroyed())
+      .subscribe(() => {
+        this.editMode.set(false);
+        this.toast.show('Reporte firmado exitosamente', 'success');
+      });
+
+    this.actions$
+      .pipe(ofActionErrored(AddSignature), takeUntilDestroyed())
+      .subscribe(() => this.toast.show('Ha ocurrido un error al firmar el reporte', 'error'));
+  }
+
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) return;
+    this.actions$
+      .pipe(ofActionSuccessful(LoadReport), take(1), takeUntilDestroyed())
+      .subscribe(() => {
+        const sel = this.selected();
+        if (sel) this.store.dispatch(new LoadCustomer(sel.report.clientId));
+      });
+    this.store.dispatch(new LoadReport(id));
+  }
 
-    const token = this.store.selectSnapshot(AuthState.token);
-    const headers = { Authorization: `Bearer ${token}` };
-
-    this.http.get(`${environment.apiUrl}reports/${id}`, { headers }).subscribe((data: any) => {
-      this.report.set(data);
-      this.buildReportForm();
-
-      this.http
-        .get<any>(`${environment.apiUrl}customers/${data.client_id}`, { headers })
-        .subscribe((customer) => this.customer.set(customer));
-
-      this.http
-        .get<any>(`${environment.apiUrl}user/${data.user_id}`, { headers })
-        .subscribe((user) => this.reportUser.set(user));
-    });
+  private settleOneSave(errored: boolean) {
+    if (this.pendingSave() === 0) return;
+    if (errored) this.saveErrored.set(true);
+    this.pendingSave.update((n) => n - 1);
+    if (this.pendingSave() > 0) return;
+    const failed = this.saveErrored();
+    this.newPictures.set([]);
+    this.removedPictures.set([]);
+    this.editMode.set(false);
+    this.toast.show(
+      failed ? 'No se pudieron guardar los cambios' : 'Reporte actualizado correctamente',
+      failed ? 'error' : 'success',
+    );
   }
 
   toggleEdit() {
     this.editMode.update((v) => !v);
     if (this.editMode()) {
-      this.reportForm.patchValue(this.report() ?? {});
+      this.buildReportForm();
     }
   }
 
-  async saveChanges() {
+  saveChanges() {
+    const vm = this.report();
+    const sel = this.selected();
+    if (!vm || !sel) return;
     if (this.reportForm.invalid) return;
-    const r = this.report();
-    if (!r) return;
 
-    try {
-      await this.reportsService.updateReport(r.id, this.reportForm.value).toPromise();
+    const formValue = this.reportForm.value;
+    const payload: UpdateReportRequest = {
+      ...(formValue.work_type !== undefined ? { work_type: String(formValue.work_type ?? '') } : {}),
+      ...(formValue.date_arrival ? { date_arrival: new Date(formValue.date_arrival).toISOString() } : {}),
+      ...(formValue.date_departure ? { date_departure: new Date(formValue.date_departure).toISOString() } : {}),
+      data: this.buildDataPatch(vm.report_type, formValue),
+    };
 
-      if (this.newPictures().length > 0 || this.removedPictures().length > 0) {
-        await this.savePictures(this.newPictures());
-      }
-
-      this.editMode.set(false);
-      this.store.dispatch(new LoadReports(true));
-      Swal.fire('Éxito', 'Reporte actualizado correctamente', 'success');
-    } catch {
-      Swal.fire('Error', 'No se pudieron guardar los cambios', 'error');
+    const acts: object[] = [new UpdateReport(sel.report.id, payload)];
+    if (this.newPictures().length > 0) {
+      acts.push(new AddPictures(sel.report.id, this.newPictures()));
     }
+    if (this.removedPictures().length > 0) {
+      acts.push(new RemovePictures(sel.report.id, { urls: this.removedPictures() }));
+    }
+    this.saveErrored.set(false);
+    this.pendingSave.set(acts.length);
+    this.store.dispatch(acts);
   }
 
   onNewPicturesSelected(files: File[]) {
@@ -133,88 +252,24 @@ export class ReportDetail implements OnInit {
     this.removedPictures.update((current) => [...current, ...removed]);
   }
 
-  async onSignatureSaved(signatureData: string) {
+  onSignatureSaved(signatureData: string) {
     if (!signatureData) return;
-    const r = this.report();
-    if (!r) return;
+    const sel = this.selected();
+    if (!sel) return;
 
-    const result = await Swal.fire({
-      title: '¿Deseas firmar este reporte?',
-      text: 'Una vez firmado, no podrá ser modificado',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Sí, firmar',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
+    this.confirm.confirm({
+      header: '¿Deseas firmar este reporte?',
+      message: 'Una vez firmado, no podrá ser modificado.',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Sí, firmar',
+      rejectLabel: 'Cancelar',
+      accept: () => {
+        const userEmail = this.currentUser()?.email ?? 'Técnico';
+        const file = this.dataURLtoFile(signatureData, `signature-${Date.now()}.jpg`);
+        const fields: AddSignatureFields = { signed_by: userEmail, signature: file };
+        this.store.dispatch(new AddSignature(sel.report.id, fields));
+      },
     });
-    if (!result.isConfirmed) return;
-
-    const token = this.store.selectSnapshot(AuthState.token);
-    const userEmail = this.store.selectSnapshot(AuthState.user)?.email ?? 'Técnico';
-    const file = this.dataURLtoFile(signatureData, `signature-${Date.now()}.jpg`);
-
-    const fd = new FormData();
-    fd.append('signature', file);
-    fd.append('signed_by', userEmail);
-    fd.append('report_status', 'true');
-
-    this.http
-      .put(`${environment.apiUrl}reports/${r.id}/signature`, fd, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .subscribe({
-        next: (updated: any) => {
-          this.report.set(updated);
-          this.editMode.set(false);
-          this.store.dispatch(new LoadReports(true));
-          Swal.fire({ title: 'Reporte firmado exitosamente', icon: 'success' });
-          this.reloadComponent();
-        },
-        error: (err) => {
-          console.error('Error guardando firma:', err);
-          Swal.fire({ icon: 'error', title: 'Error', text: 'Ha ocurrido un error al firmar el reporte' });
-        },
-      });
-  }
-
-  async savePictures(files: File[]) {
-    const r = this.report();
-    if (!r) return;
-    const token = this.store.selectSnapshot(AuthState.token);
-    const headers = { Authorization: `Bearer ${token}` };
-
-    try {
-      if (files.length > 0) {
-        const fd = new FormData();
-        files.forEach((file) => fd.append('pictures', file));
-        await this.http
-          .put<any>(`${environment.apiUrl}reports/${r.id}/pictures`, fd, { headers })
-          .toPromise();
-      }
-
-      const removed = this.removedPictures();
-      if (removed.length > 0) {
-        await this.http
-          .request('delete', `${environment.apiUrl}reports/${r.id}/pictures`, {
-            body: { images: removed },
-            headers,
-          })
-          .toPromise();
-      }
-
-      const fresh = await this.reportsService.getReport(r.id).toPromise();
-      this.report.set(fresh);
-      this.newPictures.set([]);
-      this.removedPictures.set([]);
-    } catch (err) {
-      console.error('Error al guardar imágenes:', err);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'No se pudieron guardar los cambios en las imágenes',
-      });
-    }
   }
 
   downloadPDF() {
@@ -248,20 +303,20 @@ export class ReportDetail implements OnInit {
     if (!r || !c) return;
 
     const picturesBase64 = await Promise.all(
-      (r.pictures || []).map((pic: string) => this.toBase64(pic).catch(() => null)),
+      (r.pictures || []).map((pic) => this.toBase64(pic).catch(() => null)),
     );
-    const signatureBase64 = r.signature
-      ? await this.toBase64(r.signature).catch(() => null)
-      : null;
+    const signatureBase64 = r.signature ? await this.toBase64(r.signature).catch(() => null) : null;
 
-    const formatDate = (dateString: string) =>
-      new Date(dateString).toLocaleDateString('es-MX', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+    const formatDate = (dateString: string | null) =>
+      dateString
+        ? new Date(dateString).toLocaleDateString('es-MX', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : '';
 
     const docDefinition: any = {
       content: [
@@ -331,7 +386,7 @@ export class ReportDetail implements OnInit {
     pdfMake.createPdf(docDefinition).download(`reporte-${r.id}.pdf`);
   }
 
-  private getTableForReportType(reportType: string, r: any) {
+  private getTableForReportType(reportType: ReportType, r: ReportViewModel) {
     switch (reportType) {
       case 'minisplit':
         return {
@@ -339,9 +394,9 @@ export class ReportDetail implements OnInit {
             widths: ['25%', '25%', '25%', '25%'],
             body: [
               [{ text: 'Formulario: Mantenimiento Minisplit', colSpan: 4, alignment: 'center', fillColor: '#DCDCDC', bold: true, color: 'dark', margin: [0, 5, 0, 5] }, {}, {}, {}],
-              [{ text: 'Equipo se encuentra operando', bold: true }, r.is_operating || '', { text: 'Cuenta con filtro evaporador', bold: true }, r.filter || ''],
-              [{ text: 'Control remoto funciona', bold: true }, r.remote_working || '', { text: 'Voltaje de entrada', bold: true }, r.inner_voltage || ''],
-              [{ text: 'Amperaje general', bold: true }, r.amperage || '', { text: 'Ruido fuera de lo normal', bold: true }, r.unusual_noise || ''],
+              [{ text: 'Equipo se encuentra operando', bold: true }, r.is_operating ? 'Sí' : 'No', { text: 'Cuenta con filtro evaporador', bold: true }, r.filter ? 'Sí' : 'No'],
+              [{ text: 'Control remoto funciona', bold: true }, r.remote_working ? 'Sí' : 'No', { text: 'Voltaje de entrada', bold: true }, r.inner_voltage ?? ''],
+              [{ text: 'Amperaje general', bold: true }, r.amperage ?? '', { text: 'Ruido fuera de lo normal', bold: true }, r.unusual_noise ? 'Sí' : 'No'],
               [{ text: 'Observaciones', bold: true }, r.observations || 'Ninguna', { text: ' ', border: [false, false, false, false] }, { text: ' ', border: [false, false, false, false] }],
             ],
           },
@@ -353,12 +408,12 @@ export class ReportDetail implements OnInit {
             widths: ['35%', '15%', '35%', '15%'],
             body: [
               [{ text: 'Informaciones de las actividades', colSpan: 4, alignment: 'center', fillColor: '#DCDCDC', bold: true, color: 'dark', margin: [0, 5, 0, 5] }, {}, {}, {}],
-              [{ text: 'Equipo se encuentra operando', bold: true }, r.is_operating || '', { text: 'Switch de flujo funciona', bold: true }, r.flux_switch_working || ''],
-              [{ text: 'Temperatura de entrada', bold: true }, r.inner_temperature || '', { text: 'Temperatura de salida', bold: true }, r.outer_temperature || ''],
-              [{ text: 'Teclas del PLC funcionan', bold: true }, r.plc_keys_working || '', { text: 'Voltaje de entrada', bold: true }, r.inner_voltage || ''],
-              [{ text: 'Amperaje de motor condensador general', bold: true }, r.motor_amperage || '', { text: 'Presiones del sistema 1', bold: true }, r.system_pressure_1 || ''],
-              [{ text: 'Presiones del sistema 2', bold: true }, r.system_pressure_2 || '', { text: 'Presiones del sistema 3', bold: true }, r.system_pressure_3 || ''],
-              [{ text: 'Presión de aceite', bold: true }, r.oil_pressure || '', { text: 'Nivel de aceite', bold: true }, r.oil_level || ''],
+              [{ text: 'Equipo se encuentra operando', bold: true }, r.is_operating ? 'Sí' : 'No', { text: 'Switch de flujo funciona', bold: true }, r.flux_switch_working ? 'Sí' : 'No'],
+              [{ text: 'Temperatura de entrada', bold: true }, r.inner_temperature ?? '', { text: 'Temperatura de salida', bold: true }, r.outer_temperature ?? ''],
+              [{ text: 'Teclas del PLC funcionan', bold: true }, r.plc_keys_working ? 'Sí' : 'No', { text: 'Voltaje de entrada', bold: true }, r.inner_voltage ?? ''],
+              [{ text: 'Amperaje de motor condensador general', bold: true }, r.motor_amperage ?? '', { text: 'Presiones del sistema 1', bold: true }, r.system_pressure_1 ?? ''],
+              [{ text: 'Presiones del sistema 2', bold: true }, r.system_pressure_2 ?? '', { text: 'Presiones del sistema 3', bold: true }, r.system_pressure_3 ?? ''],
+              [{ text: 'Presión de aceite', bold: true }, r.oil_pressure ?? '', { text: 'Nivel de aceite', bold: true }, r.oil_level ?? ''],
             ],
           },
           margin: [0, 10, 0, 10],
@@ -369,17 +424,15 @@ export class ReportDetail implements OnInit {
             widths: ['25%', '25%', '25%', '25%'],
             body: [
               [{ text: 'Formulario UMAS', colSpan: 4, alignment: 'center', fillColor: '#DCDCDC', bold: true, margin: [0, 5, 0, 5] }, {}, {}, {}],
-              [{ text: 'Equipo se encuentra operando', bold: true }, r.is_operating || '', { text: 'Se ajustó la banda de la UMA', bold: true }, r.air_band_adjustment || ''],
-              [{ text: 'Temperatura de entrada', bold: true }, r.inner_temperature || '', { text: 'Temperatura de salida', bold: true }, r.outer_temperature || ''],
-              [{ text: 'Rejilla de aire en buenas condiciones', bold: true }, r.air_good_quality || '', { text: 'Voltaje de entrada', bold: true }, r.inner_voltage || ''],
-              [{ text: 'Amperaje del motor', bold: true }, r.motor_amperage || '', { text: 'Ruido fuera de lo normal', bold: true }, r.unusual_noise || ''],
+              [{ text: 'Equipo se encuentra operando', bold: true }, r.is_operating ? 'Sí' : 'No', { text: 'Se ajustó la banda de la UMA', bold: true }, r.air_band_adjustment ? 'Sí' : 'No'],
+              [{ text: 'Temperatura de entrada', bold: true }, r.inner_temperature ?? '', { text: 'Temperatura de salida', bold: true }, r.outer_temperature ?? ''],
+              [{ text: 'Rejilla de aire en buenas condiciones', bold: true }, r.air_good_quality ? 'Sí' : 'No', { text: 'Voltaje de entrada', bold: true }, r.inner_voltage ?? ''],
+              [{ text: 'Amperaje del motor', bold: true }, r.motor_amperage ?? '', { text: 'Ruido fuera de lo normal', bold: true }, r.unusual_noise ? 'Sí' : 'No'],
               [{ text: 'Observaciones', bold: true }, r.observations || 'Ninguna', { text: '', border: [false, false, false, false] }, { text: '', border: [false, false, false, false] }],
             ],
           },
           margin: [0, 10, 0, 10],
         };
-      default:
-        return { text: 'Sin datos específicos de mantenimiento', margin: [0, 10, 0, 10] };
     }
   }
 
@@ -387,14 +440,15 @@ export class ReportDetail implements OnInit {
     const r = this.report();
     if (!r) return;
 
-    const commonControls: any = {
+    const commonControls: Record<string, unknown[]> = {
       observations: [r.observations || ''],
       unusual_noise: [r.unusual_noise || false],
+      work_type: [r.manttio_type || ''],
       date_arrival: [r.date_arrival || ''],
       date_departure: [r.date_departure || ''],
     };
 
-    let specificControls: any = {};
+    let specificControls: Record<string, unknown[]> = {};
     switch (r.report_type) {
       case 'minisplit':
         specificControls = {
@@ -437,10 +491,50 @@ export class ReportDetail implements OnInit {
     this.reportForm = this.fb.group({ ...commonControls, ...specificControls });
   }
 
-  reloadComponent(): void {
-    this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
-      this.router.navigate([this.router.url]);
-    });
+  private buildDataPatch(reportType: ReportType, fv: Record<string, unknown>): Partial<ReportData> {
+    const obs = (fv['observations'] as string | undefined) ?? '';
+    const noise = !!fv['unusual_noise'];
+    switch (reportType) {
+      case 'minisplit':
+        return {
+          is_operating: !!fv['is_operating'],
+          remote_working: !!fv['remote_working'],
+          amperage: String(fv['amperage'] ?? ''),
+          filter: !!fv['filter'],
+          inner_voltage: String(fv['inner_voltage'] ?? ''),
+          unusual_noise: noise,
+          observations: obs,
+        };
+      case 'chiller':
+        return {
+          is_operating: !!fv['is_operating'],
+          inner_temperature: String(fv['inner_temperature'] ?? ''),
+          outer_temperature: String(fv['outer_temperature'] ?? ''),
+          inner_voltage: String(fv['inner_voltage'] ?? ''),
+          plc_keys_working: !!fv['plc_keys_working'],
+          motor_amperage: String(fv['motor_amperage'] ?? ''),
+          system_pressure_1: String(fv['system_pressure_1'] ?? ''),
+          system_pressure_2: String(fv['system_pressure_2'] ?? ''),
+          system_pressure_3: String(fv['system_pressure_3'] ?? ''),
+          oil_pressure: String(fv['oil_pressure'] ?? ''),
+          oil_level: String(fv['oil_level'] ?? ''),
+          flux_switch_working: !!fv['flux_switch_working'],
+          unusual_noise: noise,
+          observations: obs,
+        };
+      case 'uma':
+        return {
+          is_operating: !!fv['is_operating'],
+          air_band_adjustment: !!fv['air_band_adjustment'],
+          inner_temperature: String(fv['inner_temperature'] ?? ''),
+          outer_temperature: String(fv['outer_temperature'] ?? ''),
+          air_good_quality: !!fv['air_good_quality'],
+          inner_voltage: String(fv['inner_voltage'] ?? ''),
+          motor_amperage: String(fv['motor_amperage'] ?? ''),
+          unusual_noise: noise,
+          observations: obs,
+        };
+    }
   }
 
   private dataURLtoFile(dataURL: string, filename: string): File {

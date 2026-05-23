@@ -1,6 +1,6 @@
-import { Component, ViewChild, ElementRef, AfterViewInit, Output, EventEmitter } from '@angular/core';
+import { Component, ViewChild, ElementRef, AfterViewInit, Output, EventEmitter, inject } from '@angular/core';
 import SignaturePad from 'signature_pad';
-import Swal from 'sweetalert2';
+import { ToastService } from '../../../services/toast.service';
 
 @Component({
   selector: 'app-signature',
@@ -22,6 +22,7 @@ export class SignatureComponent implements AfterViewInit {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
   @Output() signatureChanged = new EventEmitter<string>();
   private signaturePad!: SignaturePad;
+  private toast = inject(ToastService);
 
   ngAfterViewInit(): void {
     this.signaturePad = new SignaturePad(this.canvasRef.nativeElement, {
@@ -42,12 +43,7 @@ export class SignatureComponent implements AfterViewInit {
 
   saveSignature(): void {
     if (this.signaturePad.isEmpty()) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Por favor, firme antes de guardar",
-
-      });
+      this.toast.show('Por favor, firme antes de guardar', 'error');
       return;
     }
 

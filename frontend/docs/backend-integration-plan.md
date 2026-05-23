@@ -94,7 +94,7 @@ These are committed. Don't relitigate.
 - [x] **PR #2** — Auth migration (login, guard, interceptor, AuthState)
 - [x] **PR #3** — Users HTTP + UsersState
 - [x] **PR #4** — Customers migration
-- [ ] **PR #5** — Reports migration
+- [x] **PR #5** — Reports migration
 - [ ] **PR #6** — Upload service + image picker wiring
 - [ ] **PR #7** — Theme migration + final cleanup
 
@@ -1696,29 +1696,42 @@ in list without manual refresh), edit, delete.
 `services/reports.ts` deleted.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b feature/frontend-reports-migration`
-- [ ] Implement full `frontend/src/state/reports/reports.actions.ts`: `LoadReports`, `LoadReport`, `SelectReport`, `SetReportsQuery`, `CreateReport`, `UpdateReport`, `SetAssignee`, `AddSignature`, `AddPictures`, `RemovePictures`, `DeleteReport`, `SendReportEmail`, `LoadReportEmails`, `RevokeReportEmail`.
-- [ ] Implement full `frontend/src/state/reports/reports.state.ts`:
-  - Model: `{ entities: Record<string, ReportRow>, ids: string[], selected: ReportRow | null, selectedDetails: ReportDetailRow | null, query: ReportListQuery | null, loading: boolean, emails: Record<string, ReportEmailRow[]> }`
-  - Selectors: `list`, `selected` (combined `{ report, details }` from `selected` + `selectedDetails`), `byId(id)`, `emailsForReport(id)`, `loading`, `query`
-  - Handlers per the action list
-- [ ] Update reports list page (`frontend/src/app/pages/reports/*`):
-  - Bind filter inputs to dispatch `new SetReportsQuery(...)` + `new LoadReports()`
-  - Render `select(ReportsState.list)`, show spinner from `select(ReportsState.loading)`
-- [ ] Update report-add (`frontend/src/app/pages/report-add/report-add.ts`):
-  - Build `CreateReportFields` object from form state; dispatch `new CreateReport(fields)`
-  - Remove inline `FormData` building (the service does it now)
-  - Remove inline `JwtPayload`
-- [ ] Update report-detail (`frontend/src/app/pages/report-detail/*`):
-  - On init, dispatch `new LoadReport(id)`; bind to `select(ReportsState.selected)` (combined `{ report, details }`)
-  - Edit form submit: `new UpdateReport(id, payload)`
-  - Signature submit: `new AddSignature(id, fields)`
-  - Picture upload: `new AddPictures(id, files)`
-  - Picture delete: `new RemovePictures(id, { urls })`
-  - Send email: `new SendReportEmail(id, payload)`
-  - Type-narrow on `reportType` before reading `data.X` fields (see §14.3)
-- [ ] Delete `frontend/src/services/reports.ts`
-- [ ] **Tick this PR's box** in §2 and commit
+- [x] Branch: `git checkout -b feature/frontend-reports-migration` (stacked on PR #4)
+- [x] Create `frontend/src/http/reports.service.ts` per §12.4 (full surface — `list`/`get`/`create`/`update`/`setAssignee`/`addSignature`/`addPictures`/`removePictures`/`remove`/`sendEmail`/`listEmails`/`revokeEmail`/`downloadByToken`). `list()` casts `ReportListQuery` to the index-signature-friendly `Query` shape that `toParams` accepts.
+- [x] Implement full `frontend/src/state/reports/reports.state.ts` handlers (replaces the PR #1 stubs):
+  - `LoadReports` honors `query` from state; patches `entities`/`ids`/`loading` (only entities — list endpoint returns `ReportRow[]`, no details).
+  - `LoadReport(id)` GETs `/reports/:id`, upserts `entities[id]`, sets `selected: report` + `selectedDetails: details`.
+  - `SelectReport(report)` nulls `selectedDetails` (synchronous list-row select; caller dispatches `LoadReport` next for full data).
+  - `CreateReport`/`UpdateReport`/`AddSignature` keep both `selected` and `selectedDetails` coherent when ids match.
+  - `AddPictures`/`RemovePictures` patch only `selectedDetails` (no header mutation).
+  - `DeleteReport(id)` removes from `entities`, nulls `selected`+`selectedDetails` if the deleted id matched.
+  - `SetAssignee(id, assignedTo)` wraps payload as `{ assigned_to }`; refreshes `selected` on match.
+  - `RevokeReportEmail(emailId)` optimistically stamps `revokedAt` on the matching email row across all `emails[reportId]` lists.
+- [x] Update reports list page (`frontend/src/app/pages/reports/*`):
+  - Dispatch `new LoadReports()` + `new LoadCustomers()` on init.
+  - View-model `ReportRowVM`: enriches `ReportRow` with `clientName` (from `CustomersState` map lookup), `dateTs` (millis from `dateDeparture`), and `bucket: 'pending' | 'done'` derived from `ReportStatus`.
+  - Template binds to new field names (`workType` instead of `manttio_type`, `dateDeparture` instead of `date_departure`, `bucket` instead of `report_status`).
+  - Filters wired to in-memory PrimeNG table filters on the VM fields.
+  - Estado/state filter removed (CustomerRow has no state field; the old `(customer as any)?.state` was a stub) — also deleted `EstadoOption` from `interfaces/filter-option.ts` and the now-unused `constants/mexican-states.ts`.
+- [x] Update report-add (`frontend/src/app/pages/report-add/report-add.ts`):
+  - Builds `CreateReportFields` from flat form data: `{ report_type, work_type, client_id, date_arrival, date_departure, data: <typed per report_type>, pictures, signature, signature_base64 }`.
+  - `buildReportData(reportType, formData)` is a strict per-type mapper that converts 'Sí'/'No' dropdown strings to booleans for `MinisplitData`/`ChillerData`/`UmaData`.
+  - `manttio_type` form field renamed to `work_type` (matches backend column).
+  - Drops `HttpClient` + `environment.apiUrl` + manual auth header + inline `FormData` (the service does it); drops the `user_id`/`createdBy` field (backend resolves from JWT).
+  - Dispatches `new CreateReport(fields)`; success/error wired via NGXS Actions stream + `takeUntilDestroyed`.
+  - Success Swal toast → `ToastService.show('Reporte agregado exitosamente', 'success')`. The "Falta firma" confirm-dialog `Swal.fire` is kept (memory rule: legacy Swal *confirm dialogs* defer to PR #7 §17; only Swal-as-toast was forbidden).
+- [x] Update report-detail (`frontend/src/app/pages/report-detail/*`):
+  - On init, dispatches `new LoadReport(id)`; on success, dispatches `new LoadCustomer(report.clientId)` so the customer card renders.
+  - Introduces a flat `ReportViewModel` (computed from `ReportsState.selected`) that exposes the old field names the template was reading (`report.is_operating`, `report.manttio_type`, `report.report_status`, `report.signature`, `report.pictures`, etc.) — preserves the template HTML at the cost of a single mapping function.
+  - Edit/save: builds an `UpdateReportRequest` with `data: Partial<ReportData>` (the data fields go nested now, header fields stay flat). Dispatches `new UpdateReport(id, payload)`. Picture additions/removals dispatched as separate `AddPictures` / `RemovePictures` if pending.
+  - Signature: builds `AddSignatureFields = { signed_by: userEmail, signature: file }`, dispatches `new AddSignature(id, fields)`. Confirm-dialog Swal kept (PR #7 §17 cleanup).
+  - All success/error notifications via Actions stream + `ToastService` (replaces the Swal toasts and the `LoadReports(true)` refresh hack — state handlers update entities directly).
+  - Technician name display: `reportUser()` returns `AuthState.user` only if `report.assignedTo === me.id`; otherwise null. Full per-id user lookup deferred — would require admin-only `/users/:id` access from techs. Tracked for a follow-up.
+  - PDF download (`downloadTextPDF`) reads from the VM, so field paths still resolve.
+- [x] Delete `frontend/src/services/reports.ts`
+- [x] Delete the entire old NGXS slice at `frontend/src/app/store/reports/` AND the old `frontend/src/app/store/auth/` slice (left over from PR #2 — last consumer was `services/reports.ts`).
+- [x] Delete `frontend/src/app/interfaces/customer.ts` (only the OLD reports store imported it, now gone) and `frontend/src/app/constants/mexican-states.ts` (only the now-removed Estado filter used it).
+- [x] **Tick this PR's box** in §2 and commit
 
 **Validation:**
 ```bash
