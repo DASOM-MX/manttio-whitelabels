@@ -1,11 +1,9 @@
-import { Component, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { DatePipe, SlicePipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { Store } from '@ngxs/store';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
 import { Table, TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
@@ -53,7 +51,7 @@ const STATUS_BUCKET: Record<ReportStatus, ReportListBucket> = {
   templateUrl: './reports.html',
   styleUrl: './reports.scss',
 })
-export class Reports implements OnInit, OnDestroy {
+export class Reports implements OnInit {
   @ViewChild('dt') dt!: Table;
 
   private store = inject(Store);
@@ -105,7 +103,6 @@ export class Reports implements OnInit, OnDestroy {
   filtersOpen = signal(false);
 
   filtersForm: FormGroup = this.fb.group({
-    folio: [''],
     cliente: [null as string | null],
     estatus: [null as ReportListBucket | null],
     dateRange: [null as Date[] | null],
@@ -118,14 +115,11 @@ export class Reports implements OnInit, OnDestroy {
   activeFilterCount = computed(() => {
     const v = this.formValue();
     let n = 0;
-    if (v.folio?.trim()) n++;
     if (v.cliente) n++;
     if (v.estatus !== null && v.estatus !== undefined) n++;
     if (v.dateRange?.[0]) n++;
     return n;
   });
-
-  private destroy$ = new Subject<void>();
 
   ngOnInit(): void {
     this.store.dispatch(new LoadReports());
@@ -140,20 +134,16 @@ export class Reports implements OnInit, OnDestroy {
   private wireFilters(): void {
     const ctrl = this.filtersForm.controls;
 
-    ctrl['folio'].valueChanges
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((v: string) => this.dt?.filter(v, 'id', 'contains'));
-
     ctrl['cliente'].valueChanges
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed())
       .subscribe((v: string | null) => this.dt?.filter(v, 'clientName', 'equals'));
 
     ctrl['estatus'].valueChanges
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed())
       .subscribe((v: ReportListBucket | null) => this.dt?.filter(v, 'bucket', 'equals'));
 
     ctrl['dateRange'].valueChanges
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed())
       .subscribe((range: Date[] | null) => {
         if (!range || !range[0]) {
           this.dt?.filter(null, 'dateTs', 'between');
@@ -174,17 +164,11 @@ export class Reports implements OnInit, OnDestroy {
 
   clearFilters() {
     this.filtersForm.reset({
-      folio: '',
       cliente: null,
       estatus: null,
       dateRange: null,
     });
     this.dt?.clear();
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   goToReportDetail(reportId: string) {

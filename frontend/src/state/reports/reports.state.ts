@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
-import { tap } from 'rxjs/operators';
+import { finalize, tap } from 'rxjs/operators';
 import { ReportsService } from '../../http/reports.service';
 import {
   LoadReports, LoadReport, SelectReport, SetReportsQuery,
@@ -64,8 +64,9 @@ export class ReportsState {
         const entities: Record<string, ReportRow> = {};
         const ids: string[] = [];
         for (const r of reports) { entities[r.id] = r; ids.push(r.id); }
-        ctx.patchState({ entities, ids, loading: false });
+        ctx.patchState({ entities, ids });
       }),
+      finalize(() => ctx.patchState({ loading: false })),
     );
   }
 
@@ -87,7 +88,12 @@ export class ReportsState {
 
   @Action(SelectReport)
   select(ctx: StateContext<ReportsStateModel>, { report }: SelectReport) {
-    ctx.patchState({ selected: report, selectedDetails: null });
+    const s = ctx.getState();
+    const sameRow = !!report && s.selected?.id === report.id;
+    ctx.patchState({
+      selected: report,
+      selectedDetails: sameRow ? s.selectedDetails : null,
+    });
   }
 
   @Action(SetReportsQuery)
@@ -100,13 +106,9 @@ export class ReportsState {
     return this.api.create(fields).pipe(
       tap(({ report, details }) => {
         const s = ctx.getState();
-        if (s.ids.includes(report.id)) {
-          ctx.patchState({ selected: report, selectedDetails: details });
-          return;
-        }
         ctx.patchState({
           entities: { ...s.entities, [report.id]: report },
-          ids: [...s.ids, report.id],
+          ids: s.ids.includes(report.id) ? s.ids : [...s.ids, report.id],
           selected: report,
           selectedDetails: details,
         });
@@ -121,6 +123,7 @@ export class ReportsState {
         const s = ctx.getState();
         ctx.patchState({
           entities: { ...s.entities, [id]: report },
+          ids: s.ids.includes(id) ? s.ids : [...s.ids, id],
           selected: s.selected?.id === id ? report : s.selected,
           selectedDetails: s.selected?.id === id ? details : s.selectedDetails,
         });
@@ -135,6 +138,7 @@ export class ReportsState {
         const s = ctx.getState();
         ctx.patchState({
           entities: { ...s.entities, [id]: report },
+          ids: s.ids.includes(id) ? s.ids : [...s.ids, id],
           selected: s.selected?.id === id ? report : s.selected,
         });
       }),
@@ -148,6 +152,7 @@ export class ReportsState {
         const s = ctx.getState();
         ctx.patchState({
           entities: { ...s.entities, [id]: report },
+          ids: s.ids.includes(id) ? s.ids : [...s.ids, id],
           selected: s.selected?.id === id ? report : s.selected,
           selectedDetails: s.selected?.id === id ? details : s.selectedDetails,
         });

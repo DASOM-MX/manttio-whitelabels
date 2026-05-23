@@ -1,23 +1,22 @@
 import {
   Component,
   ElementRef,
-  EventEmitter,
   OnInit,
-  Output,
   ViewChild,
   computed,
   inject,
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Actions, Store, ofActionSuccessful, ofActionErrored } from '@ngxs/store';
+import { take } from 'rxjs/operators';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import Swal from 'sweetalert2';
+import { ConfirmationService } from 'primeng/api';
 import { SignatureComponent } from '../../components/signature-pad/signature-pad';
 import { ImagePickerComponent } from '../../components/image-picker/image-picker';
 import { InputTextModule } from 'primeng/inputtext';
@@ -123,15 +122,14 @@ const toViewModel = (report: ReportRow, details: ReportDetailRow | null): Report
   styleUrl: './report-detail.scss',
 })
 export class ReportDetail implements OnInit {
-  @Output() signatureChanged = new EventEmitter<string>();
   @ViewChild('pdfContent', { static: false }) pdfContent!: ElementRef;
 
   private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
-  private router = inject(Router);
   private store = inject(Store);
   private actions$ = inject(Actions);
   private toast = inject(ToastService);
+  private confirm = inject(ConfirmationService);
 
   private selected = this.store.selectSignal(ReportsState.selected);
   customer = this.store.selectSignal(CustomersState.selected);
@@ -155,6 +153,11 @@ export class ReportDetail implements OnInit {
   newPictures = signal<File[]>([]);
   removedPictures = signal<string[]>([]);
 
+  /** Counts in-flight actions dispatched by saveChanges so the success/error
+   *  handlers can settle on a single canonical toast regardless of order. */
+  private pendingSave = signal(0);
+  private saveErrored = signal(false);
+
   reportForm: FormGroup = new FormGroup({
     observations: new FormControl(''),
     unusual_noise: new FormControl(false),
@@ -162,20 +165,12 @@ export class ReportDetail implements OnInit {
 
   constructor() {
     this.actions$
-      .pipe(ofActionSuccessful(UpdateReport), takeUntilDestroyed())
-      .subscribe(() => {
-        if (this.newPictures().length > 0 || this.removedPictures().length > 0) {
-          // Picture mutations are dispatched separately by saveChanges; their
-          // own success handlers will toast.
-          return;
-        }
-        this.editMode.set(false);
-        this.toast.show('Reporte actualizado correctamente', 'success');
-      });
+      .pipe(ofActionSuccessful(UpdateReport, AddPictures, RemovePictures), takeUntilDestroyed())
+      .subscribe(() => this.settleOneSave(false));
 
     this.actions$
-      .pipe(ofActionErrored(UpdateReport), takeUntilDestroyed())
-      .subscribe(() => this.toast.show('No se pudieron guardar los cambios', 'error'));
+      .pipe(ofActionErrored(UpdateReport, AddPictures, RemovePictures), takeUntilDestroyed())
+      .subscribe(() => this.settleOneSave(true));
 
     this.actions$
       .pipe(ofActionSuccessful(AddSignature), takeUntilDestroyed())
@@ -187,33 +182,33 @@ export class ReportDetail implements OnInit {
     this.actions$
       .pipe(ofActionErrored(AddSignature), takeUntilDestroyed())
       .subscribe(() => this.toast.show('Ha ocurrido un error al firmar el reporte', 'error'));
-
-    this.actions$
-      .pipe(ofActionSuccessful(AddPictures, RemovePictures), takeUntilDestroyed())
-      .subscribe(() => {
-        this.newPictures.set([]);
-        this.removedPictures.set([]);
-        this.editMode.set(false);
-        this.toast.show('Imágenes actualizadas', 'success');
-      });
-
-    this.actions$
-      .pipe(ofActionErrored(AddPictures, RemovePictures), takeUntilDestroyed())
-      .subscribe(() => this.toast.show('No se pudieron guardar los cambios en las imágenes', 'error'));
   }
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) return;
-    this.store.dispatch(new LoadReport(id));
-    // LoadReport doesn't tell us the clientId until it resolves; wire a
-    // one-shot listener that pulls the customer once the report lands.
     this.actions$
-      .pipe(ofActionSuccessful(LoadReport), takeUntilDestroyed())
+      .pipe(ofActionSuccessful(LoadReport), take(1), takeUntilDestroyed())
       .subscribe(() => {
         const sel = this.selected();
         if (sel) this.store.dispatch(new LoadCustomer(sel.report.clientId));
       });
+    this.store.dispatch(new LoadReport(id));
+  }
+
+  private settleOneSave(errored: boolean) {
+    if (this.pendingSave() === 0) return;
+    if (errored) this.saveErrored.set(true);
+    this.pendingSave.update((n) => n - 1);
+    if (this.pendingSave() > 0) return;
+    const failed = this.saveErrored();
+    this.newPictures.set([]);
+    this.removedPictures.set([]);
+    this.editMode.set(false);
+    this.toast.show(
+      failed ? 'No se pudieron guardar los cambios' : 'Reporte actualizado correctamente',
+      failed ? 'error' : 'success',
+    );
   }
 
   toggleEdit() {
@@ -236,14 +231,17 @@ export class ReportDetail implements OnInit {
       ...(formValue.date_departure ? { date_departure: new Date(formValue.date_departure).toISOString() } : {}),
       data: this.buildDataPatch(vm.report_type, formValue),
     };
-    this.store.dispatch(new UpdateReport(sel.report.id, payload));
 
+    const acts: object[] = [new UpdateReport(sel.report.id, payload)];
     if (this.newPictures().length > 0) {
-      this.store.dispatch(new AddPictures(sel.report.id, this.newPictures()));
+      acts.push(new AddPictures(sel.report.id, this.newPictures()));
     }
     if (this.removedPictures().length > 0) {
-      this.store.dispatch(new RemovePictures(sel.report.id, { urls: this.removedPictures() }));
+      acts.push(new RemovePictures(sel.report.id, { urls: this.removedPictures() }));
     }
+    this.saveErrored.set(false);
+    this.pendingSave.set(acts.length);
+    this.store.dispatch(acts);
   }
 
   onNewPicturesSelected(files: File[]) {
@@ -254,27 +252,24 @@ export class ReportDetail implements OnInit {
     this.removedPictures.update((current) => [...current, ...removed]);
   }
 
-  async onSignatureSaved(signatureData: string) {
+  onSignatureSaved(signatureData: string) {
     if (!signatureData) return;
     const sel = this.selected();
     if (!sel) return;
 
-    const result = await Swal.fire({
-      title: '¿Deseas firmar este reporte?',
-      text: 'Una vez firmado, no podrá ser modificado',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Sí, firmar',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
+    this.confirm.confirm({
+      header: '¿Deseas firmar este reporte?',
+      message: 'Una vez firmado, no podrá ser modificado.',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Sí, firmar',
+      rejectLabel: 'Cancelar',
+      accept: () => {
+        const userEmail = this.currentUser()?.email ?? 'Técnico';
+        const file = this.dataURLtoFile(signatureData, `signature-${Date.now()}.jpg`);
+        const fields: AddSignatureFields = { signed_by: userEmail, signature: file };
+        this.store.dispatch(new AddSignature(sel.report.id, fields));
+      },
     });
-    if (!result.isConfirmed) return;
-
-    const userEmail = this.currentUser()?.email ?? 'Técnico';
-    const file = this.dataURLtoFile(signatureData, `signature-${Date.now()}.jpg`);
-    const fields: AddSignatureFields = { signed_by: userEmail, signature: file };
-    this.store.dispatch(new AddSignature(sel.report.id, fields));
   }
 
   downloadPDF() {

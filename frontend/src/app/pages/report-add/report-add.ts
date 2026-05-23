@@ -4,7 +4,7 @@ import { DynamicForm } from '../../shared/dynamic-form/dynamic-form';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Actions, Store, ofActionSuccessful, ofActionErrored } from '@ngxs/store';
-import Swal from 'sweetalert2';
+import { ConfirmationService } from 'primeng/api';
 import { SelectModule } from 'primeng/select';
 import { FieldConfig } from '../../interfaces/field-config';
 import { ToastService } from '../../../services/toast.service';
@@ -34,6 +34,7 @@ export class ReportAdd implements OnInit {
   private router = inject(Router);
   private store = inject(Store);
   private actions$ = inject(Actions);
+  private confirm = inject(ConfirmationService);
 
   customers = this.store.selectSignal(CustomersState.list);
 
@@ -207,7 +208,7 @@ export class ReportAdd implements OnInit {
     }
   }
 
-  async onFormSubmit(formData: Record<string, unknown>) {
+  onFormSubmit(formData: Record<string, unknown>) {
     if (!this.selectedCustomerId()) {
       this.toast.show('Selecciona un cliente antes de enviar', 'error');
       return;
@@ -218,32 +219,39 @@ export class ReportAdd implements OnInit {
     const hasSignature = !!signatureFile || !!signatureBase64;
 
     if (!hasSignature) {
-      const result = await Swal.fire({
-        title: 'Falta firma',
-        text: 'Este reporte no contiene una firma. ¿Deseas continuar sin firmar?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, continuar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
+      this.confirm.confirm({
+        header: 'Falta firma',
+        message: 'Este reporte no contiene una firma. ¿Deseas continuar sin firmar?',
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: 'Sí, continuar',
+        rejectLabel: 'Cancelar',
+        accept: () => this.dispatchCreate(formData, signatureFile, signatureBase64),
       });
-      if (!result.isConfirmed) return;
+      return;
     }
 
+    this.dispatchCreate(formData, signatureFile, signatureBase64);
+  }
+
+  private dispatchCreate(
+    formData: Record<string, unknown>,
+    signatureFile: File | null,
+    signatureBase64: string,
+  ) {
     const reportType = this.selectedReportType();
+    const dateArrival = (formData['date_arrival'] as string) || '';
+    const dateDeparture = (formData['date_departure'] as string) || '';
     const fields: CreateReportFields = {
       report_type: reportType,
       work_type: (formData['work_type'] as string) || undefined,
       client_id: this.selectedCustomerId(),
-      date_arrival: (formData['date_arrival'] as string) || undefined,
-      date_departure: (formData['date_departure'] as string) || undefined,
+      date_arrival: dateArrival ? new Date(dateArrival).toISOString() : undefined,
+      date_departure: dateDeparture ? new Date(dateDeparture).toISOString() : undefined,
       data: this.buildReportData(reportType, formData),
       pictures: this.selectedFiles().length ? this.selectedFiles() : undefined,
       ...(signatureFile ? { signature: signatureFile } : {}),
       ...(!signatureFile && signatureBase64 ? { signature_base64: signatureBase64 } : {}),
     };
-
     this.store.dispatch(new CreateReport(fields));
   }
 }
