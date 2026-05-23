@@ -1,23 +1,23 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DynamicForm } from '../../shared/dynamic-form/dynamic-form';
+import { DynamicForm } from '../../../shared/dynamic-form/dynamic-form';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Actions, Store, ofActionSuccessful, ofActionErrored } from '@ngxs/store';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SelectModule } from 'primeng/select';
-import { FieldConfig } from '../../interfaces/field-config';
-import { CustomersState } from '../../../state/customers/customers.state';
-import { LoadCustomers } from '../../../state/customers/customers.actions';
-import { CreateReport } from '../../../state/reports/reports.actions';
+import { FieldConfig } from '../../../interfaces/field-config';
+import { CustomersState } from '../../../../state/customers/customers.state';
+import { LoadCustomers } from '../../../../state/customers/customers.actions';
+import { CreateReport } from '../../../../state/reports/reports.actions';
 import type {
   CreateReportFields,
   ReportData,
   MinisplitData,
   ChillerData,
   UmaData,
-} from '../../data/dtos/report';
-import type { ReportType } from '../../data/types/report';
+} from '../../../data/dtos/report';
+import type { ReportType } from '../../../data/types/report';
 
 const yesNoToBool = (v: unknown): boolean => v === 'Sí' || v === true;
 

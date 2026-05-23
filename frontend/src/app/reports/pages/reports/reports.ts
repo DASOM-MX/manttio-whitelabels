@@ -10,13 +10,13 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
-import { ClienteOption, EstatusOption } from '../../interfaces/filter-option';
-import { LoadReports } from '../../../state/reports/reports.actions';
-import { ReportsState } from '../../../state/reports/reports.state';
-import { LoadCustomers } from '../../../state/customers/customers.actions';
-import { CustomersState } from '../../../state/customers/customers.state';
-import type { ReportRow } from '../../data/dtos/report';
-import type { ReportStatus } from '../../data/types/report';
+import { ClienteOption, EstatusOption } from '../../../interfaces/filter-option';
+import { LoadReports } from '../../../../state/reports/reports.actions';
+import { ReportsState } from '../../../../state/reports/reports.state';
+import { LoadCustomers } from '../../../../state/customers/customers.actions';
+import { CustomersState } from '../../../../state/customers/customers.state';
+import type { ReportRow } from '../../../data/dtos/report';
+import type { ReportStatus } from '../../../data/types/report';
 
 type ReportListBucket = 'pending' | 'done';
 

@@ -8,7 +8,7 @@ import { Register } from '../register/register';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { ButtonModule } from 'primeng/button';
-import { Login as LoginAction } from '../../../state/auth/auth.actions';
+import { Login as LoginAction } from '../../../../state/auth/auth.actions';
 
 @Component({
   selector: 'app-login',

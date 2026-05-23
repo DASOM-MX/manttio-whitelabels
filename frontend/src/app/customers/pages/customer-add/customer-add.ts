@@ -3,10 +3,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { Actions, Store, ofActionSuccessful, ofActionErrored } from '@ngxs/store';
 import { MessageService } from 'primeng/api';
-import { FieldConfig } from '../../interfaces/field-config';
-import { DynamicForm } from '../../shared/dynamic-form/dynamic-form';
-import { CreateCustomer } from '../../../state/customers/customers.actions';
-import type { CreateCustomerRequest } from '../../data/dtos/customer';
+import { FieldConfig } from '../../../interfaces/field-config';
+import { DynamicForm } from '../../../shared/dynamic-form/dynamic-form';
+import { CreateCustomer } from '../../../../state/customers/customers.actions';
+import type { CreateCustomerRequest } from '../../../data/dtos/customer';
 
 @Component({
   selector: 'app-customer-add',

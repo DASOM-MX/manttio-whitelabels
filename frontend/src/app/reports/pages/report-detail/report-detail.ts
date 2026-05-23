@@ -27,25 +27,25 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { DatePipe, SlicePipe } from '@angular/common';
-import { AuthState } from '../../../state/auth/auth.state';
-import { ReportsState } from '../../../state/reports/reports.state';
+import { AuthState } from '../../../../state/auth/auth.state';
+import { ReportsState } from '../../../../state/reports/reports.state';
 import {
   LoadReport,
   UpdateReport,
   AddSignature,
   AddPictures,
   RemovePictures,
-} from '../../../state/reports/reports.actions';
-import { CustomersState } from '../../../state/customers/customers.state';
-import { LoadCustomer } from '../../../state/customers/customers.actions';
+} from '../../../../state/reports/reports.actions';
+import { CustomersState } from '../../../../state/customers/customers.state';
+import { LoadCustomer } from '../../../../state/customers/customers.actions';
 import type {
   ReportRow,
   ReportDetailRow,
   ReportData,
   UpdateReportRequest,
   AddSignatureFields,
-} from '../../data/dtos/report';
-import type { ReportType, ReportStatus } from '../../data/types/report';
+} from '../../../data/dtos/report';
+import type { ReportType, ReportStatus } from '../../../data/types/report';
 
 pdfMake.vfs = pdfFonts.vfs;
 

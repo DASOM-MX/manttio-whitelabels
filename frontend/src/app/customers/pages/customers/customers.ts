@@ -3,8 +3,8 @@ import { RouterModule } from '@angular/router';
 import { Store } from '@ngxs/store';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
-import { CustomersState } from '../../../state/customers/customers.state';
-import { LoadCustomers } from '../../../state/customers/customers.actions';
+import { CustomersState } from '../../../../state/customers/customers.state';
+import { LoadCustomers } from '../../../../state/customers/customers.actions';
 
 @Component({
   selector: 'app-customers',

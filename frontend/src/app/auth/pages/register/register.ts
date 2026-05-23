@@ -8,9 +8,9 @@ import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { SelectModule } from 'primeng/select';
 import { ButtonModule } from 'primeng/button';
-import { RoleOption } from '../../interfaces/role-option';
-import { CreateUser } from '../../../state/users/users.actions';
-import type { UserType } from '../../data/types/user';
+import { RoleOption } from '../../../interfaces/role-option';
+import { CreateUser } from '../../../../state/users/users.actions';
+import type { UserType } from '../../../data/types/user';
 
 @Component({
   selector: 'app-register',

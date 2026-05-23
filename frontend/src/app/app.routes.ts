@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
-import { Login } from './pages/login/login';
-import { Reports } from './pages/reports/reports';
+import { Login } from './auth/pages/login/login';
+import { Reports } from './reports/pages/reports/reports';
 import { AuthenticatedLayoutAdmin } from './layouts/authenticated-layout-admin';
 import { authGuard } from './guards/auth-guard';
 
@@ -12,31 +12,31 @@ export const routes: Routes = [
         children: [
             {
                 path: 'home',
-                loadComponent: () => import('./pages/reports/reports').then(m => m.Reports,)
+                loadComponent: () => import('./reports/pages/reports/reports').then(m => m.Reports,)
             },
             {
                 path: 'reports',
-                loadComponent: () => import('./pages/reports/reports').then(m => m.Reports)
+                loadComponent: () => import('./reports/pages/reports/reports').then(m => m.Reports)
             },
             {
                 path: 'reports/:id',
-                loadComponent: () => import('./pages/report-detail/report-detail').then(m => m.ReportDetail)
+                loadComponent: () => import('./reports/pages/report-detail/report-detail').then(m => m.ReportDetail)
             },
             {
                 path: 'report-add',
-                loadComponent: () => import('./pages/report-add/report-add').then(m => m.ReportAdd)
+                loadComponent: () => import('./reports/pages/report-add/report-add').then(m => m.ReportAdd)
             },
             {
                 path: 'customers',
-                loadComponent: () => import('./pages/customers/customers').then(m => m.Customers)
+                loadComponent: () => import('./customers/pages/customers/customers').then(m => m.Customers)
             },
             {
                 path: 'customer-add',
-                loadComponent: () => import('./pages/customer-add/customer-add').then(m => m.CustomerAdd)
+                loadComponent: () => import('./customers/pages/customer-add/customer-add').then(m => m.CustomerAdd)
             },
             {
                 path: 'register',
-                loadComponent: () => import('./pages/register/register').then(m => m.Register)
+                loadComponent: () => import('./auth/pages/register/register').then(m => m.Register)
             },
             {
                 path: '',
