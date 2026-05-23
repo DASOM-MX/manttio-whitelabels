@@ -1,5 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
+import { finalize, tap } from 'rxjs/operators';
+import { CustomersService } from '../../http/customers.service';
 import {
   LoadCustomers, LoadCustomer, SelectCustomer,
   CreateCustomer, UpdateCustomer, DeleteCustomer,
@@ -19,6 +21,8 @@ export interface CustomersStateModel {
 })
 @Injectable()
 export class CustomersState {
+  private readonly api = inject(CustomersService);
+
   @Selector() static list(s: CustomersStateModel): CustomerRow[] {
     return s.ids.map((id) => s.entities[id]).filter(Boolean) as CustomerRow[];
   }
@@ -30,13 +34,32 @@ export class CustomersState {
   }
 
   @Action(LoadCustomers)
-  loadList(_ctx: StateContext<CustomersStateModel>) {
-    // stub — wired up in PR #4 once CustomersService exists
+  loadList(ctx: StateContext<CustomersStateModel>) {
+    ctx.patchState({ loading: true });
+    return this.api.list().pipe(
+      tap(({ customers }) => {
+        const entities: Record<string, CustomerRow> = {};
+        const ids: string[] = [];
+        for (const c of customers) { entities[c.id] = c; ids.push(c.id); }
+        ctx.patchState({ entities, ids });
+      }),
+      finalize(() => ctx.patchState({ loading: false })),
+    );
   }
 
   @Action(LoadCustomer)
-  loadOne(_ctx: StateContext<CustomersStateModel>, _action: LoadCustomer) {
-    // stub — PR #4 will fetch + patch entities[id] + set selected
+  loadOne(ctx: StateContext<CustomersStateModel>, { id }: LoadCustomer) {
+    return this.api.get(id).pipe(
+      tap(({ customer }) => {
+        const s = ctx.getState();
+        const ids = s.ids.includes(id) ? s.ids : [...s.ids, id];
+        ctx.patchState({
+          entities: { ...s.entities, [id]: customer },
+          ids,
+          selected: customer,
+        });
+      }),
+    );
   }
 
   @Action(SelectCustomer)
@@ -45,17 +68,44 @@ export class CustomersState {
   }
 
   @Action(CreateCustomer)
-  create(_ctx: StateContext<CustomersStateModel>, _action: CreateCustomer) {
-    // stub
+  create(ctx: StateContext<CustomersStateModel>, { payload }: CreateCustomer) {
+    return this.api.create(payload).pipe(
+      tap(({ customer }) => {
+        const s = ctx.getState();
+        ctx.patchState({
+          entities: { ...s.entities, [customer.id]: customer },
+          ids: s.ids.includes(customer.id) ? s.ids : [...s.ids, customer.id],
+        });
+      }),
+    );
   }
 
   @Action(UpdateCustomer)
-  update(_ctx: StateContext<CustomersStateModel>, _action: UpdateCustomer) {
-    // stub
+  update(ctx: StateContext<CustomersStateModel>, { id, payload }: UpdateCustomer) {
+    return this.api.update(id, payload).pipe(
+      tap(({ customer }) => {
+        const s = ctx.getState();
+        ctx.patchState({
+          entities: { ...s.entities, [id]: customer },
+          ids: s.ids.includes(id) ? s.ids : [...s.ids, id],
+          selected: s.selected?.id === id ? customer : s.selected,
+        });
+      }),
+    );
   }
 
   @Action(DeleteCustomer)
-  remove(_ctx: StateContext<CustomersStateModel>, _action: DeleteCustomer) {
-    // stub
+  remove(ctx: StateContext<CustomersStateModel>, { id }: DeleteCustomer) {
+    return this.api.remove(id).pipe(
+      tap(() => {
+        const s = ctx.getState();
+        const { [id]: _gone, ...rest } = s.entities;
+        ctx.patchState({
+          entities: rest,
+          ids: s.ids.filter((x) => x !== id),
+          selected: s.selected?.id === id ? null : s.selected,
+        });
+      }),
+    );
   }
 }

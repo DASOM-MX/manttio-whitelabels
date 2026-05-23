@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
-import { tap } from 'rxjs/operators';
+import { finalize, tap } from 'rxjs/operators';
 import { UsersService } from '../../http/users.service';
 import {
   LoadCurrentUser, LoadUsers, LoadUser, SelectUser,
@@ -48,8 +48,9 @@ export class UsersState {
         const entities: Record<string, PublicUser> = {};
         const ids: string[] = [];
         for (const u of users) { entities[u.id] = u; ids.push(u.id); }
-        ctx.patchState({ entities, ids, loading: false });
+        ctx.patchState({ entities, ids });
       }),
+      finalize(() => ctx.patchState({ loading: false })),
     );
   }
 
@@ -74,10 +75,9 @@ export class UsersState {
     return this.users.create(payload).pipe(
       tap(({ user }) => {
         const s = ctx.getState();
-        if (s.ids.includes(user.id)) return;
         ctx.patchState({
           entities: { ...s.entities, [user.id]: user },
-          ids: [...s.ids, user.id],
+          ids: s.ids.includes(user.id) ? s.ids : [...s.ids, user.id],
         });
       }),
     );
@@ -90,6 +90,7 @@ export class UsersState {
         const s = ctx.getState();
         ctx.patchState({
           entities: { ...s.entities, [id]: user },
+          ids: s.ids.includes(id) ? s.ids : [...s.ids, id],
           selected: s.selected?.id === id ? user : s.selected,
         });
       }),
