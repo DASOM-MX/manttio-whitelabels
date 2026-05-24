@@ -1,7 +1,6 @@
 import {
   Component,
   ElementRef,
-  OnInit,
   ViewChild,
   computed,
   inject,
@@ -120,7 +119,7 @@ const toViewModel = (report: ReportRow, details: ReportDetailRow | null): Report
   templateUrl: './report-detail.html',
   styleUrl: './report-detail.scss',
 })
-export class ReportDetail implements OnInit {
+export class ReportDetail {
   @ViewChild('pdfContent', { static: false }) pdfContent!: ElementRef;
 
   private route = inject(ActivatedRoute);
@@ -183,9 +182,7 @@ export class ReportDetail implements OnInit {
       .subscribe(() =>
         this.messages.add({ severity: 'error', summary: 'Ha ocurrido un error al firmar el reporte' }),
       );
-  }
 
-  ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) return;
     this.actions$

@@ -90,6 +90,15 @@
   }
 }
 
+/* Compact "rows per page" select — inherits .p-select → .field-input by default,
+   which is form-sized. Shrink it to match the paginator buttons. */
+.p-paginator .p-select {
+  @apply w-auto min-h-11 px-3 py-2 text-base;
+}
+.p-paginator .p-select-label {
+  @apply pr-1;
+}
+
 /* Caption / footer slots — PrimeNG renders empty wrappers; collapse them
    when there's no template content. With content, the header gets a soft
    surface that flows into the thead below. */

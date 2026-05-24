@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DynamicForm } from '../../../shared/dynamic-form/dynamic-form';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
@@ -28,7 +28,7 @@ const yesNoToBool = (v: unknown): boolean => v === 'Sí' || v === true;
   templateUrl: './report-add.html',
   styleUrl: './report-add.scss',
 })
-export class ReportAdd implements OnInit {
+export class ReportAdd {
   private messages = inject(MessageService);
   private router = inject(Router);
   private store = inject(Store);
@@ -102,9 +102,7 @@ export class ReportAdd implements OnInit {
       .subscribe(() => {
         this.messages.add({ severity: 'error', summary: 'Error al enviar reporte' });
       });
-  }
 
-  ngOnInit(): void {
     this.store.dispatch(new LoadCustomers());
   }
 

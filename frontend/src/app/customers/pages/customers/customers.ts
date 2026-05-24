@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Store } from '@ngxs/store';
 import { TableModule } from 'primeng/table';
@@ -13,14 +13,14 @@ import { LoadCustomers } from '../../../../state/customers/customers.actions';
   templateUrl: './customers.html',
   styleUrl: './customers.scss',
 })
-export class Customers implements OnInit {
+export class Customers {
   private store = inject(Store);
 
   customers = this.store.selectSignal(CustomersState.list);
   loading = this.store.selectSignal(CustomersState.loading);
   total = computed(() => this.customers().length);
 
-  ngOnInit(): void {
+  constructor() {
     this.store.dispatch(new LoadCustomers());
   }
 

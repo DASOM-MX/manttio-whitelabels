@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { Component, ViewChild, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { DatePipe, SlicePipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
@@ -51,7 +51,7 @@ const STATUS_BUCKET: Record<ReportStatus, ReportListBucket> = {
   templateUrl: './reports.html',
   styleUrl: './reports.scss',
 })
-export class Reports implements OnInit {
+export class Reports {
   @ViewChild('dt') dt!: Table;
 
   private store = inject(Store);
@@ -121,7 +121,7 @@ export class Reports implements OnInit {
     return n;
   });
 
-  ngOnInit(): void {
+  constructor() {
     this.store.dispatch(new LoadReports());
     this.store.dispatch(new LoadCustomers());
     this.wireFilters();
