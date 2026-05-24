@@ -8,7 +8,9 @@
             </h1>
         </div>
 
-        <!-- Form card -->
+        <!-- Form card — hidden until the technician confirms the "Abrir nuevo reporte"
+             dialog (or an existing draft is resumed). -->
+        @if (formReady()) {
         <div class="card-section flex flex-col gap-7" [formGroup]="headerForm">
             <!-- 2x2 cabecera: Cliente | Llegada | Tipo de reporte | Tipo de tarea -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-7">
@@ -58,6 +60,7 @@
                 }
             </div>
         </div>
+        }
     </div>
 </div>
 

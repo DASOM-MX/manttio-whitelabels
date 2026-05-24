@@ -110,11 +110,13 @@ export class ReportAdd {
   leaveDialogVisible = signal(false);
   private leaveResolver: ((leave: boolean) => void) | null = null;
 
-  constructor() {
-    // Ensure a draft exists (idempotent — keeps the existing arrivalAt on re-entry).
-    this.store.dispatch(new OpenReportDraft());
+  /** Gates the form card. Stays false until either an existing draft is resumed or the
+   *  user confirms the "Abrir nuevo reporte" dialog. */
+  formReady = signal(false);
 
-    // Restore meta selections from the draft (if any) into the form.
+  constructor() {
+    // Resume an existing draft straight away; otherwise ask the technician to confirm
+    // they want to open a new one before the form (and the arrivalAt timestamp) appear.
     const restored = this.draft();
     if (restored) {
       this.headerForm.patchValue(
@@ -126,6 +128,10 @@ export class ReportAdd {
         { emitEvent: false },
       );
       this.selectedReportType.set(restored.reportType);
+      this.formReady.set(true);
+    } else {
+      // Defer one tick so the modal renders after the initial route transition.
+      queueMicrotask(() => this.askOpenNewReport());
     }
 
     // Sync header form ↔ draft state on every change.
@@ -294,26 +300,25 @@ export class ReportAdd {
     const signatureFile = this.signatureFile();
     const hasSignature = !!signatureFile || !!signatureBase64;
 
-    this.confirmOpenReport(() => {
-      if (!hasSignature) {
-        this.confirm.confirm({
-          header: 'Falta firma',
-          message: 'Este reporte no contiene una firma. ¿Deseas continuar sin firmar?',
-          icon: 'pi pi-exclamation-triangle',
-          acceptLabel: 'Sí, continuar',
-          rejectLabel: 'Cancelar',
-          accept: () => this.dispatchCreate(formData, signatureFile, signatureBase64),
-        });
-        return;
-      }
-      this.dispatchCreate(formData, signatureFile, signatureBase64);
-    });
+    if (!hasSignature) {
+      this.confirm.confirm({
+        header: 'Falta firma',
+        message: 'Este reporte no contiene una firma. ¿Deseas continuar sin firmar?',
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: 'Sí, continuar',
+        rejectLabel: 'Cancelar',
+        accept: () => this.dispatchCreate(formData, signatureFile, signatureBase64),
+      });
+      return;
+    }
+    this.dispatchCreate(formData, signatureFile, signatureBase64);
   }
 
-  /** Confirms the user wants to "open" a new report. If they already have one or more
-   *  unsigned reports assigned to them, the dialog mentions the most recent folio so the
-   *  technician can cancel and resume it instead. */
-  private confirmOpenReport(onAccept: () => void): void {
+  /** Entry-time confirmation. Fires once on page load when no draft exists. Accepting
+   *  stamps the arrivalAt (via OpenReportDraft) and reveals the form; cancelling
+   *  navigates back to /reports so we never silently open a report. If another report
+   *  is already unsigned, the message names it so the tech can resume it instead. */
+  private askOpenNewReport(): void {
     const open = this.openReports();
     const baseMessage =
       'Esta acción abrirá un nuevo reporte y registrará la fecha de llegada actual.';
@@ -327,7 +332,11 @@ export class ReportAdd {
       icon: 'pi pi-info-circle',
       acceptLabel: 'Sí, abrir',
       rejectLabel: 'Cancelar',
-      accept: onAccept,
+      accept: () => {
+        this.store.dispatch(new OpenReportDraft());
+        this.formReady.set(true);
+      },
+      reject: () => this.router.navigate(['/reports']),
     });
   }
 
