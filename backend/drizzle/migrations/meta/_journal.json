@@ -15,6 +15,13 @@
       "when": 1779589205326,
       "tag": "0001_illegal_captain_flint",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779592186262,
+      "tag": "0002_shallow_microbe",
+      "breakpoints": true
     }
   ]
 }
