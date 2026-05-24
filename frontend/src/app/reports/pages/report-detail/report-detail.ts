@@ -22,7 +22,6 @@ import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TextareaModule } from 'primeng/textarea';
 import { CheckboxModule } from 'primeng/checkbox';
-import { DatePickerModule } from 'primeng/datepicker';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { DatePipe, DecimalPipe, SlicePipe } from '@angular/common';
@@ -45,7 +44,7 @@ import type {
   AddSignatureFields,
   SignedPayload,
 } from '../../../data/dtos/report';
-import type { ReportType, ReportStatus } from '../../../data/types/report';
+import type { ReportType, ReportStatus, WorkType } from '../../../data/types/report';
 
 pdfMake.vfs = pdfFonts.vfs;
 
@@ -127,7 +126,6 @@ const toViewModel = (report: ReportRow, details: ReportDetailRow | null): Report
     InputNumberModule,
     TextareaModule,
     CheckboxModule,
-    DatePickerModule,
     ButtonModule,
     TagModule,
   ],
@@ -239,9 +237,7 @@ export class ReportDetail {
 
     const formValue = this.reportForm.value;
     const payload: UpdateReportRequest = {
-      ...(formValue.work_type !== undefined ? { work_type: String(formValue.work_type ?? '') } : {}),
-      ...(formValue.date_arrival ? { date_arrival: new Date(formValue.date_arrival).toISOString() } : {}),
-      ...(formValue.date_departure ? { date_departure: new Date(formValue.date_departure).toISOString() } : {}),
+      ...(formValue.work_type ? { work_type: formValue.work_type as WorkType } : {}),
       data: this.buildDataPatch(vm.report_type, formValue),
     };
 
@@ -463,8 +459,6 @@ export class ReportDetail {
       observations: [r.observations || ''],
       unusual_noise: [r.unusual_noise || false],
       work_type: [r.manttio_type || ''],
-      date_arrival: [r.date_arrival || ''],
-      date_departure: [r.date_departure || ''],
     };
 
     let specificControls: Record<string, unknown[]> = {};

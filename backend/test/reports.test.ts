@@ -416,11 +416,11 @@ describe('PATCH /reports/:id', () => {
     const res = await request(`/reports/${seeded.id}`, {
       method: 'PATCH',
       headers: jsonHeaders(token),
-      body: JSON.stringify({ work_type: 'preventive' }),
+      body: JSON.stringify({ work_type: 'Preventivo' }),
     });
     expect(res.status).toBe(200);
     const body = await json<{ report: ReportRow; details: ReportDetailRow }>(res);
-    expect(body.report.workType).toBe('preventive');
+    expect(body.report.workType).toBe('Preventivo');
     expect(body.report.status).toBe('in-progress');
   });
 
@@ -481,7 +481,7 @@ describe('PATCH /reports/:id', () => {
     const res = await request(`/reports/${seeded.id}`, {
       method: 'PATCH',
       headers: jsonHeaders(token),
-      body: JSON.stringify({ work_type: 'corrective' }),
+      body: JSON.stringify({ work_type: 'Correctivo' }),
     });
     expect(res.status).toBe(200);
   });
@@ -499,7 +499,7 @@ describe('PATCH /reports/:id', () => {
     const res = await request(`/reports/${seeded.id}`, {
       method: 'PATCH',
       headers: jsonHeaders(token),
-      body: JSON.stringify({ work_type: 'attempt' }),
+      body: JSON.stringify({ work_type: 'Preventivo' }),
     });
     expect(res.status).toBe(403);
   });
@@ -516,7 +516,7 @@ describe('PATCH /reports/:id', () => {
     const res = await request(`/reports/${seeded.id}`, {
       method: 'PATCH',
       headers: jsonHeaders(token),
-      body: JSON.stringify({ work_type: 'too late' }),
+      body: JSON.stringify({ work_type: 'Preventivo' }),
     });
     expect(res.status).toBe(409);
     const body = await json<{ error: string; status: string }>(res);
@@ -529,7 +529,7 @@ describe('PATCH /reports/:id', () => {
     const res = await request('/reports/R-20990101-9999', {
       method: 'PATCH',
       headers: jsonHeaders(token),
-      body: JSON.stringify({ work_type: 'whatever' }),
+      body: JSON.stringify({ work_type: 'Preventivo' }),
     });
     expect(res.status).toBe(404);
   });

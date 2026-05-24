@@ -68,31 +68,14 @@
                             <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.date_arrival | date:'mediumDate' }}</dd>
                         </div>
 
-                        @if (!editMode()) {
-                            <div class="field-group">
-                                <dt class="field-label">Llegada</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.date_arrival | date:'medium' }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Salida</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.date_departure | date:'medium' }}</dd>
-                            </div>
-                        } @else {
-                            <div class="field-group">
-                                <label for="dateArrival" class="field-label">Fecha de llegada</label>
-                                <p-datepicker inputId="dateArrival" formControlName="date_arrival"
-                                    [showTime]="true" hourFormat="24" dateFormat="dd/mm/yy"
-                                    styleClass="w-full">
-                                </p-datepicker>
-                            </div>
-                            <div class="field-group">
-                                <label for="dateDeparture" class="field-label">Fecha de salida</label>
-                                <p-datepicker inputId="dateDeparture" formControlName="date_departure"
-                                    [showTime]="true" hourFormat="24" dateFormat="dd/mm/yy"
-                                    styleClass="w-full">
-                                </p-datepicker>
-                            </div>
-                        }
+                        <div class="field-group">
+                            <dt class="field-label">Llegada</dt>
+                            <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.date_arrival | date:'medium' }}</dd>
+                        </div>
+                        <div class="field-group">
+                            <dt class="field-label">Salida</dt>
+                            <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ (report.date_departure | date:'medium') || 'Pendiente' }}</dd>
+                        </div>
                     </dl>
                 </section>
 

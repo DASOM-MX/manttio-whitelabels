@@ -12,6 +12,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
+import type { WorkType } from '../validators/reports';
 
 export const users = pgTable(
   'users',
@@ -65,7 +66,7 @@ export const reports = pgTable(
   {
     id: text('id').primaryKey(),
     reportType: text('report_type').notNull(),
-    workType: text('work_type'),
+    workType: text('work_type').$type<WorkType | null>(),
     dateArrival: timestamp('date_arrival', { withTimezone: true }),
     dateDeparture: timestamp('date_departure', { withTimezone: true }),
     createdBy: uuid('created_by')
@@ -104,6 +105,11 @@ export const reports = pgTable(
     check(
       'reports_status_check',
       sql`${table.status} in ('created', 'in-progress', 'finished', 'mailed')`,
+    ),
+    // Keep these literals in sync with `workTypes` in validators/reports.ts.
+    check(
+      'reports_work_type_check',
+      sql`${table.workType} is null or ${table.workType} in ('Preventivo', 'Correctivo', 'Instalación')`,
     ),
   ],
 );

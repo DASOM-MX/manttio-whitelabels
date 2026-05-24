@@ -36,6 +36,13 @@
       "when": 1779593886108,
       "tag": "0004_odd_jocasta",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779605760152,
+      "tag": "0005_daffy_solo",
+      "breakpoints": true
     }
   ]
 }

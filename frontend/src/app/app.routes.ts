@@ -4,6 +4,7 @@ import { Reports } from './reports/pages/reports/reports';
 import { AuthenticatedLayoutAdmin } from './layouts/authenticated-layout-admin';
 import { authGuard } from './guards/auth-guard';
 import { adminGuard } from './guards/admin-guard';
+import { reportAddDeactivateGuard } from './guards/report-add-deactivate.guard';
 
 export const routes: Routes = [
     {
@@ -25,7 +26,8 @@ export const routes: Routes = [
             },
             {
                 path: 'report-add',
-                loadComponent: () => import('./reports/pages/report-add/report-add').then(m => m.ReportAdd)
+                loadComponent: () => import('./reports/pages/report-add/report-add').then(m => m.ReportAdd),
+                canDeactivate: [reportAddDeactivateGuard]
             },
             {
                 path: 'customers',

@@ -1,9 +1,9 @@
-import type { ReportType, ReportStatus } from '../../types/report';
+import type { ReportType, ReportStatus, WorkType } from '../../types/report';
 
 export interface ReportRow {
   id: string;
   reportType: ReportType;
-  workType: string | null;
+  workType: WorkType | null;
   dateArrival: string | null;
   dateDeparture: string | null;
   createdBy: string;
