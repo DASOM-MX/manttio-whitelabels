@@ -2,7 +2,7 @@ import { Component, ViewChild, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { Actions, Store, ofActionErrored, ofActionSuccessful } from '@ngxs/store';
+import { Actions, Store, ofActionErrored, ofActionSuccessful, select } from '@ngxs/store';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -45,8 +45,8 @@ export class Customers {
 
   readonly stateOptions = MEXICAN_STATES;
 
-  private customerRows = this.store.selectSignal(CustomersState.list);
-  loading = this.store.selectSignal(CustomersState.loading);
+  private customerRows = select(CustomersState.list);
+  loading = select(CustomersState.loading);
 
   customers = computed<CustomerRowVM[]>(() =>
     this.customerRows().map((c) => ({

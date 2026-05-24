@@ -1,7 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Actions, Store, ofActionErrored, ofActionSuccessful } from '@ngxs/store';
+import { Actions, Store, ofActionErrored, ofActionSuccessful, select } from '@ngxs/store';
 import { map } from 'rxjs/operators';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -30,7 +30,7 @@ export class CustomerEdit {
     initialValue: this.route.snapshot.paramMap.get('id') ?? '',
   });
 
-  private selected = this.store.selectSignal(CustomersState.selected);
+  private selected = select(CustomersState.selected);
 
   customer = computed<CustomerRow | null>(() => {
     const sel = this.selected();
