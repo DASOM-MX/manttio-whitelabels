@@ -9,6 +9,7 @@ export type { CreateReportFields } from './create-report-fields.dto';
 export type { UpdateReportRequest } from './update-report-request.dto';
 export type { UpdateAssigneeRequest } from './update-assignee-request.dto';
 export type { AddSignatureFields } from './add-signature-fields.dto';
+export type { SignedPayload } from './signed-payload.dto';
 export type { DeletePicturesRequest } from './delete-pictures-request.dto';
 export type { ReportResponse } from './report-response.dto';
 export type { ReportHeaderResponse } from './report-header-response.dto';

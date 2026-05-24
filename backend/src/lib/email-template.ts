@@ -39,11 +39,29 @@ export type ReportEmailParams = {
   finishedAt: Date | null;
   createdByName: string;
   signedByName: string | null;
+  signedLatitude: number | null;
+  signedLongitude: number | null;
+  signedAccuracy: number | null;
   downloadUrl: string;
   brand: {
     name: string;
     siteUrl: string;
     logoUrl: string;
+  };
+};
+
+const fmtCoord = (n: number) => n.toFixed(6);
+
+const mapsUrl = (lat: number, lng: number) =>
+  `https://www.google.com/maps?q=${fmtCoord(lat)},${fmtCoord(lng)}`;
+
+const formatSignedLocation = (lat: number | null, lng: number | null, accuracy: number | null) => {
+  if (lat === null || lng === null) return null;
+  const accSuffix =
+    accuracy !== null && accuracy > 0 ? ` (±${Math.round(accuracy)} m)` : '';
+  return {
+    coords: `${fmtCoord(lat)}, ${fmtCoord(lng)}${accSuffix}`,
+    url: mapsUrl(lat, lng),
   };
 };
 
@@ -61,6 +79,10 @@ export const renderReportEmailHTML = (p: ReportEmailParams): string => {
   const finishedBy = p.signedByName?.trim() || p.createdByName;
   const work = workTypeLabel(p.workType, p.reportType);
   const year = new Date().getUTCFullYear();
+  const location = formatSignedLocation(p.signedLatitude, p.signedLongitude, p.signedAccuracy);
+  const locationRow = location
+    ? `<br><strong style="color:#0c3a5e;">Ubicación de firma:</strong> <a href="${escapeHtml(location.url)}" target="_blank" rel="noopener" style="color:#0c3a5e;text-decoration:underline;">${escapeHtml(location.coords)}</a>`
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -97,7 +119,7 @@ export const renderReportEmailHTML = (p: ReportEmailParams): string => {
                     <strong style="color:#0c3a5e;">Inicio del servicio:</strong> ${escapeHtml(arrival)}<br>
                     <strong style="color:#0c3a5e;">Atendido por:</strong> ${escapeHtml(p.createdByName)}<br>
                     <strong style="color:#0c3a5e;">Finalización:</strong> ${escapeHtml(finished)}<br>
-                    <strong style="color:#0c3a5e;">Firmado por:</strong> ${escapeHtml(finishedBy)}
+                    <strong style="color:#0c3a5e;">Firmado por:</strong> ${escapeHtml(finishedBy)}${locationRow}
                   </td>
                 </tr>
               </table>
@@ -144,8 +166,9 @@ export const renderReportEmailText = (p: ReportEmailParams): string => {
   const arrival = p.dateArrival ? fmtDate(p.dateArrival) : 'Sin registrar';
   const finishedBy = p.signedByName?.trim() || p.createdByName;
   const work = workTypeLabel(p.workType, p.reportType);
+  const location = formatSignedLocation(p.signedLatitude, p.signedLongitude, p.signedAccuracy);
 
-  return [
+  const lines: string[] = [
     `Estimado/a ${p.customerName},`,
     '',
     'Hemos finalizado el servicio que solicitó. A continuación los detalles:',
@@ -156,6 +179,11 @@ export const renderReportEmailText = (p: ReportEmailParams): string => {
     `Atendido por: ${p.createdByName}`,
     `Finalización: ${finished}`,
     `Firmado por: ${finishedBy}`,
+  ];
+  if (location) {
+    lines.push(`Ubicación de firma: ${location.coords} — ${location.url}`);
+  }
+  lines.push(
     '',
     `(Las horas mostradas están en ${DISPLAY_TIMEZONE_LABEL}.)`,
     '',
@@ -165,5 +193,6 @@ export const renderReportEmailText = (p: ReportEmailParams): string => {
     '',
     `${p.brand.name}`,
     `${p.brand.siteUrl}`,
-  ].join('\n');
+  );
+  return lines.join('\n');
 };

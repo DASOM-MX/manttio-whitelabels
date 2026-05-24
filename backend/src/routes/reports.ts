@@ -77,6 +77,9 @@ reports.get('/download/:token', async (c) => {
       dateDeparture: fullReport.report.dateDeparture,
       finishedAt: fullReport.report.finishedAt,
       signedBy: fullReport.report.signedBy,
+      signedLatitude: fullReport.report.signedLatitude,
+      signedLongitude: fullReport.report.signedLongitude,
+      signedAccuracy: fullReport.report.signedAccuracy,
     },
     data: (fullReport.details.data as Record<string, unknown>) ?? {},
     customer: {
@@ -181,6 +184,9 @@ reports.post('/', async (c) => {
     date_departure: fdGet(fd, 'date_departure') ?? undefined,
     assigned_to: fdGet(fd, 'assigned_to') ?? undefined,
     signed_by: fdGet(fd, 'signed_by') ?? undefined,
+    signed_latitude: fdGet(fd, 'signed_latitude') ?? undefined,
+    signed_longitude: fdGet(fd, 'signed_longitude') ?? undefined,
+    signed_accuracy: fdGet(fd, 'signed_accuracy') ?? undefined,
   });
 
   const dataRaw = fdGet(fd, 'data');
@@ -265,8 +271,17 @@ reports.post('/', async (c) => {
     );
 
     // If the report was signed at creation time, immediately transition to `finished`.
+    // Geolocation is required when signing — reject early if it was not provided.
     if (signatureUrl && meta.signed_by) {
-      const finishResult = await markFinished(db, result.report.id, meta.signed_by, signatureUrl);
+      if (meta.signed_latitude === undefined || meta.signed_longitude === undefined) {
+        await cleanupR2(c.env.MANTTIO_REPORTS, c.env.CDN_BASE_URL, pictureUrls, signatureUrl);
+        return c.json({ error: 'missing_signature_location' }, 400);
+      }
+      const finishResult = await markFinished(db, result.report.id, meta.signed_by, signatureUrl, {
+        latitude: meta.signed_latitude,
+        longitude: meta.signed_longitude,
+        accuracy: meta.signed_accuracy ?? null,
+      });
       if (finishResult) {
         return c.json(finishResult, 201);
       }
@@ -408,7 +423,13 @@ reports.put('/:id/signature', async (c) => {
 
   const fd = await c.req.formData();
   const signedByRaw = fdGet(fd, 'signed_by');
-  const { signed_by } = signReportSchema.parse({ signed_by: signedByRaw ?? '' });
+  const { signed_by, signed_latitude, signed_longitude, signed_accuracy } =
+    signReportSchema.parse({
+      signed_by: signedByRaw ?? '',
+      signed_latitude: fdGet(fd, 'signed_latitude') ?? undefined,
+      signed_longitude: fdGet(fd, 'signed_longitude') ?? undefined,
+      signed_accuracy: fdGet(fd, 'signed_accuracy') ?? undefined,
+    });
 
   const signatureFile = fdGet(fd, 'signature');
   const signatureBase64 = fdGet(fd, 'signature_base64');
@@ -430,7 +451,11 @@ reports.put('/:id/signature', async (c) => {
     return c.json({ error: 'missing_signature' }, 400);
   }
 
-  const result = await markFinished(db, id, signed_by, signatureUrl);
+  const result = await markFinished(db, id, signed_by, signatureUrl, {
+    latitude: signed_latitude,
+    longitude: signed_longitude,
+    accuracy: signed_accuracy ?? null,
+  });
   if (!result) {
     // The row vanished between the check and the update (race). Clean up the upload.
     const k = keyFromCdnUrl(c.env.CDN_BASE_URL, signatureUrl);

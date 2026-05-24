@@ -16,6 +16,7 @@ import type {
   MinisplitData,
   ChillerData,
   UmaData,
+  SignedPayload,
 } from '../../../data/dtos/report';
 import type { ReportType } from '../../../data/types/report';
 
@@ -40,6 +41,7 @@ export class ReportAdd {
 
   selectedFiles = signal<File[]>([]);
   signatureFile = signal<File | null>(null);
+  signaturePayload = signal<SignedPayload | null>(null);
 
   readonly reportTypeOptions: { label: string; value: ReportType }[] = [
     { label: 'Minisplit', value: 'minisplit' },
@@ -93,6 +95,7 @@ export class ReportAdd {
         this.messages.add({ severity: 'success', summary: 'Reporte agregado exitosamente' });
         this.selectedFiles.set([]);
         this.signatureFile.set(null);
+        this.signaturePayload.set(null);
         this.headerForm.patchValue({ customerId: '', workType: '' });
         this.router.navigate(['/reports']);
       });
@@ -112,6 +115,10 @@ export class ReportAdd {
 
   onSignatureChange(file: File) {
     this.signatureFile.set(file);
+  }
+
+  onSignaturePayloadChanged(payload: SignedPayload | null) {
+    this.signaturePayload.set(payload);
   }
 
   private buildFields(type: ReportType): FieldConfig[] {
@@ -255,6 +262,7 @@ export class ReportAdd {
     const header = this.headerForm.value as { customerId: string; workType?: string };
     const dateArrival = (formData['date_arrival'] as string) || '';
     const dateDeparture = (formData['date_departure'] as string) || '';
+    const payload = this.signaturePayload();
     const fields: CreateReportFields = {
       report_type: reportType,
       work_type: header.workType || undefined,
@@ -265,6 +273,13 @@ export class ReportAdd {
       pictures: this.selectedFiles().length ? this.selectedFiles() : undefined,
       ...(signatureFile ? { signature: signatureFile } : {}),
       ...(!signatureFile && signatureBase64 ? { signature_base64: signatureBase64 } : {}),
+      ...(payload
+        ? {
+            signed_latitude: payload.latitude,
+            signed_longitude: payload.longitude,
+            signed_accuracy: payload.accuracy,
+          }
+        : {}),
     };
     this.store.dispatch(new CreateReport(fields));
   }

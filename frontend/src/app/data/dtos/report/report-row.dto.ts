@@ -12,6 +12,9 @@ export interface ReportRow {
   signedBy: string | null;
   status: ReportStatus;
   signedAt: string | null;
+  signedLatitude: number | null;
+  signedLongitude: number | null;
+  signedAccuracy: number | null;
   finishedAt: string | null;
   mailedAt: string | null;
   createdAt: string;

@@ -3,6 +3,11 @@ import { reportTypes } from './reports';
 import { REPORT_STATUSES } from '../lib/report-lifecycle';
 
 // Multipart text fields (files are read separately via formData.getAll('pictures') etc.)
+// Geo fields arrive as strings — coerce to number and bound to valid WGS84 ranges.
+const latitudeField = z.coerce.number().min(-90).max(90);
+const longitudeField = z.coerce.number().min(-180).max(180);
+const accuracyField = z.coerce.number().nonnegative();
+
 export const createReportMetaSchema = z.object({
   report_type: z.enum(reportTypes as [string, ...string[]]),
   work_type: z.string().optional(),
@@ -11,6 +16,9 @@ export const createReportMetaSchema = z.object({
   date_departure: z.string().datetime().optional(),
   assigned_to: z.string().uuid().optional(),
   signed_by: z.string().optional(),
+  signed_latitude: latitudeField.optional(),
+  signed_longitude: longitudeField.optional(),
+  signed_accuracy: accuracyField.optional(),
 });
 
 export const patchReportSchema = z
@@ -29,6 +37,9 @@ export const assignReportSchema = z.object({
 
 export const signReportSchema = z.object({
   signed_by: z.string().min(1),
+  signed_latitude: latitudeField,
+  signed_longitude: longitudeField,
+  signed_accuracy: accuracyField.optional(),
 });
 
 export const removePicturesSchema = z.object({

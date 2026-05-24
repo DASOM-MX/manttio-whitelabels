@@ -143,11 +143,18 @@ export const bumpToInProgress = async (db: Db, id: string) => {
     .where(and(eq(reports.id, id), eq(reports.status, 'created'), activeFilter));
 };
 
+export type SignedLocation = {
+  latitude: number;
+  longitude: number;
+  accuracy?: number | null;
+};
+
 export const markFinished = async (
   db: Db,
   id: string,
   signedBy: string,
   signatureUrl: string,
+  location: SignedLocation,
 ) => {
   return db.transaction(async (tx) => {
     const now = new Date();
@@ -158,6 +165,9 @@ export const markFinished = async (
         finishedAt: now,
         signedAt: now,
         signedBy,
+        signedLatitude: location.latitude,
+        signedLongitude: location.longitude,
+        signedAccuracy: location.accuracy ?? null,
         updatedAt: now,
       })
       .where(and(eq(reports.id, id), activeFilter))

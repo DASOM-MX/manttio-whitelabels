@@ -41,7 +41,8 @@
                 @if (!isAnimating()) {
                     <app-dynamic-form [fields]="formFields()"
                         (submitForm)="onFormSubmit($event)"
-                        (filesSelected)="onFilesSelected($event)">
+                        (filesSelected)="onFilesSelected($event)"
+                        (signatureChanged)="onSignaturePayloadChanged($event)">
                     </app-dynamic-form>
                 }
             </div>
