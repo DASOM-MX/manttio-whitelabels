@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { Db } from '../client';
 import { customers } from '../schema';
 
@@ -24,7 +24,11 @@ export const findCustomerById = async (db: Db, id: string) => {
 };
 
 export const listCustomers = async (db: Db) => {
-  return db.select().from(customers).orderBy(desc(customers.createdAt));
+  return db
+    .select()
+    .from(customers)
+    .where(isNull(customers.deletedAt))
+    .orderBy(desc(customers.createdAt));
 };
 
 export const insertCustomer = async (db: Db, input: NewCustomer): Promise<CustomerRow> => {
@@ -37,15 +41,17 @@ export const updateCustomer = async (db: Db, id: string, fields: UpdateCustomerF
   const [row] = await db
     .update(customers)
     .set({ ...fields, updatedAt: new Date() })
-    .where(eq(customers.id, id))
+    .where(and(eq(customers.id, id), isNull(customers.deletedAt)))
     .returning();
   return row ?? null;
 };
 
 export const deleteCustomer = async (db: Db, id: string) => {
+  const now = new Date();
   const [row] = await db
-    .delete(customers)
-    .where(eq(customers.id, id))
+    .update(customers)
+    .set({ deletedAt: now, updatedAt: now })
+    .where(and(eq(customers.id, id), isNull(customers.deletedAt)))
     .returning({ id: customers.id });
   return row ?? null;
 };

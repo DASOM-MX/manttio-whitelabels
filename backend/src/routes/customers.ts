@@ -10,7 +10,6 @@ import {
   updateCustomer,
   type UpdateCustomerFields,
 } from '../db/repositories/customers';
-import { isForeignKeyViolation } from '../lib/db-errors';
 import { requireRole } from '../middleware/roles';
 import { createCustomerSchema, updateCustomerSchema } from '../validators/customers';
 
@@ -67,14 +66,7 @@ customers.delete('/:id', requireRole('admin'), async (c) => {
   const id = c.req.param('id');
   const db = createDb(c.env.DATABASE_URL);
 
-  try {
-    const row = await deleteCustomer(db, id);
-    if (!row) return c.json({ error: 'not_found' }, 404);
-    return c.json({ id: row.id, deleted: true });
-  } catch (err) {
-    if (isForeignKeyViolation(err)) {
-      return c.json({ error: 'in_use', message: 'cannot delete: customer has reports' }, 409);
-    }
-    throw err;
-  }
+  const row = await deleteCustomer(db, id);
+  if (!row) return c.json({ error: 'not_found' }, 404);
+  return c.json({ id: row.id, deleted: true });
 });

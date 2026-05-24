@@ -1,11 +1,14 @@
 <div class="min-h-full bg-background">
-  <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
-    <div class="flex flex-wrap items-center justify-between gap-4">
-      <div>
-        <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">
+  <div class="max-w-5xl mx-auto px-4 sm:px-8 py-10 sm:py-12 flex flex-col gap-8">
+    <!-- Header -->
+    <div class="flex flex-wrap items-center justify-between gap-5">
+      <div class="flex flex-col gap-1">
+        <p class="text-sm font-bold uppercase tracking-wider text-sky-800">
           Directorio
         </p>
-        <h1 class="text-2xl sm:text-3xl font-bold text-granite-900 leading-tight">
+        <h1
+          class="text-3xl sm:text-4xl font-extrabold text-granite-950 leading-tight tracking-tight"
+        >
           Clientes
         </h1>
       </div>
@@ -16,7 +19,9 @@
       ></p-button>
     </div>
 
+    <!-- Customers table -->
     <p-table
+      #dt
       [value]="customers()"
       [paginator]="customers().length > 10"
       [rows]="10"
@@ -25,10 +30,82 @@
       [rowHover]="true"
     >
       <ng-template pTemplate="caption">
-        <div class="flex items-center gap-3 px-4 py-3 text-granite-900">
-          <span class="font-semibold">{{ total() }} cliente{{ total() === 1 ? '' : 's' }}</span>
-          @if (loading()) {
-            <i class="pi pi-spin pi-spinner text-sky-700" aria-label="Cargando"></i>
+        <div class="border-b border-granite-200">
+          <button
+            type="button"
+            (click)="toggleFilters()"
+            [attr.aria-expanded]="filtersOpen()"
+            class="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-granite-100 active:bg-granite-200 transition-colors"
+          >
+            <div class="flex items-center gap-3 min-w-0">
+              <i class="pi pi-filter text-sky-800 text-lg"></i>
+              <span class="text-lg font-bold text-granite-950">Filtros</span>
+              @if (activeFilterCount() > 0) {
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-sky-700 text-white text-sm font-bold">
+                  {{ activeFilterCount() }}
+                </span>
+              }
+              <span class="text-base text-granite-700 truncate">
+                · {{ total() }} cliente{{ total() === 1 ? "" : "s" }}
+              </span>
+              @if (loading()) {
+                <i class="pi pi-spin pi-spinner text-sky-800" aria-label="Cargando"></i>
+              }
+            </div>
+            <i
+              class="pi pi-chevron-down text-granite-800 text-lg transition-transform duration-200"
+              [class.rotate-180]="filtersOpen()"
+            ></i>
+          </button>
+
+          @if (filtersOpen()) {
+            <form
+              [formGroup]="filtersForm"
+              class="px-5 pb-5 pt-2 flex flex-col gap-5"
+            >
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
+                <div class="field-group sm:col-span-2">
+                  <label for="searchFilter" class="field-label">Buscar</label>
+                  <input
+                    id="searchFilter"
+                    type="text"
+                    pInputText
+                    formControlName="search"
+                    placeholder="Nombre, RFC, correo o teléfono"
+                    class="w-full"
+                  />
+                </div>
+                <div class="field-group sm:col-span-2">
+                  <label for="stateFilter" class="field-label">Estado</label>
+                  <p-select
+                    inputId="stateFilter"
+                    formControlName="state"
+                    [options]="stateOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Todos"
+                    [showClear]="true"
+                    [filter]="true"
+                    filterBy="label"
+                    [autoOptionFocus]="false"
+                    styleClass="w-full"
+                  >
+                  </p-select>
+                </div>
+              </div>
+              <div class="flex justify-end">
+                @if (activeFilterCount() > 0) {
+                  <button
+                    type="button"
+                    class="text-base font-bold text-sky-800 hover:text-sky-900 inline-flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-sky-50 transition-colors"
+                    (click)="clearFilters()"
+                  >
+                    <i class="pi pi-times"></i>
+                    Limpiar filtros
+                  </button>
+                }
+              </div>
+            </form>
           }
         </div>
       </ng-template>
@@ -37,20 +114,45 @@
           <th pSortableColumn="name">Nombre <p-sortIcon field="name"></p-sortIcon></th>
           <th pSortableColumn="identification">RFC <p-sortIcon field="identification"></p-sortIcon></th>
           <th pSortableColumn="phone">Teléfono <p-sortIcon field="phone"></p-sortIcon></th>
-          <th pSortableColumn="email">Correo <p-sortIcon field="email"></p-sortIcon></th>
+          <th pSortableColumn="state">Estado <p-sortIcon field="state"></p-sortIcon></th>
+          <th class="text-right">Acciones</th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-c>
-        <tr>
-          <td class="font-semibold text-granite-900">{{ c.name }}</td>
+        <tr (click)="goToEdit(c.id)" class="cursor-pointer">
+          <td class="font-semibold text-granite-950">{{ c.name }}</td>
           <td class="font-data tabular-nums">{{ c.identification ?? '—' }}</td>
           <td class="font-data tabular-nums">{{ c.phone ?? '—' }}</td>
-          <td>{{ c.email ?? '—' }}</td>
+          <td>{{ c.state ?? '—' }}</td>
+          <td class="text-right">
+            <div class="inline-flex items-center gap-1">
+              <button
+                type="button"
+                pTooltip="Editar"
+                tooltipPosition="top"
+                aria-label="Editar"
+                (click)="$event.stopPropagation(); goToEdit(c.id)"
+                class="size-9 inline-flex items-center justify-center rounded-lg text-sky-800 hover:bg-sky-50 active:bg-sky-100 transition-colors"
+              >
+                <i class="pi pi-pencil"></i>
+              </button>
+              <button
+                type="button"
+                pTooltip="Eliminar"
+                tooltipPosition="top"
+                aria-label="Eliminar"
+                (click)="askDelete($event, c)"
+                class="size-9 inline-flex items-center justify-center rounded-lg text-red-700 hover:bg-red-50 active:bg-red-100 transition-colors"
+              >
+                <i class="pi pi-trash"></i>
+              </button>
+            </div>
+          </td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
         <tr class="p-datatable-emptymessage">
-          <td colspan="4">Aún no hay clientes.</td>
+          <td colspan="5">Aún no hay clientes.</td>
         </tr>
       </ng-template>
     </p-table>

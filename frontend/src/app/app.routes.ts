@@ -3,6 +3,7 @@ import { Login } from './auth/pages/login/login';
 import { Reports } from './reports/pages/reports/reports';
 import { AuthenticatedLayoutAdmin } from './layouts/authenticated-layout-admin';
 import { authGuard } from './guards/auth-guard';
+import { adminGuard } from './guards/admin-guard';
 
 export const routes: Routes = [
     {
@@ -28,14 +29,22 @@ export const routes: Routes = [
             },
             {
                 path: 'customers',
+                canActivate: [adminGuard],
                 loadComponent: () => import('./customers/pages/customers/customers').then(m => m.Customers)
             },
             {
+                path: 'customers/:id/edit',
+                canActivate: [adminGuard],
+                loadComponent: () => import('./customers/pages/customer-edit/customer-edit').then(m => m.CustomerEdit)
+            },
+            {
                 path: 'customer-add',
+                canActivate: [adminGuard],
                 loadComponent: () => import('./customers/pages/customer-add/customer-add').then(m => m.CustomerAdd)
             },
             {
                 path: 'register',
+                canActivate: [adminGuard],
                 loadComponent: () => import('./auth/pages/register/register').then(m => m.Register)
             },
             {

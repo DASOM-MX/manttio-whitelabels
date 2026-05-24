@@ -48,10 +48,16 @@ export const customers = pgTable(
     address: text('address'),
     state: text('state'),
     razonSocial: text('razon_social'),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (table) => [index('customers_email_idx').on(table.email)],
+  (table) => [
+    index('customers_email_idx').on(table.email),
+    index('customers_active_idx')
+      .on(table.createdAt)
+      .where(sql`${table.deletedAt} is null`),
+  ],
 );
 
 export const reports = pgTable(
