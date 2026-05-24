@@ -1,0 +1,50 @@
+/* PrimeNG Toast */
+.p-toast {
+  @apply fixed top-6 left-6 right-6 sm:left-auto sm:w-96 z-50 flex flex-col gap-3;
+}
+
+.p-toast-message {
+  @apply card border-l-4 px-5 py-4 shadow-lg;
+}
+.p-toast-message-content {
+  @apply flex items-start gap-3;
+}
+.p-toast-message-icon {
+  @apply size-6 shrink-0 mt-0.5;
+}
+.p-toast-message-text {
+  @apply flex-1 flex flex-col gap-1 min-w-0;
+}
+.p-toast-summary {
+  @apply text-base font-bold text-granite-900;
+}
+.p-toast-detail {
+  @apply text-sm text-granite-700;
+}
+.p-toast-close-button {
+  @apply inline-flex items-center justify-center size-8 rounded-md text-granite-500 hover:bg-granite-100 hover:text-granite-900 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-700/30;
+}
+.p-toast-close-icon {
+  @apply size-4;
+}
+
+.p-toast-message-success {
+  @apply border-emerald-500;
+  .p-toast-message-icon { @apply text-emerald-600; }
+}
+.p-toast-message-info {
+  @apply border-sky-500;
+  .p-toast-message-icon { @apply text-sky-600; }
+}
+.p-toast-message-warn {
+  @apply border-amber-500;
+  .p-toast-message-icon { @apply text-amber-600; }
+}
+.p-toast-message-error {
+  @apply border-red-500;
+  .p-toast-message-icon { @apply text-red-600; }
+}
+.p-toast-message-secondary {
+  @apply border-granite-400;
+  .p-toast-message-icon { @apply text-granite-600; }
+}
