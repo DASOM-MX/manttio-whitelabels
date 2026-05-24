@@ -53,6 +53,9 @@ customers.patch(
     if (input.phone !== undefined) fields.phone = input.phone;
     if (input.email !== undefined) fields.email = input.email;
     if (input.observation !== undefined) fields.observation = input.observation;
+    if (input.address !== undefined) fields.address = input.address;
+    if (input.state !== undefined) fields.state = input.state;
+    if (input.razonSocial !== undefined) fields.razonSocial = input.razonSocial;
 
     const row = await updateCustomer(db, id, fields);
     if (!row) return c.json({ error: 'not_found' }, 404);

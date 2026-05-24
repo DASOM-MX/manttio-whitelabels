@@ -81,7 +81,7 @@
             </div>
 
             <!-- User Role -->
-            <div class="field-group mb-8">
+            <div class="field-group mb-5">
                 <label for="role" class="field-label">Rol</label>
                 <p-select inputId="role" formControlName="role" [options]="roleOptions" optionLabel="label"
                     optionValue="value" placeholder="Selecciona un rol" styleClass="w-full">
@@ -90,6 +90,21 @@
                     <div class="text-red-700 text-sm font-semibold flex items-center gap-1.5">
                         <span aria-hidden="true">⚠</span>
                         <span>Selecciona un rol válido.</span>
+                    </div>
+                }
+            </div>
+
+            <!-- Timezone -->
+            <div class="field-group mb-8">
+                <label for="timezone" class="field-label">Zona horaria</label>
+                <p-select inputId="timezone" formControlName="timezone" [options]="timezoneOptions"
+                    optionLabel="label" optionValue="value" placeholder="Selecciona una zona horaria"
+                    styleClass="w-full">
+                </p-select>
+                @if (registerForm.get('timezone')?.invalid && registerForm.get('timezone')?.touched) {
+                    <div class="text-red-700 text-sm font-semibold flex items-center gap-1.5">
+                        <span aria-hidden="true">⚠</span>
+                        <span>Selecciona una zona horaria.</span>
                     </div>
                 }
             </div>

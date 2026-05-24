@@ -17,8 +17,8 @@
                 }
                 @case ('select') {
                     <p-select [inputId]="field.name" [formControlName]="field.name"
-                        [options]="field.options" styleClass="w-full"
-                        placeholder="Selecciona una opción">
+                        [options]="getOptions(field)" optionLabel="label" optionValue="value"
+                        styleClass="w-full" placeholder="Selecciona una opción">
                     </p-select>
                 }
                 @case ('datetime-local') {

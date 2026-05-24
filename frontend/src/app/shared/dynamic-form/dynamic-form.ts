@@ -7,7 +7,7 @@ import {
   inject,
 } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { FieldConfig } from '../../interfaces/field-config';
+import { FieldConfig, FieldOption } from '../../interfaces/field-config';
 import { ImagePickerComponent } from '../../reports/components/image-picker/image-picker';
 import { SignatureComponent } from '../../reports/components/signature-pad/signature-pad';
 import { InputTextModule } from 'primeng/inputtext';
@@ -70,5 +70,12 @@ export class DynamicForm implements OnInit {
     this.form.patchValue({ signature: signaturedataURL });
     this.signatureChanged.emit(signaturedataURL);
     console.log('Firma capturada(base64):', signaturedataURL);
+  }
+
+  getOptions(field: FieldConfig): FieldOption[] {
+    if (!field.options) return [];
+    return field.options.map((opt) =>
+      typeof opt === 'string' ? { label: opt, value: opt } : opt,
+    );
   }
 }

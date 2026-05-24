@@ -6,6 +6,9 @@ export const createCustomerSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email().optional(),
   observation: z.string().optional(),
+  address: z.string().optional(),
+  state: z.string().optional(),
+  razonSocial: z.string().optional(),
 });
 
 export const updateCustomerSchema = createCustomerSchema
