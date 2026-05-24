@@ -54,6 +54,7 @@ users.post('/', zValidator('json', createUserSchema), async (c) => {
       email: input.email,
       passwordHash,
       role: input.role,
+      ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
     });
     return c.json({ user: toPublicUser(row) }, 201);
   } catch (err) {
@@ -73,6 +74,7 @@ users.patch('/:id', zValidator('json', updateUserSchema), async (c) => {
   if (input.name !== undefined) fields.name = input.name;
   if (input.email !== undefined) fields.email = input.email;
   if (input.role !== undefined) fields.role = input.role;
+  if (input.timezone !== undefined) fields.timezone = input.timezone;
   if (input.password !== undefined) fields.passwordHash = await hashPassword(input.password);
 
   try {

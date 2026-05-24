@@ -4,4 +4,7 @@ export interface CreateCustomerRequest {
   phone?: string;
   email?: string;
   observation?: string;
+  address?: string;
+  state?: string;
+  razonSocial?: string;
 }
