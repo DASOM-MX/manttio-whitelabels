@@ -13,10 +13,13 @@
 
 @layer base {
   html {
-    @apply text-granite-950 antialiased;
+    @apply h-full text-granite-950 antialiased;
   }
   body {
-    @apply bg-background;
+    @apply h-full bg-background;
+  }
+  app-root {
+    @apply block h-full;
   }
 }
 
