@@ -144,6 +144,7 @@ reports.get('/', zValidator('query', listReportsQuerySchema), async (c) => {
   if (q.status) filters.status = q.status as ReportFilters['status'];
   if (q.client_id) filters.clientId = q.client_id;
   if (q.work_type) filters.workType = q.work_type;
+  if (q.state) filters.state = q.state;
   if (q.folio) filters.folio = q.folio;
   if (q.date_from) filters.dateFrom = new Date(q.date_from);
   if (q.date_to) filters.dateTo = new Date(q.date_to);
@@ -260,6 +261,7 @@ reports.post('/', async (c) => {
         assignedTo,
         clientId: meta.client_id,
         signedBy: meta.signed_by ?? null,
+        state: client.state ?? null,
       },
       {
         data,

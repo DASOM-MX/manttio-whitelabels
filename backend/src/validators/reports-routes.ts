@@ -51,6 +51,7 @@ export const listReportsQuerySchema = z.object({
   client_id: z.string().uuid().optional(),
   assigned_to: z.string().uuid().optional(),
   work_type: z.string().min(1).optional(),
+  state: z.string().min(1).optional(),
   // Folio (report id) prefix match — e.g. `R-20260503` returns all of that day, `R-20260503-0001` returns one.
   folio: z.string().min(1).optional(),
   // Date range against `date_arrival`. Either bound is optional.

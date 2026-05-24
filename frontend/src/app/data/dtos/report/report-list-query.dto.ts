@@ -5,6 +5,7 @@ export interface ReportListQuery {
   client_id?: string;
   assigned_to?: string;
   work_type?: string;
+  state?: string;
   folio?: string;
   date_from?: string;
   date_to?: string;

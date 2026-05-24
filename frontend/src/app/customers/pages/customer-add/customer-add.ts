@@ -7,7 +7,7 @@ import { FieldConfig } from '../../../interfaces/field-config';
 import { DynamicForm } from '../../../shared/dynamic-form/dynamic-form';
 import { CreateCustomer } from '../../../../state/customers/customers.actions';
 import type { CreateCustomerRequest } from '../../../data/dtos/customer';
-import { MEXICAN_STATES } from '../../constants/mexican-states';
+import { MEXICAN_STATES } from '../../../../data/constants';
 
 @Component({
   selector: 'app-customer-add',
