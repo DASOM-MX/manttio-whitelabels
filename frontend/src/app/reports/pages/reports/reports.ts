@@ -3,7 +3,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { DatePipe, SlicePipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { Store } from '@ngxs/store';
+import { Store, select } from '@ngxs/store';
 import { Table, TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
@@ -66,9 +66,9 @@ export class Reports {
 
   readonly stateOptions = MEXICAN_STATES;
 
-  private reportRows = this.store.selectSignal(ReportsState.list);
-  private customerRows = this.store.selectSignal(CustomersState.list);
-  loading = this.store.selectSignal(ReportsState.loading);
+  private reportRows = select(ReportsState.list);
+  private customerRows = select(CustomersState.list);
+  loading = select(ReportsState.loading);
 
   private customerNameById = computed(() => {
     const map = new Map<string, string>();

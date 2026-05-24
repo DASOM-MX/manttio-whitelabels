@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DynamicForm } from '../../../shared/dynamic-form/dynamic-form';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Actions, Store, ofActionSuccessful, ofActionErrored } from '@ngxs/store';
+import { Actions, Store, ofActionSuccessful, ofActionErrored, select } from '@ngxs/store';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SelectModule } from 'primeng/select';
 import { FieldConfig } from '../../../interfaces/field-config';
@@ -37,7 +37,7 @@ export class ReportAdd {
   private confirm = inject(ConfirmationService);
   private fb = inject(FormBuilder);
 
-  customers = this.store.selectSignal(CustomersState.list);
+  customers = select(CustomersState.list);
 
   selectedFiles = signal<File[]>([]);
   signatureFile = signal<File | null>(null);

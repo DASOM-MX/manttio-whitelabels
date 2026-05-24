@@ -9,7 +9,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { Actions, Store, ofActionSuccessful, ofActionErrored } from '@ngxs/store';
+import { Actions, Store, ofActionSuccessful, ofActionErrored, select } from '@ngxs/store';
 import { take } from 'rxjs/operators';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
@@ -144,9 +144,9 @@ export class ReportDetail {
   private messages = inject(MessageService);
   private confirm = inject(ConfirmationService);
 
-  private selected = this.store.selectSignal(ReportsState.selected);
-  customer = this.store.selectSignal(CustomersState.selected);
-  private currentUser = this.store.selectSignal(AuthState.user);
+  private selected = select(ReportsState.selected);
+  customer = select(CustomersState.selected);
+  private currentUser = select(AuthState.user);
 
   report = computed<ReportViewModel | null>(() => {
     const sel = this.selected();
