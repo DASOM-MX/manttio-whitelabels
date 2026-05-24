@@ -429,6 +429,18 @@
                             <img [src]="report.signature" alt="Firma"
                                 class="mx-auto max-h-48 border-2 border-granite-200 p-3 rounded-xl bg-white" />
                             <p class="mt-4 text-lg font-bold text-granite-950">Firmado por: {{ report.signed_by }}</p>
+                            @if (report.signed_maps_url) {
+                                <p class="mt-2 text-sm text-granite-700">
+                                    Ubicación de firma:
+                                    <a [href]="report.signed_maps_url" target="_blank" rel="noopener"
+                                        class="text-sky-700 font-semibold underline">
+                                        {{ report.signed_latitude | number:'1.6-6' }}, {{ report.signed_longitude | number:'1.6-6' }}
+                                    </a>
+                                    @if (report.signed_accuracy && report.signed_accuracy > 0) {
+                                        <span class="text-granite-600">(±{{ report.signed_accuracy | number:'1.0-0' }} m)</span>
+                                    }
+                                </p>
+                            }
                         </div>
                     } @else if (!report.report_status) {
                         <app-signature (signatureChanged)="onSignatureSaved($event)"></app-signature>

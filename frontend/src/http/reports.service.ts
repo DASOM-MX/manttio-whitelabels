@@ -41,6 +41,9 @@ export class ReportsService {
     for (const pic of fields.pictures ?? []) fd.append('pictures', pic);
     appendIf(fd, 'signature', fields.signature);
     appendIf(fd, 'signature_base64', fields.signature_base64);
+    appendIf(fd, 'signed_latitude', fields.signed_latitude);
+    appendIf(fd, 'signed_longitude', fields.signed_longitude);
+    appendIf(fd, 'signed_accuracy', fields.signed_accuracy);
     return this.remote.postForm<ReportResponse>('/reports', fd);
   }
   update(id: string, body: UpdateReportRequest): Observable<ReportResponse> {
@@ -54,6 +57,9 @@ export class ReportsService {
     fd.set('signed_by', fields.signed_by);
     appendIf(fd, 'signature', fields.signature);
     appendIf(fd, 'signature_base64', fields.signature_base64);
+    fd.set('signed_latitude', String(fields.signed_latitude));
+    fd.set('signed_longitude', String(fields.signed_longitude));
+    appendIf(fd, 'signed_accuracy', fields.signed_accuracy);
     return this.remote.putForm<ReportResponse>(`/reports/${id}/signature`, fd);
   }
   addPictures(id: string, pictures: File[]): Observable<ReportDetailsResponse> {

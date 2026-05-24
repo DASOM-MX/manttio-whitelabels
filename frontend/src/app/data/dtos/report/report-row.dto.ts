@@ -11,7 +11,11 @@ export interface ReportRow {
   clientId: string;
   signedBy: string | null;
   status: ReportStatus;
+  state: string | null;
   signedAt: string | null;
+  signedLatitude: number | null;
+  signedLongitude: number | null;
+  signedAccuracy: number | null;
   finishedAt: string | null;
   mailedAt: string | null;
   createdAt: string;

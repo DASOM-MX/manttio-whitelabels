@@ -14,6 +14,7 @@ export type ReportFilters = {
   clientId?: string;
   assignedTo?: string;
   workType?: string;
+  state?: string;
   // Folio (report id) prefix match. e.g. `R-20260503` returns all of that day.
   folio?: string;
   // Date range filters apply to `date_arrival`. Either bound is optional.
@@ -31,6 +32,7 @@ export const listReports = async (db: Db, filters: ReportFilters = {}) => {
   if (filters.clientId) conds.push(eq(reports.clientId, filters.clientId));
   if (filters.assignedTo) conds.push(eq(reports.assignedTo, filters.assignedTo));
   if (filters.workType) conds.push(eq(reports.workType, filters.workType));
+  if (filters.state) conds.push(eq(reports.state, filters.state));
   if (filters.folio) conds.push(ilike(reports.id, `${filters.folio}%`));
   if (filters.dateFrom) conds.push(gte(reports.dateArrival, filters.dateFrom));
   if (filters.dateTo) conds.push(lte(reports.dateArrival, filters.dateTo));
@@ -143,11 +145,18 @@ export const bumpToInProgress = async (db: Db, id: string) => {
     .where(and(eq(reports.id, id), eq(reports.status, 'created'), activeFilter));
 };
 
+export type SignedLocation = {
+  latitude: number;
+  longitude: number;
+  accuracy?: number | null;
+};
+
 export const markFinished = async (
   db: Db,
   id: string,
   signedBy: string,
   signatureUrl: string,
+  location: SignedLocation,
 ) => {
   return db.transaction(async (tx) => {
     const now = new Date();
@@ -158,6 +167,9 @@ export const markFinished = async (
         finishedAt: now,
         signedAt: now,
         signedBy,
+        signedLatitude: location.latitude,
+        signedLongitude: location.longitude,
+        signedAccuracy: location.accuracy ?? null,
         updatedAt: now,
       })
       .where(and(eq(reports.id, id), activeFilter))

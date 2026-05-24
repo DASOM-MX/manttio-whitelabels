@@ -113,6 +113,23 @@
                   >
                   </p-select>
                 </div>
+                <div class="field-group sm:col-span-2">
+                  <label for="stateFilter" class="field-label">Estado</label>
+                  <p-select
+                    inputId="stateFilter"
+                    formControlName="state"
+                    [options]="stateOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Todos"
+                    [showClear]="true"
+                    [filter]="true"
+                    filterBy="label"
+                    [autoOptionFocus]="false"
+                    styleClass="w-full"
+                  >
+                  </p-select>
+                </div>
               </div>
             </div>
             <div class="flex justify-end">

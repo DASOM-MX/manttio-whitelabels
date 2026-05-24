@@ -25,7 +25,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { DatePickerModule } from 'primeng/datepicker';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
-import { DatePipe, SlicePipe } from '@angular/common';
+import { DatePipe, DecimalPipe, SlicePipe } from '@angular/common';
 import { AuthState } from '../../../../state/auth/auth.state';
 import { ReportsState } from '../../../../state/reports/reports.state';
 import {
@@ -43,6 +43,7 @@ import type {
   ReportData,
   UpdateReportRequest,
   AddSignatureFields,
+  SignedPayload,
 } from '../../../data/dtos/report';
 import type { ReportType, ReportStatus } from '../../../data/types/report';
 
@@ -59,6 +60,10 @@ interface ReportViewModel {
   date_departure: string | null;
   signature: string | null;
   signed_by: string | null;
+  signed_latitude: number | null;
+  signed_longitude: number | null;
+  signed_accuracy: number | null;
+  signed_maps_url: string | null;
   pictures: string[];
   observations: string;
   // discriminated fields, may be undefined per report_type — read with caution
@@ -84,6 +89,8 @@ interface ReportViewModel {
 
 const toViewModel = (report: ReportRow, details: ReportDetailRow | null): ReportViewModel => {
   const data = (details?.data ?? {}) as Partial<ReportData>;
+  const lat = report.signedLatitude;
+  const lng = report.signedLongitude;
   return {
     id: report.id,
     report_type: report.reportType,
@@ -93,6 +100,13 @@ const toViewModel = (report: ReportRow, details: ReportDetailRow | null): Report
     date_departure: report.dateDeparture,
     signature: details?.signature ?? null,
     signed_by: report.signedBy,
+    signed_latitude: lat,
+    signed_longitude: lng,
+    signed_accuracy: report.signedAccuracy,
+    signed_maps_url:
+      lat !== null && lng !== null
+        ? `https://www.google.com/maps?q=${lat.toFixed(6)},${lng.toFixed(6)}`
+        : null,
     pictures: details?.pictures ?? [],
     observations: (data as { observations?: string }).observations ?? '',
     ...data,
@@ -104,6 +118,7 @@ const toViewModel = (report: ReportRow, details: ReportDetailRow | null): Report
   standalone: true,
   imports: [
     DatePipe,
+    DecimalPipe,
     SlicePipe,
     ReactiveFormsModule,
     SignatureComponent,
@@ -250,8 +265,8 @@ export class ReportDetail {
     this.removedPictures.update((current) => [...current, ...removed]);
   }
 
-  onSignatureSaved(signatureData: string) {
-    if (!signatureData) return;
+  onSignatureSaved(payload: SignedPayload | null) {
+    if (!payload) return;
     const sel = this.selected();
     if (!sel) return;
 
@@ -263,8 +278,14 @@ export class ReportDetail {
       rejectLabel: 'Cancelar',
       accept: () => {
         const userEmail = this.currentUser()?.email ?? 'Técnico';
-        const file = this.dataURLtoFile(signatureData, `signature-${Date.now()}.jpg`);
-        const fields: AddSignatureFields = { signed_by: userEmail, signature: file };
+        const file = this.dataURLtoFile(payload.dataUrl, `signature-${Date.now()}.jpg`);
+        const fields: AddSignatureFields = {
+          signed_by: userEmail,
+          signature: file,
+          signed_latitude: payload.latitude,
+          signed_longitude: payload.longitude,
+          signed_accuracy: payload.accuracy,
+        };
         this.store.dispatch(new AddSignature(sel.report.id, fields));
       },
     });

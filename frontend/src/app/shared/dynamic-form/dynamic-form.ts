@@ -10,6 +10,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { FieldConfig, FieldOption } from '../../interfaces/field-config';
 import { ImagePickerComponent } from '../../reports/components/image-picker/image-picker';
 import { SignatureComponent } from '../../reports/components/signature-pad/signature-pad';
+import type { SignedPayload } from '../../data/dtos/report';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
@@ -34,7 +35,7 @@ import { ButtonModule } from 'primeng/button';
 export class DynamicForm implements OnInit {
   @Input() fields: FieldConfig[] = [];
   @Output() filesSelected = new EventEmitter<File[]>();
-  @Output() signatureChanged = new EventEmitter<string>();
+  @Output() signatureChanged = new EventEmitter<SignedPayload | null>();
 
   form!: FormGroup;
   private fb = inject(FormBuilder);
@@ -66,10 +67,9 @@ export class DynamicForm implements OnInit {
     this.filesSelected.emit(files);
   }
 
-  onSignatureChanged(signaturedataURL: string) {
-    this.form.patchValue({ signature: signaturedataURL });
-    this.signatureChanged.emit(signaturedataURL);
-    console.log('Firma capturada(base64):', signaturedataURL);
+  onSignatureChanged(payload: SignedPayload | null) {
+    this.form.patchValue({ signature: payload?.dataUrl ?? null });
+    this.signatureChanged.emit(payload);
   }
 
   getOptions(field: FieldConfig): FieldOption[] {

@@ -2,6 +2,7 @@ import { relations, sql } from 'drizzle-orm';
 import {
   check,
   date,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -75,7 +76,11 @@ export const reports = pgTable(
       .$type<'created' | 'in-progress' | 'finished' | 'mailed'>()
       .notNull()
       .default('created'),
+    state: text('state'),
     signedAt: timestamp('signed_at', { withTimezone: true }),
+    signedLatitude: doublePrecision('signed_latitude'),
+    signedLongitude: doublePrecision('signed_longitude'),
+    signedAccuracy: doublePrecision('signed_accuracy'),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
     mailedAt: timestamp('mailed_at', { withTimezone: true }),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
@@ -89,6 +94,7 @@ export const reports = pgTable(
     index('reports_report_type_idx').on(table.reportType),
     index('reports_status_idx').on(table.status),
     index('reports_assigned_status_idx').on(table.assignedTo, table.status),
+    index('reports_state_idx').on(table.state),
     check(
       'reports_status_check',
       sql`${table.status} in ('created', 'in-progress', 'finished', 'mailed')`,

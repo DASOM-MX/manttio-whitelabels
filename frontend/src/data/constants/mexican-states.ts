@@ -1,6 +1,9 @@
-import type { FieldOption } from '../../interfaces/field-config';
+export interface MexicanStateOption {
+  label: string;
+  value: string;
+}
 
-export const MEXICAN_STATES: FieldOption[] = [
+export const MEXICAN_STATES: MexicanStateOption[] = [
   { label: 'Aguascalientes', value: 'Aguascalientes' },
   { label: 'Baja California', value: 'Baja California' },
   { label: 'Baja California Sur', value: 'Baja California Sur' },

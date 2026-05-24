@@ -77,6 +77,9 @@ export const dispatchReportEmail = async (
     finishedAt: result.report.finishedAt,
     createdByName,
     signedByName,
+    signedLatitude: result.report.signedLatitude,
+    signedLongitude: result.report.signedLongitude,
+    signedAccuracy: result.report.signedAccuracy,
     downloadUrl,
     brand: {
       name: p.env.BRAND_NAME,

@@ -17,6 +17,7 @@ import { LoadCustomers } from '../../../../state/customers/customers.actions';
 import { CustomersState } from '../../../../state/customers/customers.state';
 import type { ReportRow } from '../../../data/dtos/report';
 import type { ReportStatus } from '../../../data/types/report';
+import { MEXICAN_STATES } from '../../../../data/constants';
 
 type ReportListBucket = 'pending' | 'done';
 
@@ -63,6 +64,8 @@ export class Reports {
     { label: 'Finalizado', value: 'done' },
   ];
 
+  readonly stateOptions = MEXICAN_STATES;
+
   private reportRows = this.store.selectSignal(ReportsState.list);
   private customerRows = this.store.selectSignal(CustomersState.list);
   loading = this.store.selectSignal(ReportsState.loading);
@@ -105,6 +108,7 @@ export class Reports {
   filtersForm: FormGroup = this.fb.group({
     cliente: [null as string | null],
     estatus: [null as ReportListBucket | null],
+    state: [null as string | null],
     dateRange: [null as Date[] | null],
   });
 
@@ -117,6 +121,7 @@ export class Reports {
     let n = 0;
     if (v.cliente) n++;
     if (v.estatus !== null && v.estatus !== undefined) n++;
+    if (v.state) n++;
     if (v.dateRange?.[0]) n++;
     return n;
   });
@@ -142,6 +147,10 @@ export class Reports {
       .pipe(takeUntilDestroyed())
       .subscribe((v: ReportListBucket | null) => this.dt?.filter(v, 'bucket', 'equals'));
 
+    ctrl['state'].valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((v: string | null) => this.dt?.filter(v, 'state', 'equals'));
+
     ctrl['dateRange'].valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe((range: Date[] | null) => {
@@ -166,6 +175,7 @@ export class Reports {
     this.filtersForm.reset({
       cliente: null,
       estatus: null,
+      state: null,
       dateRange: null,
     });
     this.dt?.clear();

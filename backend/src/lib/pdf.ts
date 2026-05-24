@@ -70,6 +70,9 @@ export type RenderReportPdfParams = {
     dateDeparture: Date | null;
     finishedAt: Date | null;
     signedBy: string | null;
+    signedLatitude: number | null;
+    signedLongitude: number | null;
+    signedAccuracy: number | null;
   };
   data: Record<string, unknown>;
   customer: {
@@ -479,7 +482,12 @@ const drawPicturesGrid = async (r: Renderer, urls: string[]) => {
   r.y -= 8;
 };
 
-const drawSignature = async (r: Renderer, signatureUrl: string | null, signedBy: string) => {
+const drawSignature = async (
+  r: Renderer,
+  signatureUrl: string | null,
+  signedBy: string,
+  location: { latitude: number | null; longitude: number | null; accuracy: number | null },
+) => {
   if (!signatureUrl) return;
   const sig = await embedImageFromUrl(r.doc, signatureUrl);
   if (!sig) return;
@@ -487,7 +495,7 @@ const drawSignature = async (r: Renderer, signatureUrl: string | null, signedBy:
   const ratio = sig.height / sig.width;
   const w = targetW;
   const h = w * ratio;
-  ensureSpace(r, h + 24);
+  ensureSpace(r, h + 48);
   const x = MARGIN + (CONTENT_WIDTH - w) / 2;
   r.page.drawImage(sig, { x, y: r.y - h, width: w, height: h });
   r.y -= h + 4;
@@ -501,6 +509,23 @@ const drawSignature = async (r: Renderer, signatureUrl: string | null, signedBy:
     color: TEXT,
   });
   r.y -= 22;
+
+  if (location.latitude !== null && location.longitude !== null) {
+    const accSuffix =
+      location.accuracy !== null && location.accuracy > 0
+        ? ` (±${Math.round(location.accuracy)} m)`
+        : '';
+    const coordsText = `Ubicación de firma: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}${accSuffix}`;
+    const coordsWidth = r.font.widthOfTextAtSize(coordsText, 9);
+    r.page.drawText(coordsText, {
+      x: MARGIN + (CONTENT_WIDTH - coordsWidth) / 2,
+      y: r.y - 12,
+      size: 9,
+      font: r.font,
+      color: TEXT,
+    });
+    r.y -= 16;
+  }
 };
 
 export const renderReportPdf = async (p: RenderReportPdfParams): Promise<Uint8Array> => {
@@ -521,7 +546,11 @@ export const renderReportPdf = async (p: RenderReportPdfParams): Promise<Uint8Ar
   drawActivitiesTable(r, p);
   drawVariantTable(r, p.report.reportType, p.data);
   await drawPicturesGrid(r, p.pictureUrls);
-  await drawSignature(r, p.signatureUrl, p.report.signedBy ?? p.reportUserName);
+  await drawSignature(r, p.signatureUrl, p.report.signedBy ?? p.reportUserName, {
+    latitude: p.report.signedLatitude,
+    longitude: p.report.signedLongitude,
+    accuracy: p.report.signedAccuracy,
+  });
 
   return doc.save();
 };
