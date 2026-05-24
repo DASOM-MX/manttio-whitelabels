@@ -6,14 +6,7 @@ import { BottomNav } from '../shared/bottom-nav';
   selector: 'app-authenticated-layout-admin',
   standalone: true,
   imports: [RouterModule, BottomNav],
-  template: `
-    <div class="h-screen flex flex-col bg-background">
-      <main class="flex-1 min-h-0 overflow-y-auto">
-        <router-outlet></router-outlet>
-      </main>
-      <app-bottom-nav></app-bottom-nav>
-    </div>
-  `,
+  templateUrl: './authenticated-layout-admin.html',
   styleUrl: './authenticated-layout-admin.scss'
 })
 export class AuthenticatedLayoutAdmin {

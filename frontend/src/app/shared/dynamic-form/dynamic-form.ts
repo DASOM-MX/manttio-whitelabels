@@ -8,8 +8,8 @@ import {
 } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { FieldConfig } from '../../interfaces/field-config';
-import { ImagePickerComponent } from '../../components/image-picker/image-picker';
-import { SignatureComponent } from '../../components/signature-pad/signature-pad';
+import { ImagePickerComponent } from '../../reports/components/image-picker/image-picker';
+import { SignatureComponent } from '../../reports/components/signature-pad/signature-pad';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';

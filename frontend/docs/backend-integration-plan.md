@@ -96,7 +96,7 @@ These are committed. Don't relitigate.
 - [x] **PR #4** — Customers migration
 - [x] **PR #5** — Reports migration
 - [x] **PR #6** — Upload service + image picker wiring
-- [ ] **PR #7** — Theme migration + final cleanup
+- [x] **PR #7** — Theme migration + final cleanup
 
 ---
 
@@ -118,8 +118,7 @@ frontend/src/
 │   ├── reports/     { reports.state.ts, reports.actions.ts }
 │   └── users/       { users.state.ts, users.actions.ts }
 │
-├── theme/
-│   └── toast.service.ts
+├── theme/                               # PrimeNG SCSS overrides (checkbox, datepicker, select, table, tag)
 │
 ├── app/
 │   ├── app.config.ts
@@ -1444,13 +1443,22 @@ export class UploadService {
 
 ---
 
-## 13. Theme services
+## 13. Toasts
 
-### `theme/toast.service.ts`
+The custom `ToastService` + `<app-toast>` component were retired in PR #7.
+The app now talks to PrimeNG directly:
 
-Move `frontend/src/services/toast.service.ts` to
-`frontend/src/theme/toast.service.ts` **verbatim** (no code change).
-Update all importers to point at the new path.
+- `MessageService` (from `primeng/api`) is registered once in
+  `app/app.config.ts` providers.
+- `<p-toast />` (from `primeng/toast`) is rendered once in `app/app.html`
+  alongside `<router-outlet />` and `<p-confirmDialog />`.
+- Callsites inject `MessageService` and call
+  `messages.add({ severity, summary })`. Severity values are PrimeNG's:
+  `'success' | 'error' | 'info' | 'warn'` (note: `'warn'`, not `'warning'`).
+
+`frontend/src/theme/` remains in the tree as the home for PrimeNG SCSS
+overrides only (`checkbox.scss`, `datepicker.scss`, `select.scss`,
+`table.scss`, `tag.scss`).
 
 ---
 
@@ -1464,8 +1472,11 @@ Update all importers to point at the new path.
 | `frontend/src/app/auth/` (empty folder) | No other contents |
 | `frontend/src/services/customers.ts` | Replaced by `http/customers.service.ts` + `CustomersState` |
 | `frontend/src/services/reports.ts` | Replaced by `http/reports.service.ts` + `ReportsState` |
-| `frontend/src/services/toast.service.ts` | Moved to `theme/toast.service.ts` |
-| `frontend/src/services/` (empty folder) | All contents moved |
+| `frontend/src/services/toast.service.ts` | Replaced by PrimeNG `MessageService` (§13) |
+| `frontend/src/services/` (empty folder) | All contents migrated or replaced |
+| `frontend/src/app/components/toast/` (toast.ts/html/scss/spec.ts) | Replaced by PrimeNG `<p-toast />` rendered in `app.html` |
+| `frontend/src/app/interfaces/toast-message.ts` | No longer needed — `MessageService` types come from `primeng/api` |
+| `jwt-decode` (dependency) | Orphan after PR #2's no-frontend-JWT-decode security fix |
 | Inline `JwtPayload` in `app/pages/customer-add/customer-add.ts` | Use `from '../../data/dtos/jwt'` |
 | Inline `JwtPayload` in `app/pages/report-add/report-add.ts` | Same |
 | Inline `Customer` interface in `services/customers.ts` (file is being deleted anyway) | Use `CustomerRow` from DTOs |
@@ -1769,26 +1780,31 @@ Manual: if image-picker was migrated, exercise its upload flow.
 
 ### PR #7 — Theme migration + final cleanup
 
-**Goal:** `/services/` folder deleted. No `localStorage` reads/writes
-outside storage plugin. No old Vercel URL references. Doc fully ticked.
+**Goal:** `/services/` folder deleted. Toast abstraction retired in
+favor of PrimeNG `MessageService` directly. Orphan deps dropped. Doc
+fully ticked.
 
 **Checklist:**
-- [ ] Branch: `git checkout -b feature/frontend-theme-cleanup`
-- [ ] Create folder `frontend/src/theme/`
-- [ ] Move `frontend/src/services/toast.service.ts` → `frontend/src/theme/toast.service.ts` (content unchanged)
-- [ ] Update every importer:
-      `grep -rln "from '.*services/toast.service'" frontend/src/` and rewrite each path to point at `theme/toast.service`
-- [ ] Delete `frontend/src/services/` folder (must be empty after move)
-- [ ] Remove any remaining `console.log` debug calls left over from PR #2 in the new guard if any slipped in
-- [ ] **Tick this PR's box** in §2 and commit
+- [x] Branch: `git checkout -b feature/frontend-theme-cleanup`
+- [x] Retire the custom `ToastService` in favor of PrimeNG `MessageService`:
+  - [x] Provide `MessageService` (from `primeng/api`) in `app/app.config.ts`
+  - [x] Render `<p-toast />` (from `primeng/toast`) once in `app/app.html`; drop `<app-toast>` from `app/app.ts` imports
+  - [x] Migrate 6 callsites (`login`, `register`, `customer-add`, `report-add`, `report-detail`, `signature-pad`) from `toast.show(text, type)` to `messages.add({ severity, summary })`. Severity mapping: `success`/`error`/`info`/`warning` → `success`/`error`/`info`/`warn`
+- [x] Delete `frontend/src/services/toast.service.ts`
+- [x] Delete `frontend/src/services/` (now empty)
+- [x] Delete `frontend/src/app/components/toast/` (toast.ts/html/scss/spec.ts)
+- [x] Delete `frontend/src/app/interfaces/toast-message.ts`
+- [x] Drop `jwt-decode` from `frontend/package.json` (orphan since PR #2's frontend-no-JWT-decode security fix). `sweetalert2` + `@sweetalert2/ngx-sweetalert2` were already removed in the PR #5 review cleanup. `pnpm-lock.yaml` regenerated via `pnpm remove`
+- [x] **Tick this PR's box** in §2 and commit
 
 **Validation:**
 ```bash
 cd frontend
-pnpm tsc --noEmit
+pnpm tsc -p tsconfig.app.json --noEmit
 pnpm build
 test ! -d frontend/src/services && echo "services dir gone"
-grep -rn 'manttio.vercel.app' frontend/   || echo "no vercel refs"
+grep -rn "ToastService\|services/toast\|toast-message" frontend/src/ || echo "no remaining toast refs"
+grep -rn 'manttio.vercel.app' frontend/                              || echo "no vercel refs"
 grep -rn "localStorage\." frontend/src/ | grep -v "node_modules\|@ngxs" || echo "no stray localStorage"
 ```
 Manual: full app smoke — login, list customers, list reports, open a

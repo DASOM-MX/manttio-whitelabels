@@ -40,20 +40,20 @@
 }
 .p-datepicker-weekheader,
 .p-datepicker-weekday-cell {
-  @apply text-xs font-semibold uppercase tracking-wide text-granite-600 text-center py-1;
+  @apply text-sm font-bold uppercase tracking-wide text-granite-700 text-center py-1;
 }
 .p-datepicker-day-cell {
   @apply p-0.5;
 }
 .p-datepicker-day {
-  @apply size-9 rounded-full flex items-center justify-center text-base text-granite-900 cursor-pointer transition-colors mx-auto;
+  @apply size-10 rounded-full flex items-center justify-center text-base text-granite-900 cursor-pointer transition-colors mx-auto;
 
   &:hover {
     @apply bg-sky-50;
   }
   &.p-datepicker-day-selected,
   &[data-p-selected='true'] {
-    @apply bg-sky-600 text-white font-semibold;
+    @apply bg-sky-700 text-white font-bold;
   }
   &.p-datepicker-other-month,
   &[data-p-other-month='true'] {

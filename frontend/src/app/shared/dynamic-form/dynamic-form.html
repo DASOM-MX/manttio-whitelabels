@@ -1,4 +1,4 @@
-<form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-5">
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="m-0 flex flex-col gap-7">
     @for (field of fields; track field.name) {
         <div class="field-group">
             <label class="field-label" [attr.for]="field.name">
@@ -41,7 +41,7 @@
         </div>
     }
 
-    <button pButton type="submit" class="btn-primary w-full">
+    <button pButton type="submit" class="btn-primary w-full !min-h-14">
         Enviar
     </button>
 </form>
