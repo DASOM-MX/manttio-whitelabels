@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
-import { Store } from '@ngxs/store';
+import { Store, select } from '@ngxs/store';
 import { filter } from 'rxjs/operators';
 import { AuthState } from '../../state/auth/auth.state';
 import { Logout } from '../../state/auth/auth.actions';
@@ -16,8 +16,8 @@ export class BottomNav {
   private router = inject(Router);
   private store = inject(Store);
 
-  user = this.store.selectSignal(AuthState.user);
-  role = this.store.selectSignal(AuthState.role);
+  user = select(AuthState.user);
+  role = select(AuthState.role);
   isAdmin = computed(() => this.role() === 'admin');
   showMenu = signal(false);
 
