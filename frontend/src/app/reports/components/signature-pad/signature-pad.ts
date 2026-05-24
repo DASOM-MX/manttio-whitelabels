@@ -36,24 +36,11 @@ export class SignatureComponent implements AfterViewInit {
     }
 
     const dataURL = this.signaturePad.toDataURL();
-    // const blob = this.dataURLtoBlob(dataURL);
-    // console.log("firma:", blob);
     this.signatureChanged.emit(dataURL);
   }
 
   clearSignature(): void {
     this.signaturePad.clear();
     this.signatureChanged.emit('');
-  }
-
-  private dataURLtoBlob(dataURL: string): Blob {
-    const parts = dataURL.split(';base64,');
-    const mime = parts[0].split(':')[1];
-    const binary = atob(parts[1]);
-    const array = [];
-    for (let i = 0; i < binary.length; i++) {
-      array.push(binary.charCodeAt(i));
-    }
-    return new Blob([new Uint8Array(array)], { type: mime });
   }
 }

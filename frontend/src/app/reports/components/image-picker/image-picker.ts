@@ -35,7 +35,8 @@ export class ImagePickerComponent {
   }
 
   removeExistingImage(index: number) {
-    const removed = this.existingImages.splice(index, 1);
-    this.imagesRemoved.emit(removed);
+    const removed = this.existingImages[index];
+    this.existingImages = this.existingImages.filter((_, i) => i !== index);
+    this.imagesRemoved.emit([removed]);
   }
 }

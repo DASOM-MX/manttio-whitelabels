@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { SignaturePad } from './signature-pad';
+import { SignatureComponent } from './signature-pad';
 
-describe('SignaturePad', () => {
-  let component: SignaturePad;
-  let fixture: ComponentFixture<SignaturePad>;
+describe('SignatureComponent', () => {
+  let component: SignatureComponent;
+  let fixture: ComponentFixture<SignatureComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [SignaturePad]
+      imports: [SignatureComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(SignaturePad);
+    fixture = TestBed.createComponent(SignatureComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

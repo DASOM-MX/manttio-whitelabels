@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ImagePicker } from './image-picker';
+import { ImagePickerComponent } from './image-picker';
 
-describe('ImagePicker', () => {
-  let component: ImagePicker;
-  let fixture: ComponentFixture<ImagePicker>;
+describe('ImagePickerComponent', () => {
+  let component: ImagePickerComponent;
+  let fixture: ComponentFixture<ImagePickerComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ImagePicker]
+      imports: [ImagePickerComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(ImagePicker);
+    fixture = TestBed.createComponent(ImagePickerComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

@@ -1,5 +1,5 @@
 <div class="min-h-full bg-background">
-    <div class="max-w-2xl mx-auto px-4 sm:px-8 py-10 sm:py-12 space-y-8">
+    <div class="max-w-2xl mx-auto px-4 sm:px-8 py-10 sm:py-12 flex flex-col gap-8">
         <!-- Header -->
         <div class="flex flex-col gap-1">
             <p class="text-sm font-bold uppercase tracking-wider text-sky-800">Nuevo</p>
@@ -9,7 +9,7 @@
         </div>
 
         <!-- Form card -->
-        <div class="card-section space-y-7" [formGroup]="headerForm">
+        <div class="card-section flex flex-col gap-7" [formGroup]="headerForm">
             <div class="field-group">
                 <label for="reportType" class="field-label">Tipo de reporte</label>
                 <p-select inputId="reportType" formControlName="reportType"
@@ -18,7 +18,7 @@
                 </p-select>
             </div>
 
-            <div class="transition-opacity duration-300 space-y-7"
+            <div class="transition-opacity duration-300 flex flex-col gap-7"
                 [class.opacity-0]="isAnimating()" [class.opacity-100]="!isAnimating()">
                 <div class="field-group">
                     <label for="customer" class="field-label">Cliente</label>
