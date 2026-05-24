@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://<cloudflare-workers-prod-url>', // TODO: fill at deploy time
+  apiUrl: 'https://manttio-api.dasom-mx.workers.dev',
   bypassAuthGuard: false,
 };
