@@ -1,6 +1,12 @@
 /* PrimeNG Checkbox */
 .p-checkbox {
-  @apply inline-flex items-center cursor-pointer;
+  @apply relative inline-flex items-center cursor-pointer;
+}
+/* Hide the native <input>; keep it accessible (screen-readers + tab focus) by overlaying
+   it on the styled box. Without this, theme: 'none' lets the browser-default checkbox
+   render alongside .p-checkbox-box, producing a duplicated tick. */
+.p-checkbox-input {
+  @apply absolute inset-0 size-full m-0 p-0 opacity-0 cursor-pointer;
 }
 .p-checkbox-box {
   @apply size-7 rounded-md border-2 border-granite-400 bg-white flex items-center justify-center transition-colors cursor-pointer;

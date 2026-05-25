@@ -3,6 +3,7 @@ import type { Db } from '../client';
 import { reportCounters, reportDetails, reports } from '../schema';
 import { formatReportId } from '../../lib/report-id';
 import type { ReportStatus } from '../../lib/report-lifecycle';
+import type { WorkType } from '../../validators/reports';
 
 export type ReportRow = typeof reports.$inferSelect;
 export type ReportDetailRow = typeof reportDetails.$inferSelect;
@@ -13,7 +14,7 @@ export type ReportFilters = {
   status?: ReportStatus;
   clientId?: string;
   assignedTo?: string;
-  workType?: string;
+  workType?: WorkType;
   state?: string;
   // Folio (report id) prefix match. e.g. `R-20260503` returns all of that day.
   folio?: string;
@@ -83,9 +84,13 @@ export const createReport = async (
 
     const id = formatReportId(day, counter.lastNumber);
 
+    // Opening a report = being on-site. Default `date_arrival` to now() so the frontend
+    // does not have to send it; callers may still override (e.g. PDF imports, backfills).
+    const dateArrival = header.dateArrival ?? new Date();
+
     const [reportRow] = await tx
       .insert(reports)
-      .values({ ...header, id })
+      .values({ ...header, id, dateArrival })
       .returning();
     if (!reportRow) throw new Error('createReport: header insert returned no row');
 
@@ -166,6 +171,9 @@ export const markFinished = async (
         status: 'finished',
         finishedAt: now,
         signedAt: now,
+        // Signing the report = leaving the site. The frontend no longer collects
+        // `date_departure` manually; it is stamped here.
+        dateDeparture: now,
         signedBy,
         signedLatitude: location.latitude,
         signedLongitude: location.longitude,

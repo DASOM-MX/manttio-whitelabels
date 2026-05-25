@@ -19,6 +19,7 @@ import { AuthState } from '../state/auth/auth.state';
 import { UsersState } from '../state/users/users.state';
 import { CustomersState } from '../state/customers/customers.state';
 import { ReportsState } from '../state/reports/reports.state';
+import { ReportDraftState } from '../state/report-draft/report-draft.state';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -31,8 +32,8 @@ export const appConfig: ApplicationConfig = {
     ConfirmationService,
     MessageService,
     provideStore(
-      [AuthState, UsersState, CustomersState, ReportsState],
-      withNgxsStoragePlugin({ keys: ['auth'] }),
+      [AuthState, UsersState, CustomersState, ReportsState, ReportDraftState],
+      withNgxsStoragePlugin({ keys: ['auth', 'reportDraft'] }),
       withNgxsReduxDevtoolsPlugin({ disabled: !isDevMode() }),
       withNgxsLoggerPlugin({ disabled: !isDevMode() }),
     ),

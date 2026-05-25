@@ -1,9 +1,9 @@
-import type { ReportType } from '../../types/report';
+import type { ReportType, WorkType } from '../../types/report';
 import type { ReportData } from './report-data.dto';
 
 export interface CreateReportFields {
   report_type: ReportType;
-  work_type?: string;
+  work_type?: WorkType;
   client_id: string;
   date_arrival?: string;
   date_departure?: string;

@@ -1,0 +1,1 @@
+ALTER TABLE "reports" ADD CONSTRAINT "reports_work_type_check" CHECK ("reports"."work_type" is null or "reports"."work_type" in ('Preventivo', 'Correctivo', 'Instalación'));

@@ -49,6 +49,11 @@ export const reportSchemas = {
 export type ReportType = keyof typeof reportSchemas;
 export const reportTypes = Object.keys(reportSchemas) as readonly ReportType[];
 
+// Work-type enum. Add new options here AND in the matching DB check constraint
+// (see reports_work_type_check in db/schema.ts).
+export const workTypes = ['Preventivo', 'Correctivo', 'Instalación'] as const;
+export type WorkType = (typeof workTypes)[number];
+
 export type MinisplitData = z.infer<typeof minisplitDataSchema>;
 export type ChillerData = z.infer<typeof chillerDataSchema>;
 export type UmaData = z.infer<typeof umaDataSchema>;

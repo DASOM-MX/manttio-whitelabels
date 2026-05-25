@@ -6,6 +6,7 @@ import { insertUser } from '../../src/db/repositories/users';
 import { hashPassword } from '../../src/lib/password';
 import { reportCounters, reportDetails, reports } from '../../src/db/schema';
 import type { ReportStatus } from '../../src/lib/report-lifecycle';
+import type { WorkType } from '../../src/validators/reports';
 import { request, json, jsonHeaders } from './request';
 
 const tag = () => Math.random().toString(36).slice(2, 10);
@@ -93,7 +94,7 @@ type SeedReportOpts = {
   assignedTo?: string;
   clientId: string;
   data?: Record<string, unknown>;
-  workType?: string | null;
+  workType?: WorkType | null;
 };
 
 type SeededReport = {

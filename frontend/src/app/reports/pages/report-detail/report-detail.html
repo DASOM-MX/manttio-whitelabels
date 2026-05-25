@@ -68,31 +68,14 @@
                             <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.date_arrival | date:'mediumDate' }}</dd>
                         </div>
 
-                        @if (!editMode()) {
-                            <div class="field-group">
-                                <dt class="field-label">Llegada</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.date_arrival | date:'medium' }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Salida</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.date_departure | date:'medium' }}</dd>
-                            </div>
-                        } @else {
-                            <div class="field-group">
-                                <label for="dateArrival" class="field-label">Fecha de llegada</label>
-                                <p-datepicker inputId="dateArrival" formControlName="date_arrival"
-                                    [showTime]="true" hourFormat="24" dateFormat="dd/mm/yy"
-                                    styleClass="w-full">
-                                </p-datepicker>
-                            </div>
-                            <div class="field-group">
-                                <label for="dateDeparture" class="field-label">Fecha de salida</label>
-                                <p-datepicker inputId="dateDeparture" formControlName="date_departure"
-                                    [showTime]="true" hourFormat="24" dateFormat="dd/mm/yy"
-                                    styleClass="w-full">
-                                </p-datepicker>
-                            </div>
-                        }
+                        <div class="field-group">
+                            <dt class="field-label">Llegada</dt>
+                            <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ report.date_arrival | date:'medium' }}</dd>
+                        </div>
+                        <div class="field-group">
+                            <dt class="field-label">Salida</dt>
+                            <dd class="text-lg font-data tabular-nums text-granite-950 font-semibold">{{ (report.date_departure | date:'medium') || 'Pendiente' }}</dd>
+                        </div>
                     </dl>
                 </section>
 
@@ -442,10 +425,10 @@
                                 </p>
                             }
                         </div>
-                    } @else if (!report.report_status) {
-                        <app-signature (signatureChanged)="onSignatureSaved($event)"></app-signature>
                     } @else {
-                        <p class="text-lg text-granite-700 italic">Este reporte está finalizado y no se puede firmar.</p>
+                        <p class="text-lg text-granite-700 italic">
+                            Sin firma todavía. Usa el botón <span class="font-semibold not-italic text-granite-900">Terminar y enviar</span> para firmar y cerrar el reporte.
+                        </p>
                     }
                 </section>
             </div>
@@ -454,16 +437,44 @@
             <!-- Sticky action bar (sticks to scroll-container bottom, above the bottom-nav) -->
             <div class="sticky bottom-0 z-40 bg-white/95 backdrop-blur border-t-2 border-granite-200 shadow-lg">
                 <div class="max-w-4xl mx-auto px-4 sm:px-8 py-4 flex flex-wrap justify-end gap-3">
-                    <p-button type="button" (onClick)="downloadTextPDF()" severity="secondary" label="Descargar PDF"></p-button>
-                    @if (!editMode() && report()?.report_status === false) {
-                        <p-button type="button" (onClick)="toggleEdit()" severity="secondary" label="Editar"></p-button>
-                    }
-                    @if (editMode()) {
+                    @if (report()?.report_status) {
+                        <p-button type="button" (onClick)="downloadTextPDF()" severity="secondary" label="Descargar PDF"></p-button>
+                        <p-button type="button" (onClick)="mailReport()" label="Enviar por correo"></p-button>
+                    } @else if (editMode()) {
                         <p-button type="button" (onClick)="saveChanges()" label="Guardar"></p-button>
                         <p-button type="button" (onClick)="toggleEdit()" severity="secondary" label="Cancelar"></p-button>
+                    } @else {
+                        <p-button type="button" (onClick)="toggleEdit()" severity="secondary" label="Editar"></p-button>
+                        <p-button type="button" (onClick)="openSignModal()" label="Terminar y enviar"></p-button>
                     }
                 </div>
             </div>
         </form>
     </div>
 </div>
+
+<!-- Sign-and-finish modal: triggered by the "Terminar y enviar" button. The signature
+     component dispatches AddSignature on save, which marks the report finished and
+     auto-emails the customer. -->
+<p-dialog header="Terminar y enviar reporte" [(visible)]="signModalVisible" [modal]="true"
+    [closable]="true" [draggable]="false" [resizable]="false" [style]="{ width: '36rem' }">
+    <p class="text-base text-granite-900 mb-4">
+        Firma a continuación para cerrar el reporte y enviarlo al correo del cliente.
+    </p>
+    <app-signature (signatureChanged)="onSignatureSaved($event)"></app-signature>
+</p-dialog>
+
+<!-- Post-finish PDF dialog: offered as a courtesy after the report is signed. The
+     download is optional — the customer email already went out. -->
+<p-dialog header="¿Descargar PDF?" [(visible)]="pdfDialogVisible" [modal]="true"
+    [closable]="false" [draggable]="false" [resizable]="false" [style]="{ width: '28rem' }">
+    <p class="text-base text-granite-900">
+        El reporte fue firmado y enviado al cliente. ¿Quieres descargar una copia en PDF?
+    </p>
+    <ng-template pTemplate="footer">
+        <div class="flex justify-end gap-3">
+            <p-button label="No, gracias" severity="secondary" (onClick)="onPdfDownloadDecline()"></p-button>
+            <p-button label="Descargar PDF" (onClick)="onPdfDownloadAccept()"></p-button>
+        </div>
+    </ng-template>
+</p-dialog>

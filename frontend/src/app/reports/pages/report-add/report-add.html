@@ -8,24 +8,33 @@
             </h1>
         </div>
 
-        <!-- Form card -->
+        <!-- Form card — hidden until the technician confirms the "Abrir nuevo reporte"
+             dialog (or an existing draft is resumed). -->
+        @if (formReady()) {
         <div class="card-section flex flex-col gap-7" [formGroup]="headerForm">
-            <div class="field-group">
-                <label for="reportType" class="field-label">Tipo de reporte</label>
-                <p-select inputId="reportType" formControlName="reportType"
-                    [options]="reportTypeOptions" optionLabel="label" optionValue="value"
-                    [autoOptionFocus]="false" styleClass="w-full">
-                </p-select>
-            </div>
-
-            <div class="transition-opacity duration-300 flex flex-col gap-7"
-                [class.opacity-0]="isAnimating()" [class.opacity-100]="!isAnimating()">
+            <!-- 2x2 cabecera: Cliente | Llegada | Tipo de reporte | Tipo de tarea -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-7">
                 <div class="field-group">
                     <label for="customer" class="field-label">Cliente</label>
                     <p-select inputId="customer" formControlName="customerId"
                         [options]="customers()" optionLabel="name" optionValue="id"
                         [autoOptionFocus]="false" styleClass="w-full" [filter]="true"
                         filterBy="name,identification" placeholder="Selecciona un cliente">
+                    </p-select>
+                </div>
+
+                <div class="field-group">
+                    <span class="field-label">Llegada</span>
+                    <span class="text-lg font-data tabular-nums text-granite-950 font-semibold pt-1.5">
+                        {{ arrivalAt() | date:'dd/MM/yyyy HH:mm' }}
+                    </span>
+                </div>
+
+                <div class="field-group">
+                    <label for="reportType" class="field-label">Tipo de reporte</label>
+                    <p-select inputId="reportType" formControlName="reportType"
+                        [options]="reportTypeOptions" optionLabel="label" optionValue="value"
+                        [autoOptionFocus]="false" styleClass="w-full">
                     </p-select>
                 </div>
 
@@ -37,7 +46,11 @@
                         placeholder="Selecciona un tipo">
                     </p-select>
                 </div>
+            </div>
 
+            <!-- Dynamic form (fades + remounts when Tipo de reporte changes) -->
+            <div class="transition-opacity duration-300"
+                [class.opacity-0]="isAnimating()" [class.opacity-100]="!isAnimating()">
                 @if (!isAnimating()) {
                     <app-dynamic-form [fields]="formFields()"
                         (submitForm)="onFormSubmit($event)"
@@ -47,5 +60,21 @@
                 }
             </div>
         </div>
+        }
     </div>
 </div>
+
+<!-- Leave-draft dialog -->
+<p-dialog header="Reporte en progreso" [(visible)]="leaveDialogVisible" [modal]="true"
+    [closable]="false" [draggable]="false" [resizable]="false" [style]="{ width: '32rem' }">
+    <p class="text-base text-granite-900">
+        Tienes un reporte en progreso. ¿Qué deseas hacer con este borrador?
+    </p>
+    <ng-template pTemplate="footer">
+        <div class="flex flex-wrap justify-end gap-3">
+            <p-button label="Cancelar" severity="secondary" (onClick)="onLeaveCancel()"></p-button>
+            <p-button label="Descartar borrador" severity="danger" (onClick)="onLeaveDiscard()"></p-button>
+            <p-button label="Conservar y continuar después" (onClick)="onLeaveKeep()"></p-button>
+        </div>
+    </ng-template>
+</p-dialog>

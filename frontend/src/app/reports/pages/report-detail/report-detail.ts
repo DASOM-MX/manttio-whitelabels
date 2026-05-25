@@ -22,8 +22,8 @@ import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TextareaModule } from 'primeng/textarea';
 import { CheckboxModule } from 'primeng/checkbox';
-import { DatePickerModule } from 'primeng/datepicker';
 import { ButtonModule } from 'primeng/button';
+import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
 import { DatePipe, DecimalPipe, SlicePipe } from '@angular/common';
 import { AuthState } from '../../../../state/auth/auth.state';
@@ -34,6 +34,7 @@ import {
   AddSignature,
   AddPictures,
   RemovePictures,
+  SendReportEmail,
 } from '../../../../state/reports/reports.actions';
 import { CustomersState } from '../../../../state/customers/customers.state';
 import { LoadCustomer } from '../../../../state/customers/customers.actions';
@@ -45,7 +46,7 @@ import type {
   AddSignatureFields,
   SignedPayload,
 } from '../../../data/dtos/report';
-import type { ReportType, ReportStatus } from '../../../data/types/report';
+import type { ReportType, ReportStatus, WorkType } from '../../../data/types/report';
 
 pdfMake.vfs = pdfFonts.vfs;
 
@@ -127,8 +128,8 @@ const toViewModel = (report: ReportRow, details: ReportDetailRow | null): Report
     InputNumberModule,
     TextareaModule,
     CheckboxModule,
-    DatePickerModule,
     ButtonModule,
+    DialogModule,
     TagModule,
   ],
   templateUrl: './report-detail.html',
@@ -166,6 +167,10 @@ export class ReportDetail {
   newPictures = signal<File[]>([]);
   removedPictures = signal<string[]>([]);
 
+  /** Visibility flags for the dialogs spawned by the "Terminar y enviar" flow. */
+  signModalVisible = signal(false);
+  pdfDialogVisible = signal(false);
+
   /** Counts in-flight actions dispatched by saveChanges so the success/error
    *  handlers can settle on a single canonical toast regardless of order. */
   private pendingSave = signal(0);
@@ -189,13 +194,31 @@ export class ReportDetail {
       .pipe(ofActionSuccessful(AddSignature), takeUntilDestroyed())
       .subscribe(() => {
         this.editMode.set(false);
-        this.messages.add({ severity: 'success', summary: 'Reporte firmado exitosamente' });
+        this.signModalVisible.set(false);
+        this.messages.add({
+          severity: 'success',
+          summary: 'Reporte firmado y enviado al cliente',
+        });
+        // Offer the PDF as a courtesy — backend already triggered the customer email.
+        this.pdfDialogVisible.set(true);
       });
 
     this.actions$
       .pipe(ofActionErrored(AddSignature), takeUntilDestroyed())
       .subscribe(() =>
         this.messages.add({ severity: 'error', summary: 'Ha ocurrido un error al firmar el reporte' }),
+      );
+
+    this.actions$
+      .pipe(ofActionSuccessful(SendReportEmail), takeUntilDestroyed())
+      .subscribe(() =>
+        this.messages.add({ severity: 'success', summary: 'Reporte enviado al cliente' }),
+      );
+
+    this.actions$
+      .pipe(ofActionErrored(SendReportEmail), takeUntilDestroyed())
+      .subscribe(() =>
+        this.messages.add({ severity: 'error', summary: 'No se pudo enviar el reporte' }),
       );
 
     const id = this.route.snapshot.paramMap.get('id');
@@ -239,9 +262,7 @@ export class ReportDetail {
 
     const formValue = this.reportForm.value;
     const payload: UpdateReportRequest = {
-      ...(formValue.work_type !== undefined ? { work_type: String(formValue.work_type ?? '') } : {}),
-      ...(formValue.date_arrival ? { date_arrival: new Date(formValue.date_arrival).toISOString() } : {}),
-      ...(formValue.date_departure ? { date_departure: new Date(formValue.date_departure).toISOString() } : {}),
+      ...(formValue.work_type ? { work_type: formValue.work_type as WorkType } : {}),
       data: this.buildDataPatch(vm.report_type, formValue),
     };
 
@@ -265,30 +286,54 @@ export class ReportDetail {
     this.removedPictures.update((current) => [...current, ...removed]);
   }
 
+  /** Opens the sign-and-finish modal. The modal *is* the confirmation — accepting the
+   *  in-component signature commits the report. */
+  openSignModal(): void {
+    this.signModalVisible.set(true);
+  }
+
+  /** Fired by SignatureComponent inside the modal after the tech taps "Guardar firma".
+   *  Dispatches AddSignature immediately; the backend marks the report finished and
+   *  auto-emails the customer. PDF-download dialog opens on success. */
   onSignatureSaved(payload: SignedPayload | null) {
     if (!payload) return;
     const sel = this.selected();
     if (!sel) return;
 
+    const userEmail = this.currentUser()?.email ?? 'Técnico';
+    const file = this.dataURLtoFile(payload.dataUrl, `signature-${Date.now()}.jpg`);
+    const fields: AddSignatureFields = {
+      signed_by: userEmail,
+      signature: file,
+      signed_latitude: payload.latitude,
+      signed_longitude: payload.longitude,
+      signed_accuracy: payload.accuracy,
+    };
+    this.store.dispatch(new AddSignature(sel.report.id, fields));
+  }
+
+  /** Resends the report to the customer (backend defaults `to` to the customer email
+   *  when omitted). Available only on finished reports. */
+  mailReport(): void {
+    const sel = this.selected();
+    if (!sel) return;
     this.confirm.confirm({
-      header: '¿Deseas firmar este reporte?',
-      message: 'Una vez firmado, no podrá ser modificado.',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Sí, firmar',
+      header: 'Enviar reporte al cliente',
+      message: 'Se enviará una copia del reporte al correo del cliente. ¿Continuar?',
+      icon: 'pi pi-envelope',
+      acceptLabel: 'Enviar',
       rejectLabel: 'Cancelar',
-      accept: () => {
-        const userEmail = this.currentUser()?.email ?? 'Técnico';
-        const file = this.dataURLtoFile(payload.dataUrl, `signature-${Date.now()}.jpg`);
-        const fields: AddSignatureFields = {
-          signed_by: userEmail,
-          signature: file,
-          signed_latitude: payload.latitude,
-          signed_longitude: payload.longitude,
-          signed_accuracy: payload.accuracy,
-        };
-        this.store.dispatch(new AddSignature(sel.report.id, fields));
-      },
+      accept: () => this.store.dispatch(new SendReportEmail(sel.report.id, {})),
     });
+  }
+
+  onPdfDownloadAccept(): void {
+    this.pdfDialogVisible.set(false);
+    this.downloadTextPDF();
+  }
+
+  onPdfDownloadDecline(): void {
+    this.pdfDialogVisible.set(false);
   }
 
   downloadPDF() {
@@ -463,8 +508,6 @@ export class ReportDetail {
       observations: [r.observations || ''],
       unusual_noise: [r.unusual_noise || false],
       work_type: [r.manttio_type || ''],
-      date_arrival: [r.date_arrival || ''],
-      date_departure: [r.date_departure || ''],
     };
 
     let specificControls: Record<string, unknown[]> = {};
