@@ -1,8 +1,12 @@
 # Offline report queueing + installable PWA — Implementation Plan
 
-**Branch:** `feature/fullstack-report-add-overhaul` (or a dedicated `feature/frontend-offline-reports-pwa`)
-**Status:** Approved — not yet started
-**Last updated:** 2026-05-24
+**Status:** In progress
+**Last updated:** 2026-05-25
+
+### PR map (one PR per pair of phases)
+- **Phase 0 + Phase 1** → branch `feature/frontend-offline-reports-pwa` → **PR #20** (open)
+- **Phase 2 + Phase 3** → next branch off main → PR _TBD_
+- **Phase 4 + Phase 5** → next branch off main → PR _TBD_
 
 ---
 
