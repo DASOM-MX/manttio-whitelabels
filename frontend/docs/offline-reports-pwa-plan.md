@@ -113,11 +113,14 @@ slice is just a reactive projection for the UI.
   - Manifest `icons` array should list the four `icon-*` files with matching `sizes`/`type`/`purpose`.
     Regenerate with ImageMagick if the source mark changes.
 
-### Phase 1 — Storage layer (IndexedDB)
-- [ ] Add `dexie` dependency.
-- [ ] `frontend/src/offline/offline-reports.db.ts` — Dexie subclass + schema (`pendingReports`, key `tempId`).
-- [ ] `frontend/src/offline/offline-reports.service.ts` (`providedIn: 'root'`) —
-      `enqueue(fields, createdBy)`, `list()`, `get(tempId)`, `remove(tempId)`, `setStatus(tempId, status, err?)`.
+### Phase 1 — Storage layer (IndexedDB) — ✅ DONE
+- [x] Added `dexie@^4.4.2`.
+- [x] `frontend/src/offline/pending-report.model.ts` — `PendingReport`, `PendingReportStatus`,
+      `PendingReportCreator` types.
+- [x] `frontend/src/offline/offline-reports.db.ts` — Dexie subclass `OfflineReportsDb`
+      (`manttio-offline`, store `pendingReports: 'tempId, status, createdAt'`; blobs in `fields` stored, not indexed).
+- [x] `frontend/src/offline/offline-reports.service.ts` (`providedIn: 'root'`) —
+      `enqueue(fields, createdBy)`, `list()` (FIFO), `get(tempId)`, `count()`, `setStatus(tempId, status, err?)`, `remove(tempId)`.
 
 ### Phase 2 — NGXS state `OfflineReportsState`
 - [ ] `frontend/src/state/offline-reports/` (`.state.ts`, `.actions.ts`) following existing conventions.

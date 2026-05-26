@@ -35,6 +35,7 @@
     "@ngxs/logger-plugin": "^20.1.0",
     "@ngxs/storage-plugin": "^20.1.0",
     "@ngxs/store": "^20.1.0",
+    "dexie": "^4.4.2",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.1",
     "pdfmake": "^0.2.20",
