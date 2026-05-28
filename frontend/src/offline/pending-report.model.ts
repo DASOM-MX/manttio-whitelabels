@@ -1,4 +1,5 @@
 import type { CreateReportFields } from '../app/data/dtos/report';
+import type { ReportType } from '../app/data/types/report';
 
 /** Upload lifecycle of a report captured while offline. */
 export type PendingReportStatus = 'pending' | 'uploading' | 'failed';
@@ -25,3 +26,25 @@ export interface PendingReport {
   status: PendingReportStatus;
   lastError?: string;
 }
+
+/** Lightweight projection of a {@link PendingReport} for list/badge UIs — carries
+ *  no blobs, so it's cheap to hold in NGXS state and render. */
+export interface PendingReportSummary {
+  tempId: string;
+  reportType: ReportType;
+  clientId: string;
+  createdBy: PendingReportCreator;
+  createdAt: string;
+  status: PendingReportStatus;
+  lastError?: string;
+}
+
+export const toPendingSummary = (r: PendingReport): PendingReportSummary => ({
+  tempId: r.tempId,
+  reportType: r.fields.report_type,
+  clientId: r.fields.client_id,
+  createdBy: r.createdBy,
+  createdAt: r.createdAt,
+  status: r.status,
+  lastError: r.lastError,
+});

@@ -10,8 +10,8 @@ import type { PendingReport, PendingReportCreator, PendingReportStatus } from '.
 export class OfflineReportsService {
   private readonly db = new OfflineReportsDb();
 
-  /** Persist a finished offline report and return its generated `tempId`. */
-  async enqueue(fields: CreateReportFields, createdBy: PendingReportCreator): Promise<string> {
+  /** Persist a finished offline report and return the stored record. */
+  async enqueue(fields: CreateReportFields, createdBy: PendingReportCreator): Promise<PendingReport> {
     const record: PendingReport = {
       tempId: crypto.randomUUID(),
       fields,
@@ -20,7 +20,7 @@ export class OfflineReportsService {
       status: 'pending',
     };
     await this.db.pendingReports.add(record);
-    return record.tempId;
+    return record;
   }
 
   /** All queued reports, oldest first (FIFO upload order). */

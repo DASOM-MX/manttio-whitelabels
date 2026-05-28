@@ -5,8 +5,8 @@
 
 ### PR map (one PR per pair of phases)
 - **Phase 0 + Phase 1** → branch `feature/frontend-offline-reports-pwa` → **PR #20** (open)
-- **Phase 2 + Phase 3** → next branch off main → PR _TBD_
-- **Phase 4 + Phase 5** → next branch off main → PR _TBD_
+- **Phase 2 + Phase 3** → branch `feature/frontend-offline-reports-state-capture` → **PR #21** (open, stacked on #20)
+- **Phase 4 + Phase 5** → next branch → PR _TBD_
 
 ---
 
@@ -126,23 +126,23 @@ slice is just a reactive projection for the UI.
 - [x] `frontend/src/offline/offline-reports.service.ts` (`providedIn: 'root'`) —
       `enqueue(fields, createdBy)`, `list()` (FIFO), `get(tempId)`, `count()`, `setStatus(tempId, status, err?)`, `remove(tempId)`.
 
-### Phase 2 — NGXS state `OfflineReportsState`
-- [ ] `frontend/src/state/offline-reports/` (`.state.ts`, `.actions.ts`) following existing conventions.
-- [ ] Actions: `LoadPendingReports`, `QueueOfflineReport(fields)`, `SyncOfflineReports` (all),
-      `SyncOfflineReport(tempId)` (single — used by detail page), `DiscardPendingReport(tempId)`.
-- [ ] `SyncOfflineReports*` upload **sequentially**, guarded by `uploading`; per report:
-      `uploading` → `ReportsService.create(fields)` → success: remove from IDB + slice;
-      failure: mark `failed` + keep + record `lastError`.
-- [ ] Register `OfflineReportsState` in `app.config.ts`.
-- [ ] `provideAppInitializer` → dispatch `LoadPendingReports` on boot (queue survives reloads).
+### Phase 2 — NGXS state `OfflineReportsState` — ✅ DONE
+- [x] `frontend/src/state/offline-reports/` (`.state.ts`, `.actions.ts`). Model: `pending: PendingReportSummary[]`
+      + `uploading` flag; selectors `pending`/`count`/`hasPending`/`uploading`.
+- [x] Actions: `LoadPendingReports`, `QueueOfflineReport(fields, createdBy)`, `SyncOfflineReports`,
+      `SyncOfflineReport(tempId)`, `DiscardPendingReport(tempId)`.
+- [x] `uploadOne` replays via `store.dispatch(CreateReport)` (so synced reports also land in `ReportsState`),
+      sequential + `uploading`-guarded; success removes from IDB + slice, failure marks `failed` + `lastError`.
+- [x] `LoadPendingReports` recovers reports left stuck `uploading` by an interrupted sync → reset to `pending`.
+- [x] Registered in `app.config.ts`; hydrated on boot via `provideAppInitializer` (fire-and-forget).
+      **Not** in storage-plugin keys (IndexedDB is the source of truth).
 
-### Phase 3 — Capture point (`report-add.ts` `dispatchCreate`, ~line 343)
-- [ ] Branch on `navigator.onLine`: online → `CreateReport` (unchanged);
-      offline → `QueueOfflineReport(fields)` (with `createdBy` from `AuthState.user`).
-- [ ] React via `ofActionSuccessful(QueueOfflineReport)` (mirrors the `CreateReport` success handler
-      at ~line 158): toast *"Reporte guardado sin conexión; se subirá al reconectar"*, clear
-      files/signature, `DiscardReportDraft`, navigate to `/reports`. (Per the NGXS Actions-stream rule —
-      no `.subscribe()` on dispatch.)
+### Phase 3 — Capture point (`report-add.ts` `dispatchCreate`) — ✅ DONE
+- [x] Branch on `navigator.onLine`: online → `CreateReport` (unchanged);
+      offline → `QueueOfflineReport(fields, createdBy)` with `createdBy` snapshotted from `AuthState.user`.
+- [x] `ofActionSuccessful(QueueOfflineReport)` → info toast *"Reporte guardado sin conexión…"* + shared
+      `afterPersist()` (clear files/signature, `DiscardReportDraft`, navigate); `ofActionErrored` → error toast.
+      Refactored the existing `CreateReport` success path onto the same `afterPersist()` helper.
 
 ### Phase 4 — Reconnect detection + prompt
 - [ ] Root `OfflineSyncService`, initialized via `provideAppInitializer`; binds `window` `online`/`offline`

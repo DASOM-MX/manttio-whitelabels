@@ -21,6 +21,7 @@ import {
   UpdateReportDraft,
   DiscardReportDraft,
 } from '../../../../state/report-draft/report-draft.actions';
+import { QueueOfflineReport } from '../../../../state/offline-reports/offline-reports.actions';
 import type {
   CreateReportFields,
   ReportData,
@@ -159,17 +160,34 @@ export class ReportAdd {
       .pipe(ofActionSuccessful(CreateReport), takeUntilDestroyed())
       .subscribe(() => {
         this.messages.add({ severity: 'success', summary: 'Reporte agregado exitosamente' });
-        this.selectedFiles.set([]);
-        this.signatureFile.set(null);
-        this.signaturePayload.set(null);
-        this.store.dispatch(new DiscardReportDraft());
-        this.router.navigate(['/reports']);
+        this.afterPersist();
       });
 
     this.actions$
       .pipe(ofActionErrored(CreateReport), takeUntilDestroyed())
       .subscribe(() => {
         this.messages.add({ severity: 'error', summary: 'Error al enviar reporte' });
+      });
+
+    // Offline capture: the report was saved to IndexedDB and will upload on reconnect.
+    this.actions$
+      .pipe(ofActionSuccessful(QueueOfflineReport), takeUntilDestroyed())
+      .subscribe(() => {
+        this.messages.add({
+          severity: 'info',
+          summary: 'Reporte guardado sin conexión',
+          detail: 'Se subirá cuando vuelvas a tener internet',
+        });
+        this.afterPersist();
+      });
+
+    this.actions$
+      .pipe(ofActionErrored(QueueOfflineReport), takeUntilDestroyed())
+      .subscribe(() => {
+        this.messages.add({
+          severity: 'error',
+          summary: 'No se pudo guardar el reporte sin conexión',
+        });
       });
 
     this.store.dispatch(new LoadCustomers());
@@ -365,7 +383,32 @@ export class ReportAdd {
           }
         : {}),
     };
-    this.store.dispatch(new CreateReport(fields));
+
+    // Fallback-when-offline: with a connection we POST as usual; with none, the
+    // report (incl. picture/signature blobs) is queued to IndexedDB and uploaded
+    // on reconnect. `createdBy` is snapshotted so attribution survives a phone swap.
+    if (navigator.onLine) {
+      this.store.dispatch(new CreateReport(fields));
+      return;
+    }
+    const me = this.currentUser();
+    this.store.dispatch(
+      new QueueOfflineReport(fields, {
+        id: me?.id ?? '',
+        name: me?.name ?? 'Desconocido',
+        email: me?.email ?? '',
+      }),
+    );
+  }
+
+  /** Shared post-persist cleanup for both the online create and the offline queue:
+   *  clear staged files/signature, drop the draft, and return to the list. */
+  private afterPersist(): void {
+    this.selectedFiles.set([]);
+    this.signatureFile.set(null);
+    this.signaturePayload.set(null);
+    this.store.dispatch(new DiscardReportDraft());
+    this.router.navigate(['/reports']);
   }
 
   // ─── CanDeactivate ───

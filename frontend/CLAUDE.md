@@ -15,3 +15,9 @@
 ## Animations
 - Use **anime.js** for animations only. Do not use it as a general utility library.
 - Do not animate via CSS keyframes, Angular animations, or other libraries unless explicitly requested.
+
+## Shared helpers (`src/app/data/utils.ts`)
+Reuse these instead of re-implementing locally. When you add a new general-purpose helper that doesn't belong in a feature folder, put it here and add a one-line entry below.
+
+- **`toParams(q?: Query): HttpParams | undefined`** — build an `HttpParams` from a plain `Record<string, string | number | boolean | undefined | null>`, skipping `undefined`/`null`/empty entries. Use for any service that calls `this.http.get(url, { params: toParams({...}) })`.
+- **`errorMessage(err: unknown, fallback: string): string`** — extract a human-readable message from a thrown value. Tries `err.error.message` (Angular `HttpErrorResponse` shape) first, then `Error.message`, then returns `fallback`. Use anywhere you `catch (err)` and need a string to show the user or persist as `lastError`.
