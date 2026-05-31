@@ -45,6 +45,7 @@ const buildCreateForm = (opts: {
   reportType?: 'minisplit' | 'chiller' | 'uma';
   clientId: string;
   assignedTo?: string;
+  createdBy?: string;
   workType?: string;
   data?: Record<string, unknown> | string; // string for malformed-JSON tests
   omitData?: boolean;
@@ -53,6 +54,7 @@ const buildCreateForm = (opts: {
   fd.set('report_type', opts.reportType ?? 'minisplit');
   fd.set('client_id', opts.clientId);
   if (opts.assignedTo !== undefined) fd.set('assigned_to', opts.assignedTo);
+  if (opts.createdBy !== undefined) fd.set('created_by', opts.createdBy);
   if (opts.workType !== undefined) fd.set('work_type', opts.workType);
   if (!opts.omitData) {
     const data = opts.data ?? validMinisplitData();
@@ -291,6 +293,37 @@ describe('POST /reports', () => {
     expect(body.report.assignedTo).toBe(tech.id);
   });
 
+  test('offline sync: created_by attributes the report to the original creator, not the uploader', async () => {
+    // Tech B uploads a report tech A created offline (e.g. after a phone swap).
+    const creator = await seedTechnician();
+    const { tech: uploader, token } = await seedTechnicianAndLogin();
+    const customer = await seedCustomer();
+
+    const res = await request('/reports', {
+      method: 'POST',
+      headers: authHeader(token),
+      body: buildCreateForm({ clientId: customer.id, createdBy: creator.id }),
+    });
+    expect(res.status).toBe(201);
+    const body = await json<{ report: ReportRow }>(res);
+    expect(body.report.createdBy).toBe(creator.id); // original creator, not the uploader
+    expect(body.report.assignedTo).toBe(creator.id); // assignee follows the creator
+    expect(body.report.createdBy).not.toBe(uploader.id);
+  });
+
+  test('nonexistent created_by (valid uuid) → 400 invalid_creator', async () => {
+    const { token } = await seedTechnicianAndLogin();
+    const customer = await seedCustomer();
+
+    const res = await request('/reports', {
+      method: 'POST',
+      headers: authHeader(token),
+      body: buildCreateForm({ clientId: customer.id, createdBy: FAKE_UUID }),
+    });
+    expect(res.status).toBe(400);
+    expect(await json(res)).toEqual({ error: 'invalid_creator' });
+  });
+
   test('admin: nonexistent assigned_to (valid uuid) → 400 invalid_assignee', async () => {
     const { token } = await seedAdminAndLogin();
     const customer = await seedCustomer();
@@ -331,7 +364,7 @@ describe('POST /reports', () => {
     expect(body.report.assignedTo).toBe(tech.id);
   });
 
-  test('technician cannot pick a different assignee (override ignored)', async () => {
+  test('technician can pick a different assignee (trusted-field model)', async () => {
     const { tech, token } = await seedTechnicianAndLogin();
     const otherTech = await seedTechnician();
     const customer = await seedCustomer();
@@ -343,7 +376,8 @@ describe('POST /reports', () => {
     });
     expect(res.status).toBe(201);
     const body = await json<{ report: ReportRow }>(res);
-    expect(body.report.assignedTo).toBe(tech.id); // self, not the override
+    expect(body.report.createdBy).toBe(tech.id);
+    expect(body.report.assignedTo).toBe(otherTech.id); // honored, same as createdBy
   });
 
   test('missing data field → 400 missing_data', async () => {

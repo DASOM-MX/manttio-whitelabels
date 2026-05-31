@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext, Store } from '@ngxs/store';
-import { firstValueFrom } from 'rxjs';
+import { EMPTY, Observable, from, of } from 'rxjs';
+import { catchError, concatMap, finalize, mergeMap, switchMap, tap, toArray } from 'rxjs/operators';
 import { errorMessage } from '../../app/data/utils';
 import { OfflineReportsService } from '../../offline/offline-reports.service';
 import {
@@ -47,86 +48,111 @@ export class OfflineReportsState {
   }
 
   @Action(LoadPendingReports)
-  async load(ctx: StateContext<OfflineReportsStateModel>) {
-    const records = await this.offline.list();
-    // Recover from an interrupted sync: anything stuck `uploading` is reset to `pending`.
-    await Promise.all(
-      records
-        .filter((r) => r.status === 'uploading')
-        .map((r) => this.offline.setStatus(r.tempId, 'pending')),
-    );
-    ctx.patchState({
-      pending: records.map((r) =>
-        toPendingSummary(r.status === 'uploading' ? { ...r, status: 'pending' } : r),
+  load(ctx: StateContext<OfflineReportsStateModel>): Observable<unknown> {
+    return from(this.offline.list()).pipe(
+      // Recover from an interrupted sync: anything stuck `uploading` is reset to `pending`.
+      switchMap((records) => {
+        const stuck = records.filter((r) => r.status === 'uploading');
+        if (!stuck.length) return of(records);
+        return from(stuck).pipe(
+          mergeMap((r) => from(this.offline.setStatus(r.tempId, 'pending'))),
+          toArray(),
+          switchMap(() => of(records)),
+        );
+      }),
+      tap((records) =>
+        ctx.patchState({
+          pending: records.map((r) =>
+            toPendingSummary(r.status === 'uploading' ? { ...r, status: 'pending' } : r),
+          ),
+        }),
       ),
-    });
+    );
   }
 
   @Action(QueueOfflineReport)
-  async queue(
+  queue(
     ctx: StateContext<OfflineReportsStateModel>,
     { fields, createdBy }: QueueOfflineReport,
-  ) {
-    const record = await this.offline.enqueue(fields, createdBy);
-    ctx.patchState({ pending: [...ctx.getState().pending, toPendingSummary(record)] });
+  ): Observable<unknown> {
+    return from(this.offline.enqueue(fields, createdBy)).pipe(
+      tap((record) =>
+        ctx.patchState({ pending: [...ctx.getState().pending, toPendingSummary(record)] }),
+      ),
+    );
   }
 
   @Action(SyncOfflineReports)
-  async syncAll(ctx: StateContext<OfflineReportsStateModel>) {
-    if (ctx.getState().uploading) return;
+  syncAll(ctx: StateContext<OfflineReportsStateModel>): Observable<unknown> {
+    if (ctx.getState().uploading) return EMPTY;
     ctx.patchState({ uploading: true });
-    try {
-      // Snapshot ids up front; upload sequentially so we never hammer the API.
-      const ids = ctx.getState().pending.map((p) => p.tempId);
-      for (const tempId of ids) await this.uploadOne(ctx, tempId);
-    } finally {
-      ctx.patchState({ uploading: false });
-    }
+    // Snapshot ids up front; upload sequentially via concatMap so we never hammer the API.
+    const ids = ctx.getState().pending.map((p) => p.tempId);
+    return from(ids).pipe(
+      concatMap((tempId) => this.uploadOne(ctx, tempId)),
+      finalize(() => ctx.patchState({ uploading: false })),
+    );
   }
 
   @Action(SyncOfflineReport)
-  async syncOne(ctx: StateContext<OfflineReportsStateModel>, { tempId }: SyncOfflineReport) {
-    if (ctx.getState().uploading) return;
+  syncOne(
+    ctx: StateContext<OfflineReportsStateModel>,
+    { tempId }: SyncOfflineReport,
+  ): Observable<unknown> {
+    if (ctx.getState().uploading) return EMPTY;
     ctx.patchState({ uploading: true });
-    try {
-      await this.uploadOne(ctx, tempId);
-    } finally {
-      ctx.patchState({ uploading: false });
-    }
+    return this.uploadOne(ctx, tempId).pipe(
+      finalize(() => ctx.patchState({ uploading: false })),
+    );
   }
 
   @Action(DiscardPendingReport)
-  async discard(ctx: StateContext<OfflineReportsStateModel>, { tempId }: DiscardPendingReport) {
-    await this.offline.remove(tempId);
-    ctx.patchState({ pending: ctx.getState().pending.filter((p) => p.tempId !== tempId) });
+  discard(
+    ctx: StateContext<OfflineReportsStateModel>,
+    { tempId }: DiscardPendingReport,
+  ): Observable<unknown> {
+    return from(this.offline.remove(tempId)).pipe(
+      tap(() =>
+        ctx.patchState({ pending: ctx.getState().pending.filter((p) => p.tempId !== tempId) }),
+      ),
+    );
   }
 
   /** Upload one queued report by replaying it through the normal `CreateReport`
    *  flow — which also inserts the resulting server report into `ReportsState`.
    *  Success drops it from the queue; failure leaves it `failed` with the error
    *  recorded for a later manual retry. */
-  private async uploadOne(
+  private uploadOne(
     ctx: StateContext<OfflineReportsStateModel>,
     tempId: string,
-  ): Promise<void> {
-    const record = await this.offline.get(tempId);
-    if (!record) {
-      console.warn('[OfflineReportsState] record missing from IndexedDB during sync', tempId);
-      this.removeFromMirror(ctx, tempId);
-      return;
-    }
-    await this.offline.setStatus(tempId, 'uploading');
-    this.patchStatus(ctx, tempId, 'uploading');
-    try {
-      await firstValueFrom(this.store.dispatch(new CreateReport(record.fields)));
-      await this.offline.remove(tempId);
-      this.removeFromMirror(ctx, tempId);
-    } catch (err) {
-      const message = errorMessage(err, 'Error al subir el reporte');
-      console.error('[OfflineReportsState] sync failed', tempId, err);
-      await this.offline.setStatus(tempId, 'failed', message);
-      this.patchStatus(ctx, tempId, 'failed', message);
-    }
+  ): Observable<unknown> {
+    return from(this.offline.get(tempId)).pipe(
+      switchMap((record) => {
+        if (!record) {
+          console.warn('[OfflineReportsState] record missing from IndexedDB during sync', tempId);
+          this.removeFromMirror(ctx, tempId);
+          return EMPTY;
+        }
+        return from(this.offline.setStatus(tempId, 'uploading')).pipe(
+          tap(() => this.patchStatus(ctx, tempId, 'uploading')),
+          // Attribute the upload to the original creator, not whoever is logged in now.
+          switchMap(() =>
+            this.store.dispatch(
+              new CreateReport({ ...record.fields, created_by: record.createdBy.id }),
+            ),
+          ),
+          switchMap(() => from(this.offline.remove(tempId))),
+          tap(() => this.removeFromMirror(ctx, tempId)),
+          catchError((err) => {
+            const message = errorMessage(err, 'Error al subir el reporte');
+            console.error('[OfflineReportsState] sync failed', tempId, err);
+            return from(this.offline.setStatus(tempId, 'failed', message)).pipe(
+              tap(() => this.patchStatus(ctx, tempId, 'failed', message)),
+            );
+          }),
+        );
+      }),
+    );
   }
 
   private patchStatus(

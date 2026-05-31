@@ -8,6 +8,9 @@ export interface CreateReportFields {
   date_arrival?: string;
   date_departure?: string;
   assigned_to?: string;
+  /** Original creator (user id). Sent when syncing an offline report so the server
+   *  attributes it to the tech who created it, not the uploader. */
+  created_by?: string;
   signed_by?: string;
   data: ReportData;
   pictures?: File[];

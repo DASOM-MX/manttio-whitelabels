@@ -1,12 +1,13 @@
 # Offline report queueing + installable PWA — Implementation Plan
 
 **Status:** In progress
-**Last updated:** 2026-05-28
+**Last updated:** 2026-05-30
 
 ### PR map (one PR per pair of phases)
 - **Phase 0 + Phase 1** → branch `feature/frontend-offline-reports-pwa` → **PR #20** (merged)
 - **Phase 2 + Phase 3** → branch `feature/frontend-offline-reports-state-capture` → **PR #21** (merged via PR #24)
-- **Phase 4 + Phase 5** → branch `feature/frontend-offline-reports-sync-ui` → **PR #22** (open, based on main)
+- **Phase 4 + Phase 5** → branch `feature/frontend-offline-reports-sync-ui` → **PR #22** (merged)
+- **Server-side attribution** (follow-up, fullstack) → branch `feature/fullstack-offline-report-attribution` → **PR #23** (open, based on main)
 
 ---
 
@@ -84,10 +85,10 @@ slice is just a reactive projection for the UI.
   different user who logged in), show a confirm:
   *"Este reporte fue creado por {createdBy.name} pero la sesión actual es {currentUser.name}.
   ¿Subir de todas formas?"*
-- **Backend follow-up (flagged):** the server currently derives `createdBy` from the bearer token,
-  so a report uploaded under user B's token is attributed to B. To attribute it to the *original*
-  creator we need the backend `POST /reports` to accept an explicit `created_by`. Until then the
-  client stores/displays the true creator and warns on mismatch, but server attribution = token user.
+- **Server-side attribution — ✅ DONE (PR #23).** `POST /reports` accepts an optional `created_by`;
+  offline sync sends the queued report's creator snapshot so the server attributes `createdBy`
+  (and the default assignee) to the original creator, not the uploader. Trusted-field model
+  (creator FK-validated). Online creation omits the field and is unchanged.
 
 ---
 
@@ -177,7 +178,7 @@ slice is just a reactive projection for the UI.
 - **date_arrival** — preserved from field time via persisted `fields`.
 
 ## Out of scope (flagged for later)
-- Backend `created_by` override for true original-creator attribution (currently token-derived).
+- ~~Backend `created_by` override for true original-creator attribution~~ — done in PR #23.
 - Image compression before queueing (helps IndexedDB footprint with many large photos) — additive.
 - Background auto-sync via the Background Sync API — we use the `online` event + manual triggers.
 

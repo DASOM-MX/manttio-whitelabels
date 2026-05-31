@@ -36,6 +36,7 @@ export class ReportsService {
     appendIf(fd, 'date_arrival', fields.date_arrival);
     appendIf(fd, 'date_departure', fields.date_departure);
     appendIf(fd, 'assigned_to', fields.assigned_to);
+    appendIf(fd, 'created_by', fields.created_by);
     appendIf(fd, 'signed_by', fields.signed_by);
     fd.set('data', JSON.stringify(fields.data));
     for (const pic of fields.pictures ?? []) fd.append('pictures', pic);

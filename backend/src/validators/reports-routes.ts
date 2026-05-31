@@ -18,6 +18,9 @@ export const createReportMetaSchema = z.object({
   date_arrival: z.string().datetime().optional(),
   date_departure: z.string().datetime().optional(),
   assigned_to: z.string().uuid().optional(),
+  // Original creator for reports captured offline and synced later (possibly under a
+  // different logged-in user). Defaults to the authenticated uploader when omitted.
+  created_by: z.string().uuid().optional(),
   signed_by: z.string().optional(),
   signed_latitude: latitudeField.optional(),
   signed_longitude: longitudeField.optional(),

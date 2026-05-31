@@ -184,6 +184,7 @@ reports.post('/', async (c) => {
     date_arrival: fdGet(fd, 'date_arrival') ?? undefined,
     date_departure: fdGet(fd, 'date_departure') ?? undefined,
     assigned_to: fdGet(fd, 'assigned_to') ?? undefined,
+    created_by: fdGet(fd, 'created_by') ?? undefined,
     signed_by: fdGet(fd, 'signed_by') ?? undefined,
     signed_latitude: fdGet(fd, 'signed_latitude') ?? undefined,
     signed_longitude: fdGet(fd, 'signed_longitude') ?? undefined,
@@ -202,13 +203,18 @@ reports.post('/', async (c) => {
   }
   const data = validateReportData(meta.report_type, dataParsed);
 
-  // Technicians cannot pick another assignee.
-  const assignedTo = me.role === 'admin' && meta.assigned_to ? meta.assigned_to : me.id;
+  // Original creator: an offline report synced later carries the creator it was made
+  // by (possibly a different user than the uploader); defaults to the uploader.
+  const createdBy = meta.created_by ?? me.id;
+  // Assignee defaults to the creator (so a synced offline report stays attributed to
+  // the tech who did the work). Explicit `assigned_to` is honored — trusted-field model,
+  // same as `created_by`; FK-validated below.
+  const assignedTo = meta.assigned_to ?? createdBy;
 
   const db = createDb(c.env.DATABASE_URL);
   // Validate FK references early — surface a 400 rather than a 500 on FK violation.
   const [creator, assignee, client] = await Promise.all([
-    findUserById(db, me.id),
+    findUserById(db, createdBy),
     findUserById(db, assignedTo),
     findCustomerById(db, meta.client_id),
   ]);
@@ -257,7 +263,7 @@ reports.post('/', async (c) => {
         workType: meta.work_type ?? null,
         dateArrival: meta.date_arrival ? new Date(meta.date_arrival) : null,
         dateDeparture: meta.date_departure ? new Date(meta.date_departure) : null,
-        createdBy: me.id,
+        createdBy,
         assignedTo,
         clientId: meta.client_id,
         signedBy: meta.signed_by ?? null,
