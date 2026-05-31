@@ -9,7 +9,7 @@ import { FieldConfig } from '../../../interfaces/field-config';
 import { DynamicForm } from '../../../shared/dynamic-form/dynamic-form';
 import { LoadCustomer, UpdateCustomer } from '../../../../state/customers/customers.actions';
 import { CustomersState } from '../../../../state/customers/customers.state';
-import { MEXICAN_STATES } from '../../../../data/constants';
+import { MEXICAN_STATES } from '../../../data/constants';
 import type { CustomerRow, UpdateCustomerRequest } from '../../../data/dtos/customer';
 
 @Component({

@@ -1,12 +1,12 @@
 # Offline report queueing + installable PWA — Implementation Plan
 
 **Status:** In progress
-**Last updated:** 2026-05-25
+**Last updated:** 2026-05-28
 
 ### PR map (one PR per pair of phases)
-- **Phase 0 + Phase 1** → branch `feature/frontend-offline-reports-pwa` → **PR #20** (open)
-- **Phase 2 + Phase 3** → branch `feature/frontend-offline-reports-state-capture` → **PR #21** (open, stacked on #20)
-- **Phase 4 + Phase 5** → next branch → PR _TBD_
+- **Phase 0 + Phase 1** → branch `feature/frontend-offline-reports-pwa` → **PR #20** (merged)
+- **Phase 2 + Phase 3** → branch `feature/frontend-offline-reports-state-capture` → **PR #21** (merged via PR #24)
+- **Phase 4 + Phase 5** → branch `feature/frontend-offline-reports-sync-ui` → **PR #22** (open, based on main)
 
 ---
 
@@ -144,27 +144,26 @@ slice is just a reactive projection for the UI.
       `afterPersist()` (clear files/signature, `DiscardReportDraft`, navigate); `ofActionErrored` → error toast.
       Refactored the existing `CreateReport` success path onto the same `afterPersist()` helper.
 
-### Phase 4 — Reconnect detection + prompt
-- [ ] Root `OfflineSyncService`, initialized via `provideAppInitializer`; binds `window` `online`/`offline`
-      listeners (with `DestroyRef`/`takeUntilDestroyed`); exposes an `isOnline` signal.
-- [ ] On `online` **and** `pending.length > 0`: `ConfirmationService` dialog →
-      accept dispatches `SyncOfflineReports`. PrimeNG `MessageService` toasts for progress/result.
+### Phase 4 — Reconnect detection + prompt — ✅ DONE
+- [x] Root `OfflineSyncService` (pure orchestrator, no public API), instantiated via `provideAppInitializer`;
+      binds `window` `online`/`offline` (with `takeUntilDestroyed`).
+- [x] Connectivity moved into **`AppState`** (`select(AppState.isOnline)`) — the service dispatches `SetOnline`
+      so any component reads it from the store without injecting the service.
+- [x] On `online` **and** `pending > 0`: `ConfirmationService` dialog → accept dispatches `SyncOfflineReports`;
+      `MessageService` toast summarizes the result (incl. partial failures).
 
-### Phase 5 — UI surfaces
-- [ ] **Reports list:** pin the offline-created, not-yet-uploaded reports **at the top**, visually
-      emphasized (badge e.g. "Sin conexión / Pendiente", distinct row styling), above the server reports.
-      Source: `select(OfflineReportsState.pending)`. Each pending row links to its detail (by `tempId`).
-- [ ] **Pending detail route:** add `report/pending/:id` → `ReportDetail` in a "pending mode"
-      (server `reports/:id` left untouched). Singular `report/` prefix (matching `report-add`) and the
-      dedicated `pending/` segment keep server ids and `tempId`s from ever colliding. The `:id` param
-      carries the `tempId`.
-- [ ] **Report detail (pending mode):** load the `PendingReport` from `OfflineReportsState`/IndexedDB;
-      render read-only (pictures via `URL.createObjectURL` from the stored `Blob`s; **revoke object URLs
-      on destroy**; signature likewise). Show an **"Subir"** button → `SyncOfflineReport(tempId)`
-      (with the phone-swap confirm if creator ≠ current user); on success navigate to the now-real
-      server report (or `/reports`). Also a **"Descartar"** action → `DiscardPendingReport(tempId)`.
-- [ ] Pending-count badge (nav / reports header) via a `count` selector.
-- [ ] Offline status indicator driven by the `isOnline` signal.
+### Phase 5 — UI surfaces — ✅ DONE
+- [x] **Reports list:** offline-created not-yet-uploaded reports pinned in a "Pendientes de subir" section
+      above the table, with amber styling + status tag (Pendiente/Subiendo/Error); each links to `report/pending/:id`.
+- [x] **Pending route:** `report/pending/:id` → **the existing `ReportDetail`** (no separate component).
+      It detects pending mode via `route.snapshot.routeConfig?.path` and loads from IndexedDB instead of the server.
+- [x] **ReportDetail pending mode:** read-only render (pictures via `URL.createObjectURL`, **revoked on destroy**;
+      signature from blob or base64). **Subir** → `SyncOfflineReport` (phone-swap confirm if creator ≠ current user),
+      **Descartar** → `DiscardPendingReport`; server-only controls (edit/sign/mail/PDF) hidden when pending.
+- [x] Pending-count badge on the Reportes nav item; offline bar in the bottom nav, both from the store.
+- [x] **Refactor:** extracted `ReportViewModel` + `toViewModel`/`toViewModelFromPending` into
+      `report-detail.model.ts`; moved `dataUrlToFile`/`urlToDataUrl` to `data/utils.ts`; split the constructor's
+      action subscriptions into named `subscribeTo*` methods with simple `initServerMode`/`initPendingMode`.
 
 ---
 

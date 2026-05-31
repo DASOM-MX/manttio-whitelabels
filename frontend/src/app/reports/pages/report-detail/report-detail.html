@@ -61,7 +61,7 @@
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Técnico</dt>
-                            <dd class="text-lg text-granite-950">{{ reportUser()?.name }}</dd>
+                            <dd class="text-lg text-granite-950">{{ technicianName() }}</dd>
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Fecha</dt>
@@ -432,12 +432,22 @@
                     }
                 </section>
             </div>
+            } @else if (pendingNotFound()) {
+            <div class="max-w-4xl mx-auto px-4 sm:px-8 py-16 flex flex-col items-center gap-3 text-center">
+                <i class="pi pi-inbox text-4xl text-granite-400"></i>
+                <p class="text-lg font-semibold text-granite-800">Este reporte ya no está disponible.</p>
+                <p class="text-granite-600">Es posible que ya se haya subido o descartado.</p>
+            </div>
             }
 
             <!-- Sticky action bar (sticks to scroll-container bottom, above the bottom-nav) -->
+            @if (report()) {
             <div class="sticky bottom-0 z-40 bg-white/95 backdrop-blur border-t-2 border-granite-200 shadow-lg">
                 <div class="max-w-4xl mx-auto px-4 sm:px-8 py-4 flex flex-wrap justify-end gap-3">
-                    @if (report()?.report_status) {
+                    @if (isPending) {
+                        <p-button type="button" (onClick)="uploadPending()" [disabled]="uploadingPending()" [loading]="uploadingPending()" icon="pi pi-cloud-upload" label="Subir"></p-button>
+                        <p-button type="button" (onClick)="discardPending()" [disabled]="uploadingPending()" severity="danger" [outlined]="true" icon="pi pi-trash" label="Descartar"></p-button>
+                    } @else if (report()?.report_status) {
                         <p-button type="button" (onClick)="downloadTextPDF()" severity="secondary" label="Descargar PDF"></p-button>
                         <p-button type="button" (onClick)="mailReport()" label="Enviar por correo"></p-button>
                     } @else if (editMode()) {
@@ -449,6 +459,7 @@
                     }
                 </div>
             </div>
+            }
         </form>
     </div>
 </div>

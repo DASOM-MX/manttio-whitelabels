@@ -1,5 +1,6 @@
 import {
   Component,
+  DestroyRef,
   ElementRef,
   ViewChild,
   computed,
@@ -7,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Actions, Store, ofActionSuccessful, ofActionErrored, select } from '@ngxs/store';
 import { take } from 'rxjs/operators';
@@ -38,81 +39,25 @@ import {
 } from '../../../../state/reports/reports.actions';
 import { CustomersState } from '../../../../state/customers/customers.state';
 import { LoadCustomer } from '../../../../state/customers/customers.actions';
+import { OfflineReportsState } from '../../../../state/offline-reports/offline-reports.state';
+import {
+  SyncOfflineReport,
+  DiscardPendingReport,
+} from '../../../../state/offline-reports/offline-reports.actions';
+import { OfflineReportsService } from '../../../../offline/offline-reports.service';
+import type { PendingReport } from '../../../../offline/pending-report.model';
 import type {
-  ReportRow,
-  ReportDetailRow,
   ReportData,
   UpdateReportRequest,
   AddSignatureFields,
   SignedPayload,
 } from '../../../data/dtos/report';
-import type { ReportType, ReportStatus, WorkType } from '../../../data/types/report';
+import type { ReportType, WorkType } from '../../../data/types/report';
+import { dataUrlToFile, urlToDataUrl } from '../../../data/utils';
+import type { ReportViewModel } from '../../../data/report-detail.model';
+import { toViewModel, toViewModelFromPending } from '../../../data/report-detail.mapper';
 
 pdfMake.vfs = pdfFonts.vfs;
-
-const DONE_STATUSES: ReportStatus[] = ['finished', 'mailed'];
-
-interface ReportViewModel {
-  id: string;
-  report_type: ReportType;
-  manttio_type: string;
-  report_status: boolean;
-  date_arrival: string | null;
-  date_departure: string | null;
-  signature: string | null;
-  signed_by: string | null;
-  signed_latitude: number | null;
-  signed_longitude: number | null;
-  signed_accuracy: number | null;
-  signed_maps_url: string | null;
-  pictures: string[];
-  observations: string;
-  // discriminated fields, may be undefined per report_type — read with caution
-  is_operating?: boolean;
-  remote_working?: boolean;
-  amperage?: string;
-  filter?: boolean;
-  inner_voltage?: string;
-  unusual_noise?: boolean;
-  inner_temperature?: string;
-  outer_temperature?: string;
-  plc_keys_working?: boolean;
-  motor_amperage?: string;
-  system_pressure_1?: string;
-  system_pressure_2?: string;
-  system_pressure_3?: string;
-  oil_pressure?: string;
-  oil_level?: string;
-  flux_switch_working?: boolean;
-  air_band_adjustment?: boolean;
-  air_good_quality?: boolean;
-}
-
-const toViewModel = (report: ReportRow, details: ReportDetailRow | null): ReportViewModel => {
-  const data = (details?.data ?? {}) as Partial<ReportData>;
-  const lat = report.signedLatitude;
-  const lng = report.signedLongitude;
-  return {
-    id: report.id,
-    report_type: report.reportType,
-    manttio_type: report.workType ?? '',
-    report_status: DONE_STATUSES.includes(report.status),
-    date_arrival: report.dateArrival,
-    date_departure: report.dateDeparture,
-    signature: details?.signature ?? null,
-    signed_by: report.signedBy,
-    signed_latitude: lat,
-    signed_longitude: lng,
-    signed_accuracy: report.signedAccuracy,
-    signed_maps_url:
-      lat !== null && lng !== null
-        ? `https://www.google.com/maps?q=${lat.toFixed(6)},${lng.toFixed(6)}`
-        : null,
-    pictures: details?.pictures ?? [],
-    observations: (data as { observations?: string }).observations ?? '',
-    ...data,
-  };
-};
 
 @Component({
   selector: 'app-report-detail',
@@ -139,22 +84,42 @@ export class ReportDetail {
   @ViewChild('pdfContent', { static: false }) pdfContent!: ElementRef;
 
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private fb = inject(FormBuilder);
   private store = inject(Store);
   private actions$ = inject(Actions);
   private messages = inject(MessageService);
   private confirm = inject(ConfirmationService);
+  private offline = inject(OfflineReportsService);
+  private destroyRef = inject(DestroyRef);
 
   private selected = select(ReportsState.selected);
   customer = select(CustomersState.selected);
   private currentUser = select(AuthState.user);
+  private pendingList = select(OfflineReportsState.pending);
+
+  /** True when opened via `report/pending/:id` — the report lives in IndexedDB,
+   *  not on the server, and is shown read-only with Upload/Discard actions. */
+  readonly isPending = this.route.snapshot.routeConfig?.path === 'report/pending/:id';
+  private pendingRecord = signal<PendingReport | null>(null);
+  pendingNotFound = signal(false);
+  uploadingPending = signal(false);
+  private pendingPictureUrls = signal<string[]>([]);
+  private pendingSignature = signal<string | null>(null);
+  private objectUrls: string[] = [];
 
   report = computed<ReportViewModel | null>(() => {
+    if (this.isPending) {
+      const rec = this.pendingRecord();
+      return rec
+        ? toViewModelFromPending(rec, this.pendingPictureUrls(), this.pendingSignature())
+        : null;
+    }
     const sel = this.selected();
     return sel ? toViewModel(sel.report, sel.details) : null;
   });
 
-  /** Best-effort technician display name. */
+  /** Best-effort technician display name (creator snapshot when pending). */
   reportUser = computed(() => {
     const sel = this.selected();
     const me = this.currentUser();
@@ -162,6 +127,10 @@ export class ReportDetail {
     // Tech not in state — full user lookup requires admin access; defer.
     return null;
   });
+
+  technicianName = computed(() =>
+    this.isPending ? this.pendingRecord()?.createdBy.name ?? '' : this.reportUser()?.name ?? '',
+  );
 
   editMode = signal(false);
   newPictures = signal<File[]>([]);
@@ -182,54 +151,170 @@ export class ReportDetail {
   });
 
   constructor() {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (!id) {
+      if (this.isPending) this.pendingNotFound.set(true);
+      return;
+    }
+    if (this.isPending) {
+      this.initPendingMode(id);
+    } else {
+      this.initServerMode(id);
+    }
+  }
+
+  // ─── Initialization ───
+
+  private initServerMode(id: string): void {
+    this.subscribeToSaveOutcomes();
+    this.subscribeToSignatureOutcomes();
+    this.subscribeToEmailOutcomes();
+    this.subscribeToReportLoaded();
+    this.store.dispatch(new LoadReport(id));
+  }
+
+  /** Pending-mode wiring: load the queued report from IndexedDB, manage blob object
+   *  URLs, and react to upload/discard outcomes. */
+  private initPendingMode(tempId: string): void {
+    this.loadPending(tempId);
+    this.destroyRef.onDestroy(() => this.objectUrls.forEach((u) => URL.revokeObjectURL(u)));
+    this.subscribeToPendingOutcomes(tempId);
+  }
+
+  // ─── State event subscriptions ───
+
+  private subscribeToSaveOutcomes(): void {
     this.actions$
-      .pipe(ofActionSuccessful(UpdateReport, AddPictures, RemovePictures), takeUntilDestroyed())
+      .pipe(ofActionSuccessful(UpdateReport, AddPictures, RemovePictures), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.settleOneSave(false));
-
     this.actions$
-      .pipe(ofActionErrored(UpdateReport, AddPictures, RemovePictures), takeUntilDestroyed())
+      .pipe(ofActionErrored(UpdateReport, AddPictures, RemovePictures), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.settleOneSave(true));
+  }
 
+  private subscribeToSignatureOutcomes(): void {
     this.actions$
-      .pipe(ofActionSuccessful(AddSignature), takeUntilDestroyed())
+      .pipe(ofActionSuccessful(AddSignature), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.editMode.set(false);
         this.signModalVisible.set(false);
-        this.messages.add({
-          severity: 'success',
-          summary: 'Reporte firmado y enviado al cliente',
-        });
+        this.messages.add({ severity: 'success', summary: 'Reporte firmado y enviado al cliente' });
         // Offer the PDF as a courtesy — backend already triggered the customer email.
         this.pdfDialogVisible.set(true);
       });
-
     this.actions$
-      .pipe(ofActionErrored(AddSignature), takeUntilDestroyed())
+      .pipe(ofActionErrored(AddSignature), takeUntilDestroyed(this.destroyRef))
       .subscribe(() =>
         this.messages.add({ severity: 'error', summary: 'Ha ocurrido un error al firmar el reporte' }),
       );
+  }
 
+  private subscribeToEmailOutcomes(): void {
     this.actions$
-      .pipe(ofActionSuccessful(SendReportEmail), takeUntilDestroyed())
+      .pipe(ofActionSuccessful(SendReportEmail), takeUntilDestroyed(this.destroyRef))
       .subscribe(() =>
         this.messages.add({ severity: 'success', summary: 'Reporte enviado al cliente' }),
       );
-
     this.actions$
-      .pipe(ofActionErrored(SendReportEmail), takeUntilDestroyed())
+      .pipe(ofActionErrored(SendReportEmail), takeUntilDestroyed(this.destroyRef))
       .subscribe(() =>
         this.messages.add({ severity: 'error', summary: 'No se pudo enviar el reporte' }),
       );
+  }
 
-    const id = this.route.snapshot.paramMap.get('id');
-    if (!id) return;
+  private subscribeToReportLoaded(): void {
     this.actions$
-      .pipe(ofActionSuccessful(LoadReport), take(1), takeUntilDestroyed())
+      .pipe(ofActionSuccessful(LoadReport), take(1), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         const sel = this.selected();
         if (sel) this.store.dispatch(new LoadCustomer(sel.report.clientId));
       });
-    this.store.dispatch(new LoadReport(id));
+  }
+
+  /** A SyncOfflineReport always "succeeds" (upload errors are caught in state), so the
+   *  outcome is judged by whether the item is still queued and with what status. */
+  private subscribeToPendingOutcomes(tempId: string): void {
+    this.actions$
+      .pipe(ofActionSuccessful(SyncOfflineReport), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        const still = this.pendingList().find((p) => p.tempId === tempId);
+        if (!still) {
+          this.messages.add({ severity: 'success', summary: 'Reporte subido' });
+          this.router.navigate(['/reports']);
+        } else if (still.status === 'failed') {
+          this.uploadingPending.set(false);
+          this.messages.add({
+            severity: 'error',
+            summary: 'No se pudo subir el reporte',
+            detail: still.lastError,
+          });
+        }
+      });
+    this.actions$
+      .pipe(ofActionSuccessful(DiscardPendingReport), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.messages.add({ severity: 'info', summary: 'Reporte descartado' });
+        this.router.navigate(['/reports']);
+      });
+  }
+
+  private async loadPending(tempId: string): Promise<void> {
+    const rec = await this.offline.get(tempId);
+    if (!rec) {
+      this.pendingNotFound.set(true);
+      return;
+    }
+    this.pendingRecord.set(rec);
+    this.pendingPictureUrls.set(
+      (rec.fields.pictures ?? []).map((file) => {
+        const url = URL.createObjectURL(file);
+        this.objectUrls.push(url);
+        return url;
+      }),
+    );
+    if (rec.fields.signature) {
+      const url = URL.createObjectURL(rec.fields.signature);
+      this.objectUrls.push(url);
+      this.pendingSignature.set(url);
+    } else if (rec.fields.signature_base64) {
+      this.pendingSignature.set(rec.fields.signature_base64);
+    }
+  }
+
+  uploadPending(): void {
+    const rec = this.pendingRecord();
+    if (!rec || this.uploadingPending()) return;
+    const me = this.currentUser();
+    const run = () => {
+      this.uploadingPending.set(true);
+      this.store.dispatch(new SyncOfflineReport(rec.tempId));
+    };
+    // Phone-swap guard: warn if a different user is uploading someone else's report.
+    if (me && me.id !== rec.createdBy.id) {
+      this.confirm.confirm({
+        header: 'Creado por otro usuario',
+        message: `Este reporte fue creado por ${rec.createdBy.name}, pero la sesión actual es de ${me.name}. ¿Subir de todas formas?`,
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: 'Subir',
+        rejectLabel: 'Cancelar',
+        accept: run,
+      });
+      return;
+    }
+    run();
+  }
+
+  discardPending(): void {
+    const rec = this.pendingRecord();
+    if (!rec || this.uploadingPending()) return;
+    this.confirm.confirm({
+      header: 'Descartar reporte',
+      message: 'Se eliminará este reporte sin subirlo. Esta acción no se puede deshacer.',
+      icon: 'pi pi-trash',
+      acceptLabel: 'Descartar',
+      rejectLabel: 'Cancelar',
+      accept: () => this.store.dispatch(new DiscardPendingReport(rec.tempId)),
+    });
   }
 
   private settleOneSave(errored: boolean) {
@@ -301,7 +386,7 @@ export class ReportDetail {
     if (!sel) return;
 
     const userEmail = this.currentUser()?.email ?? 'Técnico';
-    const file = this.dataURLtoFile(payload.dataUrl, `signature-${Date.now()}.jpg`);
+    const file = dataUrlToFile(payload.dataUrl, `signature-${Date.now()}.jpg`);
     const fields: AddSignatureFields = {
       signed_by: userEmail,
       signature: file,
@@ -349,17 +434,6 @@ export class ReportDetail {
     });
   }
 
-  async toBase64(url: string): Promise<string> {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = (err) => reject(err);
-      reader.readAsDataURL(blob);
-    });
-  }
-
   async downloadTextPDF() {
     const r = this.report();
     const c = this.customer();
@@ -367,9 +441,9 @@ export class ReportDetail {
     if (!r || !c) return;
 
     const picturesBase64 = await Promise.all(
-      (r.pictures || []).map((pic) => this.toBase64(pic).catch(() => null)),
+      (r.pictures || []).map((pic) => urlToDataUrl(pic).catch(() => null)),
     );
-    const signatureBase64 = r.signature ? await this.toBase64(r.signature).catch(() => null) : null;
+    const signatureBase64 = r.signature ? await urlToDataUrl(r.signature).catch(() => null) : null;
 
     const formatDate = (dateString: string | null) =>
       dateString
@@ -597,17 +671,5 @@ export class ReportDetail {
           observations: obs,
         };
     }
-  }
-
-  private dataURLtoFile(dataURL: string, filename: string): File {
-    const arr = dataURL.split(',');
-    const mime = arr[0].match(/:(.*?);/)![1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
-    }
-    return new File([u8arr], filename, { type: mime });
   }
 }

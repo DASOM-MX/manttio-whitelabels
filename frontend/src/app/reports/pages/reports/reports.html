@@ -19,6 +19,52 @@
       ></p-button>
     </div>
 
+    <!-- Pending offline reports (pinned for emphasis) -->
+    @if (pendingReports().length > 0) {
+      <section class="flex flex-col gap-3">
+        <div class="flex items-center gap-2">
+          <i class="pi pi-cloud-upload text-amber-600 text-lg"></i>
+          <h2 class="text-lg font-bold text-granite-950">Pendientes de subir</h2>
+          <span
+            class="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-amber-500 text-granite-950 text-xs font-bold"
+          >
+            {{ pendingReports().length }}
+          </span>
+        </div>
+        <ul class="flex flex-col gap-2">
+          @for (p of pendingReports(); track p.tempId) {
+            <li>
+              <button
+                type="button"
+                (click)="goToPendingDetail(p.tempId)"
+                class="w-full flex items-center justify-between gap-4 text-left rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3 hover:bg-amber-100 active:bg-amber-200 transition-colors"
+              >
+                <div class="flex flex-col gap-0.5 min-w-0">
+                  <span class="font-semibold text-granite-950 capitalize truncate">
+                    {{ p.reportType }} · {{ p.clientName }}
+                  </span>
+                  <span class="text-sm text-granite-700 font-data tabular-nums">
+                    {{ p.createdAt | date: "short" }}
+                  </span>
+                </div>
+                @switch (p.status) {
+                  @case ('uploading') {
+                    <p-tag severity="info" value="Subiendo"></p-tag>
+                  }
+                  @case ('failed') {
+                    <p-tag severity="danger" value="Error"></p-tag>
+                  }
+                  @default {
+                    <p-tag severity="warn" value="Pendiente"></p-tag>
+                  }
+                }
+              </button>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
     <!-- Reports table -->
     <p-table
       #dt

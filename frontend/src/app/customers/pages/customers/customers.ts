@@ -11,7 +11,7 @@ import { Table, TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { CustomersState } from '../../../../state/customers/customers.state';
 import { DeleteCustomer, LoadCustomers } from '../../../../state/customers/customers.actions';
-import { MEXICAN_STATES } from '../../../../data/constants';
+import { MEXICAN_STATES } from '../../../data/constants';
 import type { CustomerRow } from '../../../data/dtos/customer';
 
 interface CustomerRowVM extends CustomerRow {

@@ -18,6 +18,7 @@ import { withNgxsReduxDevtoolsPlugin } from '@ngxs/devtools-plugin';
 import { withNgxsLoggerPlugin } from '@ngxs/logger-plugin';
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
+import { AppState } from '../state/app/app.state';
 import { AuthState } from '../state/auth/auth.state';
 import { UsersState } from '../state/users/users.state';
 import { CustomersState } from '../state/customers/customers.state';
@@ -25,6 +26,7 @@ import { ReportsState } from '../state/reports/reports.state';
 import { ReportDraftState } from '../state/report-draft/report-draft.state';
 import { OfflineReportsState } from '../state/offline-reports/offline-reports.state';
 import { LoadPendingReports } from '../state/offline-reports/offline-reports.actions';
+import { OfflineSyncService } from '../offline/offline-sync.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -37,14 +39,16 @@ export const appConfig: ApplicationConfig = {
     ConfirmationService,
     MessageService,
     provideStore(
-      [AuthState, UsersState, CustomersState, ReportsState, ReportDraftState, OfflineReportsState],
+      [AppState, AuthState, UsersState, CustomersState, ReportsState, ReportDraftState, OfflineReportsState],
       withNgxsStoragePlugin({ keys: ['auth', 'reportDraft'] }),
       withNgxsReduxDevtoolsPlugin({ disabled: !isDevMode() }),
       withNgxsLoggerPlugin({ disabled: !isDevMode() }),
     ),
-    // Hydrate the offline queue from IndexedDB on boot (fire-and-forget; never blocks bootstrap).
+    // Hydrate the offline queue from IndexedDB on boot (fire-and-forget; never blocks bootstrap)
+    // and eagerly start the connectivity watcher so its online/offline listeners are bound.
     provideAppInitializer(() => {
       inject(Store).dispatch(new LoadPendingReports());
+      inject(OfflineSyncService);
     }),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),

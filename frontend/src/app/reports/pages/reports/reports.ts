@@ -15,9 +15,10 @@ import { LoadReports } from '../../../../state/reports/reports.actions';
 import { ReportsState } from '../../../../state/reports/reports.state';
 import { LoadCustomers } from '../../../../state/customers/customers.actions';
 import { CustomersState } from '../../../../state/customers/customers.state';
+import { OfflineReportsState } from '../../../../state/offline-reports/offline-reports.state';
 import type { ReportRow } from '../../../data/dtos/report';
 import type { ReportStatus } from '../../../data/types/report';
-import { MEXICAN_STATES } from '../../../../data/constants';
+import { MEXICAN_STATES } from '../../../data/constants';
 
 type ReportListBucket = 'pending' | 'done';
 
@@ -68,6 +69,7 @@ export class Reports {
 
   private reportRows = select(ReportsState.list);
   private customerRows = select(CustomersState.list);
+  private pendingRows = select(OfflineReportsState.pending);
   loading = select(ReportsState.loading);
 
   private customerNameById = computed(() => {
@@ -90,6 +92,15 @@ export class Reports {
   });
 
   total = computed(() => this.reports().length);
+
+  /** Offline-created reports awaiting upload — pinned above the table for emphasis. */
+  pendingReports = computed(() => {
+    const names = this.customerNameById();
+    return this.pendingRows().map((p) => ({
+      ...p,
+      clientName: names.get(p.clientId) ?? 'Cliente',
+    }));
+  });
 
   clienteOptions = computed<ClienteOption[]>(() => {
     const seen = new Set<string>();
@@ -183,5 +194,9 @@ export class Reports {
 
   goToReportDetail(reportId: string) {
     this.router.navigate([`/reports/${reportId}`]);
+  }
+
+  goToPendingDetail(tempId: string) {
+    this.router.navigate(['/report/pending', tempId]);
   }
 }

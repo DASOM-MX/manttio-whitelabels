@@ -23,3 +23,25 @@ export const errorMessage = (err: unknown, fallback: string): string => {
   if (err instanceof Error) return err.message;
   return fallback;
 };
+
+/** Convert a data URL (e.g. a signature canvas export) into a `File`. */
+export const dataUrlToFile = (dataUrl: string, filename: string): File => {
+  const [meta, b64] = dataUrl.split(',');
+  const mime = meta.match(/:(.*?);/)?.[1] ?? 'application/octet-stream';
+  const bytes = atob(b64);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new File([arr], filename, { type: mime });
+};
+
+/** Fetch a URL (blob:, http:, …) and return its contents as a base64 data URL. */
+export const urlToDataUrl = async (url: string): Promise<string> => {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
