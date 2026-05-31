@@ -1,11 +1,11 @@
-<div class="min-h-full bg-background">
+<div class="min-h-full bg-background dark:bg-granite-950">
   <div class="max-w-2xl mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
     <div class="flex items-start justify-between gap-4">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">
+        <p class="text-xs font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">
           Editar
         </p>
-        <h1 class="text-2xl sm:text-3xl font-bold text-granite-900 leading-tight">
+        <h1 class="text-2xl sm:text-3xl font-bold text-granite-900 dark:text-granite-100 leading-tight">
           {{ customer()?.name ?? 'Cliente' }}
         </h1>
       </div>
@@ -23,8 +23,8 @@
         <app-dynamic-form [fields]="fields" (submitForm)="onFormSubmit($event)"></app-dynamic-form>
       </div>
     } @else {
-      <div class="card-section flex items-center gap-3 text-granite-700">
-        <i class="pi pi-spin pi-spinner text-sky-700"></i>
+      <div class="card-section flex items-center gap-3 text-granite-700 dark:text-granite-300">
+        <i class="pi pi-spin pi-spinner text-sky-700 dark:text-sky-300"></i>
         <span>Cargando cliente…</span>
       </div>
     }

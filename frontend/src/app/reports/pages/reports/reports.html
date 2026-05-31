@@ -1,13 +1,13 @@
-<div class="min-h-full bg-background">
+<div class="min-h-full bg-background dark:bg-granite-950">
   <div class="max-w-5xl mx-auto px-4 sm:px-8 py-10 sm:py-12 flex flex-col gap-8">
     <!-- Header -->
     <div class="flex flex-wrap items-center justify-between gap-5">
       <div class="flex flex-col gap-1">
-        <p class="text-sm font-bold uppercase tracking-wider text-sky-800">
+        <p class="text-sm font-bold uppercase tracking-wider text-sky-800 dark:text-sky-300">
           Mantenimiento
         </p>
         <h1
-          class="text-3xl sm:text-4xl font-extrabold text-granite-950 leading-tight tracking-tight"
+          class="text-3xl sm:text-4xl font-extrabold text-granite-950 dark:text-granite-50 leading-tight tracking-tight"
         >
           Reportes
         </h1>
@@ -24,7 +24,7 @@
       <section class="flex flex-col gap-3">
         <div class="flex items-center gap-2">
           <i class="pi pi-cloud-upload text-amber-600 text-lg"></i>
-          <h2 class="text-lg font-bold text-granite-950">Pendientes de subir</h2>
+          <h2 class="text-lg font-bold text-granite-950 dark:text-granite-50">Pendientes de subir</h2>
           <span
             class="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-amber-500 text-granite-950 text-xs font-bold"
           >
@@ -37,13 +37,13 @@
               <button
                 type="button"
                 (click)="goToPendingDetail(p.tempId)"
-                class="w-full flex items-center justify-between gap-4 text-left rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3 hover:bg-amber-100 active:bg-amber-200 transition-colors"
+                class="w-full flex items-center justify-between gap-4 text-left rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 hover:bg-amber-100 active:bg-amber-200 transition-colors"
               >
                 <div class="flex flex-col gap-0.5 min-w-0">
-                  <span class="font-semibold text-granite-950 capitalize truncate">
+                  <span class="font-semibold text-granite-950 dark:text-granite-50 capitalize truncate">
                     {{ p.reportType }} · {{ p.clientName }}
                   </span>
-                  <span class="text-sm text-granite-700 font-data tabular-nums">
+                  <span class="text-sm text-granite-700 dark:text-granite-300 font-data tabular-nums">
                     {{ p.createdAt | date: "short" }}
                   </span>
                 </div>
@@ -76,31 +76,31 @@
       [rowHover]="true"
     >
       <ng-template pTemplate="caption">
-        <div class="border-b border-granite-200">
+        <div class="border-b border-granite-200 dark:border-granite-700">
           <!-- Always-visible toggle bar -->
           <button
             type="button"
             (click)="toggleFilters()"
             [attr.aria-expanded]="filtersOpen()"
-            class="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-granite-100 active:bg-granite-200 transition-colors"
+            class="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-granite-100 active:bg-granite-200 dark:hover:bg-granite-800 dark:active:bg-granite-700 transition-colors"
           >
             <div class="flex items-center gap-3 min-w-0">
-              <i class="pi pi-filter text-sky-800 text-lg"></i>
-              <span class="text-lg font-bold text-granite-950">Filtros</span>
+              <i class="pi pi-filter text-sky-800 dark:text-sky-300 text-lg"></i>
+              <span class="text-lg font-bold text-granite-950 dark:text-granite-50">Filtros</span>
               @if (activeFilterCount() > 0) {
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-sky-700 text-white text-sm font-bold">
                   {{ activeFilterCount() }}
                 </span>
               }
-              <span class="text-base text-granite-700 truncate">
+              <span class="text-base text-granite-700 dark:text-granite-300 truncate">
                 · {{ total() }} reporte{{ total() === 1 ? "" : "s" }}
               </span>
               @if (loading()) {
-                <i class="pi pi-spin pi-spinner text-sky-800" aria-label="Cargando"></i>
+                <i class="pi pi-spin pi-spinner text-sky-800 dark:text-sky-300" aria-label="Cargando"></i>
               }
             </div>
             <i
-              class="pi pi-chevron-down text-granite-800 text-lg transition-transform duration-200"
+              class="pi pi-chevron-down text-granite-800 dark:text-granite-200 text-lg transition-transform duration-200"
               [class.rotate-180]="filtersOpen()"
             ></i>
           </button>
@@ -182,7 +182,7 @@
               @if (activeFilterCount() > 0) {
                 <button
                   type="button"
-                  class="text-base font-bold text-sky-800 hover:text-sky-900 inline-flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-sky-50 transition-colors"
+                  class="text-base font-bold text-sky-800 dark:text-sky-300 hover:text-sky-900 inline-flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-sky-50 transition-colors"
                   (click)="clearFilters()"
                 >
                   <i class="pi pi-times"></i>
@@ -213,12 +213,12 @@
       </ng-template>
       <ng-template pTemplate="body" let-r>
         <tr (click)="goToReportDetail(r.id)" class="cursor-pointer">
-          <td class="font-data tabular-nums font-bold text-granite-950">
+          <td class="font-data tabular-nums font-bold text-granite-950 dark:text-granite-50">
             {{ r.id | slice: 0 : 6 }}{{ r.id.length > 8 ? "…" : "" }}
           </td>
           <td class="capitalize font-semibold">{{ r.workType }}</td>
           <td class="font-semibold">{{ r.clientName }}</td>
-          <td class="font-data tabular-nums text-granite-800">
+          <td class="font-data tabular-nums text-granite-800 dark:text-granite-200">
             {{ r.dateDeparture | date: "shortDate" }}
           </td>
           <td>

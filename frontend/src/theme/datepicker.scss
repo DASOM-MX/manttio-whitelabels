@@ -8,7 +8,8 @@
   }
 }
 .p-datepicker-panel {
-  @apply bg-white border-2 border-granite-200 rounded-lg shadow-lg p-3 z-50;
+  @apply bg-white border-2 border-granite-200 rounded-lg shadow-lg p-3 z-50
+         dark:bg-granite-900 dark:border-granite-700;
   /* Same anchoring strategy as p-select — override any inline position. */
   position: absolute !important;
   top: calc(100% + 4px) !important;
@@ -22,45 +23,51 @@
   @apply flex flex-col gap-2;
 }
 .p-datepicker-header {
-  @apply flex items-center justify-between mb-2 pb-2 border-b border-granite-200;
+  @apply flex items-center justify-between mb-2 pb-2 border-b border-granite-200
+         dark:border-granite-700;
 }
 .p-datepicker-title {
-  @apply flex items-center gap-1 font-semibold text-granite-900;
+  @apply flex items-center gap-1 font-semibold text-granite-900
+         dark:text-granite-100;
 }
 .p-datepicker-prev-button,
 .p-datepicker-next-button {
-  @apply size-10 inline-flex items-center justify-center rounded-full text-granite-700 hover:bg-sky-50 transition-colors;
+  @apply size-10 inline-flex items-center justify-center rounded-full text-granite-700 hover:bg-sky-50 transition-colors
+         dark:text-granite-300 dark:hover:bg-granite-800;
 }
 .p-datepicker-select-month,
 .p-datepicker-select-year {
-  @apply px-2 py-1 rounded-md text-base font-semibold text-granite-900 hover:bg-sky-50 transition-colors;
+  @apply px-2 py-1 rounded-md text-base font-semibold text-granite-900 hover:bg-sky-50 transition-colors
+         dark:text-granite-100 dark:hover:bg-granite-800;
 }
 .p-datepicker-calendar {
   @apply w-full border-collapse;
 }
 .p-datepicker-weekheader,
 .p-datepicker-weekday-cell {
-  @apply text-sm font-bold uppercase tracking-wide text-granite-700 text-center py-1;
+  @apply text-sm font-bold uppercase tracking-wide text-granite-700 text-center py-1
+         dark:text-granite-300;
 }
 .p-datepicker-day-cell {
   @apply p-0.5;
 }
 .p-datepicker-day {
-  @apply size-10 rounded-full flex items-center justify-center text-base text-granite-900 cursor-pointer transition-colors mx-auto;
+  @apply size-10 rounded-full flex items-center justify-center text-base text-granite-900 cursor-pointer transition-colors mx-auto
+         dark:text-granite-100;
 
   &:hover {
-    @apply bg-sky-50;
+    @apply bg-sky-50 dark:bg-granite-800;
   }
   &.p-datepicker-day-selected,
   &[data-p-selected='true'] {
-    @apply bg-sky-700 text-white font-bold;
+    @apply bg-sky-700 text-white font-bold dark:bg-sky-600;
   }
   &.p-datepicker-other-month,
   &[data-p-other-month='true'] {
-    @apply text-granite-300;
+    @apply text-granite-300 dark:text-granite-600;
   }
   &.p-datepicker-today {
-    @apply ring-2 ring-sky-300;
+    @apply ring-2 ring-sky-300 dark:ring-sky-500;
   }
   &.p-disabled {
     @apply opacity-30 cursor-not-allowed;
@@ -69,7 +76,8 @@
 
 /* Time picker (showTime) */
 .p-datepicker-time-picker {
-  @apply mt-3 pt-3 border-t border-granite-200 flex items-center justify-center gap-2;
+  @apply mt-3 pt-3 border-t border-granite-200 flex items-center justify-center gap-2
+         dark:border-granite-700;
 }
 .p-datepicker-hour-picker,
 .p-datepicker-minute-picker,
@@ -77,18 +85,22 @@
   @apply flex flex-col items-center;
 
   span {
-    @apply font-data tabular-nums text-lg font-semibold text-granite-900 px-2;
+    @apply font-data tabular-nums text-lg font-semibold text-granite-900 px-2
+           dark:text-granite-100;
   }
   button {
-    @apply size-7 inline-flex items-center justify-center rounded-md text-granite-700 hover:bg-sky-50 transition-colors;
+    @apply size-7 inline-flex items-center justify-center rounded-md text-granite-700 hover:bg-sky-50 transition-colors
+           dark:text-granite-300 dark:hover:bg-granite-800;
   }
 }
 .p-datepicker-separator {
-  @apply font-data text-lg font-semibold text-granite-700;
+  @apply font-data text-lg font-semibold text-granite-700
+         dark:text-granite-300;
 }
 
 .p-datepicker-buttonbar {
-  @apply flex justify-between mt-3 pt-3 border-t border-granite-200 gap-2;
+  @apply flex justify-between mt-3 pt-3 border-t border-granite-200 gap-2
+         dark:border-granite-700;
 
   button {
     @apply btn-secondary text-sm min-h-10 px-3 py-2;

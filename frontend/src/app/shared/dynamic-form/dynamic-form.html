@@ -41,7 +41,7 @@
         </div>
     }
 
-    <button pButton type="submit" class="btn-primary w-full !min-h-14">
+    <button pButton type="submit" [disabled]="form.invalid" class="btn-primary w-full !min-h-14">
         Enviar
     </button>
 </form>

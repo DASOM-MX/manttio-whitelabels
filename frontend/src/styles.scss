@@ -13,10 +13,10 @@
 
 @layer base {
   html {
-    @apply h-full text-granite-950 antialiased;
+    @apply h-full text-granite-950 antialiased dark:text-granite-50;
   }
   body {
-    @apply h-full bg-background;
+    @apply h-full bg-background dark:bg-granite-950;
   }
   app-root {
     @apply block h-full;
@@ -30,36 +30,43 @@
 
 @layer components {
   .field-label {
-    @apply block text-sm font-bold uppercase tracking-wide text-granite-800;
+    @apply block text-sm font-bold uppercase tracking-wide text-granite-800 dark:text-granite-200;
   }
   .field-group {
     @apply flex flex-col gap-2;
   }
   .field-input {
-    @apply w-full min-h-14 px-5 py-3.5 bg-white border-2 border-granite-200 rounded-lg text-lg text-granite-950 font-data tabular-nums transition-colors duration-150 focus:outline-none focus:border-sky-700 focus:ring-4 focus:ring-sky-700/20 disabled:bg-granite-50 disabled:text-granite-400;
+    // Height is fixed (not `min-h-*`) so `<p-select>`, `<p-datepicker>`,
+    // `<input pInputText>`, and `<p-inputnumber>` all render at the exact
+    // same height when laid out side-by-side in a filter grid. Previously
+    // `min-h-14` allowed flex/line-height to push some controls taller
+    // than others, producing visual jaggedness. `<p-textarea>` opts out
+    // via `!h-auto` in its own override sheet.
+    @apply w-full h-14 px-5 py-3 bg-white border-2 border-granite-200 rounded-lg text-lg text-granite-950 font-data tabular-nums transition-colors duration-150 focus:outline-none focus:border-sky-700 focus:ring-4 focus:ring-sky-700/20 disabled:bg-granite-50 disabled:text-granite-400
+           dark:bg-granite-900 dark:border-granite-700 dark:text-granite-50 dark:focus:border-sky-400 dark:focus:ring-sky-400/25 dark:disabled:bg-granite-800 dark:disabled:text-granite-500;
   }
   .field-input--error {
-    @apply border-red-500 focus:border-red-500 focus:ring-red-500/15;
+    @apply border-red-500 focus:border-red-500 focus:ring-red-500/15 dark:border-red-400 dark:focus:border-red-400 dark:focus:ring-red-400/25;
   }
   .btn {
     @apply inline-flex items-center justify-center gap-2 min-h-12 px-6 py-3 rounded-lg text-lg font-bold transition-colors duration-150 focus:outline-none focus-visible:ring-4 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
-    @apply btn bg-sky-700 text-white hover:bg-sky-800 active:bg-sky-900 focus-visible:ring-sky-700/30;
+    @apply btn bg-sky-700 text-white enabled:hover:bg-sky-800 enabled:active:bg-sky-900 focus-visible:ring-sky-700/30 dark:bg-sky-600 dark:enabled:hover:bg-sky-500 dark:enabled:active:bg-sky-400 dark:focus-visible:ring-sky-400/30;
   }
   .btn-secondary {
-    @apply btn bg-white text-sky-800 border-2 border-sky-700 hover:bg-sky-50 active:bg-sky-100 focus-visible:ring-sky-700/30;
+    @apply btn bg-white text-sky-800 border-2 border-sky-700 enabled:hover:bg-sky-50 enabled:active:bg-sky-100 focus-visible:ring-sky-700/30 dark:bg-granite-900 dark:text-sky-300 dark:border-sky-400 dark:enabled:hover:bg-granite-800 dark:enabled:active:bg-granite-700;
   }
   .btn-neutral {
-    @apply btn bg-white text-granite-900 border-2 border-granite-300 hover:bg-granite-50 active:bg-granite-100 focus-visible:ring-granite-300/40;
+    @apply btn bg-white text-granite-900 border-2 border-granite-300 enabled:hover:bg-granite-50 enabled:active:bg-granite-100 focus-visible:ring-granite-300/40 dark:bg-granite-900 dark:text-granite-100 dark:border-granite-700 dark:enabled:hover:bg-granite-800 dark:enabled:active:bg-granite-700 dark:focus-visible:ring-granite-700/50;
   }
   .btn-danger {
-    @apply btn bg-red-600 text-white hover:bg-red-700 active:bg-red-800 focus-visible:ring-red-600/30;
+    @apply btn bg-red-600 text-white enabled:hover:bg-red-700 enabled:active:bg-red-800 focus-visible:ring-red-600/30 dark:bg-red-500 dark:enabled:hover:bg-red-400 dark:enabled:active:bg-red-300;
   }
   .card {
-    @apply bg-white border border-granite-200 rounded-xl shadow-sm;
+    @apply bg-white border border-granite-200 rounded-xl shadow-sm dark:bg-granite-900 dark:border-granite-700;
   }
   .card-section {
-    @apply bg-white border border-granite-200 rounded-2xl p-6 sm:p-8 shadow-sm;
+    @apply bg-white border border-granite-200 rounded-2xl p-6 sm:p-8 shadow-sm dark:bg-granite-900 dark:border-granite-700;
   }
 }

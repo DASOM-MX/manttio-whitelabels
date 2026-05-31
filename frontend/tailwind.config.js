@@ -3,6 +3,9 @@ module.exports = {
     content: [
         "./src/**/*.{html,ts}",
     ],
+    // Use a custom `.app-dark` class instead of the default `.dark`, so it lines
+    // up with PrimeNG's `darkModeSelector` and we toggle a single class on `<html>`.
+    darkMode: ['class', '.app-dark'],
     theme: {
         extend: {
             colors: {

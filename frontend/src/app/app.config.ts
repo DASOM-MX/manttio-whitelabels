@@ -12,6 +12,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { providePrimeNG } from 'primeng/config';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { ManttioPreset } from './theme/manttio-preset';
 import { provideStore, Store } from '@ngxs/store';
 import { withNgxsStoragePlugin } from '@ngxs/storage-plugin';
 import { withNgxsReduxDevtoolsPlugin } from '@ngxs/devtools-plugin';
@@ -35,12 +36,30 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([authInterceptor])),
     provideRouter(routes),
     provideAnimationsAsync(),
-    providePrimeNG({ ripple: false, theme: 'none' }),
+    providePrimeNG({
+      ripple: false,
+      theme: {
+        preset: ManttioPreset,
+        options: {
+          // Disable Aura's automatic dark-mode (the app has no `dark:` variants;
+          // following OS preference produced a dark table on a light page).
+          // The selector class is intentionally one we never apply.
+          darkModeSelector: '.app-dark',
+          // Put Aura into a named CSS layer so our unlayered per-component
+          // override sheets in `src/theme/*.scss` win over Aura's runtime-
+          // injected CSS. Without this, Aura's <style> tags are appended
+          // after the SCSS bundle and beat the overrides on identical
+          // specificity (last-write wins). With cssLayer set, any unlayered
+          // rule outranks the entire `primeng` layer.
+          cssLayer: { name: 'primeng', order: 'primeng' },
+        },
+      },
+    }),
     ConfirmationService,
     MessageService,
     provideStore(
       [AppState, AuthState, UsersState, CustomersState, ReportsState, ReportDraftState, OfflineReportsState],
-      withNgxsStoragePlugin({ keys: ['auth', 'reportDraft'] }),
+      withNgxsStoragePlugin({ keys: ['auth', 'reportDraft', 'app'] }),
       withNgxsReduxDevtoolsPlugin({ disabled: !isDevMode() }),
       withNgxsLoggerPlugin({ disabled: !isDevMode() }),
     ),

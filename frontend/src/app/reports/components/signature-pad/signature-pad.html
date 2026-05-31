@@ -1,5 +1,5 @@
 <div class="w-full max-w-full">
-  <canvas #canvas class="w-full h-56 border-2 border-granite-300 rounded-xl block bg-white"></canvas>
+  <canvas #canvas class="w-full h-56 border-2 border-granite-300 dark:border-granite-700 rounded-xl block bg-white"></canvas>
   <div class="mt-4 flex flex-wrap gap-3">
     <button type="button" (click)="saveSignature()" class="btn-primary" [disabled]="capturingLocation()">
       @if (capturingLocation()) {
@@ -12,7 +12,7 @@
       Limpiar Firma
     </button>
   </div>
-  <p class="mt-2 text-xs text-granite-600">
+  <p class="mt-2 text-xs text-granite-600 dark:text-granite-400">
     Al guardar se solicitará la ubicación. Es obligatoria para firmar.
   </p>
 </div>

@@ -71,7 +71,7 @@
     <li class="relative flex-1">
       <button
         type="button"
-        (click)="toggleMenu()"
+        (click)="otrosPopover.toggle($event)"
         class="flex flex-col items-center gap-0.5 min-h-16 w-full py-2.5 text-granite-100 hover:bg-navy-800 active:bg-navy-700 focus:outline-none focus-visible:bg-navy-800 transition-colors"
       >
         <svg
@@ -91,30 +91,65 @@
         <span class="text-xs font-semibold">Otros</span>
       </button>
 
-      @if (showMenu()) {
-        <div class="absolute bottom-full right-2 mb-2 bg-white text-granite-900 rounded-xl shadow-xl border border-granite-200 w-56 overflow-hidden">
-          @if (user()?.email; as email) {
-            <div class="px-4 py-3 border-b border-granite-200 text-sm text-granite-600 truncate">
-              {{ email }}
-            </div>
-          }
-          @if (isAdmin()) {
-            <a routerLink="/customers" class="block px-4 py-3 text-base font-medium hover:bg-sky-50 active:bg-sky-100 transition-colors">
-              Clientes
-            </a>
-            <a routerLink="/register" class="block px-4 py-3 text-base font-medium hover:bg-sky-50 active:bg-sky-100 transition-colors">
-              Agregar usuario
-            </a>
-          }
-          <button
-            type="button"
-            (click)="logout()"
-            class="block w-full text-left px-4 py-3 text-base font-semibold text-red-700 hover:bg-red-50 active:bg-red-100 transition-colors border-t border-granite-200"
+      <p-popover #otrosPopover appendTo="body" styleClass="w-64 overflow-hidden">
+        @if (user()?.email; as email) {
+          <div class="px-4 py-3 truncate text-sm border-b text-granite-600 border-granite-200
+                      dark:text-granite-400 dark:border-granite-700">
+            {{ email }}
+          </div>
+        }
+        @if (isAdmin()) {
+          <a
+            routerLink="/customers"
+            class="block px-4 py-3 text-base font-medium transition-colors
+                   hover:bg-sky-50 active:bg-sky-100
+                   dark:hover:bg-granite-800 dark:active:bg-granite-700"
           >
-            Cerrar sesión
-          </button>
-        </div>
-      }
+            Clientes
+          </a>
+          <a
+            routerLink="/register"
+            class="block px-4 py-3 text-base font-medium transition-colors
+                   hover:bg-sky-50 active:bg-sky-100
+                   dark:hover:bg-granite-800 dark:active:bg-granite-700"
+          >
+            Agregar usuario
+          </a>
+        }
+        <button
+          type="button"
+          (click)="toggleDarkMode()"
+          [attr.aria-pressed]="darkMode()"
+          class="flex w-full items-center justify-between gap-3 px-4 py-3 text-base font-medium transition-colors
+                 border-t border-granite-200 hover:bg-sky-50 active:bg-sky-100
+                 dark:border-granite-700 dark:hover:bg-granite-800 dark:active:bg-granite-700"
+        >
+          <span class="flex items-center gap-2">
+            <i [class]="darkMode() ? 'pi pi-moon' : 'pi pi-sun'" aria-hidden="true"></i>
+            Modo oscuro
+          </span>
+          <span
+            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors
+                   bg-granite-300 dark:bg-sky-600"
+            aria-hidden="true"
+          >
+            <span
+              class="inline-block size-5 rounded-full bg-white shadow transition-transform"
+              [class.translate-x-5]="darkMode()"
+              [class.translate-x-0.5]="!darkMode()"
+            ></span>
+          </span>
+        </button>
+        <button
+          type="button"
+          (click)="logout()"
+          class="block w-full px-4 py-3 text-left text-base font-semibold transition-colors
+                 border-t border-granite-200 text-red-700 hover:bg-red-50 active:bg-red-100
+                 dark:border-granite-700 dark:text-red-300 dark:hover:bg-red-950/40 dark:active:bg-red-950/60"
+        >
+          Cerrar sesión
+        </button>
+      </p-popover>
     </li>
   </ul>
 </nav>

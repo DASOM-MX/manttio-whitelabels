@@ -6,7 +6,7 @@ import {
   Output,
   inject,
 } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FieldConfig, FieldOption } from '../../interfaces/field-config';
 import { ImagePickerComponent } from '../../reports/components/image-picker/image-picker';
 import { SignatureComponent } from '../../reports/components/signature-pad/signature-pad';
@@ -43,11 +43,16 @@ export class DynamicForm implements OnInit {
   ngOnInit() {
     const group: { [key: string]: any } = {};
     this.fields.forEach((field) => {
-      group[field.name] = [field.defaultValue];
+      // `image` is reported via a separate `(filesSelected)` emitter and has no
+      // form control, so we skip it here. Every other field type ends up as a
+      // direct form control and is required by default — that's what disables
+      // the submit button on an empty form.
+      if (field.type === 'image') return;
+      group[field.name] = [field.defaultValue, Validators.required];
     });
 
     if (!group['signature']) {
-      group['signature'] = [null];
+      group['signature'] = [null, Validators.required];
     }
 
     this.form = this.fb.group(group);

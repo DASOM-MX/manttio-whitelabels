@@ -1,4 +1,6 @@
 /* PrimeNG Textarea (pTextarea directive) */
 .p-textarea {
-  @apply field-input min-h-32 resize-y leading-relaxed;
+  // Undo `.field-input`'s fixed 56px height + tighter vertical padding —
+  // a textarea grows with its rows. `min-h-32` becomes the actual floor.
+  @apply field-input !h-auto py-3.5 min-h-32 resize-y leading-relaxed;
 }
