@@ -51,10 +51,6 @@ export class DynamicForm implements OnInit {
       group[field.name] = [field.defaultValue, Validators.required];
     });
 
-    if (!group['signature']) {
-      group['signature'] = [null, Validators.required];
-    }
-
     this.form = this.fb.group(group);
   }
 

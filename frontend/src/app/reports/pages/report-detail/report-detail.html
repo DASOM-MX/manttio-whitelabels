@@ -131,13 +131,11 @@
                             </div>
                             <div class="field-group">
                                 <label for="amperage" class="field-label">Amperaje</label>
-                                <p-inputnumber inputId="amperage" formControlName="amperage" mode="decimal"
-                                    [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                                <input pInputText id="amperage" type="text" formControlName="amperage" />
                             </div>
                             <div class="field-group">
                                 <label for="innerVoltage" class="field-label">Voltaje interno</label>
-                                <p-inputnumber inputId="innerVoltage" formControlName="inner_voltage" mode="decimal"
-                                    [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                                <input pInputText id="innerVoltage" type="text" formControlName="inner_voltage" />
                             </div>
                             <div class="field-group">
                                 <label class="field-label">Ruido inusual</label>
@@ -219,15 +217,15 @@
                             </div>
                             <div class="field-group">
                                 <label for="innerTemp" class="field-label">Temperatura entrada</label>
-                                <p-inputnumber inputId="innerTemp" formControlName="inner_temperature" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                                <input pInputText id="innerTemp" type="text" formControlName="inner_temperature" />
                             </div>
                             <div class="field-group">
                                 <label for="outerTemp" class="field-label">Temperatura salida</label>
-                                <p-inputnumber inputId="outerTemp" formControlName="outer_temperature" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                                <input pInputText id="outerTemp" type="text" formControlName="outer_temperature" />
                             </div>
                             <div class="field-group">
                                 <label for="innerVoltageC" class="field-label">Voltaje interno</label>
-                                <p-inputnumber inputId="innerVoltageC" formControlName="inner_voltage" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                                <input pInputText id="innerVoltageC" type="text" formControlName="inner_voltage" />
                             </div>
                             <div class="field-group">
                                 <label class="field-label">PLC funcionando</label>
@@ -238,23 +236,23 @@
                             </div>
                             <div class="field-group">
                                 <label for="motorAmp" class="field-label">Amperaje motor</label>
-                                <p-inputnumber inputId="motorAmp" formControlName="motor_amperage" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                                <input pInputText id="motorAmp" type="text" formControlName="motor_amperage" />
                             </div>
                             <div class="field-group">
                                 <label for="sysP1" class="field-label">Presión sistema 1</label>
-                                <p-inputnumber inputId="sysP1" formControlName="system_pressure_1" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                                <input pInputText id="sysP1" type="text" formControlName="system_pressure_1" />
                             </div>
                             <div class="field-group">
                                 <label for="sysP2" class="field-label">Presión sistema 2</label>
-                                <p-inputnumber inputId="sysP2" formControlName="system_pressure_2" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                                <input pInputText id="sysP2" type="text" formControlName="system_pressure_2" />
                             </div>
                             <div class="field-group">
                                 <label for="sysP3" class="field-label">Presión sistema 3</label>
-                                <p-inputnumber inputId="sysP3" formControlName="system_pressure_3" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                                <input pInputText id="sysP3" type="text" formControlName="system_pressure_3" />
                             </div>
                             <div class="field-group">
                                 <label for="oilP" class="field-label">Presión aceite</label>
-                                <p-inputnumber inputId="oilP" formControlName="oil_pressure" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                                <input pInputText id="oilP" type="text" formControlName="oil_pressure" />
                             </div>
                             <div class="field-group">
                                 <label for="oilL" class="field-label">Nivel de aceite</label>
@@ -334,11 +332,11 @@
                             </div>
                             <div class="field-group">
                                 <label for="umaInTemp" class="field-label">Temperatura entrada</label>
-                                <p-inputnumber inputId="umaInTemp" formControlName="inner_temperature" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                                <input pInputText id="umaInTemp" type="text" formControlName="inner_temperature" />
                             </div>
                             <div class="field-group">
                                 <label for="umaOutTemp" class="field-label">Temperatura salida</label>
-                                <p-inputnumber inputId="umaOutTemp" formControlName="outer_temperature" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                                <input pInputText id="umaOutTemp" type="text" formControlName="outer_temperature" />
                             </div>
                             <div class="field-group">
                                 <label class="field-label">Rejilla aire en buenas condiciones</label>
@@ -349,11 +347,11 @@
                             </div>
                             <div class="field-group">
                                 <label for="umaVolt" class="field-label">Voltaje interno</label>
-                                <p-inputnumber inputId="umaVolt" formControlName="inner_voltage" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                                <input pInputText id="umaVolt" type="text" formControlName="inner_voltage" />
                             </div>
                             <div class="field-group">
                                 <label for="umaAmp" class="field-label">Amperaje motor</label>
-                                <p-inputnumber inputId="umaAmp" formControlName="motor_amperage" mode="decimal" [useGrouping]="false" styleClass="w-full"></p-inputnumber>
+                                <input pInputText id="umaAmp" type="text" formControlName="motor_amperage" />
                             </div>
                             <div class="field-group">
                                 <label class="field-label">Ruido inusual</label>
@@ -427,7 +425,7 @@
                         </div>
                     } @else {
                         <p class="text-lg text-granite-700 dark:text-granite-300 italic">
-                            Sin firma todavía. Usa el botón <span class="font-semibold not-italic text-granite-900 dark:text-granite-100">Terminar y enviar</span> para firmar y cerrar el reporte.
+                            Sin firma todavía. Usa el botón <span class="font-semibold not-italic text-granite-900 dark:text-granite-100">Terminar y enviar</span> para que el cliente firme y cerrar el reporte.
                         </p>
                     }
                 </section>
@@ -466,13 +464,17 @@
 
 <!-- Sign-and-finish modal: triggered by the "Terminar y enviar" button. The signature
      component dispatches AddSignature on save, which marks the report finished and
-     auto-emails the customer. -->
+     auto-emails the customer. Lazy-mounted on visible so the canvas's offsetWidth
+     is non-zero at init — otherwise signature_pad pegs the drawing buffer to 0x0
+     and no mouse/touch input registers. -->
 <p-dialog header="Terminar y enviar reporte" [(visible)]="signModalVisible" [modal]="true"
     [closable]="true" [draggable]="false" [resizable]="false" [style]="{ width: '36rem' }">
     <p class="text-base text-granite-900 dark:text-granite-100 mb-4">
-        Firma a continuación para cerrar el reporte y enviarlo al correo del cliente.
+        El cliente debe firmar para confirmar el servicio y cerrar el reporte.
     </p>
-    <app-signature (signatureChanged)="onSignatureSaved($event)"></app-signature>
+    @if (signModalVisible()) {
+        <app-signature (signatureChanged)="onSignatureSaved($event)"></app-signature>
+    }
 </p-dialog>
 
 <!-- Post-finish PDF dialog: offered as a courtesy after the report is signed. The

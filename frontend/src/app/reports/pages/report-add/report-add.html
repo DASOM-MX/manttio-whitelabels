@@ -1,80 +1,118 @@
 <div class="min-h-full bg-background dark:bg-granite-950">
-    <div class="max-w-2xl mx-auto px-4 sm:px-8 py-10 sm:py-12 flex flex-col gap-8">
-        <!-- Header -->
-        <div class="flex flex-col gap-1">
-            <p class="text-sm font-bold uppercase tracking-wider text-sky-800 dark:text-sky-300">Nuevo</p>
-            <h1 class="text-3xl sm:text-4xl font-extrabold text-granite-950 dark:text-granite-50 leading-tight tracking-tight">
-                Crear reporte
-            </h1>
-        </div>
-
-        <!-- Form card — hidden until the technician confirms the "Abrir nuevo reporte"
-             dialog (or an existing draft is resumed). -->
-        @if (formReady()) {
-        <div class="card-section flex flex-col gap-7" [formGroup]="headerForm">
-            <!-- 2x2 cabecera: Cliente | Llegada | Tipo de reporte | Tipo de tarea -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-7">
-                <div class="field-group">
-                    <label for="customer" class="field-label">Cliente</label>
-                    <p-select inputId="customer" formControlName="customerId"
-                        [options]="customers()" optionLabel="name" optionValue="id"
-                        [autoOptionFocus]="false" styleClass="w-full" [filter]="true"
-                        filterBy="name,identification" placeholder="Selecciona un cliente">
-                    </p-select>
-                </div>
-
-                <div class="field-group">
-                    <span class="field-label">Llegada</span>
-                    <span class="text-lg font-data tabular-nums text-granite-950 dark:text-granite-50 font-semibold pt-1.5">
-                        {{ arrivalAt() | date:'dd/MM/yyyy HH:mm' }}
-                    </span>
-                </div>
-
-                <div class="field-group">
-                    <label for="reportType" class="field-label">Tipo de reporte</label>
-                    <p-select inputId="reportType" formControlName="reportType"
-                        [options]="reportTypeOptions" optionLabel="label" optionValue="value"
-                        [autoOptionFocus]="false" styleClass="w-full">
-                    </p-select>
-                </div>
-
-                <div class="field-group">
-                    <label for="workType" class="field-label">Tipo de tarea</label>
-                    <p-select inputId="workType" formControlName="workType"
-                        [options]="workTypeOptions" optionLabel="label" optionValue="value"
-                        [autoOptionFocus]="false" styleClass="w-full"
-                        placeholder="Selecciona un tipo">
-                    </p-select>
-                </div>
-            </div>
-
-            <!-- Dynamic form (fades + remounts when Tipo de reporte changes) -->
-            <div class="transition-opacity duration-300"
-                [class.opacity-0]="isAnimating()" [class.opacity-100]="!isAnimating()">
-                @if (!isAnimating()) {
-                    <app-dynamic-form [fields]="formFields()"
-                        (submitForm)="onFormSubmit($event)"
-                        (filesSelected)="onFilesSelected($event)"
-                        (signatureChanged)="onSignaturePayloadChanged($event)">
-                    </app-dynamic-form>
-                }
-            </div>
-        </div>
-        }
+  <div
+    class="max-w-2xl mx-auto px-4 sm:px-8 py-10 sm:py-12 flex flex-col gap-8"
+  >
+    <!-- Header -->
+    <div class="flex flex-col gap-1">
+      <p
+        class="text-sm font-bold uppercase tracking-wider text-sky-800 dark:text-sky-300"
+      >
+        Nuevo
+      </p>
+      <h1
+        class="text-3xl sm:text-4xl font-extrabold text-granite-950 dark:text-granite-50 leading-tight tracking-tight"
+      >
+        Crear reporte
+      </h1>
     </div>
+
+    <!-- Form card — hidden until the technician confirms the "Abrir nuevo reporte"
+             dialog (or an existing draft is resumed). -->
+    @if (formReady()) {
+      <div class="card-section flex flex-col gap-7" [formGroup]="headerForm">
+        <!-- 2x2 cabecera: Cliente | Llegada | Tipo de reporte | Tipo de tarea -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-7">
+          <div class="field-group">
+            <label for="customer" class="field-label">Cliente</label>
+            <p-select
+              inputId="customer"
+              formControlName="customerId"
+              [options]="customers()"
+              optionLabel="name"
+              optionValue="id"
+              [autoOptionFocus]="false"
+              styleClass="w-full"
+              [filter]="true"
+              filterBy="name,identification"
+              placeholder="Selecciona un cliente"
+            >
+            </p-select>
+          </div>
+
+          <div class="field-group">
+            <span class="field-label">Llegada</span>
+            <span
+              class="text-lg font-data tabular-nums text-granite-950 dark:text-granite-50 font-semibold pt-1.5"
+            >
+              {{ arrivalAt() | date: "dd/MM/yyyy HH:mm" }}
+            </span>
+          </div>
+
+          <div class="field-group">
+            <label for="reportType" class="field-label">Tipo de reporte</label>
+            <p-select
+              inputId="reportType"
+              formControlName="reportType"
+              [options]="reportTypeOptions"
+              optionLabel="label"
+              optionValue="value"
+              [autoOptionFocus]="false"
+              styleClass="w-full"
+            >
+            </p-select>
+          </div>
+
+          <div class="field-group">
+            <label for="workType" class="field-label">Tipo de tarea</label>
+            <p-select
+              inputId="workType"
+              formControlName="workType"
+              [options]="workTypeOptions"
+              optionLabel="label"
+              optionValue="value"
+              [autoOptionFocus]="false"
+              styleClass="w-full"
+              placeholder="Selecciona un tipo"
+            >
+            </p-select>
+          </div>
+        </div>
+
+        <!-- Dynamic form (fades + remounts when Tipo de reporte changes) -->
+        <div
+          class="transition-opacity duration-300"
+          [class.opacity-0]="isAnimating()"
+          [class.opacity-100]="!isAnimating()"
+        >
+          @if (!isAnimating()) {
+            <app-dynamic-form
+              [fields]="formFields()"
+              (submitForm)="onFormSubmit($event)"
+              (filesSelected)="onFilesSelected($event)"
+            >
+            </app-dynamic-form>
+          }
+        </div>
+      </div>
+    }
+  </div>
 </div>
 
 <!-- Leave-draft dialog -->
-<p-dialog header="Reporte en progreso" [(visible)]="leaveDialogVisible" [modal]="true"
-    [closable]="false" [draggable]="false" [resizable]="false" [style]="{ width: '32rem' }">
-    <p class="text-base text-granite-900 dark:text-granite-100">
-        Tienes un reporte en progreso. ¿Qué deseas hacer con este borrador?
-    </p>
-    <ng-template pTemplate="footer">
-        <div class="flex flex-wrap justify-end gap-3">
-            <p-button label="Cancelar" severity="secondary" (onClick)="onLeaveCancel()"></p-button>
-            <p-button label="Descartar borrador" severity="danger" (onClick)="onLeaveDiscard()"></p-button>
-            <p-button label="Conservar y continuar después" (onClick)="onLeaveKeep()"></p-button>
-        </div>
-    </ng-template>
-</p-dialog>
+<app-leave-draft-dialog
+  [(visible)]="leaveDialogVisible"
+  (cancel)="onLeaveCancel()"
+  (discard)="onLeaveDiscard()"
+  (keep)="onLeaveKeep()"
+>
+</app-leave-draft-dialog>
+
+<!-- Sign-and-submit modal: opens when the tech taps "Enviar" with a valid header.
+     The signature emit dispatches the actual CreateReport (with the signature
+     attached so the backend can mark the report finished in one shot). -->
+<app-sign-submit-dialog
+  [(visible)]="signModalVisible"
+  [loading]="saving()"
+  (signatureChanged)="onSignatureSaved($event)"
+>
+</app-sign-submit-dialog>

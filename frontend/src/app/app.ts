@@ -21,9 +21,18 @@ export class App {
 
   protected title = 'manttio';
 
+  /** Browser chrome (Chrome/Firefox address bar, PWA status bar) color per mode.
+   *  Light = navy frame matching the bottom nav; dark = granite-950 page bg so
+   *  the toolbar blends into the dark app. */
+  private static readonly THEME_COLOR = { light: '#243345', dark: '#131717' };
+
   constructor() {
     effect(() => {
-      this.document.documentElement.classList.toggle('app-dark', this.darkMode());
+      const dark = this.darkMode();
+      this.document.documentElement.classList.toggle('app-dark', dark);
+      this.document
+        .querySelector('meta[name="theme-color"]')
+        ?.setAttribute('content', dark ? App.THEME_COLOR.dark : App.THEME_COLOR.light);
     });
   }
 }

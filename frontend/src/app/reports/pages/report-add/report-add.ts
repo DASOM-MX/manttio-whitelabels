@@ -1,13 +1,13 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DynamicForm } from '../../../shared/dynamic-form/dynamic-form';
+import { SignSubmitDialog } from '../../components/sign-submit-dialog/sign-submit-dialog';
+import { LeaveDraftDialog } from '../../components/leave-draft-dialog/leave-draft-dialog';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Actions, Store, ofActionSuccessful, ofActionErrored, select } from '@ngxs/store';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SelectModule } from 'primeng/select';
-import { DialogModule } from 'primeng/dialog';
-import { ButtonModule } from 'primeng/button';
 import { DatePipe } from '@angular/common';
 import { FieldConfig } from '../../../interfaces/field-config';
 import { AuthState } from '../../../../state/auth/auth.state';
@@ -30,6 +30,7 @@ import type {
   UmaData,
   SignedPayload,
 } from '../../../data/dtos/report';
+import { dataUrlToFile } from '../../../data/utils';
 import { WORK_TYPES, type ReportType, type WorkType } from '../../../data/types/report';
 
 const yesNoToBool = (v: unknown): boolean => v === 'Sí' || v === true;
@@ -37,7 +38,14 @@ const yesNoToBool = (v: unknown): boolean => v === 'Sí' || v === true;
 @Component({
   selector: 'app-report-add',
   standalone: true,
-  imports: [DynamicForm, ReactiveFormsModule, SelectModule, DialogModule, ButtonModule, DatePipe],
+  imports: [
+    DynamicForm,
+    SignSubmitDialog,
+    LeaveDraftDialog,
+    ReactiveFormsModule,
+    SelectModule,
+    DatePipe,
+  ],
   templateUrl: './report-add.html',
   styleUrl: './report-add.scss',
 })
@@ -49,11 +57,11 @@ export class ReportAdd {
   private confirm = inject(ConfirmationService);
   private fb = inject(FormBuilder);
 
-  customers = select(CustomersState.list);
   private currentUser = select(AuthState.user);
   private reportRows = select(ReportsState.list);
   private draft = select(ReportDraftState.draft);
-
+  
+  customers = select(CustomersState.list);
   /** Reports still belonging to the current user that have not been signed.
    *  Used to warn the technician they already have one open before creating another. */
   private openReports = computed(() => {
@@ -69,8 +77,6 @@ export class ReportAdd {
   arrivalAt = computed(() => this.draft()?.arrivalAt ?? new Date().toISOString());
 
   selectedFiles = signal<File[]>([]);
-  signatureFile = signal<File | null>(null);
-  signaturePayload = signal<SignedPayload | null>(null);
 
   readonly reportTypeOptions: { label: string; value: ReportType }[] = [
     { label: 'Minisplit', value: 'minisplit' },
@@ -114,6 +120,20 @@ export class ReportAdd {
   /** Gates the form card. Stays false until either an existing draft is resumed or the
    *  user confirms the "Abrir nuevo reporte" dialog. */
   formReady = signal(false);
+
+  // ─── Sign-and-submit modal ───
+  /** Opens when the tech taps "Enviar" with a valid header. The client signs inside,
+   *  which triggers the actual CreateReport dispatch (signature attached). */
+  signModalVisible = signal(false);
+  /** True between signature emit and CreateReport success/error. Keeps the dialog
+   *  open (and locked — no X, no Escape) while the request is in flight, and
+   *  swaps the signature pad for a spinner + "no cierres esta ventana" disclaimer. */
+  saving = signal(false);
+  /** Form payload captured at submit time, held until the signature is provided. */
+  private pendingFormData = signal<Record<string, unknown> | null>(null);
+  /** Set right before navigating away after a successful create so canLeave can
+   *  bypass the "Reporte en progreso" prompt. */
+  private submittedSuccessfully = signal(false);
 
   constructor() {
     // Resume an existing draft straight away; otherwise ask the technician to confirm
@@ -166,6 +186,9 @@ export class ReportAdd {
     this.actions$
       .pipe(ofActionErrored(CreateReport), takeUntilDestroyed())
       .subscribe(() => {
+        // Reset saving so the dialog swaps back to the signature pad and the
+        // tech can re-sign + retry without leaving the page.
+        this.saving.set(false);
         this.messages.add({ severity: 'error', summary: 'Error al enviar reporte' });
       });
 
@@ -184,6 +207,7 @@ export class ReportAdd {
     this.actions$
       .pipe(ofActionErrored(QueueOfflineReport), takeUntilDestroyed())
       .subscribe(() => {
+        this.saving.set(false);
         this.messages.add({
           severity: 'error',
           summary: 'No se pudo guardar el reporte sin conexión',
@@ -199,60 +223,49 @@ export class ReportAdd {
     this.selectedFiles.set(files);
   }
 
-  onSignatureChange(file: File) {
-    this.signatureFile.set(file);
-  }
-
-  onSignaturePayloadChanged(payload: SignedPayload | null) {
-    this.signaturePayload.set(payload);
-  }
-
   private buildFields(type: ReportType): FieldConfig[] {
     switch (type) {
       case 'minisplit':
         return [
           { type: 'select', label: '¿Equipo se encuentra operando?', name: 'is_operating', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'select', label: '¿Control remoto funciona?', name: 'remote_working', defaultValue: '', options: ['Sí', 'No'] },
-          { type: 'number', label: 'Amperaje general', name: 'amperage', defaultValue: '' },
+          { type: 'text', label: 'Amperaje general', name: 'amperage', defaultValue: '' },
           { type: 'select', label: '¿Cuenta con filtro de evaporador?', name: 'filter', defaultValue: '', options: ['Sí', 'No'] },
-          { type: 'number', label: 'Voltaje de entrada', name: 'inner_voltage', defaultValue: '' },
+          { type: 'text', label: 'Voltaje de entrada', name: 'inner_voltage', defaultValue: '' },
           { type: 'select', label: '¿Ruido fuera de lo normal?', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
-          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' },
         ];
       case 'chiller':
         return [
           { type: 'select', label: '¿Equipo se encuentra operando?', name: 'is_operating', defaultValue: '', options: ['Sí', 'No'] },
-          { type: 'number', label: 'Temperatura de entrada', name: 'inner_temperature', defaultValue: '' },
-          { type: 'number', label: 'Temperatura de salida', name: 'outer_temperature', defaultValue: '' },
-          { type: 'number', label: 'Voltaje interior', name: 'inner_voltage', defaultValue: '' },
+          { type: 'text', label: 'Temperatura de entrada', name: 'inner_temperature', defaultValue: '' },
+          { type: 'text', label: 'Temperatura de salida', name: 'outer_temperature', defaultValue: '' },
+          { type: 'text', label: 'Voltaje interior', name: 'inner_voltage', defaultValue: '' },
           { type: 'select', label: '¿PLC funciona?', name: 'plc_keys_working', defaultValue: '', options: ['Sí', 'No'] },
-          { type: 'number', label: 'Amperaje del motor', name: 'motor_amperage', defaultValue: '' },
-          { type: 'number', label: 'Presión del sistema 1', name: 'system_pressure_1', defaultValue: '' },
-          { type: 'number', label: 'Presión del sistema 2', name: 'system_pressure_2', defaultValue: '' },
-          { type: 'number', label: 'Presión del sistema 3', name: 'system_pressure_3', defaultValue: '' },
-          { type: 'number', label: 'Presión de aceite', name: 'oil_pressure', defaultValue: '' },
-          { type: 'number', label: 'Nivel de aceite', name: 'oil_level', defaultValue: '' },
+          { type: 'text', label: 'Amperaje del motor', name: 'motor_amperage', defaultValue: '' },
+          { type: 'text', label: 'Presión del sistema 1', name: 'system_pressure_1', defaultValue: '' },
+          { type: 'text', label: 'Presión del sistema 2', name: 'system_pressure_2', defaultValue: '' },
+          { type: 'text', label: 'Presión del sistema 3', name: 'system_pressure_3', defaultValue: '' },
+          { type: 'text', label: 'Presión de aceite', name: 'oil_pressure', defaultValue: '' },
+          { type: 'text', label: 'Nivel de aceite', name: 'oil_level', defaultValue: '' },
           { type: 'select', label: 'Switch de flujo funciona', name: 'flux_switch_working', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'select', label: 'Ruido inusual', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
-          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' },
         ];
       case 'uma':
         return [
           { type: 'select', label: '¿Se encuentra operando?', name: 'is_operating', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'select', label: '¿Se ajustó la banda?', name: 'air_band_adjustment', defaultValue: '', options: ['Sí', 'No'] },
-          { type: 'number', label: 'Temperatura de entrada', name: 'inner_temperature', defaultValue: '' },
-          { type: 'number', label: 'Temperatura de salida', name: 'outer_temperature', defaultValue: '' },
+          { type: 'text', label: 'Temperatura de entrada', name: 'inner_temperature', defaultValue: '' },
+          { type: 'text', label: 'Temperatura de salida', name: 'outer_temperature', defaultValue: '' },
           { type: 'select', label: 'Rejilla de aire en buenas condiciones', name: 'air_good_quality', defaultValue: '', options: ['Sí', 'No'] },
-          { type: 'number', label: 'Voltaje de entrada', name: 'inner_voltage', defaultValue: '' },
-          { type: 'number', label: 'Amperaje del motor', name: 'motor_amperage', defaultValue: '' },
+          { type: 'text', label: 'Voltaje de entrada', name: 'inner_voltage', defaultValue: '' },
+          { type: 'text', label: 'Amperaje del motor', name: 'motor_amperage', defaultValue: '' },
           { type: 'select', label: 'Ruido inusual', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
-          { type: 'signature', label: 'Firma', name: 'signature', defaultValue: '' },
         ];
     }
   }
@@ -313,23 +326,22 @@ export class ReportAdd {
       this.messages.add({ severity: 'error', summary: 'Selecciona un cliente antes de enviar' });
       return;
     }
+    // Hand off to the signature modal — CreateReport is dispatched once the client signs.
+    this.pendingFormData.set(formData);
+    this.signModalVisible.set(true);
+  }
 
-    const signatureBase64 = typeof formData['signature'] === 'string' ? (formData['signature'] as string) : '';
-    const signatureFile = this.signatureFile();
-    const hasSignature = !!signatureFile || !!signatureBase64;
-
-    if (!hasSignature) {
-      this.confirm.confirm({
-        header: 'Falta firma',
-        message: 'Este reporte no contiene una firma. ¿Deseas continuar sin firmar?',
-        icon: 'pi pi-exclamation-triangle',
-        acceptLabel: 'Sí, continuar',
-        rejectLabel: 'Cancelar',
-        accept: () => this.dispatchCreate(formData, signatureFile, signatureBase64),
-      });
-      return;
-    }
-    this.dispatchCreate(formData, signatureFile, signatureBase64);
+  /** Fired by SignatureComponent inside the sign-and-submit modal. A null payload
+   *  means the canvas was cleared — wait for a real signature. The dialog stays
+   *  open while the request runs; `saving` swaps in the spinner + disclaimer and
+   *  locks the close controls until success (nav-away) or error (reset to retry). */
+  onSignatureSaved(payload: SignedPayload | null): void {
+    if (!payload) return;
+    if (this.saving()) return;
+    const formData = this.pendingFormData();
+    if (!formData) return;
+    this.saving.set(true);
+    this.dispatchCreate(formData, payload);
   }
 
   /** Entry-time confirmation. Fires once on page load when no draft exists. Accepting
@@ -341,7 +353,7 @@ export class ReportAdd {
     const baseMessage =
       'Esta acción abrirá un nuevo reporte y registrará la fecha de llegada actual.';
     const message = open.length
-      ? `Ya tienes ${open.length === 1 ? `el reporte ${open[0]!.id} abierto` : `${open.length} reportes abiertos`}. ${baseMessage} ¿Deseas continuar?`
+      ? `Ya hay ${open.length === 1 ? `el reporte ${open[0]!.id} abierto` : `${open.length} reportes abiertos`}. ${baseMessage} ¿Deseas continuar?`
       : `${baseMessage} ¿Deseas continuar?`;
 
     this.confirm.confirm({
@@ -358,14 +370,11 @@ export class ReportAdd {
     });
   }
 
-  private dispatchCreate(
-    formData: Record<string, unknown>,
-    signatureFile: File | null,
-    signatureBase64: string,
-  ) {
+  private dispatchCreate(formData: Record<string, unknown>, signature: SignedPayload) {
     const reportType = this.selectedReportType();
     const header = this.headerForm.value as { customerId: string; workType?: WorkType };
-    const payload = this.signaturePayload();
+    const me = this.currentUser();
+    const signatureFile = dataUrlToFile(signature.dataUrl, `signature-${Date.now()}.jpg`);
     const fields: CreateReportFields = {
       report_type: reportType,
       work_type: header.workType || undefined,
@@ -373,25 +382,23 @@ export class ReportAdd {
       date_arrival: this.arrivalAt(),
       data: this.buildReportData(reportType, formData),
       pictures: this.selectedFiles().length ? this.selectedFiles() : undefined,
-      ...(signatureFile ? { signature: signatureFile } : {}),
-      ...(!signatureFile && signatureBase64 ? { signature_base64: signatureBase64 } : {}),
-      ...(payload
-        ? {
-            signed_latitude: payload.latitude,
-            signed_longitude: payload.longitude,
-            signed_accuracy: payload.accuracy,
-          }
-        : {}),
+      // Backend marks the report finished in one shot when signature + signed_by + coords
+      // are all present (see backend/src/routes/reports.ts `markFinished`).
+      signed_by: me?.email ?? 'Técnico',
+      signature: signatureFile,
+      signed_latitude: signature.latitude,
+      signed_longitude: signature.longitude,
+      signed_accuracy: signature.accuracy,
     };
 
     // Fallback-when-offline: with a connection we POST as usual; with none, the
-    // report (incl. picture/signature blobs) is queued to IndexedDB and uploaded
-    // on reconnect. `createdBy` is snapshotted so attribution survives a phone swap.
+    // report (incl. picture blobs and the signature File) is queued to IndexedDB
+    // and uploaded on reconnect. `createdBy` is snapshotted so attribution
+    // survives a phone swap.
     if (navigator.onLine) {
       this.store.dispatch(new CreateReport(fields));
       return;
     }
-    const me = this.currentUser();
     this.store.dispatch(
       new QueueOfflineReport(fields, {
         id: me?.id ?? '',
@@ -402,11 +409,13 @@ export class ReportAdd {
   }
 
   /** Shared post-persist cleanup for both the online create and the offline queue:
-   *  clear staged files/signature, drop the draft, and return to the list. */
+   *  clear staged files, drop the draft, and return to the list. The
+   *  `submittedSuccessfully` flag short-circuits canLeave so the "Reporte en
+   *  progreso" prompt doesn't fire on the way out. */
   private afterPersist(): void {
     this.selectedFiles.set([]);
-    this.signatureFile.set(null);
-    this.signaturePayload.set(null);
+    this.pendingFormData.set(null);
+    this.submittedSuccessfully.set(true);
     this.store.dispatch(new DiscardReportDraft());
     this.router.navigate(['/reports']);
   }
@@ -415,6 +424,9 @@ export class ReportAdd {
 
   /** Called by the deactivate guard. Resolves true to allow navigation, false to block. */
   canLeave(): boolean | Promise<boolean> {
+    // The report was just submitted — afterPersist already cleared the draft and is
+    // navigating intentionally. Don't ask the tech if they want to keep a draft.
+    if (this.submittedSuccessfully()) return true;
     const v = this.headerForm.value as { customerId?: string; workType?: WorkType };
     const hasMeaningfulContent = !!v.customerId || !!v.workType;
     if (!hasMeaningfulContent) {

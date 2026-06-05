@@ -1,10 +1,12 @@
 import { Component, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Actions, Store, ofActionSuccessful, ofActionErrored } from '@ngxs/store';
 import { MessageService } from 'primeng/api';
-import { FieldConfig } from '../../../interfaces/field-config';
-import { DynamicForm } from '../../../shared/dynamic-form/dynamic-form';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
+import { SelectModule } from 'primeng/select';
 import { CreateCustomer } from '../../../../state/customers/customers.actions';
 import type { CreateCustomerRequest } from '../../../data/dtos/customer';
 import { MEXICAN_STATES } from '../../../data/constants';
@@ -12,7 +14,7 @@ import { MEXICAN_STATES } from '../../../data/constants';
 @Component({
   selector: 'app-customer-add',
   standalone: true,
-  imports: [DynamicForm],
+  imports: [ReactiveFormsModule, ButtonModule, InputTextModule, SelectModule],
   templateUrl: './customer-add.html',
   styleUrl: './customer-add.scss',
 })
@@ -21,17 +23,20 @@ export class CustomerAdd {
   private store = inject(Store);
   private actions$ = inject(Actions);
   private router = inject(Router);
+  private fb = inject(FormBuilder);
 
-  readonly formFields: FieldConfig[] = [
-    { type: 'text', label: 'Nombre', name: 'name', defaultValue: '' },
-    { type: 'text', label: 'Razón social', name: 'razonSocial', defaultValue: '' },
-    { type: 'text', label: 'Email', name: 'email', defaultValue: '' },
-    { type: 'text', label: 'Identificación (RFC)', name: 'identification', defaultValue: '' },
-    { type: 'text', label: 'Teléfono', name: 'phone', defaultValue: '' },
-    { type: 'text', label: 'Dirección', name: 'address', defaultValue: '' },
-    { type: 'select', label: 'Estado', name: 'state', defaultValue: '', options: MEXICAN_STATES },
-    { type: 'text', label: 'Observaciones', name: 'observation', defaultValue: 'N/A' },
-  ];
+  readonly stateOptions = MEXICAN_STATES;
+
+  form: FormGroup = this.fb.group({
+    name: ['', Validators.required],
+    razonSocial: [''],
+    email: ['', Validators.email],
+    identification: [''],
+    phone: [''],
+    address: [''],
+    state: [null as string | null],
+    observation: [''],
+  });
 
   constructor() {
     this.actions$
@@ -48,16 +53,22 @@ export class CustomerAdd {
       });
   }
 
-  onFormSubmit(formData: any) {
+  onSubmit(): void {
+    if (this.form.invalid) return;
+    const v: Partial<Record<keyof CreateCustomerRequest, string | null>> = this.form.value;
+    const trim = (s: string | null | undefined): string | undefined => {
+      const t = typeof s === 'string' ? s.trim() : '';
+      return t || undefined;
+    };
     const payload: CreateCustomerRequest = {
-      name: formData.name,
-      email: formData.email || undefined,
-      identification: formData.identification || undefined,
-      phone: formData.phone || undefined,
-      observation: formData.observation || undefined,
-      address: formData.address || undefined,
-      state: formData.state || undefined,
-      razonSocial: formData.razonSocial || undefined,
+      name: (v.name ?? '').trim(),
+      razonSocial: trim(v.razonSocial),
+      email: trim(v.email),
+      identification: trim(v.identification),
+      phone: trim(v.phone),
+      address: trim(v.address),
+      state: v.state || undefined,
+      observation: trim(v.observation),
     };
     this.store.dispatch(new CreateCustomer(payload));
   }

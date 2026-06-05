@@ -291,10 +291,25 @@ reports.post('/', async (c) => {
         accuracy: meta.signed_accuracy ?? null,
       });
       if (finishResult) {
+        // Auto-send to the customer's email if present. Best-effort, non-blocking —
+        // failure here does not undo the signature; admin can re-send manually via
+        // POST /:id/email. Mirrors the same waitUntil pattern as PUT /:id/signature.
+        if (client.email) {
+          c.executionCtx.waitUntil(
+            dispatchReportEmail({
+              db,
+              env: c.env,
+              reportId: finishResult.report.id,
+              to: client.email,
+              sentBy: me.id,
+            }).then((r) => {
+              if (!r.ok) console.error('auto-email failed:', r.error);
+            }),
+          );
+        }
         return c.json(finishResult, 201);
       }
     }
-    // TODO §9: trigger best-effort auto-email when transitioning to `finished`.
     return c.json(result, 201);
   } catch (err) {
     await cleanupR2(c.env.MANTTIO_REPORTS, c.env.CDN_BASE_URL, pictureUrls, signatureUrl);

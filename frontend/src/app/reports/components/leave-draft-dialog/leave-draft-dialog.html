@@ -1,0 +1,13 @@
+<p-dialog header="Reporte en progreso" [(visible)]="visible" [modal]="true"
+    [closable]="false" [draggable]="false" [resizable]="false" [style]="{ width: '32rem' }">
+    <p class="text-base text-granite-900 dark:text-granite-100">
+        Tienes un reporte en progreso. ¿Qué deseas hacer con este borrador?
+    </p>
+    <ng-template pTemplate="footer">
+        <div class="flex flex-wrap justify-end gap-3">
+            <p-button label="Cancelar" severity="secondary" (onClick)="cancel.emit()"></p-button>
+            <p-button label="Descartar borrador" severity="danger" (onClick)="discard.emit()"></p-button>
+            <p-button label="Conservar y continuar después" (onClick)="keep.emit()"></p-button>
+        </div>
+    </ng-template>
+</p-dialog>

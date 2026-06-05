@@ -1,8 +1,10 @@
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, Output, signal, viewChild } from '@angular/core';
+import { Popover, PopoverModule } from 'primeng/popover';
 
 @Component({
   selector: 'app-image-picker',
   standalone: true,
+  imports: [PopoverModule],
   templateUrl: './image-picker.html',
 })
 export class ImagePickerComponent {
@@ -12,6 +14,24 @@ export class ImagePickerComponent {
 
   selectedFiles = signal<File[]>([]);
   previews = signal<string[]>([]);
+
+  private sourcePopover = viewChild.required<Popover>('sourcePopover');
+  private cameraInput = viewChild.required<ElementRef<HTMLInputElement>>('cameraInput');
+  private galleryInput = viewChild.required<ElementRef<HTMLInputElement>>('galleryInput');
+
+  toggleSource(event: Event) {
+    this.sourcePopover().toggle(event);
+  }
+
+  openCamera() {
+    this.sourcePopover().hide();
+    this.cameraInput().nativeElement.click();
+  }
+
+  openGallery() {
+    this.sourcePopover().hide();
+    this.galleryInput().nativeElement.click();
+  }
 
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;

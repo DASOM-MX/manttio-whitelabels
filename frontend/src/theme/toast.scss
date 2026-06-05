@@ -16,13 +16,13 @@
   @apply flex-1 flex flex-col gap-1 min-w-0;
 }
 .p-toast-summary {
-  @apply text-base font-bold text-granite-900;
+  @apply text-base font-bold text-granite-900 dark:text-granite-100;
 }
 .p-toast-detail {
-  @apply text-sm text-granite-700;
+  @apply text-sm text-granite-700 dark:text-granite-300;
 }
 .p-toast-close-button {
-  @apply inline-flex items-center justify-center size-8 rounded-md text-granite-500 hover:bg-granite-100 hover:text-granite-900 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-700/30;
+  @apply inline-flex items-center justify-center size-8 rounded-md text-granite-500 dark:text-granite-400 hover:bg-granite-100 dark:hover:bg-granite-800 hover:text-granite-900 dark:hover:text-granite-100 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-700/30;
 }
 .p-toast-close-icon {
   @apply size-4;

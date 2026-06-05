@@ -1,4 +1,14 @@
-import { Component, ViewChild, ElementRef, AfterViewInit, Output, EventEmitter, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  Output,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import SignaturePad from 'signature_pad';
 import { MessageService } from 'primeng/api';
 import type { SignedPayload } from '../../../data/dtos/report';
@@ -7,33 +17,56 @@ import type { SignedPayload } from '../../../data/dtos/report';
   selector: 'app-signature',
   templateUrl: './signature-pad.html',
 })
-export class SignatureComponent implements AfterViewInit {
-  @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
+export class SignatureComponent {
   @Output() signatureChanged = new EventEmitter<SignedPayload | null>();
-  private signaturePad!: SignaturePad;
+
+  /** Signal-based view query: undefined until the canvas is in the DOM (it lives
+   *  inside a lazy-mounted dialog), then resolves to the ElementRef. The effect
+   *  below reacts to that transition to construct the SignaturePad. */
+  private canvasRef = viewChild<ElementRef<HTMLCanvasElement>>('canvas');
+  /** Holds the library instance once the canvas is laid out. Stays null until the
+   *  effect runs, so saveSignature/clearSignature can no-op safely if called early. */
+  private pad = signal<SignaturePad | null>(null);
+
   private messages = inject(MessageService);
 
   readonly capturingLocation = signal(false);
 
-  ngAfterViewInit(): void {
-    this.signaturePad = new SignaturePad(this.canvasRef.nativeElement, {
-      backgroundColor: 'rgb(255, 255, 255)'
+  constructor() {
+    // Wait for the canvas to mount, *then* wait one animation frame for the browser
+    // to lay it out, *then* construct the SignaturePad. Without the rAF defer, the
+    // canvas can still report offsetWidth=0 (e.g. mid-dialog-enter-animation), the
+    // resize pegs the drawing buffer to 0×0, and mouse/touch input never registers.
+    effect(() => {
+      const ref = this.canvasRef();
+      if (!ref) return;
+      requestAnimationFrame(() => {
+        const canvas = ref.nativeElement;
+        const pad = new SignaturePad(canvas, { backgroundColor: 'rgb(255, 255, 255)' });
+        this.pad.set(pad);
+        this.resizeCanvas(canvas);
+      });
     });
-    this.resizeCanvas();
-    window.addEventListener('resize', () => this.resizeCanvas());
   }
 
-  private resizeCanvas() {
-    const canvas = this.canvasRef.nativeElement;
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    const ref = this.canvasRef();
+    if (ref) this.resizeCanvas(ref.nativeElement);
+  }
+
+  private resizeCanvas(canvas: HTMLCanvasElement) {
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
     canvas.width = canvas.offsetWidth * ratio;
     canvas.height = canvas.offsetHeight * ratio;
     canvas.getContext('2d')!.scale(ratio, ratio);
-    this.signaturePad.clear();
+    this.pad()?.clear();
   }
 
   async saveSignature(): Promise<void> {
-    if (this.signaturePad.isEmpty()) {
+    const pad = this.pad();
+    if (!pad) return;
+    if (pad.isEmpty()) {
       this.messages.add({ severity: 'error', summary: 'Por favor, firme antes de guardar' });
       return;
     }
@@ -50,7 +83,7 @@ export class SignatureComponent implements AfterViewInit {
     this.capturingLocation.set(true);
     try {
       const position = await this.getCurrentPosition();
-      const dataUrl = this.signaturePad.toDataURL();
+      const dataUrl = pad.toDataURL();
       this.signatureChanged.emit({
         dataUrl,
         latitude: position.coords.latitude,
@@ -70,7 +103,9 @@ export class SignatureComponent implements AfterViewInit {
   }
 
   clearSignature(): void {
-    this.signaturePad.clear();
+    const pad = this.pad();
+    if (!pad) return;
+    pad.clear();
     this.signatureChanged.emit(null);
   }
 

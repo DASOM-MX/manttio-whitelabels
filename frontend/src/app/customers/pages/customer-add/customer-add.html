@@ -1,14 +1,62 @@
 <div class="min-h-full bg-background dark:bg-granite-950">
-    <div class="max-w-2xl mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
-        <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">Nuevo</p>
-            <h1 class="text-2xl sm:text-3xl font-bold text-granite-900 dark:text-granite-100 leading-tight">
-                Crear cliente
-            </h1>
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">Nuevo</p>
+      <h1 class="text-2xl sm:text-3xl font-bold text-granite-900 dark:text-granite-100 leading-tight">
+        Crear cliente
+      </h1>
+    </div>
+
+    <div class="card-section">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="m-0 flex flex-col gap-7">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-7">
+          <div class="field-group">
+            <label for="name" class="field-label">Nombre *</label>
+            <input pInputText id="name" formControlName="name" />
+          </div>
+          <div class="field-group">
+            <label for="razonSocial" class="field-label">Razón social</label>
+            <input pInputText id="razonSocial" formControlName="razonSocial" />
+          </div>
+          <div class="field-group">
+            <label for="email" class="field-label">Email</label>
+            <input pInputText id="email" type="email" formControlName="email" />
+          </div>
+          <div class="field-group">
+            <label for="identification" class="field-label">Identificación (RFC)</label>
+            <input pInputText id="identification" formControlName="identification" />
+          </div>
+          <div class="field-group">
+            <label for="phone" class="field-label">Teléfono</label>
+            <input pInputText id="phone" formControlName="phone" />
+          </div>
+          <div class="field-group">
+            <label for="address" class="field-label">Dirección</label>
+            <input pInputText id="address" formControlName="address" />
+          </div>
+          <div class="field-group">
+            <label for="state" class="field-label">Estado</label>
+            <p-select
+              inputId="state"
+              formControlName="state"
+              [options]="stateOptions"
+              optionLabel="label"
+              optionValue="value"
+              [showClear]="true"
+              styleClass="w-full"
+              placeholder="Selecciona un estado"
+            ></p-select>
+          </div>
+          <div class="field-group sm:col-span-2">
+            <label for="observation" class="field-label">Observaciones</label>
+            <input pInputText id="observation" formControlName="observation" />
+          </div>
         </div>
 
-        <div class="card-section">
-            <app-dynamic-form [fields]="formFields" (submitForm)="onFormSubmit($event)"></app-dynamic-form>
-        </div>
+        <button pButton type="submit" [disabled]="form.invalid" class="btn-primary w-full !min-h-14">
+          Crear cliente
+        </button>
+      </form>
     </div>
+  </div>
 </div>

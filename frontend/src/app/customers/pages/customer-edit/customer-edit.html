@@ -18,9 +18,93 @@
       ></p-button>
     </div>
 
-    @if (formFields(); as fields) {
+    @if (customer()) {
       <div class="card-section">
-        <app-dynamic-form [fields]="fields" (submitForm)="onFormSubmit($event)"></app-dynamic-form>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="m-0 flex flex-col gap-7">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-7">
+            <div class="field-group">
+              <label for="name" class="field-label">Nombre *</label>
+              <input pInputText id="name" formControlName="name" />
+            </div>
+            <div class="field-group">
+              <label for="razonSocial" class="field-label">Razón social</label>
+              <input pInputText id="razonSocial" formControlName="razonSocial" class="uppercase" />
+            </div>
+            <div class="field-group">
+              <label for="email" class="field-label">Email</label>
+              <input
+                pInputText
+                id="email"
+                type="email"
+                inputmode="email"
+                autocomplete="email"
+                formControlName="email"
+              />
+              @if (form.controls['email'].invalid && form.controls['email'].touched) {
+                <small class="text-sm text-red-600 dark:text-red-400">
+                  Ingresa un correo válido.
+                </small>
+              }
+            </div>
+            <div class="field-group">
+              <label for="identification" class="field-label">Identificación (RFC)</label>
+              <input pInputText id="identification" formControlName="identification" class="uppercase" />
+            </div>
+            <div class="field-group">
+              <label for="phone" class="field-label">Teléfono</label>
+              <input
+                pInputText
+                id="phone"
+                type="tel"
+                inputmode="numeric"
+                autocomplete="tel-national"
+                maxlength="10"
+                formControlName="phone"
+              />
+              @if (form.controls['phone'].invalid && form.controls['phone'].touched) {
+                <small class="text-sm text-red-600 dark:text-red-400">
+                  El teléfono debe tener exactamente 10 dígitos.
+                </small>
+              }
+            </div>
+            <div class="field-group">
+              <label for="address" class="field-label">Dirección</label>
+              <input pInputText id="address" formControlName="address" />
+            </div>
+            <div class="field-group">
+              <label for="state" class="field-label">Estado</label>
+              <p-select
+                inputId="state"
+                formControlName="state"
+                [options]="stateOptions"
+                optionLabel="label"
+                optionValue="value"
+                [showClear]="true"
+                [filter]="true"
+                filterBy="label"
+                styleClass="w-full"
+                placeholder="Selecciona un estado"
+              ></p-select>
+            </div>
+            <div class="field-group sm:col-span-2">
+              <label for="observation" class="field-label">Observaciones</label>
+              <textarea
+                pTextarea
+                id="observation"
+                formControlName="observation"
+                rows="4"
+              ></textarea>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            [disabled]="form.invalid || form.pristine"
+            class="btn-primary w-full !min-h-14"
+          >
+            Guardar cambios
+          </button>
+        </form>
       </div>
     } @else {
       <div class="card-section flex items-center gap-3 text-granite-700 dark:text-granite-300">
