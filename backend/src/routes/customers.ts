@@ -55,6 +55,7 @@ customers.patch(
     if (input.address !== undefined) fields.address = input.address;
     if (input.state !== undefined) fields.state = input.state;
     if (input.razonSocial !== undefined) fields.razonSocial = input.razonSocial;
+    if (input.timezone !== undefined) fields.timezone = input.timezone;
 
     const row = await updateCustomer(db, id, fields);
     if (!row) return c.json({ error: 'not_found' }, 404);

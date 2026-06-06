@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MEXICAN_TIMEZONE_VALUES } from '../lib/timezones';
 
 export const createCustomerSchema = z.object({
   name: z.string().min(1),
@@ -9,6 +10,7 @@ export const createCustomerSchema = z.object({
   address: z.string().optional(),
   state: z.string().optional(),
   razonSocial: z.string().optional(),
+  timezone: z.enum(MEXICAN_TIMEZONE_VALUES).optional(),
 });
 
 export const updateCustomerSchema = createCustomerSchema

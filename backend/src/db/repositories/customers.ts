@@ -15,6 +15,7 @@ export type UpdateCustomerFields = Partial<
     | 'address'
     | 'state'
     | 'razonSocial'
+    | 'timezone'
   >
 >;
 

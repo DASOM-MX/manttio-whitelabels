@@ -5,5 +5,4 @@ export interface UpdateUserRequest {
   email?: string;
   password?: string;
   role?: UserType;
-  timezone?: string;
 }

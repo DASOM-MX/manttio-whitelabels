@@ -81,6 +81,7 @@ export const dispatchReportEmail = async (
     signedLongitude: result.report.signedLongitude,
     signedAccuracy: result.report.signedAccuracy,
     downloadUrl,
+    timezone: customer.timezone,
     brand: {
       name: p.env.BRAND_NAME,
       siteUrl: p.env.BRAND_SITE_URL,

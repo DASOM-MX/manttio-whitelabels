@@ -86,6 +86,20 @@
                 placeholder="Selecciona un estado"
               ></p-select>
             </div>
+            <div class="field-group">
+              <label for="timezone" class="field-label">Zona horaria *</label>
+              <p-select
+                inputId="timezone"
+                formControlName="timezone"
+                [options]="timezoneOptions"
+                optionLabel="label"
+                optionValue="value"
+                [filter]="true"
+                filterBy="label"
+                styleClass="w-full"
+                placeholder="Selecciona una zona horaria"
+              ></p-select>
+            </div>
             <div class="field-group sm:col-span-2">
               <label for="observation" class="field-label">Observaciones</label>
               <textarea

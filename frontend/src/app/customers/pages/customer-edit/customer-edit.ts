@@ -11,7 +11,7 @@ import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { LoadCustomer, UpdateCustomer } from '../../../../state/customers/customers.actions';
 import { CustomersState } from '../../../../state/customers/customers.state';
-import { MEXICAN_STATES } from '../../../data/constants';
+import { DEFAULT_MEXICAN_TIMEZONE, MEXICAN_STATES, MEXICAN_TIMEZONES } from '../../../data/constants';
 import type { CustomerRow, UpdateCustomerRequest } from '../../../data/dtos/customer';
 
 const PHONE_PATTERN = /^\d{10}$/;
@@ -24,6 +24,7 @@ const EDITABLE_KEYS = [
   'phone',
   'address',
   'state',
+  'timezone',
   'observation',
 ] as const satisfies readonly (keyof UpdateCustomerRequest)[];
 
@@ -54,6 +55,7 @@ export class CustomerEdit {
   });
 
   readonly stateOptions = MEXICAN_STATES;
+  readonly timezoneOptions = MEXICAN_TIMEZONES;
 
   private selected = select(CustomersState.selected);
 
@@ -70,6 +72,7 @@ export class CustomerEdit {
     phone: ['', Validators.pattern(PHONE_PATTERN)],
     address: [''],
     state: [null as string | null],
+    timezone: [DEFAULT_MEXICAN_TIMEZONE as string, Validators.required],
     observation: [''],
   });
 
@@ -93,6 +96,7 @@ export class CustomerEdit {
         phone: (c.phone ?? '').replace(/\D/g, '').slice(0, 10),
         address: c.address ?? '',
         state: c.state ?? null,
+        timezone: c.timezone ?? DEFAULT_MEXICAN_TIMEZONE,
         observation: c.observation ?? '',
       });
     });

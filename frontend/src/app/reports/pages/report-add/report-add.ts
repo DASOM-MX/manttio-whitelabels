@@ -10,6 +10,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { SelectModule } from 'primeng/select';
 import { DatePipe } from '@angular/common';
 import { FieldConfig } from '../../../interfaces/field-config';
+import { AppState } from '../../../../state/app/app.state';
 import { AuthState } from '../../../../state/auth/auth.state';
 import { CustomersState } from '../../../../state/customers/customers.state';
 import { LoadCustomers } from '../../../../state/customers/customers.actions';
@@ -60,6 +61,7 @@ export class ReportAdd {
   private currentUser = select(AuthState.user);
   private reportRows = select(ReportsState.list);
   private draft = select(ReportDraftState.draft);
+  private isOnline = select(AppState.isOnline);
   
   customers = select(CustomersState.list);
   /** Reports still belonging to the current user that have not been signed.
@@ -395,7 +397,7 @@ export class ReportAdd {
     // report (incl. picture blobs and the signature File) is queued to IndexedDB
     // and uploaded on reconnect. `createdBy` is snapshotted so attribution
     // survives a phone swap.
-    if (navigator.onLine) {
+    if (this.isOnline()) {
       this.store.dispatch(new CreateReport(fields));
       return;
     }

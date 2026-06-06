@@ -7,4 +7,5 @@ export interface CreateCustomerRequest {
   address?: string;
   state?: string;
   razonSocial?: string;
+  timezone?: string;
 }

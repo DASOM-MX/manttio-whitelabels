@@ -43,13 +43,29 @@
               optionLabel="label"
               optionValue="value"
               [showClear]="true"
+              [filter]="true"
+              filterBy="label"
               styleClass="w-full"
               placeholder="Selecciona un estado"
             ></p-select>
           </div>
+          <div class="field-group">
+            <label for="timezone" class="field-label">Zona horaria *</label>
+            <p-select
+              inputId="timezone"
+              formControlName="timezone"
+              [options]="timezoneOptions"
+              optionLabel="label"
+              optionValue="value"
+              [filter]="true"
+              filterBy="label"
+              styleClass="w-full"
+              placeholder="Selecciona una zona horaria"
+            ></p-select>
+          </div>
           <div class="field-group sm:col-span-2">
             <label for="observation" class="field-label">Observaciones</label>
-            <input pInputText id="observation" formControlName="observation" />
+            <textarea pTextarea id="observation" formControlName="observation" rows="4"></textarea>
           </div>
         </div>
 

@@ -26,7 +26,9 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
-import { DatePipe, DecimalPipe, SlicePipe } from '@angular/common';
+import { DecimalPipe, SlicePipe } from '@angular/common';
+import { DateInTzPipe } from '../../../shared/pipes/date-in-tz.pipe';
+import { DEFAULT_MEXICAN_TIMEZONE } from '../../../data/constants';
 import { AuthState } from '../../../../state/auth/auth.state';
 import { ReportsState } from '../../../../state/reports/reports.state';
 import {
@@ -63,7 +65,7 @@ pdfMake.vfs = pdfFonts.vfs;
   selector: 'app-report-detail',
   standalone: true,
   imports: [
-    DatePipe,
+    DateInTzPipe,
     DecimalPipe,
     SlicePipe,
     ReactiveFormsModule,
@@ -95,6 +97,10 @@ export class ReportDetail {
 
   private selected = select(ReportsState.selected);
   customer = select(CustomersState.selected);
+  /** Customer timezone used for every date rendered on this page (including the
+   *  client-side text PDF export). Falls back to the default Mexican zone so
+   *  templates never see `undefined`. */
+  customerTimezone = computed(() => this.customer()?.timezone ?? DEFAULT_MEXICAN_TIMEZONE);
   private currentUser = select(AuthState.user);
   private pendingList = select(OfflineReportsState.pending);
 
@@ -445,6 +451,7 @@ export class ReportDetail {
     );
     const signatureBase64 = r.signature ? await urlToDataUrl(r.signature).catch(() => null) : null;
 
+    const tz = this.customerTimezone();
     const formatDate = (dateString: string | null) =>
       dateString
         ? new Date(dateString).toLocaleDateString('es-MX', {
@@ -453,6 +460,7 @@ export class ReportDetail {
             year: 'numeric',
             hour: '2-digit',
             minute: '2-digit',
+            timeZone: tz,
           })
         : '';
 
@@ -513,8 +521,10 @@ export class ReportDetail {
           },
           margin: [0, 10, 0, 10],
         },
+        signatureBase64 ? { text: 'Firma del cliente', style: 'subheader', alignment: 'center', margin: [0, 10, 0, 5] } : null,
         signatureBase64 ? { image: signatureBase64, width: 150, alignment: 'center' } : null,
-        signatureBase64 ? { text: `Firmado por: ${r.signed_by}`, style: 'subheader', alignment: 'center' } : null,
+        signatureBase64 ? { text: `Iniciado por: ${this.technicianName()}`, style: 'subheader', alignment: 'center' } : null,
+        signatureBase64 ? { text: `Finalizado por: ${r.signed_by}`, style: 'subheader', alignment: 'center' } : null,
       ],
       styles: {
         header: { fontSize: 18, bold: true },

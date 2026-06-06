@@ -7,7 +7,7 @@
 
             <!-- Nombre -->
             <div class="field-group mb-5">
-                <label for="regName" class="field-label">Nombre</label>
+                <label for="regName" class="field-label">Nombre *</label>
                 <input pInputText id="regName" type="text" formControlName="name" autocomplete="name"
                     [class.field-input--error]="registerForm.get('name')?.invalid && registerForm.get('name')?.touched"
                     placeholder="Nombre completo" />
@@ -23,7 +23,7 @@
 
             <!-- Email -->
             <div class="field-group mb-5">
-                <label for="regEmail" class="field-label">Email</label>
+                <label for="regEmail" class="field-label">Email *</label>
                 <input pInputText id="regEmail" type="email" formControlName="email" autocomplete="email"
                     [class.field-input--error]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched"
                     placeholder="tu@correo.com" />
@@ -42,7 +42,7 @@
 
             <!-- Password -->
             <div class="field-group mb-5">
-                <label for="regPassword" class="field-label">Contraseña</label>
+                <label for="regPassword" class="field-label">Contraseña *</label>
                 <p-password inputId="regPassword" formControlName="password" [feedback]="true" [toggleMask]="true"
                     autocomplete="new-password" placeholder="••••••••" styleClass="w-full"
                     [inputStyleClass]="(registerForm.get('password')?.invalid && registerForm.get('password')?.touched) ? 'field-input field-input--error' : 'field-input'">
@@ -62,7 +62,7 @@
 
             <!-- Confirm Password -->
             <div class="field-group mb-5">
-                <label for="regConfirm" class="field-label">Confirmar contraseña</label>
+                <label for="regConfirm" class="field-label">Confirmar contraseña *</label>
                 <p-password inputId="regConfirm" formControlName="confirmPassword" [feedback]="false"
                     [toggleMask]="true" autocomplete="new-password" placeholder="••••••••" styleClass="w-full"
                     [inputStyleClass]="((registerForm.get('confirmPassword')?.invalid || passwordMismatch()) && registerForm.get('confirmPassword')?.touched) ? 'field-input field-input--error' : 'field-input'">
@@ -81,8 +81,8 @@
             </div>
 
             <!-- User Role -->
-            <div class="field-group mb-5">
-                <label for="role" class="field-label">Rol</label>
+            <div class="field-group mb-8">
+                <label for="role" class="field-label">Rol *</label>
                 <p-select inputId="role" formControlName="role" [options]="roleOptions" optionLabel="label"
                     optionValue="value" placeholder="Selecciona un rol" styleClass="w-full">
                 </p-select>
@@ -94,22 +94,11 @@
                 }
             </div>
 
-            <!-- Timezone -->
-            <div class="field-group mb-8">
-                <label for="timezone" class="field-label">Zona horaria</label>
-                <p-select inputId="timezone" formControlName="timezone" [options]="timezoneOptions"
-                    optionLabel="label" optionValue="value" placeholder="Selecciona una zona horaria"
-                    styleClass="w-full">
-                </p-select>
-                @if (registerForm.get('timezone')?.invalid && registerForm.get('timezone')?.touched) {
-                    <div class="text-red-700 text-sm font-semibold flex items-center gap-1.5">
-                        <span aria-hidden="true">⚠</span>
-                        <span>Selecciona una zona horaria.</span>
-                    </div>
-                }
-            </div>
-
-            <button pButton type="submit" class="btn-primary w-full" [disabled]="registerForm.invalid">
+            <button
+                type="submit"
+                class="btn-primary w-full !min-h-14"
+                [disabled]="registerForm.invalid || submitting()"
+            >
                 Registrarse
             </button>
         </div>

@@ -11,7 +11,6 @@ import { ButtonModule } from 'primeng/button';
 import { RoleOption } from '../../../interfaces/role-option';
 import { CreateUser } from '../../../../state/users/users.actions';
 import type { UserType } from '../../../data/types/user';
-import { DEFAULT_TIMEZONE, TIMEZONE_OPTIONS } from '../../constants/timezones';
 
 @Component({
   selector: 'app-register',
@@ -38,8 +37,6 @@ export class Register {
     { label: 'Administrador', value: 'admin' },
   ];
 
-  readonly timezoneOptions = TIMEZONE_OPTIONS;
-
   registerForm = this.fb.group(
     {
       name: ['', [Validators.required]],
@@ -47,7 +44,6 @@ export class Register {
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required]],
       role: ['technician' as UserType, Validators.required],
-      timezone: [DEFAULT_TIMEZONE, Validators.required],
     },
     { validators: this.passwordMatchValidator },
   );
@@ -94,14 +90,14 @@ export class Register {
 
   onSubmit() {
     if (this.registerForm.invalid || this.submitting()) return;
-    const { name, email, password, role, timezone } = this.registerForm.value;
+    const { name, email, password, role } = this.registerForm.value;
     this.submitting.set(true);
     this.store.dispatch(new CreateUser({
-      name: name!,
-      email: email!,
+      name: name!.trim(),
+      // Normalize so " User@X.com " and "user@x.com" don't create two accounts.
+      email: email!.trim().toLowerCase(),
       password: password!,
       role: role as UserType,
-      timezone: timezone || undefined,
     }));
   }
 }

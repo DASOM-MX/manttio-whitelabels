@@ -25,6 +25,7 @@ describe('CustomerEdit', () => {
     address: null,
     state: null,
     observation: null,
+    timezone: 'America/Mexico_City',
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
   };
@@ -42,6 +43,7 @@ describe('CustomerEdit', () => {
       phone: (c.phone ?? '').replace(/\D/g, '').slice(0, 10),
       address: c.address ?? '',
       state: c.state ?? null,
+      timezone: c.timezone ?? 'America/Mexico_City',
       observation: c.observation ?? '',
     });
   };

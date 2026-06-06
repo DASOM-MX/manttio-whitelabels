@@ -88,6 +88,7 @@ reports.get('/download/:token', async (c) => {
       phone: customer.phone,
       email: customer.email,
       observation: customer.observation,
+      timezone: customer.timezone,
     },
     reportUserName: creator?.name ?? 'Técnico',
     pictureUrls: fullReport.details.pictures ?? [],

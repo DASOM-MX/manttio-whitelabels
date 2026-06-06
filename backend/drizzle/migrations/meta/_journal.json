@@ -43,6 +43,13 @@
       "when": 1779605760152,
       "tag": "0005_daffy_solo",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780717151172,
+      "tag": "0006_large_wrecker",
+      "breakpoints": true
     }
   ]
 }

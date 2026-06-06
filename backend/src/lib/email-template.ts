@@ -2,17 +2,17 @@
 // Email clients ignore <style> in many cases, so all CSS is inlined. Layout uses tables
 // for maximum compatibility with Outlook/Gmail/Apple Mail.
 //
-// Timestamps are converted to the business operating timezone (`DISPLAY_TIMEZONE`) and the
-// zone is disclosed inside the email via a footnote, so the recipient is never guessing.
+// Timestamps are converted to the **customer's timezone** (carried in `ReportEmailParams`)
+// and the zone is disclosed inside the email via a footnote, so the recipient is never
+// guessing whose clock the times are on.
+
+import { labelForTimezone } from './timezones';
 
 const REPORT_TYPE_LABELS: Record<string, string> = {
   minisplit: 'Minisplit',
   chiller: 'Chiller',
   uma: 'UMA',
 };
-
-const DISPLAY_TIMEZONE = 'America/Monterrey';
-const DISPLAY_TIMEZONE_LABEL = 'horario de Monterrey, México';
 
 const escapeHtml = (s: string) =>
   s
@@ -22,11 +22,11 @@ const escapeHtml = (s: string) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-const fmtDate = (d: Date) =>
+const fmtDate = (d: Date, timezone: string) =>
   new Intl.DateTimeFormat('es-MX', {
     dateStyle: 'long',
     timeStyle: 'short',
-    timeZone: DISPLAY_TIMEZONE,
+    timeZone: timezone,
   }).format(d);
 
 export type ReportEmailParams = {
@@ -43,6 +43,9 @@ export type ReportEmailParams = {
   signedLongitude: number | null;
   signedAccuracy: number | null;
   downloadUrl: string;
+  /** IANA timezone of the customer the report belongs to. Used for date formatting
+   *  + disclosed verbatim in the email footnote. */
+  timezone: string;
   brand: {
     name: string;
     siteUrl: string;
@@ -74,12 +77,13 @@ export const renderReportEmailSubject = (folio: string) =>
   `Reporte de servicio ${folio} – Peña Nevada Chillers`;
 
 export const renderReportEmailHTML = (p: ReportEmailParams): string => {
-  const finished = p.finishedAt ? fmtDate(p.finishedAt) : 'Sin registrar';
-  const arrival = p.dateArrival ? fmtDate(p.dateArrival) : 'Sin registrar';
+  const finished = p.finishedAt ? fmtDate(p.finishedAt, p.timezone) : 'Sin registrar';
+  const arrival = p.dateArrival ? fmtDate(p.dateArrival, p.timezone) : 'Sin registrar';
   const finishedBy = p.signedByName?.trim() || p.createdByName;
   const work = workTypeLabel(p.workType, p.reportType);
   const year = new Date().getUTCFullYear();
   const location = formatSignedLocation(p.signedLatitude, p.signedLongitude, p.signedAccuracy);
+  const tzLabel = labelForTimezone(p.timezone);
   const locationRow = location
     ? `<br><strong style="color:#0c3a5e;">Ubicación de firma:</strong> <a href="${escapeHtml(location.url)}" target="_blank" rel="noopener" style="color:#0c3a5e;text-decoration:underline;">${escapeHtml(location.coords)}</a>`
     : '';
@@ -117,14 +121,14 @@ export const renderReportEmailHTML = (p: ReportEmailParams): string => {
                     <strong style="color:#0c3a5e;">Folio:</strong> ${escapeHtml(p.folio)}<br>
                     <strong style="color:#0c3a5e;">Tipo de servicio:</strong> ${escapeHtml(work)}<br>
                     <strong style="color:#0c3a5e;">Inicio del servicio:</strong> ${escapeHtml(arrival)}<br>
-                    <strong style="color:#0c3a5e;">Atendido por:</strong> ${escapeHtml(p.createdByName)}<br>
+                    <strong style="color:#0c3a5e;">Iniciado por:</strong> ${escapeHtml(p.createdByName)}<br>
                     <strong style="color:#0c3a5e;">Finalización:</strong> ${escapeHtml(finished)}<br>
-                    <strong style="color:#0c3a5e;">Firmado por:</strong> ${escapeHtml(finishedBy)}${locationRow}
+                    <strong style="color:#0c3a5e;">Finalizado por:</strong> ${escapeHtml(finishedBy)}${locationRow}
                   </td>
                 </tr>
               </table>
               <p style="margin:0 0 24px;font-size:11px;line-height:1.4;color:#7a8696;">
-                Las horas mostradas están en ${escapeHtml(DISPLAY_TIMEZONE_LABEL)}.
+                Las horas mostradas están en horario ${escapeHtml(tzLabel)} (${escapeHtml(p.timezone)}).
               </p>
 
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:32px auto;">
@@ -162,11 +166,12 @@ export const renderReportEmailHTML = (p: ReportEmailParams): string => {
 };
 
 export const renderReportEmailText = (p: ReportEmailParams): string => {
-  const finished = p.finishedAt ? fmtDate(p.finishedAt) : 'Sin registrar';
-  const arrival = p.dateArrival ? fmtDate(p.dateArrival) : 'Sin registrar';
+  const finished = p.finishedAt ? fmtDate(p.finishedAt, p.timezone) : 'Sin registrar';
+  const arrival = p.dateArrival ? fmtDate(p.dateArrival, p.timezone) : 'Sin registrar';
   const finishedBy = p.signedByName?.trim() || p.createdByName;
   const work = workTypeLabel(p.workType, p.reportType);
   const location = formatSignedLocation(p.signedLatitude, p.signedLongitude, p.signedAccuracy);
+  const tzLabel = labelForTimezone(p.timezone);
 
   const lines: string[] = [
     `Estimado/a ${p.customerName},`,
@@ -176,16 +181,16 @@ export const renderReportEmailText = (p: ReportEmailParams): string => {
     `Folio: ${p.folio}`,
     `Tipo de servicio: ${work}`,
     `Inicio del servicio: ${arrival}`,
-    `Atendido por: ${p.createdByName}`,
+    `Iniciado por: ${p.createdByName}`,
     `Finalización: ${finished}`,
-    `Firmado por: ${finishedBy}`,
+    `Finalizado por: ${finishedBy}`,
   ];
   if (location) {
     lines.push(`Ubicación de firma: ${location.coords} — ${location.url}`);
   }
   lines.push(
     '',
-    `(Las horas mostradas están en ${DISPLAY_TIMEZONE_LABEL}.)`,
+    `(Las horas mostradas están en horario ${tzLabel} — ${p.timezone}.)`,
     '',
     `Descargar el reporte en PDF: ${p.downloadUrl}`,
     '',

@@ -5,7 +5,7 @@ import { users } from '../schema';
 export type UserRow = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type UpdateUserFields = Partial<
-  Pick<UserRow, 'name' | 'email' | 'passwordHash' | 'role' | 'timezone'>
+  Pick<UserRow, 'name' | 'email' | 'passwordHash' | 'role'>
 >;
 
 const activeFilter = isNull(users.deletedAt);
@@ -64,7 +64,6 @@ export type PublicUser = {
   name: string;
   email: string;
   role: 'admin' | 'technician';
-  timezone: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -74,7 +73,6 @@ export const toPublicUser = (u: UserRow): PublicUser => ({
   name: u.name,
   email: u.email,
   role: u.role,
-  timezone: u.timezone,
   createdAt: u.createdAt,
   updatedAt: u.updatedAt,
 });

@@ -1,6 +1,7 @@
 import { Component, ViewChild, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { DatePipe, SlicePipe } from '@angular/common';
+import { SlicePipe } from '@angular/common';
+import { DateInTzPipe } from '../../../shared/pipes/date-in-tz.pipe';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { Store, select } from '@ngxs/store';
@@ -18,12 +19,13 @@ import { CustomersState } from '../../../../state/customers/customers.state';
 import { OfflineReportsState } from '../../../../state/offline-reports/offline-reports.state';
 import type { ReportRow } from '../../../data/dtos/report';
 import type { ReportStatus } from '../../../data/types/report';
-import { MEXICAN_STATES } from '../../../data/constants';
+import { DEFAULT_MEXICAN_TIMEZONE, MEXICAN_STATES } from '../../../data/constants';
 
 type ReportListBucket = 'pending' | 'done';
 
 interface ReportRowVM extends ReportRow {
   clientName: string;
+  clientTimezone: string;
   dateTs: number;
   bucket: ReportListBucket;
 }
@@ -39,7 +41,7 @@ const STATUS_BUCKET: Record<ReportStatus, ReportListBucket> = {
   selector: 'app-reports',
   standalone: true,
   imports: [
-    DatePipe,
+    DateInTzPipe,
     SlicePipe,
     ReactiveFormsModule,
     RouterModule,
@@ -72,19 +74,25 @@ export class Reports {
   private pendingRows = select(OfflineReportsState.pending);
   loading = select(ReportsState.loading);
 
-  private customerNameById = computed(() => {
-    const map = new Map<string, string>();
-    for (const c of this.customerRows()) map.set(c.id, c.name);
+  /** id → { name, timezone } for cheap row enrichment. Timezone falls back to the
+   *  default Mexican zone so date formatting can't crash on a missing customer. */
+  private customerInfoById = computed(() => {
+    const map = new Map<string, { name: string; timezone: string }>();
+    for (const c of this.customerRows()) {
+      map.set(c.id, { name: c.name, timezone: c.timezone ?? DEFAULT_MEXICAN_TIMEZONE });
+    }
     return map;
   });
 
   reports = computed<ReportRowVM[]>(() => {
-    const names = this.customerNameById();
+    const info = this.customerInfoById();
     return this.reportRows().map((r) => {
       const ts = r.dateDeparture ? new Date(r.dateDeparture).getTime() : 0;
+      const c = info.get(r.clientId);
       return {
         ...r,
-        clientName: names.get(r.clientId) ?? 'Desconocido',
+        clientName: c?.name ?? 'Desconocido',
+        clientTimezone: c?.timezone ?? DEFAULT_MEXICAN_TIMEZONE,
         dateTs: ts,
         bucket: STATUS_BUCKET[r.status],
       };
@@ -95,11 +103,15 @@ export class Reports {
 
   /** Offline-created reports awaiting upload — pinned above the table for emphasis. */
   pendingReports = computed(() => {
-    const names = this.customerNameById();
-    return this.pendingRows().map((p) => ({
-      ...p,
-      clientName: names.get(p.clientId) ?? 'Cliente',
-    }));
+    const info = this.customerInfoById();
+    return this.pendingRows().map((p) => {
+      const c = info.get(p.clientId);
+      return {
+        ...p,
+        clientName: c?.name ?? 'Cliente',
+        clientTimezone: c?.timezone ?? DEFAULT_MEXICAN_TIMEZONE,
+      };
+    });
   });
 
   clienteOptions = computed<ClienteOption[]>(() => {

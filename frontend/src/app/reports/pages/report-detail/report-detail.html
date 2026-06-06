@@ -65,16 +65,16 @@
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Fecha</dt>
-                            <dd class="text-lg font-data tabular-nums text-granite-950 dark:text-granite-50 font-semibold">{{ report.date_arrival | date:'mediumDate' }}</dd>
+                            <dd class="text-lg font-data tabular-nums text-granite-950 dark:text-granite-50 font-semibold">{{ report.date_arrival | dateInTz: customerTimezone() : 'mediumDate' }}</dd>
                         </div>
 
                         <div class="field-group">
                             <dt class="field-label">Llegada</dt>
-                            <dd class="text-lg font-data tabular-nums text-granite-950 dark:text-granite-50 font-semibold">{{ report.date_arrival | date:'medium' }}</dd>
+                            <dd class="text-lg font-data tabular-nums text-granite-950 dark:text-granite-50 font-semibold">{{ report.date_arrival | dateInTz: customerTimezone() : 'medium' }}</dd>
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Salida</dt>
-                            <dd class="text-lg font-data tabular-nums text-granite-950 dark:text-granite-50 font-semibold">{{ (report.date_departure | date:'medium') || 'Pendiente' }}</dd>
+                            <dd class="text-lg font-data tabular-nums text-granite-950 dark:text-granite-50 font-semibold">{{ (report.date_departure | dateInTz: customerTimezone() : 'medium') || 'Pendiente' }}</dd>
                         </div>
                     </dl>
                 </section>
@@ -402,14 +402,15 @@
                 </section>
                 }
 
-                <!-- Firma -->
+                <!-- Firma del cliente -->
                 <section class="card-section">
-                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-950 dark:text-granite-50 mb-4 tracking-tight">Firma</h2>
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-950 dark:text-granite-50 mb-4 tracking-tight">Firma del cliente</h2>
                     @if (report.signature) {
                         <div class="text-center">
-                            <img [src]="report.signature" alt="Firma"
+                            <img [src]="report.signature" alt="Firma del cliente"
                                 class="mx-auto max-h-48 border-2 border-granite-200 dark:border-granite-700 p-3 rounded-xl bg-white" />
-                            <p class="mt-4 text-lg font-bold text-granite-950 dark:text-granite-50">Firmado por: {{ report.signed_by }}</p>
+                            <p class="mt-4 text-lg font-bold text-granite-950 dark:text-granite-50">Iniciado por: {{ technicianName() }}</p>
+                            <p class="mt-1 text-lg font-bold text-granite-950 dark:text-granite-50">Finalizado por: {{ report.signed_by }}</p>
                             @if (report.signed_maps_url) {
                                 <p class="mt-2 text-sm text-granite-700 dark:text-granite-300">
                                     Ubicación de firma:

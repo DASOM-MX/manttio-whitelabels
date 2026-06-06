@@ -44,7 +44,7 @@
                     {{ p.reportType }} · {{ p.clientName }}
                   </span>
                   <span class="text-sm text-granite-700 dark:text-granite-300 font-data tabular-nums">
-                    {{ p.createdAt | date: "short" }}
+                    {{ p.createdAt | dateInTz: p.clientTimezone : "short" }}
                   </span>
                 </div>
                 @switch (p.status) {
@@ -219,7 +219,7 @@
           <td class="capitalize font-semibold">{{ r.workType }}</td>
           <td class="font-semibold">{{ r.clientName }}</td>
           <td class="font-data tabular-nums text-granite-800 dark:text-granite-200">
-            {{ r.dateDeparture | date: "shortDate" }}
+            {{ r.dateDeparture | dateInTz: r.clientTimezone : "shortDate" }}
           </td>
           <td>
             @if (r.bucket === 'done') {

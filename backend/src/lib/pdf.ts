@@ -16,9 +16,7 @@ const FILL_GRAY = rgb(0.863, 0.863, 0.863); // #DCDCDC
 const BORDER = rgb(0.6, 0.6, 0.6);
 const TEXT = rgb(0.1, 0.13, 0.2);
 
-const DISPLAY_TIMEZONE = 'America/Monterrey';
-
-const formatDate = (d: Date | null) => {
+const formatDate = (d: Date | null, timezone: string) => {
   if (!d) return '';
   return new Intl.DateTimeFormat('es-MX', {
     day: '2-digit',
@@ -26,7 +24,7 @@ const formatDate = (d: Date | null) => {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    timeZone: DISPLAY_TIMEZONE,
+    timeZone: timezone,
   }).format(d);
 };
 
@@ -81,6 +79,8 @@ export type RenderReportPdfParams = {
     phone: string | null;
     email: string | null;
     observation: string | null;
+    /** IANA timezone used for date/time rendering throughout the PDF. */
+    timezone: string;
   };
   reportUserName: string;
   pictureUrls: string[];
@@ -297,9 +297,9 @@ const drawActivitiesTable = (r: Renderer, p: RenderReportPdfParams) => {
   ]);
   drawRow(r, cols, [
     { text: 'Fecha Llegada:', bold: true },
-    { text: formatDate(p.report.dateArrival) },
+    { text: formatDate(p.report.dateArrival, p.customer.timezone) },
     { text: 'Fecha Salida', bold: true },
-    { text: formatDate(p.report.dateDeparture) },
+    { text: formatDate(p.report.dateDeparture, p.customer.timezone) },
   ]);
   drawRow(r, cols, [
     { text: 'Observaciones', bold: true },
@@ -485,7 +485,8 @@ const drawPicturesGrid = async (r: Renderer, urls: string[]) => {
 const drawSignature = async (
   r: Renderer,
   signatureUrl: string | null,
-  signedBy: string,
+  createdByName: string,
+  signedByName: string,
   location: { latitude: number | null; longitude: number | null; accuracy: number | null },
 ) => {
   if (!signatureUrl) return;
@@ -495,20 +496,36 @@ const drawSignature = async (
   const ratio = sig.height / sig.width;
   const w = targetW;
   const h = w * ratio;
-  ensureSpace(r, h + 48);
-  const x = MARGIN + (CONTENT_WIDTH - w) / 2;
-  r.page.drawImage(sig, { x, y: r.y - h, width: w, height: h });
-  r.y -= h + 4;
-  const caption = `Firmado por: ${signedBy}`;
-  const captionWidth = r.fontBold.widthOfTextAtSize(caption, 14);
-  r.page.drawText(caption, {
-    x: MARGIN + (CONTENT_WIDTH - captionWidth) / 2,
-    y: r.y - 18,
-    size: 14,
+  // Heading (12pt) + image + 2 caption lines (14pt each, ~18px tall) + a bit of breathing room.
+  ensureSpace(r, h + 80);
+
+  const heading = 'Firma del cliente';
+  const headingWidth = r.fontBold.widthOfTextAtSize(heading, 12);
+  r.page.drawText(heading, {
+    x: MARGIN + (CONTENT_WIDTH - headingWidth) / 2,
+    y: r.y - 14,
+    size: 12,
     font: r.fontBold,
     color: TEXT,
   });
   r.y -= 22;
+
+  const x = MARGIN + (CONTENT_WIDTH - w) / 2;
+  r.page.drawImage(sig, { x, y: r.y - h, width: w, height: h });
+  r.y -= h + 4;
+
+  const captions = [`Iniciado por: ${createdByName}`, `Finalizado por: ${signedByName}`];
+  for (const caption of captions) {
+    const captionWidth = r.fontBold.widthOfTextAtSize(caption, 14);
+    r.page.drawText(caption, {
+      x: MARGIN + (CONTENT_WIDTH - captionWidth) / 2,
+      y: r.y - 18,
+      size: 14,
+      font: r.fontBold,
+      color: TEXT,
+    });
+    r.y -= 22;
+  }
 
   if (location.latitude !== null && location.longitude !== null) {
     const accSuffix =
@@ -546,11 +563,17 @@ export const renderReportPdf = async (p: RenderReportPdfParams): Promise<Uint8Ar
   drawActivitiesTable(r, p);
   drawVariantTable(r, p.report.reportType, p.data);
   await drawPicturesGrid(r, p.pictureUrls);
-  await drawSignature(r, p.signatureUrl, p.report.signedBy ?? p.reportUserName, {
-    latitude: p.report.signedLatitude,
-    longitude: p.report.signedLongitude,
-    accuracy: p.report.signedAccuracy,
-  });
+  await drawSignature(
+    r,
+    p.signatureUrl,
+    p.reportUserName,
+    p.report.signedBy ?? p.reportUserName,
+    {
+      latitude: p.report.signedLatitude,
+      longitude: p.report.signedLongitude,
+      accuracy: p.report.signedAccuracy,
+    },
+  );
 
   return doc.save();
 };
