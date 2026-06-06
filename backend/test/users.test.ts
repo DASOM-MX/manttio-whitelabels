@@ -326,13 +326,16 @@ describe('PATCH /users/:id', () => {
 });
 
 describe('DELETE /users/:id', () => {
+  const deleteBody = { deleteComment: 'Test cleanup' };
+
   test('admin can soft-delete another user', async () => {
     const { token } = await seedAdminAndLogin();
     const tech = await seedTechnician();
 
     const res = await request(`/users/${tech.id}`, {
       method: 'DELETE',
-      headers: authHeader(token),
+      headers: jsonHeaders(token),
+      body: JSON.stringify(deleteBody),
     });
     expect(res.status).toBe(200);
     expect(await json(res)).toEqual({ id: tech.id, deleted: true });
@@ -344,7 +347,11 @@ describe('DELETE /users/:id', () => {
   test('soft-deleted user can no longer log in', async () => {
     const { token } = await seedAdminAndLogin();
     const tech = await seedTechnician();
-    await request(`/users/${tech.id}`, { method: 'DELETE', headers: authHeader(token) });
+    await request(`/users/${tech.id}`, {
+      method: 'DELETE',
+      headers: jsonHeaders(token),
+      body: JSON.stringify(deleteBody),
+    });
 
     const res = await request('/auth/login', {
       method: 'POST',
@@ -358,7 +365,8 @@ describe('DELETE /users/:id', () => {
     const { admin, token } = await seedAdminAndLogin();
     const res = await request(`/users/${admin.id}`, {
       method: 'DELETE',
-      headers: authHeader(token),
+      headers: jsonHeaders(token),
+      body: JSON.stringify(deleteBody),
     });
     expect(res.status).toBe(400);
     expect(await json(res)).toEqual({ error: 'cannot_delete_self' });
@@ -368,7 +376,8 @@ describe('DELETE /users/:id', () => {
     const { token } = await seedAdminAndLogin();
     const res = await request('/users/00000000-0000-0000-0000-000000000000', {
       method: 'DELETE',
-      headers: authHeader(token),
+      headers: jsonHeaders(token),
+      body: JSON.stringify(deleteBody),
     });
     expect(res.status).toBe(404);
   });
@@ -379,15 +388,39 @@ describe('DELETE /users/:id', () => {
 
     const first = await request(`/users/${tech.id}`, {
       method: 'DELETE',
-      headers: authHeader(token),
+      headers: jsonHeaders(token),
+      body: JSON.stringify(deleteBody),
     });
     expect(first.status).toBe(200);
 
     const second = await request(`/users/${tech.id}`, {
       method: 'DELETE',
-      headers: authHeader(token),
+      headers: jsonHeaders(token),
+      body: JSON.stringify(deleteBody),
     });
     expect(second.status).toBe(404);
+  });
+
+  test('missing deleteComment → 400 validation error', async () => {
+    const { token } = await seedAdminAndLogin();
+    const tech = await seedTechnician();
+    const res = await request(`/users/${tech.id}`, {
+      method: 'DELETE',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({}),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  test('blank deleteComment → 400 validation error', async () => {
+    const { token } = await seedAdminAndLogin();
+    const tech = await seedTechnician();
+    const res = await request(`/users/${tech.id}`, {
+      method: 'DELETE',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ deleteComment: '   ' }),
+    });
+    expect(res.status).toBe(400);
   });
 
   test('technician cannot delete → 403', async () => {
@@ -395,7 +428,8 @@ describe('DELETE /users/:id', () => {
     const target = await seedAdmin();
     const res = await request(`/users/${target.id}`, {
       method: 'DELETE',
-      headers: authHeader(token),
+      headers: jsonHeaders(token),
+      body: JSON.stringify(deleteBody),
     });
     expect(res.status).toBe(403);
   });

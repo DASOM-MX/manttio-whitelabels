@@ -49,9 +49,19 @@ export const routes: Routes = [
                 loadComponent: () => import('./customers/pages/customer-add/customer-add').then(m => m.CustomerAdd)
             },
             {
-                path: 'register',
+                path: 'users',
                 canActivate: [adminGuard],
-                loadComponent: () => import('./auth/pages/register/register').then(m => m.Register)
+                loadComponent: () => import('./users/pages/users-list/users-list').then(m => m.UsersList)
+            },
+            {
+                path: 'users/add',
+                canActivate: [adminGuard],
+                loadComponent: () => import('./users/pages/user-add/user-add').then(m => m.UserAdd)
+            },
+            {
+                path: 'users/:id/edit',
+                canActivate: [adminGuard],
+                loadComponent: () => import('./users/pages/user-edit/user-edit').then(m => m.UserEdit)
             },
             {
                 path: '',

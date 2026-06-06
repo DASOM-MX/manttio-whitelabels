@@ -19,5 +19,10 @@ export const updateUserSchema = z
   })
   .refine((v) => Object.keys(v).length > 0, { message: 'no fields to update' });
 
+export const deleteUserSchema = z.object({
+  deleteComment: z.string().trim().min(1),
+});
+
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+export type DeleteUserInput = z.infer<typeof deleteUserSchema>;

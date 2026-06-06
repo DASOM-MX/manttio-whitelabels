@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "delete_comment" text;

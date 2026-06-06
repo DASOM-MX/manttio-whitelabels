@@ -14,7 +14,7 @@ import {
 import { hashPassword } from '../lib/password';
 import { isUniqueViolation } from '../lib/db-errors';
 import { requireRole } from '../middleware/roles';
-import { createUserSchema, updateUserSchema } from '../validators/users';
+import { createUserSchema, deleteUserSchema, updateUserSchema } from '../validators/users';
 
 export const users = new Hono<AppBindings>();
 
@@ -87,15 +87,16 @@ users.patch('/:id', zValidator('json', updateUserSchema), async (c) => {
   }
 });
 
-users.delete('/:id', async (c) => {
+users.delete('/:id', zValidator('json', deleteUserSchema), async (c) => {
   const id = c.req.param('id');
   const me = c.get('user');
   if (me.id === id) {
     return c.json({ error: 'cannot_delete_self' }, 400);
   }
 
+  const { deleteComment } = c.req.valid('json');
   const db = createDb(c.env.DATABASE_URL);
-  const row = await softDeleteUser(db, id);
+  const row = await softDeleteUser(db, id, deleteComment, me.id);
   if (!row) return c.json({ error: 'not_found' }, 404);
   return c.json({ id: row.id, deleted: true });
 });

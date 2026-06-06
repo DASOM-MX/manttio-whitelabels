@@ -4,7 +4,6 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Actions, Store, ofActionSuccessful, ofActionErrored } from '@ngxs/store';
 import { MessageService } from 'primeng/api';
-import { Register } from '../register/register';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { ButtonModule } from 'primeng/button';
@@ -17,7 +16,6 @@ import { Login as LoginAction } from '../../../../state/auth/auth.actions';
   styleUrl: './login.scss',
   imports: [
     ReactiveFormsModule,
-    Register,
     InputTextModule,
     PasswordModule,
     ButtonModule,
@@ -34,7 +32,6 @@ export class Login {
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
   });
-  showRegister = signal(false);
   submitting = signal(false);
 
   constructor() {
@@ -58,9 +55,5 @@ export class Login {
     const { email, password } = this.loginForm.value;
     this.submitting.set(true);
     this.store.dispatch(new LoginAction({ email: email!, password: password! }));
-  }
-
-  toggleRegister() {
-    this.showRegister.update((v) => !v);
   }
 }

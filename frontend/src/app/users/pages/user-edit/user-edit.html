@@ -1,0 +1,150 @@
+<div class="min-h-full bg-background dark:bg-granite-950">
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">
+          Editar
+        </p>
+        <h1 class="text-2xl sm:text-3xl font-bold text-granite-900 dark:text-granite-100 leading-tight">
+          {{ user()?.name ?? 'Usuario' }}
+        </h1>
+      </div>
+      <p-button
+        routerLink="/users"
+        label="Volver"
+        icon="pi pi-arrow-left"
+        severity="secondary"
+        [text]="true"
+      ></p-button>
+    </div>
+
+    @if (user()) {
+      <div class="card-section">
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="m-0 flex flex-col gap-7">
+          <div class="field-group">
+            <label for="editName" class="field-label">Nombre *</label>
+            <input
+              pInputText
+              id="editName"
+              formControlName="name"
+              autocomplete="name"
+              [class.field-input--error]="form.controls['name'].invalid && form.controls['name'].touched"
+            />
+            @if (form.controls['name'].invalid && form.controls['name'].touched) {
+              <small class="text-sm text-red-600 dark:text-red-400">
+                El nombre es obligatorio.
+              </small>
+            }
+          </div>
+
+          <div class="field-group">
+            <label for="editEmail" class="field-label">Correo *</label>
+            <input
+              pInputText
+              id="editEmail"
+              type="email"
+              inputmode="email"
+              autocomplete="email"
+              formControlName="email"
+              [class.field-input--error]="form.controls['email'].invalid && form.controls['email'].touched"
+            />
+            @if (form.controls['email'].invalid && form.controls['email'].touched) {
+              <small class="text-sm text-red-600 dark:text-red-400">
+                Ingresa un correo válido.
+              </small>
+            }
+          </div>
+
+          <div class="field-group">
+            <label for="editRole" class="field-label">Rol *</label>
+            <p-select
+              inputId="editRole"
+              formControlName="role"
+              [options]="roleOptions"
+              optionLabel="label"
+              optionValue="value"
+              styleClass="w-full"
+            ></p-select>
+            @if (selfNotice()) {
+              <small class="text-sm text-granite-700 dark:text-granite-300">
+                No puedes cambiar tu propio rol.
+              </small>
+            }
+          </div>
+
+          <div class="border-t border-granite-200 dark:border-granite-700 pt-7 flex flex-col gap-7">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">
+                Opcional
+              </p>
+              <p class="text-base font-bold text-granite-950 dark:text-granite-50">
+                Cambiar contraseña
+              </p>
+              <p class="text-sm text-granite-700 dark:text-granite-300">
+                Deja ambos campos en blanco para conservar la contraseña actual.
+              </p>
+            </div>
+
+            <div class="field-group">
+              <label for="editPassword" class="field-label">Nueva contraseña</label>
+              <p-password
+                inputId="editPassword"
+                formControlName="password"
+                [feedback]="true"
+                [toggleMask]="true"
+                autocomplete="new-password"
+                placeholder="••••••••"
+                styleClass="w-full"
+                [inputStyleClass]="(form.controls['password'].invalid && form.controls['password'].touched) ? 'field-input field-input--error' : 'field-input'"
+              ></p-password>
+              @if (form.controls['password'].hasError('minlength') && form.controls['password'].touched) {
+                <small class="text-sm text-red-600 dark:text-red-400">
+                  La contraseña debe tener al menos 8 caracteres.
+                </small>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="editConfirm" class="field-label">Confirmar contraseña</label>
+              <p-password
+                inputId="editConfirm"
+                formControlName="confirmPassword"
+                [feedback]="false"
+                [toggleMask]="true"
+                autocomplete="new-password"
+                placeholder="••••••••"
+                styleClass="w-full"
+                [inputStyleClass]="((form.controls['confirmPassword'].invalid || passwordMismatch()) && form.controls['confirmPassword'].touched) ? 'field-input field-input--error' : 'field-input'"
+              ></p-password>
+              @if ((form.controls['confirmPassword'].invalid || passwordMismatch()) && form.controls['confirmPassword'].touched) {
+                <small class="text-sm text-red-600 dark:text-red-400">
+                  @if (form.controls['confirmPassword'].hasError('required')) {
+                    Confirma la nueva contraseña.
+                  } @else if (passwordMismatch()) {
+                    Las contraseñas no coinciden.
+                  }
+                </small>
+              }
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            class="btn-primary w-full !min-h-14"
+            [disabled]="form.invalid || form.pristine || submitting()"
+          >
+            @if (submitting()) {
+              <i class="pi pi-spin pi-spinner mr-2"></i>
+            }
+            Guardar cambios
+          </button>
+        </form>
+      </div>
+    } @else {
+      <div class="card-section flex items-center gap-3 text-granite-700 dark:text-granite-300">
+        <i class="pi pi-spin pi-spinner text-sky-700 dark:text-sky-300"></i>
+        <span>Cargando usuario…</span>
+      </div>
+    }
+  </div>
+</div>

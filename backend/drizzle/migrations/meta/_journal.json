@@ -50,6 +50,20 @@
       "when": 1780717151172,
       "tag": "0006_large_wrecker",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1780734656290,
+      "tag": "0007_lush_the_renegades",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1780737766216,
+      "tag": "0008_good_doctor_strange",
+      "breakpoints": true
     }
   ]
 }

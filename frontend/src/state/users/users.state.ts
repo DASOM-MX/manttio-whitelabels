@@ -98,8 +98,8 @@ export class UsersState {
   }
 
   @Action(DeleteUser)
-  remove(ctx: StateContext<UsersStateModel>, { id }: DeleteUser) {
-    return this.users.remove(id).pipe(
+  remove(ctx: StateContext<UsersStateModel>, { id, payload }: DeleteUser) {
+    return this.users.remove(id, payload).pipe(
       tap(() => {
         const s = ctx.getState();
         const { [id]: _gone, ...rest } = s.entities;

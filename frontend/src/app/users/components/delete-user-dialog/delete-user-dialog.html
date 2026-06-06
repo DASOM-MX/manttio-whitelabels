@@ -1,0 +1,87 @@
+<p-dialog
+  [(visible)]="dialogOpen"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '90vw', maxWidth: '32rem' }"
+  appendTo="body"
+  header="Eliminar usuario"
+>
+  @if (target(); as user) {
+    <form
+      [formGroup]="form"
+      (ngSubmit)="confirm()"
+      class="flex flex-col gap-5"
+    >
+      <div class="flex items-start gap-3 rounded-lg bg-red-50 dark:bg-red-950/30 px-4 py-3">
+        <i class="pi pi-exclamation-triangle text-red-700 dark:text-red-400 text-xl mt-0.5"></i>
+        <div class="flex flex-col gap-0.5 min-w-0">
+          <span class="font-bold text-granite-950 dark:text-granite-50 truncate">
+            {{ user.name }}
+          </span>
+          <span class="text-sm text-granite-700 dark:text-granite-300 truncate">
+            {{ user.email }}
+          </span>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label for="deleteComment" class="field-label">Motivo *</label>
+        <textarea
+          pTextarea
+          id="deleteComment"
+          formControlName="comment"
+          rows="3"
+          [autoResize]="true"
+          placeholder="¿Por qué eliminas a este usuario?"
+          class="!h-auto"
+        ></textarea>
+        <small class="text-sm text-granite-700 dark:text-granite-300">
+          Este motivo queda registrado por temas de auditoría administrativa.
+        </small>
+      </div>
+
+      <div class="field-group">
+        <label for="deleteEmailConfirm" class="field-label">
+          Para confirmar, escribe el correo del usuario *
+        </label>
+        <input
+          pInputText
+          id="deleteEmailConfirm"
+          type="email"
+          inputmode="email"
+          autocomplete="off"
+          formControlName="emailConfirm"
+          [class.field-input--error]="!emailMatches() && form.controls['emailConfirm'].touched"
+        />
+        @if (!emailMatches() && form.controls['emailConfirm'].touched) {
+          <small class="text-sm text-red-600 dark:text-red-400">
+            El correo no coincide.
+          </small>
+        }
+      </div>
+
+      <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+        <button
+          type="button"
+          class="btn-neutral"
+          (click)="cancel()"
+          [disabled]="submitting()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          class="btn-danger"
+          [disabled]="!canConfirm()"
+        >
+          @if (submitting()) {
+            <i class="pi pi-spin pi-spinner mr-2"></i>
+          }
+          Eliminar
+        </button>
+      </div>
+    </form>
+  }
+</p-dialog>

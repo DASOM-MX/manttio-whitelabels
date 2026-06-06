@@ -48,12 +48,19 @@ export const updateUser = async (db: Db, id: string, fields: UpdateUserFields) =
 };
 
 // Soft delete. Reports.{created_by,assigned_to} FKs still resolve, so historical
-// attribution stays intact. Returns null if the user was already deleted/missing.
-export const softDeleteUser = async (db: Db, id: string) => {
+// attribution stays intact. The deleteComment is required at the route layer
+// (Zod) and stored alongside deletedAt + deletedBy for audit. Returns null if
+// the user was already deleted/missing.
+export const softDeleteUser = async (
+  db: Db,
+  id: string,
+  deleteComment: string,
+  deletedBy: string,
+) => {
   const now = new Date();
   const [row] = await db
     .update(users)
-    .set({ deletedAt: now, updatedAt: now })
+    .set({ deletedAt: now, deleteComment, deletedBy, updatedAt: now })
     .where(and(eq(users.id, id), activeFilter))
     .returning({ id: users.id });
   return row ?? null;

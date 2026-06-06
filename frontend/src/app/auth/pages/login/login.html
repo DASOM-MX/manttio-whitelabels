@@ -2,61 +2,53 @@
     <div class="card w-full max-w-md p-8">
         <img src="assets/logo.jpg" alt="Logo" class="w-32 h-auto mb-8 mx-auto" />
 
-        <!-- Login Form -->
-        @if (!showRegister()) {
-            <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-                <h1 class="text-2xl font-bold text-center text-granite-900 dark:text-granite-100 mb-8">
-                    Iniciar sesión
-                </h1>
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+            <h1 class="text-2xl font-bold text-center text-granite-900 dark:text-granite-100 mb-8">
+                Iniciar sesión
+            </h1>
 
-                <div class="field-group mb-5">
-                    <label for="loginEmail" class="field-label">Email</label>
-                    <input pInputText id="loginEmail" type="email" formControlName="email"
-                        autocomplete="email"
-                        [class.field-input--error]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
-                        placeholder="tu@correo.com" />
-                    @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
-                        <div class="text-red-700 text-sm font-semibold flex items-center gap-1.5">
-                            <span aria-hidden="true">⚠</span>
-                            @if (loginForm.get('email')?.hasError('required')) {
-                                <span>El email es obligatorio.</span>
-                            }
-                            @if (loginForm.get('email')?.hasError('email')) {
-                                <span>Ingresa un email válido.</span>
-                            }
-                        </div>
-                    }
-                </div>
+            <div class="field-group mb-5">
+                <label for="loginEmail" class="field-label">Email</label>
+                <input pInputText id="loginEmail" type="email" formControlName="email"
+                    autocomplete="email"
+                    [class.field-input--error]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
+                    placeholder="tu@correo.com" />
+                @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
+                    <div class="text-red-700 text-sm font-semibold flex items-center gap-1.5">
+                        <span aria-hidden="true">⚠</span>
+                        @if (loginForm.get('email')?.hasError('required')) {
+                            <span>El email es obligatorio.</span>
+                        }
+                        @if (loginForm.get('email')?.hasError('email')) {
+                            <span>Ingresa un email válido.</span>
+                        }
+                    </div>
+                }
+            </div>
 
-                <div class="field-group mb-8">
-                    <label for="loginPassword" class="field-label">Contraseña</label>
-                    <p-password inputId="loginPassword" formControlName="password" [feedback]="false"
-                        [toggleMask]="true" autocomplete="current-password" placeholder="••••••••"
-                        styleClass="w-full"
-                        [inputStyleClass]="(loginForm.get('password')?.invalid && loginForm.get('password')?.touched) ? 'field-input field-input--error' : 'field-input'">
-                    </p-password>
-                    @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
-                        <div class="text-red-700 text-sm font-semibold flex items-center gap-1.5">
-                            <span aria-hidden="true">⚠</span>
-                            @if (loginForm.get('password')?.hasError('required')) {
-                                <span>La contraseña es obligatoria.</span>
-                            }
-                            @if (loginForm.get('password')?.hasError('minlength')) {
-                                <span>La contraseña debe tener al menos 8 caracteres.</span>
-                            }
-                        </div>
-                    }
-                </div>
+            <div class="field-group mb-8">
+                <label for="loginPassword" class="field-label">Contraseña</label>
+                <p-password inputId="loginPassword" formControlName="password" [feedback]="false"
+                    [toggleMask]="true" autocomplete="current-password" placeholder="••••••••"
+                    styleClass="w-full"
+                    [inputStyleClass]="(loginForm.get('password')?.invalid && loginForm.get('password')?.touched) ? 'field-input field-input--error' : 'field-input'">
+                </p-password>
+                @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
+                    <div class="text-red-700 text-sm font-semibold flex items-center gap-1.5">
+                        <span aria-hidden="true">⚠</span>
+                        @if (loginForm.get('password')?.hasError('required')) {
+                            <span>La contraseña es obligatoria.</span>
+                        }
+                        @if (loginForm.get('password')?.hasError('minlength')) {
+                            <span>La contraseña debe tener al menos 8 caracteres.</span>
+                        }
+                    </div>
+                }
+            </div>
 
-                <button pButton type="submit" class="btn-primary w-full" [disabled]="loginForm.invalid">
-                    Entrar
-                </button>
-            </form>
-        }
-
-        <!-- Register Form -->
-        @if (showRegister()) {
-            <app-register></app-register>
-        }
+            <button pButton type="submit" class="btn-primary w-full" [disabled]="loginForm.invalid">
+                Entrar
+            </button>
+        </form>
     </div>
 </div>

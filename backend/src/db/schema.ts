@@ -11,6 +11,7 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import type { WorkType } from '../validators/reports';
 
@@ -23,6 +24,13 @@ export const users = pgTable(
     passwordHash: text('password_hash').notNull(),
     role: text('role').$type<'admin' | 'technician'>().notNull(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    deleteComment: text('delete_comment'),
+    // Self-reference: the admin who soft-deleted this row. Restrict-on-delete so
+    // the deleter can't be erased without breaking the audit trail (matches the
+    // reports.createdBy / assignedTo FK posture).
+    deletedBy: uuid('deleted_by').references((): AnyPgColumn => users.id, {
+      onDelete: 'restrict',
+    }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
