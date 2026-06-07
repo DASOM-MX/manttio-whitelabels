@@ -83,11 +83,15 @@ export class OfflineReportsState {
   }
 
   @Action(SyncOfflineReports)
-  syncAll(ctx: StateContext<OfflineReportsStateModel>): Observable<unknown> {
+  syncAll(
+    ctx: StateContext<OfflineReportsStateModel>,
+    { tempIds }: SyncOfflineReports,
+  ): Observable<unknown> {
     if (ctx.getState().uploading) return EMPTY;
     ctx.patchState({ uploading: true });
     // Snapshot ids up front; upload sequentially via concatMap so we never hammer the API.
-    const ids = ctx.getState().pending.map((p) => p.tempId);
+    const queued = ctx.getState().pending.map((p) => p.tempId);
+    const ids = tempIds?.length ? queued.filter((id) => tempIds.includes(id)) : queued;
     return from(ids).pipe(
       concatMap((tempId) => this.uploadOne(ctx, tempId)),
       finalize(() => ctx.patchState({ uploading: false })),

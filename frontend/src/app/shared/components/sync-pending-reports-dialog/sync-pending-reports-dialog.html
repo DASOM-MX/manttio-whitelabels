@@ -1,0 +1,110 @@
+<p-dialog
+  header="Sincronizar reportes guardados"
+  [(visible)]="dialogOpen"
+  [modal]="true"
+  [closable]="!uploading()"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '32rem' }"
+  styleClass="max-w-11/12"
+  appendTo="body"
+>
+  <div class="flex flex-col gap-4">
+    <p class="text-base text-granite-900 dark:text-granite-100">
+      Selecciona los reportes que deseas subir ahora. Los reportes no seleccionados se mantendrán guardados sin conexión.
+    </p>
+
+    @if (rows().length > 0) {
+      <div class="flex items-center gap-3 pb-2 border-b-2 border-granite-200 dark:border-granite-700">
+        <p-checkbox
+          [binary]="true"
+          [ngModel]="allSelected()"
+          (onChange)="toggleAll()"
+          inputId="syncAll"
+          [disabled]="uploading()"
+        ></p-checkbox>
+        <label for="syncAll" class="text-base font-bold text-granite-950 dark:text-granite-50 cursor-pointer flex-1">
+          Subir todos
+        </label>
+        <span class="text-sm font-data tabular-nums text-granite-700 dark:text-granite-300">
+          {{ selectedCount() }} / {{ rows().length }}
+        </span>
+      </div>
+
+      <ul class="flex flex-col gap-2 max-h-80 overflow-y-auto">
+        @for (row of rows(); track row.tempId) {
+          <li class="flex items-center gap-3 rounded-lg border-2 border-granite-200 dark:border-granite-700 bg-white dark:bg-granite-900 px-3 py-2">
+            <p-checkbox
+              [binary]="true"
+              [ngModel]="isSelected(row.tempId)"
+              (onChange)="toggle(row.tempId)"
+              [inputId]="row.tempId"
+              [disabled]="uploading()"
+            ></p-checkbox>
+            <label [for]="row.tempId" class="flex-1 min-w-0 flex flex-col gap-0.5 cursor-pointer">
+              <span class="font-semibold text-granite-950 dark:text-granite-50 truncate">
+                {{ row.typeLabel }}
+              </span>
+              <span class="text-sm text-granite-700 dark:text-granite-300 truncate">
+                {{ row.createdByName }} · <span class="font-data tabular-nums">{{ row.createdAt | date: 'short' }}</span>
+              </span>
+            </label>
+            @switch (row.status) {
+              @case ('uploading') {
+                <p-tag severity="info" value="Subiendo"></p-tag>
+              }
+              @case ('failed') {
+                <p-tag
+                  severity="danger"
+                  value="Falló"
+                  [pTooltip]="row.lastError ?? ''"
+                  tooltipPosition="top"
+                ></p-tag>
+              }
+              @default {
+                <span
+                  class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 text-xs font-bold"
+                >
+                  Pendiente
+                </span>
+              }
+            }
+            <button
+              type="button"
+              pTooltip="Descartar"
+              tooltipPosition="left"
+              aria-label="Descartar"
+              (click)="askDiscard($event, row)"
+              [disabled]="uploading()"
+              class="size-9 inline-flex items-center justify-center rounded-lg text-red-700 dark:text-red-400 enabled:hover:bg-red-50 dark:enabled:hover:bg-red-950/30 enabled:active:bg-red-100 dark:enabled:active:bg-red-950/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <i class="pi pi-trash"></i>
+            </button>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="text-sm text-granite-700 dark:text-granite-300 italic">
+        No hay reportes guardados sin conexión.
+      </p>
+    }
+  </div>
+
+  <ng-template pTemplate="footer">
+    <div class="flex justify-end gap-3">
+      <p-button
+        label="Más tarde"
+        severity="secondary"
+        (onClick)="cancel()"
+        [disabled]="uploading()"
+      ></p-button>
+      <p-button
+        [label]="'Subir (' + selectedCount() + ')'"
+        icon="pi pi-cloud-upload"
+        (onClick)="confirm()"
+        [disabled]="!canConfirm()"
+        [loading]="uploading()"
+      ></p-button>
+    </div>
+  </ng-template>
+</p-dialog>

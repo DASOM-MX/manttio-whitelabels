@@ -17,9 +17,11 @@ export class QueueOfflineReport {
   ) {}
 }
 
-/** Replay every queued report (FIFO) through the normal create flow. */
+/** Replay queued reports (FIFO) through the normal create flow. When `tempIds`
+ *  is supplied, only those records are uploaded; otherwise every queued report. */
 export class SyncOfflineReports {
   static readonly type = '[OfflineReports] Sync All';
+  constructor(public tempIds?: string[]) {}
 }
 
 /** Replay a single queued report — used by the pending detail page's Upload button. */

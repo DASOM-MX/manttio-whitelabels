@@ -5,10 +5,11 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { select } from '@ngxs/store';
 import { AppState } from '../state/app/app.state';
+import { SyncPendingReportsDialog } from './shared/components/sync-pending-reports-dialog/sync-pending-reports-dialog';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ToastModule, ConfirmDialogModule],
+  imports: [RouterOutlet, ToastModule, ConfirmDialogModule, SyncPendingReportsDialog],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

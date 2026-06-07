@@ -25,6 +25,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
+import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
 import { DecimalPipe, SlicePipe } from '@angular/common';
 import { DateInTzPipe } from '../../../shared/pipes/date-in-tz.pipe';
@@ -77,6 +78,7 @@ pdfMake.vfs = pdfFonts.vfs;
     CheckboxModule,
     ButtonModule,
     DialogModule,
+    SkeletonModule,
     TagModule,
   ],
   templateUrl: './report-detail.html',
@@ -96,6 +98,7 @@ export class ReportDetail {
   private destroyRef = inject(DestroyRef);
 
   private selected = select(ReportsState.selected);
+  private serverLoading = select(ReportsState.loading);
   customer = select(CustomersState.selected);
   /** Customer timezone used for every date rendered on this page (including the
    *  client-side text PDF export). Falls back to the default Mexican zone so
@@ -108,6 +111,9 @@ export class ReportDetail {
    *  not on the server, and is shown read-only with Upload/Discard actions. */
   readonly isPending = this.route.snapshot.routeConfig?.path === 'report/pending/:id';
   private pendingRecord = signal<PendingReport | null>(null);
+  /** Pending-mode read from IndexedDB is async — flip to false once `loadPending`
+   *  resolves (either way). Lets the page show a skeleton while we wait. */
+  private pendingLoading = signal(true);
   pendingNotFound = signal(false);
   uploadingPending = signal(false);
   private pendingPictureUrls = signal<string[]>([]);
@@ -124,6 +130,16 @@ export class ReportDetail {
     const sel = this.selected();
     return sel ? toViewModel(sel.report, sel.details) : null;
   });
+
+  /** Drives the skeleton: true while we don't have content to render yet and
+   *  haven't decided this is a not-found case. */
+  isLoading = computed(() =>
+    this.isPending
+      ? this.pendingLoading() && !this.pendingNotFound()
+      : this.serverLoading() && !this.report(),
+  );
+
+  protected readonly skeletonRows = [0, 1, 2, 3];
 
   /** Best-effort technician display name (creator snapshot when pending). */
   reportUser = computed(() => {
@@ -265,25 +281,29 @@ export class ReportDetail {
   }
 
   private async loadPending(tempId: string): Promise<void> {
-    const rec = await this.offline.get(tempId);
-    if (!rec) {
-      this.pendingNotFound.set(true);
-      return;
-    }
-    this.pendingRecord.set(rec);
-    this.pendingPictureUrls.set(
-      (rec.fields.pictures ?? []).map((file) => {
-        const url = URL.createObjectURL(file);
+    try {
+      const rec = await this.offline.get(tempId);
+      if (!rec) {
+        this.pendingNotFound.set(true);
+        return;
+      }
+      this.pendingRecord.set(rec);
+      this.pendingPictureUrls.set(
+        (rec.fields.pictures ?? []).map((file) => {
+          const url = URL.createObjectURL(file);
+          this.objectUrls.push(url);
+          return url;
+        }),
+      );
+      if (rec.fields.signature) {
+        const url = URL.createObjectURL(rec.fields.signature);
         this.objectUrls.push(url);
-        return url;
-      }),
-    );
-    if (rec.fields.signature) {
-      const url = URL.createObjectURL(rec.fields.signature);
-      this.objectUrls.push(url);
-      this.pendingSignature.set(url);
-    } else if (rec.fields.signature_base64) {
-      this.pendingSignature.set(rec.fields.signature_base64);
+        this.pendingSignature.set(url);
+      } else if (rec.fields.signature_base64) {
+        this.pendingSignature.set(rec.fields.signature_base64);
+      }
+    } finally {
+      this.pendingLoading.set(false);
     }
   }
 

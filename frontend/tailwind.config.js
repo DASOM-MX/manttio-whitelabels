@@ -72,6 +72,12 @@ module.exports = {
                 sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
                 data: ['"Atkinson Hyperlegible"', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
             },
+
+            // Used to cap PrimeNG dialogs on narrow viewports so the chrome
+            // never goes edge-to-edge — keeps a 1/12 gutter on each side.
+            maxWidth: {
+                '11/12': '91.6667%',
+            },
         },
     },
     plugins: [],
