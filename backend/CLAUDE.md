@@ -1,13 +1,15 @@
 # API rules
 
-## Project state (as of 2026-06-01)
+## Project state (as of 2026-06-07)
 - **Cloudflare Workers** (Wrangler v4) running **Hono 4** in TypeScript. Entry: `src/index.ts`, deployed as `manttio-api`. `compatibility_flags = ["nodejs_compat"]` so we can use `bcryptjs` and a few Node-flavored libs.
-- **Postgres** on **Neon** via `@neondatabase/serverless`'s **WebSocket driver** (not neon-http) — chosen for real transactions (the create-report flow updates a counter + a header row + N detail rows atomically).
+- **Postgres** on **Neon** via `@neondatabase/serverless`'s **WebSocket driver** (not neon-http) — chosen for real transactions (the create-report flow updates a counter + a header row + N detail rows atomically). Live DB is current through migration `0008` (`deleted_by` on users).
 - **Drizzle ORM** for the schema (`src/db/schema.ts`) and queries (`src/db/repositories/*`). Migrations live in `drizzle/migrations/` and are run via `drizzle-kit` (see `db:*` scripts).
 - **Auth** via JWT (HS256) using `jose`. Token payload is `{ sub: userId, role }`. TTL: `7d` in dev, `1d` in prod.
 - **R2** bucket (binding: `MANTTIO_REPORTS`) for report images + generated PDFs. Public reads served via `CDN_BASE_URL` (Cloudflare CDN sitting in front of the bucket).
 - **Email** via **Resend** (thin wrapper, no SDK). Outbound only — the app sends report PDFs to customer-supplied recipients. Brand vars (`BRAND_*`, `RESEND_FROM`) live in `wrangler.toml`. `RESEND_API_KEY` is a secret.
 - **Tests:** Vitest with `@cloudflare/vitest-pool-workers` running inside miniflare. **Hits the live Neon DB** (with isolated `test+...` and `dasom.mx+test-...` fixture emails); Resend is mocked. See "Testing" below — don't run `pnpm test` casually.
+- **Audited soft-delete on users:** `DELETE /users/:id` requires a Zod-validated `{ deleteComment }` body and stamps `users.delete_comment` + `users.deleted_by` (self-FK to `users.id`, `ON DELETE RESTRICT`) alongside `deleted_at`. The route guards self-delete (`me.id === id → 400 cannot_delete_self`). Customers/reports keep the no-comment soft delete for now — this audit shape is users-only.
+- **Customer timezone:** `customers.timezone` (IANA, e.g. `America/Monterrey`) is the source of truth for any report date rendered to a customer; user rows no longer carry a timezone. Validators default to `DEFAULT_MEXICAN_TIMEZONE` from `src/lib/timezones.ts` when omitted.
 
 ## Routing structure
 - All routes mounted off `src/index.ts`. Order matters: `app.use('*', cors())` + `logger()` first, then the public auth router, then the JWT middleware on every protected prefix, then the protected routers.
@@ -24,7 +26,7 @@
 
 ## Database
 - **Use the WebSocket driver** (`@neondatabase/serverless` `Pool` → `drizzle/neon-serverless`). Real transactions are needed for the atomic create-report flow (counter increment + header insert + details insert). Do not switch to neon-http.
-- **Schema** lives in `src/db/schema.ts` only. Tables: `users`, `customers`, `reports`, `reportDetails`, `reportCounters`, `reportEmails`. Use Drizzle's column helpers + relations; pull types via `typeof table.$inferSelect` / `$inferInsert`.
+- **Schema** lives in `src/db/schema.ts` only. Tables: `users` (incl. `delete_comment`, `deleted_by` self-FK), `customers` (incl. `timezone`), `reports`, `reportDetails`, `reportCounters`, `reportEmails`. Use Drizzle's column helpers + relations; pull types via `typeof table.$inferSelect` / `$inferInsert`.
 - **Repository pattern**: every query/mutation goes in `src/db/repositories/<resource>.ts`. Routes never call `db.select(...)` directly. Repository functions take a `Db` (from `db/client.ts`) plus typed args, return typed rows.
 - **Soft deletes** via `deleted_at` (`isNull(table.deletedAt)` in every list filter). Hard deletes are reserved for fixture cleanup.
 - **Postgres error mapping**: `src/lib/db-errors.ts` exports `isForeignKeyViolation` / `isUniqueViolation` that match SQLSTATE codes (and string fallbacks). Use these on inserts/updates rather than catching `Error` blindly — the route can then translate to the right HTTP status (400 vs 409 vs 422).
