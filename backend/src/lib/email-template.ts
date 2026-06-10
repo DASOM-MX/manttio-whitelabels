@@ -102,7 +102,7 @@ export const renderReportEmailHTML = (p: ReportEmailParams): string => {
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width:600px;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
           <tr>
             <td style="padding:32px 32px 16px;border-bottom:1px solid #e5e9ef;" align="center">
-              <img src="${escapeHtml(p.brand.logoUrl)}" alt="${escapeHtml(p.brand.name)}" width="180" height="auto" style="display:block;max-width:180px;height:auto;padding:6px;background-color:#ffffff;border-radius:9999px;">
+              <img src="${escapeHtml(p.brand.logoUrl)}" alt="${escapeHtml(p.brand.name)}" width="180" height="auto" style="display:block;max-width:180px;height:auto;">
             </td>
           </tr>
           <tr>
