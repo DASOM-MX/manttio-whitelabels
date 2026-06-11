@@ -1,6 +1,6 @@
 # API rules
 
-## Project state (as of 2026-06-07)
+## Project state (as of 2026-06-10)
 - **Cloudflare Workers** (Wrangler v4) running **Hono 4** in TypeScript. Entry: `src/index.ts`, deployed as `manttio-api`. `compatibility_flags = ["nodejs_compat"]` so we can use `bcryptjs` and a few Node-flavored libs.
 - **Postgres** on **Neon** via `@neondatabase/serverless`'s **WebSocket driver** (not neon-http) — chosen for real transactions (the create-report flow updates a counter + a header row + N detail rows atomically). Live DB is current through migration `0008` (`deleted_by` on users).
 - **Drizzle ORM** for the schema (`src/db/schema.ts`) and queries (`src/db/repositories/*`). Migrations live in `drizzle/migrations/` and are run via `drizzle-kit` (see `db:*` scripts).

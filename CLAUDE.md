@@ -1,6 +1,6 @@
 # Repo overview
 
-## Project state (as of 2026-06-07)
+## Project state (as of 2026-06-10)
 
 This is the **manttio** monorepo — a small set of independently-deployed apps for the HVAC field-service product, plus the marketing site for the brand it ships under.
 

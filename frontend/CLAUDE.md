@@ -1,6 +1,6 @@
 # Web-app rules
 
-## Project state (as of 2026-06-07)
+## Project state (as of 2026-06-10)
 - **Angular 20** standalone-components app, zoneless change detection, esbuild via `@angular/build`.
 - **State:** NGXS 20 — `Auth`, `App` (connectivity + dark mode), `Users`, `Customers`, `Reports`, `ReportDraft`, `OfflineReports`. `auth`, `reportDraft`, and `app` are persisted via the storage plugin; `OfflineReports` is deliberately NOT persisted — IndexedDB (Dexie) is the source of truth and `LoadPendingReports` re-hydrates on boot.
 - **Backend:** Hono on Cloudflare Workers + Neon Postgres (in `/backend`). Frontend talks to it via the `apiUrl` env value; local override goes in `environment.development.ts` and is intentionally not committed.
