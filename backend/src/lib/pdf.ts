@@ -170,7 +170,9 @@ const measureRowHeight = (
   let maxLines = 1;
   for (let i = 0; i < cells.length; i++) {
     const c = cells[i]!;
-    const w = widths[i] ?? widths[widths.length - 1]!;
+    const w = c.colSpan
+      ? widths.slice(i, i + c.colSpan).reduce((a, b) => a + (b ?? widths[widths.length - 1]!), 0)
+      : (widths[i] ?? widths[widths.length - 1]!);
     const f = c.bold ? fontBold : font;
     const innerW = w - 8;
     const words = c.text.split(/\s+/);
@@ -186,6 +188,7 @@ const measureRowHeight = (
       }
     }
     if (lines > maxLines) maxLines = lines;
+    if (c.colSpan && c.colSpan > 1) i += c.colSpan - 1;
   }
   const lineH = size * 1.25;
   return Math.max(20, maxLines * lineH + 8);
@@ -303,9 +306,7 @@ const drawActivitiesTable = (r: Renderer, p: RenderReportPdfParams) => {
   ]);
   drawRow(r, cols, [
     { text: 'Observaciones', bold: true },
-    { text: (p.data['observations'] as string) || '' },
-    { text: '', border: false },
-    { text: '', border: false },
+    { text: (p.data['observations'] as string) || '', colSpan: 3 },
   ]);
   r.y -= 8;
 };
@@ -348,9 +349,7 @@ const drawVariantTable = (r: Renderer, reportType: string, data: Record<string, 
     ]);
     drawRow(r, cols4, [
       { text: 'Observaciones', bold: true },
-      { text: v('observations') || 'Ninguna' },
-      { text: '', border: false },
-      { text: '', border: false },
+      { text: v('observations') || 'Ninguna', colSpan: 3 },
     ]);
   } else if (reportType === 'chiller') {
     const cols = [
@@ -401,6 +400,10 @@ const drawVariantTable = (r: Renderer, reportType: string, data: Record<string, 
       { text: 'Nivel de aceite', bold: true },
       { text: v('oil_level') },
     ]);
+    drawRow(r, cols, [
+      { text: 'Observaciones', bold: true },
+      { text: v('observations') || 'Ninguna', colSpan: 3 },
+    ]);
   } else if (reportType === 'uma') {
     drawRow(r, cols4, [
       { text: 'Formulario UMAS', bold: true, fill: FILL_GRAY, align: 'center', colSpan: 4 },
@@ -434,9 +437,7 @@ const drawVariantTable = (r: Renderer, reportType: string, data: Record<string, 
     ]);
     drawRow(r, cols4, [
       { text: 'Observaciones', bold: true },
-      { text: v('observations') || 'Ninguna' },
-      { text: '', border: false },
-      { text: '', border: false },
+      { text: v('observations') || 'Ninguna', colSpan: 3 },
     ]);
   } else {
     drawRow(r, [CONTENT_WIDTH], [

@@ -9,6 +9,10 @@
                 @case ('text') {
                     <input pInputText type="text" [id]="field.name" [formControlName]="field.name" />
                 }
+                @case ('textarea') {
+                    <textarea pTextarea [id]="field.name" [formControlName]="field.name" rows="4"
+                        [autoResize]="true" class="w-full"></textarea>
+                }
                 @case ('number') {
                     <p-inputnumber [inputId]="field.name" [formControlName]="field.name"
                         mode="decimal" [useGrouping]="false" styleClass="w-full"

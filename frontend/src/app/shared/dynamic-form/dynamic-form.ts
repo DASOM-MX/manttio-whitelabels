@@ -12,6 +12,7 @@ import { ImagePickerComponent } from '../../reports/components/image-picker/imag
 import { SignatureComponent } from '../../reports/components/signature-pad/signature-pad';
 import type { SignedPayload } from '../../data/dtos/report';
 import { InputTextModule } from 'primeng/inputtext';
+import { TextareaModule } from 'primeng/textarea';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -24,6 +25,7 @@ import { ButtonModule } from 'primeng/button';
     ImagePickerComponent,
     SignatureComponent,
     InputTextModule,
+    TextareaModule,
     InputNumberModule,
     SelectModule,
     DatePickerModule,

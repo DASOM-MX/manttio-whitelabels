@@ -235,7 +235,7 @@ export class ReportAdd {
           { type: 'select', label: '¿Cuenta con filtro de evaporador?', name: 'filter', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'text', label: 'Voltaje de entrada', name: 'inner_voltage', defaultValue: '' },
           { type: 'select', label: '¿Ruido fuera de lo normal?', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
-          { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
+          { type: 'textarea', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
         ];
       case 'chiller':
@@ -253,7 +253,7 @@ export class ReportAdd {
           { type: 'text', label: 'Nivel de aceite', name: 'oil_level', defaultValue: '' },
           { type: 'select', label: 'Switch de flujo funciona', name: 'flux_switch_working', defaultValue: '', options: ['Sí', 'No'] },
           { type: 'select', label: 'Ruido inusual', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
-          { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
+          { type: 'textarea', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
         ];
       case 'uma':
@@ -266,7 +266,7 @@ export class ReportAdd {
           { type: 'text', label: 'Voltaje de entrada', name: 'inner_voltage', defaultValue: '' },
           { type: 'text', label: 'Amperaje del motor', name: 'motor_amperage', defaultValue: '' },
           { type: 'select', label: 'Ruido inusual', name: 'unusual_noise', defaultValue: '', options: ['Sí', 'No'] },
-          { type: 'text', label: 'Observaciones', name: 'observations', defaultValue: '' },
+          { type: 'textarea', label: 'Observaciones', name: 'observations', defaultValue: '' },
           { type: 'image', label: 'Fotos', name: 'pictures', defaultValue: '' },
         ];
     }
