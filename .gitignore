@@ -1,5 +1,8 @@
 # === Angular ===
 
+.git/
+.github/
+
 # Compiled output
 /frontend/dist
 /frontend/tmp

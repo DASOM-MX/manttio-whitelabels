@@ -4,6 +4,20 @@
 
 This is the **manttio** monorepo — a small set of independently-deployed apps for the HVAC field-service product, plus the marketing site for the brand it ships under.
 
+### Fork context
+
+This repo (`manttio-whitelabeled`, remote `DASOM-MX/manttio-whitelabels`) is a **fork of the original `manttio` project** (sibling checkout at `../manttio`, remote on the upstream org). The fork exists to build the **whitelabel / multi-tenant** variant of the product, where each tenant serves its own branded site from shared infrastructure.
+
+What differs from upstream so far:
+
+- **New `superadmin/` app** — an in-product admin (Angular 20) where a logged-in **client** edits their own CMS content (`cms_home`, `cms_clients`), tenant-scoped and product-user-authed (never the shared token). See `superadmin/manttio-whitelabeled-superadmin-plan.md`.
+- **Whitelabel plans** — design docs for the whitelabeled backend/frontend/superadmin/manager surfaces live as `*-plan.md` files at the root of each package.
+- **Local-only dev overrides** — `frontend/src/environments/environment.development.ts` here points at the deployed `manttio-api.dasom-mx.workers.dev` (not committed / `skip-worktree`'d so it stays local for testing). Upstream keeps `http://127.0.0.1:8787`.
+- Upstream-only CI workflows under `.github/workflows/` are dropped in this fork.
+- **Worktrees** for this repo live at `../manttio-whitelabeled-worktrees` (sibling to the checkout), kept out of the working tree — create feature/isolation worktrees there, not inside the repo.
+
+Keep changes that belong upstream in the `../manttio` checkout; use this repo for whitelabel-specific work.
+
 ### Deployable apps
 
 | Dir | Stack | Hosting | Status |

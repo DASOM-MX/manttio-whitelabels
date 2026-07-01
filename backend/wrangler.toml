@@ -6,7 +6,6 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 ENVIRONMENT = "dev"
 CDN_BASE_URL = "https://cdn.penanevadachillers.com"
-API_BASE_URL = "http://localhost:8787"
 RESEND_FROM = "reports@penanevadachillers.com"
 BRAND_NAME = "Peña Nevada Chillers"
 BRAND_SITE_URL = "https://penanevadachillers.com"
