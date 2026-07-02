@@ -294,16 +294,22 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
 - [x] **GATE:** `pnpm typecheck` clean.
 
 ### Phase 7 — `reports` module (largest)
-- [ ] repositories (`reports`, `report-emails`), models (`reports`, `report-emails`), validators
+- [x] repositories (`reports`, `report-emails`), models (`reports`, `report-emails`), validators
       (`reports`, `reports-routes`, `report-email`) — **incl. inferred inputs + `*Data` shapes**,
-      `enums/reports.enum.ts` (`WorkType`/`ReportType`/`ReportStatus`), `types/reports.types.ts`
-      (row aliases, `ReportFilters`, `SignedLocation`), utils (`report-id`, `access-token`,
-      `report-lifecycle`), templates (`report-pdf`, `report-email`, `report-labels`) moved.
-      **No `dtos/`** — endpoints return rows / `{report,details}` as-is.
-- [ ] `report-email.service.ts` (was `dispatch-email`) calls `email.service` + reports/users/customers repos.
-- [ ] `reports.service.ts` holds create/patch/sign/pictures/list/delete orchestration + R2 cleanup helpers.
-- [ ] `reports.controller.ts` thin: validate → service → respond; `/download/:token`, `/:id/email`,
-      history, revoke preserved.
+      `enums/reports.enum.ts` (`workTypes`/`WorkType`, `reportTypes`/`ReportType`,
+      `REPORT_STATUSES`/`ReportStatus`), `types/reports.types.ts` (row aliases, `ReportFilters`,
+      `SignedLocation`), utils (`report-id`, `access-token`, `report-lifecycle`), templates
+      (`report-pdf`, `report-email`, `report-labels`) moved. **No `dtos/`** — endpoints return
+      rows / `{report,details}` as-is. `reports.model` repointed to import `WorkType` from the enum.
+- [x] `report-email.service.ts` (was `dispatch-email`) calls `email.service` + reports/users/customers repos.
+- [x] `reports.service.ts` holds create/patch/sign/pictures/list/delete/email orchestration + R2
+      upload/cleanup + PDF-for-token assembly; returns `{ status, body }` results the controller relays.
+- [x] `reports.controller.ts` thin: validate → service → `c.json(body, status)`; `/download/:token`,
+      `/:id/email`, history, revoke, editable-gate error precedence preserved.
+- [x] Re-export shims left at all 13 old paths (routes/reports, db/repositories/{reports,report-emails},
+      validators/{reports,reports-routes,email}, lib/{dispatch-email,email-template,pdf,report-labels,
+      report-id,access-token,report-lifecycle}). Removed in Phase 10.
+- [x] **GATE:** `pnpm typecheck` clean · `pnpm db:generate` → "No schema changes, nothing to migrate".
 
 ### Phase 8 — Bootstrap
 - [ ] `src/index.ts` imports controllers from `modules/*/controllers` + `jwtMiddleware` from
