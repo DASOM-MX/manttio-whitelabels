@@ -351,8 +351,12 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
 - [x] **GATE:** `pnpm typecheck` clean.
 
 ### Phase 9 — Consumers
-- [ ] `test/*` + `test/helpers/*` imports updated to new paths.
-- [ ] `scripts/seed-admin.ts` import updated.
+- [x] `test/{auth,users,customers}.test.ts` + `test/helpers/fixtures.ts` imports repointed to
+      `modules/database/{client,schema}`, `modules/{users,customers}/repository`,
+      `modules/auth/services/password.service`, `modules/reports/enums/reports.enum`
+      (`ReportStatus`/`WorkType`). `test/helpers/request.ts` keeps `src/index` (unchanged).
+- [x] `scripts/seed-admin.ts` schema import repointed to `modules/database/schema`.
+- [x] **GATE:** `pnpm typecheck` clean (covers `test/**`); no old-layer imports remain in test/ or scripts/.
 
 ### Phase 10 — Cleanup + typecheck
 - [ ] Delete `src/routes/`, `src/db/`, `src/lib/`, `src/middleware/`, `src/validators/`.
