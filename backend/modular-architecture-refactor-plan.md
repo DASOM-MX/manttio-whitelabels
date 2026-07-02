@@ -219,11 +219,12 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
 - [x] **GATE:** `pnpm typecheck` clean.
 
 ### Phase 2 — Models + schema barrel
-- [ ] `users/models/users.model.ts`, `customers/models/customers.model.ts`,
+- [x] `users/models/users.model.ts`, `customers/models/customers.model.ts`,
       `reports/models/reports.model.ts`, `reports/models/report-emails.model.ts` created from `db/schema.ts`.
-- [ ] `modules/database/schema.ts` barrel re-exports all tables + holds every `relations()`.
-- [ ] `drizzle.config.ts` schema path updated.
-- [ ] **GATE:** `pnpm db:generate` reports **no schema diff** (structure-only refactor).
+- [x] `modules/database/schema.ts` barrel re-exports all tables + holds every `relations()`.
+- [x] `db/schema.ts` turned into a re-export shim (→ barrel). Removed in Phase 10.
+- [x] `drizzle.config.ts` schema path updated to `./src/modules/database/schema.ts`.
+- [x] **GATE:** `pnpm typecheck` clean · `pnpm db:generate` → "No schema changes, nothing to migrate".
 
 ### Phase 3 — `auth` module
 - [ ] `password.service.ts`, `jwt.service.ts`, `jwt.middleware.ts`, `roles.middleware.ts`,
