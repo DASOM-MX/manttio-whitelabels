@@ -22,12 +22,19 @@ domain lives under its own module. Improves readability and consistency across m
 - **Generic, reusable email transport** lives in its own `email/` module (`sendEmail` over Resend,
   provider-swappable). Report-specific email composition (bodies, tokens, send-log) stays in the
   `reports/` module and *calls* the `email/` service.
-- **`models/` and `validators/` are distinct, both kept.** `models/` holds **Drizzle DB schemas**
-  (table/entity definitions); `validators/` holds **zod request validators** (+ their `z.infer`
-  input types). Keeping them in separate folders prevents "schema" from meaning two things.
-- **`types/` holds hand-written TS types** that are neither DB tables nor zod schemas — DB row
-  aliases (`$inferSelect`/`$inferInsert`), DTOs (`PublicUser`), domain enums/contracts
-  (`ReportStatus`), and service/filter param types (`ReportFilters`, `UpdateUserFields`).
+- **`models/` and `validators/` are distinct, both kept.** `models/` = **Drizzle DB tables**;
+  `validators/` = **zod request schemas** (the schema objects only). Keeping them separate prevents
+  "schema" from meaning two things.
+- **`dtos/` holds API payload contracts** — request DTOs (the `z.infer` input types of the zod
+  validators) and response DTOs (e.g. `PublicUser`). This keeps boundary shapes out of `types/`.
+- **`enums/` holds enum-like literal unions** and their value arrays (`ROLES`/`Role`,
+  `workTypes`/`WorkType`, `reportTypes`/`ReportType`, `REPORT_STATUSES`/`ReportStatus`). Added only
+  to modules that actually have enums.
+- **`types/` holds internal TS types** that are none of the above — DB row aliases
+  (`$inferSelect`/`$inferInsert` like `UserRow`, `ReportRow`) and service/repository param & filter
+  types (`ReportFilters`, `UpdateUserFields`, `SignedLocation`).
+- **Create only the folders a module needs** — not every module has `enums/`, `templates/`,
+  `models/`, or `middleware/`. No empty folders.
 - **`middleware/` only where necessary** — not part of the standard anatomy. A module gets one only
   if it actually provides Hono middleware. Today that is **only `auth/`** (jwt + roles). There is no
   top-level `middleware/`.
@@ -49,19 +56,23 @@ src/
       middleware/jwt.middleware.ts        # (was middleware/jwt.ts)
       middleware/roles.middleware.ts      # (was middleware/roles.ts)
       validators/auth.validator.ts        # loginSchema           (was validators/auth.ts)
+      dtos/auth.dto.ts                     # LoginInput (z.infer)
     users/
       controllers/users.controller.ts
       services/users.service.ts
       repository/users.repository.ts      # (was db/repositories/users.ts)
       models/users.model.ts               # users Drizzle table   (from db/schema.ts)
       validators/users.validator.ts       # create/update/delete zod (was validators/users.ts)
-      types/users.types.ts                # UserRow/NewUser/UpdateUserFields, PublicUser
+      dtos/users.dto.ts                    # CreateUserInput/UpdateUserInput/DeleteUserInput, PublicUser
+      types/users.types.ts                # UserRow/NewUser/UpdateUserFields (DB/internal)
+      enums/users.enum.ts                  # ROLES / Role
     customers/
       controllers/customers.controller.ts
       services/customers.service.ts
       repository/customers.repository.ts
       models/customers.model.ts
       validators/customers.validator.ts
+      dtos/customers.dto.ts                # CreateCustomerInput/UpdateCustomerInput
       types/customers.types.ts            # CustomerRow/NewCustomer/UpdateCustomerFields
       constants/timezones.ts              # customer TZ source of truth (was lib/timezones.ts)
     reports/
@@ -75,13 +86,15 @@ src/
       validators/reports.validator.ts     # variant zod + validateReportData (was validators/reports.ts)
       validators/reports-routes.validator.ts # create/patch/sign/list zod (was validators/reports-routes.ts)
       validators/report-email.validator.ts   # sendReportEmailSchema (was validators/email.ts)
-      types/report-lifecycle.ts           # ReportStatus + isEditableStatus (was lib/report-lifecycle.ts)
-      types/reports.types.ts              # WorkType/ReportType, ReportFilters, ReportRow aliases
+      dtos/reports.dto.ts                  # CreateReportMeta/PatchReportInput/SendReportEmailInput, *Data shapes
+      enums/reports.enum.ts                # WorkType/ReportType/ReportStatus + value arrays
+      types/reports.types.ts              # ReportRow/ReportDetailRow/NewReport aliases, ReportFilters, SignedLocation
       templates/report-pdf.template.ts    # (was lib/pdf.ts)
       templates/report-email.template.ts  # (was lib/email-template.ts)
       templates/report-labels.ts          # Spanish field labels (was lib/report-labels.ts)
       utils/report-id.ts                  # (was lib/report-id.ts)
       utils/access-token.ts               # (was lib/access-token.ts)
+      utils/report-lifecycle.ts           # isEditableStatus/isFinishedOrMailed (was lib/report-lifecycle.ts)
     upload/
       controllers/upload.controller.ts
       services/upload.service.ts
@@ -108,13 +121,18 @@ src/
 | `services/` | `.service.ts` | business logic / orchestration |
 | `repository/` | `.repository.ts` | Drizzle queries & mutations |
 | `models/` | `.model.ts` | **Drizzle DB table** definitions (entities) |
-| `validators/` | `.validator.ts` | **zod** request schemas + their `z.infer` inputs |
-| `types/` | `.types.ts` | hand-written TS types (row aliases, DTOs, enums, filters) |
+| `validators/` | `.validator.ts` | **zod** request schemas (schema objects only) |
+| `dtos/` | `.dto.ts` | API payload contracts: request DTOs (`z.infer`) + response DTOs |
+| `enums/` | `.enum.ts` | literal unions + value arrays (`Role`, `WorkType`, `ReportStatus`) |
+| `types/` | `.types.ts` | internal TS types (DB row aliases, service/filter params) |
 | `templates/` | `.template.ts` | pdf / email renderers |
+| `utils/` | plain `.ts` | pure helpers (id gen, tokens, lifecycle predicates) |
 | `middleware/` | `.middleware.ts` | Hono middleware — **`auth/` only** |
 
 > `models/` (DB schema) and `validators/` (zod) are deliberately separate folders so "schema"
-> never refers to both. `types/` is neither — it's plain TS.
+> never refers to both. `dtos/`, `enums/`, and `types/` split what would otherwise pile into one
+> `types/` folder: boundary payloads → `dtos/`, literal unions → `enums/`, everything else → `types/`.
+> Create a folder only when the module has content for it.
 
 ---
 
@@ -228,23 +246,27 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
 
 ### Phase 3 — `auth` module
 - [ ] `password.service.ts`, `jwt.service.ts`, `jwt.middleware.ts`, `roles.middleware.ts`,
-      `validators/auth.validator.ts` moved.
+      `validators/auth.validator.ts`, `dtos/auth.dto.ts` moved.
 - [ ] `auth.service.ts` extracts login logic; `auth.controller.ts` becomes thin.
 
 ### Phase 4 — `users` module
-- [ ] repository + schema moved; `users.service.ts` extracted (hash, uniqueness→409, self-delete guard);
-      controller thin.
+- [ ] repository moved; validators + `dtos/users.dto.ts` (inputs + `PublicUser`) + `enums/users.enum.ts`
+      (`ROLES`/`Role`) + `types/users.types.ts` (row aliases) split out.
+- [ ] `users.service.ts` extracted (hash, uniqueness→409, self-delete guard); controller thin.
 
 ### Phase 5 — `customers` module
-- [ ] repository + schema + `constants/timezones.ts` moved; service extracted; controller thin.
+- [ ] repository + `constants/timezones.ts` moved; validators + `dtos/customers.dto.ts` +
+      `types/customers.types.ts` split out; service extracted; controller thin.
 
 ### Phase 6 — `upload` module
 - [ ] `upload.service.ts` (validate image → storage.service) extracted; controller thin.
 
 ### Phase 7 — `reports` module (largest)
 - [ ] repositories (`reports`, `report-emails`), models (`reports`, `report-emails`), validators
-      (`reports`, `reports-routes`, `report-email`), types (`report-lifecycle`, `reports.types`), utils
-      (`report-id`, `access-token`), templates (`report-pdf`, `report-email`, `report-labels`) moved.
+      (`reports`, `reports-routes`, `report-email`), `dtos/reports.dto.ts` (inputs + `*Data` shapes),
+      `enums/reports.enum.ts` (`WorkType`/`ReportType`/`ReportStatus`), `types/reports.types.ts`
+      (row aliases, `ReportFilters`, `SignedLocation`), utils (`report-id`, `access-token`,
+      `report-lifecycle`), templates (`report-pdf`, `report-email`, `report-labels`) moved.
 - [ ] `report-email.service.ts` (was `dispatch-email`) calls `email.service` + reports/users/customers repos.
 - [ ] `reports.service.ts` holds create/patch/sign/pictures/list/delete orchestration + R2 cleanup helpers.
 - [ ] `reports.controller.ts` thin: validate → service → respond; `/download/:token`, `/:id/email`,
