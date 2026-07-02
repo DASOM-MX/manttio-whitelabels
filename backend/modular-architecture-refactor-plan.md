@@ -345,8 +345,10 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
 - [x] **GATE:** `pnpm typecheck` clean · `pnpm db:generate` → "No schema changes, nothing to migrate".
 
 ### Phase 8 — Bootstrap
-- [ ] `src/index.ts` imports controllers from `modules/*/controllers` + `jwtMiddleware` from
-      `auth/middleware`; mount order + public `/reports/download/*` skip preserved.
+- [x] `src/index.ts` imports controllers from `modules/*/controllers` + `jwtMiddleware` from
+      `auth/middleware`; mount order, JWT prefixes, `onError`/`notFound` preserved. No shim imports left
+      in the composition root.
+- [x] **GATE:** `pnpm typecheck` clean.
 
 ### Phase 9 — Consumers
 - [ ] `test/*` + `test/helpers/*` imports updated to new paths.
