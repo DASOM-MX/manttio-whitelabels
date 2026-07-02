@@ -254,9 +254,12 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
 - [x] **GATE:** `pnpm typecheck` clean · `pnpm db:generate` → "No schema changes, nothing to migrate".
 
 ### Phase 3 — `auth` module
-- [ ] `password.service.ts`, `jwt.service.ts`, `jwt.middleware.ts`, `roles.middleware.ts`,
+- [x] `password.service.ts`, `jwt.service.ts`, `jwt.middleware.ts`, `roles.middleware.ts`,
       `validators/auth.validator.ts` (incl. `LoginInput`) moved. No `dtos/`.
-- [ ] `auth.service.ts` extracts login logic; `auth.controller.ts` becomes thin.
+- [x] `auth.service.ts` extracts login logic (`login()` → token | null); `auth.controller.ts` thin.
+- [x] Re-export shims left at old paths: `routes/auth.ts`, `lib/password.ts`, `lib/jwt.ts`,
+      `middleware/jwt.ts`, `middleware/roles.ts`, `validators/auth.ts`. Removed in Phase 10.
+- [x] **GATE:** `pnpm typecheck` clean.
 
 ### Phase 4 — `users` module
 - [ ] repository moved; `validators/users.validator.ts` (zod + inferred inputs) + `dtos/users.dto.ts`
