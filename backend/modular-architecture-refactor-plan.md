@@ -33,6 +33,11 @@ domain lives under its own module. Improves readability and consistency across m
 - **`enums/` holds enum-like literal unions** and their value arrays (`ROLES`/`Role`,
   `workTypes`/`WorkType`, `reportTypes`/`ReportType`, `REPORT_STATUSES`/`ReportStatus`). Added only
   to modules that actually have enums.
+- **`constants/` holds fixed constant values and config data** that are neither enums nor types —
+  literal defaults and reference data a module depends on (e.g. `DEFAULT_MEXICAN_TIMEZONE` + the IANA
+  timezone list in `customers/constants/timezones.ts`). An `enum/` is a closed union that also drives
+  a TS type; a `constant/` is just a value (or table of values). Added only to modules that have such
+  data.
 - **`types/` holds internal TS types** that are none of the above — DB row aliases
   (`$inferSelect`/`$inferInsert` like `UserRow`, `ReportRow`) and service/repository param & filter
   types (`ReportFilters`, `UpdateUserFields`, `SignedLocation`).
@@ -126,6 +131,7 @@ src/
 | `validators/` | `.validator.ts` | **zod** request schemas **+ their `z.infer` input types** |
 | `dtos/` | `.dto.ts` | **output/response** shapes with no zod equivalent (e.g. `PublicUser`) |
 | `enums/` | `.enum.ts` | literal unions + value arrays (`Role`, `WorkType`, `ReportStatus`) |
+| `constants/` | plain `.ts` | fixed values / reference data (timezone list + default) |
 | `types/` | `.types.ts` | internal TS types (DB row aliases, service/filter params) |
 | `templates/` | `.template.ts` | pdf / email renderers |
 | `utils/` | plain `.ts` | pure helpers (id gen, tokens, lifecycle predicates) |
@@ -133,9 +139,9 @@ src/
 
 > `models/` (DB tables) and `validators/` (zod) are deliberately separate so "schema" never refers
 > to both. **Request inputs stay with their validator** (they're just its `z.infer`); `dtos/` is
-> reserved for **outputs** that have no validator (`PublicUser`). `enums/` = literal unions, `types/`
-> = everything else. Create a folder only when the module has content for it — several modules will
-> have **no `dtos/`** at all.
+> reserved for **outputs** that have no validator (`PublicUser`). `enums/` = literal unions,
+> `constants/` = fixed values / reference data, `types/` = everything else. Create a folder only when
+> the module has content for it — several modules will have **no `dtos/`** at all.
 
 ---
 
