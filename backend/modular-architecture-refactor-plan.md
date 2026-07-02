@@ -281,7 +281,10 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
 - [x] **GATE:** `pnpm typecheck` clean.
 
 ### Phase 6 — `upload` module
-- [ ] `upload.service.ts` (validate image → storage.service) extracted; controller thin.
+- [x] `upload.service.ts` (validate image → `NotAnImageError`→415, store via storage.service)
+      extracted; `upload.controller.ts` thin (parse form → no_file 400 → service → respond).
+- [x] Re-export shim left at `routes/upload.ts`. Removed in Phase 10.
+- [x] **GATE:** `pnpm typecheck` clean.
 
 ### Phase 7 — `reports` module (largest)
 - [ ] repositories (`reports`, `report-emails`), models (`reports`, `report-emails`), validators
