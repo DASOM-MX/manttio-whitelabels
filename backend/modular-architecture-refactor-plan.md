@@ -41,8 +41,11 @@ domain lives under its own module. Improves readability and consistency across m
 - **`types/` holds internal TS types** that are none of the above — DB row aliases
   (`$inferSelect`/`$inferInsert` like `UserRow`, `ReportRow`) and service/repository param & filter
   types (`ReportFilters`, `UpdateUserFields`, `SignedLocation`).
+- **`http-errors/` holds custom error classes that a controller maps to an HTTP status** — one
+  class per file (e.g. `NotAnImageError` → 415). Services `throw` them; the controller catches and
+  translates (`instanceof` → `c.json`). Added only to modules that need a typed, HTTP-mapped error.
 - **Create only the folders a module needs** — not every module has `enums/`, `templates/`,
-  `models/`, or `middleware/`. No empty folders.
+  `models/`, `http-errors/`, or `middleware/`. No empty folders.
 - **`middleware/` only where necessary** — not part of the standard anatomy. A module gets one only
   if it actually provides Hono middleware. Today that is **only `auth/`** (jwt + roles). There is no
   top-level `middleware/`.
@@ -105,6 +108,7 @@ src/
     upload/
       controllers/upload.controller.ts
       services/upload.service.ts
+      http-errors/not-an-image.error.ts   # NotAnImageError (controller maps → 415)
     email/                                # reusable transport
       services/email.service.ts           # sendEmail over Resend, swappable (was lib/resend.ts)
       types/email.types.ts                # ResendSendParams etc.
@@ -132,6 +136,7 @@ src/
 | `dtos/` | `.dto.ts` | **output/response** shapes with no zod equivalent (e.g. `PublicUser`) |
 | `enums/` | `.enum.ts` | literal unions + value arrays (`Role`, `WorkType`, `ReportStatus`) |
 | `constants/` | plain `.ts` | fixed values / reference data (timezone list + default) |
+| `http-errors/` | `.error.ts` | custom error classes a controller maps to an HTTP status (`NotAnImageError` → 415) |
 | `types/` | `.types.ts` | internal TS types (DB row aliases, service/filter params) |
 | `templates/` | `.template.ts` | pdf / email renderers |
 | `utils/` | plain `.ts` | pure helpers (id gen, tokens, lifecycle predicates) |
@@ -281,7 +286,12 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
 - [x] **GATE:** `pnpm typecheck` clean.
 
 ### Phase 6 — `upload` module
-- [ ] `upload.service.ts` (validate image → storage.service) extracted; controller thin.
+- [x] `upload.service.ts` (validate image → `NotAnImageError`→415, store via storage.service)
+      extracted; `upload.controller.ts` thin (parse form → no_file 400 → service → respond).
+- [x] `http-errors/not-an-image.error.ts` holds `NotAnImageError` (own file/folder); the service
+      throws it, the controller maps it to 415. First use of the `http-errors/` folder.
+- [x] Re-export shim left at `routes/upload.ts`. Removed in Phase 10.
+- [x] **GATE:** `pnpm typecheck` clean.
 
 ### Phase 7 — `reports` module (largest)
 - [ ] repositories (`reports`, `report-emails`), models (`reports`, `report-emails`), validators
