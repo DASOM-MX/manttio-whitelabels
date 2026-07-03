@@ -370,10 +370,21 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
 - [x] Updated root `CLAUDE.md` "Where things live in backend/" to the module-first layout; bumped date.
 
 ### Phase 12 — Final verification
-- [ ] **GATE:** `pnpm typecheck` clean · `pnpm db:generate` no diff.
-- [ ] Optional: `pnpm dev` smoke (`GET /` 200, `GET /users` 401) — no live DB writes.
-- [ ] Hand off to user for review. (Tests hit live Neon — run only with user's OK.)
-- [ ] Commit once reviewed.
+- [x] **GATE:** `pnpm typecheck` clean · `pnpm db:generate` → "No schema changes, nothing to migrate".
+- [x] Endpoint surface unchanged — same routes mounted in the same order in `index.ts` (Phase 8).
+- [ ] Optional `pnpm dev` smoke skipped (needs the live Worker + Neon DB) — left to the user.
+- [x] Handed off to user for review. (Tests hit live Neon — run only with user's OK.)
+
+---
+
+## ✅ Refactor complete
+
+All 12 phases done, one stacked PR each (#1 base `main` → #12 base #11). `src/` is now
+`env.ts` + `index.ts` + `modules/` only; every domain owns its full stack and the cross-cutting
+concerns (`database`, `storage`, `email`) are their own modules. Every phase was a pure structural
+move verified by `pnpm typecheck` (and `pnpm db:generate` no-diff where schema files moved). Merge
+the PR stack **bottom-up** (#1 first); re-check each PR's base before merging since GitHub does not
+auto-retarget a stack after the parent merges.
 
 ---
 
