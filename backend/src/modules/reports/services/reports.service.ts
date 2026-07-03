@@ -31,6 +31,7 @@ import {
   r2Key,
 } from '../../storage/services/storage.service';
 import { isFile, type FormValue } from '../../storage/utils/form-data';
+import { canAccess } from '../utils/report-access';
 import { isEditableStatus } from '../utils/report-lifecycle';
 import { validateReportData } from '../validators/reports.validator';
 import { renderReportPdf } from '../templates/report-pdf.template';
@@ -48,10 +49,7 @@ import type { SendReportEmailInput } from '../validators/report-email.validator'
 export type JsonResult = { status: ContentfulStatusCode; body: unknown };
 type BackgroundScheduler = (task: Promise<unknown>) => void;
 
-// --- access + R2 helpers (moved verbatim from the old route module) ---
-
-export const canAccess = (user: AuthUser, report: ReportRow) =>
-  user.role === 'admin' || report.assignedTo === user.id;
+// --- R2 helpers (moved verbatim from the old route module) ---
 
 const uploadFileToR2 = async (
   bucket: R2Bucket,

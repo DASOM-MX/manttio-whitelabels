@@ -105,6 +105,7 @@ src/
       utils/report-id.ts                  # (was lib/report-id.ts)
       utils/access-token.ts               # (was lib/access-token.ts)
       utils/report-lifecycle.ts           # isEditableStatus/isFinishedOrMailed (was lib/report-lifecycle.ts)
+      utils/report-access.ts              # canAccess predicate (admin | own assigned report)
     upload/
       controllers/upload.controller.ts
       services/upload.service.ts
@@ -298,14 +299,18 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
       (`reports`, `reports-routes`, `report-email`) — **incl. inferred inputs + `*Data` shapes**,
       `enums/reports.enum.ts` (`workTypes`/`WorkType`, `reportTypes`/`ReportType`,
       `REPORT_STATUSES`/`ReportStatus`), `types/reports.types.ts` (row aliases, `ReportFilters`,
-      `SignedLocation`), utils (`report-id`, `access-token`, `report-lifecycle`), templates
-      (`report-pdf`, `report-email`, `report-labels`) moved. **No `dtos/`** — endpoints return
-      rows / `{report,details}` as-is. `reports.model` repointed to import `WorkType` from the enum.
+      `SignedLocation`), utils (`report-id`, `access-token`, `report-lifecycle`, `report-access`),
+      templates (`report-pdf`, `report-email`, `report-labels`) moved. **No `dtos/`** — endpoints
+      return rows / `{report,details}` as-is. `reports.model` repointed to import `WorkType` from the enum.
 - [x] `report-email.service.ts` (was `dispatch-email`) calls `email.service` + reports/users/customers repos.
 - [x] `reports.service.ts` holds create/patch/sign/pictures/list/delete/email orchestration + R2
       upload/cleanup + PDF-for-token assembly; returns `{ status, body }` results the controller relays.
 - [x] `reports.controller.ts` thin: validate → service → `c.json(body, status)`; `/download/:token`,
       `/:id/email`, history, revoke, editable-gate error precedence preserved.
+- [x] Review follow-up: the pure `canAccess` authorization predicate moved from `reports.service`
+      into `utils/report-access.ts` (alongside the other pure predicates). No `http-errors/` folder —
+      reports has no controller-mapped typed error classes (it uses `{ status, body }` results; the
+      `throw new Error(...)` cases are internal invariants → 500).
 - [x] Re-export shims left at all 13 old paths (routes/reports, db/repositories/{reports,report-emails},
       validators/{reports,reports-routes,email}, lib/{dispatch-email,email-template,pdf,report-labels,
       report-id,access-token,report-lifecycle}). Removed in Phase 10.
