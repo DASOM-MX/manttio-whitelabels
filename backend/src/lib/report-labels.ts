@@ -1,3 +1,3 @@
 // TEMPORARY re-export shim (Phase 7 of the modular-architecture refactor).
-// Canonical: `src/modules/reports/templates/report-labels.ts`. Removed in Phase 10.
-export * from '../modules/reports/templates/report-labels';
+// Canonical: `src/modules/reports/helpers/report-labels.helpers.ts`. Removed in Phase 10.
+export * from '../modules/reports/helpers/report-labels.helpers';

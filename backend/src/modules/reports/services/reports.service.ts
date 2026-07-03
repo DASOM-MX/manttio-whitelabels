@@ -34,7 +34,7 @@ import { isFile, type FormValue } from '../../storage/utils/form-data';
 import { canAccess } from '../utils/report-access';
 import { isEditableStatus } from '../utils/report-lifecycle';
 import { validateReportData } from '../validators/reports.validator';
-import { renderReportPdf } from '../templates/report-pdf.template';
+import { renderReportPdf } from '../helpers/report-pdf.helpers';
 import { dispatchReportEmail } from './report-email.service';
 import type { ReportRow } from '../types/reports.types';
 import type {

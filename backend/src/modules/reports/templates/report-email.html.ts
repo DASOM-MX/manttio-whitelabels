@@ -1,6 +1,7 @@
-// HTML markup for the report-delivery email (§9). Kept in constants/ — separate from the
-// rendering logic in ../templates/report-email.template.ts — so the markup blob does not
-// clutter the renderer. This file owns the full HTML document, the location-row fragment,
+// HTML markup for the report-delivery email (§9). This is the template asset (kept in
+// templates/) — separate from the rendering logic in ../helpers/report-email.helpers.ts —
+// so the markup blob does not clutter the renderer. This file owns the full HTML document,
+// the location-row fragment,
 // and HTML-escaping; the template computes the display values (dates, labels, timezone,
 // signed location) and hands them here. Spanish copy; CSS inlined and table-based layout
 // for Outlook/Gmail/Apple Mail compatibility.

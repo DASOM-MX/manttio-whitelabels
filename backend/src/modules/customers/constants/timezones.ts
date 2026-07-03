@@ -1,7 +1,7 @@
 // Mexican IANA timezones (post-2022 DST reform). Used by:
 //   - customers/validators/customers.validator.ts (enum for `customers.timezone`)
-//   - reports/templates/report-email.template.ts (date formatting + disclaimer wording)
-//   - reports/templates/report-pdf.template.ts (date formatting)
+//   - reports/helpers/report-email.helpers.ts (date formatting + disclaimer wording)
+//   - reports/helpers/report-pdf.helpers.ts (date formatting)
 export const MEXICAN_TIMEZONE_VALUES = [
   'America/Mexico_City',
   'America/Cancun',

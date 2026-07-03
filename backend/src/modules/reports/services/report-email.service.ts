@@ -14,7 +14,7 @@ import {
   renderReportEmailSubject,
   renderReportEmailText,
   type ReportEmailParams,
-} from '../templates/report-email.template';
+} from '../helpers/report-email.helpers';
 import { sendEmail } from '../../email/services/email.service';
 
 export type DispatchEmailParams = {
