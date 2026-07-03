@@ -1,6 +1,6 @@
 # Repo overview
 
-## Project state (as of 2026-06-10)
+## Project state (as of 2026-07-02)
 
 This is the **manttio** monorepo — a small set of independently-deployed apps for the HVAC field-service product, plus the marketing site for the brand it ships under.
 
@@ -46,14 +46,14 @@ These apply across packages; per-package CLAUDE.md files own the rest.
 
 ### Where things live in `backend/`
 
-- `src/index.ts` — Hono app entry + middleware order.
-- `src/routes/<resource>.ts` — thin route handlers.
-- `src/db/schema.ts` — Drizzle schema; one place for tables.
-- `src/db/repositories/<resource>.ts` — every query/mutation.
-- `src/validators/<resource>.ts` — Zod request schemas.
-- `src/lib/` — shared helpers (`jwt`, `r2`, `pdf`, `email-template`, `dispatch-email`, `resend`, `report-lifecycle`, `db-errors`, `timezones`, `access-token`, `form-data`).
-- `src/middleware/` — `jwt`, `roles`.
-- `drizzle/migrations/` — generated SQL; live DB current through `0008`.
+Backend is **module-first (NestJS-like)**: `src/` holds only `env.ts`, `index.ts`, and `modules/`. Each domain owns its full stack; cross-cutting concerns are their own modules. See `backend/CLAUDE.md` → "Module layout" for the folder taxonomy.
+
+- `src/index.ts` — Hono app entry + middleware order (composition root; mounts each module's controller).
+- `src/env.ts` — global `Env` bindings + `AuthUser`.
+- `src/modules/<domain>/` — `controllers/` (thin routers) + `services/` (business logic) + `repository/` (Drizzle queries) + `models/` (tables) + `validators/` (zod + inferred inputs) + `dtos/`/`enums/`/`constants/`/`types/`/`templates/`/`utils/`/`middleware/` as needed. Domains: `auth`, `users`, `customers`, `reports`, `upload`.
+- `src/modules/database/` — Drizzle `client.ts`, `schema.ts` (barrel: re-exports every model + holds all `relations()`), `db-errors.ts`.
+- `src/modules/storage/` — R2 `storage.service.ts` + `form-data` utils. `src/modules/email/` — generic `sendEmail` transport (Resend).
+- `drizzle/migrations/` — generated SQL; live DB current through `0008`. `drizzle.config.ts` reads the `modules/database/schema.ts` barrel.
 - `test/` — Vitest hits the **live Neon DB**, don't run casually.
 
 ### Where things live in `frontend/`
