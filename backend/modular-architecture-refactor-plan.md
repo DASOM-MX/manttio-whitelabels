@@ -262,10 +262,14 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
 - [x] **GATE:** `pnpm typecheck` clean.
 
 ### Phase 4 — `users` module
-- [ ] repository moved; `validators/users.validator.ts` (zod + inferred inputs) + `dtos/users.dto.ts`
-      (**`PublicUser` only**) + `enums/users.enum.ts` (`ROLES`/`Role`) + `types/users.types.ts` (row aliases)
-      split out.
-- [ ] `users.service.ts` extracted (hash, uniqueness→409, self-delete guard); controller thin.
+- [x] repository moved; `validators/users.validator.ts` (zod + inferred inputs) + `dtos/users.dto.ts`
+      (**`PublicUser` + `toPublicUser` only**) + `enums/users.enum.ts` (`ROLES`/`Role`) +
+      `types/users.types.ts` (`UserRow`/`NewUser`/`UpdateUserFields`) split out.
+- [x] `users.service.ts` extracted (hash, uniqueness→`EmailInUseError`→409, self-delete guard→
+      `CannotDeleteSelfError`→400); controller thin (validate → service → respond, maps errors).
+- [x] `auth.service` repointed to the new users repository (was the `db/repositories/users` shim).
+- [x] Re-export shims left at `db/repositories/users.ts`, `validators/users.ts`, `routes/users.ts`.
+- [x] **GATE:** `pnpm typecheck` clean.
 
 ### Phase 5 — `customers` module
 - [ ] repository + `constants/timezones.ts` moved; `validators/customers.validator.ts` (zod + inferred

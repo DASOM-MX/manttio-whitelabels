@@ -1,5 +1,5 @@
 import type { Db } from '../../database/client';
-import { findUserByEmail } from '../../../db/repositories/users';
+import { findUserByEmail } from '../../users/repository/users.repository';
 import { verifyPassword } from './password.service';
 import { signAuthToken } from './jwt.service';
 import type { LoginInput } from '../validators/auth.validator';
