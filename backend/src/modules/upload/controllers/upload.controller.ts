@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import type { AppBindings } from '../../../env';
 import { fdGet, isFile } from '../../storage/utils/form-data';
-import { NotAnImageError, uploadImage } from '../services/upload.service';
+import { NotAnImageError } from '../http-errors/not-an-image.error';
+import { uploadImage } from '../services/upload.service';
 
 export const upload = new Hono<AppBindings>();
 
