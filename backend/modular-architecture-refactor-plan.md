@@ -22,12 +22,27 @@ domain lives under its own module. Improves readability and consistency across m
 - **Generic, reusable email transport** lives in its own `email/` module (`sendEmail` over Resend,
   provider-swappable). Report-specific email composition (bodies, tokens, send-log) stays in the
   `reports/` module and *calls* the `email/` service.
-- **`models/` and `validators/` are distinct, both kept.** `models/` holds **Drizzle DB schemas**
-  (table/entity definitions); `validators/` holds **zod request validators** (+ their `z.infer`
-  input types). Keeping them in separate folders prevents "schema" from meaning two things.
-- **`types/` holds hand-written TS types** that are neither DB tables nor zod schemas — DB row
-  aliases (`$inferSelect`/`$inferInsert`), DTOs (`PublicUser`), domain enums/contracts
-  (`ReportStatus`), and service/filter param types (`ReportFilters`, `UpdateUserFields`).
+- **`models/` and `validators/` are distinct, both kept.** `models/` = **Drizzle DB tables**;
+  `validators/` = **zod request schemas** (the schema objects only). Keeping them separate prevents
+  "schema" from meaning two things.
+- **`dtos/` holds output/response contracts only** — hand-written shapes that have **no zod
+  equivalent** (e.g. `PublicUser`, which drops `password_hash`). **Request input types stay in
+  `validators/`** as `z.infer` exports of their schema — they are *derived from* the validator, so a
+  separate folder would just echo it. A module gets `dtos/` only when it maps responses to a custom
+  shape; if it returns rows/tokens as-is, it has no `dtos/`.
+- **`enums/` holds enum-like literal unions** and their value arrays (`ROLES`/`Role`,
+  `workTypes`/`WorkType`, `reportTypes`/`ReportType`, `REPORT_STATUSES`/`ReportStatus`). Added only
+  to modules that actually have enums.
+- **`constants/` holds fixed constant values and config data** that are neither enums nor types —
+  literal defaults and reference data a module depends on (e.g. `DEFAULT_MEXICAN_TIMEZONE` + the IANA
+  timezone list in `customers/constants/timezones.ts`). An `enum/` is a closed union that also drives
+  a TS type; a `constant/` is just a value (or table of values). Added only to modules that have such
+  data.
+- **`types/` holds internal TS types** that are none of the above — DB row aliases
+  (`$inferSelect`/`$inferInsert` like `UserRow`, `ReportRow`) and service/repository param & filter
+  types (`ReportFilters`, `UpdateUserFields`, `SignedLocation`).
+- **Create only the folders a module needs** — not every module has `enums/`, `templates/`,
+  `models/`, or `middleware/`. No empty folders.
 - **`middleware/` only where necessary** — not part of the standard anatomy. A module gets one only
   if it actually provides Hono middleware. Today that is **only `auth/`** (jwt + roles). There is no
   top-level `middleware/`.
@@ -48,20 +63,23 @@ src/
       services/jwt.service.ts             # jose sign + TTL       (was lib/jwt.ts)
       middleware/jwt.middleware.ts        # (was middleware/jwt.ts)
       middleware/roles.middleware.ts      # (was middleware/roles.ts)
-      validators/auth.validator.ts        # loginSchema           (was validators/auth.ts)
+      validators/auth.validator.ts        # loginSchema + LoginInput (z.infer)   (was validators/auth.ts)
+      # no dtos/ — login returns { token }
     users/
       controllers/users.controller.ts
       services/users.service.ts
       repository/users.repository.ts      # (was db/repositories/users.ts)
       models/users.model.ts               # users Drizzle table   (from db/schema.ts)
-      validators/users.validator.ts       # create/update/delete zod (was validators/users.ts)
-      types/users.types.ts                # UserRow/NewUser/UpdateUserFields, PublicUser
+      validators/users.validator.ts       # create/update/delete zod + inferred inputs (was validators/users.ts)
+      dtos/users.dto.ts                    # PublicUser (response shape — no zod equivalent)
+      types/users.types.ts                # UserRow/NewUser/UpdateUserFields (DB/internal)
+      enums/users.enum.ts                  # ROLES / Role
     customers/
       controllers/customers.controller.ts
       services/customers.service.ts
       repository/customers.repository.ts
       models/customers.model.ts
-      validators/customers.validator.ts
+      validators/customers.validator.ts   # zod + inferred inputs  (returns rows as-is → no dtos/)
       types/customers.types.ts            # CustomerRow/NewCustomer/UpdateCustomerFields
       constants/timezones.ts              # customer TZ source of truth (was lib/timezones.ts)
     reports/
@@ -72,16 +90,18 @@ src/
       repository/report-emails.repository.ts
       models/reports.model.ts             # reports, reportDetails, reportCounters Drizzle tables
       models/report-emails.model.ts       # reportEmails Drizzle table
-      validators/reports.validator.ts     # variant zod + validateReportData (was validators/reports.ts)
-      validators/reports-routes.validator.ts # create/patch/sign/list zod (was validators/reports-routes.ts)
-      validators/report-email.validator.ts   # sendReportEmailSchema (was validators/email.ts)
-      types/report-lifecycle.ts           # ReportStatus + isEditableStatus (was lib/report-lifecycle.ts)
-      types/reports.types.ts              # WorkType/ReportType, ReportFilters, ReportRow aliases
+      validators/reports.validator.ts     # variant zod + *Data inputs + validateReportData (was validators/reports.ts)
+      validators/reports-routes.validator.ts # create/patch/sign/list zod + CreateReportMeta/PatchReportInput (was validators/reports-routes.ts)
+      validators/report-email.validator.ts   # sendReportEmailSchema + SendReportEmailInput (was validators/email.ts)
+      # no dtos/ — endpoints return report rows / joined {report,details} as-is
+      enums/reports.enum.ts                # WorkType/ReportType/ReportStatus + value arrays
+      types/reports.types.ts              # ReportRow/ReportDetailRow/NewReport aliases, ReportFilters, SignedLocation
       templates/report-pdf.template.ts    # (was lib/pdf.ts)
       templates/report-email.template.ts  # (was lib/email-template.ts)
       templates/report-labels.ts          # Spanish field labels (was lib/report-labels.ts)
       utils/report-id.ts                  # (was lib/report-id.ts)
       utils/access-token.ts               # (was lib/access-token.ts)
+      utils/report-lifecycle.ts           # isEditableStatus/isFinishedOrMailed (was lib/report-lifecycle.ts)
     upload/
       controllers/upload.controller.ts
       services/upload.service.ts
@@ -108,13 +128,20 @@ src/
 | `services/` | `.service.ts` | business logic / orchestration |
 | `repository/` | `.repository.ts` | Drizzle queries & mutations |
 | `models/` | `.model.ts` | **Drizzle DB table** definitions (entities) |
-| `validators/` | `.validator.ts` | **zod** request schemas + their `z.infer` inputs |
-| `types/` | `.types.ts` | hand-written TS types (row aliases, DTOs, enums, filters) |
+| `validators/` | `.validator.ts` | **zod** request schemas **+ their `z.infer` input types** |
+| `dtos/` | `.dto.ts` | **output/response** shapes with no zod equivalent (e.g. `PublicUser`) |
+| `enums/` | `.enum.ts` | literal unions + value arrays (`Role`, `WorkType`, `ReportStatus`) |
+| `constants/` | plain `.ts` | fixed values / reference data (timezone list + default) |
+| `types/` | `.types.ts` | internal TS types (DB row aliases, service/filter params) |
 | `templates/` | `.template.ts` | pdf / email renderers |
+| `utils/` | plain `.ts` | pure helpers (id gen, tokens, lifecycle predicates) |
 | `middleware/` | `.middleware.ts` | Hono middleware — **`auth/` only** |
 
-> `models/` (DB schema) and `validators/` (zod) are deliberately separate folders so "schema"
-> never refers to both. `types/` is neither — it's plain TS.
+> `models/` (DB tables) and `validators/` (zod) are deliberately separate so "schema" never refers
+> to both. **Request inputs stay with their validator** (they're just its `z.infer`); `dtos/` is
+> reserved for **outputs** that have no validator (`PublicUser`). `enums/` = literal unions,
+> `constants/` = fixed values / reference data, `types/` = everything else. Create a folder only when
+> the module has content for it — several modules will have **no `dtos/`** at all.
 
 ---
 
@@ -219,31 +246,39 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
 - [x] **GATE:** `pnpm typecheck` clean.
 
 ### Phase 2 — Models + schema barrel
-- [ ] `users/models/users.model.ts`, `customers/models/customers.model.ts`,
+- [x] `users/models/users.model.ts`, `customers/models/customers.model.ts`,
       `reports/models/reports.model.ts`, `reports/models/report-emails.model.ts` created from `db/schema.ts`.
-- [ ] `modules/database/schema.ts` barrel re-exports all tables + holds every `relations()`.
-- [ ] `drizzle.config.ts` schema path updated.
-- [ ] **GATE:** `pnpm db:generate` reports **no schema diff** (structure-only refactor).
+- [x] `modules/database/schema.ts` barrel re-exports all tables + holds every `relations()`.
+- [x] `db/schema.ts` turned into a re-export shim (→ barrel). Removed in Phase 10.
+- [x] `drizzle.config.ts` schema path updated to `./src/modules/database/schema.ts`.
+- [x] **GATE:** `pnpm typecheck` clean · `pnpm db:generate` → "No schema changes, nothing to migrate".
 
 ### Phase 3 — `auth` module
 - [ ] `password.service.ts`, `jwt.service.ts`, `jwt.middleware.ts`, `roles.middleware.ts`,
-      `validators/auth.validator.ts` moved.
+      `validators/auth.validator.ts` (incl. `LoginInput`) moved. No `dtos/`.
 - [ ] `auth.service.ts` extracts login logic; `auth.controller.ts` becomes thin.
 
 ### Phase 4 — `users` module
-- [ ] repository + schema moved; `users.service.ts` extracted (hash, uniqueness→409, self-delete guard);
-      controller thin.
+- [ ] repository moved; `validators/users.validator.ts` (zod + inferred inputs) + `dtos/users.dto.ts`
+      (**`PublicUser` only**) + `enums/users.enum.ts` (`ROLES`/`Role`) + `types/users.types.ts` (row aliases)
+      split out.
+- [ ] `users.service.ts` extracted (hash, uniqueness→409, self-delete guard); controller thin.
 
 ### Phase 5 — `customers` module
-- [ ] repository + schema + `constants/timezones.ts` moved; service extracted; controller thin.
+- [ ] repository + `constants/timezones.ts` moved; `validators/customers.validator.ts` (zod + inferred
+      inputs) + `types/customers.types.ts` split out (**no `dtos/`** — returns rows as-is); service
+      extracted; controller thin.
 
 ### Phase 6 — `upload` module
 - [ ] `upload.service.ts` (validate image → storage.service) extracted; controller thin.
 
 ### Phase 7 — `reports` module (largest)
 - [ ] repositories (`reports`, `report-emails`), models (`reports`, `report-emails`), validators
-      (`reports`, `reports-routes`, `report-email`), types (`report-lifecycle`, `reports.types`), utils
-      (`report-id`, `access-token`), templates (`report-pdf`, `report-email`, `report-labels`) moved.
+      (`reports`, `reports-routes`, `report-email`) — **incl. inferred inputs + `*Data` shapes**,
+      `enums/reports.enum.ts` (`WorkType`/`ReportType`/`ReportStatus`), `types/reports.types.ts`
+      (row aliases, `ReportFilters`, `SignedLocation`), utils (`report-id`, `access-token`,
+      `report-lifecycle`), templates (`report-pdf`, `report-email`, `report-labels`) moved.
+      **No `dtos/`** — endpoints return rows / `{report,details}` as-is.
 - [ ] `report-email.service.ts` (was `dispatch-email`) calls `email.service` + reports/users/customers repos.
 - [ ] `reports.service.ts` holds create/patch/sign/pictures/list/delete orchestration + R2 cleanup helpers.
 - [ ] `reports.controller.ts` thin: validate → service → respond; `/download/:token`, `/:id/email`,
