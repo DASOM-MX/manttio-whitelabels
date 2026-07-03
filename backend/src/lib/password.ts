@@ -1,6 +1,3 @@
-import bcrypt from 'bcryptjs';
-
-const ROUNDS = 10;
-
-export const hashPassword = (plain: string) => bcrypt.hash(plain, ROUNDS);
-export const verifyPassword = (plain: string, hash: string) => bcrypt.compare(plain, hash);
+// TEMPORARY re-export shim (Phase 3 of the modular-architecture refactor).
+// Canonical: `src/modules/auth/services/password.service.ts`. Removed in Phase 10.
+export * from '../modules/auth/services/password.service';
