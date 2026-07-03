@@ -272,9 +272,13 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
 - [x] **GATE:** `pnpm typecheck` clean.
 
 ### Phase 5 — `customers` module
-- [ ] repository + `constants/timezones.ts` moved; `validators/customers.validator.ts` (zod + inferred
-      inputs) + `types/customers.types.ts` split out (**no `dtos/`** — returns rows as-is); service
-      extracted; controller thin.
+- [x] repository + `constants/timezones.ts` moved; `validators/customers.validator.ts` (zod + inferred
+      inputs) + `types/customers.types.ts` split out (**no `dtos/`** — returns rows as-is);
+      `customers.service.ts` extracted (patch field-building + CRUD orchestration); controller thin.
+- [x] Re-export shims left at `lib/timezones.ts`, `db/repositories/customers.ts`,
+      `validators/customers.ts`, `routes/customers.ts`. Reports templates still read the
+      `lib/timezones` shim until Phase 7. Removed in Phase 10.
+- [x] **GATE:** `pnpm typecheck` clean.
 
 ### Phase 6 — `upload` module
 - [ ] `upload.service.ts` (validate image → storage.service) extracted; controller thin.
