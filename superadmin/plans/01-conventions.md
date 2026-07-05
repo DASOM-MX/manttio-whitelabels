@@ -60,9 +60,61 @@ auto-loads it — **edit both in the same commit.**
 - **Motion system (anime.js):** tokens in `shared/motion.ts` — `fast` 150ms (micro
   feedback), `base` 220ms (enter/exit, accordions, reorder), `slow` 320ms (route/page
   content enter: fade + 6px rise). `easeOutCubic` enters / `easeInCubic` exits; list
-  stagger 25ms capped at ~8 items; hover/focus via CSS `transition-colors`, not JS;
+  stagger 30ms capped at ~8 items; hover/focus via CSS `transition-colors`, not JS;
   PrimeNG overlays animate themselves (don't double-animate); every call passes the
   `prefers-reduced-motion` guard.
+
+## Accessibility (CRITICAL — added 2026-07-05)
+
+Binding for every component; the skill carries the same list with implementation notes.
+
+- **color-contrast** — ≥4.5:1 normal text, ≥3:1 large text.
+- **focus-states** — visible `:focus-visible` ring (2–4px, primary) on every
+  interactive element; never remove an outline without replacing it.
+- **alt-text** — descriptive `alt` on meaningful images; `alt=""` on decorative.
+- **aria-labels** — `aria-label` on every icon-only button; icons themselves
+  `aria-hidden`.
+- **keyboard-nav** — tab order = visual order; full keyboard support; no positive
+  `tabindex`.
+- **form-labels** — real `<label [for]>` (or `aria-labelledby`) on every control;
+  placeholders are not labels.
+- **skip-links** — "skip to main content" (shell owns it).
+- **heading-hierarchy** — sequential h1→h6, one h1 per page, no skips.
+- **color-not-only** — state always pairs color with icon/text (pills carry labels).
+- **dynamic-type** — rem-based type; layout survives 200% zoom without truncation.
+- **reduced-motion** — `prefers-reduced-motion` respected (motion.ts guard).
+- **voiceover-sr** — meaningful accessible names; logical DOM reading order; live
+  regions for toasts.
+- **escape-routes** — cancel/back in every modal and multi-step flow; ESC closes.
+- **keyboard-shortcuts** — don't hijack system/a11y shortcuts; keyboard alternative
+  for any drag interaction (repeater reorder gets up/down buttons).
+
+## Layout & responsive (HIGH — added 2026-07-05)
+
+- **viewport-meta** — `width=device-width, initial-scale=1`; never disable zoom.
+- **mobile-first** — build mobile-first, scale up (sidebar→drawer; tables→scroll
+  containers).
+- **breakpoint-consistency** — Tailwind breakpoints only (`sm`–`2xl`); no ad-hoc
+  media queries.
+- **readable-font-size** — ≥16px body + **≥16px inputs on mobile** (iOS auto-zoom);
+  compact 13–14px table text is desktop scope.
+- **line-length-control** — prose 35–60 chars mobile / 60–75 desktop (tables exempt).
+- **horizontal-scroll** — never page-level on mobile; wide tables scroll in their own
+  `overflow-x-auto`.
+- **spacing-scale** — Tailwind's 4px scale only; no arbitrary pixel spacing.
+- **touch-density** — `h-12` baseline keeps 48px touch targets even at desk density;
+  no cramped tap clusters.
+- **container-width** — one consistent desktop max-width (`max-w-6xl`/`7xl`), picked
+  in the shell.
+- **z-index-management** — in-page layers `0/10/20/40`; PrimeNG overlays own 1000+.
+- **fixed-element-offset** — fixed topbar/sidebar reserve padding; nothing hides
+  beneath them.
+- **scroll-behavior** — inner `<main>` is the single scroll region; no competing
+  nested scrolls.
+- **viewport-units** — `min-h-dvh`, not `100vh`.
+- **orientation-support** — usable in landscape.
+- **content-priority** — core content first on mobile; secondary folds.
+- **visual-hierarchy** — size/spacing/contrast build hierarchy, never color alone.
 
 ## Styling
 
@@ -192,6 +244,37 @@ shape 3 fits.
 - Wrap hover/active tints in the **`enabled:`** modifier
   (`enabled:hover:bg-sky-800 enabled:active:bg-sky-900`) so disabled buttons don't flash.
 
+Forms & feedback rules (MEDIUM — added 2026-07-05; implementation notes in the skill):
+
+- **input-labels** — visible label, never placeholder-only · **error-placement** —
+  error below its field · **submit-feedback** — loading → success/error on submit ·
+  **required-indicators** — asterisk on required labels · **empty-states** — message
+  + action (icon, no emojis) · **toast-dismiss** — auto-dismiss 3–5s ·
+  **confirmation-dialogs** — confirm destructive actions (delete-dialog shapes) ·
+  **input-helper-text** — persistent helper under complex inputs ·
+  **disabled-states** — 0.38–0.5 opacity + cursor + semantic attribute ·
+  **progressive-disclosure** — reveal complexity gradually (e.g. the color-scale
+  advanced expander) · **inline-validation** — validate on blur, not keystroke ·
+  **input-type-keyboard** — semantic types (`email`/`tel`/`number`) ·
+  **password-toggle** — show/hide on passwords · **autofill-support** — proper
+  `autocomplete` attrs · **undo-support** — undo for bulk/destructive where the
+  domain allows; append-only trails rely on confirm-heavy dialogs instead ·
+  **success-feedback** — brief confirmation (toast/checkmark) · **error-recovery** —
+  every error offers a path (retry/edit/help) · **multi-step-progress** — step
+  indicator + back · **form-autosave** — long editors autosave or at minimum carry
+  the dirty-navigation guard · **sheet-dismiss-confirm** — confirm dismissing
+  unsaved modals/drawers · **error-clarity** — cause + fix, never "Invalid input" ·
+  **field-grouping** — related fields grouped (card-sections) ·
+  **read-only-distinction** — read-only ≠ disabled, visually and semantically ·
+  **focus-management** — failed submit focuses first invalid field ·
+  **error-summary** — multi-error summary with anchor links (WCAG) ·
+  **touch-friendly-input** — mobile inputs ≥44px (`h-12` complies; `!h-10` is
+  desktop-scope) · **destructive-emphasis** — danger color, separated from primary ·
+  **toast-accessibility** — toasts don't steal focus, `aria-live="polite"` ·
+  **aria-live-errors** — errors announce via `role="alert"`/`aria-live` ·
+  **contrast-feedback** — error/success colors meet 4.5:1 · **timeout-feedback** —
+  timeouts surface clearly with retry.
+
 ## Animations
 
 - **anime.js only**, and only as an animation tool. No CSS keyframes, no Angular
@@ -199,6 +282,30 @@ shape 3 fits.
 - All durations/easings come from the **`shared/motion.ts` tokens** (Design language
   section) — never hardcode milliseconds in components; every call passes the
   reduced-motion guard.
+
+Animation rules (MEDIUM — added 2026-07-05; implementation notes in the skill):
+
+- **duration-timing** — 150–300ms micro-interactions, ≤400ms complex, never >500ms
+  (the tokens comply — use them) · **transform-performance** — animate
+  `transform`/`opacity` only, never width/height/top/left · **loading-states** —
+  skeleton/progress when loading >300ms · **excessive-motion** — 1–2 animated
+  elements per view max · **easing** — ease-out in / ease-in out, never linear ·
+  **motion-meaning** — cause-effect, never decoration · **state-transition** — state
+  changes animate, don't snap · **continuity** — directional/spatial continuity
+  between screens · **parallax-subtle** — sparingly, reduced-motion aware ·
+  **spring-physics** — anime.js `spring()` for gesture-driven motion, cubic tokens
+  for standard enter/exit · **exit-faster-than-enter** — exits ~60–70% of enter
+  (base 220 in / fast 150 out) · **stagger-sequence** — 30–50ms per item (ours 30ms,
+  cap ~8) · **shared-element-transition** — where practical; approximate with
+  directional slides v1 · **interruptible** — user input cancels in-progress motion ·
+  **no-blocking-animation** — UI stays interactive · **fade-crossfade** — crossfade
+  in-place content swaps · **scale-feedback** — press scale 0.95–1.05 on tappables ·
+  **gesture-feedback** — drags track the pointer in real time · **hierarchy-motion**
+  — enter from below = deeper, exit up = back · **motion-consistency** — global
+  tokens only, one rhythm · **opacity-threshold** — never linger below 0.2 ·
+  **modal-motion** — spatial context from trigger (PrimeNG's dialog motion counts;
+  don't double-animate) · **navigation-direction** — forward left/up, back
+  right/down, consistent · **layout-shift-avoid** — no reflow/CLS from animation.
 
 ## Auth + access
 

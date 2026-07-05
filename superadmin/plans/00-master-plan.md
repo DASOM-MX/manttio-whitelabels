@@ -174,8 +174,14 @@ Rules for agents:
   aesthetic (dark-fintech reference): low-to-mid whitespace, hairline borders over
   shadows, strong status cues (pills, accent bars, uppercase micro-labels, tabular
   numerals, skeletons), fluid anime.js motion via shared tokens, **no emojis ever,
-  outlined icons only (`lucide-angular`)**, compact `h-12` control baseline. Full spec
-  in `01-conventions.md` → Design language; mirrored in the **committed skill
+  outlined icons only (`lucide-angular`)**, compact `h-12` control baseline — plus
+  binding **Accessibility (CRITICAL)**, **Layout & responsive (HIGH)**, **Animation
+  (MEDIUM)**, and **Forms & feedback (MEDIUM)** rule sets (WCAG contrast, focus
+  rings, aria-labels, keyboard nav, reduced motion; Tailwind breakpoints, 16px mobile
+  inputs, dvh units, z-index scale; transform-only animation, exit-faster-than-enter,
+  interruptibility; inline validation on blur, error recovery, undo/confirm
+  semantics). Full spec in
+  `01-conventions.md`; mirrored in the **committed skill
   `.claude/skills/superadmin-design`** so every module agent auto-loads it (keep both
   in sync in the same commit).
 - **Client vs customer naming:** the product's existing `customers` resource **is** the

@@ -142,6 +142,9 @@ borders-not-shadows surface chrome from the Design language.)
       customers + equipment, contracts, calendar, wms) with `data: { module, roles }`
       declared
 - [ ] Global toast + confirm dialog mounted; 403 toast handling
+- [ ] A11y shell infrastructure: skip-to-content link, global `:focus-visible` ring,
+      one-h1-per-page pattern, `min-h-dvh` layout, container max-width constant
+      (01 Accessibility + Layout & responsive)
 - [ ] `public/_redirects` SPA catch-all
 - [ ] Build green; manual pass: login as each role → nav matches the matrix
 
