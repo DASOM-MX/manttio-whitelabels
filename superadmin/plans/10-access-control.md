@@ -52,6 +52,7 @@ WMS permissions are **action-level**, not module-level:
 |---|---|---|---|---|
 | Structure: warehouses, nodes, tech assignment | ✓ | ✓ | — | — |
 | Materials catalog (SKUs) | ✓ | ✓ | — | — |
+| Movement reasons: add / deactivate (custom; built-ins locked) | ✓ | ✓ | — | — |
 | Inbound (receive deliveries) | ✓ | ✓ | ✓ | — |
 | Transfer (any → any) | ✓ | ✓ | ✓ | — |
 | **Self-checkout** (→ own van) | n/a | n/a | n/a | ✓ᵃ |

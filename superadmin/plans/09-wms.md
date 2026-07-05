@@ -71,16 +71,25 @@ Movement {                                // audit trail — APPEND-ONLY, backen
   userId, createdAt,
   notes?,                                 // free-text detail; REQUIRED for readjustment
 }
-MovementReason =
-  'relocation' | 'report_binding' | 'returned_to_client' | 'return_to_provider'
-  | 'refund_by_client' | 'refund_to_provider' | 'damaged_material' | 'replenishment'
-  | 'stock_cleaning' | 'repair' | 'doa'
+MovementReasonDef {                       // reasons are DATA, not a closed enum
+  id, code,                               // slug — immutable once created
+  label,                                  // display text (cosmetic edits allowed)
+  builtIn: boolean,                       // the 11 seeded reasons below
+  appliesTo: ('inbound'|'transfer'|'readjustment_in'|'readjustment_out')[],
+  active: boolean                         // deactivate instead of delete — NEVER deleted
+}
 ```
 
-**Movement reasons (decided 2026-07-05):** every movement carries a structured `reason`
-(filterable/analyzable) alongside free-text `notes`. Constants + labels live in
-`data/dtos/wms/movement-reasons.ts`. Typical pairings — backend validates the legal
-`type` ↔ `reason` combinations (final matrix is a backend ask):
+**Movement reasons (decided 2026-07-05, extensible 2026-07-05):** every movement carries
+a structured `reason` code (filterable/analyzable) alongside free-text `notes`.
+`Movement.reason` stores the `code` of a `MovementReasonDef`. The 11 built-ins below are
+backend-seeded and non-editable; **owner/admin can add custom reasons** (label +
+applicability; code auto-slugged) from inside the reason select itself. Reasons in use
+are never deleted — only deactivated (hidden from selects, still rendered in history).
+`data/dtos/wms/movement-reasons.ts` keeps only the built-in codes that need
+special-casing in the UI (`report_binding` auto-set, `relocation` for self-checkout);
+the live list comes from the API. Built-in pairings (**semantics confirmed
+2026-07-05**) — backend validates `type` ↔ `appliesTo`:
 
 | Reason | Typical movement |
 |---|---|
@@ -130,6 +139,10 @@ ReportMaterial {                          // a report MAY have zero of these
   PATCH/DELETE on movements exists)
 - `GET /reports/:id/materials` · `PUT /reports/:id/materials` (set/replace tracking list)
 - `GET /movements?materialId&warehouseId&reportId&type&reason&from&to` → paged
+- `GET /movement-reasons` (active + inactive, `builtIn` flagged) ·
+  `POST /movement-reasons` (owner/admin: label + appliesTo; code slugged server-side) ·
+  `PATCH /movement-reasons/:id` (label/active only; code immutable; built-ins locked;
+  **no DELETE endpoint**)
 
 ## 3. Pages & components
 
@@ -143,16 +156,25 @@ ReportMaterial {                          // a report MAY have zero of these
   low-stock pill (`quantity < minStock`). Filters: search, tracking mode.
 - `wms/pages/material-view/` — detail + per-location stock table; serialized: unit list
   with serial + status pills; movements history (paged) below.
+- `wms/components/reason-select/` — reusable form control (CVA) wrapping `<p-select>`:
+  takes an applicability context (`inbound` / `transfer` / `readjustment_in` /
+  `readjustment_out`), lists active reasons for it, and hosts an **"Add reason" button in
+  the select's footer template** (rendered only for owner/admin via `hasRole`). Used by
+  all three movement dialogs — never a raw `<p-select>` for reasons.
+- `wms/components/add-reason-dialog/` — shape 3, opened from the `reason-select` footer:
+  label + applicability checkboxes; code auto-slugged (shown read-only); on save,
+  refreshes the reasons list and emits the new code so the triggering `reason-select`
+  auto-selects it. Owner/admin only.
 - `wms/components/inbound-dialog/` — receive stock into a warehouse/node (serialized:
-  textarea of serials, one per line; unserialized: quantity). Required `reason` select
+  textarea of serials, one per line; unserialized: quantity). Required `reason-select`
   (defaults `replenishment`).
 - `wms/components/readjustment-dialog/` — owner/admin only: direction (in/out), material
-  + qty or serialized units, location, required `reason` select (only reasons legal for
+  + qty or serialized units, location, required `reason-select` (context switches with
   the chosen direction) + **required free-text notes** (mirrors the delete-dialog
   audit-comment convention). This is the *only* way stock is corrected.
 - `wms/components/transfer-dialog/` — move stock/units between warehouse/node pairs;
   the common case "load technician van" is this dialog with the target pre-set to the
-  tech's warehouse. Required `reason` select (defaults `relocation`). **Technician mode =
+  tech's warehouse. Required `reason-select` (defaults `relocation`). **Technician mode =
   self-checkout:** same dialog with destination locked to their own van, source list
   excluding other technicians' warehouses, reason fixed to `relocation` (backend enforces
   all three; `10-access-control.md` §2.1a).
@@ -170,8 +192,10 @@ ReportMaterial {                          // a report MAY have zero of these
 ## 4. State
 
 - `WarehousesState`: tree, selected, nodes subtree cache. Actions: CRUD + `AssignTechnician`.
-- `MaterialsState`: list/detail/stock/movements. Actions: CRUD + `LoadStock(materialId)`,
-  `Inbound`, `Transfer`, `Readjust`, `LoadMovements(query)`.
+- `MaterialsState`: list/detail/stock/movements + `reasons` (loaded once, refreshed on
+  create). Actions: CRUD + `LoadStock(materialId)`, `Inbound`, `Transfer`, `Readjust`,
+  `LoadMovements(query)`, `LoadMovementReasons`, `CreateMovementReason`,
+  `SetReasonActive(id, active)`.
 - `ReportMaterialsState` (small): `LoadReportMaterials(reportId)`, `SaveReportMaterials`.
 - `src/http/wms.service.ts` (split into `warehouses.service.ts` + `materials.service.ts`
   if it grows past ~150 lines).
@@ -200,8 +224,11 @@ ReportMaterial {                          // a report MAY have zero of these
 - [ ] Transfer dialog (incl. technician-van preset) — owner/admin/office
 - [ ] **Self-checkout**: transfer dialog technician mode (destination locked to own van,
       source excludes other techs' warehouses)
-- [ ] Movement-reason constants (`movement-reasons.ts`) + required reason select in
-      inbound/transfer/readjustment dialogs (sensible defaults per dialog)
+- [ ] `reason-select` (applicability-filtered, footer "Add reason" for owner/admin) +
+      `add-reason-dialog` (label + appliesTo, auto-slug, auto-select on save); wired
+      into all three movement dialogs with per-dialog defaults
+- [ ] Built-in special-case constants (`movement-reasons.ts`: `report_binding`,
+      `relocation`); live reasons list from API via `LoadMovementReasons`
 - [ ] Readjustment dialog (owner/admin, direction in/out, direction-legal reasons,
       required notes); no edit/delete affordance anywhere on movements
 - [ ] Movements history on material view (type + reason tags shown, filterable by
@@ -223,12 +250,11 @@ ReportMaterial {                          // a report MAY have zero of these
   van, source ∉ other techs' warehouses, reason = `relocation`), consumption only from
   own van on own reports, office blocked from structure/catalog/readjust endpoints,
   **movements table append-only (no UPDATE/DELETE paths at all)**, report-material
-  corrections emit compensating readjustments server-side, and the final legal
-  `type` ↔ `reason` validation matrix (§1 table is the proposal).
-- Reason semantics to confirm: `refund_by_client` assumed = client returns material to
-  us (stock in); `refund_to_provider` assumed = we send material back for money back
-  (stock out) vs `return_to_provider` = exchange/replacement expected. Confirm both
-  readings before backend validation is written.
+  corrections emit compensating readjustments server-side, and `type` ↔ reason
+  validation driven by each reason's `appliesTo` (built-in seeds per §1 table).
+- ~~Reason semantics~~ — **confirmed 2026-07-05:** `refund_by_client` = client returns
+  material to us (in); `refund_to_provider` = we send it back for money back (out);
+  `return_to_provider` = exchange/replacement expected (out).
 - Nesting depth: one level of sub-warehouses enough for v1?
 - Can a **sub-warehouse** be the technician-assigned one (van as sub of main)? Assumed yes.
 - Tracking-mode immutability after first movement — backend rule, confirm.
