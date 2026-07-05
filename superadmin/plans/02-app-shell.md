@@ -21,9 +21,10 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
   `server.ts`/`*.server.ts` files, hydration provider, and the `serve:ssr` script; switch
   `angular.json` to plain browser build with output `dist/superadmin/browser/`.
 - **Zoneless** change detection (`provideZonelessChangeDetection()`), matching frontend.
-- **NGXS** for state, matching frontend patterns. ⚠️ Verify NGXS ↔ Angular 21 peer compat
-  first (frontend pins NGXS 20 on Angular 20). If NGXS doesn't yet support 21, the fallback
-  decision is to **pin superadmin to Angular 20** for parity — record the outcome here.
+- **NGXS** for state, matching frontend patterns — **decided 2026-07-05**. Compat verified:
+  NGXS v21 peers on `@angular/core >=21 <22`, so install **`@ngxs/store@^21` +
+  `@ngxs/storage-plugin@^21`** (do *not* take v22 — it requires Angular 22). Superadmin
+  stays on Angular 21.
 - **Hosting:** Cloudflare Pages SPA, same as frontend — `public/_redirects` catch-all,
   root dir `superadmin/`.
 - **Environments:** `environment.ts` / `environment.development.ts` with `apiUrl`; the dev
@@ -80,7 +81,7 @@ Copy, don't reinvent — keep byte-parity where possible:
 ### CP-1 — Platform reset
 - [ ] Remove SSR/express/hydration; plain browser build, `dist/superadmin/browser/`
 - [ ] Zoneless change detection enabled
-- [ ] NGXS installed (compat verified — record outcome in §2) + storage plugin
+- [ ] NGXS installed (`@ngxs/store@^21` + `@ngxs/storage-plugin@^21`, per §2)
 - [ ] Tailwind 3.4 wired into the build
 - [ ] `npm run build` green
 
@@ -101,6 +102,7 @@ Copy, don't reinvent — keep byte-parity where possible:
 - [ ] Build green; login → dashboard → navigate all stubs
 
 ## Open decisions / asks
-- NGXS-on-Angular-21 compat outcome: _unrecorded_.
+- ~~NGXS-on-Angular-21 compat~~ — **resolved 2026-07-05:** NGXS v21 supports Angular 21;
+  pin `@ngxs/*@^21` (see §2).
 - Backend: needs a superadmin-capable auth endpoint + role flag on users (ask recorded for
   backend planning).

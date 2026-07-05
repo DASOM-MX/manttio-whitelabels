@@ -5,8 +5,8 @@
 
 Internal billing records per client, with line items generated **from reports**
 (bill-by-report). v1 tracks money owed/paid inside the product; **CFDI stamping via a PAC
-is out of scope** (master plan §4) — but the data model must not paint us into a corner
-for it.
+is deferred indefinitely** (master plan §4, decided 2026-07-05 — no invoice generation
+until way later). The only obligation now: don't paint the data model into a corner.
 
 ---
 
@@ -95,5 +95,6 @@ Rules:
 ## Open decisions / asks
 - Overdue: derived vs stored — confirm with backend.
 - Folio format (per-tenant consecutive) — backend decision, UI displays as-is.
-- Future CFDI: PAC choice (Facturama / SW Sapien) + which fields must be frozen at stamp
-  time. Explicitly **not** v1; keep `Bill` extensible.
+- ~~Future CFDI: PAC choice + stamp-time field freezing~~ — **deferred indefinitely
+  (2026-07-05)**. No PAC evaluation, no stamping UI, nothing CFDI-shaped in v1 beyond
+  keeping `Bill` extensible and capturing fiscal data on clients (06).

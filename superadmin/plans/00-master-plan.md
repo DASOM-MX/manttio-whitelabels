@@ -84,9 +84,9 @@ Rules for agents:
 
 ## 4. Cross-module decisions (resolved here, not per-module)
 
-- **Stack parity with `frontend/`:** Tailwind 3.4, PrimeNG Aura + manttio preset, NGXS,
-  standalone + signals, zoneless. Details + porting tasks in `01-conventions.md` and
-  `02-app-shell.md`.
+- **Stack parity with `frontend/`:** Tailwind 3.4, PrimeNG Aura + manttio preset, NGXS
+  (**decided 2026-07-05** — `@ngxs/*@^21` on Angular 21, compat verified), standalone +
+  signals, zoneless. Details + porting tasks in `01-conventions.md` and `02-app-shell.md`.
 - **SSR:** dropped. This is an authed admin — no SEO surface. `02-app-shell.md` owns the
   removal.
 - **Soft deletes everywhere** user-facing (matches backend convention). Delete dialogs follow
@@ -95,9 +95,10 @@ Rules for agents:
   "Clients" module here. Superadmin uses the word *client* in UI copy; code keeps `customers`
   to stay aligned with the backend module. CRM fields (status/source/blacklist) extend that
   same resource — see 06/07.
-- **CFDI stamping (real SAT invoicing via a PAC)** is **out of scope** for v1. Billing v1
-  stores the client's fiscal data + internal billing records; stamping is a flagged future
-  integration (see 05 open decisions).
+- **CFDI stamping (real SAT invoicing via a PAC)** is **deferred indefinitely — decided
+  2026-07-05**: no invoice generation until way later, no PAC evaluation needed now.
+  Billing v1 stores the client's fiscal data + internal billing records only; the data
+  models just stay extensible (see 05/06).
 
 ---
 
