@@ -2,12 +2,12 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import type { AppBindings } from './env';
-import { auth } from './routes/auth';
-import { users } from './routes/users';
-import { customers } from './routes/customers';
-import { reports } from './routes/reports';
-import { upload } from './routes/upload';
-import { jwtMiddleware } from './middleware/jwt';
+import { auth } from './modules/auth/controllers/auth.controller';
+import { users } from './modules/users/controllers/users.controller';
+import { customers } from './modules/customers/controllers/customers.controller';
+import { reports } from './modules/reports/controllers/reports.controller';
+import { upload } from './modules/upload/controllers/upload.controller';
+import { jwtMiddleware } from './modules/auth/middleware/jwt.middleware';
 
 const app = new Hono<AppBindings>();
 
