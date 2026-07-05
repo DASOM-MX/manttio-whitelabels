@@ -381,10 +381,16 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
 
 All 12 phases done, one stacked PR each (#1 base `main` → #12 base #11). `src/` is now
 `env.ts` + `index.ts` + `modules/` only; every domain owns its full stack and the cross-cutting
-concerns (`database`, `storage`, `email`) are their own modules. Every phase was a pure structural
-move verified by `pnpm typecheck` (and `pnpm db:generate` no-diff where schema files moved). Merge
-the PR stack **bottom-up** (#1 first); re-check each PR's base before merging since GitHub does not
-auto-retarget a stack after the parent merges.
+concerns (`database`, `storage`, `email`, `pdf`) are their own modules. Every phase was a pure
+structural move verified by `pnpm typecheck` (and `pnpm db:generate` no-diff where schema files
+moved). Merge the PR stack **bottom-up** (#1 first); re-check each PR's base before merging since
+GitHub does not auto-retarget a stack after the parent merges.
+
+**Post-phase refinements** (added during PR review, mostly on #6/#7): the `http-errors/` folder
+(`upload/http-errors/not-an-image.error.ts`); `constants/` for reference values; the `templates/`
+(markup) + `helpers/` (`.helpers.ts` renderers) split for the reports rendering layer; the generic
+`pdf/` toolkit module (report layout stays in `reports/helpers/`); and `canAccess` → `reports/utils/
+report-access.ts`. All behavior-preserving; docs updated in the taxonomy above + both `CLAUDE.md`.
 
 ---
 
