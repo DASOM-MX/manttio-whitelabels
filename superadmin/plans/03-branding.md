@@ -65,9 +65,20 @@ app + GDPR) and no tenant uploads (licensing). Catalog rules:
   time)** for **PDF embedding** — PDFs *do* get the tenant font in v1 (fontkit can't
   embed variable fonts reliably). Emails stay on safe system stacks (clients strip
   web fonts).
-- Per-entry metadata: `code`, label, files, fallback stack, tnum-verified flag,
-  recommended heading pairing. Catalog served by the backend (`GET /fonts`, public)
-  so adding a family needs no app redeploy.
+- **Fixed set in v1 (decided 2026-07-05):** font binaries live in a dedicated shared
+  R2 bucket, **`branding-fonts`** (CDN-fronted, one copy for all tenants); the catalog
+  itself is a backend constants list — **no DB rows, nothing font-related in Neon**.
+  Per-entry metadata: `code`, label, files, fallback stack, tnum-verified flag,
+  recommended heading pairing. Served by `GET /fonts` (public) so adding a family is
+  a backend deploy, no app redeploy.
+- **Tenant font uploads — deferred to a later phase (decided 2026-07-05).** Design
+  sketched for when it's picked up: per-tenant `font_defs` definition entity (seeded
+  rows locked, custom rows deactivate-only), uploads to the *tenant's own* R2 under
+  `branding/fonts/` with a license-attestation checkbox (bring-your-own-license,
+  Canva/Figma model), WOFF2/TTF/OTF accepted (1 variable file or N static files with
+  declared weights), light sfnt validation on Workers (no server-side subsetting/
+  instancing), PDF embeds customs only when a static TTF/OTF exists. Deferred to keep
+  v1 lean (incl. the Neon default storage tier) — revisit on a real tenant ask.
 - **Delivery = same pipeline as colors:** the boot `GET /brand` fetch drives injected
   `@font-face` rules (`font-display: swap`) pointing at the CDN files + CSS vars the
   Tailwind stacks read (`--font-body`, `--font-heading`); the field app's service
@@ -174,6 +185,7 @@ which *is* draft→publish — `04-cms.md` §5.)
   Rubik as defaults, PDFs via static instances. Superadmin stays Commissioner.
 - Initial catalog contents (~10–15 OFL variable families incl. Work Sans, Rubik) —
   pick at catalog build time; every entry needs the latin subset + 400/600/700 static
-  instances + tnum verification.
-- Tenant-uploaded fonts (bring-your-own-license) deliberately **not** offered —
-  licensing burden; revisit only on a real enterprise ask.
+  instances + tnum verification, uploaded to the `branding-fonts` bucket.
+- ~~Tenant-uploaded fonts not offered~~ — **deferred to a later phase** with the
+  design recorded in §2.1 (per-tenant `font_defs`, own-bucket uploads, license
+  attestation). Not in v1.

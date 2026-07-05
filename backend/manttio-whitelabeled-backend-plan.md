@@ -72,11 +72,15 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   2026-07-05):** owner-authed `PUT /brand` *and* the manager's shared-token push
   (provisioning seed + corrections) — same single row, last write wins.
   **Typography (decided 2026-07-05):** `brand.font { body, heading? }` — codes
-  validated against a **curated OFL variable-font catalog** (`GET /fonts`, public;
-  assets in R2/CDN: one latin-subset variable woff2 + static TTF instances
-  **400/600/700** per family, cut at catalog build time). The **pdf module embeds
-  the tenant font's static instances** via fontkit (fetched from R2 at render,
-  cached); **emails keep system font stacks**. Frontend obligation (both apps, this
+  validated against a **curated OFL variable-font catalog**: a backend constants
+  list (no DB rows — nothing font-related in Neon) served by `GET /fonts` (public),
+  binaries in the dedicated shared **`branding-fonts` R2 bucket** (CDN-fronted):
+  one latin-subset variable woff2 + static TTF instances **400/600/700** per family,
+  cut at catalog build time. The **pdf module embeds the tenant font's static
+  instances** via fontkit (fetched from R2 at render, cached); **emails keep system
+  font stacks**. Tenant font *uploads* are a **deferred later phase** (design in
+  superadmin plan 03 §2.1: per-tenant `font_defs` + own-bucket files + license
+  attestation). Frontend obligation (both apps, this
   fork): Tailwind palette **and font stacks** → CSS variables set from the boot brand
   fetch (injected `@font-face`, service-worker cached), manttio / Work Sans + Rubik
   defaults as fallback.

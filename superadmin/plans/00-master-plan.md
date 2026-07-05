@@ -162,9 +162,10 @@ Rules for agents:
   (variable, self-hosted) — our product's own voice, constant across tenants, a
   deliberate deviation from frontend parity (details: 01 Typography). Tenant-facing
   surfaces are **brand-font-driven**: `Brand.font { body, heading? }` picked from a
-  **curated OFL variable-font catalog** (self-hosted in R2 — one variable woff2 +
-  static TTF instances per family; no Google CDN, no tenant uploads), defaults
-  **Work Sans + Rubik**. The website already uses the defaults; the **field app
+  **curated OFL variable-font catalog** — a fixed set in the shared `branding-fonts`
+  R2 bucket, catalog as backend constants, nothing in Neon (one variable woff2 +
+  static TTF instances per family; no Google CDN; tenant uploads deferred to a later
+  phase, design in 03 §2.1) — defaults **Work Sans + Rubik**. The website already uses the defaults; the **field app
   migrates Inter → brand-font CSS vars** with those defaults (fork `frontend/` task,
   outside superadmin plans; keep `font-data`/Atkinson for numeric columns). **PDFs
   embed the tenant font via static instances in v1; emails keep system stacks.**
