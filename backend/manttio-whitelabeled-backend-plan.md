@@ -56,8 +56,13 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   interaction). `interactions` endpoints: paged GET, POST **rejecting
   `type: 'system'`** (system entries are backend-emitted only). Optional
   summary figures (last service / totals) for the client 360 header.
-- **cms + brand** (08): `cms_home`/`cms_clients` endpoints with server-side HTML
-  sanitization on write (existing scope), plus the **tenant brand object** (decided
+- **cms + brand** (08 — **build first among modules**: whitelabel selling point,
+  prioritized 2026-07-05): `cms_home`/`cms_clients` endpoints with server-side HTML
+  sanitization on write. **Write paths decided 2026-07-05: content is draft→publish**
+  (`GET /cms/home|clients` serve the draft to editors; `POST /cms/:section/publish`
+  copies draft → published; the public site reads published only), **brand is
+  direct-apply** (single row, `PUT` goes live — no draft variant). Plus the **tenant
+  brand object** (decided
   2026-07-05 — supersedes brand-as-manager-push): name/slogan, `logo`/`logo_dark`/
   `isologo` R2 keys, contact + social, and **materialized color scales** (primary
   50–950, surface 0–950 — derived in the editor from two hex picks, stored ready-made
@@ -166,11 +171,12 @@ edits to pushed events are never read back; the next push overwrites.
       unlocked)
 
 **Modules** *(each gated by its superadmin plan's checkpoints)*
+- [ ] **cms + brand — first** (prioritized 2026-07-05): content draft→publish
+      endpoints + brand object (public `GET /brand`, owner-only write, materialized
+      scales) + pdf/email render-time brand consumption
 - [ ] customers CRM extensions + contacts + interactions + status transition
 - [ ] billing · wms (incl. replenishments parse + R2 evidence) · equipment ·
       visits/assignments · contracts (activate → visit generation)
-- [ ] cms content endpoints + brand object (public `GET /brand`, owner-only write,
-      materialized scales) + pdf/email render-time brand consumption
 
 **Google Calendar**
 - [ ] Cloud project + consent screen submitted for verification (early — long pole)

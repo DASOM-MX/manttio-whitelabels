@@ -64,8 +64,11 @@ wins.
 
 ## 5. Open dependency
 
-The **config push body** is shaped by the draft-vs-live decision (see whitelabeled backend
-plan). Settle it before building the push path.
+~~The **config push body** is shaped by the draft-vs-live decision~~ — **settled
+2026-07-05** (CMS content is draft→publish, brand is direct-apply; both are
+tenant-owned instance-side data and neither travels in the push — see
+`manttio-whitelabeled-backend-plan.md` §3). The push body is unblocked and carries
+operational config only: the items below.
 
 Additional push-schema requirements from superadmin planning (2026-07-05, see
 `manttio-whitelabeled-backend-plan.md` §1):

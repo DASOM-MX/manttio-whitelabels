@@ -31,8 +31,10 @@ then its own file, and touches no other module's code.
 | 12 | `12-calendar.md` | Scheduled visits + team calendar (reassign, tech swap, Google Calendar push + overlay) | 02, 03, 06 |
 | 13 | `13-contracts.md` | Maintenance contracts (pólizas) → generate visits into 12 | 06, 12; 11 opt. |
 
-Build order: **01 → 02** are prerequisites for everything. After 02 lands, **03, 04, 06, 08**
-can run in parallel (independent agents). **07** starts after 06's data model checkpoint;
+Build order: **01 → 02** are prerequisites for everything. After 02 lands, **08 goes
+first — branding + CMS is the whitelabel selling point (prioritized 2026-07-05)**;
+**03, 04, 06** can run in parallel with it as agent capacity allows. **07** starts after
+06's data model checkpoint;
 **05** after 04 + 06; **09** after 03 + 04. Second wave: **11** after 06; **12** after
 03 + 06; **13** after 12's CP-1 (visit entity) — contracts generate visits, so the
 calendar's entity must exist first.
@@ -83,7 +85,7 @@ Rules for agents:
 | 05 billing | not-started | — |
 | 06 clients | not-started | — |
 | 07 crm | not-started | — |
-| 08 cms | not-started | — |
+| 08 cms + branding | not-started · **priority: next after 02** | — |
 | 09 wms | not-started | — |
 | 10 access-control | done (doc) | — |
 | 11 equipment | not-started | — |

@@ -1,6 +1,8 @@
 # 08 — CMS + Branding (webpage content + tenant identity)
 
 > **Status:** not-started · **Depends on:** 02 (CP-3)
+> **Priority:** **first module after 02** — branding + CMS is the whitelabel selling
+> point (prioritized 2026-07-05)
 > **Owner:** — · **Last updated:** 2026-07-05
 
 The logged-in client edits their own marketing-site content (`cms_home`, `cms_clients`)
@@ -82,7 +84,10 @@ surface-950) warns but doesn't block.
   public by nature). `PUT /cms/brand` — **owner-only**.
 - `POST /upload` → R2 key (existing upload module) for CMS images and brand logos
   (SVG/PNG, size caps server-side)
-- If draft→publish (see §6): `POST /cms/:section/publish` + draft/published variants on GET
+- Content publish (decided 2026-07-05, §6): `GET /cms/home|clients` return the
+  **draft**; `POST /cms/:section/publish` (section = `home` | `clients`) copies
+  draft → published; the public site reads **published only**. Brand has no draft
+  variant — `PUT /cms/brand` applies directly.
 
 ## 4. Pages & components
 
@@ -102,26 +107,28 @@ surface-950) warns but doesn't block.
   derived-scale strips + advanced per-step override (§2.1), contrast warning. Saving goes
   through a **confirm-heavy apply dialog** (shape-3) restating that the website and both
   apps restyle — brand mistakes are loud, make the commit deliberate.
-- **Publish control** *(only if draft→publish, §6)*: "Publish" action + an "unpublished
-  changes" badge (draft vs last-published compare) on all editors.
+- **Publish control** *(content editors only, §6)*: "Publish" action + an "unpublished
+  changes" badge (draft vs last-published compare) on the home + clients editors. The
+  brand editor has no publish step — its apply dialog is the gate.
 
 ## 5. State
 
-- `CmsState`: `home`, `clients`, `brand`, `loading`, `dirty`/`unpublished` flags. Actions:
-  `LoadCmsHome`, `SaveCmsHome`, `LoadCmsClients`, `CreateCmsClient`, `UpdateCmsClient`,
-  `DeleteCmsClient`, `LoadBrand`, `SaveBrand` (+ `PublishCms(section)` if publish-step).
+- `CmsState`: `home`, `clients`, `brand`, `loading`, per-content-section `unpublished`
+  flags. Actions: `LoadCmsHome`, `SaveCmsHome`, `LoadCmsClients`, `CreateCmsClient`,
+  `UpdateCmsClient`, `DeleteCmsClient`, `PublishCms('home' | 'clients')`, `LoadBrand`,
+  `SaveBrand`.
 - `src/http/cms.service.ts`.
 - Superadmin applies its own theming from `LoadBrand` at boot (shell task shared with 02;
   the brand-editor's live preview reuses the same apply helper against draft values).
 
-## 6. Open decision (carried over — shapes this UI)
+## 6. Save-flow model (decided 2026-07-05 — CP-2 unblocked)
 
-> **draft→publish vs edit=live.** If publish-step: editors save drafts and a Publish
-> button pushes live. If edit=live: saves go live, no draft state, no Publish button.
-> Decided on the backend (write paths); this UI mirrors the choice. **Blocker for CP-2 —
-> resolve before building save flows.** Brand rides the same decision — note that
-> edit=live makes a brand save restyle both apps immediately, which is why the apply
-> dialog (§4) is confirm-heavy either way.
+> **Content is draft→publish; brand is direct-apply.** `cms_home` and `cms_clients`
+> save as drafts and go live only on Publish — a half-edited homepage is never publicly
+> visible. **Brand skips the draft state**: one row, `PUT /cms/brand` applies
+> immediately to the website and both apps; the confirm-heavy apply dialog (§4) is its
+> gate, and in-editor previews (scale strips, light/dark logo chips) cover the
+> "see it before committing" need without dual-state plumbing.
 
 **Guardrail:** the HTML field is sanitized on the backend on write; still use a
 constrained editor here.
@@ -135,7 +142,7 @@ constrained editor here.
 - [ ] `CmsState` + service; home + clients + brand load and render read-only
 - [ ] Route + sidebar entries live (Marca visible even with `cms` flag off)
 
-### CP-2 — Editors *(blocked on §6 decision)*
+### CP-2 — Editors
 - [ ] Home editor: scalars + all four repeater groups, single save
 - [ ] Clients editor: table + drawer, image upload → R2 key, constrained rich-text
 - [ ] Brand editor: identity fields + logo/isologo uploads (light/dark preview chips) +
@@ -143,15 +150,17 @@ constrained editor here.
       owner-only write, admin read-only
 
 ### CP-3 — Publish + polish
-- [ ] Publish control + unpublished-changes badge *(if publish-step)*
+- [ ] Publish control + unpublished-changes badge on home + clients editors (§6)
 - [ ] Dirty-navigation guard (confirm on leaving with unsaved changes)
 - [ ] Superadmin re-themes from a fresh brand save without reload (apply helper)
-- [ ] Dark-mode audit; build green; manual pass: edit home → save → edit client entry
-      with image → verify on the rendered site → change primary color → superadmin +
-      login screen restyle
+- [ ] Dark-mode audit; build green; manual pass: edit home → save draft (site
+      unchanged) → publish → verify on the rendered site; edit client entry with
+      image → publish; change primary color → apply → superadmin + login screen
+      restyle immediately
 
 ## Open decisions / asks
-- §6 draft→publish vs edit=live — backend decision, blocks CP-2.
+- ~~§6 draft→publish vs edit=live~~ — **decided 2026-07-05: content draft→publish,
+  brand direct-apply** (§6).
 - Rich-text control choice: PrimeNG Editor (Quill) constrained toolbar vs minimal custom
   contenteditable — decide at CP-2 start.
 - ~~Brand editability policy~~ — **decided 2026-07-05: tenant-owned, owner-only** (§1).
