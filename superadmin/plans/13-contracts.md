@@ -52,6 +52,7 @@ ContractTypeDef {
   | `lease` | Arrendamiento | |
   | `one_time_maintenance` | Mantenimiento único | one-time only — pairs naturally with `frequency: 'custom'` + `visitsPlanned: 1` (form pre-fill nicety, **not** enforced in v1) |
   | `recurring_maintenance` | Mantenimiento recurrente | |
+  | `repair_servicing` | Servicio de reparación | |
 
   Plain rows, not locked (unlike reason built-ins, no logic hangs off a type;
   rename/deactivate freely). Codes snake_case per the definition-entity pattern.
@@ -173,8 +174,8 @@ Technicians never see contracts — they see the resulting visits in the calenda
 - Contract-type management owner-only vs owner+admin (§2ᵃ) — decided owner-only
   2026-07-05; revisit for parity with WMS reasons if it chafes.
 - ~~Seed set~~ — **decided 2026-07-05:** `installation` / `lease` /
-  `one_time_maintenance` / `recurring_maintenance` (§1.1). Spanish labels assumed from
-  the UI-copy convention — confirm wording.
+  `one_time_maintenance` / `recurring_maintenance` / `repair_servicing` (§1.1). Spanish
+  labels assumed from the UI-copy convention — confirm wording.
 - Should picking `one_time_maintenance` pre-fill frequency `custom` + 1 visit in the
   form (nicety only, still editable)? Cheap, decide at build time.
 - v2: behavior-bearing types (e.g. a type that implies frequency or a visit checklist
