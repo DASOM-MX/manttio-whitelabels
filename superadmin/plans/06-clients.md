@@ -5,8 +5,9 @@
 
 The tenant's client directory. This **is** the product's existing `customers` resource
 (master plan §4: UI says "client", code says `customers`), extended with **basic Mexican
-fiscal (CFDI 4.0) data** for billing, and with CRM fields (status/source/blacklist) whose
-*UI* belongs to module 07 — the data model is defined here once.
+fiscal (CFDI 4.0) data** for billing, and with CRM fields (status/source/blacklist/
+follow-up date) whose *UI* belongs to module 07 — the customer-field data model is defined
+here once (07's own `Interaction` entity is defined there).
 
 ---
 
@@ -21,6 +22,7 @@ Customer {
   source: 'facebook' | 'google' | 'referral' | 'website' | 'phonecall'
         | 'personal_meeting' | 'other',
   blacklistReason?,                      // required when status = 'blacklisted'
+  nextFollowUpAt?,                       // follow-up date (07 §3) — no task system in v1
   // ---- fiscal (CFDI 4.0 basics) ----
   fiscal?: CustomerFiscal,
   createdAt, updatedAt, deletedAt?
@@ -62,8 +64,8 @@ CustomerFiscal {
   CRM fields (status/source) appear on the form as plain selects; the richer flows
   (blacklist with reason, status views) are 07's.
 - `customers/pages/customer-view/` — detail: general card, fiscal card, and reserved
-  sections for **CRM history** (07) and **Bills** (05). Same placeholder-slot convention
-  as 04.
+  sections for **CRM** (07: status card + activity timeline + follow-up date in header)
+  and **Bills** (05). Same placeholder-slot convention as 04.
 - `customers/components/delete-customer-dialog/` — shape-3, audit comment.
 
 ## 4. State

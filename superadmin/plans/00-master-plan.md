@@ -23,7 +23,7 @@ then its own file, and touches no other module's code.
 | 04 | `04-reports.md` | Reports browser | 02 |
 | 05 | `05-billing.md` | Billing + billing-by-reports | 02, 04, 06 |
 | 06 | `06-clients.md` | Clients directory + Mexican invoicing info | 02 |
-| 07 | `07-crm.md` | Light CRM: status, source, blacklist | 06 |
+| 07 | `07-crm.md` | Light CRM: status, source, blacklist, activity timeline, follow-up date | 06 |
 | 08 | `08-cms.md` | Webpage CMS (home + clients sections, brand view) | 02 |
 | 09 | `09-wms.md` | Warehouse management: locations, materials, replenishments (file import + evidence), technician stock, report material tracking | 02, 03, 04 |
 | 10 | `10-access-control.md` | Roles + tenant-config gating matrix (reference, binding for all modules) | — |
@@ -103,6 +103,12 @@ Rules for agents:
   today; any future one) is ever edited or deleted. Corrections are new compensating
   entries — in WMS, the `readjustment` movement type (`direction: in|out`, reason
   required, owner/admin only). See `09-wms.md` §1 and `10-access-control.md` §2.1d.
+- **CRM scope — decided 2026-07-05** (target: small/medium service companies,
+  independent providers): **no Deal/opportunity entity in v1** — lead stays a client
+  status; **full append-only activity timeline** (`Interaction` entity, manual notes +
+  system events, subsumes status history); follow-ups are a single `nextFollowUpAt`
+  field, not a task system. v2 growth path (deals with fixed stages, task entity)
+  recorded in `07-crm.md` open decisions.
 - **Client vs customer naming:** the product's existing `customers` resource **is** the
   "Clients" module here. Superadmin uses the word *client* in UI copy; code keeps `customers`
   to stay aligned with the backend module. CRM fields (status/source/blacklist) extend that
