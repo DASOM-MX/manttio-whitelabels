@@ -64,13 +64,37 @@ StockEntry {                              // unserialized: qty per location
 Movement {                                // audit trail — APPEND-ONLY, backend-generated
   id, type: 'inbound' | 'transfer' | 'consumption' | 'readjustment',
   direction?: 'in' | 'out',               // readjustment only: which way stock moved
+  reason: MovementReason,                 // REQUIRED on every movement (structured why)
   materialId, quantity? | materialUnitIds?,
   fromWarehouseId?/fromNodeId?, toWarehouseId?/toNodeId?,
   reportId?,                              // set on consumption via report tracking
   userId, createdAt,
-  notes?,                                 // REQUIRED for readjustment (the reason)
+  notes?,                                 // free-text detail; REQUIRED for readjustment
 }
+MovementReason =
+  'relocation' | 'report_binding' | 'returned_to_client' | 'return_to_provider'
+  | 'refund_by_client' | 'refund_to_provider' | 'damaged_material' | 'replenishment'
+  | 'stock_cleaning' | 'repair' | 'doa'
 ```
+
+**Movement reasons (decided 2026-07-05):** every movement carries a structured `reason`
+(filterable/analyzable) alongside free-text `notes`. Constants + labels live in
+`data/dtos/wms/movement-reasons.ts`. Typical pairings — backend validates the legal
+`type` ↔ `reason` combinations (final matrix is a backend ask):
+
+| Reason | Typical movement |
+|---|---|
+| `replenishment` | inbound (normal restock from provider) |
+| `refund_by_client` | inbound / readjustment-in (client returned material to us) |
+| `repair` | readjustment-out (sent to repair) / -in (back from repair) |
+| `relocation` | transfer (any stock move, incl. van loading + self-checkout default) |
+| `report_binding` | consumption — **auto-set** by the report-materials editor, never user-selectable |
+| `returned_to_client` | readjustment-out (client-owned part handed back) |
+| `return_to_provider` | readjustment-out (exchange/replacement expected) |
+| `refund_to_provider` | readjustment-out (sent back for money back) |
+| `damaged_material` | readjustment-out (+ serialized unit status flip) |
+| `stock_cleaning` | readjustment-out (inventory cleanup / write-off) |
+| `doa` | readjustment-out (dead on arrival, right after inbound) |
 
 **Immutability rule (decided 2026-07-05):** movements are **never edited or deleted** —
 no endpoint, no UI affordance, period. Every correction is a **new `readjustment`
@@ -101,11 +125,11 @@ ReportMaterial {                          // a report MAY have zero of these
 - `GET/POST/PATCH/DELETE /warehouses/:id/nodes` (subtree ops)
 - `GET/POST/PATCH/DELETE /materials` (+ search, `?tracking=`)
 - `GET /materials/:id/stock` — per-location breakdown (+ serialized units list)
-- `POST /stock/inbound` · `POST /stock/transfer` · `POST /stock/readjust`
-  (`{ direction, materialId, quantity|unitIds, warehouseId/nodeId, notes }` — notes
-  required; no PATCH/DELETE on movements exists)
+- `POST /stock/inbound` · `POST /stock/transfer` · `POST /stock/readjust` — all take a
+  required `reason` (readjust additionally: `{ direction, notes }` required; no
+  PATCH/DELETE on movements exists)
 - `GET /reports/:id/materials` · `PUT /reports/:id/materials` (set/replace tracking list)
-- `GET /movements?materialId&warehouseId&reportId&type&from&to` → paged
+- `GET /movements?materialId&warehouseId&reportId&type&reason&from&to` → paged
 
 ## 3. Pages & components
 
@@ -120,15 +144,18 @@ ReportMaterial {                          // a report MAY have zero of these
 - `wms/pages/material-view/` — detail + per-location stock table; serialized: unit list
   with serial + status pills; movements history (paged) below.
 - `wms/components/inbound-dialog/` — receive stock into a warehouse/node (serialized:
-  textarea of serials, one per line; unserialized: quantity).
+  textarea of serials, one per line; unserialized: quantity). Required `reason` select
+  (defaults `replenishment`).
 - `wms/components/readjustment-dialog/` — owner/admin only: direction (in/out), material
-  + qty or serialized units, location, **required reason** (mirrors the delete-dialog
+  + qty or serialized units, location, required `reason` select (only reasons legal for
+  the chosen direction) + **required free-text notes** (mirrors the delete-dialog
   audit-comment convention). This is the *only* way stock is corrected.
 - `wms/components/transfer-dialog/` — move stock/units between warehouse/node pairs;
   the common case "load technician van" is this dialog with the target pre-set to the
-  tech's warehouse. **Technician mode = self-checkout:** same dialog with destination
-  locked to their own van and source list excluding other technicians' warehouses
-  (backend enforces both; `10-access-control.md` §2.1a).
+  tech's warehouse. Required `reason` select (defaults `relocation`). **Technician mode =
+  self-checkout:** same dialog with destination locked to their own van, source list
+  excluding other technicians' warehouses, reason fixed to `relocation` (backend enforces
+  all three; `10-access-control.md` §2.1a).
 - `wms/components/report-materials-editor/` — fills 04's reserved materials slot on
   report-view: table of `ReportMaterial` rows + add-row picker (material → mode-appropriate
   qty/serial input, source defaults to the report technician's warehouse). Owned by this
@@ -173,9 +200,12 @@ ReportMaterial {                          // a report MAY have zero of these
 - [ ] Transfer dialog (incl. technician-van preset) — owner/admin/office
 - [ ] **Self-checkout**: transfer dialog technician mode (destination locked to own van,
       source excludes other techs' warehouses)
-- [ ] Readjustment dialog (owner/admin, direction in/out, required reason); no
-      edit/delete affordance anywhere on movements
-- [ ] Movements history on material view (readjustments visibly typed + reason shown)
+- [ ] Movement-reason constants (`movement-reasons.ts`) + required reason select in
+      inbound/transfer/readjustment dialogs (sensible defaults per dialog)
+- [ ] Readjustment dialog (owner/admin, direction in/out, direction-legal reasons,
+      required notes); no edit/delete affordance anywhere on movements
+- [ ] Movements history on material view (type + reason tags shown, filterable by
+      reason)
 - [ ] Technician assignment dialog on warehouses list; read-only badge handshake with 03
 
 ### CP-5 — Report material tracking + roles + polish
@@ -190,10 +220,15 @@ ReportMaterial {                          // a report MAY have zero of these
 
 ## Open decisions / asks
 - Backend asks from §2.1: enforce self-checkout constraints (destination = requester's
-  van, source ∉ other techs' warehouses), consumption only from own van on own reports,
-  office blocked from structure/catalog/readjust endpoints, **movements table append-only
-  (no UPDATE/DELETE paths at all)** and report-material corrections emit compensating
-  readjustments server-side.
+  van, source ∉ other techs' warehouses, reason = `relocation`), consumption only from
+  own van on own reports, office blocked from structure/catalog/readjust endpoints,
+  **movements table append-only (no UPDATE/DELETE paths at all)**, report-material
+  corrections emit compensating readjustments server-side, and the final legal
+  `type` ↔ `reason` validation matrix (§1 table is the proposal).
+- Reason semantics to confirm: `refund_by_client` assumed = client returns material to
+  us (stock in); `refund_to_provider` assumed = we send material back for money back
+  (stock out) vs `return_to_provider` = exchange/replacement expected. Confirm both
+  readings before backend validation is written.
 - Nesting depth: one level of sub-warehouses enough for v1?
 - Can a **sub-warehouse** be the technician-assigned one (van as sub of main)? Assumed yes.
 - Tracking-mode immutability after first movement — backend rule, confirm.

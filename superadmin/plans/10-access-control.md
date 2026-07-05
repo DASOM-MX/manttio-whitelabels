@@ -70,8 +70,9 @@ b. **Consumption — tech records, staff corrects:** the technician attaches mat
 c. **Stock lookup:** search materials, see quantities per warehouse ("does the shop
    have this compressor?") — no movement rights, no readjustment visibility needed.
 d. **Audit immutability (decided 2026-07-05):** movement records are **append-only** —
-   never edited or deleted, by anyone, ever. Every correction is a new `readjustment`
-   movement (`direction: in|out`, reason required, owner/admin only); staff corrections
+   never edited or deleted, by anyone, ever. Every movement carries a structured
+   `reason` (enum in `09-wms.md` §1); every correction is a new `readjustment` movement
+   (`direction: in|out`, reason + notes required, owner/admin only); staff corrections
    to report materials emit compensating readjustments while the original consumption
    movement stands. Details: `09-wms.md` §1.
 
