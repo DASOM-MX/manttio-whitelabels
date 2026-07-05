@@ -74,9 +74,10 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
 
 ## 5. Theming port (from `frontend/`)
 
-Copy, don't reinvent — keep byte-parity where possible. (One deliberate exception:
-**typography** — superadmin uses Commissioner, not the frontend's Inter; see 01
-Typography.)
+Copy, don't reinvent — keep byte-parity where possible. (Deliberate exceptions, all in
+01: **typography** — Commissioner, not Inter; **control density** — `.field-input`
+`h-12`, not `h-14`; **icons** — lucide-angular outlined, not PrimeIcons; plus the
+borders-not-shadows surface chrome from the Design language.)
 
 - `tailwind.config.js` — palette scales (`granite`/`navy`/`sky`/`cyan`), semantic tokens,
   `darkMode: ['class', '.app-dark']`, `max-w-11/12` extension. **Whitelabel twist
@@ -117,6 +118,13 @@ Typography.)
 - [ ] **Commissioner Variable** self-hosted (`@fontsource-variable/commissioner`,
       preloaded) + `sans`/`data` stacks per 01 Typography; tnum check on a sample
       numeric column (fallback: Atkinson Hyperlegible for `data`)
+- [ ] **`lucide-angular`** installed + icon conventions wired (outlined-only, stroke-2,
+      `size-4`/`size-5` — 01 Design language); no PrimeIcons in own templates
+- [ ] **`shared/motion.ts`**: MOTION tokens (150/220/320ms), easings, stagger helper,
+      `prefers-reduced-motion` guard; route-enter animation on the layout
+- [ ] Global classes ported at the **compact scale**: `.field-input` = `h-12`
+      (superadmin deviation, 01), compact opt-down `!h-10`; borders-not-shadows card
+      chrome
 - [ ] `styles.scss` globals ported
 - [ ] `manttio-preset.ts` + PrimeNG providers (Aura, cssLayer, darkModeSelector)
 - [ ] `src/theme/_index.scss` + initial override sheets

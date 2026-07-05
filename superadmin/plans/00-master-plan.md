@@ -170,6 +170,14 @@ Rules for agents:
   outside superadmin plans; keep `font-data`/Atkinson for numeric columns). **PDFs
   embed the tenant font via static instances in v1; emails keep system stacks.**
   Detail: `03-branding.md` §2.1.
+- **Design language — decided 2026-07-05: "solid & tight."** Dense operations-console
+  aesthetic (dark-fintech reference): low-to-mid whitespace, hairline borders over
+  shadows, strong status cues (pills, accent bars, uppercase micro-labels, tabular
+  numerals, skeletons), fluid anime.js motion via shared tokens, **no emojis ever,
+  outlined icons only (`lucide-angular`)**, compact `h-12` control baseline. Full spec
+  in `01-conventions.md` → Design language; mirrored in the **committed skill
+  `.claude/skills/superadmin-design`** so every module agent auto-loads it (keep both
+  in sync in the same commit).
 - **Client vs customer naming:** the product's existing `customers` resource **is** the
   "Clients" module here. Superadmin uses the word *client* in UI copy; code keeps `customers`
   to stay aligned with the backend module. CRM fields (status/source/blacklist) extend that

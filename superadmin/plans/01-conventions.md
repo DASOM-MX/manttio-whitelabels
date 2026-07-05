@@ -32,6 +32,38 @@ before writing any component.
   Commissioner everywhere else.
 - PrimeNG inherits the body font — no per-component font overrides.
 
+## Design language — solid & tight (decided 2026-07-05)
+
+The superadmin reads as a dense, confident **operations console** (dark-fintech
+reference). Solidity comes from hairline borders, compact rhythm, strong status cues,
+and restrained motion — never decoration. The committed skill
+**`.claude/skills/superadmin-design`** mirrors this section so every module agent
+auto-loads it — **edit both in the same commit.**
+
+- **Density (low-to-mid whitespace):** cards `p-4` (page-level summary cards max
+  `p-5`); section gaps `gap-4`; compact tables (`py-2.5` cells, 13–14px text). Prefer
+  one dense, well-grouped screen over two airy ones.
+- **Borders, not shadows:** in-page surfaces use 1px hairlines
+  (`border-granite-200 dark:border-granite-800`) on flat backgrounds; shadows are
+  reserved for true overlays (dialogs, popovers, drawers). Nested grouping = background
+  shift or divider, never another shadowed box.
+- **Strong cues:** status pills wherever state exists (never color alone); active nav =
+  2px primary left-accent bar + tinted bg; uppercase micro-labels
+  (`text-[11px] font-medium tracking-caps uppercase`) for card/section/table headers;
+  tabular numerals on every numeric column; skeleton loaders for content regions
+  (spinners only inside buttons).
+- **No emojis, anywhere** — templates, empty states, toasts, copy. Icons carry all
+  iconography.
+- **Icons: outlined only — `lucide-angular`.** `size-4` inline, `size-5` nav, stroke-2
+  everywhere; never PrimeIcons in our own templates (PrimeNG's internal chevrons are
+  the only tolerated appearance), never filled/duotone sets.
+- **Motion system (anime.js):** tokens in `shared/motion.ts` — `fast` 150ms (micro
+  feedback), `base` 220ms (enter/exit, accordions, reorder), `slow` 320ms (route/page
+  content enter: fade + 6px rise). `easeOutCubic` enters / `easeInCubic` exits; list
+  stagger 25ms capped at ~8 items; hover/focus via CSS `transition-colors`, not JS;
+  PrimeNG overlays animate themselves (don't double-animate); every call passes the
+  `prefers-reduced-motion` guard.
+
 ## Styling
 
 - **Tailwind CSS 3.4 only.** Do not upgrade or downgrade. If a new utility/class is needed,
@@ -51,11 +83,14 @@ before writing any component.
   disabled/focus states; re-implementing them in templates almost always misses one.
   These globals are **ported from `frontend/src/styles.scss`** in shell CP-2 — keep them
   byte-compatible where possible so fixes can flow between apps.
-- `.field-input` is **fixed at 56px** (`h-14`) so every control snaps to one baseline —
-  `<p-select>`, `<p-datepicker>`, `<input pInputText>`, `<p-inputnumber>` all inherit it.
-  Textareas opt out via `!h-auto`; compact controls (paginator rows-per-page, dropdown
-  filter inputs) opt down to `!h-11`. A non-standard height gets an `!h-*` override in that
-  component's theme sheet, never a parallel class.
+- `.field-input` is **fixed at 48px (`h-12`) in superadmin** — a deliberate deviation
+  from the frontend's 56px/`h-14` (the field app is glove-friendly mobile capture; the
+  superadmin is a tight desk console — see Design language). Every control snaps to
+  that one baseline: `<p-select>`, `<p-datepicker>`, `<input pInputText>`,
+  `<p-inputnumber>` all inherit it. Textareas opt out via `!h-auto`; compact controls
+  (paginator rows-per-page, dropdown filter inputs) opt down to `!h-10`. A non-standard
+  height gets an `!h-*` override in that component's theme sheet, never a parallel
+  class.
 - **Dialogs** (`<p-dialog>`, `<p-confirmDialog>`) are capped at **`max-w-11/12`** via
   `styleClass` (a `tailwind.config.js` extension). Inline pixel width stays for roomy
   viewports; the cap keeps a ~4% gutter on narrow screens. Apply on **every** dialog.
@@ -161,6 +196,9 @@ shape 3 fits.
 
 - **anime.js only**, and only as an animation tool. No CSS keyframes, no Angular
   animations, no other libs unless explicitly requested.
+- All durations/easings come from the **`shared/motion.ts` tokens** (Design language
+  section) — never hardcode milliseconds in components; every call passes the
+  reduced-motion guard.
 
 ## Auth + access
 

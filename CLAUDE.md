@@ -40,7 +40,7 @@ These apply across packages; per-package CLAUDE.md files own the rest.
 - **Commit prefixes:** Conventional-ish: `feat(<project>)`, `fix(<project>)`, `docs(<project>)`, `style(<project>)`, `chore(<project>)`. Use `fullstack` for changes that span backend + frontend in the same PR.
 - **PR base is always `main`.** Stacked PRs are rare here — always re-check the base before merging (`gh pr view <N> --json baseRefName`), GitHub does not auto-retarget stacked PRs after the parent merges.
 - **Git identity:** never override with `-c user.name=…` / `-c user.email=…`. Use whatever the local git config already has.
-- **Don't commit:** `.claude/` (per-clone IDE state), `frontend/src/environments/environment.development.ts` (local API URL override), `backend/.dev.vars` (local secrets), anything matching `.env*` outside the checked-in `*.example` files.
+- **Don't commit:** `.claude/` (per-clone IDE state) — **exception: `.claude/skills/` IS committed** (shared agent skills, e.g. `superadmin-design`); `frontend/src/environments/environment.development.ts` (local API URL override); `backend/.dev.vars` (local secrets); anything matching `.env*` outside the checked-in `*.example` files.
 - **Backend is the sole authority on JWT validity.** Frontend never decodes tokens; guards check presence only, the HTTP interceptor handles 401s.
 - **Soft deletes** are the default for user-facing resources (`users`, `customers`, `reports`, `reportDetails`). Hard deletes are reserved for fixture cleanup. The `users` table additionally carries `delete_comment` + `deleted_by` for an audit trail.
 
