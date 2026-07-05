@@ -40,6 +40,8 @@ push) · → Cloudflare KV (status write).
 
 - **Config push** — superadmin edits → BFF POSTs to the tenant's `api_base_url` with the
   shared token. Rare action.
+- **Brand push** — seed or correct a tenant's brand object (same instance-side row the
+  tenant owner edits; last write wins). **CMS content is never pushed** — see §5.
 - **Start / stop / suspend** — `KV.put` on the status key. ~60s propagation; for instant
   emergency stop, also pull the instance route.
 - **Register tenant** — create the registry row (env_id, api_base_url, neon_project_ref) during
@@ -76,11 +78,15 @@ Additional push-schema requirements from superadmin planning (2026-07-05, see
   covers calendar + contracts (tentative split; equipment rides core clients).
 - **Tenant timezone** (IANA) — default/fallback for visit times and tenant-wide views
   (`customers.timezone` stays the per-customer override for report rendering).
-- **Brand identity is NOT part of the push (decided 2026-07-05):** it's tenant-owned
-  data edited in superadmin (owner-only) and stored instance-side — see
-  `manttio-whitelabeled-backend-plan.md` §3. The manager side keeps only the
-  provisioning-time pieces: domain, PWA manifest + app-icon generation from the
-  tenant's isologo, and legal/billing reference.
+- **Branding pushes; CMS content never (decided 2026-07-05):** the manager can
+  **seed/override a tenant's brand object** (provisioning + occasional corrections)
+  via the shared-token push — it writes the same single instance-side brand row the
+  tenant owner edits in superadmin (`PUT /brand`; direct-apply, last write wins).
+  **CMS content (`cms_home`/`cms_clients`) never travels through the manager** — it's
+  tenant data, headless-served instance-side (see
+  `manttio-whitelabeled-backend-plan.md` §3). Other provisioning-time pieces stay
+  manager-side: domain, PWA manifest + app-icon generation from the tenant's isologo,
+  legal/billing reference.
 
 ---
 
@@ -99,8 +105,10 @@ Additional push-schema requirements from superadmin planning (2026-07-05, see
 - [ ] Start/stop via `KV.put`; registry status mirror
 - [ ] Emergency hard-stop runbook (route removal)
 
-**Config push** *(blocked on draft-vs-live)*
+**Config push**
 - [ ] BFF → instance config POST (fan-out via `api_base_url`)
+- [ ] Brand seed/override push (writes the instance brand row via shared token; never
+      CMS content)
 
 **Billing**
 - [ ] `billing_reference` store + CRUD (admin-side only)

@@ -155,7 +155,9 @@ Rules for agents:
   with their own endpoints, states, and nav entries; neither depends on the other. The
   CMS itself is **headless**: the backend serves content documents API-first and the
   tenant's public website is just one consumer — no site-specific coupling anywhere in
-  04.
+  04. **Only branding has a manager push path** (provisioning seed + corrections, same
+  row as the owner editor, last write wins); **CMS content never travels through the
+  manager**.
 - **Client vs customer naming:** the product's existing `customers` resource **is** the
   "Clients" module here. Superadmin uses the word *client* in UI copy; code keeps `customers`
   to stay aligned with the backend module. CRM fields (status/source/blacklist) extend that

@@ -23,6 +23,10 @@ CMS (04) is a headless content store. Neither depends on the other.
 - **Never in tenant hands:** domain, `api_base_url`, legal/billing identity
   (manager-side, `billing_reference` guardrail), and the **PWA manifest + installed app
   icons** (provisioning-time — §4).
+- **Manager seed/override (decided 2026-07-05):** we can also push a tenant's brand
+  from the whitelabel manager (provisioning setup + occasional corrections) — it writes
+  the same single row this editor writes; last write wins, no conflict mechanics. CMS
+  content, by contrast, is never pushed from the manager (04).
 
 ## 2. Brand object (data model)
 

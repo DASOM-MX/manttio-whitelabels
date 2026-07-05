@@ -68,15 +68,18 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   Brand is **core — not gated by the `cms` module flag** (it themes apps + PDFs even
   without a website). The **pdf and email modules read brand at render time**
   (isologo, name, primary) — the whitelabel-PDF hook; for tenant-facing rendering this
-  supersedes the static `BRAND_*` wrangler vars. Frontend obligation (both apps, this
-  fork): Tailwind palette → CSS variables set from the boot brand fetch, manttio
-  defaults as fallback.
+  supersedes the static `BRAND_*` wrangler vars. **Two write paths (decided
+  2026-07-05):** owner-authed `PUT /brand` *and* the manager's shared-token push
+  (provisioning seed + corrections) — same single row, last write wins. Frontend
+  obligation (both apps, this fork): Tailwind palette → CSS variables set from the
+  boot brand fetch, manttio defaults as fallback.
 - **cms** (04 — first wave alongside 03): **headless content store (decided
   2026-07-05)** — `cms_home`/`cms_clients` documents served API-first; the tenant's
   public website is just one consumer, no site-specific coupling. Server-side HTML
   sanitization on write. **Draft→publish:** `GET /cms/home|clients` serve the draft to
   editors; `POST /cms/:section/publish` copies draft → published; public reads serve
-  **published only**. Owner + admin, behind the `cms` module flag.
+  **published only**. Owner + admin, behind the `cms` module flag. **Tenant-only
+  writes — CMS content has no manager push path** (decided 2026-07-05).
 - **reports** (06): confirm status enum/folio; soft delete with comment; PDF/resend
   as today.
 - **billing** (09): bills + items (`report_id` per item), status flow with
