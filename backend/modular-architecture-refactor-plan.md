@@ -359,9 +359,10 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
 - [x] **GATE:** `pnpm typecheck` clean (covers `test/**`); no old-layer imports remain in test/ or scripts/.
 
 ### Phase 10 — Cleanup + typecheck
-- [ ] Delete `src/routes/`, `src/db/`, `src/lib/`, `src/middleware/`, `src/validators/`.
-- [ ] **GATE:** `pnpm typecheck` passes with zero errors.
-- [ ] `grep` for stale imports (`db/repositories`, `lib/`, `validators/`, `routes/`, `middleware/`) → none.
+- [x] Deleted `src/routes/`, `src/db/`, `src/lib/`, `src/middleware/`, `src/validators/` (all shims).
+      `src/` now holds only `env.ts`, `index.ts`, `modules/` (+ the empty `report-images/` asset dir).
+- [x] **GATE:** `pnpm typecheck` passes with zero errors (covers `src/**` + `test/**`).
+- [x] `grep` for stale imports of the old layer dirs → none.
 
 ### Phase 11 — Docs
 - [ ] Update `backend/CLAUDE.md` (routing structure, "Where things live", schema/repository paths).
