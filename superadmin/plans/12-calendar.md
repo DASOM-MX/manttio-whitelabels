@@ -95,28 +95,55 @@ a. **Tech swap:** a technician can hand off a visit currently assigned to *them*
   enforces the tech-swap rule (requester is tech ⇒ current assignee must be requester)
 - `POST /visits/:id/status` `{ status }` (complete/miss/cancel)
 - `GET /customers/:id/visits` — upcoming visits on the customer view (06 slot — ask)
+- `GET /visits/external?from&to` → `ExternalEvent[]` for connected users in range (§7;
+  short-cached server-side; title redacted per privacy rule)
+- `GET /integrations/google/status` · `GET /integrations/google/connect` (OAuth
+  redirect) · `POST /integrations/google/disconnect` — own account only
 
 ## 6. State
 
-- `VisitsState`: `range`, `visits`, `loading`, `selected`. Actions:
-  `LoadVisits(from, to, filters)`, `LoadVisit(id)`, `CreateVisit`, `UpdateVisit`,
-  `AssignVisit(id, technicianId)`, `SetVisitStatus(id, status)`.
+- `VisitsState`: `range`, `visits`, `externalEvents`, `loading`, `selected`,
+  `googleStatus` (own connection). Actions: `LoadVisits(from, to, filters)` (also loads
+  external events for the range), `LoadVisit(id)`, `CreateVisit`, `UpdateVisit`,
+  `AssignVisit(id, technicianId)`, `SetVisitStatus(id, status)`, `LoadGoogleStatus`,
+  `DisconnectGoogle` (connect is a redirect, not an action).
 - `src/http/visits.service.ts`.
 
-## 7. External calendar integration — none in v1 (decided 2026-07-05)
+## 7. Google Calendar integration — push + external overlay (decided 2026-07-05)
 
-The calendar **records date information in-app only** — no ICS feed, no Google Calendar
-sync. If external sync is ever wanted, the evaluated path is recorded here so it isn't
-re-derived: Google Calendar API needs per-user OAuth (API keys only read public
-calendars; service accounts need Workspace orgs SMB tenants don't have), which means a
-Google Cloud project, sensitive-scope verification (weeks; unverified = 100-user cap +
-7-day refresh-token expiry), refresh tokens in Neon, a `wrangler secret` client secret,
-and a **single-brand consent screen across all whitelabel tenants**. If built: **one-way
-app→Google push only** (`calendar.events` scope, `extendedProperties.private.visitId`
-correlation, plain REST fetch — no googleapis SDK on Workers); two-way sync rejected
-outright (webhook channels + renewal cron + conflicts vs the append-only assignment
-audit). A per-user secret ICS feed is the zero-credential middle option if read-only
-subscription ever suffices.
+Per-user **OAuth** so no date falls through the cracks — **including events created
+outside the admin**. Two directions, deliberately asymmetric:
+
+- **Outbound — visits push to Google.** When a visit is created/updated/cancelled and
+  the affected user has connected their account, the backend mirrors it as an event on
+  their **primary** Google calendar (`extendedProperties.private.visitId` correlation;
+  update/cancel replace by that key). **The app stays source of truth for visits**: edits
+  made in Google to a pushed event are ignored and overwritten on the next push — never
+  read back into the visit.
+- **Inbound — external events as a read-only overlay.** For the visible range, the
+  backend fetches connected users' Google events (`events.list` with `timeMin/timeMax`),
+  filters out our own pushed events (they carry `visitId`), and returns the rest as
+  **`ExternalEvent { userId, start, end, title? }`** — rendered as muted/striped
+  read-only chips in the week grid. External events are **never imported as
+  `ScheduledVisit`s** and never stored beyond a short cache: they're busy-context so
+  office doesn't double-book a tech, not schedulable objects. That's what keeps the
+  append-only audit untouched and makes this *not* two-way sync (**two-way write-back
+  stays rejected** — webhook channels, renewal crons, and conflict resolution buy
+  nothing here).
+
+**Credential mechanics (backend-owned):** Google Cloud project + Calendar API;
+`calendar.events` scope only (covers both directions on primary); OAuth Web client with
+backend callback (`/integrations/google/connect` → callback → **refresh token encrypted
+in Neon**, per user); client secret via `wrangler secret` + `.dev.vars`; plain REST
+`fetch` (no googleapis SDK on Workers); 401/revocation → mark disconnected, surface a
+reconnect chip. **Known costs accepted:** sensitive-scope verification (weeks — park the
+project in review early; unverified = 100 test users + 7-day refresh tokens) and a
+**single-brand consent screen across all whitelabel tenants**.
+
+**UI:** a per-user "Conectar Google Calendar" action in the calendar page header
+(status chip: connected as `x@gmail.com` / reconnect / disconnect) — self-service, all
+roles. External chips show full title to their **owner**; other users see "Ocupado
+(Google)" by default (privacy — open decision below).
 
 ---
 
@@ -143,6 +170,15 @@ subscription ever suffices.
 - [ ] Empty states ("nothing scheduled this week"); build green; manual pass: schedule →
       reassign → complete → shows green; unassigned lane filters correctly
 
+### CP-5 — Google Calendar (§7; blocked on backend integration endpoints + Google
+### verification)
+- [ ] Connect/disconnect UI + status chip (connected account, reconnect on revocation)
+- [ ] External-event overlay chips in week grid (muted/striped, owner sees title,
+      others "Ocupado (Google)")
+- [ ] Manual pass: connect → create visit → appears in Google; create event in Google →
+      shows as overlay; edit pushed event in Google → app visit unchanged, next push
+      overwrites; disconnect → overlay gone
+
 ## Open decisions / asks
 - FullCalendar (drag-and-drop) vs staying custom — revisit only on real demand; verify
   Angular 21 + zoneless compat before adopting.
@@ -156,5 +192,14 @@ subscription ever suffices.
   can be hash-derived from user id in v1.
 - Does calendar ride a new `scheduling` tenant-config flag (with 13) or ship core?
   Tentative: **`scheduling` flag** — confirm with the manager push schema (10 open item).
-- ~~ICS feed / Google Calendar sync~~ — **resolved 2026-07-05: in-app only**; the
-  evaluated integration paths stay recorded in §7 for whenever this reopens.
+- ~~ICS feed / no integration~~ — **superseded 2026-07-05: Google OAuth is in** (§7):
+  one-way push + read-only external overlay, so dates created outside the admin stay
+  visible. Two-way write-back remains rejected.
+- External-event privacy: default is title-for-owner, "Ocupado (Google)" for everyone
+  else — should owner/admin see titles too? Decide with the first real tenant.
+- Primary calendar only in v1 — secondary-calendar selection later if asked.
+- Overlay freshness: on-demand fetch per range load + short server cache (assumed
+  minutes); webhook push channels stay out.
+- **Start the Google Cloud project + sensitive-scope verification early** — it's the
+  long pole (weeks) and CP-5 is blocked on it; consent screen will show one brand for
+  all tenants (accepted §7).

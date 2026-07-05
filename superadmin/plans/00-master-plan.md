@@ -28,7 +28,7 @@ then its own file, and touches no other module's code.
 | 09 | `09-wms.md` | Warehouse management: locations, materials, replenishments (file import + evidence), technician stock, report material tracking | 02, 03, 04 |
 | 10 | `10-access-control.md` | Roles + tenant-config gating matrix (reference, binding for all modules) | — |
 | 11 | `11-equipment.md` | Client equipment/asset registry + per-unit service history | 06; hooks 04, 09 |
-| 12 | `12-calendar.md` | Scheduled visits + team calendar (reassign, tech swap; in-app only) | 02, 03, 06 |
+| 12 | `12-calendar.md` | Scheduled visits + team calendar (reassign, tech swap, Google Calendar push + overlay) | 02, 03, 06 |
 | 13 | `13-contracts.md` | Maintenance contracts (pólizas) → generate visits into 12 | 06, 12; 11 opt. |
 
 Build order: **01 → 02** are prerequisites for everything. After 02 lands, **03, 04, 06, 08**
