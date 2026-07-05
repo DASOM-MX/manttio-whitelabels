@@ -17,6 +17,7 @@ mantenimiento"); UI copy uses **Póliza/Contrato**, code says `contracts`.
 MaintenanceContract {
   id, customerId, folio?,
   name?,                        // "Póliza anual 2026 — Hotel X"
+  type,                         // code of ContractTypeDef (below)
   status: 'draft' | 'active' | 'expired' | 'cancelled',
   startDate, endDate,
   frequency: 'monthly' | 'bimonthly' | 'quarterly' | 'semiannual' | 'annual' | 'custom',
@@ -28,6 +29,27 @@ MaintenanceContract {
   createdBy, createdAt, cancelledAt?, cancelReason?, deletedAt?
 }
 ```
+
+### 1.1 Contract types (soft entity — decided 2026-07-05)
+
+Types are **tenant-customizable data**, not an enum — same definition-entity pattern as
+WMS movement reasons (master plan §4):
+
+```
+ContractTypeDef {
+  id, code,                     // immutable slug, auto-generated from label
+  label,                        // editable ("Preventivo", "Póliza integral"…)
+  active,                       // deactivate-only — NO delete (history integrity)
+  createdAt
+}
+```
+
+- **Seeded defaults per tenant:** `preventivo`, `correctivo`, `mixto` — plain rows, not
+  locked (unlike reason built-ins, no logic hangs off a type; rename/deactivate freely).
+- **Owner customizes** (add / rename / deactivate); deactivated types disappear from the
+  select but still render on historical contracts by `code`.
+- Types are descriptive/reporting metadata in v1 — no behavior branches on them (a type
+  that changes visit-generation rules would be a v2 feature, recorded below).
 
 - **Lifecycle:** `draft` (editable freely) → `active` (locks commercial terms; generates
   visits) → `expired` (automatic at `endDate`) | `cancelled` (manual, reason required).
@@ -52,12 +74,20 @@ activate/cancel.**
 | Create / edit **drafts** | ✓ | ✓ | ✓ | — |
 | Activate (generates visits) | ✓ | ✓ | — | — |
 | Cancel (reason required) | ✓ | ✓ | — | — |
+| **Manage contract types** (add / rename / deactivate, §1.1) | ✓ | —ᵃ | — | — |
+
+a. Owner-only per the 2026-07-05 decision ("for owners to customize"). Note this is
+   *tighter* than the WMS reason pattern (owner **and** admin) — extend to admin only if
+   parity proves more practical (open decision).
 
 Technicians never see contracts — they see the resulting visits in the calendar.
 
 ## 3. Expected API surface
 
-- `GET /contracts?page&limit&search&customerId&status` → paged
+- `GET /contract-types` (`?all=true` includes inactive, for the manage view)
+- `POST /contract-types` `{ label }` → code auto-slugged server-side
+- `PATCH /contract-types/:id` `{ label?, active? }` — **no DELETE** endpoint
+- `GET /contracts?page&limit&search&customerId&status&type` → paged
 - `GET /contracts/:id` — incl. generated visits summary (done/upcoming counts)
 - `POST /contracts` · `PATCH /contracts/:id` (draft only)
 - `POST /contracts/:id/activate` — validates range/frequency, generates visits
@@ -66,13 +96,19 @@ Technicians never see contracts — they see the resulting visits in the calenda
 
 ## 4. Pages & components
 
-- `contracts/pages/contracts-list/` — paged table: folio/name, client, period, frequency,
-  visits progress (`4/12 done`), amount, status pill. Filters: search, client, status.
-  Top-level **Contracts** sidebar entry (owner/admin/office).
-- `contracts/pages/contract-form/` — create/edit draft: client select, name, period
-  (`<p-datepicker>` range), frequency select (custom ⇒ visitsPlanned input), default
-  technician, equipment multiselect (scoped to client; hidden until 11 lands), amount,
-  notes. Live preview line: "Generará 12 visitas, una cada mes aprox."
+- `contracts/pages/contracts-list/` — paged table: folio/name, client, **type tag**,
+  period, frequency, visits progress (`4/12 done`), amount, status pill. Filters: search,
+  client, status, type. Top-level **Contracts** sidebar entry (owner/admin/office).
+  Header (owner only): "Tipos de contrato" button → manage-types dialog.
+- `contracts/pages/contract-form/` — create/edit draft: client select, name,
+  **type select** (active `ContractTypeDef`s; footer "Add type" button, owner only —
+  same in-select pattern as 09's reason-select), period (`<p-datepicker>` range),
+  frequency select (custom ⇒ visitsPlanned input), default technician, equipment
+  multiselect (scoped to client; hidden until 11 lands), amount, notes. Live preview
+  line: "Generará 12 visitas, una cada mes aprox."
+- `contracts/components/manage-contract-types-dialog/` — owner-only (§2ᵃ): list of all
+  types (incl. inactive, muted) with inline label rename + active toggle + add row. No
+  delete anywhere.
 - `contracts/pages/contract-view/` — detail card + **generated visits table** (date,
   tech, status — links into calendar/visit dialog), progress bar (done/planned),
   activate / cancel / duplicate-as-new actions per role.
@@ -84,9 +120,10 @@ Technicians never see contracts — they see the resulting visits in the calenda
 
 ## 5. State
 
-- `ContractsState`: `list`, `total`, `loading`, `selected`, `filters`. Actions:
+- `ContractsState`: `list`, `total`, `loading`, `selected`, `filters`, `types`. Actions:
   `LoadContracts(query)`, `LoadContract(id)`, `CreateContract`, `UpdateContract`,
-  `ActivateContract(id)`, `CancelContract(id, reason)`.
+  `ActivateContract(id)`, `CancelContract(id, reason)`, `LoadContractTypes(all?)`,
+  `CreateContractType(label)`, `UpdateContractType(id, {label?, active?})`.
 - `src/http/contracts.service.ts`.
 
 ---
@@ -94,9 +131,9 @@ Technicians never see contracts — they see the resulting visits in the calenda
 ## Checkpoints
 
 ### CP-1 — Contract documents
-- [ ] DTOs + service + `ContractsState`
-- [ ] List page + filters + status pills; **Contracts** sidebar entry
-- [ ] Form (draft create/edit) with generation preview line
+- [ ] DTOs (incl. `ContractTypeDef`) + service + `ContractsState`
+- [ ] List page + filters (incl. type) + status pills; **Contracts** sidebar entry
+- [ ] Form (draft create/edit) with type select + generation preview line
 
 ### CP-2 — Lifecycle + generation
 - [ ] Activate dialog → visits appear in calendar (12) with `contractId` backlink
@@ -104,8 +141,11 @@ Technicians never see contracts — they see the resulting visits in the calenda
 - [ ] Contract view with visits table + progress
 
 ### CP-3 — Integration + polish
+- [ ] Manage-types dialog (owner-only) + "Add type" in-select flow; deactivated type
+      still renders on an existing contract
 - [ ] Customer-view contracts card (06 slot)
-- [ ] Role gating per §2 (office sees no activate/cancel); route `data` declared
+- [ ] Role gating per §2 (office sees no activate/cancel; only owner sees type
+      management); route `data` declared
 - [ ] Dark-mode audit; empty states; build green; manual pass: draft (office) →
       activate (admin) → 12 visits in calendar → cancel → remaining visits cancelled
 
@@ -121,3 +161,8 @@ Technicians never see contracts — they see the resulting visits in the calenda
   module (backend) when whitelabel PDF customization lands.
 - Ask to 06: contracts card slot on customer-view.
 - Config flag: rides `scheduling` with 12 (tentative — 10 open item).
+- Contract-type management owner-only vs owner+admin (§2ᵃ) — decided owner-only
+  2026-07-05; revisit for parity with WMS reasons if it chafes.
+- Seed labels (`preventivo`/`correctivo`/`mixto`) — sanity-check with a real tenant.
+- v2: behavior-bearing types (e.g. a type that implies frequency or a visit checklist
+  template) — keep types purely descriptive until then.

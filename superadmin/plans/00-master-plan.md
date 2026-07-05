@@ -127,6 +127,13 @@ Rules for agents:
 - **Visit reassignments are audited append-only** (same principle as WMS movements):
   assignment history is never edited/deleted; `technicianId` is the latest entry. See
   `12-calendar.md` §1.
+- **Tenant-customizable definition entities (pattern — decided 2026-07-05):** when a
+  "type/reason/category" list must be extensible by the tenant, it is **data, not an
+  enum**: a `*Def` entity with an immutable auto-slugged `code`, an editable `label`,
+  and an `active` flag — **deactivate-only, never deleted** (referencing records keep
+  rendering by `code`). Instances: WMS `MovementReasonDef` (09 §1, owner/admin, locked
+  built-ins) and `ContractTypeDef` (13 §1.1, owner-only, unlocked seeds). New extensible
+  lists must reuse this shape.
 - **Client vs customer naming:** the product's existing `customers` resource **is** the
   "Clients" module here. Superadmin uses the word *client* in UI copy; code keeps `customers`
   to stay aligned with the backend module. CRM fields (status/source/blacklist) extend that
