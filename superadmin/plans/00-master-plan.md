@@ -25,7 +25,7 @@ then its own file, and touches no other module's code.
 | 06 | `06-clients.md` | Clients directory + Mexican invoicing info | 02 |
 | 07 | `07-crm.md` | Light CRM: status, source, blacklist | 06 |
 | 08 | `08-cms.md` | Webpage CMS (home + clients sections, brand view) | 02 |
-| 09 | `09-wms.md` | Warehouse management: locations, materials, technician stock, report material tracking | 02, 03, 04 |
+| 09 | `09-wms.md` | Warehouse management: locations, materials, replenishments (file import + evidence), technician stock, report material tracking | 02, 03, 04 |
 | 10 | `10-access-control.md` | Roles + tenant-config gating matrix (reference, binding for all modules) | — |
 
 Build order: **01 → 02** are prerequisites for everything. After 02 lands, **03, 04, 06, 08**

@@ -54,6 +54,7 @@ WMS permissions are **action-level**, not module-level:
 | Materials catalog (SKUs) | ✓ | ✓ | — | — |
 | Movement reasons: add / deactivate (custom; built-ins locked) | ✓ | ✓ | — | — |
 | Inbound (receive deliveries) | ✓ | ✓ | ✓ | — |
+| Replenishments (register via file import + evidence photos) | ✓ | ✓ | ✓ | — |
 | Transfer (any → any) | ✓ | ✓ | ✓ | — |
 | **Self-checkout** (→ own van) | n/a | n/a | n/a | ✓ᵃ |
 | **Readjustment** (compensating in/out; mark lost/damaged)ᵈ | ✓ | ✓ | — | — |
