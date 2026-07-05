@@ -216,9 +216,11 @@ roles. External chips show full title to their **owner**; other users see "Ocupa
 - External-event privacy: default is title-for-owner, "Ocupado (Google)" for everyone
   else — should owner/admin see titles too? Decide with the first real tenant. (The
   client tag from email matching is shown to all staff regardless — §7.)
-- Email matching: exact match only in v1 — no domain-level matching ("anyone
-  @hotelx.com") and no fuzzy matching; ambiguous emails stay unmatched. Domain matching
-  is the plausible v2 if B2B clients invite from many mailboxes.
+- ~~Domain-level matching~~ — **rejected 2026-07-05:** exact-match only, permanently.
+  Multiple distinct client records can share an email domain (branches/locations of the
+  same organization served separately), so "anyone @hotelx.com" would mis-link across
+  branches. Per-branch precision comes from registering each branch's specific contact
+  emails on its own client record (`contacts[]`).
 - Should a matched external event optionally log to the client's CRM timeline (07)?
   Leaning no (it would persist what is otherwise display-only) — revisit on demand.
 - Primary calendar only in v1 — secondary-calendar selection later if asked.
