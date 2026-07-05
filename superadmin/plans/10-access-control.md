@@ -8,9 +8,10 @@ separate everywhere:
 
 1. **Tenant config** (set by *us* via the manager push): which modules this tenant's
    instance even has. `modules: { billing, wms, crm, cms, scheduling }` — users, reports,
-   and clients are core and always on; **equipment rides core clients**, and
+   and clients are core and always on; **equipment rides core clients**,
    **`scheduling` covers calendar (12) + contracts (13)** (tentative flag split — open
-   item). A tenant without `wms` never renders the Warehouse nav, regardless of role.
+   item), and **brand identity rides core** (the `cms` flag gates content editing only —
+   note 5). A tenant without `wms` never renders the Warehouse nav, regardless of role.
 2. **User role** (set by the tenant's owner/admin in module 03): what a user can do within
    the enabled modules.
 
@@ -35,7 +36,7 @@ Baseline four, no specialist roles until a real tenant needs one:
 | Calendar (12) | full | full | full | **own visits + swap**⁴ |
 | Contracts (13) | full | full | **draft only**³ | — |
 | Billing | full | full | **draft only**³ | — |
-| CMS | full | full | — | — |
+| CMS + Branding | full⁵ | full⁵ | — | — |
 | WMS | full | full | **operational** (§2.1) | **van + self-checkout** (§2.1) |
 
 1. **Owner protection:** admins cannot edit, delete, or change the role of the `owner`
@@ -55,6 +56,11 @@ Baseline four, no specialist roles until a real tenant needs one:
    write: **swapping a visit currently assigned to them** to another technician (give
    away, never take). All reassignments — staff or swap — go through the same audited,
    append-only assignment history. Detail: `12-calendar.md` §2.
+5. **CMS vs Brand (decided 2026-07-05):** owner + admin edit CMS *content*
+   (`cms_home`, `cms_clients`); the **brand identity editor is owner-only** (admin
+   read-only) — same owner-customization precedent as contract types. Brand is also
+   **core**: it renders even when the tenant `cms` flag is off (it themes the apps and
+   PDFs, not just the website). Detail: `08-cms.md` §1–2.
 
 ### 2.1 WMS action matrix (decided 2026-07-05)
 

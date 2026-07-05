@@ -73,6 +73,11 @@ Additional push-schema requirements from superadmin planning (2026-07-05, see
   covers calendar + contracts (tentative split; equipment rides core clients).
 - **Tenant timezone** (IANA) — default/fallback for visit times and tenant-wide views
   (`customers.timezone` stays the per-customer override for report rendering).
+- **Brand identity is NOT part of the push (decided 2026-07-05):** it's tenant-owned
+  data edited in superadmin (owner-only) and stored instance-side — see
+  `manttio-whitelabeled-backend-plan.md` §3. The manager side keeps only the
+  provisioning-time pieces: domain, PWA manifest + app-icon generation from the
+  tenant's isologo, and legal/billing reference.
 
 ---
 

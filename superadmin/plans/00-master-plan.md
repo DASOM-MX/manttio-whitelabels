@@ -24,7 +24,7 @@ then its own file, and touches no other module's code.
 | 05 | `05-billing.md` | Billing + billing-by-reports | 02, 04, 06 |
 | 06 | `06-clients.md` | Clients directory + Mexican invoicing info | 02 |
 | 07 | `07-crm.md` | Light CRM: status, source, blacklist, activity timeline, follow-up date | 06 |
-| 08 | `08-cms.md` | Webpage CMS (home + clients sections, brand view) | 02 |
+| 08 | `08-cms.md` | Webpage CMS (home + clients sections) + brand identity editor | 02 |
 | 09 | `09-wms.md` | Warehouse management: locations, materials, replenishments (file import + evidence), technician stock, report material tracking | 02, 03, 04 |
 | 10 | `10-access-control.md` | Roles + tenant-config gating matrix (reference, binding for all modules) | — |
 | 11 | `11-equipment.md` | Client equipment/asset registry + per-unit service history | 06; hooks 04, 09 |
@@ -136,6 +136,16 @@ Rules for agents:
   rendering by `code`). Instances: WMS `MovementReasonDef` (09 §1, owner/admin, locked
   built-ins) and `ContractTypeDef` (13 §1.1, owner-only, unlocked seeds). New extensible
   lists must reuse this shape.
+- **Brand identity is tenant-owned — decided 2026-07-05** (supersedes "brand read-only,
+  set via manager push"): one `Brand` object per tenant (name, slogan, logo/logo-dark/
+  isologo R2 keys, contact, social, **materialized** primary + surface color scales
+  derived from two hex pickers with per-step override), edited **owner-only** in 08.
+  Consumed by the website, **both apps** (boot fetch of public `GET /brand` → runtime
+  PrimeNG preset update + CSS-variable-backed Tailwind palette), and backend
+  **PDFs/emails** at render time. Brand is **core** — not gated by the `cms` flag.
+  Stays out of tenant hands: domain, legal/billing identity, PWA manifest + app icons
+  (provisioning-time). Detail: `08-cms.md` §2; backend obligations in
+  `backend/manttio-whitelabeled-backend-plan.md` §3.
 - **Client vs customer naming:** the product's existing `customers` resource **is** the
   "Clients" module here. Superadmin uses the word *client* in UI copy; code keeps `customers`
   to stay aligned with the backend module. CRM fields (status/source/blacklist) extend that

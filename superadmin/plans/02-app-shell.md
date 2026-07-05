@@ -59,7 +59,9 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
 - Sidebar renders **only the entries `(tenantConfig, role)` allow** — matrix in
   `10-access-control.md` §2. Full nav (owner/admin): **Dashboard** · **Calendar** ·
   **Users** · **Reports** · **Billing** · **Clients** (nested: All / Leads / Blacklist /
-  Equipment) · **Contracts** · **CMS** · **Warehouse**. Technician nav is exactly:
+  Equipment) · **Contracts** · **CMS** (nested: Contenido / Clientes / **Marca** —
+  Marca is owner-only and stays visible when the `cms` flag is off; content entries
+  don't) · **Warehouse**. Technician nav is exactly:
   **Calendar** (my visits + team read-only) · **My reports** · **My warehouse** ·
   **Stock lookup**.
 - Routes are **lazy per feature** (`loadChildren` per module folder) so module agents ship
@@ -75,7 +77,11 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
 Copy, don't reinvent — keep byte-parity where possible:
 
 - `tailwind.config.js` — palette scales (`granite`/`navy`/`sky`/`cyan`), semantic tokens,
-  `darkMode: ['class', '.app-dark']`, `max-w-11/12` extension.
+  `darkMode: ['class', '.app-dark']`, `max-w-11/12` extension. **Whitelabel twist
+  (decided 2026-07-05):** primary + surface scales resolve through **CSS variables** set
+  at boot from the public `GET /brand` fetch (manttio values as fallbacks), and the shell
+  applies the brand's PrimeNG preset update in the same step — the login screen already
+  shows tenant logo + colors. Brand model + editor: `08-cms.md` §2.
 - `src/styles.scss` — global classes (`.field-input`, `.field-label`, `.field-group`,
   `.btn-*`, `.card`, `.card-section`) + html/body bg/text with dark variants.
 - `src/app/theme/manttio-preset.ts` — Aura preset (primary=sky, surface=granite,

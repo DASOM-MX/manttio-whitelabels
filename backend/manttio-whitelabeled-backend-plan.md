@@ -56,6 +56,18 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   interaction). `interactions` endpoints: paged GET, POST **rejecting
   `type: 'system'`** (system entries are backend-emitted only). Optional
   summary figures (last service / totals) for the client 360 header.
+- **cms + brand** (08): `cms_home`/`cms_clients` endpoints with server-side HTML
+  sanitization on write (existing scope), plus the **tenant brand object** (decided
+  2026-07-05 — supersedes brand-as-manager-push): name/slogan, `logo`/`logo_dark`/
+  `isologo` R2 keys, contact + social, and **materialized color scales** (primary
+  50–950, surface 0–950 — derived in the editor from two hex picks, stored ready-made
+  so no consumer runs palette math). **`GET /brand` is public/unauthenticated** (login
+  screens + website read it pre-auth; every field is public by nature);
+  **`PUT /cms/brand` is owner-only**. Brand is **core — not gated by the `cms` module
+  flag** (it themes apps + PDFs even without a website). The **pdf and email modules
+  read brand at render time** (isologo, name, primary) — this is the whitelabel-PDF
+  customization hook. Frontend obligation (both apps, this fork): Tailwind palette →
+  CSS variables set from the boot brand fetch, manttio defaults as fallback.
 - **reports** (04): confirm status enum/folio; soft delete with comment; PDF/resend
   as today.
 - **billing** (05): bills + items (`report_id` per item), status flow with
@@ -157,6 +169,8 @@ edits to pushed events are never read back; the next push overwrites.
 - [ ] customers CRM extensions + contacts + interactions + status transition
 - [ ] billing · wms (incl. replenishments parse + R2 evidence) · equipment ·
       visits/assignments · contracts (activate → visit generation)
+- [ ] cms content endpoints + brand object (public `GET /brand`, owner-only write,
+      materialized scales) + pdf/email render-time brand consumption
 
 **Google Calendar**
 - [ ] Cloud project + consent screen submitted for verification (early — long pole)
