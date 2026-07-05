@@ -66,7 +66,9 @@ Rules for agents:
    until then keep them in your feature folder.
 5. Backend endpoints listed in module files are the **expected** API surface — the backend
    is planned separately. Build against typed HTTP services + DTOs so mocks can back them
-   until the endpoints exist.
+   until the endpoints exist. Backend-side obligations from these plans are consolidated
+   in **`backend/manttio-whitelabeled-backend-plan.md`** — when a decision here creates
+   backend work, record it there too (keep both in the same commit).
 
 ---
 

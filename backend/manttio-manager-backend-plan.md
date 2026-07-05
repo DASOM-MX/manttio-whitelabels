@@ -67,6 +67,13 @@ wins.
 The **config push body** is shaped by the draft-vs-live decision (see whitelabeled backend
 plan). Settle it before building the push path.
 
+Additional push-schema requirements from superadmin planning (2026-07-05, see
+`manttio-whitelabeled-backend-plan.md` §1):
+- `modules` feature flags: `{ billing, wms, crm, cms, scheduling }` — `scheduling`
+  covers calendar + contracts (tentative split; equipment rides core clients).
+- **Tenant timezone** (IANA) — default/fallback for visit times and tenant-wide views
+  (`customers.timezone` stays the per-customer override for report rendering).
+
 ---
 
 ## 6. Build checklist  ( `- [ ]` / `- [~]` / `- [x]` )
