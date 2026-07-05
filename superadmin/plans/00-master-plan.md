@@ -158,6 +158,14 @@ Rules for agents:
   04. **Only branding has a manager push path** (provisioning seed + corrections, same
   row as the owner editor, last write wins); **CMS content never travels through the
   manager**.
+- **Typography — decided 2026-07-05:** the superadmin's typeface is **Commissioner**
+  (variable, self-hosted) — our product's own voice, constant across tenants, a
+  deliberate deviation from frontend parity (details: 01 Typography). Tenant-facing
+  surfaces share the **business-identity pair Work Sans + Rubik**: the website already
+  uses it; the **field app migrates Inter → Work Sans/Rubik** (fork `frontend/` task,
+  outside superadmin plans; keep `font-data`/Atkinson for numeric columns). Tenant-
+  pickable typography as part of the Brand object is a v2 candidate (03 open
+  decisions).
 - **Client vs customer naming:** the product's existing `customers` resource **is** the
   "Clients" module here. Superadmin uses the word *client* in UI copy; code keeps `customers`
   to stay aligned with the backend module. CRM fields (status/source/blacklist) extend that

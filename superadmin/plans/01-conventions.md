@@ -9,6 +9,27 @@ before writing any component.
 
 ---
 
+## Typography (decided 2026-07-05)
+
+- **Superadmin's typeface is Commissioner** (variable, weight axis only — expressive
+  flare/volume axes stay at defaults). This is a **deliberate deviation from frontend
+  parity**: the superadmin is *our* product chrome, constant across tenants, and its
+  own voice tells tenants who they're working with. Tenant-facing surfaces
+  (`website/` + `frontend/` field app) share the **business-identity pair: Work Sans
+  (body) + Rubik (headings)** instead — the field app migrates off Inter to match the
+  website (recorded as a fork `frontend/` task, not superadmin work).
+- **Self-hosted, never CDN:** `@fontsource-variable/commissioner` — one woff2,
+  preloaded in `index.html`. No `fonts.googleapis.com` import (offline, CSP, no FOUT).
+- Stacks in `tailwind.config.js`:
+  `sans: ['"Commissioner Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif']`,
+  plus a `data` stack for numeric table/money columns. Weights: **400 body ·
+  500 labels/buttons · 600–700 headings**.
+- **Tabular numerals:** data cells set `font-feature-settings: 'tnum'`. Verify at
+  CP-2 that Commissioner's tnum aligns digits correctly; if it disappoints, `font-data`
+  falls back to Atkinson Hyperlegible (the frontend's existing numeric stack) with
+  Commissioner everywhere else.
+- PrimeNG inherits the body font — no per-component font overrides.
+
 ## Styling
 
 - **Tailwind CSS 3.4 only.** Do not upgrade or downgrade. If a new utility/class is needed,

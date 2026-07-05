@@ -138,3 +138,8 @@ which *is* draft→publish — `04-cms.md` §5.)
   meaningfully, ship two-picker-only first and add overrides in a fast follow.
 - Favicon/PWA icon regeneration from a changed isologo — provisioning-time v1; revisit
   only if tenants actually churn logos.
+- **Typography in the Brand object — v2 candidate (2026-07-05):** v1 fixes the
+  tenant-facing typography at **Work Sans + Rubik** (website + field app, the
+  business-identity pair — master plan §4); a tenant-pickable font would extend
+  `Brand` later. Superadmin itself always stays Commissioner (product chrome, not
+  tenant brand).

@@ -74,7 +74,9 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
 
 ## 5. Theming port (from `frontend/`)
 
-Copy, don't reinvent — keep byte-parity where possible:
+Copy, don't reinvent — keep byte-parity where possible. (One deliberate exception:
+**typography** — superadmin uses Commissioner, not the frontend's Inter; see 01
+Typography.)
 
 - `tailwind.config.js` — palette scales (`granite`/`navy`/`sky`/`cyan`), semantic tokens,
   `darkMode: ['class', '.app-dark']`, `max-w-11/12` extension. **Whitelabel twist
@@ -112,6 +114,9 @@ Copy, don't reinvent — keep byte-parity where possible:
 
 ### CP-2 — Theming + conventions port
 - [ ] `tailwind.config.js` ported (palette, semantic tokens, dark class, max-w-11/12)
+- [ ] **Commissioner Variable** self-hosted (`@fontsource-variable/commissioner`,
+      preloaded) + `sans`/`data` stacks per 01 Typography; tnum check on a sample
+      numeric column (fallback: Atkinson Hyperlegible for `data`)
 - [ ] `styles.scss` globals ported
 - [ ] `manttio-preset.ts` + PrimeNG providers (Aura, cssLayer, darkModeSelector)
 - [ ] `src/theme/_index.scss` + initial override sheets
