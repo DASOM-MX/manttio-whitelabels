@@ -18,7 +18,11 @@ domain lives under its own module. Improves readability and consistency across m
 - **Thin controllers**: parse/validate → call a service → respond. All orchestration and
   business rules move into `services/`.
 - **Cross-cutting concerns also become modules** (no `core/`/`shared/`/`common/` junk drawer) —
-  `database/`, `storage/`, `email/`. Micro-utilities fold into the domain module that owns them.
+  `database/`, `storage/`, `email/`, `pdf/`. Micro-utilities fold into the domain module that owns
+  them. A cross-cutting module must be **generic/reusable** (domain-agnostic); domain composition
+  that *uses* it stays in the domain module (e.g. the `pdf/` toolkit draws tables/rows/images, while
+  the report document layout stays in `reports/helpers/report-pdf.helpers.ts` and calls it — same
+  split as `email/` transport vs `reports/` email composition).
 - **Generic, reusable email transport** lives in its own `email/` module (`sendEmail` over Resend,
   provider-swappable). Report-specific email composition (bodies, tokens, send-log) stays in the
   `reports/` module and *calls* the `email/` service.
@@ -108,7 +112,7 @@ src/
       enums/reports.enum.ts                # WorkType/ReportType/ReportStatus + value arrays
       types/reports.types.ts              # ReportRow/ReportDetailRow/NewReport aliases, ReportFilters, SignedLocation
       templates/report-email.html.ts      # report-email HTML markup + escaping (the template asset)
-      helpers/report-pdf.helpers.ts        # pdf-lib renderer (was lib/pdf.ts)
+      helpers/report-pdf.helpers.ts        # report document LAYOUT; composes the pdf/ toolkit (was lib/pdf.ts)
       helpers/report-email.helpers.ts      # computes values, fills templates/report-email.html.ts (was lib/email-template.ts)
       helpers/report-labels.helpers.ts     # Spanish field labels + formatters (was lib/report-labels.ts)
       utils/report-id.ts                  # (was lib/report-id.ts)
@@ -122,6 +126,10 @@ src/
     email/                                # reusable transport
       services/email.service.ts           # sendEmail over Resend, swappable (was lib/resend.ts)
       types/email.types.ts                # ResendSendParams etc.
+    pdf/                                  # generic PDF toolkit (domain-agnostic; reusable)
+      services/pdf.service.ts             # createRenderer + tables/rows/section headers/image grid/image embed
+      constants/pdf-layout.ts             # page geometry + default theme colors (whitelabel-parameterizable later)
+      types/pdf.types.ts                  # Cell, Renderer
     storage/                              # R2 + multipart helpers
       services/storage.service.ts         # (was lib/r2.ts)
       utils/form-data.ts                  # fdGet/fdGetAll/isFile (was lib/form-data.ts)
@@ -232,7 +240,7 @@ src/
 | `lib/access-token.ts` | `modules/reports/utils/access-token.ts` |
 | `lib/dispatch-email.ts` | `modules/reports/services/report-email.service.ts` |
 | `lib/email-template.ts` | `modules/reports/helpers/report-email.helpers.ts` (+ `templates/report-email.html.ts` for the markup) |
-| `lib/pdf.ts` | `modules/reports/helpers/report-pdf.helpers.ts` |
+| `lib/pdf.ts` | split: generic toolkit → `modules/pdf/` (service + constants + types); report layout → `modules/reports/helpers/report-pdf.helpers.ts` |
 | `lib/report-labels.ts` | `modules/reports/helpers/report-labels.helpers.ts` |
 
 **Consumers to update (imports only):**
@@ -326,6 +334,11 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
       (`report-pdf`, `report-email`, `report-labels`); the report-email HTML markup + escaping lives
       in `templates/report-email.html.ts`, which `helpers/report-email.helpers.ts` fills. Convention:
       HTML/markup templates live in `templates/`, renderers/formatters in `helpers/` (`.helpers.ts`).
+- [x] Review follow-up: extracted the **generic PDF toolkit** into a new cross-cutting `pdf/` module
+      (`services/pdf.service.ts` — createRenderer + tables/rows/section headers/image grid/image embed;
+      `constants/pdf-layout.ts` — geometry + default theme; `types/pdf.types.ts` — `Cell`/`Renderer`).
+      `reports/helpers/report-pdf.helpers.ts` keeps only the report document layout and composes the
+      toolkit. Enables reuse + eventual whitelabel/per-client PDF customization. Output byte-identical.
 - [x] Re-export shims left at all 13 old paths (routes/reports, db/repositories/{reports,report-emails},
       validators/{reports,reports-routes,email}, lib/{dispatch-email,email-template,pdf,report-labels,
       report-id,access-token,report-lifecycle}). Removed in Phase 10.
