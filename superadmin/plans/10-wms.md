@@ -1,6 +1,6 @@
-# 09 — WMS (small warehouse management)
+# 10 — WMS (small warehouse management)
 
-> **Status:** not-started · **Depends on:** 02 (CP-3), 03 (CP-1), 04 (CP-2)
+> **Status:** not-started · **Depends on:** 02 (CP-3), 05 (CP-1), 06 (CP-2)
 > **Owner:** — · **Last updated:** 2026-07-05
 
 A small WMS: warehouses (with sub-warehouses), an internal location hierarchy, a material
@@ -8,7 +8,7 @@ catalog (serialized / unserialized), stock, **technician-assigned warehouses**, 
 **material tracking attached to reports**. The largest module — its checkpoints are
 deliberately smaller slices.
 
-**Roles — action-level matrix in `10-access-control.md` §2.1** (decided 2026-07-05):
+**Roles — action-level matrix in `14-access-control.md` §2.1** (decided 2026-07-05):
 owner/admin full; **office is operational** (inbound + transfers incl. van loading; no
 structure/catalog, no readjustments); **technician** gets **My warehouse** (own van stock +
 consumption history + **self-checkout**: transfer with destination locked to own van,
@@ -193,7 +193,7 @@ Replenishments**.
 
 - `wms/pages/warehouses-list/` — table of root warehouses; expandable to sub-warehouses;
   technician badge when assigned. Actions: add warehouse / add sub-warehouse (form dialog,
-  shape 3), assign technician (dialog listing technicians from 03's state).
+  shape 3), assign technician (dialog listing technicians from 05's state).
 - `wms/pages/warehouse-view/` — header card + **`<p-tree>` of StorageNodes** (lazy
   children); node context actions (add child of legal type, rename, delete-if-empty);
   right panel: stock at selected node.
@@ -236,12 +236,12 @@ Replenishments**.
   tech's warehouse. Required `reason-select` (defaults `relocation`). **Technician mode =
   self-checkout:** same dialog with destination locked to their own van, source list
   excluding other technicians' warehouses, reason fixed to `relocation` (backend enforces
-  all three; `10-access-control.md` §2.1a).
-- `wms/components/report-materials-editor/` — fills 04's reserved materials slot on
+  all three; `14-access-control.md` §2.1a).
+- `wms/components/report-materials-editor/` — fills 06's reserved materials slot on
   report-view: table of `ReportMaterial` rows + add-row picker (material → mode-appropriate
   qty/serial input, source defaults to the report technician's warehouse). Owned by this
   module's agent, lives under `wms/` and is imported by the report view.
-  **Role behavior** (`10-access-control.md` §2.1b): technician can add/edit on **their own
+  **Role behavior** (`14-access-control.md` §2.1b): technician can add/edit on **their own
   reports**, materials sourced from **their own van only**; owner/admin edit any report's
   materials, any source; office renders it read-only.
 - `wms/pages/stock-lookup/` — technician's global read-only view: `materials-list` +
@@ -295,7 +295,7 @@ Replenishments**.
       required notes); no edit/delete affordance anywhere on movements
 - [ ] Movements history on material view (type + reason tags shown, filterable by
       reason)
-- [ ] Technician assignment dialog on warehouses list; read-only badge handshake with 03
+- [ ] Technician assignment dialog on warehouses list; read-only badge handshake with 05
 
 ### CP-5 — Replenishments
 - [ ] `ReplenishmentsState` + DTOs; Replenishments tab (list + filters) in the WMS
@@ -310,7 +310,7 @@ Replenishments**.
       confirm → stock updated, movements show `replenishment` reason + link back
 
 ### CP-6 — Report material tracking + roles + polish
-- [ ] `report-materials-editor` in 04's slot (add/edit/remove, source defaulting)
+- [ ] `report-materials-editor` in 06's slot (add/edit/remove, source defaulting)
 - [ ] Consumption reflected in stock (backend does the math; UI refreshes)
 - [ ] "My warehouse" technician route (own van + consumption history + self-checkout
       entry point) and "Stock lookup" route; office gating per §2.1 (operational, no
@@ -339,7 +339,7 @@ Replenishments**.
 - Tracking-mode immutability after first movement — backend rule, confirm.
 - Serialized consumption on report: mark `consumed` vs transfer to a virtual "consumed"
   location — backend decision, UI shows status either way.
-- Ask to 03: user detail shows assigned warehouse read-only (link to warehouse view).
+- Ask to 05: user detail shows assigned warehouse read-only (link to warehouse view).
 - Ask from 11 (equipment registry): when a **serialized** unit is consumed on an install
   report, backend should offer/auto-create the client `Equipment` record
   (`materialUnitId` backlink) — coordinate the hook when both modules land

@@ -1,17 +1,17 @@
-# 04 — Reports
+# 06 — Reports
 
 > **Status:** not-started · **Depends on:** 02 (CP-3)
 > **Owner:** — · **Last updated:** 2026-07-05
 
 Admin-side browser for service reports captured in the field app. Superadmin **reads and
 administers** reports; it does not author them (capture stays in `frontend/`). Reports are
-the anchor for billing (05: bill-by-report) and material tracking (09: materials consumed
+the anchor for billing (09: bill-by-report) and material tracking (10: materials consumed
 per report).
 
-**Roles** (`10-access-control.md` §2): owner/admin full, office manage. **Technician** gets
+**Roles** (`14-access-control.md` §2): owner/admin full, office manage. **Technician** gets
 the same list + view pages as a **"My reports"** route — pre-filtered to their own reports
 (backend scopes the query), read-only (no delete/resend actions rendered) **with one
-exception**: the materials block (09's `report-materials-editor`) is editable on their own
+exception**: the materials block (10's `report-materials-editor`) is editable on their own
 reports (§2.1b — tech records consumption from their own van; owner/admin correct). Reuse
 the components with locked filters + hidden actions; don't fork variants.
 
@@ -24,8 +24,8 @@ ReportSummary {
   id, folio?, customerId, customerName,
   technicianId, technicianName,
   serviceDate, status,                  // confirm status enum against backend reports module
-  billingStatus?: 'unbilled' | 'billed',   // derived, appears once 05 lands
-  hasMaterialTracking?: boolean,           // appears once 09 lands
+  billingStatus?: 'unbilled' | 'billed',   // derived, appears once 09 lands
+  hasMaterialTracking?: boolean,           // appears once 10 lands
   createdAt
 }
 ReportDetail = ReportSummary + {
@@ -50,10 +50,10 @@ ReportDetail = ReportSummary + {
   technician select, status. Row: view, PDF, delete.
 - `reports/pages/report-view/` — read-only detail: header card (client/tech/date/status),
   `.card-section` per detail group, photo grid, signature image (unstyled in dark mode per
-  conventions), PDF download button. Slots reserved for 05 (billing card) and 09
+  conventions), PDF download button. Slots reserved for 09 (billing card) and 10
   (materials card) — leave a clearly-marked placeholder region, don't build their UI.
 - `reports/components/delete-report-dialog/` — shape-3 dialog, audit comment (reuse the
-  delete-dialog pattern; extract a shared base only if 03's agent agrees — record as ask).
+  delete-dialog pattern; extract a shared base only if 05's agent agrees — record as ask).
 
 ## 4. State
 
@@ -72,7 +72,7 @@ ReportDetail = ReportSummary + {
 
 ### CP-2 — Detail
 - [ ] Report view page (cards, photos, signature, PDF link)
-- [ ] Placeholder regions for billing (05) + materials (09) marked in template comments
+- [ ] Placeholder regions for billing (09) + materials (10) marked in template comments
 - [ ] Delete dialog + toasts
 
 ### CP-3 — Roles + polish
@@ -85,4 +85,4 @@ ReportDetail = ReportSummary + {
 ## Open decisions / asks
 - Status enum + folio field: confirm against backend `reports` module before CP-1.
 - Resend-email action: in or out for v1?
-- Shared delete-dialog base component with 03: coordinate, don't duplicate silently.
+- Shared delete-dialog base component with 05: coordinate, don't duplicate silently.

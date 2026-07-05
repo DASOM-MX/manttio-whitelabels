@@ -146,7 +146,7 @@ shape 3 fits.
 - Role/config gating reads **only** from the `/auth/me` payload in `AuthState`, through
   the shared `access.ts` helpers (`hasRole`, `hasModule`) and route
   `data: { module, roles }`. Never duplicate matrix logic in components — see
-  `10-access-control.md` (binding for all modules).
+  `14-access-control.md` (binding for all modules).
 
 ## Folder + code layout (mirrors frontend)
 

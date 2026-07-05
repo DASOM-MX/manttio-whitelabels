@@ -1,6 +1,6 @@
-# 07 — Light CRM
+# 08 — Light CRM
 
-> **Status:** not-started · **Depends on:** 06 (CP-1)
+> **Status:** not-started · **Depends on:** 07 (CP-1)
 > **Owner:** — · **Last updated:** 2026-07-05
 
 A thin CRM layer **on top of the Customer resource**. It owns the status lifecycle, source
@@ -65,13 +65,13 @@ Interaction {
 
 ### 2.1 Quick-contact actions (decided 2026-07-05)
 
-The bridge that keeps the timeline populated. 06's client 360 header hosts
+The bridge that keeps the timeline populated. 07's client 360 header hosts
 **WhatsApp / call / email buttons** (`wa.me/<phone>`, `tel:`, `mailto:` — WhatsApp is the
 primary channel for this market). Tapping one opens the channel in a new tab/handler
 **and** opens the timeline composer pre-filled with the matching type
 (`whatsapp`/`call`/`email`) so logging the touch is one save away — never auto-saved
 (the user may not complete the contact). The composer exposes this as a small API
-(`open(type)`); 06 declares the buttons, 07 owns the behavior.
+(`open(type)`); 07 declares the buttons, 08 owns the behavior.
 
 ## 3. Follow-up date (decided 2026-07-05)
 
@@ -94,8 +94,8 @@ Deliberately **not** a task system — one field, defined on the Customer DTO in
 - `GET /customers/:id/interactions?page&limit` → paged, newest-first.
 - `POST /customers/:id/interactions` `{ type, body }` — manual types only; backend
   rejects `system`.
-- `nextFollowUpAt` travels on the normal `PATCH /customers/:id` (06's endpoint).
-- `GET /customers?status=...&source=...` — already covered by 06's list endpoint.
+- `nextFollowUpAt` travels on the normal `PATCH /customers/:id` (07's endpoint).
+- `GET /customers?status=...&source=...` — already covered by 07's list endpoint.
 
 ## 5. Pages & components
 
@@ -109,16 +109,16 @@ sidebar root.
 - `crm/pages/blacklist/` — pre-filtered `status=blacklisted`: name, reason, since, source;
   per-row un-blacklist action (status dialog, confirm-heavy).
 - `crm/components/change-status-dialog/` — described above (+ optional follow-up date,
-  §3); **mounted in 06's customer-view CRM slot** and reachable from list rows here.
-- `crm/components/customer-timeline/` — §2's timeline + composer, **mounted in 06's
+  §3); **mounted in 07's customer-view CRM slot** and reachable from list rows here.
+- `crm/components/customer-timeline/` — §2's timeline + composer, **mounted in 07's
   customer-view CRM slot** below the status card. Paged "load more", empty state
   ("no activity yet — log the first call").
 - Source analytics (counts per source) on the Dashboard stub — a small card,
   `GET /customers/stats/sources` *(open decision; skip if endpoint slips)*.
 
-Implementation detail: these list pages **reuse 06's table component/state** with locked
+Implementation detail: these list pages **reuse 07's table component/state** with locked
 filters — if that requires extracting the table into
-`customers/components/customers-table/`, coordinate the extraction with 06's agent (record
+`customers/components/customers-table/`, coordinate the extraction with 07's agent (record
 as ask), don't fork the table.
 
 ## 6. State
@@ -135,13 +135,13 @@ as ask), don't fork the table.
 - [ ] `ChangeCustomerStatus` action + service call
 - [ ] Change-status dialog (legal transitions, blacklist reason required, optional
       follow-up date)
-- [ ] Wired into 06's customer-view CRM slot + customers-list row action
+- [ ] Wired into 07's customer-view CRM slot + customers-list row action
 
 ### CP-2 — Timeline
 - [ ] `Interaction` DTO + service endpoints + state actions
 - [ ] `customer-timeline` component (composer, paged list, system-entry styling)
-- [ ] Composer `open(type)` API + 06's quick-contact buttons wired (§2.1)
-- [ ] Mounted in 06's customer-view; status change → system entry appears in timeline
+- [ ] Composer `open(type)` API + 07's quick-contact buttons wired (§2.1)
+- [ ] Mounted in 07's customer-view; status change → system entry appears in timeline
 
 ### CP-3 — CRM views + follow-ups
 - [ ] Leads view (pre-filtered, follow-up sort + overdue pill, convert quick-action)
@@ -165,7 +165,7 @@ as ask), don't fork the table.
 - Which system-event emitters beyond status changes land in v1 (report created, bill
   sent) — depends on backend hooks; timeline renders whatever arrives.
 - Source stats endpoint for the dashboard card: v1 or later?
-- Ask to 06: customers-table extraction for filtered reuse.
+- Ask to 07: customers-table extraction for filtered reuse.
 - **v2 (recorded, not planned):** Deal entity with fixed stages
   `new → contacted → quoted → won/lost` (decided fixed, not tenant-configurable, when it
   lands); task entity if `nextFollowUpAt` proves too small.

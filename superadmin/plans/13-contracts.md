@@ -1,11 +1,11 @@
 # 13 — Maintenance contracts (pólizas de mantenimiento)
 
-> **Status:** not-started · **Depends on:** 06 (CP-1), 12 (CP-1); 11 optional (equipment link)
+> **Status:** not-started · **Depends on:** 07 (CP-1), 12 (CP-1); 11 optional (equipment link)
 > **Owner:** — · **Last updated:** 2026-07-05
 
 The recurring-revenue engine: annual/periodic service agreements with N scheduled visits.
 A contract is the *commercial* object; activating it **generates `ScheduledVisit`s into
-the calendar (12)**, which drive reports (04), which drive bills (05) — this module closes
+the calendar (12)**, which drive reports (06), which drive bills (09) — this module closes
 the loop across the whole product. Standard practice in Mexican HVAC B2B ("póliza de
 mantenimiento"); UI copy uses **Póliza/Contrato**, code says `contracts`.
 
@@ -73,7 +73,7 @@ ContractTypeDef {
 - **Cancelling a contract** cancels its remaining `scheduled` visits (completed ones
   stand). Amounts/billing stay informational in v1 — no auto-billing (open decision).
 
-## 2. Roles (extends `10-access-control.md` §2 — mirrors Billing³)
+## 2. Roles (extends `14-access-control.md` §2 — mirrors Billing³)
 
 Contracts are money commitments, so they gate like bills: **office drafts; owner/admin
 activate/cancel.**
@@ -112,7 +112,7 @@ Technicians never see contracts — they see the resulting visits in the calenda
   Header (owner only): "Tipos de contrato" button → manage-types dialog.
 - `contracts/pages/contract-form/` — create/edit draft: client select, name,
   **type select** (active `ContractTypeDef`s; footer "Add type" button, owner only —
-  same in-select pattern as 09's reason-select), period (`<p-datepicker>` range),
+  same in-select pattern as 10's reason-select), period (`<p-datepicker>` range),
   frequency select (custom ⇒ visitsPlanned input), default technician, equipment
   multiselect (scoped to client; hidden until 11 lands), amount, notes. Live preview
   line: "Generará 12 visitas, una cada mes aprox."
@@ -126,7 +126,7 @@ Technicians never see contracts — they see the resulting visits in the calenda
   period/frequency/visit count before generating.
 - `contracts/components/cancel-contract-dialog/` — reason required; states how many
   scheduled visits will be cancelled.
-- Customer-view **Contracts card** (06 slot — ask): active contract(s) + progress.
+- Customer-view **Contracts card** (07 slot — ask): active contract(s) + progress.
 
 ## 5. State
 
@@ -153,7 +153,7 @@ Technicians never see contracts — they see the resulting visits in the calenda
 ### CP-3 — Integration + polish
 - [ ] Manage-types dialog (owner-only) + "Add type" in-select flow; deactivated type
       still renders on an existing contract
-- [ ] Customer-view contracts card (06 slot)
+- [ ] Customer-view contracts card (07 slot)
 - [ ] Role gating per §2 (office sees no activate/cancel; only owner sees type
       management); route `data` declared
 - [ ] Dark-mode audit; empty states; build green; manual pass: draft (office) →
@@ -161,7 +161,7 @@ Technicians never see contracts — they see the resulting visits in the calenda
 
 ## Open decisions / asks
 - Billing integration (auto-draft a bill per contract period, or bill-by-report against
-  contract visits) — **deferred**; v1 `amount` is informational. Revisit with 05 once
+  contract visits) — **deferred**; v1 `amount` is informational. Revisit with 09 once
   both are live.
 - Expiry: backend cron flips `active → expired` at `endDate` — same infra question as
   12's missed-sweep; until then render "expired" derived client-side from `endDate`.
@@ -169,8 +169,8 @@ Technicians never see contracts — they see the resulting visits in the calenda
   (generate next N) — backend call; upfront is fine for ≤1yr contracts.
 - Contract PDF (printable póliza for the client to sign) — later; pairs with the pdf
   module (backend) when whitelabel PDF customization lands.
-- Ask to 06: contracts card slot on customer-view.
-- Config flag: rides `scheduling` with 12 (tentative — 10 open item).
+- Ask to 07: contracts card slot on customer-view.
+- Config flag: rides `scheduling` with 12 (tentative — 14 open item).
 - Contract-type management owner-only vs owner+admin (§2ᵃ) — decided owner-only
   2026-07-05; revisit for parity with WMS reasons if it chafes.
 - ~~Seed set~~ — **decided 2026-07-05:** `installation` / `lease` /

@@ -6,5 +6,5 @@
 > one agent per module, checkpointed.
 
 The original CMS-only content of this file was folded into
-[`plans/08-cms.md`](plans/08-cms.md) (components, permissions, and the draft→publish open
+[`plans/04-cms.md`](plans/04-cms.md) (components, permissions, and the draft→publish open
 decision are all carried over there).

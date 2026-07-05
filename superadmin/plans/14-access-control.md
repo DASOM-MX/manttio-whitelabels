@@ -1,4 +1,4 @@
-# 10 — Access control (roles + config gating)
+# 14 — Access control (roles + config gating)
 
 > **Status:** done (doc — implementation tasks live in `02-app-shell.md` and each module's
 > checklists) · **Last updated:** 2026-07-05
@@ -12,7 +12,7 @@ separate everywhere:
    **`scheduling` covers calendar (12) + contracts (13)** (tentative flag split — open
    item), and **brand identity rides core** (the `cms` flag gates content editing only —
    note 5). A tenant without `wms` never renders the Warehouse nav, regardless of role.
-2. **User role** (set by the tenant's owner/admin in module 03): what a user can do within
+2. **User role** (set by the tenant's owner/admin in module 05): what a user can do within
    the enabled modules.
 
 The **backend is the sole authority** — every endpoint enforces config + role on its own.
@@ -36,7 +36,8 @@ Baseline four, no specialist roles until a real tenant needs one:
 | Calendar (12) | full | full | full | **own visits + swap**⁴ |
 | Contracts (13) | full | full | **draft only**³ | — |
 | Billing | full | full | **draft only**³ | — |
-| CMS + Branding | full⁵ | full⁵ | — | — |
+| Branding (03) | full⁵ | read-only⁵ | — | — |
+| CMS (04) | full⁵ | full⁵ | — | — |
 | WMS | full | full | **operational** (§2.1) | **van + self-checkout** (§2.1) |
 
 1. **Owner protection:** admins cannot edit, delete, or change the role of the `owner`
@@ -56,11 +57,13 @@ Baseline four, no specialist roles until a real tenant needs one:
    write: **swapping a visit currently assigned to them** to another technician (give
    away, never take). All reassignments — staff or swap — go through the same audited,
    append-only assignment history. Detail: `12-calendar.md` §2.
-5. **CMS vs Brand (decided 2026-07-05):** owner + admin edit CMS *content*
-   (`cms_home`, `cms_clients`); the **brand identity editor is owner-only** (admin
-   read-only) — same owner-customization precedent as contract types. Brand is also
-   **core**: it renders even when the tenant `cms` flag is off (it themes the apps and
-   PDFs, not just the website). Detail: `08-cms.md` §1–2.
+5. **Branding vs CMS (decided 2026-07-05):** two separate, independent modules. The
+   **brand identity editor (03) is owner-only** (admin read-only) — same
+   owner-customization precedent as contract types — and **core**: it renders even
+   when the tenant `cms` flag is off (it themes the apps and PDFs, not just the
+   website). CMS *content* (04, `cms_home`/`cms_clients`) is owner + admin, behind the
+   `cms` flag, and **headless** — served API-first; the public site is one consumer.
+   Detail: `03-branding.md` §1 / `04-cms.md` §1.
 
 ### 2.1 WMS action matrix (decided 2026-07-05)
 
@@ -91,10 +94,10 @@ c. **Stock lookup:** search materials, see quantities per warehouse ("does the s
    have this compressor?") — no movement rights, no readjustment visibility needed.
 d. **Audit immutability (decided 2026-07-05):** movement records are **append-only** —
    never edited or deleted, by anyone, ever. Every movement carries a structured
-   `reason` (enum in `09-wms.md` §1); every correction is a new `readjustment` movement
+   `reason` (enum in `10-wms.md` §1); every correction is a new `readjustment` movement
    (`direction: in|out`, reason + notes required, owner/admin only); staff corrections
    to report materials emit compensating readjustments while the original consumption
-   movement stands. Details: `09-wms.md` §1.
+   movement stands. Details: `10-wms.md` §1.
 
 ## 3. How gating is implemented (CSR v1 — decided 2026-07-05)
 
@@ -122,7 +125,7 @@ everything reads from it:
 - Declare `module` + `roles` in route `data` for every routed page.
 - Hide role-forbidden actions with the `hasRole` helper; never disable-only (a disabled
   "Delete" still advertises the capability).
-- Technician-scoped pages (04, 09) reuse the full components with locked filters +
+- Technician-scoped pages (06, 10) reuse the full components with locked filters +
   hidden actions — don't fork variants.
 - Treat every 403 as normal flow (toast + stay), since config/role can change under a
   live session.

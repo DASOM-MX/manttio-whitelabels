@@ -16,7 +16,7 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
 
 ---
 
-## 1. Auth & gating (superadmin plans 02, 10)
+## 1. Auth & gating (superadmin plans 02, 14)
 
 - **Superadmin login** (product users, never the shared token) + **`GET /auth/me` →
   `{ user, role, tenantConfig }`** — the single gating input the superadmin boots on.
@@ -26,11 +26,11 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   `requireRole` call sites, and `users/enums`. **Owner protection:** admins cannot
   edit/delete/re-role the owner or grant `owner`.
 - **Backend is the sole authority**: every endpoint enforces tenant-config *and* role on
-  its own — superadmin rendering/guards are UX only (`superadmin/plans/10` §2 matrix and
+  its own — superadmin rendering/guards are UX only (`superadmin/plans/14` §2 matrix and
   §2.1 WMS action matrix are the binding spec).
 - **Tenant config** arrives via the manager push:
   `modules: { billing, wms, crm, cms, scheduling }` (tentative — `scheduling` covers
-  calendar + contracts; equipment rides core clients; flag split still open in 10).
+  calendar + contracts; equipment rides core clients; flag split still open in 14).
   Push schema also needs a **tenant timezone** field (calendar/date rendering).
 
 ## 2. Cross-cutting invariants (decided 2026-07-05, master plan §4)
@@ -49,35 +49,39 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
 
 ## 3. Module obligations (pointers — detail in the superadmin plan named)
 
-- **customers** (06/07): net-new columns `status`, `source`, `blacklist_reason`,
+- **customers** (07/08): net-new columns `status`, `source`, `blacklist_reason`,
   `next_follow_up_at`, `referred_by_customer_id`, `tags`, fiscal block (CFDI 4.0
   basics), plus a `customer_contacts` table. Dedicated
   `POST /customers/:id/status` transition endpoint (audits + emits a `system`
   interaction). `interactions` endpoints: paged GET, POST **rejecting
   `type: 'system'`** (system entries are backend-emitted only). Optional
   summary figures (last service / totals) for the client 360 header.
-- **cms + brand** (08 — **build first among modules**: whitelabel selling point,
-  prioritized 2026-07-05): `cms_home`/`cms_clients` endpoints with server-side HTML
-  sanitization on write. **Write paths decided 2026-07-05: content is draft→publish**
-  (`GET /cms/home|clients` serve the draft to editors; `POST /cms/:section/publish`
-  copies draft → published; the public site reads published only), **brand is
-  direct-apply** (single row, `PUT` goes live — no draft variant). Plus the **tenant
-  brand object** (decided
-  2026-07-05 — supersedes brand-as-manager-push): name/slogan, `logo`/`logo_dark`/
-  `isologo` R2 keys, contact + social, and **materialized color scales** (primary
-  50–950, surface 0–950 — derived in the editor from two hex picks, stored ready-made
-  so no consumer runs palette math). **`GET /brand` is public/unauthenticated** (login
-  screens + website read it pre-auth; every field is public by nature);
-  **`PUT /cms/brand` is owner-only**. Brand is **core — not gated by the `cms` module
-  flag** (it themes apps + PDFs even without a website). The **pdf and email modules
-  read brand at render time** (isologo, name, primary) — this is the whitelabel-PDF
-  customization hook. Frontend obligation (both apps, this fork): Tailwind palette →
-  CSS variables set from the boot brand fetch, manttio defaults as fallback.
-- **reports** (04): confirm status enum/folio; soft delete with comment; PDF/resend
+- **branding** (03 — **build first among modules**: whitelabel selling point,
+  prioritized 2026-07-05): own module (`modules/brand/`), **separate and independent
+  from cms** (decided 2026-07-05). The tenant brand object (supersedes
+  brand-as-manager-push): name/slogan, `logo`/`logo_dark`/`isologo` R2 keys, contact +
+  social, and **materialized color scales** (primary 50–950, surface 0–950 — derived
+  in the editor from two hex picks, stored ready-made so no consumer runs palette
+  math). **`GET /brand` is public/unauthenticated** (login screens + website read it
+  pre-auth; every field is public by nature); **`PUT /brand` is owner-only** — not
+  under `/cms`. **Direct-apply — no draft variant** (single row, `PUT` goes live).
+  Brand is **core — not gated by the `cms` module flag** (it themes apps + PDFs even
+  without a website). The **pdf and email modules read brand at render time**
+  (isologo, name, primary) — the whitelabel-PDF hook; for tenant-facing rendering this
+  supersedes the static `BRAND_*` wrangler vars. Frontend obligation (both apps, this
+  fork): Tailwind palette → CSS variables set from the boot brand fetch, manttio
+  defaults as fallback.
+- **cms** (04 — first wave alongside 03): **headless content store (decided
+  2026-07-05)** — `cms_home`/`cms_clients` documents served API-first; the tenant's
+  public website is just one consumer, no site-specific coupling. Server-side HTML
+  sanitization on write. **Draft→publish:** `GET /cms/home|clients` serve the draft to
+  editors; `POST /cms/:section/publish` copies draft → published; public reads serve
+  **published only**. Owner + admin, behind the `cms` module flag.
+- **reports** (06): confirm status enum/folio; soft delete with comment; PDF/resend
   as today.
-- **billing** (05): bills + items (`report_id` per item), status flow with
+- **billing** (09): bills + items (`report_id` per item), status flow with
   office-draft / owner-admin-send gating; report on ≤1 non-cancelled bill.
-- **wms** (09): the largest surface — stock endpoints all require a `reason`;
+- **wms** (10): the largest surface — stock endpoints all require a `reason`;
   self-checkout constraints server-enforced; replenishments with backend file parsing
   (`POST /replenishments/parse`, SheetJS-on-Workers CPU check) + R2 evidence;
   movements append-only per §2.
@@ -149,7 +153,7 @@ edits to pushed events are never read back; the next push overwrites.
   timezone field — coordinate with `manttio-manager-backend-plan.md`. Note
   `customers.timezone` (IANA) already exists for report rendering; the tenant-level tz
   is the *default/fallback* (visit times, tenant-wide views), not a replacement.
-- SheetJS `.xlsx` parsing within Workers CPU limits (09) — verify before building
+- SheetJS `.xlsx` parsing within Workers CPU limits (10) — verify before building
   `/replenishments/parse`.
 - Report→visit completion heuristic (12) vs explicit visit pick in the field app
   (upstream change).
@@ -171,9 +175,11 @@ edits to pushed events are never read back; the next push overwrites.
       unlocked)
 
 **Modules** *(each gated by its superadmin plan's checkpoints)*
-- [ ] **cms + brand — first** (prioritized 2026-07-05): content draft→publish
-      endpoints + brand object (public `GET /brand`, owner-only write, materialized
-      scales) + pdf/email render-time brand consumption
+- [ ] **branding — first** (prioritized 2026-07-05): `modules/brand/` — public
+      `GET /brand`, owner-only `PUT /brand`, materialized scales + pdf/email
+      render-time brand consumption
+- [ ] **cms — first wave, alongside branding**: headless content endpoints
+      (draft→publish, sanitize on write, published-only public reads)
 - [ ] customers CRM extensions + contacts + interactions + status transition
 - [ ] billing · wms (incl. replenishments parse + R2 evidence) · equipment ·
       visits/assignments · contracts (activate → visit generation)

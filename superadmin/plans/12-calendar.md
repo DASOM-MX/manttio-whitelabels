@@ -1,6 +1,6 @@
 # 12 — Calendar (scheduled visits)
 
-> **Status:** not-started · **Depends on:** 02 (CP-3), 03 (tech roster), 06 (CP-1)
+> **Status:** not-started · **Depends on:** 02 (CP-3), 05 (tech roster), 07 (CP-1)
 > **Owner:** — · **Last updated:** 2026-07-05
 
 Team scheduling: who goes where, when. Owns the **`ScheduledVisit`** entity (the thing
@@ -8,7 +8,7 @@ contracts in 13 generate, and reports eventually close) and the calendar views w
 **owner/admin/office schedule and reassign, and technicians see the plan and swap their
 own visits** (decided 2026-07-05).
 
-A visit is a *plan*; a report (04) is what *happened*. They link (`reportId` set on
+A visit is a *plan*; a report (06) is what *happened*. They link (`reportId` set on
 completion) but neither replaces the other.
 
 ---
@@ -39,7 +39,7 @@ ScheduledVisit {
   manually by staff; `missed` is manual in v1 (no auto-sweep yet — open decision).
 - Cancelled visits stay visible (struck-through style), never hard-deleted.
 
-## 2. Roles (extends `10-access-control.md` §2)
+## 2. Roles (extends `14-access-control.md` §2)
 
 | Action | owner | admin | office | technician |
 |---|---|---|---|---|
@@ -94,7 +94,7 @@ a. **Tech swap:** a technician can hand off a visit currently assigned to *them*
 - `POST /visits/:id/assign` `{ technicianId }` — the audited reassignment path; backend
   enforces the tech-swap rule (requester is tech ⇒ current assignee must be requester)
 - `POST /visits/:id/status` `{ status }` (complete/miss/cancel)
-- `GET /customers/:id/visits` — upcoming visits on the customer view (06 slot — ask)
+- `GET /customers/:id/visits` — upcoming visits on the customer view (07 slot — ask)
 - `GET /visits/external?from&to` → `ExternalEvent[]` for connected users in range (§7;
   short-cached server-side; title redacted per privacy rule; client matching by
   attendee/organizer email done server-side — the raw attendee list never reaches the
@@ -205,11 +205,11 @@ roles. External chips show full title to their **owner**; other users see "Ocupa
 - Report→visit closing hook: when a report is created for a client with a same-day
   scheduled visit, backend links + completes it — confirm heuristic with backend
   (explicit visit pick in the field app is the clean upstream fix; record as upstream ask).
-- Ask to 06: "upcoming visits" mini-card slot on customer-view.
-- Ask to 03: technician color assignment (per-user color for chips) — nice-to-have,
+- Ask to 07: "upcoming visits" mini-card slot on customer-view.
+- Ask to 05: technician color assignment (per-user color for chips) — nice-to-have,
   can be hash-derived from user id in v1.
 - Does calendar ride a new `scheduling` tenant-config flag (with 13) or ship core?
-  Tentative: **`scheduling` flag** — confirm with the manager push schema (10 open item).
+  Tentative: **`scheduling` flag** — confirm with the manager push schema (14 open item).
 - ~~ICS feed / no integration~~ — **superseded 2026-07-05: Google OAuth is in** (§7):
   one-way push + read-only external overlay, so dates created outside the admin stay
   visible. Two-way write-back remains rejected.
@@ -221,7 +221,7 @@ roles. External chips show full title to their **owner**; other users see "Ocupa
   same organization served separately), so "anyone @hotelx.com" would mis-link across
   branches. Per-branch precision comes from registering each branch's specific contact
   emails on its own client record (`contacts[]`).
-- Should a matched external event optionally log to the client's CRM timeline (07)?
+- Should a matched external event optionally log to the client's CRM timeline (08)?
   Leaning no (it would persist what is otherwise display-only) — revisit on demand.
 - Primary calendar only in v1 — secondary-calendar selection later if asked.
 - Overlay freshness: on-demand fetch per range load + short server cache (assumed

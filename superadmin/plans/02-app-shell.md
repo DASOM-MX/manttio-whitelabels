@@ -20,7 +20,7 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
 - **CSR for now — decided 2026-07-05** (final position after weighing SSR gating). Feature
   blocking by config + role happens client-side via a boot-time `/auth/me` (§3), with the
   backend as the real authority. We **move to SSR later** as client volume grows — the
-  upgrade path and what it changes are recorded in `10-access-control.md` §5; the shell's
+  upgrade path and what it changes are recorded in `14-access-control.md` §5; the shell's
   job now is to keep all gating logic centralized (`access.ts`) so that flip stays
   mechanical.
 - **Strip the SSR scaffold:** remove `@angular/ssr`, `express`, `server.ts`,
@@ -38,7 +38,7 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
   file's live-API override stays local-only (same `skip-worktree` convention as frontend —
   see root `CLAUDE.md`).
 
-## 3. Auth + gating input (see `10-access-control.md`)
+## 3. Auth + gating input (see `14-access-control.md`)
 
 - **JWT in NGXS, frontend parity:** token stored in `AuthState` (persisted), interceptor
   attaches `Authorization`, handles 401 → login redirect. **No frontend JWT decoding** —
@@ -57,11 +57,11 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
 - `AuthenticatedLayout` component: fixed sidebar (desktop) / drawer (mobile) + topbar with
   dark-mode toggle + user menu (logout).
 - Sidebar renders **only the entries `(tenantConfig, role)` allow** — matrix in
-  `10-access-control.md` §2. Full nav (owner/admin): **Dashboard** · **Calendar** ·
+  `14-access-control.md` §2. Full nav (owner/admin): **Dashboard** · **Calendar** ·
   **Users** · **Reports** · **Billing** · **Clients** (nested: All / Leads / Blacklist /
-  Equipment) · **Contracts** · **CMS** (nested: Contenido / Clientes / **Marca** —
-  Marca is owner-only and stays visible when the `cms` flag is off; content entries
-  don't) · **Warehouse**. Technician nav is exactly:
+  Equipment) · **Contracts** · **Marca** (branding — always visible, no config flag;
+  owner edits, admin read-only) · **CMS** (Contenido / Clientes — behind the `cms`
+  flag) · **Warehouse**. Technician nav is exactly:
   **Calendar** (my visits + team read-only) · **My reports** · **My warehouse** ·
   **Stock lookup**.
 - Routes are **lazy per feature** (`loadChildren` per module folder) so module agents ship
@@ -81,7 +81,7 @@ Copy, don't reinvent — keep byte-parity where possible:
   (decided 2026-07-05):** primary + surface scales resolve through **CSS variables** set
   at boot from the public `GET /brand` fetch (manttio values as fallbacks), and the shell
   applies the brand's PrimeNG preset update in the same step — the login screen already
-  shows tenant logo + colors. Brand model + editor: `08-cms.md` §2.
+  shows tenant logo + colors. Brand model + editor: `03-branding.md` §2–4.
 - `src/styles.scss` — global classes (`.field-input`, `.field-label`, `.field-group`,
   `.btn-*`, `.card`, `.card-section`) + html/body bg/text with dark variants.
 - `src/app/theme/manttio-preset.ts` — Aura preset (primary=sky, surface=granite,
@@ -97,7 +97,7 @@ Copy, don't reinvent — keep byte-parity where possible:
 - Global `<p-toast>` + `<p-confirmdialog>` mounted once in the layout.
 - `src/http/` skeleton + a typed `PagedResponse<T>` DTO for all list endpoints.
 - 403 handling: interceptor surfaces a standard toast and stays on page (config/role can
-  change under a live session — `10-access-control.md` §4).
+  change under a live session — `14-access-control.md` §4).
 
 ---
 
@@ -125,8 +125,9 @@ Copy, don't reinvent — keep byte-parity where possible:
 - [ ] `AuthenticatedLayout`: sidebar/topbar, mobile drawer, scroll reset, **nav filtered
       by config + role** (verify technician sees only My reports / My warehouse /
       Stock lookup)
-- [ ] Lazy route stubs for all module areas (users, reports, billing, customers +
-      equipment, contracts, calendar, cms, wms) with `data: { module, roles }` declared
+- [ ] Lazy route stubs for all module areas (branding, cms, users, reports, billing,
+      customers + equipment, contracts, calendar, wms) with `data: { module, roles }`
+      declared
 - [ ] Global toast + confirm dialog mounted; 403 toast handling
 - [ ] `public/_redirects` SPA catch-all
 - [ ] Build green; manual pass: login as each role → nav matches the matrix
@@ -135,7 +136,7 @@ Copy, don't reinvent — keep byte-parity where possible:
 - ~~NGXS-on-Angular-21 compat~~ — **resolved 2026-07-05:** NGXS v21 supports Angular 21;
   pin `@ngxs/*@^21` (see §2).
 - ~~SSR vs CSR~~ — **resolved 2026-07-05: CSR now, SSR when client volume justifies it**
-  (upgrade path in `10-access-control.md` §5).
+  (upgrade path in `14-access-control.md` §5).
 - Backend asks (recorded for backend planning): superadmin login endpoint,
   `GET /auth/me` returning `{ user, role, tenantConfig }`, `role` enum
   `owner|admin|office|technician` on users, per-tenant `modules` config in the manager

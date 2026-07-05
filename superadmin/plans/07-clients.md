@@ -1,4 +1,4 @@
-# 06 — Clients (directory + Mexican invoicing info)
+# 07 — Clients (directory + Mexican invoicing info)
 
 > **Status:** not-started · **Depends on:** 02 (CP-3)
 > **Owner:** — · **Last updated:** 2026-07-05
@@ -6,8 +6,8 @@
 The tenant's client directory. This **is** the product's existing `customers` resource
 (master plan §4: UI says "client", code says `customers`), extended with **basic Mexican
 fiscal (CFDI 4.0) data** for billing, and with CRM fields (status/source/blacklist/
-follow-up date) whose *UI* belongs to module 07 — the customer-field data model is defined
-here once (07's own `Interaction` entity is defined there).
+follow-up date) whose *UI* belongs to module 08 — the customer-field data model is defined
+here once (08's own `Interaction` entity is defined there).
 
 ---
 
@@ -19,13 +19,13 @@ Customer {
   contactName?, email?, phone?, address?,   // primary contact (quick-action target)
   contacts: CustomerContact[],           // additional people (B2B: facility mgr, AP, owner)
   tags: string[],                        // free-form segmentation chips
-  // ---- CRM fields (UI in module 07) ----
+  // ---- CRM fields (UI in module 08) ----
   status: 'active' | 'lead' | 'disabled' | 'blacklisted',
   source: 'facebook' | 'google' | 'referral' | 'website' | 'phonecall'
         | 'personal_meeting' | 'other',
   referredByCustomerId?,                 // set when source = 'referral'
   blacklistReason?,                      // required when status = 'blacklisted'
-  nextFollowUpAt?,                       // follow-up date (07 §3) — no task system in v1
+  nextFollowUpAt?,                       // follow-up date (08 §3) — no task system in v1
   // ---- fiscal (CFDI 4.0 basics) ----
   fiscal?: CustomerFiscal,
   createdAt, updatedAt, deletedAt?
@@ -55,7 +55,7 @@ CustomerFiscal {
 - `GET /customers/:id`
 - `POST /customers` · `PATCH /customers/:id` (fiscal nested or flattened — mirror backend)
 - `DELETE /customers/:id` with `{ deleteComment }` (soft)
-- Status transitions may get a dedicated endpoint (see 07) — confirm with backend.
+- Status transitions may get a dedicated endpoint (see 08) — confirm with backend.
 
 ## 3. Pages & components
 
@@ -74,10 +74,10 @@ CustomerFiscal {
 - `customers/pages/customer-view/` — detail topped by a **client 360 header**: status
   pill, tags, quick-contact actions (07 §2.1), and a summary strip — last service date,
   total jobs, total billed, open follow-up. The report/billing figures are composed from
-  04/05 data and render "—" until those modules land (same placeholder philosophy, but
+  06/09 data and render "—" until those modules land (same placeholder philosophy, but
   the strip itself ships now). Below: general card (incl. contacts list + "referred by" /
   "referred N clients" links), fiscal card, and reserved sections for **CRM** (07: status
-  card + activity timeline) and **Bills** (05). Same placeholder-slot convention as 04.
+  card + activity timeline) and **Bills** (09). Same placeholder-slot convention as 06.
 - `customers/components/delete-customer-dialog/` — shape-3, audit comment.
 
 ## 4. State
@@ -91,7 +91,7 @@ CustomerFiscal {
 
 ## Checkpoints
 
-### CP-1 — Data model + read path *(gate for 05 and 07)*
+### CP-1 — Data model + read path *(gate for 08 and 09)*
 - [ ] DTOs incl. `CustomerFiscal`, `CustomerContact`, tags, referredBy + SAT catalog
       constants + validators
 - [ ] Service + `CustomersState` (list/detail)
@@ -103,7 +103,7 @@ CustomerFiscal {
       rule, tags input, conditional referred-by select)
 - [ ] Delete dialog + toasts
 - [ ] Customer view page: 360 header (summary strip with "—" placeholders, quick-contact
-      buttons wired to 07's composer once it lands) + reserved CRM/Bills slots
+      buttons wired to 08's composer once it lands) + reserved CRM/Bills slots
 
 ### CP-3 — Polish
 - [ ] Referral links on view ("referred by" ↔ "referred N clients")
