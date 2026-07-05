@@ -98,10 +98,49 @@ a. **Tech swap:** a technician can hand off a visit currently assigned to *them*
 
 ## 6. State
 
-- `VisitsState`: `range`, `visits`, `loading`, `selected`. Actions:
-  `LoadVisits(from, to, filters)`, `LoadVisit(id)`, `CreateVisit`, `UpdateVisit`,
-  `AssignVisit(id, technicianId)`, `SetVisitStatus(id, status)`.
+- `VisitsState`: `range`, `visits`, `loading`, `selected`, `feed` (own feed URL).
+  Actions: `LoadVisits(from, to, filters)`, `LoadVisit(id)`, `CreateVisit`,
+  `UpdateVisit`, `AssignVisit(id, technicianId)`, `SetVisitStatus(id, status)`,
+  `LoadCalendarFeed`, `RegenerateCalendarFeed`.
 - `src/http/visits.service.ts`.
+
+## 7. External calendar integration (decided 2026-07-05)
+
+**v1: per-user ICS feed. v2: Google Calendar OAuth one-way push.** Decision rationale:
+Calendar API access requires per-user OAuth (plain API keys only read public calendars;
+service accounts need Workspace orgs our SMB tenants don't have), which drags in a Google
+Cloud project, sensitive-scope app verification (weeks; unverified = 100-user cap +
+7-day refresh-token expiry), refresh-token storage, and a **single-brand consent screen
+across all whitelabel tenants**. None of that is v1-worthy when a feed gets visits onto
+techs' phones with zero credentials.
+
+### 7.1 ICS feed (v1)
+
+- Backend mints a **secret feed token per user**; `GET /calendar-feed/:token.ics` returns
+  the user's visits as iCalendar — **no JWT on this route** (calendar apps can't send
+  headers); the long random revocable token *is* the auth. Regenerating invalidates the
+  old URL.
+- Feed scope mirrors calendar visibility: technicians get **their own** visits;
+  owner/admin/office get all scheduled visits. Cancelled visits excluded.
+- UI: `calendar/components/subscribe-dialog/` — opened from a "Suscríbete desde tu
+  calendario" button on the calendar page: shows the copyable URL, a regenerate action
+  (confirm — old links die), and short instructions for Google Calendar ("Add calendar →
+  From URL"), Apple, Outlook. Sets expectations: **read-only, refreshes on the calendar
+  provider's schedule (Google polls ICS feeds every few hours, up to ~24h)**.
+- Backend asks: feed endpoint + per-user token column (regenerable), ICS rendering
+  (VEVENT per visit, `UID` = visit id so updates replace events), tenant timezone
+  handling for all-day/timed events.
+
+### 7.2 Google OAuth push (v2 — recorded, not planned)
+
+When feed polling delay actually hurts: per-user "Connect Google Calendar" — backend-owned
+OAuth flow (`/integrations/google/connect` → callback → refresh token encrypted in Neon;
+client secret via `wrangler secret`, `calendar.events` scope only), **one-way app→Google**
+(create/update/delete events on visit changes, `extendedProperties.private.visitId` as
+correlation key), plain REST via fetch (no googleapis SDK on Workers). **Two-way sync
+rejected** (watch-channel webhooks + renewal cron + conflict resolution vs the append-only
+assignment audit — cost far exceeds SMB value; the app stays source of truth). Start the
+Cloud project + verification review well before building — the review is the long pole.
 
 ---
 
@@ -128,6 +167,12 @@ a. **Tech swap:** a technician can hand off a visit currently assigned to *them*
 - [ ] Empty states ("nothing scheduled this week"); build green; manual pass: schedule →
       reassign → complete → shows green; unassigned lane filters correctly
 
+### CP-5 — ICS feed (§7.1; blocked on backend feed endpoint)
+- [ ] `LoadCalendarFeed` / `RegenerateCalendarFeed` + service calls
+- [ ] Subscribe dialog (copy URL, regenerate w/ confirm, provider instructions,
+      read-only/polling expectations)
+- [ ] Manual pass: subscribe in Google Calendar → visits appear; regenerate → old URL 410s
+
 ## Open decisions / asks
 - FullCalendar (drag-and-drop) vs staying custom — revisit only on real demand; verify
   Angular 21 + zoneless compat before adopting.
@@ -141,3 +186,10 @@ a. **Tech swap:** a technician can hand off a visit currently assigned to *them*
   can be hash-derived from user id in v1.
 - Does calendar ride a new `scheduling` tenant-config flag (with 13) or ship core?
   Tentative: **`scheduling` flag** — confirm with the manager push schema (10 open item).
+- Feed (§7.1): should staff feeds be filterable per technician (one feed per tech to
+  subscribe separately)? v1 assumes one all-visits feed for staff.
+- Tenant timezone source for ICS rendering — tenant config field? Coordinate with the
+  manager push schema.
+- Whether to start the Google Cloud project + OAuth verification (§7.2) ahead of need —
+  cheap to park in review early; owner's call on branding (consent screen shows one
+  brand for all tenants).
