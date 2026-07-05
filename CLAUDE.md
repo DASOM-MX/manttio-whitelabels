@@ -1,6 +1,6 @@
 # Repo overview
 
-## Project state (as of 2026-07-02)
+## Project state (as of 2026-07-04)
 
 This is the **manttio** monorepo — a small set of independently-deployed apps for the HVAC field-service product, plus the marketing site for the brand it ships under.
 
@@ -50,9 +50,9 @@ Backend is **module-first (NestJS-like)**: `src/` holds only `env.ts`, `index.ts
 
 - `src/index.ts` — Hono app entry + middleware order (composition root; mounts each module's controller).
 - `src/env.ts` — global `Env` bindings + `AuthUser`.
-- `src/modules/<domain>/` — `controllers/` (thin routers) + `services/` (business logic) + `repository/` (Drizzle queries) + `models/` (tables) + `validators/` (zod + inferred inputs) + `dtos/`/`enums/`/`constants/`/`types/`/`templates/`/`utils/`/`middleware/` as needed. Domains: `auth`, `users`, `customers`, `reports`, `upload`.
+- `src/modules/<domain>/` — `controllers/` (thin routers) + `services/` (business logic) + `repository/` (Drizzle queries) + `models/` (tables) + `validators/` (zod + inferred inputs) + `dtos/`/`enums/`/`constants/`/`types/`/`templates/` (markup) / `helpers/` (renderers) / `http-errors/`/`utils/`/`middleware/` as needed. Domains: `auth`, `users`, `customers`, `reports`, `upload`.
 - `src/modules/database/` — Drizzle `client.ts`, `schema.ts` (barrel: re-exports every model + holds all `relations()`), `db-errors.ts`.
-- `src/modules/storage/` — R2 `storage.service.ts` + `form-data` utils. `src/modules/email/` — generic `sendEmail` transport (Resend).
+- `src/modules/storage/` — R2 `storage.service.ts` + `form-data` utils. `src/modules/email/` — generic `sendEmail` transport (Resend). `src/modules/pdf/` — generic pdf-lib toolkit (report layout stays in `reports/helpers/`).
 - `drizzle/migrations/` — generated SQL; live DB current through `0008`. `drizzle.config.ts` reads the `modules/database/schema.ts` barrel.
 - `test/` — Vitest hits the **live Neon DB**, don't run casually.
 

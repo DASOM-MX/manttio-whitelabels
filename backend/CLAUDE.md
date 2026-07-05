@@ -1,6 +1,6 @@
 # API rules
 
-## Project state (as of 2026-07-02)
+## Project state (as of 2026-07-04)
 - **Cloudflare Workers** (Wrangler v4) running **Hono 4** in TypeScript. Entry: `src/index.ts`, deployed as `manttio-api`. `compatibility_flags = ["nodejs_compat"]` so we can use `bcryptjs` and a few Node-flavored libs.
 - **Postgres** on **Neon** via `@neondatabase/serverless`'s **WebSocket driver** (not neon-http) — chosen for real transactions (the create-report flow updates a counter + a header row + N detail rows atomically). Live DB is current through migration `0008` (`deleted_by` on users).
 - **Drizzle ORM** for the schema (`src/modules/database/schema.ts` barrel + per-module `models/*.model.ts`) and queries (`src/modules/<resource>/repository/*`). Migrations live in `drizzle/migrations/` and are run via `drizzle-kit` (see `db:*` scripts).
@@ -15,7 +15,7 @@
 `src/` holds only `env.ts` (global bindings + `AuthUser`), `index.ts` (composition root), and `modules/`. **All logic for a domain lives under its own module.** No top-level `routes/`, `db/`, `lib/`, `middleware/`, or `validators/` — those were removed in the modular refactor.
 
 - **Domain modules:** `auth/`, `users/`, `customers/`, `reports/`, `upload/`.
-- **Cross-cutting modules (not junk drawers):** `database/` (Drizzle client + schema barrel + `db-errors`), `storage/` (R2 service + form-data utils), `email/` (generic Resend transport).
+- **Cross-cutting modules (not junk drawers; must be generic/reusable):** `database/` (Drizzle client + schema barrel + `db-errors`), `storage/` (R2 service + form-data utils), `email/` (generic Resend transport), `pdf/` (generic pdf-lib toolkit — page setup, tables/rows/cells, section headers, image grid, image embedding, default theme). Domain composition that *uses* a cross-cutting module stays in the domain module (e.g. the report PDF **layout** lives in `reports/helpers/report-pdf.helpers.ts` and calls the `pdf/` toolkit — same split as `email/` transport vs `reports/` email composition).
 - **Per-module folders (create only what a module needs):**
   - `controllers/*.controller.ts` — the thin Hono router (validate → service → respond).
   - `services/*.service.ts` — business logic / orchestration.
@@ -24,10 +24,12 @@
   - `validators/*.validator.ts` — zod request schemas **+ their `z.infer` input types**.
   - `dtos/*.dto.ts` — output/response shapes with no zod equivalent (only `users/` has one: `PublicUser`).
   - `enums/*.enum.ts` — literal unions + value arrays (`Role`, `WorkType`, `ReportType`, `ReportStatus`).
-  - `constants/*.ts` — fixed values / reference data (e.g. `customers/constants/timezones.ts`).
+  - `constants/*.ts` — fixed values / reference data (e.g. `customers/constants/timezones.ts`). Plain values only — **not** markup.
   - `types/*.types.ts` — internal TS types (DB row aliases, service/filter params).
-  - `templates/*.template.ts` — pdf / email renderers.
-  - `utils/*.ts` — pure helpers (id gen, tokens, lifecycle predicates).
+  - `templates/*` — static markup assets that a helper renders (e.g. the report-email HTML in `reports/templates/report-email.html.ts`). Markup lives here, never inline in a renderer.
+  - `helpers/*.helpers.ts` — domain renderer/formatter functions that fill `templates/` or format data (e.g. the report PDF/email/label renderers in `reports/helpers/`).
+  - `http-errors/*.error.ts` — custom error classes a controller maps to an HTTP status (e.g. `NotAnImageError` → 415); services `throw`, the controller catches + translates.
+  - `utils/*.ts` — small generic pure helpers (id gen, tokens, lifecycle/access predicates).
   - `middleware/*.middleware.ts` — Hono middleware; **`auth/` only** (jwt + roles).
 - **Schema barrel:** each `models/*.model.ts` defines only its tables (acyclic FK imports); **all `relations()` live in `modules/database/schema.ts`** to avoid circular model imports. `drizzle.config.ts` and `database/client.ts` read the barrel.
 
@@ -63,7 +65,8 @@
 - Multipart form-data: parse via `c.req.formData()` and pull fields with the helpers in `src/modules/storage/utils/form-data.ts` (`fdGet`, `fdGetAll`, `isFile`) — they handle the `FormDataEntryValue` union cleanly.
 
 ## Email + PDF
-- Outbound only. The PDF is generated server-side via `pdf-lib` (`modules/reports/templates/report-pdf.template.ts`), the HTML body via `modules/reports/templates/report-email.template.ts`, then dispatched through `modules/reports/services/report-email.service.ts` (`dispatchReportEmail`), which calls the generic transport `modules/email/services/email.service.ts` (`sendEmail`, provider-swappable Resend wrapper).
+- Outbound only. The PDF is generated server-side via `pdf-lib`: the generic drawing toolkit lives in `modules/pdf/` (`services/pdf.service.ts` + `constants/pdf-layout.ts` + `types/pdf.types.ts`), and the report **document layout** that composes it is `modules/reports/helpers/report-pdf.helpers.ts`. The email HTML markup lives in `modules/reports/templates/report-email.html.ts`, filled by the renderer `modules/reports/helpers/report-email.helpers.ts`, then dispatched through `modules/reports/services/report-email.service.ts` (`dispatchReportEmail`), which calls the generic transport `modules/email/services/email.service.ts` (`sendEmail`, provider-swappable Resend wrapper).
+- **Whitelabel note:** the theme colors in `modules/pdf/constants/pdf-layout.ts` are the seam where per-client PDF customization will land; keep new document types composing the `pdf/` toolkit rather than re-implementing drawing.
 - `report-email.service` sends a `/reports/download/{token}` link backed by a row in `report_emails` with a high-entropy token (`modules/reports/utils/access-token.ts`), expiry, and revoke flag. The download route is the only path the JWT middleware whitelists.
 - Brand strings (`BRAND_NAME`, `BRAND_SITE_URL`, `BRAND_LOGO_URL`, `RESEND_FROM`) come from `wrangler.toml` (`[vars]` + `[env.production.vars]`). Add new brand-ish values there, not hardcoded.
 - The Resend wrapper is intentionally fetch-based (no `@resend/sdk`) to keep the Worker bundle small. Errors throw — the caller decides whether to roll back the `report_emails` row, surface the failure, or just log.
