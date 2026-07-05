@@ -139,10 +139,14 @@ shape 3 fits.
 - **anime.js only**, and only as an animation tool. No CSS keyframes, no Angular
   animations, no other libs unless explicitly requested.
 
-## Auth
+## Auth + access
 
-- JWT lives in NGXS; **guards check token presence only** (no frontend JWT decoding); the
-  HTTP interceptor handles 401s; the backend is the sole authority on validity.
+- JWT lives in NGXS (frontend parity); **no frontend JWT decoding** — the HTTP interceptor
+  handles 401s; the backend is the sole authority on validity.
+- Role/config gating reads **only** from the `/auth/me` payload in `AuthState`, through
+  the shared `access.ts` helpers (`hasRole`, `hasModule`) and route
+  `data: { module, roles }`. Never duplicate matrix logic in components — see
+  `10-access-control.md` (binding for all modules).
 
 ## Folder + code layout (mirrors frontend)
 

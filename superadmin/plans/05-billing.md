@@ -33,6 +33,9 @@ BillItem {
 ```
 
 Rules:
+- **Role gating** (`10-access-control.md` §2, decided 2026-07-05): **office creates/edits
+  drafts** (incl. the bill-by-report picker); `send` / `mark paid` / `cancel` render only
+  for owner/admin (`hasRole` `@if`s on the status action buttons). Backend enforces.
 - A report can appear on **at most one non-cancelled bill** (backend enforces; UI filters
   already-billed reports out of the picker).
 - `status` transitions: draft → sent → paid; draft/sent → cancelled; overdue is
@@ -84,6 +87,7 @@ Rules:
 - [ ] Bill form with FormArray items + live totals
 - [ ] Billable-reports picker dialog (multi-select → items)
 - [ ] Draft-only edit/delete guards in UI
+- [ ] Role gating: status actions owner/admin-only; office sees draft flows only
 
 ### CP-3 — Integration + polish
 - [ ] Billing card in 04's report-view slot

@@ -13,12 +13,16 @@ frontend's `users/` feature — reuse its shapes, don't redesign them.
 ```
 User {
   id, name, email, phone?,
-  role: 'admin' | 'technician' | 'office',   // confirm enum against backend users module
+  role: 'owner' | 'admin' | 'office' | 'technician',   // decided — 10-access-control.md §1
   active: boolean,
   createdAt, updatedAt,
   deletedAt?, deleteComment?, deletedBy?     // soft-delete audit trail (backend convention)
 }
 ```
+
+**Owner protection** (`10-access-control.md` §2 note 1): admins cannot edit/delete the
+`owner` account or grant/change the `owner` role — hide those row actions and exclude
+`owner` from the role select for non-owners; backend enforces.
 
 WMS link (module 09): a technician can have an **assigned warehouse** (their van/mobile
 stock). That assignment is owned by module 09 — this module only *shows* it read-only on
@@ -70,6 +74,8 @@ the user detail once 09 lands.
       from list
 
 ## Open decisions / asks
-- Role enum: confirm exact values with backend `users` module before CP-1.
+- ~~Role enum~~ — **resolved 2026-07-05:** `owner|admin|office|technician`
+  (`10-access-control.md`); backend migration of the existing role column is a backend
+  ask.
 - New-user credential flow: invite email vs admin-set temporary password.
 - Restore endpoint for soft-deleted users: in or out for v1?

@@ -8,6 +8,12 @@ catalog (serialized / unserialized), stock, **technician-assigned warehouses**, 
 **material tracking attached to reports**. The largest module — its checkpoints are
 deliberately smaller slices.
 
+**Roles** (`10-access-control.md` §2): owner/admin full; office read-only (stock lookup —
+default, adjustable); **technician** gets a **"My warehouse"** route — their assigned
+warehouse's `warehouse-view` + their consumption history, read-only (no node edits, no
+transfers, no inbound). Reuse components with hidden actions; don't fork variants. Module
+is behind the tenant `wms` config flag.
+
 ---
 
 ## 1. Data model (DTO view)
@@ -140,9 +146,11 @@ ReportMaterial {                          // a report MAY have zero of these
 - [ ] Movements history on material view
 - [ ] Technician assignment dialog on warehouses list; read-only badge handshake with 03
 
-### CP-5 — Report material tracking + polish
+### CP-5 — Report material tracking + roles + polish
 - [ ] `report-materials-editor` in 04's slot (add/edit/remove, source defaulting)
 - [ ] Consumption reflected in stock (backend does the math; UI refreshes)
+- [ ] "My warehouse" technician route (read-only) + office read-only gating; route
+      `data` declared on all pages
 - [ ] Dark-mode audit; empty/loading/error states everywhere
 - [ ] Build green; manual pass: create warehouse + sub + rack/box → inbound 10 pza + 2
       serials → transfer to tech van → attach to report → stock decremented

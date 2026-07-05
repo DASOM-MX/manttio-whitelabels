@@ -12,7 +12,9 @@ carried over.
 
 ## 1. Permissions (default — adjustable)
 
-- **Client can edit:** `cms_home`, `cms_clients`.
+- **Roles (decided 2026-07-05):** `owner` + `admin` edit `cms_home`, `cms_clients`;
+  office and technician have no CMS access (`10-access-control.md` §2). The module is
+  also behind the tenant `cms` config flag.
 - **Brand:** read-only by default (whitelabel identity is set by *us* via the manager
   push). Flipping to client-editable is a one-line policy choice on the backend's write
   authz — the UI ships the editor behind that flag either way.

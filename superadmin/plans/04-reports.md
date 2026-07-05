@@ -8,6 +8,11 @@ administers** reports; it does not author them (capture stays in `frontend/`). R
 the anchor for billing (05: bill-by-report) and material tracking (09: materials consumed
 per report).
 
+**Roles** (`10-access-control.md` §2): owner/admin full, office manage. **Technician** gets
+the same list + view pages as a **"My reports"** route — pre-filtered to their own reports
+(backend scopes the query), read-only (no delete/resend actions rendered). Reuse the
+components with locked filters + hidden actions; don't fork variants.
+
 ---
 
 ## 1. Data model (DTO view)
@@ -68,10 +73,12 @@ ReportDetail = ReportSummary + {
 - [ ] Placeholder regions for billing (05) + materials (09) marked in template comments
 - [ ] Delete dialog + toasts
 
-### CP-3 — Polish
+### CP-3 — Roles + polish
+- [ ] "My reports" technician route (locked filter, actions hidden) + route `data`
+      declared on all pages
 - [ ] Dark-mode audit; empty/loading/error states
 - [ ] Build green; manual pass: filter by client + date → open report → download PDF →
-      delete
+      delete; as technician: only own reports, no destructive actions
 
 ## Open decisions / asks
 - Status enum + folio field: confirm against backend `reports` module before CP-1.

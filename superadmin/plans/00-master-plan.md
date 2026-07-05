@@ -26,6 +26,7 @@ then its own file, and touches no other module's code.
 | 07 | `07-crm.md` | Light CRM: status, source, blacklist | 06 |
 | 08 | `08-cms.md` | Webpage CMS (home + clients sections, brand view) | 02 |
 | 09 | `09-wms.md` | Warehouse management: locations, materials, technician stock, report material tracking | 02, 03, 04 |
+| 10 | `10-access-control.md` | Roles + tenant-config gating matrix (reference, binding for all modules) | — |
 
 Build order: **01 → 02** are prerequisites for everything. After 02 lands, **03, 04, 06, 08**
 can run in parallel (independent agents). **07** starts after 06's data model checkpoint;
@@ -77,6 +78,7 @@ Rules for agents:
 | 07 crm | not-started | — |
 | 08 cms | not-started | — |
 | 09 wms | not-started | — |
+| 10 access-control | done (doc) | — |
 
 *(Owning agents update their row when they update their file's status header.)*
 
@@ -87,8 +89,14 @@ Rules for agents:
 - **Stack parity with `frontend/`:** Tailwind 3.4, PrimeNG Aura + manttio preset, NGXS
   (**decided 2026-07-05** — `@ngxs/*@^21` on Angular 21, compat verified), standalone +
   signals, zoneless. Details + porting tasks in `01-conventions.md` and `02-app-shell.md`.
-- **SSR:** dropped. This is an authed admin — no SEO surface. `02-app-shell.md` owns the
-  removal.
+- **Rendering: CSR now, SSR later — decided 2026-07-05.** Feature blocking by tenant
+  config + user role ships client-side (boot-time `/auth/me`, centralized `access.ts`);
+  the SSR move happens when client volume justifies it and is confined to the shell —
+  upgrade path in `10-access-control.md` §5.
+- **Roles — decided 2026-07-05:** baseline four (`owner`, `admin`, `office`,
+  `technician`), full access matrix in `10-access-control.md` §2. Every module declares
+  route `data: { module, roles }` and hides forbidden actions via the shared `hasRole`
+  helper.
 - **Soft deletes everywhere** user-facing (matches backend convention). Delete dialogs follow
   the `delete-user-dialog` canonical shape (audit comment + typed confirmation).
 - **Client vs customer naming:** the product's existing `customers` resource **is** the

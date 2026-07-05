@@ -1,0 +1,99 @@
+# 10 — Access control (roles + config gating)
+
+> **Status:** done (doc — implementation tasks live in `02-app-shell.md` and each module's
+> checklists) · **Last updated:** 2026-07-05
+
+Reference doc, binding for all module agents. Gating is **two-dimensional**; keep the axes
+separate everywhere:
+
+1. **Tenant config** (set by *us* via the manager push): which modules this tenant's
+   instance even has. `modules: { billing, wms, crm, cms }` — users, reports, and clients
+   are core and always on. A tenant without `wms` never renders the Warehouse nav,
+   regardless of role.
+2. **User role** (set by the tenant's owner/admin in module 03): what a user can do within
+   the enabled modules.
+
+The **backend is the sole authority** — every endpoint enforces config + role on its own.
+Everything in this doc about rendering/guards is UX and bundle hygiene, not security.
+
+---
+
+## 1. Roles (v1 — decided 2026-07-05)
+
+Baseline four, no specialist roles until a real tenant needs one:
+`'owner' | 'admin' | 'office' | 'technician'`
+
+## 2. Access matrix
+
+| Module | owner | admin | office | technician |
+|---|---|---|---|---|
+| Users | full | full¹ | — | — |
+| Reports | full | full | manage | **read own**² |
+| Clients + CRM | full | full | full | — |
+| Billing | full | full | **draft only**³ | — |
+| CMS | full | full | — | — |
+| WMS | full | full | read-only⁴ | **read own warehouse**² |
+
+1. **Owner protection:** admins cannot edit, delete, or change the role of the `owner`
+   account, and cannot grant `owner`. UI hides those actions; backend enforces.
+2. **Technician scope (decided 2026-07-05):** technicians *can* log into superadmin, but
+   see exactly two read-only areas — **My reports** (their own reports, no
+   delete/resend) and **My warehouse** (their assigned warehouse's stock + their
+   consumption history, no edits/transfers). Backend scopes the queries; the UI is the
+   same list/view components pre-filtered and with actions hidden.
+3. **Billing (decided 2026-07-05):** office creates/edits **draft** bills (incl. the
+   bill-by-report picker); `send` / `mark paid` / `cancel` are owner/admin actions.
+4. Office-WMS read-only (stock lookup) is a **default, not a decision** — flip to `—` or
+   fuller access when real usage says so.
+
+## 3. How gating is implemented (CSR v1 — decided 2026-07-05)
+
+Superadmin ships **CSR** (SSR comes later, §5). The gating input is fetched once and
+everything reads from it:
+
+- **`GET /auth/me` → `{ user, role, tenantConfig }`** — fetched after login and on app
+  boot when a token exists; stored in `AuthState`. The shell shows a splash until it
+  resolves; no gated UI renders from stale/absent data.
+- **`access.ts` (single source):** the matrix above as data, plus `hasRole` / `hasModule`
+  helpers. Route `data`, the nav filter, and in-page `@if`s all consume it — matrix logic
+  is never duplicated in components.
+- **Routing:** every routed page declares `data: { module: 'billing', roles: [...] }`;
+  one central `canMatch` guard evaluates it against `AuthState`. Blocked modules never
+  match, so their lazy bundles are never requested.
+- **Nav:** sidebar builds from the same route/access data — a user never sees an entry
+  the guard would reject.
+- **In-page gating** (e.g. hiding "Mark paid" from office) is plain `@if` on the
+  `hasRole(...)` helper.
+- Auth transport stays **frontend-parity**: JWT in `AuthState`, interceptor attaches the
+  header, no frontend JWT decoding — role comes from `/auth/me`, never from the token.
+
+## 4. Module agent obligations
+
+- Declare `module` + `roles` in route `data` for every routed page.
+- Hide role-forbidden actions with the `hasRole` helper; never disable-only (a disabled
+  "Delete" still advertises the capability).
+- Technician-scoped pages (04, 09) reuse the full components with locked filters +
+  hidden actions — don't fork variants.
+- Treat every 403 as normal flow (toast + stay), since config/role can change under a
+  live session.
+
+## 5. Future SSR upgrade (when client volume justifies it)
+
+Deliberately deferred (2026-07-05). When we flip, the changes are confined to the shell:
+
+- `ng add @angular/ssr` re-scaffolds the server; hosting moves from Pages static to a
+  Workers SSR handler.
+- Auth moves from localStorage JWT to an **httpOnly cookie session** so the server can
+  resolve `/auth/me` per request; result reaches the client via `TransferState` instead
+  of a boot fetch.
+- Server-side, nav/route availability is computed before render — gated modules stop
+  shipping any markup or bundle references at all.
+- **What doesn't change:** the matrix, `access.ts`, route `data` declarations, the
+  `canMatch` guard, in-page `hasRole` gating, and backend authority. That invariance is
+  why gating must stay centralized — module agents who follow §4 need zero changes for
+  the SSR move.
+
+## Open items
+- Office-WMS default (read-only) — revisit post-v1.
+- Whether `crm` is really a separate config flag or rides with core clients — confirm
+  when the manager push schema is defined.
