@@ -18,7 +18,11 @@ domain lives under its own module. Improves readability and consistency across m
 - **Thin controllers**: parse/validate → call a service → respond. All orchestration and
   business rules move into `services/`.
 - **Cross-cutting concerns also become modules** (no `core/`/`shared/`/`common/` junk drawer) —
-  `database/`, `storage/`, `email/`. Micro-utilities fold into the domain module that owns them.
+  `database/`, `storage/`, `email/`, `pdf/`. Micro-utilities fold into the domain module that owns
+  them. A cross-cutting module must be **generic/reusable** (domain-agnostic); domain composition
+  that *uses* it stays in the domain module (e.g. the `pdf/` toolkit draws tables/rows/images, while
+  the report document layout stays in `reports/helpers/report-pdf.helpers.ts` and calls it — same
+  split as `email/` transport vs `reports/` email composition).
 - **Generic, reusable email transport** lives in its own `email/` module (`sendEmail` over Resend,
   provider-swappable). Report-specific email composition (bodies, tokens, send-log) stays in the
   `reports/` module and *calls* the `email/` service.
@@ -38,6 +42,14 @@ domain lives under its own module. Improves readability and consistency across m
   timezone list in `customers/constants/timezones.ts`). An `enum/` is a closed union that also drives
   a TS type; a `constant/` is just a value (or table of values). Added only to modules that have such
   data.
+- **`templates/` holds the static template asset (the markup), `helpers/` holds the renderer/
+  formatter functions.** The template is *what* gets rendered (e.g. the report-email HTML markup +
+  escaping in `reports/templates/report-email.html.ts`); the helper is *how* — it computes the
+  display values and fills the template (`reports/helpers/report-email.helpers.ts`). **HTML/markup
+  blobs never sit inline in a helper** — they live in `templates/` and the helper delegates to them.
+  A renderer with no separate markup asset (e.g. the pdf-lib drawing code) is a helper with no
+  matching template. `helpers/` files use the `.helpers.ts` suffix; they differ from `utils/` (small
+  generic pure utilities) by being domain output renderers/formatters.
 - **`types/` holds internal TS types** that are none of the above — DB row aliases
   (`$inferSelect`/`$inferInsert` like `UserRow`, `ReportRow`) and service/repository param & filter
   types (`ReportFilters`, `UpdateUserFields`, `SignedLocation`).
@@ -45,7 +57,7 @@ domain lives under its own module. Improves readability and consistency across m
   class per file (e.g. `NotAnImageError` → 415). Services `throw` them; the controller catches and
   translates (`instanceof` → `c.json`). Added only to modules that need a typed, HTTP-mapped error.
 - **Create only the folders a module needs** — not every module has `enums/`, `templates/`,
-  `models/`, `http-errors/`, or `middleware/`. No empty folders.
+  `helpers/`, `models/`, `http-errors/`, or `middleware/`. No empty folders.
 - **`middleware/` only where necessary** — not part of the standard anatomy. A module gets one only
   if it actually provides Hono middleware. Today that is **only `auth/`** (jwt + roles). There is no
   top-level `middleware/`.
@@ -99,12 +111,14 @@ src/
       # no dtos/ — endpoints return report rows / joined {report,details} as-is
       enums/reports.enum.ts                # WorkType/ReportType/ReportStatus + value arrays
       types/reports.types.ts              # ReportRow/ReportDetailRow/NewReport aliases, ReportFilters, SignedLocation
-      templates/report-pdf.template.ts    # (was lib/pdf.ts)
-      templates/report-email.template.ts  # (was lib/email-template.ts)
-      templates/report-labels.ts          # Spanish field labels (was lib/report-labels.ts)
+      templates/report-email.html.ts      # report-email HTML markup + escaping (the template asset)
+      helpers/report-pdf.helpers.ts        # report document LAYOUT; composes the pdf/ toolkit (was lib/pdf.ts)
+      helpers/report-email.helpers.ts      # computes values, fills templates/report-email.html.ts (was lib/email-template.ts)
+      helpers/report-labels.helpers.ts     # Spanish field labels + formatters (was lib/report-labels.ts)
       utils/report-id.ts                  # (was lib/report-id.ts)
       utils/access-token.ts               # (was lib/access-token.ts)
       utils/report-lifecycle.ts           # isEditableStatus/isFinishedOrMailed (was lib/report-lifecycle.ts)
+      utils/report-access.ts              # canAccess predicate (admin | own assigned report)
     upload/
       controllers/upload.controller.ts
       services/upload.service.ts
@@ -112,6 +126,10 @@ src/
     email/                                # reusable transport
       services/email.service.ts           # sendEmail over Resend, swappable (was lib/resend.ts)
       types/email.types.ts                # ResendSendParams etc.
+    pdf/                                  # generic PDF toolkit (domain-agnostic; reusable)
+      services/pdf.service.ts             # createRenderer + tables/rows/section headers/image grid/image embed
+      constants/pdf-layout.ts             # page geometry + default theme colors (whitelabel-parameterizable later)
+      types/pdf.types.ts                  # Cell, Renderer
     storage/                              # R2 + multipart helpers
       services/storage.service.ts         # (was lib/r2.ts)
       utils/form-data.ts                  # fdGet/fdGetAll/isFile (was lib/form-data.ts)
@@ -138,8 +156,9 @@ src/
 | `constants/` | plain `.ts` | fixed values / reference data (timezone list + default) |
 | `http-errors/` | `.error.ts` | custom error classes a controller maps to an HTTP status (`NotAnImageError` → 415) |
 | `types/` | `.types.ts` | internal TS types (DB row aliases, service/filter params) |
-| `templates/` | `.template.ts` | pdf / email renderers |
-| `utils/` | plain `.ts` | pure helpers (id gen, tokens, lifecycle predicates) |
+| `templates/` | content suffix (e.g. `.html.ts`) | static template asset / markup that a helper renders (report-email HTML) |
+| `helpers/` | `.helpers.ts` | domain renderer/formatter functions (pdf / email / label renderers) |
+| `utils/` | plain `.ts` | small generic pure helpers (id gen, tokens, lifecycle predicates) |
 | `middleware/` | `.middleware.ts` | Hono middleware — **`auth/` only** |
 
 > `models/` (DB tables) and `validators/` (zod) are deliberately separate so "schema" never refers
@@ -220,9 +239,9 @@ src/
 | `lib/report-id.ts` | `modules/reports/utils/report-id.ts` |
 | `lib/access-token.ts` | `modules/reports/utils/access-token.ts` |
 | `lib/dispatch-email.ts` | `modules/reports/services/report-email.service.ts` |
-| `lib/email-template.ts` | `modules/reports/templates/report-email.template.ts` |
-| `lib/pdf.ts` | `modules/reports/templates/report-pdf.template.ts` |
-| `lib/report-labels.ts` | `modules/reports/templates/report-labels.ts` |
+| `lib/email-template.ts` | `modules/reports/helpers/report-email.helpers.ts` (+ `templates/report-email.html.ts` for the markup) |
+| `lib/pdf.ts` | split: generic toolkit → `modules/pdf/` (service + constants + types); report layout → `modules/reports/helpers/report-pdf.helpers.ts` |
+| `lib/report-labels.ts` | `modules/reports/helpers/report-labels.helpers.ts` |
 
 **Consumers to update (imports only):**
 - `test/*.test.ts` + `test/helpers/*` — import `../../src/db/*`, `../../src/lib/*`,
@@ -294,16 +313,36 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
 - [x] **GATE:** `pnpm typecheck` clean.
 
 ### Phase 7 — `reports` module (largest)
-- [ ] repositories (`reports`, `report-emails`), models (`reports`, `report-emails`), validators
+- [x] repositories (`reports`, `report-emails`), models (`reports`, `report-emails`), validators
       (`reports`, `reports-routes`, `report-email`) — **incl. inferred inputs + `*Data` shapes**,
-      `enums/reports.enum.ts` (`WorkType`/`ReportType`/`ReportStatus`), `types/reports.types.ts`
-      (row aliases, `ReportFilters`, `SignedLocation`), utils (`report-id`, `access-token`,
-      `report-lifecycle`), templates (`report-pdf`, `report-email`, `report-labels`) moved.
-      **No `dtos/`** — endpoints return rows / `{report,details}` as-is.
-- [ ] `report-email.service.ts` (was `dispatch-email`) calls `email.service` + reports/users/customers repos.
-- [ ] `reports.service.ts` holds create/patch/sign/pictures/list/delete orchestration + R2 cleanup helpers.
-- [ ] `reports.controller.ts` thin: validate → service → respond; `/download/:token`, `/:id/email`,
-      history, revoke preserved.
+      `enums/reports.enum.ts` (`workTypes`/`WorkType`, `reportTypes`/`ReportType`,
+      `REPORT_STATUSES`/`ReportStatus`), `types/reports.types.ts` (row aliases, `ReportFilters`,
+      `SignedLocation`), utils (`report-id`, `access-token`, `report-lifecycle`, `report-access`),
+      templates (`report-pdf`, `report-email`, `report-labels`) moved. **No `dtos/`** — endpoints
+      return rows / `{report,details}` as-is. `reports.model` repointed to import `WorkType` from the enum.
+- [x] `report-email.service.ts` (was `dispatch-email`) calls `email.service` + reports/users/customers repos.
+- [x] `reports.service.ts` holds create/patch/sign/pictures/list/delete/email orchestration + R2
+      upload/cleanup + PDF-for-token assembly; returns `{ status, body }` results the controller relays.
+- [x] `reports.controller.ts` thin: validate → service → `c.json(body, status)`; `/download/:token`,
+      `/:id/email`, history, revoke, editable-gate error precedence preserved.
+- [x] Review follow-up: the pure `canAccess` authorization predicate moved from `reports.service`
+      into `utils/report-access.ts` (alongside the other pure predicates). No `http-errors/` folder —
+      reports has no controller-mapped typed error classes (it uses `{ status, body }` results; the
+      `throw new Error(...)` cases are internal invariants → 500).
+- [x] Review follow-up: split the rendering layer into `templates/` (markup) + `helpers/` (functions).
+      The renderer functions moved `templates/*.template.ts` → `helpers/*.helpers.ts`
+      (`report-pdf`, `report-email`, `report-labels`); the report-email HTML markup + escaping lives
+      in `templates/report-email.html.ts`, which `helpers/report-email.helpers.ts` fills. Convention:
+      HTML/markup templates live in `templates/`, renderers/formatters in `helpers/` (`.helpers.ts`).
+- [x] Review follow-up: extracted the **generic PDF toolkit** into a new cross-cutting `pdf/` module
+      (`services/pdf.service.ts` — createRenderer + tables/rows/section headers/image grid/image embed;
+      `constants/pdf-layout.ts` — geometry + default theme; `types/pdf.types.ts` — `Cell`/`Renderer`).
+      `reports/helpers/report-pdf.helpers.ts` keeps only the report document layout and composes the
+      toolkit. Enables reuse + eventual whitelabel/per-client PDF customization. Output byte-identical.
+- [x] Re-export shims left at all 13 old paths (routes/reports, db/repositories/{reports,report-emails},
+      validators/{reports,reports-routes,email}, lib/{dispatch-email,email-template,pdf,report-labels,
+      report-id,access-token,report-lifecycle}). Removed in Phase 10.
+- [x] **GATE:** `pnpm typecheck` clean · `pnpm db:generate` → "No schema changes, nothing to migrate".
 
 ### Phase 8 — Bootstrap
 - [ ] `src/index.ts` imports controllers from `modules/*/controllers` + `jwtMiddleware` from

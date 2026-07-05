@@ -11,7 +11,7 @@ import {
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
-import type { WorkType } from '../../../validators/reports';
+import type { WorkType } from '../enums/reports.enum';
 import { users } from '../../users/models/users.model';
 import { customers } from '../../customers/models/customers.model';
 
@@ -60,7 +60,7 @@ export const reports = pgTable(
       'reports_status_check',
       sql`${table.status} in ('created', 'in-progress', 'finished', 'mailed')`,
     ),
-    // Keep these literals in sync with `workTypes` in validators/reports.ts.
+    // Keep these literals in sync with `workTypes` in enums/reports.enum.ts.
     check(
       'reports_work_type_check',
       sql`${table.workType} is null or ${table.workType} in ('Preventivo', 'Correctivo', 'Instalación')`,
