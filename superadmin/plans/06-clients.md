@@ -1,0 +1,101 @@
+# 06 — Clients (directory + Mexican invoicing info)
+
+> **Status:** not-started · **Depends on:** 02 (CP-3)
+> **Owner:** — · **Last updated:** 2026-07-05
+
+The tenant's client directory. This **is** the product's existing `customers` resource
+(master plan §4: UI says "client", code says `customers`), extended with **basic Mexican
+fiscal (CFDI 4.0) data** for billing, and with CRM fields (status/source/blacklist) whose
+*UI* belongs to module 07 — the data model is defined here once.
+
+---
+
+## 1. Data model (DTO view)
+
+```
+Customer {
+  id, name,                              // display/commercial name
+  contactName?, email?, phone?, address?,
+  // ---- CRM fields (UI in module 07) ----
+  status: 'active' | 'lead' | 'disabled' | 'blacklisted',
+  source: 'facebook' | 'google' | 'referral' | 'website' | 'phonecall'
+        | 'personal_meeting' | 'other',
+  blacklistReason?,                      // required when status = 'blacklisted'
+  // ---- fiscal (CFDI 4.0 basics) ----
+  fiscal?: CustomerFiscal,
+  createdAt, updatedAt, deletedAt?
+}
+CustomerFiscal {
+  rfc,                                   // 12 (moral) / 13 (física) chars
+  legalName,                             // razón social, uppercase, no régimen suffix
+  taxRegimeCode,                         // SAT c_RegimenFiscal (e.g. '601', '612', '626')
+  fiscalZip,                             // CP del domicilio fiscal, 5 digits
+  cfdiUseCode,                           // SAT c_UsoCFDI (e.g. 'G03', 'P01')
+  billingEmail?
+}
+```
+
+- SAT catalogs (`c_RegimenFiscal`, `c_UsoCFDI`): ship as **static constant option lists**
+  in `data/dtos/customers/sat-catalogs.ts` (code + label) — no runtime catalog service in
+  v1. Only the common subset (~10 regimes, ~5 uses); full catalogs when CFDI stamping
+  lands.
+- Validators (in `src/app/validators/`): `rfcValidator` (moral/física pattern, uppercase),
+  `fiscalZipValidator` (5 digits). Fiscal group is **optional as a whole** but
+  all-or-nothing required once any fiscal field is filled (cross-field validator).
+
+## 2. Expected API surface
+
+- `GET /customers?page&limit&search&status&source` → paged
+- `GET /customers/:id`
+- `POST /customers` · `PATCH /customers/:id` (fiscal nested or flattened — mirror backend)
+- `DELETE /customers/:id` with `{ deleteComment }` (soft)
+- Status transitions may get a dedicated endpoint (see 07) — confirm with backend.
+
+## 3. Pages & components
+
+- `customers/pages/customers-list/` — lazy table: name, contact, status pill, source tag,
+  RFC (or "—"), created. Filters: search, status, source. Row: view/edit, delete.
+- `customers/pages/customer-form/` — add/edit, two `.card-section`s:
+  **General** (name, contact, email, phone, address) and
+  **Datos fiscales** (RFC, razón social, régimen `<p-select>`, CP fiscal, uso CFDI
+  `<p-select>`, billing email) with the all-or-nothing rule surfaced inline.
+  CRM fields (status/source) appear on the form as plain selects; the richer flows
+  (blacklist with reason, status views) are 07's.
+- `customers/pages/customer-view/` — detail: general card, fiscal card, and reserved
+  sections for **CRM history** (07) and **Bills** (05). Same placeholder-slot convention
+  as 04.
+- `customers/components/delete-customer-dialog/` — shape-3, audit comment.
+
+## 4. State
+
+- `CustomersState`: `list`, `total`, `loading`, `selected`, `filters`. Actions:
+  `LoadCustomers(query)`, `LoadCustomer(id)`, `CreateCustomer`, `UpdateCustomer`,
+  `DeleteCustomer(id, comment)`.
+- `src/http/customers.service.ts`.
+
+---
+
+## Checkpoints
+
+### CP-1 — Data model + read path *(gate for 05 and 07)*
+- [ ] DTOs incl. `CustomerFiscal` + SAT catalog constants + validators
+- [ ] Service + `CustomersState` (list/detail)
+- [ ] List page with filters + status/source pills
+- [ ] Route + sidebar entry live
+
+### CP-2 — Write path
+- [ ] Customer form (general + fiscal sections, cross-field fiscal rule)
+- [ ] Delete dialog + toasts
+- [ ] Customer view page with reserved CRM/Bills slots
+
+### CP-3 — Polish
+- [ ] Dark-mode audit; empty/loading/error states
+- [ ] Build green; manual pass: create client without fiscal → add fiscal later → RFC
+      validation rejects bad input → delete
+
+## Open decisions / asks
+- Upstream `customers` already exists — confirm which fields are net-new columns (status,
+  source, blacklistReason, fiscal block) so the backend plan can migrate.
+- Fiscal data nested object vs flat columns in API responses — mirror backend's choice.
+- `source` enum: user listed facebook/google/phonecall/personal_meeting + "etc" — the list
+  above adds referral/website/other; trim or extend before CP-1.
