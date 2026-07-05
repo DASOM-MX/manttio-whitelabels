@@ -54,6 +54,12 @@ auto-loads it — **edit both in the same commit.**
   (spinners only inside buttons).
 - **No emojis, anywhere** — templates, empty states, toasts, copy. Icons carry all
   iconography.
+- **No AI-slop aesthetics (added 2026-07-05):** banned outright — glowing/colored
+  drop shadows, neon gradients, purple→cyan / pink→blue washes, gradient text,
+  glassmorphism (backdrop-blur + glow), animated gradient backgrounds, sparkle/magic
+  iconography. This is a professional environment; clients must never read the
+  product as AI-generated. Color arrives through palette scales and status pills.
+  Sole tolerated gradient: a subtle single-hue area fill under chart lines.
 - **Icons: outlined only — `lucide-angular`.** `size-4` inline, `size-5` nav, stroke-2
   everywhere; never PrimeIcons in our own templates (PrimeNG's internal chevrons are
   the only tolerated appearance), never filled/duotone sets.

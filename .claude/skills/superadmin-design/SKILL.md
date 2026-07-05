@@ -28,6 +28,15 @@ from decoration.
    `font-data` stack with `tnum`.
 4. **anime.js is the only animation tool.** No CSS keyframes, no Angular animations.
    Always respect `prefers-reduced-motion` (skip the animation, land in the end state).
+5. **No AI-slop aesthetics.** This is a professional tool and must read as one —
+   clients should never suspect "AI-generated product." Banned outright: glowing /
+   colored drop shadows (`shadow-*` with color, `box-shadow` halos), neon gradients,
+   purple→cyan / pink→blue gradient washes, gradient text, glassmorphism
+   (backdrop-blur + translucent glow), animated gradient backgrounds, and decorative
+   "sparkle/magic" iconography. Color arrives through the palette scales and status
+   pills — never through gradient decoration. The only tolerated gradient is a
+   **subtle single-hue area fill under chart lines** (data-viz, like the reference),
+   nothing else.
 
 ## Density — low-to-mid whitespace
 
@@ -247,6 +256,8 @@ Tokens (put in `shared/motion.ts`, import everywhere — never hardcode duration
 ## Component checklist (before closing any UI task)
 
 - [ ] No emojis; all icons Lucide outlined, stroke-2, standard sizes
+- [ ] No AI-slop: zero glow shadows, neon/duotone gradients, gradient text, or
+      glassmorphism anywhere in the diff
 - [ ] A11y pass: contrast ≥4.5:1, visible focus ring, `aria-label` on icon-only
       buttons, real `<label for>`s, heading order, keyboard-only walkthrough works
 - [ ] Responsive pass: no page-level horizontal scroll at 375px, inputs ≥16px on
