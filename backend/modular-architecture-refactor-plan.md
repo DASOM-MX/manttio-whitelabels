@@ -365,8 +365,9 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done. Each **GATE** must pass b
 - [x] `grep` for stale imports of the old layer dirs → none.
 
 ### Phase 11 — Docs
-- [ ] Update `backend/CLAUDE.md` (routing structure, "Where things live", schema/repository paths).
-- [ ] Update root `CLAUDE.md` "Where things live in backend/" section.
+- [x] Updated `backend/CLAUDE.md`: added a "Module layout" section; repointed routing/auth/database/
+      validation/uploads/email+PDF/conventions references to the module paths; bumped state date.
+- [x] Updated root `CLAUDE.md` "Where things live in backend/" to the module-first layout; bumped date.
 
 ### Phase 12 — Final verification
 - [ ] **GATE:** `pnpm typecheck` clean · `pnpm db:generate` no diff.
