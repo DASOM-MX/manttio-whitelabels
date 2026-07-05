@@ -44,9 +44,36 @@ Brand {
     surface: { 0: …, 950: … }      // run palette math
   },
   contact: { phone?, whatsapp?, email?, address? },
-  social?: { facebook?, instagram?, ... }
+  social?: { facebook?, instagram?, ... },
+  font?: {
+    body: string,                  // catalog code — default 'work_sans'
+    heading?: string               // catalog code — falls back to body; default 'rubik'
+  }
 }
 ```
+
+### 2.1 Typography — curated variable-font catalog (decided 2026-07-05)
+
+Tenant-facing typography is part of the brand. **Source: a curated OFL-only catalog**
+(~10–15 families) we subset and host in R2 — never the Google Fonts CDN (offline field
+app + GDPR) and no tenant uploads (licensing). Catalog rules:
+
+- **Variable fonts only** — one woff2 per family (latin + latin-ext subsets, full
+  weight axis, expressive axes at defaults), so every Tailwind weight utility works
+  from a single file.
+- Each entry also ships **static TTF instances (400/600/700, cut at catalog build
+  time)** for **PDF embedding** — PDFs *do* get the tenant font in v1 (fontkit can't
+  embed variable fonts reliably). Emails stay on safe system stacks (clients strip
+  web fonts).
+- Per-entry metadata: `code`, label, files, fallback stack, tnum-verified flag,
+  recommended heading pairing. Catalog served by the backend (`GET /fonts`, public)
+  so adding a family needs no app redeploy.
+- **Delivery = same pipeline as colors:** the boot `GET /brand` fetch drives injected
+  `@font-face` rules (`font-display: swap`) pointing at the CDN files + CSS vars the
+  Tailwind stacks read (`--font-body`, `--font-heading`); the field app's service
+  worker runtime-caches the font URLs for offline.
+- **Superadmin itself always renders Commissioner** (product chrome — 01 Typography);
+  tenant fonts appear inside this module only in the editor's previews.
 
 ## 3. Color model — pick two, derive the scales
 
@@ -64,7 +91,7 @@ surface-950) warns but doesn't block.
 |---|---|
 | Website | public brand read (independent of CMS content reads) |
 | Field app + superadmin | boot fetch of `GET /brand` (public — the **login screen** needs logo + colors pre-auth) → PrimeNG `updatePreset`/`updatePrimaryPalette` at runtime + CSS variables backing the Tailwind palette tokens |
-| PDFs / emails (backend) | pdf/email modules read the brand object at render time (name, isologo, primary) — this is the planned whitelabel-PDF customization hook |
+| PDFs / emails (backend) | pdf module reads the brand at render time (name, isologo, primary, **font via static TTF instances** — §2.1); emails get name/logo/colors but keep system font stacks |
 | PWA manifest + app icons | **not runtime** — baked at provisioning by us; brand edits don't touch them in v1 |
 
 Outside this module:
@@ -80,6 +107,7 @@ Outside this module:
 
 - `GET /brand` — **public/unauthenticated** (login screens + website; every field is
   public by nature)
+- `GET /fonts` — **public** curated catalog (codes, labels, file URLs, pairings — §2.1)
 - `PUT /brand` — **owner-only**. Own module — **not** under `/cms`.
 - `POST /upload` → R2 key (existing upload module) for logo/isologo (SVG/PNG, size caps
   server-side)
@@ -90,7 +118,9 @@ Outside this module:
   config flag). Owner-only editing (admin gets the same page read-only): identity fields
   (name, slogan, contact, social), logo + isologo uploads previewed on light *and* dark
   chips, the two color pickers with derived-scale strips + advanced per-step override
-  (§3), contrast warning. Saving goes through a **confirm-heavy apply dialog** (shape-3)
+  (§3), contrast warning, and **font pickers (body + heading)** from the catalog with
+  live sample previews (catalog fonts loaded on demand, only in this editor). Saving
+  goes through a **confirm-heavy apply dialog** (shape-3)
   restating that the website and both apps restyle — brand mistakes are loud, make the
   commit deliberate.
 
@@ -124,6 +154,7 @@ which *is* draft→publish — `04-cms.md` §5.)
 - [ ] Identity fields + logo/isologo uploads (light/dark preview chips)
 - [ ] Two color pickers → derived scale strips + advanced per-step override + contrast
       warning
+- [ ] Font pickers (body + heading) from `GET /fonts` with on-demand sample previews
 - [ ] Confirm-heavy apply dialog; owner-only write, admin read-only
 
 ### CP-3 — Polish
@@ -138,8 +169,11 @@ which *is* draft→publish — `04-cms.md` §5.)
   meaningfully, ship two-picker-only first and add overrides in a fast follow.
 - Favicon/PWA icon regeneration from a changed isologo — provisioning-time v1; revisit
   only if tenants actually churn logos.
-- **Typography in the Brand object — v2 candidate (2026-07-05):** v1 fixes the
-  tenant-facing typography at **Work Sans + Rubik** (website + field app, the
-  business-identity pair — master plan §4); a tenant-pickable font would extend
-  `Brand` later. Superadmin itself always stays Commissioner (product chrome, not
-  tenant brand).
+- ~~Typography in the Brand object — v2~~ — **promoted to v1, decided 2026-07-05**
+  (§2.1): curated OFL variable-font catalog, `font { body, heading? }`, Work Sans +
+  Rubik as defaults, PDFs via static instances. Superadmin stays Commissioner.
+- Initial catalog contents (~10–15 OFL variable families incl. Work Sans, Rubik) —
+  pick at catalog build time; every entry needs the latin subset + 400/600/700 static
+  instances + tnum verification.
+- Tenant-uploaded fonts (bring-your-own-license) deliberately **not** offered —
+  licensing burden; revisit only on a real enterprise ask.

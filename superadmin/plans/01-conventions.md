@@ -15,9 +15,11 @@ before writing any component.
   flare/volume axes stay at defaults). This is a **deliberate deviation from frontend
   parity**: the superadmin is *our* product chrome, constant across tenants, and its
   own voice tells tenants who they're working with. Tenant-facing surfaces
-  (`website/` + `frontend/` field app) share the **business-identity pair: Work Sans
-  (body) + Rubik (headings)** instead — the field app migrates off Inter to match the
-  website (recorded as a fork `frontend/` task, not superadmin work).
+  (`website/` + `frontend/` field app) are **brand-font-driven** instead:
+  `Brand.font { body, heading? }` from the curated variable-font catalog
+  (`03-branding.md` §2.1), defaulting to the business-identity pair **Work Sans
+  (body) + Rubik (headings)** — the field app migrates off Inter to the brand-font
+  CSS vars (recorded as a fork `frontend/` task, not superadmin work).
 - **Self-hosted, never CDN:** `@fontsource-variable/commissioner` — one woff2,
   preloaded in `index.html`. No `fonts.googleapis.com` import (offline, CSP, no FOUT).
 - Stacks in `tailwind.config.js`:

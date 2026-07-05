@@ -70,9 +70,16 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   (isologo, name, primary) — the whitelabel-PDF hook; for tenant-facing rendering this
   supersedes the static `BRAND_*` wrangler vars. **Two write paths (decided
   2026-07-05):** owner-authed `PUT /brand` *and* the manager's shared-token push
-  (provisioning seed + corrections) — same single row, last write wins. Frontend
-  obligation (both apps, this fork): Tailwind palette → CSS variables set from the
-  boot brand fetch, manttio defaults as fallback.
+  (provisioning seed + corrections) — same single row, last write wins.
+  **Typography (decided 2026-07-05):** `brand.font { body, heading? }` — codes
+  validated against a **curated OFL variable-font catalog** (`GET /fonts`, public;
+  assets in R2/CDN: one latin-subset variable woff2 + static TTF instances
+  **400/600/700** per family, cut at catalog build time). The **pdf module embeds
+  the tenant font's static instances** via fontkit (fetched from R2 at render,
+  cached); **emails keep system font stacks**. Frontend obligation (both apps, this
+  fork): Tailwind palette **and font stacks** → CSS variables set from the boot brand
+  fetch (injected `@font-face`, service-worker cached), manttio / Work Sans + Rubik
+  defaults as fallback.
 - **cms** (04 — first wave alongside 03): **headless content store (decided
   2026-07-05)** — `cms_home`/`cms_clients` documents served API-first; the tenant's
   public website is just one consumer, no site-specific coupling. Server-side HTML
@@ -164,6 +171,9 @@ edits to pushed events are never read back; the next push overwrites.
   secret key vs relying on Neon at-rest only) — decide before 4.1 lands.
 - `expired` contract status + `missed` visit sweep both want a cron — one scheduled
   Worker handler covers both when either becomes real.
+- PDF font embedding cost on Workers (fetch TTF from R2 + fontkit embed per render):
+  measure when pdf brand consumption lands; cache font bytes in-isolate, subset the
+  static instances if size bites.
 
 ## 6. Build checklist
 
@@ -179,8 +189,9 @@ edits to pushed events are never read back; the next push overwrites.
 
 **Modules** *(each gated by its superadmin plan's checkpoints)*
 - [ ] **branding — first** (prioritized 2026-07-05): `modules/brand/` — public
-      `GET /brand`, owner-only `PUT /brand`, materialized scales + pdf/email
-      render-time brand consumption
+      `GET /brand` + `GET /fonts` (curated catalog), owner-only `PUT /brand`,
+      materialized scales, font codes validated; pdf render-time brand consumption
+      incl. static-instance font embedding (emails: colors/logo only)
 - [ ] **cms — first wave, alongside branding**: headless content endpoints
       (draft→publish, sanitize on write, published-only public reads)
 - [ ] customers CRM extensions + contacts + interactions + status transition

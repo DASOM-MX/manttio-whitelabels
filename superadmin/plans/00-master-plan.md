@@ -161,11 +161,14 @@ Rules for agents:
 - **Typography — decided 2026-07-05:** the superadmin's typeface is **Commissioner**
   (variable, self-hosted) — our product's own voice, constant across tenants, a
   deliberate deviation from frontend parity (details: 01 Typography). Tenant-facing
-  surfaces share the **business-identity pair Work Sans + Rubik**: the website already
-  uses it; the **field app migrates Inter → Work Sans/Rubik** (fork `frontend/` task,
-  outside superadmin plans; keep `font-data`/Atkinson for numeric columns). Tenant-
-  pickable typography as part of the Brand object is a v2 candidate (03 open
-  decisions).
+  surfaces are **brand-font-driven**: `Brand.font { body, heading? }` picked from a
+  **curated OFL variable-font catalog** (self-hosted in R2 — one variable woff2 +
+  static TTF instances per family; no Google CDN, no tenant uploads), defaults
+  **Work Sans + Rubik**. The website already uses the defaults; the **field app
+  migrates Inter → brand-font CSS vars** with those defaults (fork `frontend/` task,
+  outside superadmin plans; keep `font-data`/Atkinson for numeric columns). **PDFs
+  embed the tenant font via static instances in v1; emails keep system stacks.**
+  Detail: `03-branding.md` §2.1.
 - **Client vs customer naming:** the product's existing `customers` resource **is** the
   "Clients" module here. Superadmin uses the word *client* in UI copy; code keeps `customers`
   to stay aligned with the backend module. CRM fields (status/source/blacklist) extend that
