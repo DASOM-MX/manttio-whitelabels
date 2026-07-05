@@ -7,9 +7,10 @@ Reference doc, binding for all module agents. Gating is **two-dimensional**; kee
 separate everywhere:
 
 1. **Tenant config** (set by *us* via the manager push): which modules this tenant's
-   instance even has. `modules: { billing, wms, crm, cms }` — users, reports, and clients
-   are core and always on. A tenant without `wms` never renders the Warehouse nav,
-   regardless of role.
+   instance even has. `modules: { billing, wms, crm, cms, scheduling }` — users, reports,
+   and clients are core and always on; **equipment rides core clients**, and
+   **`scheduling` covers calendar (12) + contracts (13)** (tentative flag split — open
+   item). A tenant without `wms` never renders the Warehouse nav, regardless of role.
 2. **User role** (set by the tenant's owner/admin in module 03): what a user can do within
    the enabled modules.
 
@@ -30,6 +31,9 @@ Baseline four, no specialist roles until a real tenant needs one:
 | Users | full | full¹ | — | — |
 | Reports | full | full | manage | **own only**² |
 | Clients + CRM | full | full | full | — |
+| Equipment (11) | full | full | full | — |
+| Calendar (12) | full | full | full | **own visits + swap**⁴ |
+| Contracts (13) | full | full | **draft only**³ | — |
 | Billing | full | full | **draft only**³ | — |
 | CMS | full | full | — | — |
 | WMS | full | full | **operational** (§2.1) | **van + self-checkout** (§2.1) |
@@ -37,12 +41,20 @@ Baseline four, no specialist roles until a real tenant needs one:
 1. **Owner protection:** admins cannot edit, delete, or change the role of the `owner`
    account, and cannot grant `owner`. UI hides those actions; backend enforces.
 2. **Technician scope (decided 2026-07-05):** technicians *can* log into superadmin;
-   their world is: **My reports** (own reports — read-only *except* recording material
-   consumption, §2.1), **My warehouse** (own van stock + consumption history +
-   self-checkout, §2.1), and **Stock lookup** (global read-only). Backend scopes every
-   query; the UI reuses the full components with locked filters + hidden actions.
-3. **Billing (decided 2026-07-05):** office creates/edits **draft** bills (incl. the
-   bill-by-report picker); `send` / `mark paid` / `cancel` are owner/admin actions.
+   their world is: **Calendar** (own visits + team read-only, note 4), **My reports**
+   (own reports — read-only *except* recording material consumption, §2.1),
+   **My warehouse** (own van stock + consumption history + self-checkout, §2.1), and
+   **Stock lookup** (global read-only). Backend scopes every query; the UI reuses the
+   full components with locked filters + hidden actions.
+3. **Billing + Contracts (decided 2026-07-05):** money commitments gate the same way —
+   office creates/edits **drafts** (incl. the bill-by-report picker); `send` /
+   `mark paid` / `cancel` (bills) and `activate` / `cancel` (contracts) are owner/admin
+   actions. Contract detail: `13-contracts.md` §2.
+4. **Calendar (decided 2026-07-05):** owner/admin/office schedule, edit, and reassign
+   any visit; technicians see the full team calendar **read-only** and have exactly one
+   write: **swapping a visit currently assigned to them** to another technician (give
+   away, never take). All reassignments — staff or swap — go through the same audited,
+   append-only assignment history. Detail: `12-calendar.md` §2.
 
 ### 2.1 WMS action matrix (decided 2026-07-05)
 
@@ -132,3 +144,7 @@ Deliberately deferred (2026-07-05). When we flip, the changes are confined to th
   Revisit once real correction traffic exists.
 - Whether `crm` is really a separate config flag or rides with core clients — confirm
   when the manager push schema is defined.
+- `scheduling` flag scope (§1): calendar + contracts together, or split? And does
+  equipment really ride core clients? Confirm with the manager push schema.
+- Technician swaps without approval (note 4) — add an office-approval step only if
+  abused (`12-calendar.md` open decisions).

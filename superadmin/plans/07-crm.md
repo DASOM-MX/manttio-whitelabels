@@ -63,6 +63,16 @@ Interaction {
 - Rendered newest-first with type icon, relative date, author; `system` entries styled
   muted with a link when `ref` is present.
 
+### 2.1 Quick-contact actions (decided 2026-07-05)
+
+The bridge that keeps the timeline populated. 06's client 360 header hosts
+**WhatsApp / call / email buttons** (`wa.me/<phone>`, `tel:`, `mailto:` — WhatsApp is the
+primary channel for this market). Tapping one opens the channel in a new tab/handler
+**and** opens the timeline composer pre-filled with the matching type
+(`whatsapp`/`call`/`email`) so logging the touch is one save away — never auto-saved
+(the user may not complete the contact). The composer exposes this as a small API
+(`open(type)`); 06 declares the buttons, 07 owns the behavior.
+
 ## 3. Follow-up date (decided 2026-07-05)
 
 Deliberately **not** a task system — one field, defined on the Customer DTO in 06:
@@ -130,6 +140,7 @@ as ask), don't fork the table.
 ### CP-2 — Timeline
 - [ ] `Interaction` DTO + service endpoints + state actions
 - [ ] `customer-timeline` component (composer, paged list, system-entry styling)
+- [ ] Composer `open(type)` API + 06's quick-contact buttons wired (§2.1)
 - [ ] Mounted in 06's customer-view; status change → system entry appears in timeline
 
 ### CP-3 — CRM views + follow-ups

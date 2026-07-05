@@ -27,10 +27,15 @@ then its own file, and touches no other module's code.
 | 08 | `08-cms.md` | Webpage CMS (home + clients sections, brand view) | 02 |
 | 09 | `09-wms.md` | Warehouse management: locations, materials, replenishments (file import + evidence), technician stock, report material tracking | 02, 03, 04 |
 | 10 | `10-access-control.md` | Roles + tenant-config gating matrix (reference, binding for all modules) | — |
+| 11 | `11-equipment.md` | Client equipment/asset registry + per-unit service history | 06; hooks 04, 09 |
+| 12 | `12-calendar.md` | Scheduled visits + team calendar (reassign, tech swap) | 02, 03, 06 |
+| 13 | `13-contracts.md` | Maintenance contracts (pólizas) → generate visits into 12 | 06, 12; 11 opt. |
 
 Build order: **01 → 02** are prerequisites for everything. After 02 lands, **03, 04, 06, 08**
 can run in parallel (independent agents). **07** starts after 06's data model checkpoint;
-**05** after 04 + 06; **09** last (it touches users + reports).
+**05** after 04 + 06; **09** after 03 + 04. Second wave: **11** after 06; **12** after
+03 + 06; **13** after 12's CP-1 (visit entity) — contracts generate visits, so the
+calendar's entity must exist first.
 
 ---
 
@@ -79,6 +84,9 @@ Rules for agents:
 | 08 cms | not-started | — |
 | 09 wms | not-started | — |
 | 10 access-control | done (doc) | — |
+| 11 equipment | not-started | — |
+| 12 calendar | not-started | — |
+| 13 contracts | not-started | — |
 
 *(Owning agents update their row when they update their file's status header.)*
 
@@ -109,6 +117,16 @@ Rules for agents:
   system events, subsumes status history); follow-ups are a single `nextFollowUpAt`
   field, not a task system. v2 growth path (deals with fixed stages, task entity)
   recorded in `07-crm.md` open decisions.
+- **CRM expansion — decided 2026-07-05:** the cheap high-value set ships with 06/07
+  (client 360 header, multiple contacts, tags, referral link, WhatsApp/call/email
+  quick actions that pre-fill the timeline composer). The strategic set gets its own
+  modules: **11 equipment registry**, **12 calendar/scheduled visits** (staff schedule +
+  reassign; technicians view team calendar and swap their own visits), **13 maintenance
+  contracts** (office drafts, owner/admin activate; activation generates visits into 12).
+  Service **sites** (multi-location clients) deliberately held until a real tenant asks.
+- **Visit reassignments are audited append-only** (same principle as WMS movements):
+  assignment history is never edited/deleted; `technicianId` is the latest entry. See
+  `12-calendar.md` §1.
 - **Client vs customer naming:** the product's existing `customers` resource **is** the
   "Clients" module here. Superadmin uses the word *client* in UI copy; code keeps `customers`
   to stay aligned with the backend module. CRM fields (status/source/blacklist) extend that

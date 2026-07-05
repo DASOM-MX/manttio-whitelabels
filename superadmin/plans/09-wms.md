@@ -340,3 +340,7 @@ Replenishments**.
 - Serialized consumption on report: mark `consumed` vs transfer to a virtual "consumed"
   location — backend decision, UI shows status either way.
 - Ask to 03: user detail shows assigned warehouse read-only (link to warehouse view).
+- Ask from 11 (equipment registry): when a **serialized** unit is consumed on an install
+  report, backend should offer/auto-create the client `Equipment` record
+  (`materialUnitId` backlink) — coordinate the hook when both modules land
+  (`11-equipment.md` §1).

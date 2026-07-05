@@ -57,9 +57,10 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
 - `AuthenticatedLayout` component: fixed sidebar (desktop) / drawer (mobile) + topbar with
   dark-mode toggle + user menu (logout).
 - Sidebar renders **only the entries `(tenantConfig, role)` allow** — matrix in
-  `10-access-control.md` §2. Full nav (owner/admin): **Dashboard** · **Users** ·
-  **Reports** · **Billing** · **Clients** (nested: All / Leads / Blacklist) · **CMS** ·
-  **Warehouse**. Technician nav is exactly: **My reports** · **My warehouse** ·
+  `10-access-control.md` §2. Full nav (owner/admin): **Dashboard** · **Calendar** ·
+  **Users** · **Reports** · **Billing** · **Clients** (nested: All / Leads / Blacklist /
+  Equipment) · **Contracts** · **CMS** · **Warehouse**. Technician nav is exactly:
+  **Calendar** (my visits + team read-only) · **My reports** · **My warehouse** ·
   **Stock lookup**.
 - Routes are **lazy per feature** (`loadChildren` per module folder) so module agents ship
   independently; every route declares `data: { module, roles }`.
@@ -118,7 +119,8 @@ Copy, don't reinvent — keep byte-parity where possible:
 - [ ] `AuthenticatedLayout`: sidebar/topbar, mobile drawer, scroll reset, **nav filtered
       by config + role** (verify technician sees only My reports / My warehouse /
       Stock lookup)
-- [ ] Lazy route stubs for all 7 module areas with `data: { module, roles }` declared
+- [ ] Lazy route stubs for all module areas (users, reports, billing, customers +
+      equipment, contracts, calendar, cms, wms) with `data: { module, roles }` declared
 - [ ] Global toast + confirm dialog mounted; 403 toast handling
 - [ ] `public/_redirects` SPA catch-all
 - [ ] Build green; manual pass: login as each role → nav matches the matrix
