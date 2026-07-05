@@ -28,23 +28,47 @@ Baseline four, no specialist roles until a real tenant needs one:
 | Module | owner | admin | office | technician |
 |---|---|---|---|---|
 | Users | full | full¹ | — | — |
-| Reports | full | full | manage | **read own**² |
+| Reports | full | full | manage | **own only**² |
 | Clients + CRM | full | full | full | — |
 | Billing | full | full | **draft only**³ | — |
 | CMS | full | full | — | — |
-| WMS | full | full | read-only⁴ | **read own warehouse**² |
+| WMS | full | full | **operational** (§2.1) | **van + self-checkout** (§2.1) |
 
 1. **Owner protection:** admins cannot edit, delete, or change the role of the `owner`
    account, and cannot grant `owner`. UI hides those actions; backend enforces.
-2. **Technician scope (decided 2026-07-05):** technicians *can* log into superadmin, but
-   see exactly two read-only areas — **My reports** (their own reports, no
-   delete/resend) and **My warehouse** (their assigned warehouse's stock + their
-   consumption history, no edits/transfers). Backend scopes the queries; the UI is the
-   same list/view components pre-filtered and with actions hidden.
+2. **Technician scope (decided 2026-07-05):** technicians *can* log into superadmin;
+   their world is: **My reports** (own reports — read-only *except* recording material
+   consumption, §2.1), **My warehouse** (own van stock + consumption history +
+   self-checkout, §2.1), and **Stock lookup** (global read-only). Backend scopes every
+   query; the UI reuses the full components with locked filters + hidden actions.
 3. **Billing (decided 2026-07-05):** office creates/edits **draft** bills (incl. the
    bill-by-report picker); `send` / `mark paid` / `cancel` are owner/admin actions.
-4. Office-WMS read-only (stock lookup) is a **default, not a decision** — flip to `—` or
-   fuller access when real usage says so.
+
+### 2.1 WMS action matrix (decided 2026-07-05)
+
+WMS permissions are **action-level**, not module-level:
+
+| WMS action | owner | admin | office | technician |
+|---|---|---|---|---|
+| Structure: warehouses, nodes, tech assignment | ✓ | ✓ | — | — |
+| Materials catalog (SKUs) | ✓ | ✓ | — | — |
+| Inbound (receive deliveries) | ✓ | ✓ | ✓ | — |
+| Transfer (any → any) | ✓ | ✓ | ✓ | — |
+| **Self-checkout** (→ own van) | n/a | n/a | n/a | ✓ᵃ |
+| Adjust / mark lost or damaged | ✓ | ✓ | — | — |
+| Consumption on reports | edit any | edit any | view | **own reports, from own van**ᵇ |
+| Stock + movements visibility | all | all | all | own van in full; global stock **read-only lookup**ᶜ |
+
+a. **Self-checkout:** a technician executes a transfer whose **destination is locked to
+   their own van** and whose **source excludes any warehouse assigned to another
+   technician** (no raiding colleagues' vans). It's a normal audited `Movement`
+   (`userId` recorded). A per-warehouse "allow self-checkout" flag is a possible later
+   refinement — default is all non-technician warehouses.
+b. **Consumption — tech records, staff corrects:** the technician attaches materials
+   (from their own van) to their own reports; owner/admin can edit/fix any report's
+   materials afterwards. Office sees the materials block read-only.
+c. **Stock lookup:** search materials, see quantities per warehouse ("does the shop
+   have this compressor?") — no movement rights, no adjustment visibility needed.
 
 ## 3. How gating is implemented (CSR v1 — decided 2026-07-05)
 
@@ -94,6 +118,9 @@ Deliberately deferred (2026-07-05). When we flip, the changes are confined to th
   the SSR move.
 
 ## Open items
-- Office-WMS default (read-only) — revisit post-v1.
+- Per-warehouse "allow self-checkout" flag (§2.1 note a) — only if the
+  all-non-tech-warehouses default proves too loose.
+- Should office also correct report materials (currently owner/admin only, §2.1 note b)?
+  Revisit once real correction traffic exists.
 - Whether `crm` is really a separate config flag or rides with core clients — confirm
   when the manager push schema is defined.

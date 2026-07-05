@@ -59,7 +59,8 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
 - Sidebar renders **only the entries `(tenantConfig, role)` allow** — matrix in
   `10-access-control.md` §2. Full nav (owner/admin): **Dashboard** · **Users** ·
   **Reports** · **Billing** · **Clients** (nested: All / Leads / Blacklist) · **CMS** ·
-  **Warehouse**. Technician nav is exactly: **My reports** · **My warehouse**.
+  **Warehouse**. Technician nav is exactly: **My reports** · **My warehouse** ·
+  **Stock lookup**.
 - Routes are **lazy per feature** (`loadChildren` per module folder) so module agents ship
   independently; every route declares `data: { module, roles }`.
 - `access.ts` (shared): the matrix as data + `hasRole`/`hasModule` helpers — the one place
@@ -115,7 +116,8 @@ Copy, don't reinvent — keep byte-parity where possible:
 - [ ] `/auth/me` on boot + post-login → `AuthState`; splash until resolved
 - [ ] `access.ts` matrix + central `canMatch` guard reading route `data`
 - [ ] `AuthenticatedLayout`: sidebar/topbar, mobile drawer, scroll reset, **nav filtered
-      by config + role** (verify technician sees only My reports / My warehouse)
+      by config + role** (verify technician sees only My reports / My warehouse /
+      Stock lookup)
 - [ ] Lazy route stubs for all 7 module areas with `data: { module, roles }` declared
 - [ ] Global toast + confirm dialog mounted; 403 toast handling
 - [ ] `public/_redirects` SPA catch-all

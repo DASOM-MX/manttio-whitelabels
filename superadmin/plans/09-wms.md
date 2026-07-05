@@ -8,11 +8,13 @@ catalog (serialized / unserialized), stock, **technician-assigned warehouses**, 
 **material tracking attached to reports**. The largest module — its checkpoints are
 deliberately smaller slices.
 
-**Roles** (`10-access-control.md` §2): owner/admin full; office read-only (stock lookup —
-default, adjustable); **technician** gets a **"My warehouse"** route — their assigned
-warehouse's `warehouse-view` + their consumption history, read-only (no node edits, no
-transfers, no inbound). Reuse components with hidden actions; don't fork variants. Module
-is behind the tenant `wms` config flag.
+**Roles — action-level matrix in `10-access-control.md` §2.1** (decided 2026-07-05):
+owner/admin full; **office is operational** (inbound + transfers incl. van loading; no
+structure/catalog, no adjustments); **technician** gets **My warehouse** (own van stock +
+consumption history + **self-checkout**: transfer with destination locked to own van,
+source excluding other techs' warehouses) and **Stock lookup** (global read-only
+quantities per warehouse). Reuse components with locked filters + hidden actions; don't
+fork variants. Module is behind the tenant `wms` config flag.
 
 ---
 
@@ -106,11 +108,19 @@ ReportMaterial {                          // a report MAY have zero of these
   textarea of serials, one per line; unserialized: quantity).
 - `wms/components/transfer-dialog/` — move stock/units between warehouse/node pairs;
   the common case "load technician van" is this dialog with the target pre-set to the
-  tech's warehouse.
+  tech's warehouse. **Technician mode = self-checkout:** same dialog with destination
+  locked to their own van and source list excluding other technicians' warehouses
+  (backend enforces both; `10-access-control.md` §2.1a).
 - `wms/components/report-materials-editor/` — fills 04's reserved materials slot on
   report-view: table of `ReportMaterial` rows + add-row picker (material → mode-appropriate
   qty/serial input, source defaults to the report technician's warehouse). Owned by this
   module's agent, lives under `wms/` and is imported by the report view.
+  **Role behavior** (`10-access-control.md` §2.1b): technician can add/edit on **their own
+  reports**, materials sourced from **their own van only**; owner/admin edit any report's
+  materials, any source; office renders it read-only.
+- `wms/pages/stock-lookup/` — technician's global read-only view: `materials-list` +
+  `material-view` reused with all actions hidden, per-warehouse quantities visible, no
+  movements/adjustment detail.
 
 ## 4. State
 
@@ -141,21 +151,27 @@ ReportMaterial {                          // a report MAY have zero of these
 - [ ] Material view with per-location stock + serialized units table
 
 ### CP-4 — Stock operations
-- [ ] Inbound dialog (both tracking modes)
-- [ ] Transfer dialog (incl. technician-van preset)
+- [ ] Inbound dialog (both tracking modes) — owner/admin/office
+- [ ] Transfer dialog (incl. technician-van preset) — owner/admin/office
+- [ ] **Self-checkout**: transfer dialog technician mode (destination locked to own van,
+      source excludes other techs' warehouses)
 - [ ] Movements history on material view
 - [ ] Technician assignment dialog on warehouses list; read-only badge handshake with 03
 
 ### CP-5 — Report material tracking + roles + polish
 - [ ] `report-materials-editor` in 04's slot (add/edit/remove, source defaulting)
 - [ ] Consumption reflected in stock (backend does the math; UI refreshes)
-- [ ] "My warehouse" technician route (read-only) + office read-only gating; route
-      `data` declared on all pages
+- [ ] "My warehouse" technician route (own van + consumption history + self-checkout
+      entry point) and "Stock lookup" route; office gating per §2.1 (operational, no
+      structure/adjust); route `data` declared on all pages
 - [ ] Dark-mode audit; empty/loading/error states everywhere
 - [ ] Build green; manual pass: create warehouse + sub + rack/box → inbound 10 pza + 2
       serials → transfer to tech van → attach to report → stock decremented
 
 ## Open decisions / asks
+- Backend asks from §2.1: enforce self-checkout constraints (destination = requester's
+  van, source ∉ other techs' warehouses), consumption only from own van on own reports,
+  office blocked from structure/catalog/adjust endpoints.
 - Nesting depth: one level of sub-warehouses enough for v1?
 - Can a **sub-warehouse** be the technician-assigned one (van as sub of main)? Assumed yes.
 - Tracking-mode immutability after first movement — backend rule, confirm.

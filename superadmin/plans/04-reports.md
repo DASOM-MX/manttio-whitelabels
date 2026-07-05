@@ -10,8 +10,10 @@ per report).
 
 **Roles** (`10-access-control.md` §2): owner/admin full, office manage. **Technician** gets
 the same list + view pages as a **"My reports"** route — pre-filtered to their own reports
-(backend scopes the query), read-only (no delete/resend actions rendered). Reuse the
-components with locked filters + hidden actions; don't fork variants.
+(backend scopes the query), read-only (no delete/resend actions rendered) **with one
+exception**: the materials block (09's `report-materials-editor`) is editable on their own
+reports (§2.1b — tech records consumption from their own van; owner/admin correct). Reuse
+the components with locked filters + hidden actions; don't fork variants.
 
 ---
 
