@@ -1,12 +1,11 @@
 import { sql } from 'drizzle-orm';
 import { env } from 'cloudflare:test';
-import { createDb } from '../../src/db/client';
-import { insertCustomer } from '../../src/db/repositories/customers';
-import { insertUser } from '../../src/db/repositories/users';
-import { hashPassword } from '../../src/lib/password';
-import { reportCounters, reportDetails, reports } from '../../src/db/schema';
-import type { ReportStatus } from '../../src/lib/report-lifecycle';
-import type { WorkType } from '../../src/validators/reports';
+import { createDb } from '../../src/modules/database/client';
+import { insertCustomer } from '../../src/modules/customers/repository/customers.repository';
+import { insertUser } from '../../src/modules/users/repository/users.repository';
+import { hashPassword } from '../../src/modules/auth/services/password.service';
+import { reportCounters, reportDetails, reports } from '../../src/modules/database/schema';
+import type { ReportStatus, WorkType } from '../../src/modules/reports/enums/reports.enum';
 import { request, json, jsonHeaders } from './request';
 
 const tag = () => Math.random().toString(36).slice(2, 10);

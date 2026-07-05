@@ -10,7 +10,7 @@ import bcrypt from 'bcryptjs';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { eq } from 'drizzle-orm';
-import * as schema from '../src/db/schema';
+import * as schema from '../src/modules/database/schema';
 
 const usage = 'usage: pnpm seed:admin <email> [name]   (password is read from SEEDED_ADMIN_PASSWORD)';
 

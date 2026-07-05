@@ -9,8 +9,8 @@ import {
   seedTechnicianAndLogin,
   uniqueEmail,
 } from './helpers/fixtures';
-import { createDb } from '../src/db/client';
-import { users } from '../src/db/schema';
+import { createDb } from '../src/modules/database/client';
+import { users } from '../src/modules/database/schema';
 
 type WorkerEnv = { DATABASE_URL: string };
 

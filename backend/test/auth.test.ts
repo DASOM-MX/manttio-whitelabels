@@ -3,8 +3,8 @@ import { SignJWT } from 'jose';
 import { eq } from 'drizzle-orm';
 import { authHeader, env, json, jsonHeaders, request } from './helpers/request';
 import { loginAs, seedAdmin, seedTechnician } from './helpers/fixtures';
-import { createDb } from '../src/db/client';
-import { users } from '../src/db/schema';
+import { createDb } from '../src/modules/database/client';
+import { users } from '../src/modules/database/schema';
 
 type WorkerEnv = { JWT_SECRET: string; DATABASE_URL: string };
 
