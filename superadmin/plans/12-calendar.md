@@ -96,7 +96,9 @@ a. **Tech swap:** a technician can hand off a visit currently assigned to *them*
 - `POST /visits/:id/status` `{ status }` (complete/miss/cancel)
 - `GET /customers/:id/visits` — upcoming visits on the customer view (06 slot — ask)
 - `GET /visits/external?from&to` → `ExternalEvent[]` for connected users in range (§7;
-  short-cached server-side; title redacted per privacy rule)
+  short-cached server-side; title redacted per privacy rule; client matching by
+  attendee/organizer email done server-side — the raw attendee list never reaches the
+  frontend)
 - `GET /integrations/google/status` · `GET /integrations/google/connect` (OAuth
   redirect) · `POST /integrations/google/disconnect` — own account only
 
@@ -123,13 +125,26 @@ outside the admin**. Two directions, deliberately asymmetric:
 - **Inbound — external events as a read-only overlay.** For the visible range, the
   backend fetches connected users' Google events (`events.list` with `timeMin/timeMax`),
   filters out our own pushed events (they carry `visitId`), and returns the rest as
-  **`ExternalEvent { userId, start, end, title? }`** — rendered as muted/striped
-  read-only chips in the week grid. External events are **never imported as
-  `ScheduledVisit`s** and never stored beyond a short cache: they're busy-context so
-  office doesn't double-book a tech, not schedulable objects. That's what keeps the
-  append-only audit untouched and makes this *not* two-way sync (**two-way write-back
-  stays rejected** — webhook channels, renewal crons, and conflict resolution buy
-  nothing here).
+  **`ExternalEvent { userId, start, end, title?, matchedCustomerId?,
+  matchedCustomerName? }`** — rendered as muted/striped read-only chips in the week
+  grid. External events are **never imported as `ScheduledVisit`s** and never stored
+  beyond a short cache: they're busy-context so office doesn't double-book a tech, not
+  schedulable objects. That's what keeps the append-only audit untouched and makes this
+  *not* two-way sync (**two-way write-back stays rejected** — webhook channels, renewal
+  crons, and conflict resolution buy nothing here).
+
+  **Client matching by email (decided 2026-07-05):** at fetch time the backend compares
+  the event's `attendees[].email` (+ organizer, excluding the connected user themselves)
+  against the tenant's client emails — `Customer.email`, `fiscal.billingEmail`,
+  `contacts[].email` — case-insensitive exact match. One unambiguous hit ⇒ the chip
+  carries a **client tag linking to the customer view** ("Ocupado — Hotel X"); zero hits
+  or an email shared by several clients ⇒ unmatched, plain busy chip (never guess). The
+  match is computed per fetch, display-only — nothing persists, so a client email edit
+  simply changes future matches. The **client tag is visible to all staff roles** (it's
+  derived from the tenant's own client data) even where the title stays owner-only.
+  Payoff action: a matched chip offers **"Crear visita"** (staff only) — opens the visit
+  dialog pre-filled with the client + date/time; that creates a normal app visit while
+  the external event remains untouched (no import, just a head start).
 
 **Credential mechanics (backend-owned):** Google Cloud project + Calendar API;
 `calendar.events` scope only (covers both directions on primary); OAuth Web client with
@@ -175,8 +190,11 @@ roles. External chips show full title to their **owner**; other users see "Ocupa
 - [ ] Connect/disconnect UI + status chip (connected account, reconnect on revocation)
 - [ ] External-event overlay chips in week grid (muted/striped, owner sees title,
       others "Ocupado (Google)")
+- [ ] Client tag on matched chips (link to customer view) + "Crear visita" pre-filled
+      quick action (staff only)
 - [ ] Manual pass: connect → create visit → appears in Google; create event in Google →
-      shows as overlay; edit pushed event in Google → app visit unchanged, next push
+      shows as overlay; invite a known client email → chip shows client tag → "Crear
+      visita" pre-fills; edit pushed event in Google → app visit unchanged, next push
       overwrites; disconnect → overlay gone
 
 ## Open decisions / asks
@@ -196,7 +214,13 @@ roles. External chips show full title to their **owner**; other users see "Ocupa
   one-way push + read-only external overlay, so dates created outside the admin stay
   visible. Two-way write-back remains rejected.
 - External-event privacy: default is title-for-owner, "Ocupado (Google)" for everyone
-  else — should owner/admin see titles too? Decide with the first real tenant.
+  else — should owner/admin see titles too? Decide with the first real tenant. (The
+  client tag from email matching is shown to all staff regardless — §7.)
+- Email matching: exact match only in v1 — no domain-level matching ("anyone
+  @hotelx.com") and no fuzzy matching; ambiguous emails stay unmatched. Domain matching
+  is the plausible v2 if B2B clients invite from many mailboxes.
+- Should a matched external event optionally log to the client's CRM timeline (07)?
+  Leaning no (it would persist what is otherwise display-only) — revisit on demand.
 - Primary calendar only in v1 — secondary-calendar selection later if asked.
 - Overlay freshness: on-demand fetch per range load + short server cache (assumed
   minutes); webhook push channels stay out.
