@@ -99,6 +99,10 @@ Rules for agents:
   helper.
 - **Soft deletes everywhere** user-facing (matches backend convention). Delete dialogs follow
   the `delete-user-dialog` canonical shape (audit comment + typed confirmation).
+- **Audit records are append-only — decided 2026-07-05.** No audit trail (WMS movements
+  today; any future one) is ever edited or deleted. Corrections are new compensating
+  entries — in WMS, the `readjustment` movement type (`direction: in|out`, reason
+  required, owner/admin only). See `09-wms.md` §1 and `10-access-control.md` §2.1d.
 - **Client vs customer naming:** the product's existing `customers` resource **is** the
   "Clients" module here. Superadmin uses the word *client* in UI copy; code keeps `customers`
   to stay aligned with the backend module. CRM fields (status/source/blacklist) extend that

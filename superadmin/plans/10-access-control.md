@@ -55,7 +55,7 @@ WMS permissions are **action-level**, not module-level:
 | Inbound (receive deliveries) | ✓ | ✓ | ✓ | — |
 | Transfer (any → any) | ✓ | ✓ | ✓ | — |
 | **Self-checkout** (→ own van) | n/a | n/a | n/a | ✓ᵃ |
-| Adjust / mark lost or damaged | ✓ | ✓ | — | — |
+| **Readjustment** (compensating in/out; mark lost/damaged)ᵈ | ✓ | ✓ | — | — |
 | Consumption on reports | edit any | edit any | view | **own reports, from own van**ᵇ |
 | Stock + movements visibility | all | all | all | own van in full; global stock **read-only lookup**ᶜ |
 
@@ -68,7 +68,12 @@ b. **Consumption — tech records, staff corrects:** the technician attaches mat
    (from their own van) to their own reports; owner/admin can edit/fix any report's
    materials afterwards. Office sees the materials block read-only.
 c. **Stock lookup:** search materials, see quantities per warehouse ("does the shop
-   have this compressor?") — no movement rights, no adjustment visibility needed.
+   have this compressor?") — no movement rights, no readjustment visibility needed.
+d. **Audit immutability (decided 2026-07-05):** movement records are **append-only** —
+   never edited or deleted, by anyone, ever. Every correction is a new `readjustment`
+   movement (`direction: in|out`, reason required, owner/admin only); staff corrections
+   to report materials emit compensating readjustments while the original consumption
+   movement stands. Details: `09-wms.md` §1.
 
 ## 3. How gating is implemented (CSR v1 — decided 2026-07-05)
 

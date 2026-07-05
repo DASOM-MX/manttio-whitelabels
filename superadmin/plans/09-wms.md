@@ -10,7 +10,7 @@ deliberately smaller slices.
 
 **Roles — action-level matrix in `10-access-control.md` §2.1** (decided 2026-07-05):
 owner/admin full; **office is operational** (inbound + transfers incl. van loading; no
-structure/catalog, no adjustments); **technician** gets **My warehouse** (own van stock +
+structure/catalog, no readjustments); **technician** gets **My warehouse** (own van stock +
 consumption history + **self-checkout**: transfer with destination locked to own van,
 source excluding other techs' warehouses) and **Stock lookup** (global read-only
 quantities per warehouse). Reuse components with locked filters + hidden actions; don't
@@ -61,13 +61,26 @@ MaterialUnit {                            // serialized only: one row per physic
 StockEntry {                              // unserialized: qty per location
   materialId, warehouseId, storageNodeId?, quantity
 }
-Movement {                                // audit trail, backend-generated
-  id, type: 'inbound' | 'transfer' | 'consumption' | 'adjustment',
+Movement {                                // audit trail — APPEND-ONLY, backend-generated
+  id, type: 'inbound' | 'transfer' | 'consumption' | 'readjustment',
+  direction?: 'in' | 'out',               // readjustment only: which way stock moved
   materialId, quantity? | materialUnitIds?,
   fromWarehouseId?/fromNodeId?, toWarehouseId?/toNodeId?,
   reportId?,                              // set on consumption via report tracking
-  userId, createdAt, notes?
+  userId, createdAt,
+  notes?,                                 // REQUIRED for readjustment (the reason)
 }
+```
+
+**Immutability rule (decided 2026-07-05):** movements are **never edited or deleted** —
+no endpoint, no UI affordance, period. Every correction is a **new `readjustment`
+movement** (owner/admin only, `direction: in|out`, reason required): counting errors,
+damaged/lost stock (serialized: the unit's status flips to `lost` *and* a
+readjustment-out records it), and staff corrections to report materials (backend emits
+compensating readjustments; the original consumption movement stands). The movements
+history is the truth of what happened, including the mistakes.
+
+```
 ```
 
 ### Report material tracking (links 04)
@@ -88,7 +101,9 @@ ReportMaterial {                          // a report MAY have zero of these
 - `GET/POST/PATCH/DELETE /warehouses/:id/nodes` (subtree ops)
 - `GET/POST/PATCH/DELETE /materials` (+ search, `?tracking=`)
 - `GET /materials/:id/stock` — per-location breakdown (+ serialized units list)
-- `POST /stock/inbound` · `POST /stock/transfer` · `POST /stock/adjust`
+- `POST /stock/inbound` · `POST /stock/transfer` · `POST /stock/readjust`
+  (`{ direction, materialId, quantity|unitIds, warehouseId/nodeId, notes }` — notes
+  required; no PATCH/DELETE on movements exists)
 - `GET /reports/:id/materials` · `PUT /reports/:id/materials` (set/replace tracking list)
 - `GET /movements?materialId&warehouseId&reportId&type&from&to` → paged
 
@@ -106,6 +121,9 @@ ReportMaterial {                          // a report MAY have zero of these
   with serial + status pills; movements history (paged) below.
 - `wms/components/inbound-dialog/` — receive stock into a warehouse/node (serialized:
   textarea of serials, one per line; unserialized: quantity).
+- `wms/components/readjustment-dialog/` — owner/admin only: direction (in/out), material
+  + qty or serialized units, location, **required reason** (mirrors the delete-dialog
+  audit-comment convention). This is the *only* way stock is corrected.
 - `wms/components/transfer-dialog/` — move stock/units between warehouse/node pairs;
   the common case "load technician van" is this dialog with the target pre-set to the
   tech's warehouse. **Technician mode = self-checkout:** same dialog with destination
@@ -126,7 +144,7 @@ ReportMaterial {                          // a report MAY have zero of these
 
 - `WarehousesState`: tree, selected, nodes subtree cache. Actions: CRUD + `AssignTechnician`.
 - `MaterialsState`: list/detail/stock/movements. Actions: CRUD + `LoadStock(materialId)`,
-  `Inbound`, `Transfer`, `Adjust`, `LoadMovements(query)`.
+  `Inbound`, `Transfer`, `Readjust`, `LoadMovements(query)`.
 - `ReportMaterialsState` (small): `LoadReportMaterials(reportId)`, `SaveReportMaterials`.
 - `src/http/wms.service.ts` (split into `warehouses.service.ts` + `materials.service.ts`
   if it grows past ~150 lines).
@@ -155,7 +173,9 @@ ReportMaterial {                          // a report MAY have zero of these
 - [ ] Transfer dialog (incl. technician-van preset) — owner/admin/office
 - [ ] **Self-checkout**: transfer dialog technician mode (destination locked to own van,
       source excludes other techs' warehouses)
-- [ ] Movements history on material view
+- [ ] Readjustment dialog (owner/admin, direction in/out, required reason); no
+      edit/delete affordance anywhere on movements
+- [ ] Movements history on material view (readjustments visibly typed + reason shown)
 - [ ] Technician assignment dialog on warehouses list; read-only badge handshake with 03
 
 ### CP-5 — Report material tracking + roles + polish
@@ -163,7 +183,7 @@ ReportMaterial {                          // a report MAY have zero of these
 - [ ] Consumption reflected in stock (backend does the math; UI refreshes)
 - [ ] "My warehouse" technician route (own van + consumption history + self-checkout
       entry point) and "Stock lookup" route; office gating per §2.1 (operational, no
-      structure/adjust); route `data` declared on all pages
+      structure/readjust); route `data` declared on all pages
 - [ ] Dark-mode audit; empty/loading/error states everywhere
 - [ ] Build green; manual pass: create warehouse + sub + rack/box → inbound 10 pza + 2
       serials → transfer to tech van → attach to report → stock decremented
@@ -171,7 +191,9 @@ ReportMaterial {                          // a report MAY have zero of these
 ## Open decisions / asks
 - Backend asks from §2.1: enforce self-checkout constraints (destination = requester's
   van, source ∉ other techs' warehouses), consumption only from own van on own reports,
-  office blocked from structure/catalog/adjust endpoints.
+  office blocked from structure/catalog/readjust endpoints, **movements table append-only
+  (no UPDATE/DELETE paths at all)** and report-material corrections emit compensating
+  readjustments server-side.
 - Nesting depth: one level of sub-warehouses enough for v1?
 - Can a **sub-warehouse** be the technician-assigned one (van as sub of main)? Assumed yes.
 - Tracking-mode immutability after first movement — backend rule, confirm.
