@@ -275,6 +275,11 @@ Pattern:
   counts vs timeline first page too); whether brand + CRM stay in the one
   `TenantCacheDO` class or split per concern — start shared, split only if CRM churn
   crowds the brand entry.
+- Website read surface (superadmin plan 15): the public tenant site consumes
+  **published-only** CMS docs — 04's `GET /cms/*` serve drafts to editors, so the
+  published counterpart needs its own public routes (e.g. `GET /public/cms/home|clients`
+  — shape TBD here); decide whether published docs join the `TenantCacheDO` (§5) with
+  invalidation on `POST /cms/:section/publish` (same hot-public profile as `GET /brand`).
 
 ## 7. Build checklist
 

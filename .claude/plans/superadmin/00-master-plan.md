@@ -31,6 +31,7 @@ then its own file, and touches no other module's code.
 | 12 | `12-calendar.md` | Scheduled visits + team calendar (reassign, tech swap, Google Calendar push + overlay) | 02, 05, 07 |
 | 13 | `13-contracts.md` | Maintenance contracts (pólizas) → generate visits into 12 | 07, 12; 11 opt. |
 | 14 | `14-access-control.md` | Roles + tenant-config gating matrix (reference, binding for all modules) | — |
+| 15 | `15-website.md` | Public tenant website: consumes published CMS + brand (reads only — `website/` package work, not superadmin code) | 03, 04 |
 
 Build order **is numeric order** (renumbered 2026-07-05: branding and CMS are separate,
 independent modules — 03/04 — and access-control moved to 14 as pure reference).
@@ -39,7 +40,9 @@ branding + headless CMS are the whitelabel selling points** (independent of each
 parallel agents). **05, 06, 07** run in parallel as capacity allows. **08** starts after
 07's data-model checkpoint; **09** after 06 + 07; **10** after 05 + 06. Second wave:
 **11** after 07; **12** after 05 + 07; **13** after 12's CP-1 (visit entity) —
-contracts generate visits, so the calendar's entity must exist first.
+contracts generate visits, so the calendar's entity must exist first. **15** (the
+public website) is consumer-side `website/` work — it can start once 03's brand read
+path and 04's publish flow exist backend-side; it never blocks a superadmin module.
 
 ---
 
@@ -94,6 +97,7 @@ Rules for agents:
 | 12 calendar | not-started | — |
 | 13 contracts | not-started | — |
 | 14 access-control | done (doc) | — |
+| 15 website | not-started | — |
 
 *(Owning agents update their row when they update their file's status header.)*
 
@@ -264,6 +268,9 @@ agent hitting a checkpoint checks this page for items tagged to it.
       13's expiry cron).
 - [ ] 13 — visit generation upfront vs rolling; `active → expired` cron; Spanish
       contract-type label wording.
+- [ ] 15 — public **published-only** CMS read routes for the website (04's GETs serve
+      drafts to editors); whether published docs ride the `TenantCacheDO` with
+      publish-time invalidation.
 
 ### 5.4 Cross-module asks (coordinate, never build the other side)
 

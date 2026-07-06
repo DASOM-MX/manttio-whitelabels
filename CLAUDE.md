@@ -11,7 +11,7 @@ This repo (`manttio-whitelabeled`, remote `DASOM-MX/manttio-whitelabels`) is a *
 What differs from upstream so far:
 
 - **New `superadmin/` app** — an in-product admin (Angular 20) where a logged-in **client** edits their own CMS content (`cms_home`, `cms_clients`), tenant-scoped and product-user-authed (never the shared token). See `.claude/plans/superadmin/00-master-plan.md`.
-- **Whitelabel plans** — design docs for the whitelabeled backend/frontend/manager surfaces live as `*-plan.md` files at the root of each package; the superadmin module planning suite (plans 00–14) lives in `.claude/plans/superadmin/`.
+- **Whitelabel plans** — design docs for the whitelabeled backend/frontend/manager surfaces live as `*-plan.md` files at the root of each package; the superadmin module planning suite (plans 00–15) lives in `.claude/plans/superadmin/`.
 - **Local-only dev overrides** — `frontend/src/environments/environment.development.ts` here points at the deployed `manttio-api.dasom-mx.workers.dev` (not committed / `skip-worktree`'d so it stays local for testing). Upstream keeps `http://127.0.0.1:8787`.
 - Upstream-only CI workflows under `.github/workflows/` are dropped in this fork.
 - **Worktrees** for this repo live at `../manttio-whitelabeled-worktrees` (sibling to the checkout), kept out of the working tree — create feature/isolation worktrees there, not inside the repo.
