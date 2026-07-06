@@ -304,6 +304,6 @@ agent hitting a checkpoint checks this page for items tagged to it.
 
 ## 6. Legacy plan
 
-`superadmin/manttio-whitelabeled-superadmin-plan.md` (CMS-only scope) is superseded; its
+`manttio-whitelabeled-superadmin-plan.md` (CMS-only scope) is superseded; its
 content was folded into `04-cms.md` (content) + `03-branding.md` (brand) and the file
 now redirects here.

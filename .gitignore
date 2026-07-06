@@ -85,3 +85,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 #Firebase
 backend/manttio-firebase-adminsdk-fbsvc-c232958ac5.json
+
+# Claude Code — .claude/ is committed (shared skills + plans), local settings are not
+.claude/settings.local.json

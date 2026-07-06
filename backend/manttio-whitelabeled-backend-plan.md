@@ -3,7 +3,7 @@
 **Repo:** this fork (`manttio-whitelabeled`), `backend/` package.
 **Role:** the tenant-scoped API each whitelabel instance runs — Hono on CF Workers + Neon +
 Drizzle, module-first per `backend/CLAUDE.md`. This plan consolidates the **backend
-obligations decided during superadmin planning** (`superadmin/plans/00-13`) so they live on
+obligations decided during superadmin planning** (`.claude/plans/superadmin/00-13`) so they live on
 the backend side too; each superadmin plan file remains the source for its module's UI/UX
 detail and lists its asks under "Open decisions / asks".
 
@@ -12,7 +12,7 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
 (shared-token config push, KV status gate).
 
 > Status headers + `- [ ]`/`- [~]`/`- [x]` checklist convention as in
-> `superadmin/plans/00-master-plan.md` §2.
+> `.claude/plans/superadmin/00-master-plan.md` §2.
 
 ---
 
@@ -43,7 +43,7 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   `requireRole` call sites, and `users/enums`. **Owner protection:** admins cannot
   edit/delete/re-role the owner or grant `owner`.
 - **Backend is the sole authority**: every endpoint enforces tenant-config *and* role on
-  its own — superadmin rendering/guards are UX only (`superadmin/plans/14` §2 matrix and
+  its own — superadmin rendering/guards are UX only (`.claude/plans/superadmin/14` §2 matrix and
   §2.1 WMS action matrix are the binding spec).
 - **Tenant config** arrives via the manager push:
   `modules: { billing, wms, crm, cms, scheduling }` (tentative — `scheduling` covers
