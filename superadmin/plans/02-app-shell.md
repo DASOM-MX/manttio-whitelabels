@@ -81,7 +81,8 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
   dark-mode toggle + user menu (logout).
 - Sidebar renders **only the entries `(tenantConfig, role)` allow** — matrix in
   `14-access-control.md` §2. Full nav (owner/admin): **Dashboard** · **Calendar** ·
-  **Users** · **Reports** · **Billing** · **Clients** (nested: All / Leads / Blacklist /
+  **Users** · **Reports** (nested: Historial / **Plantillas** — the template builder,
+  owner/admin only, `06-reports.md` §5) · **Billing** · **Clients** (nested: All / Leads / Blacklist /
   Equipment) · **Contracts** · **Marca** (branding — always visible, no config flag;
   owner edits, admin read-only) · **CMS** (Contenido / Clientes — behind the `cms`
   flag) · **Warehouse**. Technician nav is exactly:

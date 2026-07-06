@@ -31,6 +31,7 @@ Baseline four, no specialist roles until a real tenant needs one:
 |---|---|---|---|---|
 | Users | full | full¹ | — | — |
 | Reports | full | full | manage | **own only**² |
+| Report templates (06 §5) | full | full | — | — |
 | Clients + CRM | full | full | full | — |
 | Equipment (11) | full | full | full | — |
 | Calendar (12) | full | full | full | **own visits + swap**⁴ |

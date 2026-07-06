@@ -110,6 +110,19 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   writes — CMS content has no manager push path** (decided 2026-07-05).
 - **reports** (06): confirm status enum/folio; soft delete with comment; PDF/resend
   as today.
+- **report templates** (06 §5 — decided 2026-07-05): new `report_templates` entity
+  (name, `status: draft|active|disabled`, `columns: 1..3`, `questions` jsonb w/
+  datatype/required/options/order, `disabled_reason`/`disabled_by`/`disabled_at`).
+  Endpoints: CRUD (**PATCH draft-only, server-enforced**), `POST :id/activate`,
+  `POST :id/disable {reason}` — owner/admin only; the **field app fetches active-only**.
+  Two heavyweight obligations: (a) the **field app renders capture forms dynamically**
+  from a template's questions (datatype → input control; report submission stores
+  answers keyed to the template) — fork `frontend/` task; (b) the **PDF pipeline renders
+  template-driven layouts** — fixed heading + comments framing a 1–3-column content
+  block from the `pdf/` toolkit, replacing the single hardcoded HVAC layout. Open
+  (06 open decisions): datatype set + signature placement, active-template immutability
+  vs. versioning (submitted reports must render as captured — snapshot vs. version
+  ref), re-activation, per-tenant seed template.
 - **billing** (09): bills + items (`report_id` per item), status flow with
   office-draft / owner-admin-send gating; report on ≤1 non-cancelled bill.
 - **wms** (10): the largest surface — stock endpoints all require a `reason`;

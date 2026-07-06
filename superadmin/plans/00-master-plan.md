@@ -22,7 +22,7 @@ then its own file, and touches no other module's code.
 | 03 | `03-branding.md` | Brand identity: name/logos/colors → themes site, both apps, PDFs/emails | 02 |
 | 04 | `04-cms.md` | Headless CMS: home + clients content documents (draft→publish) | 02 |
 | 05 | `05-users.md` | Users management | 02 |
-| 06 | `06-reports.md` | Reports browser | 02 |
+| 06 | `06-reports.md` | Reports browser + custom report-template builder | 02 |
 | 07 | `07-clients.md` | Clients directory + Mexican invoicing info | 02 |
 | 08 | `08-crm.md` | Light CRM: status, source, blacklist, activity timeline, follow-up date | 07 |
 | 09 | `09-billing.md` | Billing + billing-by-reports | 02, 06, 07 |
@@ -184,6 +184,14 @@ Rules for agents:
   `01-conventions.md`; mirrored in the **committed skill
   `.claude/skills/superadmin-design`** so every module agent auto-loads it (keep both
   in sync in the same commit).
+- **Custom report templates — decided 2026-07-05:** tenants design their own field-app
+  report forms (06 §5, **owner/admin only**). Fixed skeleton on every template: report
+  heading + report content + **comments (always present)**. Content lays out in a
+  tenant-chosen **1–3 column** grid (1-col = label|value rows); each question carries a
+  **datatype** that drives the field-app input control. Lifecycle
+  **draft → active → disabled** — only *active* templates ever reach the field app, and
+  disabling requires an audited reason (dialog). Backend + field-app rendering
+  obligations in `backend/manttio-whitelabeled-backend-plan.md` §3.
 - **Client vs customer naming:** the product's existing `customers` resource **is** the
   "Clients" module here. Superadmin uses the word *client* in UI copy; code keeps `customers`
   to stay aligned with the backend module. CRM fields (status/source/blacklist) extend that
