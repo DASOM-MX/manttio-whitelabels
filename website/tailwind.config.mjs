@@ -1,68 +1,95 @@
+// Whitelabel palette repoint (plan 15 §3): every scale reads a --brand-* CSS
+// variable injected at request time from GET /brand, with the Peña Nevada hex
+// values as var() fallbacks — no brand fetched ⇒ the site renders unchanged.
+// Mapping: granite → surface scale; cyan / sky / navy → primary scale (the
+// brand object materializes exactly two scales — 03 §3).
+
+const hexToTriplet = (hex) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
+};
+
+const brandScale = (name, fallbacks) =>
+  Object.fromEntries(
+    Object.entries(fallbacks).map(([step, hex]) => [
+      step,
+      `rgb(var(--brand-${name}-${step}, ${hexToTriplet(hex)}) / <alpha-value>)`,
+    ]),
+  );
+
+const granite = {
+  50: '#F6F7F7',
+  100: '#E4E6E7',
+  200: '#C9CECE',
+  300: '#A6ADAE',
+  400: '#798485',
+  500: '#4C5B5C',
+  600: '#414D4E',
+  700: '#353F40',
+  800: '#2A3233',
+  900: '#1E2425',
+  950: '#131717',
+};
+
+const navy = {
+  50: '#F1F5F9',
+  100: '#E0E7EE',
+  200: '#BFCDD9',
+  300: '#94A8BC',
+  400: '#6A839E',
+  500: '#4C6783',
+  600: '#3B536A',
+  700: '#314357',
+  800: '#243345',
+  900: '#1B2937',
+  950: '#0F1923',
+};
+
+const sky = {
+  50: '#F2F8FB',
+  100: '#DDEBF4',
+  200: '#BAD7E8',
+  300: '#8FBCD7',
+  400: '#6BA5C5',
+  500: '#4D91B6',
+  600: '#3F7A9D',
+  700: '#356481',
+  800: '#2C5269',
+  900: '#264558',
+  950: '#152C3B',
+};
+
+const cyan = {
+  50: '#ECF8FD',
+  100: '#D2F0FB',
+  200: '#A8E2F6',
+  300: '#71CDEC',
+  400: '#62BCDD',
+  500: '#4BA8D1',
+  600: '#2F88AF',
+  700: '#266F92',
+  800: '#235974',
+  900: '#1F4A60',
+  950: '#102B3D',
+};
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./src/**/*.{astro,html,js,jsx,ts,tsx,md,mdx,svelte,vue}'],
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Work Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        heading: ['Rubik', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['var(--brand-font-body, "Work Sans")', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        heading: ['var(--brand-font-heading, Rubik)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       letterSpacing: {
         caps: '0.18em',
       },
       colors: {
-        granite: {
-          50: '#F6F7F7',
-          100: '#E4E6E7',
-          200: '#C9CECE',
-          300: '#A6ADAE',
-          400: '#798485',
-          500: '#4C5B5C',
-          600: '#414D4E',
-          700: '#353F40',
-          800: '#2A3233',
-          900: '#1E2425',
-          950: '#131717',
-        },
-        navy: {
-          50: '#F1F5F9',
-          100: '#E0E7EE',
-          200: '#BFCDD9',
-          300: '#94A8BC',
-          400: '#6A839E',
-          500: '#4C6783',
-          600: '#3B536A',
-          700: '#314357',
-          800: '#243345',
-          900: '#1B2937',
-          950: '#0F1923',
-        },
-        sky: {
-          50: '#F2F8FB',
-          100: '#DDEBF4',
-          200: '#BAD7E8',
-          300: '#8FBCD7',
-          400: '#6BA5C5',
-          500: '#4D91B6',
-          600: '#3F7A9D',
-          700: '#356481',
-          800: '#2C5269',
-          900: '#264558',
-          950: '#152C3B',
-        },
-        cyan: {
-          50: '#ECF8FD',
-          100: '#D2F0FB',
-          200: '#A8E2F6',
-          300: '#71CDEC',
-          400: '#62BCDD',
-          500: '#4BA8D1',
-          600: '#2F88AF',
-          700: '#266F92',
-          800: '#235974',
-          900: '#1F4A60',
-          950: '#102B3D',
-        },
+        granite: brandScale('surface', granite),
+        navy: brandScale('primary', navy),
+        sky: brandScale('primary', sky),
+        cyan: brandScale('primary', cyan),
       },
     },
   },

@@ -1,14 +1,20 @@
 ---
+import type { Brand, CmsHome } from '../lib/types';
+
+interface Props {
+  brand: Brand;
+  home: CmsHome;
+}
+
+const { brand, home } = Astro.props;
+
 // TODO: replace with the direct videos.pexels.com CDN URL (grab it from
 // https://www.pexels.com/video/30900353/ — right-click the <video> element
 // in DevTools and copy the .mp4 src). Leaving empty falls back to the gradient.
 const heroVideoUrl = '';
 
-const metrics = [
-  { label: 'Clientes', value: '6+' },
-  { label: 'Proyectos', value: '10+' },
-  { label: 'Experiencia', value: '10+', unit: 'años' },
-];
+const rotatorWords = home.service_targets.length ? home.service_targets : ['Negocio'];
+const metrics = home.badges;
 ---
 
 <section class="relative isolate flex min-h-screen items-center overflow-hidden bg-granite-900">
@@ -41,17 +47,18 @@ const metrics = [
 
   <div class="relative mx-auto flex w-full max-w-7xl flex-col items-start px-6 py-32 lg:px-10 lg:py-40">
     <h1 class="max-w-3xl font-heading text-4xl font-bold leading-[1.05] text-white sm:text-5xl lg:text-7xl">
-      Climatización bajo control para tu
+      {home.title}
       <span class="mt-2 block">
         <span
           class="inline-block text-cyan-400"
           data-hero-rotator
-        >Nave Industrial</span>
+          data-hero-words={JSON.stringify(rotatorWords)}
+        >{rotatorWords[0]}</span>
       </span>
     </h1>
 
     <p class="mt-6 max-w-2xl text-lg text-granite-100 sm:text-xl">
-      Mantenimiento, renta y venta de equipos de aire acondicionado, calefacción y refrigeración. Soluciones confiables diseñadas para el clima del norte.
+      {home.description}
     </p>
 
     <div class="mt-10 flex flex-col gap-3 sm:flex-row">
@@ -87,9 +94,11 @@ const metrics = [
           </div>
         ))}
       </dl>
-      <p class="mt-10 text-center text-lg font-medium uppercase tracking-caps text-sky-300 sm:text-xl lg:text-left">
-        Orgullosamente regiomontanos
-      </p>
+      {brand.slogan && (
+        <p class="mt-10 text-center text-lg font-medium uppercase tracking-caps text-sky-300 sm:text-xl lg:text-left">
+          {brand.slogan}
+        </p>
+      )}
     </div>
   </div>
 </section>
@@ -99,40 +108,47 @@ const metrics = [
 
   const rotator = document.querySelector<HTMLElement>('[data-hero-rotator]');
   if (rotator) {
-    const words = ['Nave Industrial', 'Fábrica', 'Pista de hielo', 'Negocio', 'Hogar'];
-    let idx = 0;
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const intervalMs = 2800;
+    let words: string[] = [];
+    try {
+      words = JSON.parse(rotator.dataset.heroWords ?? '[]');
+    } catch {
+      words = [];
+    }
+    if (words.length > 1) {
+      let idx = 0;
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const intervalMs = 2800;
 
-    const swap = () => {
-      const nextIdx = (idx + 1) % words.length;
+      const swap = () => {
+        const nextIdx = (idx + 1) % words.length;
 
-      if (prefersReducedMotion) {
-        idx = nextIdx;
-        rotator.textContent = words[idx];
-        return;
-      }
-
-      anime({
-        targets: rotator,
-        opacity: [1, 0],
-        translateY: [0, -14],
-        duration: 320,
-        easing: 'easeInQuad',
-        complete: () => {
+        if (prefersReducedMotion) {
           idx = nextIdx;
           rotator.textContent = words[idx];
-          anime({
-            targets: rotator,
-            opacity: [0, 1],
-            translateY: [14, 0],
-            duration: 420,
-            easing: 'easeOutQuad',
-          });
-        },
-      });
-    };
+          return;
+        }
 
-    setInterval(swap, intervalMs);
+        anime({
+          targets: rotator,
+          opacity: [1, 0],
+          translateY: [0, -14],
+          duration: 320,
+          easing: 'easeInQuad',
+          complete: () => {
+            idx = nextIdx;
+            rotator.textContent = words[idx];
+            anime({
+              targets: rotator,
+              opacity: [0, 1],
+              translateY: [14, 0],
+              duration: 420,
+              easing: 'easeOutQuad',
+            });
+          },
+        });
+      };
+
+      setInterval(swap, intervalMs);
+    }
   }
 </script>

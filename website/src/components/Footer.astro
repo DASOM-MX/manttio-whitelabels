@@ -1,8 +1,21 @@
 ---
-import { contact } from '../lib/contact';
+import type { Brand, CmsHome } from '../lib/types';
+import { DEFAULT_HOME } from '../lib/defaults';
+
+interface Props {
+  brand: Brand;
+  home: CmsHome;
+}
+
+const { brand, home } = Astro.props;
 
 const year = new Date().getFullYear();
-const { phone, phoneHref, email, emailHref } = contact;
+const phone = brand.contact?.phone;
+const phoneHref = phone ? `tel:${phone.replace(/\s+/g, '')}` : undefined;
+const email = brand.contact?.email;
+const emailHref = email ? `mailto:${email}` : undefined;
+const cta = home.contact_cta ?? DEFAULT_HOME.contact_cta!;
+const blurb = `${home.services_content.title}. ${home.service_area ?? ''}`.trim();
 
 const quickLinks = [
   { href: '#servicios', label: 'Servicios' },
@@ -11,12 +24,9 @@ const quickLinks = [
 ];
 
 const contactItems = [
-  { label: 'Teléfono', value: phone, href: phoneHref },
-  { label: 'Correo', value: email, href: emailHref },
-  {
-    label: 'Dirección',
-    value: 'Gral. Plutarco Elías Calles #2403, Guadalupe, N.L. 67169',
-  },
+  ...(phone ? [{ label: 'Teléfono', value: phone, href: phoneHref }] : []),
+  ...(email ? [{ label: 'Correo', value: email, href: emailHref }] : []),
+  ...(brand.contact?.address ? [{ label: 'Dirección', value: brand.contact.address }] : []),
 ];
 ---
 
@@ -29,14 +39,15 @@ const contactItems = [
             Contacto
           </p>
           <h2 class="mt-3 font-heading text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
-            Cotiza tu próximo proyecto de climatización industrial
+            {cta.title}
           </h2>
           <p class="mt-5 max-w-2xl text-lg text-white/75">
-            Comparte tu requerimiento — tonelaje, aplicación y ubicación — y un especialista te contacta en menos de 24 horas.
+            {cta.description}
           </p>
         </div>
 
         <div class="flex flex-col gap-3 lg:col-span-2" data-footer-cta-actions>
+          {phoneHref && (
           <a
             href={phoneHref}
             class="inline-flex items-center justify-center gap-3 rounded-md bg-cyan-500 px-6 py-4 text-base font-semibold text-white shadow-lg shadow-cyan-500/25 transition hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-granite-950"
@@ -56,6 +67,8 @@ const contactItems = [
             </svg>
             <span>Llamar al {phone}</span>
           </a>
+          )}
+          {emailHref && (
           <a
             href={emailHref}
             class="inline-flex items-center justify-center gap-3 rounded-md border border-white/25 bg-white/5 px-6 py-4 text-base font-semibold text-white backdrop-blur-sm transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50"
@@ -75,6 +88,7 @@ const contactItems = [
             </svg>
             <span>Enviar correo</span>
           </a>
+          )}
         </div>
       </div>
     </div>
@@ -86,22 +100,26 @@ const contactItems = [
         <a
           href="/"
           class="inline-flex items-center"
-          aria-label="Peña Nevada Chillers"
+          aria-label={brand.name}
         >
-          <img
-            src="/brand/penanevada-mark-light.png"
-            alt="Peña Nevada Chillers"
-            width="64"
-            height="64"
-            class="size-14 rounded-full bg-white p-0.5 shadow-sm sm:size-16"
-          />
+          {brand.isologoUrl && (
+            <img
+              src={brand.isologoUrl}
+              alt={brand.name}
+              width="64"
+              height="64"
+              class="size-14 rounded-full bg-white p-0.5 shadow-sm sm:size-16"
+            />
+          )}
         </a>
         <p class="mt-4 max-w-xs text-sm text-white/65">
-          Climatización industrial, sin comprometer la producción. Chillers, HVAC y refrigeración de proceso para el noreste de México.
+          {blurb}
         </p>
-        <p class="mt-5 text-xs font-semibold uppercase tracking-caps text-sky-300">
-          Orgullosamente regiomontanos
-        </p>
+        {brand.slogan && (
+          <p class="mt-5 text-xs font-semibold uppercase tracking-caps text-sky-300">
+            {brand.slogan}
+          </p>
+        )}
       </div>
 
       <div>
@@ -144,7 +162,7 @@ const contactItems = [
     </div>
 
     <div class="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-sm text-white/50 sm:flex-row sm:items-center sm:justify-between">
-      <p>© {year} Peña Nevada Chillers. Todos los derechos reservados.</p>
+      <p>© {year} {brand.name}. Todos los derechos reservados.</p>
       <p>Diseñado y construido en Nuevo León.</p>
     </div>
   </div>

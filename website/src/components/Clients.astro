@@ -1,52 +1,14 @@
 ---
-const clients = [
-  {
-    name: 'Oriente Sobre Hielo',
-    sector: 'Pistas de patinaje sobre hielo',
-    src: '/clients/oriente-sobre-hielo.jpg',
-  },
-  {
-    name: 'FIMEX',
-    legal: 'Fluidos Industriales Mexicanos',
-    sector: 'Fluidos industriales',
-    src: '/clients/fimex.jpg',
-  },
-  {
-    name: 'Coverpack',
-    sector: 'Empaque industrial',
-    src: '/clients/coverpack.png',
-  },
-  {
-    name: 'Ice Dreams',
-    sector: 'Pistas de patinaje sobre hielo',
-    src: '/clients/ice-dreams.jpeg',
-  },
-  {
-    name: 'ISSSTE',
-    legal: 'Instituto de Seguridad y Servicios Sociales de los Trabajadores del Estado',
-    sector: 'Sector salud',
-    src: '/clients/ISSSTE.png',
-  },
-  {
-    name: 'NG Equipos Especializados en Renta',
-    sector: 'Renta industrial',
-    src: '/clients/ng-equipos.jpg',
-  },
-  {
-    name: 'Grupo Collado',
-    sector: 'Industria del acero',
-    src: '/clients/grupo-collado.png',
-  },
-];
+import type { Brand, CmsClient } from '../lib/types';
 
-const industries = [
-  'Pistas de patinaje sobre hielo',
-  'Fluidos industriales',
-  'Empaque industrial',
-  'Sector salud',
-  'Renta industrial',
-  'Industria del acero',
-];
+interface Props {
+  brand: Brand;
+  clients: CmsClient[];
+}
+
+const { brand, clients } = Astro.props;
+
+const industries = [...new Set(clients.map((c) => c.sector).filter((s): s is string => !!s))];
 ---
 
 <section
@@ -89,7 +51,7 @@ const industries = [
         class="mt-5 text-lg text-granite-700"
         data-clients-lede
       >
-        Una selección de empresas que han elegido a Peña Nevada Chillers para diseñar, instalar y mantener su climatización industrial — desde cadena de frío y empaque hasta servicios públicos y renta de equipo.
+        Una selección de empresas que han elegido a {brand.name} para diseñar, instalar y mantener su climatización industrial — desde cadena de frío y empaque hasta servicios públicos y renta de equipo.
       </p>
     </div>
 
@@ -115,7 +77,7 @@ const industries = [
         >
           <div class="flex h-28 items-center justify-center px-6 sm:h-32">
             <img
-              src={c.src}
+              src={c.logoUrl}
               alt={c.name}
               loading="lazy"
               decoding="async"
@@ -129,7 +91,7 @@ const industries = [
             {c.legal && (
               <p class="mt-0.5 text-xs text-granite-400">{c.legal}</p>
             )}
-            <p class="mt-1 text-sm text-granite-500">{c.sector}</p>
+            {c.sector && <p class="mt-1 text-sm text-granite-500">{c.sector}</p>}
           </div>
           <span class="pointer-events-none absolute inset-0" aria-hidden="true">
             <span class="absolute bottom-0 left-0 right-1/2 h-0.5 origin-right scale-x-0 bg-cyan-500" data-trail="bl"></span>
