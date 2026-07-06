@@ -142,28 +142,11 @@ Outside this module:
 ## 5. Expected API surface
 
 - `GET /brand` — **public/unauthenticated** (login screens + website; every field is
-  public by nature) — **served from the per-tenant cache DO, not Neon (§5.1)**
+  public by nature)
 - `GET /fonts` — **public** curated catalog (codes, labels, file URLs, pairings — §2.1)
 - `PUT /brand` — **owner-only**. Own module — **not** under `/cms`.
 - `POST /upload` → R2 key (existing upload module) for logo/isologo (SVG/PNG, size caps
   server-side)
-
-### 5.1 Read-path caching — per-tenant Durable Object (decided 2026-07-06)
-
-`GET /brand` is the hottest tenant read (every website visit + every app boot,
-pre-auth) against a row that almost never changes — it is served from the **per-tenant
-cache Durable Object**, not straight from Neon:
-
-- One SQLite-backed `TenantCacheDO` instance per tenant (shared with the CRM cache,
-  08 §4.1) holds the materialized brand object; on a miss the DO loads it from Neon
-  itself, so concurrent cold reads collapse into one query.
-- **Write-through invalidation:** `PUT /brand` *and* the manager seed/override push
-  (§1) commit to Neon first, then re-prime the DO entry in the same request — a stale
-  login screen is exactly the failure this design buys off. Direct-apply (§8) is
-  unaffected: the refreshed entry goes live immediately.
-- Bindings, migration, alarm TTL safety net, and the cache-aside pattern are backend
-  work — `backend/manttio-whitelabeled-backend-plan.md` §5. Nothing changes for this
-  module's UI; Neon remains the source of truth.
 
 ## 6. Pages & components
 

@@ -5,7 +5,7 @@ description: Design language + UI/UX rules for the superadmin/ Angular app. Use 
 
 # Superadmin design language — solid & tight
 
-Canonical source: `.claude/plans/superadmin/01-conventions.md` (this skill mirrors its
+Canonical source: `superadmin/plans/01-conventions.md` (this skill mirrors its
 Typography, Design language, Accessibility, Layout & responsive, Animations, and
 Forms & feedback sections — if they disagree, the plan file wins and this skill needs
 updating in the same commit).

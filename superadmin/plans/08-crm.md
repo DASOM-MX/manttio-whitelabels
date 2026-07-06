@@ -97,23 +97,6 @@ Deliberately **not** a task system — one field, defined on the Customer DTO in
 - `nextFollowUpAt` travels on the normal `PATCH /customers/:id` (07's endpoint).
 - `GET /customers?status=...&source=...` — already covered by 07's list endpoint.
 
-### 4.1 Read-path caching — per-tenant Durable Object (decided 2026-07-06)
-
-Hot CRM reads are served from the **per-tenant cache Durable Object** (the same
-SQLite-backed `TenantCacheDO` that caches the brand — 03 §5.1), not straight from Neon:
-
-- Cached: the list projections behind the CRM views (leads sorted by follow-up,
-  blacklist, source counts for the dashboard card) and the first timeline page per
-  customer. The exact v1 projection set is a backend open question — the UI never
-  knows or cares which path served a read.
-- **Write-through invalidation:** the CRM write endpoints (`POST /customers/:id/status`,
-  `POST /customers/:id/interactions`, `PATCH /customers/:id`) commit to Neon first,
-  then refresh/drop the affected entries in the same request — a just-logged call must
-  appear on the timeline the composer reloads (read-your-writes).
-- Bindings, migration, TTL sweep, and the cache-aside pattern live backend-side —
-  `backend/manttio-whitelabeled-backend-plan.md` §5. Neon remains the source of truth;
-  the DO is a disposable cache.
-
 ## 5. Pages & components
 
 Routing note: CRM views live **under the Clients nav group** (shell §4: All / Leads /
@@ -182,8 +165,6 @@ as ask), don't fork the table.
 - Which system-event emitters beyond status changes land in v1 (report created, bill
   sent) — depends on backend hooks; timeline renders whatever arrives.
 - Source stats endpoint for the dashboard card: v1 or later?
-- Which CRM projections the tenant-cache DO holds in v1 (§4.1) — backend call, with the
-  invalidation hooks.
 - Ask to 07: customers-table extraction for filtered reuse.
 - **v2 (recorded, not planned):** Deal entity with fixed stages
   `new → contacted → quoted → won/lost` (decided fixed, not tenant-configurable, when it

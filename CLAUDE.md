@@ -10,8 +10,8 @@ This repo (`manttio-whitelabeled`, remote `DASOM-MX/manttio-whitelabels`) is a *
 
 What differs from upstream so far:
 
-- **New `superadmin/` app** — an in-product admin (Angular 20) where a logged-in **client** edits their own CMS content (`cms_home`, `cms_clients`), tenant-scoped and product-user-authed (never the shared token). See `.claude/plans/superadmin/00-master-plan.md`.
-- **Whitelabel plans** — design docs for the whitelabeled backend/frontend/manager surfaces live as `*-plan.md` files at the root of each package; the superadmin module planning suite (plans 00–14) lives in `.claude/plans/superadmin/`.
+- **New `superadmin/` app** — an in-product admin (Angular 20) where a logged-in **client** edits their own CMS content (`cms_home`, `cms_clients`), tenant-scoped and product-user-authed (never the shared token). See `superadmin/manttio-whitelabeled-superadmin-plan.md`.
+- **Whitelabel plans** — design docs for the whitelabeled backend/frontend/superadmin/manager surfaces live as `*-plan.md` files at the root of each package.
 - **Local-only dev overrides** — `frontend/src/environments/environment.development.ts` here points at the deployed `manttio-api.dasom-mx.workers.dev` (not committed / `skip-worktree`'d so it stays local for testing). Upstream keeps `http://127.0.0.1:8787`.
 - Upstream-only CI workflows under `.github/workflows/` are dropped in this fork.
 - **Worktrees** for this repo live at `../manttio-whitelabeled-worktrees` (sibling to the checkout), kept out of the working tree — create feature/isolation worktrees there, not inside the repo.
@@ -40,8 +40,7 @@ These apply across packages; per-package CLAUDE.md files own the rest.
 - **Commit prefixes:** Conventional-ish: `feat(<project>)`, `fix(<project>)`, `docs(<project>)`, `style(<project>)`, `chore(<project>)`. Use `fullstack` for changes that span backend + frontend in the same PR.
 - **PR base is always `main`.** Stacked PRs are rare here — always re-check the base before merging (`gh pr view <N> --json baseRefName`), GitHub does not auto-retarget stacked PRs after the parent merges.
 - **Git identity:** never override with `-c user.name=…` / `-c user.email=…`. Use whatever the local git config already has.
-- **`.claude/` IS committed** (shared agent context for all devs: `skills/`, `plans/`) — **exception: `.claude/settings.local.json`** (per-user permissions, gitignored).
-- **Don't commit:** `frontend/src/environments/environment.development.ts` (local API URL override); `backend/.dev.vars` (local secrets); anything matching `.env*` outside the checked-in `*.example` files.
+- **Don't commit:** `.claude/` (per-clone IDE state) — **exception: `.claude/skills/` IS committed** (shared agent skills, e.g. `superadmin-design`); `frontend/src/environments/environment.development.ts` (local API URL override); `backend/.dev.vars` (local secrets); anything matching `.env*` outside the checked-in `*.example` files.
 - **Backend is the sole authority on JWT validity.** Frontend never decodes tokens; guards check presence only, the HTTP interceptor handles 401s.
 - **Soft deletes** are the default for user-facing resources (`users`, `customers`, `reports`, `reportDetails`). Hard deletes are reserved for fixture cleanup. The `users` table additionally carries `delete_comment` + `deleted_by` for an audit trail.
 
