@@ -1,0 +1,180 @@
+<div class="flex flex-wrap items-start justify-between gap-3">
+  <div>
+    <h1 class="text-xl font-bold text-granite-950 dark:text-granite-50">CMS — Contenido</h1>
+    <p class="mt-1 text-sm text-granite-600 dark:text-granite-400">
+      El contenido de la página de inicio de tu sitio. Guardas un borrador; publicar lo hace
+      visible.
+    </p>
+  </div>
+  <div class="flex flex-wrap items-center gap-3">
+    <app-publish-bar [unpublished]="unpublished()" [busy]="busy()" (publish)="publish()" />
+    <button
+      type="button"
+      class="btn-primary"
+      (click)="save()"
+      [disabled]="form.invalid || busy() || !form.dirty"
+    >
+      Guardar borrador
+    </button>
+  </div>
+</div>
+
+<form [formGroup]="form" class="mt-5 grid gap-4 xl:grid-cols-2" (ngSubmit)="save()">
+  <!-- Hero -->
+  <section class="card-section flex flex-col gap-4" aria-labelledby="cms-hero-title">
+    <h2 id="cms-hero-title" class="micro-label">Portada</h2>
+
+    <div class="field-group">
+      <label class="field-label" for="cms-title">Título<span aria-hidden="true"> *</span></label>
+      <input id="cms-title" pInputText formControlName="title" />
+      <p class="text-sm text-granite-500 dark:text-granite-400">
+        El rotador de audiencias lo completa (p. ej. «… para plantas»).
+      </p>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="cms-description"
+        >Descripción<span aria-hidden="true"> *</span></label
+      >
+      <textarea id="cms-description" pTextarea formControlName="description" rows="3"></textarea>
+    </div>
+
+    <div class="field-group">
+      <span class="field-label">Audiencias del rotador</span>
+      <app-repeater
+        [array]="serviceTargets"
+        addLabel="Agregar audiencia"
+        itemName="audiencia"
+        (add)="addTarget()"
+      >
+        <ng-template #row let-ctrl let-i="index">
+          <input
+            pInputText
+            [formControl]="asControl(ctrl)"
+            [attr.aria-label]="'Audiencia ' + (i + 1)"
+          />
+        </ng-template>
+      </app-repeater>
+    </div>
+
+    <div class="field-group">
+      <span class="field-label">Métricas de portada</span>
+      <app-repeater
+        [array]="badges"
+        addLabel="Agregar métrica"
+        itemName="métrica"
+        (add)="addBadge()"
+      >
+        <ng-template #row let-ctrl let-i="index">
+          <div class="grid gap-2 sm:grid-cols-3" [formGroup]="asGroup(ctrl)">
+            <input
+              pInputText
+              formControlName="value"
+              [attr.aria-label]="'Valor de la métrica ' + (i + 1)"
+              placeholder="+120"
+            />
+            <input
+              pInputText
+              formControlName="unit"
+              [attr.aria-label]="'Unidad de la métrica ' + (i + 1)"
+              placeholder="toneladas"
+            />
+            <input
+              pInputText
+              formControlName="label"
+              [attr.aria-label]="'Etiqueta de la métrica ' + (i + 1)"
+              placeholder="instaladas"
+            />
+          </div>
+        </ng-template>
+      </app-repeater>
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section class="card-section flex flex-col gap-4" aria-labelledby="cms-services-title">
+    <h2 id="cms-services-title" class="micro-label">Servicios</h2>
+
+    <div class="grid gap-4" formGroupName="services_content">
+      <div class="field-group">
+        <label class="field-label" for="cms-sc-eyebrow">Antetítulo</label>
+        <input id="cms-sc-eyebrow" pInputText formControlName="eyebrow" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="cms-sc-title"
+          >Título de la sección<span aria-hidden="true"> *</span></label
+        >
+        <input id="cms-sc-title" pInputText formControlName="title" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="cms-sc-description"
+          >Descripción<span aria-hidden="true"> *</span></label
+        >
+        <textarea
+          id="cms-sc-description"
+          pTextarea
+          formControlName="description"
+          rows="2"
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <span class="field-label">Tarjetas de servicio</span>
+      <app-repeater
+        [array]="services"
+        addLabel="Agregar servicio"
+        itemName="servicio"
+        (add)="addService()"
+      >
+        <ng-template #row let-ctrl let-i="index">
+          <div class="grid gap-2" [formGroup]="asGroup(ctrl)">
+            <input
+              pInputText
+              formControlName="title"
+              [attr.aria-label]="'Título del servicio ' + (i + 1)"
+              placeholder="Mantenimiento"
+            />
+            <textarea
+              pTextarea
+              formControlName="description"
+              rows="2"
+              class="!min-h-16"
+              [attr.aria-label]="'Descripción del servicio ' + (i + 1)"
+            ></textarea>
+            <input
+              pInputText
+              formControlName="tagsCsv"
+              [attr.aria-label]="'Etiquetas del servicio ' + (i + 1) + ' (separadas por coma)'"
+              placeholder="Preventivo, Correctivo 24/7"
+            />
+          </div>
+        </ng-template>
+      </app-repeater>
+    </div>
+  </section>
+
+  <!-- Footer + CTA -->
+  <section
+    class="card-section flex flex-col gap-4 xl:col-span-2"
+    aria-labelledby="cms-footer-title"
+  >
+    <h2 id="cms-footer-title" class="micro-label">Cierre y contacto</h2>
+    <div class="grid gap-4 lg:grid-cols-3">
+      <div class="field-group">
+        <label class="field-label" for="cms-service-area">Zona de servicio</label>
+        <input id="cms-service-area" pInputText formControlName="service_area" />
+      </div>
+      <div class="grid gap-4 lg:col-span-2 lg:grid-cols-2" formGroupName="contact_cta">
+        <div class="field-group">
+          <label class="field-label" for="cms-cta-title">Título del llamado</label>
+          <input id="cms-cta-title" pInputText formControlName="title" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="cms-cta-description">Texto del llamado</label>
+          <input id="cms-cta-description" pInputText formControlName="description" />
+        </div>
+      </div>
+    </div>
+  </section>
+</form>
