@@ -101,7 +101,8 @@ TemplateQuestion {
 - **Fixed skeleton — every template, non-negotiable:** **report heading** (system-owned:
   business info + client info — client, technician, service date, folio) →
   **content sections** (1..n, the tenant-designed part) → **images block** (photo
-  grid, as today's reports) → **footer**: **comments** (always present, never
+  grid, as today's reports — **confirmed 2026-07-05: fixed at the end, not
+  builder-configurable; stays that way until a real tenant asks**) → **footer**: **comments** (always present, never
   removable, not a question the builder can touch) + **signature (decided 2026-07-05
   — a selling point, not open to discussion):** every report, whatever its template,
   **requires a captured signature to be marked `finished` and to be mailed** —
