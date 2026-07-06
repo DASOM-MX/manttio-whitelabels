@@ -1,7 +1,7 @@
 # 15 — Website (public site: CMS content + brand consumption)
 
-> **Status:** not-started · **Depends on:** 03 (brand read path), 04 (publish flow)
-> **Owner:** — · **Last updated:** 2026-07-06
+> **Status:** in-progress (CP-2) · **Depends on:** 03 (brand read path), 04 (publish flow)
+> **Owner:** PR #44 (`feature/website-cms-brand-integration`) · **Last updated:** 2026-07-06
 
 The consumer-side integration plan for the **tenant public website** — the
 `website/`-replacement in the backend plan's system map. **Not a superadmin module**: no
@@ -86,16 +86,20 @@ Header/Footer ← brand only.
 ## Checkpoints
 
 ### CP-1 — Data layer + theming proof
-- [ ] Rendering model decided (§2); typed fetchers for brand / fonts / published CMS
-- [ ] Brand applied: CSS-var palette repoint, @font-face injection, logos, meta —
-      fallbacks render the current site unchanged when fetches fail
-- [ ] Home hero renders from a live published `cms_home` doc
+- [x] Rendering model decided (§2): SSR — the site already ran the CF adapter;
+      `prerender = false` on index (PR #44); typed fetchers for brand / fonts /
+      published CMS in `website/src/lib/`
+- [x] Brand applied: CSS-var palette repoint, @font-face injection, logos, meta —
+      fallbacks render the current site unchanged when fetches fail (verified via
+      `wrangler dev`)
+- [x] Home hero renders from a live published `cms_home` doc *(verified against a
+      mock backend — re-verify when the real endpoints land)*
 
 ### CP-2 — Full content
-- [ ] All home sections from the home doc (§4 mapping resolved incl.
-      Manufacturers/Location)
-- [ ] Clients section from published `cms_clients`
-- [ ] Contact/social/footer fully brand-driven; `PUBLIC_CONTACT_*` env vars deleted
+- [~] All home sections from the home doc — hero/services/clients/footer done;
+      Manufacturers/Location §4 mapping decision still open
+- [x] Clients section from published `cms_clients`
+- [x] Contact/social/footer fully brand-driven; `PUBLIC_CONTACT_*` env vars deleted
 
 ### CP-3 — Publish loop + polish
 - [ ] End-to-end with 04: edit → publish in superadmin → site reflects it (04 CP-3's
