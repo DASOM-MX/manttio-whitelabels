@@ -50,7 +50,22 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
 - Guards: `authGuard` (token presence) on the layout shell + one central `canMatch` guard
   reading route `data: { module, roles }` against `AuthState`. Backend enforces every call
   regardless of what the UI shows.
-- Login page (`auth/pages/login/`) posts credentials → token → `/auth/me` → enter shell.
+- **Login page (`auth/pages/login/`) — two-panel layout, decided 2026-07-05:**
+  - **Left panel — the form.** Clean and minimal: email + password only (`.field-input`
+    h-12, password visibility toggle per 01 Forms & feedback), one primary submit with
+    busy state, inline error on 401. **No social login, no self-serve password reset.**
+    Below the form, a quiet disclaimer: password resets go through the account owner
+    (copy: *"¿Problemas para entrar? Contacta al dueño de la cuenta."*). Reset mechanics
+    live in the users module (05) — owner/admin set a new password there; **no
+    forgot-password flow or endpoint exists in v1.**
+  - **Right panel — brand.** Business (tenant) logo + app name over a **dark
+    brand-primary background** (deep primary step, e.g. `primary-950`, from the boot
+    `GET /brand` CSS vars — manttio fallback until the fetch lands). This is the
+    pre-auth branded surface §5 refers to. Static background — no animated gradients
+    (01 no-AI-slop rule).
+  - **Responsive:** side-by-side ≥ `lg`; below that the brand panel collapses to a
+    compact logo + name header above the centered form (no dead half-screen on mobile).
+  - Flow: credentials → token → `/auth/me` → enter shell.
 
 ## 4. Layout + navigation
 
@@ -132,7 +147,9 @@ borders-not-shadows surface chrome from the Design language.)
 - [ ] `data/utils.ts` helpers ported
 
 ### CP-3 — Auth + gated layout (gate for module agents)
-- [ ] `AuthState` + login page + interceptor (401 redirect) + `authGuard`
+- [ ] `AuthState` + login page (**two-panel spec, §3**: brand panel w/ dark primary bg,
+      clean email+password form, contact-owner reset disclaimer) + interceptor
+      (401 redirect) + `authGuard`
 - [ ] `/auth/me` on boot + post-login → `AuthState`; splash until resolved
 - [ ] `access.ts` matrix + central `canMatch` guard reading route `data`
 - [ ] `AuthenticatedLayout`: sidebar/topbar, mobile drawer, scroll reset, **nav filtered
@@ -156,4 +173,5 @@ borders-not-shadows surface chrome from the Design language.)
 - Backend asks (recorded for backend planning): superadmin login endpoint,
   `GET /auth/me` returning `{ user, role, tenantConfig }`, `role` enum
   `owner|admin|office|technician` on users, per-tenant `modules` config in the manager
-  push schema.
+  push schema. **Explicitly not needed in v1:** forgot-password / reset-email endpoint —
+  resets go through the owner via the users module (§3 login spec).

@@ -20,6 +20,9 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
 
 - **Superadmin login** (product users, never the shared token) + **`GET /auth/me` →
   `{ user, role, tenantConfig }`** — the single gating input the superadmin boots on.
+  **No forgot-password / reset-email endpoint in v1 (decided 2026-07-05):** the login
+  screen carries a contact-the-owner disclaimer instead; resets happen owner/admin-side
+  through the users module (superadmin plan 02 §3, 05).
 - **`role` enum on `users`:** `'owner' | 'admin' | 'office' | 'technician'` — migration
   on the existing users table **plus** the hardcoded role surfaces:
   `auth/middleware/jwt.middleware.ts` (currently asserts `['admin','technician']`),
