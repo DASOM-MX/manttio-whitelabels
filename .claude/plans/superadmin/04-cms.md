@@ -9,7 +9,7 @@ The logged-in client edits their marketing-site content (`cms_home`, `cms_client
 documents through an API; the tenant's public website is just one consumer, and nothing
 here assumes a specific site frontend. **Brand identity is not CMS content** — it's its
 own independent module (03); the two share nothing but the upload pipeline. This file
-absorbs the original superadmin plan (`../manttio-whitelabeled-superadmin-plan.md`, now
+absorbs the original superadmin plan (`manttio-whitelabeled-superadmin-plan.md`, now
 superseded) — scope and guardrails carried over.
 
 ---
