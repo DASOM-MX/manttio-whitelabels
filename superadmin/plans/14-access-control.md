@@ -47,7 +47,8 @@ Baseline four, no specialist roles until a real tenant needs one:
    **office/technician** passwords; **nobody in-tenant resets the owner's** (a locked-out
    owner goes through us via the manager — there is no forgot-password flow in v1,
    `02-app-shell.md` §3). UI hides the reset action outside these pairs; backend
-   enforces on the endpoint.
+   enforces on the endpoint. Resets issue a **temporary password + forced change at
+   next login** (unskippable dialog — mechanics in 05 §2 / 02 §3).
 2. **Technician scope (decided 2026-07-05):** technicians *can* log into superadmin;
    their world is: **Calendar** (own visits + team read-only, note 4), **My reports**
    (own reports — read-only *except* recording material consumption, §2.1),

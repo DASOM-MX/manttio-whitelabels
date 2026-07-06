@@ -32,22 +32,30 @@ the user detail once 10 lands.
 
 - `GET /users?page&limit&search&role&active` → `PagedResponse<User>`
 - `GET /users/:id`
-- `POST /users` · `PATCH /users/:id`
+- `POST /users` (response carries the initial temp password — same model as reset
+  below) · `PATCH /users/:id`
 - `POST /users/:id/password` — **reset password (decided 2026-07-05), role-gated per
   `14-access-control.md` §2 note 1:** owner resets admins/office/technicians; admins
   reset office/technicians only; nobody in-tenant resets the owner. Backend enforces
-  the pairings.
+  the pairings. **Temp-password model (decided 2026-07-05):** the backend generates a
+  temporary password, returns it **once** in the response (there's no email flow — the
+  resetter hands it over), and flags the user `mustChangePassword`. At next login the
+  user is forced through an **unskippable set-your-own-password dialog** before
+  entering the app (shell-level — `02-app-shell.md` §3).
 - `DELETE /users/:id` with `{ deleteComment }` (soft delete)
 - `POST /users/:id/restore` *(nice-to-have — open decision)*
 
 ## 3. Pages & components
 
 - `users/pages/users-list/` — lazy `<p-table>`: name, email, role pill, active pill,
-  created. Filters: search, role, active. Row actions: edit, **reset password** (shown
-  only for the allowed pairings — 14 §2 note 1), delete.
+  created. Filters: search, role, active. Row actions: edit, delete.
 - `users/pages/user-form/` — one reactive-form page for add + edit (route param decides).
-  Fields: name, email, phone, role (`<p-select>`), active toggle. Password handling is
-  backend-driven (invite email or set-password flow — open decision).
+  Fields: name, email, phone, role (`<p-select>`), active toggle. **Edit mode is
+  tabbed; the last tab is "Crítico"** — the danger zone holding the **reset password**
+  button (rendered only for the allowed pairings — 14 §2 note 1; confirm dialog →
+  calls `POST /users/:id/password` → shows the generated temp password **once** with a
+  copy button and a "won't be shown again" warning). New users get the same
+  temp-password treatment on create (§2 / open-decision resolution below).
 - `users/components/delete-user-dialog/` — **port the canonical frontend
   `delete-user-dialog`**: self-contained (shape 3), required audit comment + typed-email
   confirmation, dispatches delete, toasts result.
@@ -70,7 +78,8 @@ the user detail once 10 lands.
 ### CP-2 — Write path
 - [ ] User form page (add + edit) with validators
 - [ ] Delete dialog ported (audit comment + typed email)
-- [ ] Reset-password action (confirm dialog) — visible only for allowed pairings
+- [ ] "Crítico" tab on user-form edit mode: reset-password button (confirm dialog →
+      temp password shown once w/ copy) — visible only for allowed pairings
       (owner→admin/office/tech, admin→office/tech; 14 §2 note 1)
 - [ ] Toasts on create/update/delete; list refreshes
 
@@ -84,8 +93,12 @@ the user detail once 10 lands.
 - ~~Role enum~~ — **resolved 2026-07-05:** `owner|admin|office|technician`
   (`14-access-control.md`); backend migration of the existing role column is a backend
   ask.
-- New-user credential flow: invite email vs admin-set temporary password. (Reset shape
-  probably decides this too — if reset = set-temporary-password, creation should match.)
-- Self-service password *change* (logged-in user changing their own): where does it
-  live — a small profile page, or out of v1?
+- ~~New-user credential flow~~ — **resolved 2026-07-05: temp-password model.** Reset
+  issues a generated temporary password (shown once) + forced change at next login;
+  creation follows the same shape (`POST /users` response carries the initial temp
+  password, `mustChangePassword` set). No invite emails in v1.
+- ~~Self-service password change~~ — **partially resolved 2026-07-05:** a change-own
+  endpoint (`POST /auth/password`) must exist for the forced-change dialog. Whether a
+  profile page exposes it voluntarily is still open.
+- Temp-password expiry (e.g. force a new reset after N days unused): in or out for v1?
 - Restore endpoint for soft-deleted users: in or out for v1?

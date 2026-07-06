@@ -28,6 +28,15 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   **admins** reset office/technicians only (never another admin, never the owner);
   the **owner's** password is never resettable in-tenant — locked-out owner goes
   through the manager/support path. (Superadmin plans 05 §2, 14 §2 note 1.)
+- **Temp-password model (decided 2026-07-05):** reset (and `POST /users` create)
+  generates a temporary password, returns it **once** in the response (no email flow),
+  and sets a `must_change_password` flag on the user. `/auth/me` (and/or the login
+  response) exposes the flag; **`POST /auth/password`** (change own: current + new)
+  clears it — the superadmin blocks entry behind an unskippable change dialog until
+  then (plan 02 §3). **Cross-app note:** the flag rides the shared `users` table, so a
+  reset technician logging into the **field app** hits it too — the fork `frontend/`
+  needs the same forced-change handling (record with the field-app font-migration
+  fork tasks). Open: temp-password expiry (05 open decisions).
 - **`role` enum on `users`:** `'owner' | 'admin' | 'office' | 'technician'` — migration
   on the existing users table **plus** the hardcoded role surfaces:
   `auth/middleware/jwt.middleware.ts` (currently asserts `['admin','technician']`),

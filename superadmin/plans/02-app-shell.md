@@ -67,6 +67,13 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
   - **Responsive:** side-by-side ≥ `lg`; below that the brand panel collapses to a
     compact logo + name header above the centered form (no dead half-screen on mobile).
   - Flow: credentials → token → `/auth/me` → enter shell.
+- **Forced password change (decided 2026-07-05):** password resets and new accounts
+  issue a **temporary password** (05 §2). `/auth/me` returns `mustChangePassword`; when
+  true, the shell interposes an **unskippable set-your-own-password dialog** right after
+  login, before any gated UI — modal, focus-trapped, **no close/escape** (deliberate,
+  documented exception to the 01 `escape-routes` rule; logout is the only other exit).
+  Submits to `POST /auth/password` (new + confirm, same validators as login), clears the
+  flag, continues into the shell. Shell-level because every role hits it.
 
 ## 4. Layout + navigation
 
@@ -152,6 +159,8 @@ borders-not-shadows surface chrome from the Design language.)
       primary bg, clean email+password form, contact-admin reset disclaimer) +
       interceptor (401 redirect) + `authGuard`
 - [ ] `/auth/me` on boot + post-login → `AuthState`; splash until resolved
+- [ ] Forced-change dialog (`mustChangePassword`, §3): unskippable modal →
+      `POST /auth/password` → into the shell
 - [ ] `access.ts` matrix + central `canMatch` guard reading route `data`
 - [ ] `AuthenticatedLayout`: sidebar/topbar, mobile drawer, scroll reset, **nav filtered
       by config + role** (verify technician sees only My reports / My warehouse /
@@ -174,5 +183,7 @@ borders-not-shadows surface chrome from the Design language.)
 - Backend asks (recorded for backend planning): superadmin login endpoint,
   `GET /auth/me` returning `{ user, role, tenantConfig }`, `role` enum
   `owner|admin|office|technician` on users, per-tenant `modules` config in the manager
-  push schema. **Explicitly not needed in v1:** forgot-password / reset-email endpoint —
-  resets go through the owner via the users module (§3 login spec).
+  push schema; `mustChangePassword` on `/auth/me` + `POST /auth/password` (change own,
+  clears the flag — §3 forced-change flow). **Explicitly not needed in v1:**
+  forgot-password / reset-email endpoint — resets go through the owner via the users
+  module (§3 login spec).
