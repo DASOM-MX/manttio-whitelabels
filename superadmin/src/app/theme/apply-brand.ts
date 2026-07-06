@@ -18,13 +18,13 @@ export const hexToTriplet = (hex: string): string | null => {
   return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
 };
 
-const PRIMARY_STEPS = ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'];
-const SURFACE_STEPS = ['0', ...PRIMARY_STEPS];
+import { PRIMARY_STEPS } from '../model/constants/brand/primary-steps.const';
+import { SURFACE_STEPS } from '../model/constants/brand/surface-steps.const';
 
 const setScaleVars = (
   root: HTMLElement,
   prefix: 'primary' | 'surface',
-  steps: string[],
+  steps: readonly string[],
   scale: BrandColorScale | undefined,
 ): void => {
   for (const step of steps) {

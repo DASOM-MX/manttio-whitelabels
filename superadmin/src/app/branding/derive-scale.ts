@@ -1,20 +1,6 @@
 import { palette } from '@primeuix/themes';
+import { PRIMARY_STEPS } from '../model/constants/brand/primary-steps.const';
 import type { BrandColorScale } from '../data/dtos/brand';
-
-export const PRIMARY_STEPS = [
-  '50',
-  '100',
-  '200',
-  '300',
-  '400',
-  '500',
-  '600',
-  '700',
-  '800',
-  '900',
-  '950',
-] as const;
-export const SURFACE_STEPS = ['0', ...PRIMARY_STEPS] as const;
 
 const HEX_RE = /^#?[0-9a-f]{6}$/i;
 

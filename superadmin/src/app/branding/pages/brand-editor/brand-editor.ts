@@ -18,13 +18,9 @@ import { LoadFonts } from '../../../../state/brand/brand.actions';
 import { UploadService } from '../../../../http/upload.service';
 import { applyBrandTheme } from '../../../theme/apply-brand';
 import { errorMessage } from '../../../data/utils';
-import {
-  PRIMARY_STEPS,
-  SURFACE_STEPS,
-  contrastRatio,
-  deriveScale,
-  isHex,
-} from '../../derive-scale';
+import { PRIMARY_STEPS } from '../../../model/constants/brand/primary-steps.const';
+import { SURFACE_STEPS } from '../../../model/constants/brand/surface-steps.const';
+import { contrastRatio, deriveScale, isHex } from '../../derive-scale';
 import { ensureFontLoaded } from '../../font-preview';
 import { ScaleEditor } from '../../components/scale-editor/scale-editor';
 import { ApplyBrandDialog } from '../../components/apply-brand-dialog/apply-brand-dialog';
