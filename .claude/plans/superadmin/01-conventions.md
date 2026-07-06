@@ -170,6 +170,15 @@ Binding for every component; the skill carries the same list with implementation
   `@for (item of items; track item.id)`, `@switch/@case/@default`. Never `*ngIf`, `*ngFor`,
   `*ngSwitch`, or `<ng-template>`-based fallbacks. Drop `CommonModule` when control flow is
   all you needed it for.
+- **No inline component-method calls in templates (added 2026-07-06 — binding).**
+  A method call in a binding (`statusLabel(row)`, `gridClass(s)`) re-executes on
+  every change-detection pass. Use instead: **signal reads** (fine and idiomatic),
+  **getters/property access** (`form.dirty`, `ctrl.value`, `array.controls`),
+  **`computed()`** for page-level derived values, and **pure pipes in
+  `src/app/pipes/`** for per-row/per-item mappings (labels, severities, form
+  casts — pure pipes memoize per input). Event handlers (`(click)="save()"`)
+  are unaffected. Canonical pipes: `cast.pipe.ts` (`asGroup`/`asControl`/
+  `formArray`).
 - Prefer **signals (`signal`, `computed`)** for reactive component state. For NGXS reads use
   the top-level **`select(...)`** from `@ngxs/store`
   (`reports = select(ReportsState.list);`) — never `this.store.selectSignal(...)`. Still

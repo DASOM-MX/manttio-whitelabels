@@ -20,7 +20,7 @@ import { AppState } from '../../../state/app/app.state';
 import { SetDarkMode } from '../../../state/app/app.actions';
 import { AuthState } from '../../../state/auth/auth.state';
 import { LoadMe, Logout } from '../../../state/auth/auth.actions';
-import { navFor, type NavEntry } from '../../access';
+import { navFor } from '../../access';
 import { ForcePasswordDialog } from '../../auth/components/force-password-dialog/force-password-dialog';
 
 @Component({
@@ -51,11 +51,26 @@ export class AuthenticatedLayout {
   protected darkMode = select(AppState.darkMode);
 
   /** Sidebar entries the current `(tenantConfig, role)` allows (access.ts). */
-  protected navEntries = computed(() => navFor(this.me()));
+  private navEntries = computed(() => navFor(this.me()));
 
   protected drawerOpen = signal(false);
   /** Nav groups (Clientes, CMS) the user has expanded. */
-  protected expanded = signal<Record<string, boolean>>({});
+  private expanded = signal<Record<string, boolean>>({});
+  /** Current URL as a signal so nav view-models recompute per navigation
+     without template method calls (01 Angular: no inline calls in templates). */
+  private currentUrl = signal(this.router.url);
+
+  /** Precomputed nav view-model — templates read plain data. */
+  protected navView = computed(() => {
+    const url = this.currentUrl();
+    const expanded = this.expanded();
+    return this.navEntries().map((entry) => ({
+      ...entry,
+      expanded: !!expanded[entry.label],
+      groupActive:
+        entry.children?.some((c) => url === c.route || url.startsWith(`${c.route}/`)) ?? false,
+    }));
+  });
 
   /** The actual scrollable element is the layout's <main>, not the window —
    *  reset scroll-to-top on every navigation so each page lands at its
@@ -72,6 +87,7 @@ export class AuthenticatedLayout {
         takeUntilDestroyed(),
       )
       .subscribe(() => {
+        this.currentUrl.set(this.router.url);
         this.scrollContainer()?.nativeElement.scrollTo({ top: 0 });
         this.drawerOpen.set(false);
         this.autoExpandActiveGroup();
@@ -95,23 +111,11 @@ export class AuthenticatedLayout {
     this.expanded.update((state) => ({ ...state, [label]: !state[label] }));
   }
 
-  protected isExpanded(label: string): boolean {
-    return !!this.expanded()[label];
-  }
-
-  protected isGroupActive(routes: string[]): boolean {
-    const url = this.router.url;
-    return routes.some((r) => url === r || url.startsWith(`${r}/`));
-  }
-
-  protected childRoutes(entry: NavEntry): string[] {
-    return entry.children?.map((c) => c.route) ?? [];
-  }
-
   private autoExpandActiveGroup(): void {
+    const url = this.router.url;
     for (const entry of this.navEntries()) {
       if (!entry.children) continue;
-      if (this.isGroupActive(entry.children.map((c) => c.route))) {
+      if (entry.children.some((c) => url === c.route || url.startsWith(`${c.route}/`))) {
         this.expanded.update((state) => ({ ...state, [entry.label]: true }));
       }
     }

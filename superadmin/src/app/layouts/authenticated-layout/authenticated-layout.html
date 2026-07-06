@@ -158,15 +158,15 @@
 
   <nav class="flex-1 overflow-y-auto px-3 py-3" aria-label="Módulos">
     <ul class="flex flex-col gap-0.5">
-      @for (entry of navEntries(); track entry.label) {
+      @for (entry of navView(); track entry.label) {
         <li>
           @if (entry.children) {
             <button
               type="button"
               class="relative flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-granite-700 transition-colors hover:bg-granite-100 dark:text-granite-300 dark:hover:bg-granite-800"
-              [class.nav-active]="isGroupActive(childRoutes(entry))"
+              [class.nav-active]="entry.groupActive"
               (click)="toggleGroup(entry.label)"
-              [attr.aria-expanded]="isExpanded(entry.label)"
+              [attr.aria-expanded]="entry.expanded"
             >
               <svg
                 lucideIcon
@@ -178,11 +178,11 @@
               <svg
                 lucideChevronDown
                 class="size-4 shrink-0 text-granite-400 transition-transform"
-                [class.-rotate-90]="!isExpanded(entry.label)"
+                [class.-rotate-90]="!entry.expanded"
                 aria-hidden="true"
               ></svg>
             </button>
-            @if (isExpanded(entry.label)) {
+            @if (entry.expanded) {
               <ul class="mt-0.5 flex flex-col gap-0.5 pl-11" animate.enter="anim-fade-enter">
                 @for (child of entry.children; track child.route) {
                   <li>
