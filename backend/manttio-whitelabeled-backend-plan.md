@@ -116,7 +116,9 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
 - **report templates** (06 §5 — decided 2026-07-05): new `report_templates` entity
   (name, `status: draft|active|disabled`, `sections` jsonb — **1..n ordered sections,
   each `{ title, columns: 1..3, questions[] }`** w/ per-question datatype/required/
-  options/order — `disabled_reason`/`disabled_by`/`disabled_at`).
+  options/order — datatype enum **final (2026-07-05):** `text|textarea|number|date|
+  boolean|select|multiselect|radio|checkbox_group` (`options[]` required for the last
+  four) — `disabled_reason`/`disabled_by`/`disabled_at`).
   Endpoints: CRUD (**PATCH draft-only, server-enforced**), `POST :id/activate`,
   `POST :id/deactivate` (active → draft — the edit path; **no versioning in v1**,
   accepted that edits re-render previously captured reports), `POST :id/disable
@@ -130,8 +132,8 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   (datatype → input control; report submission stores answers keyed to the template) —
   fork `frontend/` task; (b) the **PDF pipeline renders template-driven layouts** —
   fixed heading + images + comments + signature framing per-section 1–3-column blocks
-  from the `pdf/` toolkit, replacing the single hardcoded HVAC layout. Open (06 open
-  decisions): datatype-set veto.
+  from the `pdf/` toolkit, replacing the single hardcoded HVAC layout. No open items
+  — the template spec is fully decided (06 §5).
 - **billing** (09): bills + items (`report_id` per item), status flow with
   office-draft / owner-admin-send gating; report on ≤1 non-cancelled bill.
 - **wms** (10): the largest surface — stock endpoints all require a `reason`;

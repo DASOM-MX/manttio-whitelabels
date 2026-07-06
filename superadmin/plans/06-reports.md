@@ -92,9 +92,10 @@ TemplateSection {
 TemplateQuestion {
   id, order, label,
   datatype: 'text' | 'textarea' | 'number' | 'date' | 'boolean'
-          | 'select' | 'multiselect' | 'photo',   // proposed set — open decision
+          | 'select' | 'multiselect' | 'radio' | 'checkbox_group',
+          // final set — decided 2026-07-05
   required: boolean,
-  options?: string[]                           // select / multiselect only
+  options?: string[]      // select / multiselect / radio / checkbox_group
 }
 ```
 
@@ -129,8 +130,12 @@ TemplateQuestion {
   grid (label above value). The field app collapses to 1 col on phone widths
   regardless — `columns` is the desktop/PDF layout.
 - **Datatype drives the field-app input:** each question's datatype renders the matching
-  control in the main app (text input, textarea, numeric input, datepicker, sí/no
-  toggle, select, multiselect, photo capture).
+  control in the main app — text input, textarea, numeric input, datepicker, sí/no
+  toggle, select (single, dropdown), multiselect (dropdown), radio group (single,
+  options visible), checkbox group (multi, options visible). The two dropdown/visible
+  pairs are deliberate: dropdowns for long option lists, radio/checkbox groups for
+  short ones a technician should see at a glance. No `photo` datatype — the fixed
+  images block covers photos.
 
 ### 5.2 Lifecycle
 
@@ -227,8 +232,9 @@ State: `ReportTemplatesState` + `src/http/report-templates.service.ts` (separate
 - Status enum + folio field: confirm against backend `reports` module before CP-1.
 - Resend-email action: in or out for v1?
 - Shared delete-dialog base component with 05: coordinate, don't duplicate silently.
-- **Datatype set (§5.1):** proposed eight (`text`/`textarea`/`number`/`date`/`boolean`/
-  `select`/`multiselect`/`photo`) — still needs a veto pass.
+- ~~Datatype set~~ — **resolved 2026-07-05, final nine:** `text` / `textarea` /
+  `number` / `date` / `boolean` / `select` / `multiselect` / `radio` /
+  `checkbox_group` (§5.1). `photo` dropped — the fixed images block covers it.
 - ~~Signature placement~~ — **resolved 2026-07-05: fixed skeleton, selling point.**
   Every report requires a signature to reach `finished`/mailed (§5.1, server-enforced).
 - ~~Editing active templates~~ — **resolved 2026-07-05: no versioning in v1.** Direct
