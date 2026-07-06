@@ -86,7 +86,7 @@ Rules for agents:
 | 01 conventions | done (doc) | — |
 | 02 app-shell | **done** (PR: `feature/superadmin-app-shell`) | CP-3 |
 | 03 branding | **done** (frontend side; branch `feature/superadmin-branding`) | CP-3 |
-| 04 cms | not-started · **priority: next** | — |
+| 04 cms | **done** (frontend side; branch `feature/superadmin-cms`) | CP-3 |
 | 05 users | not-started | — |
 | 06 reports | not-started | — |
 | 07 clients | not-started | — |
@@ -240,8 +240,8 @@ agent hitting a checkpoint checks this page for items tagged to it.
 - [x] ~~02 CP-2 — Commissioner `tnum` check~~ — **resolved 2026-07-06: tnum is a
       no-op in Commissioner; `font-data` heads with Atkinson Hyperlegible** (01
       Typography).
-- [ ] 04 CP-2 start — rich-text control: PrimeNG Editor (Quill) constrained toolbar vs
-      minimal custom contenteditable.
+- [x] ~~04 CP-2 start — rich-text control~~ — **resolved 2026-07-06: minimal custom
+      contenteditable CVA** (no Quill dep; whitelist + paste-as-plain-text).
 - [ ] 06 CP-1 — confirm report **status enum + folio field** against backend `reports`.
 - [ ] 06 CP-2 — resend-email action: in or out for v1.
 - [ ] 07 CP-1 — confirm net-new `customers` columns (status, source, blacklist,
