@@ -1,6 +1,5 @@
 import { Component, effect, inject, signal } from '@angular/core';
 import {
-  AbstractControl,
   FormArray,
   FormControl,
   FormGroup,
@@ -15,6 +14,7 @@ import { select, Store } from '@ngxs/store';
 import { CmsState } from '../../../../state/cms/cms.state';
 import { LoadCmsHome, PublishCms, SaveCmsHome } from '../../../../state/cms/cms.actions';
 import { Repeater } from '../../components/repeater/repeater';
+import { AsFormControlPipe, AsFormGroupPipe } from '../../../pipes/cast.pipe';
 import { PublishBar } from '../../components/publish-bar/publish-bar';
 import { errorMessage } from '../../../data/utils';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
@@ -24,7 +24,15 @@ import type { CmsHome } from '../../../data/dtos/cms';
  *  one save action for the whole document; draft→publish via the bar. */
 @Component({
   selector: 'app-home-editor',
-  imports: [ReactiveFormsModule, InputTextModule, TextareaModule, Repeater, PublishBar],
+  imports: [
+    ReactiveFormsModule,
+    InputTextModule,
+    TextareaModule,
+    Repeater,
+    PublishBar,
+    AsFormControlPipe,
+    AsFormGroupPipe,
+  ],
   templateUrl: './home-editor.html',
 })
 export class HomeEditor implements HasPendingChanges {
@@ -79,13 +87,6 @@ export class HomeEditor implements HasPendingChanges {
   }
   get services(): FormArray<FormGroup> {
     return this.form.controls.services;
-  }
-
-  protected asControl(ctrl: AbstractControl): FormControl<string> {
-    return ctrl as FormControl<string>;
-  }
-  protected asGroup(ctrl: AbstractControl): FormGroup {
-    return ctrl as FormGroup;
   }
 
   protected addTarget(value = ''): void {
