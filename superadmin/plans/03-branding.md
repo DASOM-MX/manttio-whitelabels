@@ -55,8 +55,32 @@ Brand {
 ### 2.1 Typography — curated variable-font catalog (decided 2026-07-05)
 
 Tenant-facing typography is part of the brand. **Source: a curated OFL-only catalog**
-(~10–15 families) we subset and host in R2 — never the Google Fonts CDN (offline field
-app + GDPR) and no tenant uploads (licensing). Catalog rules:
+we subset and host in R2 — never the Google Fonts CDN (offline field app + GDPR) and
+no tenant uploads (licensing).
+
+**Catalog contents — decided 2026-07-05, launch set of 10** (grouping = picker UI
+sections; all OFL, variable, full Spanish latin coverage):
+
+| Group | Code | Family | Notes |
+|---|---|---|---|
+| Defaults | `work_sans` | Work Sans | default **body** (website parity) |
+| Defaults | `rubik` | Rubik | default **heading** (website parity) |
+| Neutral / institutional | `inter` | Inter | UI standard; ships `tnum`; upstream field-app face |
+| Neutral / institutional | `public_sans` | Public Sans | USWDS-born, deliberately unflashy |
+| Neutral / institutional | `archivo` | Archivo | industrial grotesque (+ width axis); best HVAC fit |
+| Contemporary / warm | `figtree` | Figtree | warm geometric |
+| Contemporary / warm | `dm_sans` | DM Sans | low-contrast geometric, clean at UI sizes |
+| Contemporary / warm | `plus_jakarta` | Plus Jakarta Sans | humanist-geometric hybrid |
+| Character / heading | `sora` | Sora | techy, precise — heading over a neutral body |
+| Character / heading | `source_serif` | Source Serif 4 | the one serif; flagged **heading-recommended** |
+
+**Commissioner is deliberately excluded** — it's the superadmin's own voice; tenants
+don't brand with it. The catalog is **append-only**: adding a family later is a
+constants change + bucket upload (no migration, no app redeploy). Total bucket
+payload ≈ 2–3 MB (per family: ~30–60 KB variable latin woff2 + ~100–200 KB static
+TTF trio).
+
+Catalog rules:
 
 - **Variable fonts only** — one woff2 per family (latin + latin-ext subsets, full
   weight axis, expressive axes at defaults), so every Tailwind weight utility works
@@ -68,9 +92,10 @@ app + GDPR) and no tenant uploads (licensing). Catalog rules:
 - **Fixed set in v1 (decided 2026-07-05):** font binaries live in a dedicated shared
   R2 bucket, **`branding-fonts`** (CDN-fronted, one copy for all tenants); the catalog
   itself is a backend constants list — **no DB rows, nothing font-related in Neon**.
-  Per-entry metadata: `code`, label, files, fallback stack, tnum-verified flag,
-  recommended heading pairing. Served by `GET /fonts` (public) so adding a family is
-  a backend deploy, no app redeploy.
+  Per-entry metadata: `code`, label, **picker group** (table above), `roles:
+  body|heading|both`, files, fallback stack, tnum-verified flag, recommended heading
+  pairing. Served by `GET /fonts` (public) so adding a family is a backend deploy,
+  no app redeploy.
 - **Tenant font uploads — deferred to a later phase (decided 2026-07-05).** Design
   sketched for when it's picked up: per-tenant `font_defs` definition entity (seeded
   rows locked, custom rows deactivate-only), uploads to the *tenant's own* R2 under
@@ -183,9 +208,11 @@ which *is* draft→publish — `04-cms.md` §5.)
 - ~~Typography in the Brand object — v2~~ — **promoted to v1, decided 2026-07-05**
   (§2.1): curated OFL variable-font catalog, `font { body, heading? }`, Work Sans +
   Rubik as defaults, PDFs via static instances. Superadmin stays Commissioner.
-- Initial catalog contents (~10–15 OFL variable families incl. Work Sans, Rubik) —
-  pick at catalog build time; every entry needs the latin subset + 400/600/700 static
-  instances + tnum verification, uploaded to the `branding-fonts` bucket.
+- ~~Initial catalog contents~~ — **resolved 2026-07-05: launch set of 10** (§2.1
+  table — Work Sans, Rubik, Inter, Public Sans, Archivo, Figtree, DM Sans, Plus
+  Jakarta Sans, Sora, Source Serif 4). At catalog build time every entry still needs
+  the latin subset + 400/600/700 static instances + tnum verification, uploaded to
+  the `branding-fonts` bucket.
 - ~~Tenant-uploaded fonts not offered~~ — **deferred to a later phase** with the
   design recorded in §2.1 (per-tenant `font_defs`, own-bucket uploads, license
   attestation). Not in v1.

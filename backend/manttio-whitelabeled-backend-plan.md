@@ -93,7 +93,10 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   list (no DB rows — nothing font-related in Neon) served by `GET /fonts` (public),
   binaries in the dedicated shared **`branding-fonts` R2 bucket** (CDN-fronted):
   one latin-subset variable woff2 + static TTF instances **400/600/700** per family,
-  cut at catalog build time. The **pdf module embeds the tenant font's static
+  cut at catalog build time. **Contents decided 2026-07-05 — launch set of 10**
+  (codes/groups table in superadmin plan 03 §2.1): Work Sans, Rubik (defaults),
+  Inter, Public Sans, Archivo, Figtree, DM Sans, Plus Jakarta Sans, Sora,
+  Source Serif 4 (heading-recommended); append-only, Commissioner excluded. The **pdf module embeds the tenant font's static
   instances** via fontkit (fetched from R2 at render, cached); **emails keep system
   font stacks**. Tenant font *uploads* are a **deferred later phase** (design in
   superadmin plan 03 §2.1: per-tenant `font_defs` + own-bucket files + license
