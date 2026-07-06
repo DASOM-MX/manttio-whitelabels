@@ -122,8 +122,12 @@ TemplateQuestion {
 - `reports/pages/template-detail/` — the builder: question editor (add / reorder /
   remove; label, datatype, required, options), column-layout selector (1/2/3), and a
   **live question preview** pane rendering the template as the field app will show it
-  (incl. the `| Label | value |` table for 1-col). Editing is draft-only — active and
-  disabled templates open the builder read-only.
+  (incl. the `| Label | value |` table for 1-col). **The preview always renders the
+  selected column count — never collapse it (decided 2026-07-05):** on narrow
+  viewports the pane becomes its own `overflow-x: auto` container (01 layout rule
+  `horizontal-scroll`); a 2/3-col template collapsing to 1 col in the preview would
+  read as the selection not applying. Editing is draft-only — active and disabled
+  templates open the builder read-only.
 - `reports/components/disable-template-dialog/` — shape-3 dialog with a **required
   reason** (mirrors the delete-dialog audit pattern), dispatches disable, toasts.
 
@@ -165,7 +169,8 @@ State: `ReportTemplatesState` + `src/http/report-templates.service.ts` (separate
 - [ ] `ReportTemplatesState` + `report-templates.service.ts` + DTOs
 - [ ] Templates list under the nested Reports nav (**Plantillas**), status pills
 - [ ] Builder: question editor (add/reorder/remove, datatype, required, options),
-      column selector, live preview (incl. 1-col `| Label | value |` rendering)
+      column selector, live preview (incl. 1-col `| Label | value |` rendering;
+      true column count at every viewport — overflow-x scroll on mobile, no collapse)
 - [ ] Route `data` owner/admin only; office/tech never see the entry
 
 ### CP-5 — Templates: lifecycle
