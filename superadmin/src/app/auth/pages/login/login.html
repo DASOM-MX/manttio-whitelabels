@@ -6,8 +6,22 @@
     class="flex items-center justify-center bg-sky-950 px-6 py-8 lg:order-2 lg:w-2/5 lg:py-0"
     aria-label="Marca"
   >
-    <div class="flex flex-col items-center gap-2 text-center">
-      <p class="text-3xl font-bold tracking-tight text-white lg:text-4xl">manttio</p>
+    <div class="flex flex-col items-center gap-3 text-center">
+      @if (brand(); as b) {
+        @if (b.logoDarkUrl || b.logoUrl) {
+          <img
+            [src]="b.logoDarkUrl || b.logoUrl"
+            [alt]="b.name"
+            class="max-h-24 w-auto max-w-60 object-contain"
+          />
+        }
+        <p class="text-3xl font-bold tracking-tight text-white lg:text-4xl">{{ b.name }}</p>
+        @if (b.slogan) {
+          <p class="text-sm text-white/70">{{ b.slogan }}</p>
+        }
+      } @else if (brandLoaded()) {
+        <p class="text-3xl font-bold tracking-tight text-white lg:text-4xl">manttio</p>
+      }
       <p class="micro-label !text-sky-300">Administración</p>
     </div>
   </section>

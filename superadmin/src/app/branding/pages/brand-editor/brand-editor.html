@@ -1,0 +1,243 @@
+<div class="flex flex-wrap items-start justify-between gap-3">
+  <div>
+    <h1 class="text-xl font-bold text-granite-950 dark:text-granite-50">Marca</h1>
+    <p class="mt-1 text-sm text-granite-600 dark:text-granite-400">
+      La identidad que viste tu sitio, tus aplicaciones y tus PDF.
+    </p>
+  </div>
+  @if (!readOnly()) {
+    <div class="flex gap-2">
+      @if (previewing()) {
+        <button type="button" class="btn-neutral" (click)="revertPreview()">
+          <svg lucideUndo2 class="size-4" aria-hidden="true"></svg>
+          Restablecer vista
+        </button>
+      } @else {
+        <button type="button" class="btn-secondary" (click)="previewDraft()">
+          <svg lucideEye class="size-4" aria-hidden="true"></svg>
+          Previsualizar
+        </button>
+      }
+      <button
+        type="button"
+        class="btn-primary"
+        (click)="save()"
+        [disabled]="form.invalid || saving()"
+      >
+        Guardar y aplicar
+      </button>
+    </div>
+  }
+</div>
+
+@if (readOnly()) {
+  <p
+    class="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
+    role="note"
+  >
+    Solo el propietario puede editar la marca. Estás viendo la configuración actual.
+  </p>
+}
+
+<form [formGroup]="form" class="mt-5 grid gap-4 xl:grid-cols-2" (ngSubmit)="save()">
+  <!-- Identity -->
+  <section class="card-section flex flex-col gap-4" aria-labelledby="brand-identity-title">
+    <h2 id="brand-identity-title" class="micro-label">Identidad</h2>
+
+    <div class="field-group">
+      <label class="field-label" for="brand-name">Nombre<span aria-hidden="true"> *</span></label>
+      <input id="brand-name" pInputText formControlName="name" autocomplete="organization" />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="brand-slogan">Eslogan</label>
+      <input id="brand-slogan" pInputText formControlName="slogan" />
+      <p class="text-sm text-granite-500 dark:text-granite-400">
+        Frase corta bajo el logotipo en el sitio público.
+      </p>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-3">
+      @for (slot of imageSlots; track slot.id) {
+        <div class="field-group">
+          <span class="field-label">{{ slot.label }}</span>
+          <div
+            class="flex h-24 items-center justify-center overflow-hidden rounded-lg border border-granite-200 dark:border-granite-800"
+            [class.bg-granite-900]="slot.dark"
+            [class.bg-granite-50]="!slot.dark"
+          >
+            @if (images()[slot.id].url; as url) {
+              <img [src]="url" [alt]="slot.label" class="max-h-20 max-w-full object-contain p-2" />
+            } @else {
+              <span class="text-sm text-granite-400" [class.text-granite-600]="slot.dark"
+                >Sin imagen</span
+              >
+            }
+          </div>
+          @if (!readOnly()) {
+            <label
+              class="inline-flex cursor-pointer items-center gap-2 self-start text-sm font-medium text-sky-700 transition-colors hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
+            >
+              <svg lucideImageUp class="size-4" aria-hidden="true"></svg>
+              @if (images()[slot.id].uploading) {
+                Subiendo…
+              } @else {
+                Subir imagen
+              }
+              <input
+                type="file"
+                class="sr-only"
+                accept="image/png,image/svg+xml,image/webp"
+                (change)="onFile(slot.id, $event)"
+                [disabled]="images()[slot.id].uploading"
+              />
+            </label>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Colors -->
+  <section class="card-section flex flex-col gap-5" aria-labelledby="brand-colors-title">
+    <h2 id="brand-colors-title" class="micro-label">Colores</h2>
+
+    <app-scale-editor
+      label="Color primario"
+      inputId="brand-primary"
+      [baseControl]="primaryBase"
+      [scaleGroup]="primaryScale"
+      [steps]="PRIMARY_STEPS"
+      [readOnly]="readOnly()"
+    />
+    <app-scale-editor
+      label="Superficie (neutro)"
+      inputId="brand-surface"
+      [baseControl]="surfaceBase"
+      [scaleGroup]="surfaceScale"
+      [steps]="SURFACE_STEPS"
+      [readOnly]="readOnly()"
+    />
+
+    @for (warning of contrastWarnings(); track warning) {
+      <p
+        class="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200"
+        role="status"
+      >
+        <svg lucideTriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true"></svg>
+        {{ warning }}
+      </p>
+    }
+  </section>
+
+  <!-- Typography -->
+  <section
+    class="card-section flex flex-col gap-4"
+    aria-labelledby="brand-fonts-title"
+    formGroupName="font"
+  >
+    <h2 id="brand-fonts-title" class="micro-label">Tipografía</h2>
+    <p class="text-sm text-granite-600 dark:text-granite-400">
+      Se aplica al sitio y a la aplicación de campo; esta administración conserva su propia letra.
+    </p>
+
+    <div class="field-group">
+      <label class="field-label" for="brand-font-body">Cuerpo</label>
+      <p-select
+        inputId="brand-font-body"
+        formControlName="body"
+        [options]="fontOptions()"
+        [group]="true"
+        optionLabel="label"
+        optionValue="value"
+        optionGroupLabel="label"
+        optionGroupChildren="items"
+        placeholder="Elegir fuente"
+        appendTo="body"
+        (onChange)="onFontChange('body')"
+      />
+      <!-- Font-family preview binds [style] with a runtime catalog font —
+           part of the documented brand-editor exception (01 Styling). -->
+      <p
+        class="text-lg text-granite-800 dark:text-granite-200"
+        [style.font-family]="bodyFontFamily()"
+      >
+        Mantenimiento programado para el chiller 12 — 0123456789
+      </p>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="brand-font-heading">Encabezados</label>
+      <p-select
+        inputId="brand-font-heading"
+        formControlName="heading"
+        [options]="fontOptions()"
+        [group]="true"
+        optionLabel="label"
+        optionValue="value"
+        optionGroupLabel="label"
+        optionGroupChildren="items"
+        placeholder="Elegir fuente"
+        appendTo="body"
+        (onChange)="onFontChange('heading')"
+      />
+      <p
+        class="text-xl font-bold text-granite-900 dark:text-granite-100"
+        [style.font-family]="headingFontFamily()"
+      >
+        Climatización industrial sin paros
+      </p>
+    </div>
+  </section>
+
+  <!-- Contact + social -->
+  <section class="card-section flex flex-col gap-4" aria-labelledby="brand-contact-title">
+    <h2 id="brand-contact-title" class="micro-label">Contacto y redes</h2>
+
+    <div class="grid gap-4 sm:grid-cols-2" formGroupName="contact">
+      <div class="field-group">
+        <label class="field-label" for="brand-phone">Teléfono</label>
+        <input id="brand-phone" pInputText type="tel" formControlName="phone" autocomplete="tel" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="brand-whatsapp">WhatsApp</label>
+        <input id="brand-whatsapp" pInputText type="tel" formControlName="whatsapp" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="brand-email">Correo</label>
+        <input
+          id="brand-email"
+          pInputText
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="brand-address">Dirección</label>
+        <input
+          id="brand-address"
+          pInputText
+          formControlName="address"
+          autocomplete="street-address"
+        />
+      </div>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-3" formGroupName="social">
+      <div class="field-group">
+        <label class="field-label" for="brand-facebook">Facebook</label>
+        <input id="brand-facebook" pInputText type="url" formControlName="facebook" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="brand-instagram">Instagram</label>
+        <input id="brand-instagram" pInputText type="url" formControlName="instagram" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="brand-tiktok">TikTok</label>
+        <input id="brand-tiktok" pInputText type="url" formControlName="tiktok" />
+      </div>
+    </div>
+  </section>
+</form>
+
+<app-apply-brand-dialog #applyDialog (applied)="onApplied()" />

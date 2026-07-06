@@ -20,6 +20,8 @@ import { authInterceptor } from './interceptors/auth.interceptor';
 import { AppState } from '../state/app/app.state';
 import { AuthState } from '../state/auth/auth.state';
 import { LoadMe } from '../state/auth/auth.actions';
+import { BrandState } from '../state/brand/brand.state';
+import { LoadBrand } from '../state/brand/brand.actions';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -45,17 +47,19 @@ export const appConfig: ApplicationConfig = {
     ConfirmationService,
     MessageService,
     provideStore(
-      [AppState, AuthState],
+      [AppState, AuthState, BrandState],
       // Only the token persists — `me` (role + tenantConfig) is refetched on
       // every boot so gated UI never renders from stale data (14 §3).
       withNgxsStoragePlugin({ keys: ['auth.token', 'app'] }),
       withNgxsReduxDevtoolsPlugin({ disabled: !isDevMode() }),
       withNgxsLoggerPlugin({ disabled: !isDevMode() }),
     ),
-    // Boot-time `/auth/me` when a session token exists (02 §3). Fire-and-forget:
-    // the layout splashes on `meStatus` until it resolves.
+    // Boot-time fetches, fire-and-forget: public `GET /brand` always (pre-auth
+    // theming — login screen shows tenant logo + colors, 03 §4); `/auth/me`
+    // when a session token exists (02 §3 — the layout splashes until it lands).
     provideAppInitializer(() => {
       const store = inject(Store);
+      store.dispatch(new LoadBrand());
       if (store.selectSnapshot(AuthState.token)) store.dispatch(new LoadMe());
     }),
   ],

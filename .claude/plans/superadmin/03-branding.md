@@ -1,9 +1,8 @@
 # 03 — Branding (tenant identity)
 
-> **Status:** not-started · **Depends on:** 02 (CP-3)
-> **Priority:** **first after 02, alongside 04** — branding is the whitelabel selling
-> point (prioritized 2026-07-05)
-> **Owner:** — · **Last updated:** 2026-07-05
+> **Status:** done (frontend side — backend `modules/brand` pending)
+> **Depends on:** 02 (CP-3, done)
+> **Owner:** branch `feature/superadmin-branding` (stacked on the 02 shell PR) · **Last updated:** 2026-07-06
 
 The logged-in client owns their **brand identity** — the name, logos, and colors that
 skin the public website, the field app, superadmin itself, and backend-rendered
@@ -196,28 +195,43 @@ which *is* draft→publish — `04-cms.md` §5.)
 ## Checkpoints
 
 ### CP-1 — Read path + boot theming
-- [ ] Brand DTO + `brand.service` + `BrandState`; `GET /brand` renders a read-only
-      brand card
-- [ ] **Marca** route + nav entry (visible regardless of `cms` flag); route `data`
-      declared
-- [ ] Boot apply helper: CSS variables + PrimeNG preset update from the fetched brand
-      (manttio fallbacks when unset) — login screen shows tenant logo + colors
+- [x] Brand DTO + `brand.service` + `BrandState` (DTOs mirror the website's proposal
+      in `website/src/lib/types.ts` so both consumers reconcile against one backend
+      contract); admin's read-only rendering of the editor is the brand card
+- [x] **Marca** route + nav entry (visible regardless of `cms` flag); route `data`
+      declared (shipped with 02)
+- [x] Boot apply helper (`app/theme/apply-brand.ts`): CSS variables + PrimeNG
+      `updatePrimaryPalette`/`updateSurfacePalette` from the fetched brand (manttio
+      fallbacks when unset/failed) — login screen shows tenant logo + colors pre-auth
+      (verified headlessly)
 
 ### CP-2 — Editor
-- [ ] Identity fields + logo/isologo uploads (light/dark preview chips)
-- [ ] Two color pickers → derived scale strips + advanced per-step override + contrast
-      warning
-- [ ] Font pickers (body + heading) from `GET /fonts` with on-demand sample previews
-- [ ] Confirm-heavy apply dialog; owner-only write, admin read-only
+- [x] Identity fields + logo/isologo uploads (light/dark preview chips; `POST
+      /upload/image` round-trip against the mock)
+- [x] Two color pickers → derived scale strips (`@primeuix/themes` `palette()`,
+      surface anchors step 0 at white) + advanced per-step override expander +
+      WCAG contrast warnings (primary-600/white ≥4.5, primary-300/surface-950 ≥3 —
+      warn, never block)
+- [x] Font pickers (body + heading) from `GET /fonts`, grouped per §2.1, with
+      on-demand `FontFace` sample previews (catalog fonts never enter the bundle)
+- [x] Confirm-heavy apply dialog (shape 3, acknowledgement-gated); owner-only write,
+      admin read-only (verified)
 
 ### CP-3 — Polish
-- [ ] Superadmin re-themes from a fresh save without reload (apply helper)
-- [ ] Dark-mode audit; build green; manual pass: change primary → apply → superadmin +
-      login screen restyle immediately; logo swap shows on login
+- [x] Superadmin re-themes from a fresh save without reload (verified:
+      `--brand-primary-600` flips live after apply, PUT carries materialized scales)
+- [x] Dark-mode variants throughout; build green; headless pass 17/17 (2026-07-06):
+      boot theming pre-auth, hydrated editor, apply flow, admin read-only, office
+      bounce; login logo rendered from fixture brand
 
 ## Open decisions / asks
-- Ask (both apps): Tailwind palette → CSS variables repoint with manttio fallbacks (§4)
-  — the field-app change is upstream-style work in this fork's `frontend/`.
+- **Superadmin palette repoint — done in 02** (`tailwind.config.js` reads
+  `--brand-primary-*`/`--brand-surface-*` with manttio fallbacks). Field-app (`frontend/`)
+  repoint still pending — upstream-style work in this fork.
+- **Note (2026-07-06):** the brand editor holds the one documented exception to the
+  01 no-inline-style rule — runtime color swatches and font-sample previews bind
+  `[style.*]` because user-picked values can't be utility classes (recorded in 01
+  Styling).
 - Per-step scale override: keep the advanced expander lean; if it complicates the form
   meaningfully, ship two-picker-only first and add overrides in a fast follow.
 - Favicon/PWA icon regeneration from a changed isologo — provisioning-time v1; revisit

@@ -134,9 +134,11 @@ Binding for every component; the skill carries the same list with implementation
 - Prefer `size-*` over paired `w-*`/`h-*` when width and height are equal
   (e.g. `w-4 h-4` → `size-4`).
 - **Never** use inline `style="..."` attributes (or `[style]` / `[ngStyle]`) in templates.
-  All styling goes through Tailwind classes or component-scoped styles. (Single exception,
-  inherited from frontend: the dialog width idiom `[style]="{ width: '32rem' }"` paired with
-  the `max-w-11/12` cap — see Dialogs below.)
+  All styling goes through Tailwind classes or component-scoped styles. (Two exceptions:
+  the dialog width idiom `[style]="{ width: '32rem' }"` paired with the `max-w-11/12` cap
+  — see Dialogs below — and, added 2026-07-06, the brand editor's runtime previews:
+  color-swatch backgrounds and font-sample `font-family` bind `[style.*]` because
+  user-picked brand values can't be utility classes. Nothing else qualifies.)
 - The color palette is shared with `frontend/` and `website/`: the `granite`, `navy`, `sky`,
   `cyan` scales and semantic tokens (`background`, `surface`, `primary`, `secondary`,
   `dark`). **Do not introduce new ad-hoc hex values.**
