@@ -13,7 +13,7 @@ import { select, Store } from '@ngxs/store';
 import { UsersState } from '../../../../state/users/users.state';
 import { LoadUsers } from '../../../../state/users/users.actions';
 import { AuthState } from '../../../../state/auth/auth.state';
-import { ROLE_LABELS } from '../../user-labels';
+import { ROLE_LABELS } from '../../../model/constants/user/role-labels.const';
 import { RoleLabelPipe, RoleSeverityPipe } from '../../../pipes/role.pipe';
 import { CanManagePipe } from '../../../pipes/access.pipe';
 import { DeleteUserDialog } from '../../components/delete-user-dialog/delete-user-dialog';

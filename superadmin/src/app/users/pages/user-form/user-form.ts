@@ -16,7 +16,7 @@ import {
   UpdateUser,
 } from '../../../../state/users/users.actions';
 import { canManageUser, canResetPassword } from '../../../access';
-import { ROLE_LABELS } from '../../user-labels';
+import { ROLE_LABELS } from '../../../model/constants/user/role-labels.const';
 import { TempPasswordDialog } from '../../components/temp-password-dialog/temp-password-dialog';
 import { errorMessage } from '../../../data/utils';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
