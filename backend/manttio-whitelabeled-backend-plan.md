@@ -23,6 +23,11 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   **No forgot-password / reset-email endpoint in v1 (decided 2026-07-05):** the login
   screen carries a contact-the-owner disclaimer instead; resets happen owner/admin-side
   through the users module (superadmin plan 02 §3, 05).
+- **Password-reset hierarchy (decided 2026-07-05)** — `POST /users/:id/password`,
+  enforced server-side per pairing: **owner** resets admins/office/technicians;
+  **admins** reset office/technicians only (never another admin, never the owner);
+  the **owner's** password is never resettable in-tenant — locked-out owner goes
+  through the manager/support path. (Superadmin plans 05 §2, 14 §2 note 1.)
 - **`role` enum on `users`:** `'owner' | 'admin' | 'office' | 'technician'` — migration
   on the existing users table **plus** the hardcoded role surfaces:
   `auth/middleware/jwt.middleware.ts` (currently asserts `['admin','technician']`),

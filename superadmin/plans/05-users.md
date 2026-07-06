@@ -33,13 +33,18 @@ the user detail once 10 lands.
 - `GET /users?page&limit&search&role&active` → `PagedResponse<User>`
 - `GET /users/:id`
 - `POST /users` · `PATCH /users/:id`
+- `POST /users/:id/password` — **reset password (decided 2026-07-05), role-gated per
+  `14-access-control.md` §2 note 1:** owner resets admins/office/technicians; admins
+  reset office/technicians only; nobody in-tenant resets the owner. Backend enforces
+  the pairings.
 - `DELETE /users/:id` with `{ deleteComment }` (soft delete)
 - `POST /users/:id/restore` *(nice-to-have — open decision)*
 
 ## 3. Pages & components
 
 - `users/pages/users-list/` — lazy `<p-table>`: name, email, role pill, active pill,
-  created. Filters: search, role, active. Row actions: edit, delete.
+  created. Filters: search, role, active. Row actions: edit, **reset password** (shown
+  only for the allowed pairings — 14 §2 note 1), delete.
 - `users/pages/user-form/` — one reactive-form page for add + edit (route param decides).
   Fields: name, email, phone, role (`<p-select>`), active toggle. Password handling is
   backend-driven (invite email or set-password flow — open decision).
@@ -65,6 +70,8 @@ the user detail once 10 lands.
 ### CP-2 — Write path
 - [ ] User form page (add + edit) with validators
 - [ ] Delete dialog ported (audit comment + typed email)
+- [ ] Reset-password action (confirm dialog) — visible only for allowed pairings
+      (owner→admin/office/tech, admin→office/tech; 14 §2 note 1)
 - [ ] Toasts on create/update/delete; list refreshes
 
 ### CP-3 — Polish
@@ -77,5 +84,8 @@ the user detail once 10 lands.
 - ~~Role enum~~ — **resolved 2026-07-05:** `owner|admin|office|technician`
   (`14-access-control.md`); backend migration of the existing role column is a backend
   ask.
-- New-user credential flow: invite email vs admin-set temporary password.
+- New-user credential flow: invite email vs admin-set temporary password. (Reset shape
+  probably decides this too — if reset = set-temporary-password, creation should match.)
+- Self-service password *change* (logged-in user changing their own): where does it
+  live — a small profile page, or out of v1?
 - Restore endpoint for soft-deleted users: in or out for v1?

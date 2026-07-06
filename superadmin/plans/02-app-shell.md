@@ -56,7 +56,8 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
     primary submit with busy state, inline error on 401. **No social login, no
     self-serve password reset.** Below the form, a quiet disclaimer
     (copy: *"Si perdió su contraseña, contacte al administrador principal."*). Reset mechanics
-    live in the users module (05) — owner/admin set a new password there; **no
+    live in the users module (05), role-hierarchy-gated (owner resets admins;
+    owner/admin reset office/techs — `14-access-control.md` §2 note 1); **no
     forgot-password flow or endpoint exists in v1.**
   - **Right panel (40%) — brand.** Business (tenant) logo + app name over a **dark
     brand-primary background** (deep primary step, e.g. `primary-950`, from the boot

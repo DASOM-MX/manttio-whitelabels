@@ -42,6 +42,12 @@ Baseline four, no specialist roles until a real tenant needs one:
 
 1. **Owner protection:** admins cannot edit, delete, or change the role of the `owner`
    account, and cannot grant `owner`. UI hides those actions; backend enforces.
+   **Password resets (decided 2026-07-05) follow the same hierarchy:** only the
+   **owner** can reset an **admin's** password; owner **and** admins can reset
+   **office/technician** passwords; **nobody in-tenant resets the owner's** (a locked-out
+   owner goes through us via the manager — there is no forgot-password flow in v1,
+   `02-app-shell.md` §3). UI hides the reset action outside these pairs; backend
+   enforces on the endpoint.
 2. **Technician scope (decided 2026-07-05):** technicians *can* log into superadmin;
    their world is: **Calendar** (own visits + team read-only, note 4), **My reports**
    (own reports — read-only *except* recording material consumption, §2.1),
