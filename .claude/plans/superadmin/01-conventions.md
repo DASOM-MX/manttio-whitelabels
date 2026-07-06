@@ -349,6 +349,11 @@ src/app/<feature>/components/<thing>/      # per-feature widgets + dialogs
 src/app/shared/components/                 # cross-feature widgets (2+ consumers)
 src/app/validators/                        # shared ValidatorFns (e.g. rfc.validator.ts)
 src/app/data/dtos/<resource>/              # DTOs per resource
+src/app/model/constants/<entity>/          # shared/domain constants — ONE constant per
+                                           #   <constant-name>.const.ts file (added 2026-07-06;
+                                           #   label/severity maps, option lists, matrices).
+                                           #   Component-local tuning values may stay local.
+src/app/pipes/                             # pure pipes (template mappings — see Angular rules)
 src/app/data/utils.ts                      # shared helpers (port toParams, errorMessage)
 src/state/<resource>/                      # NGXS state + actions
 src/http/<resource>.service.ts             # one HTTP service per resource

@@ -10,22 +10,10 @@
  *  (14 §5).
  */
 import type { LucideIcon } from '@lucide/angular';
-import {
-  LucideBuilding2,
-  LucideCalendarDays,
-  LucideFileText,
-  LucideLayoutDashboard,
-  LucideLayoutTemplate,
-  LucideNewspaper,
-  LucidePackage,
-  LucidePackageSearch,
-  LucidePalette,
-  LucideReceiptText,
-  LucideScrollText,
-  LucideUsers,
-  LucideWarehouse,
-} from '@lucide/angular';
-import type { MeResponse, Role, TenantModules } from './data/dtos/auth';
+import { MODULE_ROLES } from './model/constants/access/module-roles.const';
+import { MODULE_FLAG } from './model/constants/access/module-flags.const';
+import { NAV, TECH_NAV } from './model/constants/access/nav-entries.const';
+import type { MeResponse, Role } from './data/dtos/auth';
 
 export type ModuleKey =
   | 'dashboard'
@@ -40,36 +28,6 @@ export type ModuleKey =
   | 'branding'
   | 'cms'
   | 'wms';
-
-/** Access matrix (14-access-control.md §2) — roles that may enter each module.
- *  In-page action gating (e.g. admin read-only on branding, office draft-only
- *  on billing/contracts) stays inside each module via `hasRole`. */
-export const MODULE_ROLES: Record<ModuleKey, readonly Role[]> = {
-  dashboard: ['owner', 'admin', 'office'],
-  users: ['owner', 'admin'],
-  reports: ['owner', 'admin', 'office', 'technician'],
-  templates: ['owner', 'admin'],
-  customers: ['owner', 'admin', 'office'],
-  equipment: ['owner', 'admin', 'office'],
-  calendar: ['owner', 'admin', 'office', 'technician'],
-  contracts: ['owner', 'admin', 'office'],
-  billing: ['owner', 'admin', 'office'],
-  branding: ['owner', 'admin'],
-  cms: ['owner', 'admin'],
-  wms: ['owner', 'admin', 'office', 'technician'],
-};
-
-/** Config flag each module rides on; absent = core, always on. Equipment and
- *  CRM ride core clients; `scheduling` covers calendar + contracts (tentative
- *  flag split — open item in 14). Brand is core: it themes apps and PDFs,
- *  not just the website. */
-export const MODULE_FLAG: Partial<Record<ModuleKey, keyof TenantModules>> = {
-  billing: 'billing',
-  wms: 'wms',
-  cms: 'cms',
-  calendar: 'scheduling',
-  contracts: 'scheduling',
-};
 
 export const hasRole = (me: MeResponse | null, roles: readonly Role[]): boolean =>
   !!me && roles.includes(me.role);
@@ -114,54 +72,6 @@ export interface NavEntry {
   exact?: boolean;
   children?: NavChild[];
 }
-
-/** Full nav, owner/admin shape (02 §4); office loses entries via the matrix. */
-const NAV: NavEntry[] = [
-  { label: 'Panel', icon: LucideLayoutDashboard, route: '/dashboard', module: 'dashboard' },
-  { label: 'Calendario', icon: LucideCalendarDays, route: '/calendar', module: 'calendar' },
-  { label: 'Usuarios', icon: LucideUsers, route: '/users', module: 'users' },
-  { label: 'Reportes', icon: LucideFileText, route: '/reports', module: 'reports' },
-  { label: 'Plantillas', icon: LucideLayoutTemplate, route: '/templates', module: 'templates' },
-  { label: 'Facturación', icon: LucideReceiptText, route: '/billing', module: 'billing' },
-  {
-    label: 'Clientes',
-    icon: LucideBuilding2,
-    route: '/customers',
-    module: 'customers',
-    children: [
-      { label: 'Todos', route: '/customers', exact: true },
-      { label: 'Leads', route: '/customers/leads' },
-      { label: 'Lista negra', route: '/customers/blacklist' },
-      { label: 'Equipos', route: '/equipment' },
-    ],
-  },
-  { label: 'Contratos', icon: LucideScrollText, route: '/contracts', module: 'contracts' },
-  { label: 'Marca', icon: LucidePalette, route: '/branding', module: 'branding' },
-  {
-    label: 'CMS',
-    icon: LucideNewspaper,
-    route: '/cms',
-    module: 'cms',
-    children: [
-      { label: 'Contenido', route: '/cms/home' },
-      { label: 'Clientes', route: '/cms/clients' },
-    ],
-  },
-  { label: 'Almacén', icon: LucideWarehouse, route: '/warehouse', module: 'wms' },
-];
-
-/** Technician nav is exactly these four entries (02 §4). */
-const TECH_NAV: NavEntry[] = [
-  { label: 'Calendario', icon: LucideCalendarDays, route: '/calendar', module: 'calendar' },
-  { label: 'Mis reportes', icon: LucideFileText, route: '/reports', module: 'reports' },
-  { label: 'Mi almacén', icon: LucidePackage, route: '/warehouse', module: 'wms', exact: true },
-  {
-    label: 'Consulta de stock',
-    icon: LucidePackageSearch,
-    route: '/warehouse/stock',
-    module: 'wms',
-  },
-];
 
 /** Sidebar entries `(tenantConfig, role)` allow — a user never sees an entry
  *  the route guard would reject. */
