@@ -80,7 +80,7 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   social, and **materialized color scales** (primary 50–950, surface 0–950 — derived
   in the editor from two hex picks, stored ready-made so no consumer runs palette
   math). **`GET /brand` is public/unauthenticated** (login screens + website read it
-  pre-auth; every field is public by nature); **`PUT /brand` is owner-only** — not
+  pre-auth; every field is public by nature — read served through the per-tenant cache DO, §5); **`PUT /brand` is owner-only** — not
   under `/cms`. **Direct-apply — no draft variant** (single row, `PUT` goes live).
   Brand is **core — not gated by the `cms` module flag** (it themes apps + PDFs even
   without a website). The **pdf and email modules read brand at render time**
@@ -222,7 +222,39 @@ edits to pushed events are never read back; the next push overwrites.
 
 ---
 
-## 5. Open questions (backend-side)
+## 5. Per-tenant cache Durable Object — brand + CRM reads (decided 2026-07-06)
+
+New cross-cutting module `modules/tenant-cache/` (generic, like `email/`/`pdf/`): a
+**SQLite-backed Durable Object** class, **`TenantCacheDO`**, one instance per tenant
+(`env.TENANT_CACHE.getByName(tenantId)`), fronting Neon on the hot read paths:
+
+- **Brand (superadmin plan 03 §5.1):** `GET /brand` is the hottest read — every website
+  visit + both apps' pre-auth boot, public — against a row that almost never changes.
+  The DO caches the materialized brand object.
+- **CRM (superadmin plan 08 §4.1):** hot list projections (leads by follow-up,
+  blacklist, source counts) and the first timeline page per customer. Exact v1
+  projection set is an open question (§6).
+
+Pattern:
+
+- **Cache-aside inside the DO:** on a miss the DO itself queries Neon (same WS driver)
+  and stores the result in its SQLite storage — per-tenant single-threading collapses
+  concurrent cold reads into one Neon query (no dogpile).
+- **Write-through invalidation, Neon first:** every write path commits to Neon, then
+  refreshes/deletes the affected keys in the same request — `PUT /brand` **and the
+  manager's shared-token brand push**, `POST /customers/:id/status`,
+  `POST /customers/:id/interactions`, `PATCH /customers/:id`. The brand entry is
+  re-primed eagerly (a stale login screen is exactly what the DO buys off).
+- **TTL safety net via alarm:** a single `setAlarm()` sweep expires entries past a
+  conservative TTL, catching missed invalidations (out-of-band DB edits, new emitters).
+- **Wrangler:** `durable_objects` binding `TENANT_CACHE` + a `new_sqlite_classes`
+  migration tag; class exported from the composition root (`src/index.ts`).
+- **Neon stays the source of truth.** The DO is a disposable, rebuildable cache — never
+  the system of record; wiping an instance costs one cold read. DO instances are
+  single-location (pinned near first access ≈ the tenant's region; traffic is
+  region-local, acceptable).
+
+## 6. Open questions (backend-side)
 
 - Manager push schema: final `modules` flag set (incl. `scheduling` split) + tenant
   timezone field — coordinate with `manttio-manager-backend-plan.md`. Note
@@ -239,8 +271,12 @@ edits to pushed events are never read back; the next push overwrites.
 - PDF font embedding cost on Workers (fetch TTF from R2 + fontkit embed per render):
   measure when pdf brand consumption lands; cache font bytes in-isolate, subset the
   static instances if size bites.
+- Tenant-cache DO (§5): exact CRM projection set cached in v1 (leads/blacklist/source
+  counts vs timeline first page too); whether brand + CRM stay in the one
+  `TenantCacheDO` class or split per concern — start shared, split only if CRM churn
+  crowds the brand entry.
 
-## 6. Build checklist
+## 7. Build checklist
 
 **Auth & config**
 - [ ] `role` migration + owner protection + superadmin login + `GET /auth/me`
@@ -251,6 +287,9 @@ edits to pushed events are never read back; the next push overwrites.
       interactions
 - [ ] Definition-entity endpoints + per-tenant seeds (reasons locked, contract types
       unlocked)
+- [ ] `TenantCacheDO` (`modules/tenant-cache/`, SQLite DO): binding + migration,
+      cache-aside brand/CRM reads, write-through invalidation hooks, alarm TTL sweep
+      (§5)
 
 **Modules** *(each gated by its superadmin plan's checkpoints)*
 - [ ] **branding — first** (prioritized 2026-07-05): `modules/brand/` — public
