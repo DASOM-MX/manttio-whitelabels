@@ -29,6 +29,7 @@ Baseline four, no specialist roles until a real tenant needs one:
 
 | Module | owner | admin | office | technician |
 |---|---|---|---|---|
+| Dashboard (02 §4 — shell-owned stub) | view | view | view | — |
 | Users | full | full¹ | — | — |
 | Reports | full | full | manage | **own only**² |
 | Report templates (06 §5) | full | full | — | — |

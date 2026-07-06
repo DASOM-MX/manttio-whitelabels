@@ -18,7 +18,7 @@ then its own file, and touches no other module's code.
 |---|---|---|---|
 | 00 | `00-master-plan.md` | This file — protocol + progress board | — |
 | 01 | `01-conventions.md` | Styling + component writing rules (ported from `frontend/CLAUDE.md`) | — |
-| 02 | `02-app-shell.md` | App shell: platform decisions, auth gate, layout, nav, theming | 01 |
+| 02 | `02-app-shell.md` | App shell: platform decisions, auth gate, layout, nav, theming, dashboard stub | 01 |
 | 03 | `03-branding.md` | Brand identity: name/logos/colors → themes site, both apps, PDFs/emails | 02 |
 | 04 | `04-cms.md` | Headless CMS: home + clients content documents (draft→publish) | 02 |
 | 05 | `05-users.md` | Users management | 02 |
@@ -192,11 +192,17 @@ Rules for agents:
   report requires a captured signature to reach `finished`/mailed (server-enforced)**.
   Content is **1–n sections**, each with its own title, its own **1–3 column** layout
   (1-col = label|value rows), and its own questions; each question carries a
-  **datatype** that drives the field-app input control. Lifecycle
+  **datatype** that drives the field-app input control **plus optional per-datatype
+  validation `constraints` (in v1 — number min/max, text maxLength, date bounds)**.
+  Lifecycle
   **draft ⇄ active → disabled**, **no versioning in v1** (edit = pull to
   draft, re-activate) — only *active* templates ever reach the field app; disabling is
-  terminal and requires an audited reason (dialog). Tenants are **seeded with the
-  current HVAC report as a starter template** at provisioning. Backend + field-app
+  terminal and requires an audited reason (dialog). **Captured reports snapshot their
+  answers** (`templateId` + per-answer label/datatype at capture — 06 §5.5), so
+  template edits never blank historical reports; **template status gates starting
+  captures only — offline sync always accepts**. Tenants are **seeded with the
+  current HVAC report as a starter template** at provisioning (existing reports
+  retro-linked to it). Backend + field-app
   rendering obligations in `backend/manttio-whitelabeled-backend-plan.md` §3.
 - **Client vs customer naming:** the product's existing `customers` resource **is** the
   "Clients" module here. Superadmin uses the word *client* in UI copy; code keeps `customers`

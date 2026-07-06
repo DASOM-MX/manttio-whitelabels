@@ -25,13 +25,14 @@ the components with locked filters + hidden actions; don't fork variants.
 ReportSummary {
   id, folio?, customerId, customerName,
   technicianId, technicianName,
+  templateId, templateName,             // which template the report was captured from (§5.5)
   serviceDate, status,                  // confirm status enum against backend reports module
   billingStatus?: 'unbilled' | 'billed',   // derived, appears once 09 lands
   hasMaterialTracking?: boolean,           // appears once 10 lands
   createdAt
 }
 ReportDetail = ReportSummary + {
-  details: ReportDetailItem[],          // sections/answers as backend returns them
+  sections: ReportAnswerSection[],      // template-shaped answers — §5.5 snapshot model
   signatureUrl?, photos: string[],      // R2 keys
   pdfUrl?
 }
@@ -39,7 +40,7 @@ ReportDetail = ReportSummary + {
 
 ## 2. Expected API surface
 
-- `GET /reports?page&limit&search&customerId&technicianId&from&to&status` → paged
+- `GET /reports?page&limit&search&customerId&technicianId&templateId&from&to&status` → paged
 - `GET /reports/:id`
 - `GET /reports/:id/pdf` (existing pdf pipeline)
 - `POST /reports/:id/resend-email` *(open decision)*
@@ -47,11 +48,14 @@ ReportDetail = ReportSummary + {
 
 ## 3. Pages & components
 
-- `reports/pages/reports-list/` — lazy `<p-table>`: folio, client, technician, service
-  date, status pill; filters: date range (`<p-datepicker>` range), client select,
-  technician select, status. Row: view, PDF, delete.
-- `reports/pages/report-view/` — read-only detail: header card (client/tech/date/status),
-  `.card-section` per detail group, photo grid, signature image (unstyled in dark mode per
+- `reports/pages/reports-list/` — lazy `<p-table>`: folio, client, technician, template,
+  service date, status pill; filters: date range (`<p-datepicker>` range), client select,
+  technician select, **template select**, status. Row: view, PDF, delete.
+- `reports/pages/report-view/` — read-only detail: header card (client/tech/date/
+  template/status), **template-shaped body**: one `.card-section` per answer section,
+  rendered at the section's captured column count (same skeleton the builder previews —
+  reports are dynamic now, never assume the old fixed HVAC shape), photo grid, signature
+  image (unstyled in dark mode per
   conventions), PDF download button. Slots reserved for 09 (billing card) and 10
   (materials card) — leave a clearly-marked placeholder region, don't build their UI.
 - `reports/components/delete-report-dialog/` — shape-3 dialog, audit comment (reuse the
@@ -95,7 +99,12 @@ TemplateQuestion {
           | 'select' | 'multiselect' | 'radio' | 'checkbox_group',
           // final set — decided 2026-07-05
   required: boolean,
-  options?: string[]      // select / multiselect / radio / checkbox_group
+  options?: string[],     // select / multiselect / radio / checkbox_group
+  constraints?: {         // per-datatype validation — in v1 (decided 2026-07-05)
+    min?, max?,           //   number
+    maxLength?,           //   text / textarea
+    minDate?, maxDate?    //   date — 'today' | ISO date allowed as bounds
+  }
 }
 ```
 
@@ -136,6 +145,11 @@ TemplateQuestion {
   pairs are deliberate: dropdowns for long option lists, radio/checkbox groups for
   short ones a technician should see at a glance. No `photo` datatype — the fixed
   images block covers photos.
+- **Validation constraints — in v1 (decided 2026-07-05):** beyond `required`, a question
+  can carry per-datatype `constraints` (number `min`/`max`; text/textarea `maxLength`;
+  date `minDate`/`maxDate`). The builder shows the matching constraint fields when the
+  datatype is picked (all optional — an unconstrained question stays the easy path);
+  the field-app form and the backend both enforce them on capture.
 
 ### 5.2 Lifecycle
 
@@ -146,7 +160,13 @@ TemplateQuestion {
   to active). Editing an active template = **pull it back to draft** (direct
   transition, no version copies), edit, re-activate; the field app simply stops
   offering it while it sits in draft. Accepted v1 trade-off: since there's no
-  versioning, edits can change how previously captured reports re-render.
+  versioning, edits can change how previously captured reports re-render — mitigated
+  by the answer-snapshot model (§5.5), which keeps captured reports rendering complete.
+- **Status gates *starting* reports, never syncing them (decided 2026-07-05):** the
+  field app is offline-first — a technician can hold a cached template that went back
+  to draft (or disabled) mid-capture. **Sync always accepts** a report captured against
+  a template in any state; deactivation/disable only stop *new* captures from being
+  started. No field data is ever rejected at sync time.
 - **disabled** — retired, terminal (to bring the shape back, duplicate it into a new
   draft). **Disabling requires a reason** (dialog, §5.3), stored as `disabledReason` +
   `disabledBy` + `disabledAt`. Reports already captured from a disabled template keep
@@ -185,6 +205,34 @@ TemplateQuestion {
 State: `ReportTemplatesState` + `src/http/report-templates.service.ts` (separate from
 `ReportsState`).
 
+### 5.5 Report ↔ template binding — answer snapshot model (decided 2026-07-05)
+
+Every captured report references its template (`templateId`) **and snapshots what it
+answered**: answers are stored per section, each answer carrying `questionId` **plus the
+question's `label` and `datatype` at capture time** (cheap denormalization, not
+versioning). Consequences:
+
+- **Captured reports always render complete** — view, list, and PDF draw from the
+  snapshot, so a template edit that deletes or relabels questions never blanks out
+  historical reports (this is what makes the no-versioning trade-off in §5.2 safe).
+- Superadmin's report-view (§3) and the PDF pipeline render **from the report's stored
+  sections**, not by re-joining the live template. The live template is only consulted
+  when *starting* a capture.
+
+```
+ReportAnswerSection { title, columns, answers: ReportAnswer[] }   // order preserved
+ReportAnswer { questionId, label, datatype, value }               // label+datatype frozen at capture
+```
+
+**Field-app obligations (fork `frontend/` task, recorded in the backend plan §3):**
+
+- **Template picker:** with 1..n active templates, starting a report begins with a
+  "choose template" step (single active template skips it — straight into capture).
+- **Existing reports retro-link:** at provisioning, previously captured fixed-HVAC
+  reports are migrated to reference the seeded template (§5.2 seeding) with their
+  answers expressed in the snapshot model, so every report in the system renders
+  through one code path.
+
 ---
 
 ## Checkpoints
@@ -211,10 +259,11 @@ State: `ReportTemplatesState` + `src/http/report-templates.service.ts` (separate
 - [ ] Templates list at `/templates` (own top-level **Plantillas** nav entry),
       status pills
 - [ ] Builder: section editor (add/reorder/remove/rename, per-section column selector)
-      + nested question editor (add/reorder/remove, datatype, required, options),
-      live full-skeleton preview (heading mock, stacked sections incl. 1-col
-      `| Label | value |` rendering, images/footer mock; true per-section column
-      count at every viewport — overflow-x scroll on mobile, no collapse)
+      + nested question editor (add/reorder/remove, datatype, required, options,
+      **per-datatype constraint fields** — §5.1), live full-skeleton preview (heading
+      mock, stacked sections incl. 1-col `| Label | value |` rendering, images/footer
+      mock; true per-section column count at every viewport — overflow-x scroll on
+      mobile, no collapse)
 - [ ] Route `data` owner/admin only; office/tech never see the entry
 
 ### CP-5 — Templates: lifecycle
@@ -245,3 +294,12 @@ State: `ReportTemplatesState` + `src/http/report-templates.service.ts` (separate
 - ~~Seeding~~ — **resolved 2026-07-05:** every tenant starts with the **current fixed
   HVAC report as a seeded template** (created at provisioning, expressed as
   sections/questions in the new model; editable/disableable like any other).
+- ~~Report ↔ template binding~~ — **resolved 2026-07-05: answer snapshot model**
+  (§5.5): reports store `templateId` + per-answer label/datatype snapshot; captured
+  reports always render complete; template picker + retro-link recorded as field-app
+  obligations.
+- ~~Offline capture vs lifecycle~~ — **resolved 2026-07-05:** template status gates
+  *starting* captures only; **sync always accepts** (§5.2).
+- ~~Question-level validation~~ — **resolved 2026-07-05: in v1** — per-datatype
+  `constraints` (number min/max, text maxLength, date min/max — §5.1), enforced in
+  the field-app form and backend.

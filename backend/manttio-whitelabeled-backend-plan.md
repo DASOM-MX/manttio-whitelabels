@@ -115,13 +115,27 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   as today. **Signature gate (decided 2026-07-05):** every report — whatever its
   template — **requires a captured signature to transition to `finished` and to be
   mailed**; enforce in the status-transition path (`report-lifecycle` predicates),
-  not just field-app UX.
+  not just field-app UX. **Answer snapshot model (decided 2026-07-05 — 06 §5.5):**
+  reports carry `template_id` + template-shaped answer sections where **each answer
+  freezes its question's `questionId` + label + datatype at capture** — view/list/PDF
+  render from the snapshot, never by re-joining the live template (this is what makes
+  no-versioning safe). `GET /reports` gains a `templateId` filter; summaries return
+  `templateName`. **Sync acceptance (decided 2026-07-05):** template status gates
+  *starting* captures only — submission **always accepts** a report captured against a
+  now-draft/disabled template (offline-first; no field data rejected at sync).
+  **Provisioning migration:** existing fixed-HVAC reports get retro-linked to the
+  seeded template with answers expressed in the snapshot model, so every report
+  renders through one path.
 - **report templates** (06 §5 — decided 2026-07-05): new `report_templates` entity
   (name, `status: draft|active|disabled`, `sections` jsonb — **1..n ordered sections,
   each `{ title, columns: 1..3, questions[] }`** w/ per-question datatype/required/
   options/order — datatype enum **final (2026-07-05):** `text|textarea|number|date|
   boolean|select|multiselect|radio|checkbox_group` (`options[]` required for the last
-  four) — `disabled_reason`/`disabled_by`/`disabled_at`).
+  four) — plus optional per-question **validation `constraints` (in v1, decided
+  2026-07-05):** number `min`/`max`, text/textarea `maxLength`, date `minDate`/
+  `maxDate` — **enforced server-side on report submission** (answers validated
+  against the template's constraints), mirrored in the field-app form —
+  `disabled_reason`/`disabled_by`/`disabled_at`).
   Endpoints: CRUD (**PATCH draft-only, server-enforced**), `POST :id/activate`,
   `POST :id/deactivate` (active → draft — the edit path; **no versioning in v1**,
   accepted that edits re-render previously captured reports), `POST :id/disable
@@ -132,11 +146,14 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   the current HVAC report expressed as sections/questions — a normal editable row,
   created by the provisioning/manager-push flow. Two heavyweight obligations: (a) the
   **field app renders capture forms dynamically** from a template's sections
-  (datatype → input control; report submission stores answers keyed to the template) —
-  fork `frontend/` task; (b) the **PDF pipeline renders template-driven layouts** —
+  (datatype → input control + constraint enforcement; **template picker** when >1
+  active template — single active skips it; submission stores the answer snapshot —
+  see reports bullet) — fork `frontend/` task; (b) the **PDF pipeline renders
+  template-driven layouts** —
   fixed heading + images + comments + signature framing per-section 1–3-column blocks
-  from the `pdf/` toolkit, replacing the single hardcoded HVAC layout. No open items
-  — the template spec is fully decided (06 §5).
+  from the `pdf/` toolkit, replacing the single hardcoded HVAC layout — **rendered
+  from the report's answer snapshot, not the live template**. No open items
+  — the template spec is fully decided (06 §5, incl. §5.5 binding/snapshot).
 - **billing** (09): bills + items (`report_id` per item), status flow with
   office-draft / owner-admin-send gating; report on ≤1 non-cancelled bill.
 - **wms** (10): the largest surface — stock endpoints all require a `reason`;
