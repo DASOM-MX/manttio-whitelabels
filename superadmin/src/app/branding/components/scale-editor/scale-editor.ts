@@ -1,4 +1,4 @@
-import { Component, input, signal } from '@angular/core';
+import { Component, computed, input, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { LucideChevronDown } from '@lucide/angular';
 
@@ -21,11 +21,13 @@ export class ScaleEditor {
 
   protected expanded = signal(false);
 
-  protected stepControl(step: string): FormControl<string> {
-    return this.scaleGroup().get(step) as FormControl<string>;
-  }
-
-  protected stepValue(step: string): string {
-    return this.stepControl(step)?.value ?? '#FFFFFF';
-  }
+  /** Step → control view-model (no method calls in the template — 01 Angular
+   *  rules). Controls are stable per (group, steps); swatch colors read
+   *  `row.control.value` (getter) in the template. */
+  protected rows = computed(() =>
+    this.steps().map((step) => ({
+      step,
+      control: this.scaleGroup().get(step) as FormControl<string>,
+    })),
+  );
 }

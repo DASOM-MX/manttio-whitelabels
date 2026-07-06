@@ -24,8 +24,8 @@
     role="img"
     [attr.aria-label]="'Escala derivada de ' + label()"
   >
-    @for (step of steps(); track step) {
-      <div class="flex-1" [style.background-color]="stepValue(step)"></div>
+    @for (row of rows(); track row.step) {
+      <div class="flex-1" [style.background-color]="row.control.value"></div>
     }
   </div>
 
@@ -49,17 +49,17 @@
       class="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6"
       animate.enter="anim-fade-enter"
     >
-      @for (step of steps(); track step) {
+      @for (row of rows(); track row.step) {
         <div
           class="flex items-center gap-2 rounded-lg border border-granite-200 p-1.5 dark:border-granite-800"
         >
           <input
             type="color"
-            [formControl]="stepControl(step)"
+            [formControl]="row.control"
             class="size-8 shrink-0 cursor-pointer rounded border border-granite-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-granite-700"
-            [attr.aria-label]="label() + ' paso ' + step"
+            [attr.aria-label]="label() + ' paso ' + row.step"
           />
-          <span class="micro-label font-data tabular-nums">{{ step }}</span>
+          <span class="micro-label font-data tabular-nums">{{ row.step }}</span>
         </div>
       }
     </div>
