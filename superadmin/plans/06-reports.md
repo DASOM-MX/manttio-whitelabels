@@ -80,10 +80,14 @@ detail (builder + question preview).
 ReportTemplate {
   id, name, description?,
   status: 'draft' | 'active' | 'disabled',
-  columns: 1 | 2 | 3,                          // content-block layout
-  questions: TemplateQuestion[],
+  sections: TemplateSection[],                 // 1..n, ordered (decided 2026-07-05)
   disabledReason?, disabledBy?, disabledAt?,   // set via the disable dialog
   createdAt, updatedAt
+}
+TemplateSection {
+  id, order, title,
+  columns: 1 | 2 | 3,                          // per-SECTION layout — each section
+  questions: TemplateQuestion[]                //   owns its own grid + questions
 }
 TemplateQuestion {
   id, order, label,
@@ -95,15 +99,34 @@ TemplateQuestion {
 ```
 
 - **Fixed skeleton — every template, non-negotiable:** **report heading** (system-owned:
-  client, technician, service date, folio) + **report content** (the custom questions,
-  laid out per `columns`) + **comments** (always present, never removable, not a
-  question the builder can touch) + **signature (decided 2026-07-05 — a selling
-  point, not open to discussion):** every report, whatever its template, **requires a
-  captured signature to be marked `finished` and to be mailed** — server-enforced
-  status-transition guard, not just field-app UX.
-- **Layout:** 1–3 columns for the content block, selected in the builder. 1-col renders
-  `| Label | value |` rows; 2/3-col render a grid (label above value). The field app
-  collapses to 1 col on phone widths regardless — `columns` is the desktop/PDF layout.
+  business info + client info — client, technician, service date, folio) →
+  **content sections** (1..n, the tenant-designed part) → **images block** (photo
+  grid, as today's reports) → **footer**: **comments** (always present, never
+  removable, not a question the builder can touch) + **signature (decided 2026-07-05
+  — a selling point, not open to discussion):** every report, whatever its template,
+  **requires a captured signature to be marked `finished` and to be mailed** —
+  server-enforced status-transition guard, not just field-app UX.
+- **Sections (decided 2026-07-05):** questions nest inside sections; a template has
+  **1 to n sections**, each with its **own title, own 1–3 column layout, and own
+  questions**. Sections stack vertically in order. Render target:
+
+  ```
+  ┌─────────────────────────────┐
+  │        business info        │
+  │         client info         │   ← heading (system-owned)
+  ├─────────────────────────────┤
+  │ Section A                   │
+  │   q1       q2       q3     │   ← 3-col section
+  │ Section B                   │
+  │      q1         q2         │   ← 2-col section
+  ├─────────────────────────────┤
+  │      images  ·  footer      │   ← photo grid + comments + signature
+  └─────────────────────────────┘
+  ```
+
+- **Layout:** per section — 1-col renders `| Label | value |` rows; 2/3-col render a
+  grid (label above value). The field app collapses to 1 col on phone widths
+  regardless — `columns` is the desktop/PDF layout.
 - **Datatype drives the field-app input:** each question's datatype renders the matching
   control in the main app (text input, textarea, numeric input, datepicker, sí/no
   toggle, select, multiselect, photo capture).
@@ -128,13 +151,15 @@ TemplateQuestion {
 - `templates/pages/templates-list/` — table: name, status pill (draft/active/disabled),
   question count, updated. Row: open. (Own feature folder — `/templates` is its own
   route area; still owned by this module's agent.)
-- `templates/pages/template-detail/` — the builder: question editor (add / reorder /
-  remove; label, datatype, required, options), column-layout selector (1/2/3), and a
-  **live question preview** pane rendering the template as the field app will show it
-  (incl. the `| Label | value |` table for 1-col). **The preview always renders the
+- `templates/pages/template-detail/` — the builder: **section editor** (add / reorder /
+  remove / rename sections; per-section column selector 1/2/3) with a **question
+  editor nested per section** (add / reorder / remove; label, datatype, required,
+  options), and a **live preview** pane rendering the full skeleton — heading mock,
+  the sections stacked with their own grids (incl. the `| Label | value |` table for
+  1-col sections), images/footer mock. **The preview always renders each section's
   selected column count — never collapse it (decided 2026-07-05):** on narrow
   viewports the pane becomes its own `overflow-x: auto` container (01 layout rule
-  `horizontal-scroll`); a 2/3-col template collapsing to 1 col in the preview would
+  `horizontal-scroll`); a 2/3-col section collapsing to 1 col in the preview would
   read as the selection not applying. Editing is draft-only — active and disabled
   templates open the builder read-only.
 - `templates/components/disable-template-dialog/` — shape-3 dialog with a **required
@@ -179,9 +204,11 @@ State: `ReportTemplatesState` + `src/http/report-templates.service.ts` (separate
 - [ ] `ReportTemplatesState` + `report-templates.service.ts` + DTOs
 - [ ] Templates list at `/templates` (own top-level **Plantillas** nav entry),
       status pills
-- [ ] Builder: question editor (add/reorder/remove, datatype, required, options),
-      column selector, live preview (incl. 1-col `| Label | value |` rendering;
-      true column count at every viewport — overflow-x scroll on mobile, no collapse)
+- [ ] Builder: section editor (add/reorder/remove/rename, per-section column selector)
+      + nested question editor (add/reorder/remove, datatype, required, options),
+      live full-skeleton preview (heading mock, stacked sections incl. 1-col
+      `| Label | value |` rendering, images/footer mock; true per-section column
+      count at every viewport — overflow-x scroll on mobile, no collapse)
 - [ ] Route `data` owner/admin only; office/tech never see the entry
 
 ### CP-5 — Templates: lifecycle
@@ -208,5 +235,6 @@ State: `ReportTemplatesState` + `src/http/report-templates.service.ts` (separate
   can change how previously captured reports re-render.
 - ~~Re-activation of disabled~~ — **resolved 2026-07-05:** `disabled` is terminal;
   duplicate into a new draft to resurrect a shape (§5.2).
-- **Seeding:** does each tenant start with the current fixed HVAC report as a seed
-  template, or with an empty list?
+- ~~Seeding~~ — **resolved 2026-07-05:** every tenant starts with the **current fixed
+  HVAC report as a seeded template** (created at provisioning, expressed as
+  sections/questions in the new model; editable/disableable like any other).
