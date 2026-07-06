@@ -1,4 +1,4 @@
-import { Component, inject, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { SlicePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -13,8 +13,9 @@ import { select, Store } from '@ngxs/store';
 import { UsersState } from '../../../../state/users/users.state';
 import { LoadUsers } from '../../../../state/users/users.actions';
 import { AuthState } from '../../../../state/auth/auth.state';
-import { canManageUser } from '../../../access';
-import { ROLE_LABELS, ROLE_SEVERITIES } from '../../user-labels';
+import { ROLE_LABELS } from '../../user-labels';
+import { RoleLabelPipe, RoleSeverityPipe } from '../../../pipes/role.pipe';
+import { CanManagePipe } from '../../../pipes/access.pipe';
 import { DeleteUserDialog } from '../../components/delete-user-dialog/delete-user-dialog';
 import type { Role } from '../../../data/dtos/auth';
 import type { User } from '../../../data/dtos/user';
@@ -34,6 +35,9 @@ const PAGE_SIZE = 10;
     SelectModule,
     InputTextModule,
     TagModule,
+    RoleLabelPipe,
+    RoleSeverityPipe,
+    CanManagePipe,
     DeleteUserDialog,
     LucidePlus,
     LucidePencil,
@@ -49,9 +53,9 @@ export class UsersList {
   protected total = select(UsersState.total);
   protected loading = select(UsersState.loading);
   private me = select(AuthState.me);
+  /** Actor role for the row-level canManage pipe (owner protection). */
+  protected myRole = computed(() => this.me()?.role ?? null);
 
-  protected readonly ROLE_LABELS = ROLE_LABELS;
-  protected readonly ROLE_SEVERITIES = ROLE_SEVERITIES;
   protected readonly PAGE_SIZE = PAGE_SIZE;
 
   protected search = new FormControl('', { nonNullable: true });
@@ -99,20 +103,6 @@ export class UsersList {
         active: this.activeFilter.value === '' ? undefined : this.activeFilter.value === 'true',
       }),
     );
-  }
-
-  /** Owner protection: admins never see manage actions on the owner row. */
-  protected canManage(user: User): boolean {
-    return canManageUser(this.me()?.role ?? null, user.role);
-  }
-
-  // p-table row templates are untyped (`let-user`); these keep the lookups
-  // strict-safe.
-  protected roleLabel(user: User): string {
-    return ROLE_LABELS[user.role];
-  }
-  protected roleSeverity(user: User): 'warn' | 'info' | 'secondary' | 'success' {
-    return ROLE_SEVERITIES[user.role];
   }
 
   protected openDelete(user: User): void {

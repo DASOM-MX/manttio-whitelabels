@@ -71,7 +71,7 @@
       <tr>
         <td class="font-medium">{{ user.name }}</td>
         <td>{{ user.email }}</td>
-        <td><p-tag [severity]="roleSeverity(user)" [value]="roleLabel(user)" /></td>
+        <td><p-tag [severity]="user.role | roleSeverity" [value]="user.role | roleLabel" /></td>
         <td>
           @if (user.active) {
             <p-tag severity="success" value="Activo" />
@@ -81,7 +81,7 @@
         </td>
         <td class="font-data tabular-nums">{{ user.createdAt | slice: 0 : 10 }}</td>
         <td class="w-24">
-          @if (canManage(user)) {
+          @if (user.role | canManage: myRole()) {
             <div class="flex justify-end gap-1">
               <a
                 [routerLink]="['/users', user.id, 'edit']"
