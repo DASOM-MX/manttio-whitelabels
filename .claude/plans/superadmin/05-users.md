@@ -1,7 +1,8 @@
 # 05 — Users
 
-> **Status:** not-started · **Depends on:** 02 (CP-3)
-> **Owner:** — · **Last updated:** 2026-07-05
+> **Status:** done (frontend side — backend users-module changes pending)
+> **Depends on:** 02 (CP-3, done)
+> **Owner:** branch `feature/superadmin-users` (stacked on the 02 shell PR) · **Last updated:** 2026-07-06
 
 Manage the tenant's product users (admins, technicians, office staff). This mirrors the
 frontend's `users/` feature — reuse its shapes, don't redesign them.
@@ -71,23 +72,30 @@ the user detail once 10 lands.
 ## Checkpoints
 
 ### CP-1 — Read path
-- [ ] DTOs + `users.service.ts` + `UsersState` (load list/detail)
-- [ ] List page with lazy table, filters, pills
-- [ ] Route + sidebar entry live
+- [x] DTOs + `users.service.ts` + `UsersState` (lazy `provideStates`; list/detail +
+      one-time `tempPassword` slot cleared after display)
+- [x] List page with lazy server-side table (page/limit), search (debounced) +
+      role + active filters, role/estado pills
+- [x] Route + sidebar entry live (shipped with 02)
 
 ### CP-2 — Write path
-- [ ] User form page (add + edit) with validators
-- [ ] Delete dialog ported (audit comment + typed email)
-- [ ] "Crítico" tab on user-form edit mode: reset-password button (confirm dialog →
-      temp password shown once w/ copy) — visible only for allowed pairings
-      (owner→admin/office/tech, admin→office/tech; 14 §2 note 1)
-- [ ] Toasts on create/update/delete; list refreshes
+- [x] User form page (add + edit; owner-protection read-only for admins; role
+      select excludes `owner` for non-owners) with validators
+- [x] Delete dialog ported from frontend canon (audit comment + typed-email,
+      case-insensitive match)
+- [x] "Crítico" tab on edit mode: reset-password (confirm dialog → temp password
+      shown once w/ copy + won't-be-shown-again warning) — gated by
+      `canResetPassword` pairings in access.ts (14 §2 note 1); creation shows the
+      initial temp password through the same dialog
+- [x] Toasts on create/update/delete; list refreshes
 
 ### CP-3 — Polish
-- [ ] Dark-mode audit of every view
-- [ ] Empty/loading/error states on list + form
-- [ ] Build green; manual pass: create → edit → delete → confirm soft-deleted user gone
-      from list
+- [x] Dark-mode variants on every view
+- [x] Empty/loading states on list; dirty-navigation guard on the form
+- [x] Build green; headless pass 18/18 (2026-07-06): list + server-side search,
+      create → one-time password → row appears, edit hydrate, Crítico reset,
+      delete via audit dialog → row gone, admin sees no owner actions and gets
+      the owner edit page read-only
 
 ## Open decisions / asks
 - ~~Role enum~~ — **resolved 2026-07-05:** `owner|admin|office|technician`

@@ -87,7 +87,7 @@ Rules for agents:
 | 02 app-shell | **done** (PR: `feature/superadmin-app-shell`) | CP-3 |
 | 03 branding | **done** (frontend side; branch `feature/superadmin-branding`) | CP-3 |
 | 04 cms | **done** (frontend side; branch `feature/superadmin-cms`) | CP-3 |
-| 05 users | not-started | — |
+| 05 users | **done** (frontend side; branch `feature/superadmin-users`) | CP-3 |
 | 06 reports | not-started | — |
 | 07 clients | not-started | — |
 | 08 crm | not-started | — |
