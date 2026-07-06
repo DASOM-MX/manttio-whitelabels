@@ -185,12 +185,15 @@ Rules for agents:
   `.claude/skills/superadmin-design`** so every module agent auto-loads it (keep both
   in sync in the same commit).
 - **Custom report templates — decided 2026-07-05:** tenants design their own field-app
-  report forms (06 §5, **owner/admin only**). Fixed skeleton on every template: report
-  heading + report content + **comments (always present)**. Content lays out in a
-  tenant-chosen **1–3 column** grid (1-col = label|value rows); each question carries a
-  **datatype** that drives the field-app input control. Lifecycle
-  **draft → active → disabled** — only *active* templates ever reach the field app, and
-  disabling requires an audited reason (dialog). Backend + field-app rendering
+  report forms (06 §5, **owner/admin only**, own route `/templates` + top-level
+  **Plantillas** nav entry). Fixed skeleton on every template: report heading + report
+  content + **comments (always present)** + **signature — a selling point: every
+  report requires a captured signature to reach `finished`/mailed (server-enforced)**.
+  Content lays out in a tenant-chosen **1–3 column** grid (1-col = label|value rows);
+  each question carries a **datatype** that drives the field-app input control.
+  Lifecycle **draft ⇄ active → disabled**, **no versioning in v1** (edit = pull to
+  draft, re-activate) — only *active* templates ever reach the field app; disabling is
+  terminal and requires an audited reason (dialog). Backend + field-app rendering
   obligations in `backend/manttio-whitelabeled-backend-plan.md` §3.
 - **Client vs customer naming:** the product's existing `customers` resource **is** the
   "Clients" module here. Superadmin uses the word *client* in UI copy; code keeps `customers`

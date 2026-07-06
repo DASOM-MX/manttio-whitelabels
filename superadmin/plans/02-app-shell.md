@@ -81,7 +81,7 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
   dark-mode toggle + user menu (logout).
 - Sidebar renders **only the entries `(tenantConfig, role)` allow** — matrix in
   `14-access-control.md` §2. Full nav (owner/admin): **Dashboard** · **Calendar** ·
-  **Users** · **Reports** (nested: Historial / **Plantillas** — the template builder,
+  **Users** · **Reports** · **Plantillas** (`/templates` — report-template builder,
   owner/admin only, `06-reports.md` §5) · **Billing** · **Clients** (nested: All / Leads / Blacklist /
   Equipment) · **Contracts** · **Marca** (branding — always visible, no config flag;
   owner edits, admin read-only) · **CMS** (Contenido / Clientes — behind the `cms`
@@ -166,9 +166,9 @@ borders-not-shadows surface chrome from the Design language.)
 - [ ] `AuthenticatedLayout`: sidebar/topbar, mobile drawer, scroll reset, **nav filtered
       by config + role** (verify technician sees only My reports / My warehouse /
       Stock lookup)
-- [ ] Lazy route stubs for all module areas (branding, cms, users, reports, billing,
-      customers + equipment, contracts, calendar, wms) with `data: { module, roles }`
-      declared
+- [ ] Lazy route stubs for all module areas (branding, cms, users, reports, templates,
+      billing, customers + equipment, contracts, calendar, wms) with
+      `data: { module, roles }` declared
 - [ ] Global toast + confirm dialog mounted; 403 toast handling
 - [ ] A11y shell infrastructure: skip-to-content link, global `:focus-visible` ring,
       one-h1-per-page pattern, `min-h-dvh` layout, container max-width constant

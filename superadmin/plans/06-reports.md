@@ -69,8 +69,9 @@ Each tenant designs the report forms its technicians fill in the field app.
 **Owner + admin only** (`14-access-control.md` §2) — office and technicians never see
 this area.
 
-**Placement + flow:** the Reports nav nests two entries — **Historial** (the browser,
-§1–4) and **Plantillas** (this builder). Flow: `/reports` → templates list → template
+**Placement + flow (decided 2026-07-05):** two separate routes — **`/reports`** (the
+browser, §1–4) and **`/templates`** (this builder, its own top-level nav entry
+**Plantillas**, owner/admin only). Flow: `/templates` → templates list → template
 detail (builder + question preview).
 
 ### 5.1 Data model (DTO view)
@@ -96,7 +97,10 @@ TemplateQuestion {
 - **Fixed skeleton — every template, non-negotiable:** **report heading** (system-owned:
   client, technician, service date, folio) + **report content** (the custom questions,
   laid out per `columns`) + **comments** (always present, never removable, not a
-  question the builder can touch).
+  question the builder can touch) + **signature (decided 2026-07-05 — a selling
+  point, not open to discussion):** every report, whatever its template, **requires a
+  captured signature to be marked `finished` and to be mailed** — server-enforced
+  status-transition guard, not just field-app UX.
 - **Layout:** 1–3 columns for the content block, selected in the builder. 1-col renders
   `| Label | value |` rows; 2/3-col render a grid (label above value). The field app
   collapses to 1 col on phone widths regardless — `columns` is the desktop/PDF layout.
@@ -106,20 +110,25 @@ TemplateQuestion {
 
 ### 5.2 Lifecycle
 
-`draft → active → disabled`
+`draft ⇄ active → disabled` — **no versioning in v1 (decided 2026-07-05)**
 
 - **draft** — freely editable; invisible to the field app.
 - **active** — **the only state the field app ever sees** (its template fetch is scoped
-  to active).
-- **disabled** — retired. **Disabling requires a reason** (dialog, §5.3), stored as
-  `disabledReason` + `disabledBy` + `disabledAt`. Reports already captured from a
-  disabled template keep rendering.
+  to active). Editing an active template = **pull it back to draft** (direct
+  transition, no version copies), edit, re-activate; the field app simply stops
+  offering it while it sits in draft. Accepted v1 trade-off: since there's no
+  versioning, edits can change how previously captured reports re-render.
+- **disabled** — retired, terminal (to bring the shape back, duplicate it into a new
+  draft). **Disabling requires a reason** (dialog, §5.3), stored as `disabledReason` +
+  `disabledBy` + `disabledAt`. Reports already captured from a disabled template keep
+  rendering.
 
 ### 5.3 Pages & components
 
-- `reports/pages/templates-list/` — table: name, status pill (draft/active/disabled),
-  question count, updated. Row: open.
-- `reports/pages/template-detail/` — the builder: question editor (add / reorder /
+- `templates/pages/templates-list/` — table: name, status pill (draft/active/disabled),
+  question count, updated. Row: open. (Own feature folder — `/templates` is its own
+  route area; still owned by this module's agent.)
+- `templates/pages/template-detail/` — the builder: question editor (add / reorder /
   remove; label, datatype, required, options), column-layout selector (1/2/3), and a
   **live question preview** pane rendering the template as the field app will show it
   (incl. the `| Label | value |` table for 1-col). **The preview always renders the
@@ -128,7 +137,7 @@ TemplateQuestion {
   `horizontal-scroll`); a 2/3-col template collapsing to 1 col in the preview would
   read as the selection not applying. Editing is draft-only — active and disabled
   templates open the builder read-only.
-- `reports/components/disable-template-dialog/` — shape-3 dialog with a **required
+- `templates/components/disable-template-dialog/` — shape-3 dialog with a **required
   reason** (mirrors the delete-dialog audit pattern), dispatches disable, toasts.
 
 ### 5.4 Expected API surface
@@ -138,7 +147,8 @@ TemplateQuestion {
 - `GET /report-templates/:id`
 - `POST /report-templates` · `PATCH /report-templates/:id` (**draft only** — backend
   rejects edits to active/disabled)
-- `POST /report-templates/:id/activate`
+- `POST /report-templates/:id/activate` · `POST /report-templates/:id/deactivate`
+  (active → draft, the edit path — §5.2)
 - `POST /report-templates/:id/disable` with `{ reason }`
 
 State: `ReportTemplatesState` + `src/http/report-templates.service.ts` (separate from
@@ -167,31 +177,36 @@ State: `ReportTemplatesState` + `src/http/report-templates.service.ts` (separate
 
 ### CP-4 — Templates: list + builder (owner/admin)
 - [ ] `ReportTemplatesState` + `report-templates.service.ts` + DTOs
-- [ ] Templates list under the nested Reports nav (**Plantillas**), status pills
+- [ ] Templates list at `/templates` (own top-level **Plantillas** nav entry),
+      status pills
 - [ ] Builder: question editor (add/reorder/remove, datatype, required, options),
       column selector, live preview (incl. 1-col `| Label | value |` rendering;
       true column count at every viewport — overflow-x scroll on mobile, no collapse)
 - [ ] Route `data` owner/admin only; office/tech never see the entry
 
 ### CP-5 — Templates: lifecycle
-- [ ] Activate action (draft → active) with confirm dialog
+- [ ] Activate (draft → active) + deactivate (active → draft, the edit path) with
+      confirm dialogs
 - [ ] Disable dialog with required reason; detail view surfaces the stored reason on
       disabled templates
-- [ ] Draft-only editing enforced in UI (active/disabled open read-only)
+- [ ] Draft-only editing enforced in UI (active/disabled open read-only; "edit" on an
+      active template offers the pull-to-draft transition)
 - [ ] Build green; manual pass: create draft → preview at 1/2/3 cols → activate →
-      disable with reason → confirm read-only
+      deactivate → edit → re-activate → disable with reason → confirm terminal
+      read-only
 
 ## Open decisions / asks
 - Status enum + folio field: confirm against backend `reports` module before CP-1.
 - Resend-email action: in or out for v1?
 - Shared delete-dialog base component with 05: coordinate, don't duplicate silently.
 - **Datatype set (§5.1):** proposed eight (`text`/`textarea`/`number`/`date`/`boolean`/
-  `select`/`multiselect`/`photo`) — confirm; is `signature` part of the fixed skeleton
-  (like today's reports) or a datatype?
-- **Editing active templates:** recommended **immutable once active** — changes go
-  through a new draft copy (version bump); either way submitted reports must keep
-  rendering as captured (snapshot vs. template-version reference — backend call).
-- **Re-activation:** is `disabled → active` allowed, or is the lifecycle strictly
-  one-way (re-create as a new draft)?
+  `select`/`multiselect`/`photo`) — still needs a veto pass.
+- ~~Signature placement~~ — **resolved 2026-07-05: fixed skeleton, selling point.**
+  Every report requires a signature to reach `finished`/mailed (§5.1, server-enforced).
+- ~~Editing active templates~~ — **resolved 2026-07-05: no versioning in v1.** Direct
+  `draft ⇄ active`; pull to draft, edit, re-activate (§5.2). Accepted trade-off: edits
+  can change how previously captured reports re-render.
+- ~~Re-activation of disabled~~ — **resolved 2026-07-05:** `disabled` is terminal;
+  duplicate into a new draft to resurrect a shape (§5.2).
 - **Seeding:** does each tenant start with the current fixed HVAC report as a seed
   template, or with an empty list?
