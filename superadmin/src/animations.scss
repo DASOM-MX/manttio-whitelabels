@@ -18,12 +18,14 @@
   --ease-exit: cubic-bezier(0.32, 0, 0.67, 0); /* easeInCubic */
 }
 
+/* Enter keyframes declare only `from` and run with fill `backwards`: the
+   element's natural styles are the end state, so nothing (especially no
+   transform) lingers after the animation — a filled transform would turn the
+   animated container into the containing block for `position: fixed`
+   descendants and break PrimeNG overlays rendered inside it. */
 @keyframes anim-fade-in {
   from {
     opacity: 0;
-  }
-  to {
-    opacity: 1;
   }
 }
 
@@ -41,33 +43,26 @@
     opacity: 0;
     transform: translateY(6px);
   }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 @keyframes anim-drawer-in {
   from {
     transform: translateX(-100%);
   }
-  to {
-    transform: none;
-  }
 }
 
 /* Route/page content enter — re-triggered by the layout on NavigationEnd. */
 .anim-page-enter {
-  animation: anim-rise-in var(--motion-slow) var(--ease-enter) both;
+  animation: anim-rise-in var(--motion-slow) var(--ease-enter) backwards;
 }
 
 /* Generic element enter/exit — pair with `animate.enter="anim-enter"` /
    `animate.leave="anim-leave"`. */
 .anim-enter {
-  animation: anim-rise-in var(--motion-base) var(--ease-enter) both;
+  animation: anim-rise-in var(--motion-base) var(--ease-enter) backwards;
 }
 .anim-fade-enter {
-  animation: anim-fade-in var(--motion-base) var(--ease-enter) both;
+  animation: anim-fade-in var(--motion-base) var(--ease-enter) backwards;
 }
 .anim-leave {
   animation: anim-fade-out var(--motion-fast) var(--ease-exit) both;
@@ -75,7 +70,7 @@
 
 /* Mobile nav drawer. */
 .anim-drawer-enter {
-  animation: anim-drawer-in var(--motion-base) var(--ease-enter) both;
+  animation: anim-drawer-in var(--motion-base) var(--ease-enter) backwards;
 }
 .anim-drawer-leave {
   animation: anim-fade-out var(--motion-fast) var(--ease-exit) both;
@@ -84,7 +79,7 @@
 /* List stagger: 30ms per item, capped at 8 — items past the cap share the
    last delay so long lists don't crawl. */
 .anim-stagger > * {
-  animation: anim-rise-in var(--motion-base) var(--ease-enter) both;
+  animation: anim-rise-in var(--motion-base) var(--ease-enter) backwards;
 }
 @for $i from 1 through 8 {
   .anim-stagger > :nth-child(#{$i}) {
