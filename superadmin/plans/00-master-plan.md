@@ -215,7 +215,94 @@ Rules for agents:
 
 ---
 
-## 5. Legacy plan
+## 5. Build-phase tracker — every open item, one page (added 2026-07-05)
+
+Consolidated index of everything still undecided or owed across all plans, grouped by
+*when it bites*. **The per-module "Open decisions / asks" ledgers stay the source of
+truth** — resolve there first, then strike the line here **in the same commit**. An
+agent hitting a checkpoint checks this page for items tagged to it.
+
+### 5.1 Long poles — start before the module that needs them
+
+- [ ] **Google Cloud project + sensitive-scope verification** (12 §7) — takes weeks,
+      blocks 12 CP-5. Kick off as soon as building starts, not when 12 does.
+- [ ] **Font catalog build** (03 §2.1) — latin subsets + 400/600/700 static instances +
+      tnum verification for all 10 families, uploaded to `branding-fonts`. Needed by
+      03 CP-2 (font pickers).
+
+### 5.2 Decide-by-checkpoint
+
+- [ ] 02 CP-2 — Commissioner `tnum` check on a sample numeric column (fallback:
+      Atkinson Hyperlegible for `data` stack).
+- [ ] 04 CP-2 start — rich-text control: PrimeNG Editor (Quill) constrained toolbar vs
+      minimal custom contenteditable.
+- [ ] 06 CP-1 — confirm report **status enum + folio field** against backend `reports`.
+- [ ] 06 CP-2 — resend-email action: in or out for v1.
+- [ ] 07 CP-1 — confirm net-new `customers` columns (status, source, blacklist,
+      follow-up, referral, tags, contacts, fiscal) for the backend migration; trim or
+      extend the `source` enum.
+- [ ] 10 (replenishments) — **SheetJS-on-Workers CPU check** with the backend agent;
+      validate the import column set (`sku`, `quantity`, `serial`) against a real
+      provider list.
+
+### 5.3 Backend-coordination calls (mirror `backend/manttio-whitelabeled-backend-plan.md`)
+
+- [ ] Manager push schema finalization (14): `scheduling` flag — calendar + contracts
+      together or split; `crm` flag separate or rides core clients; equipment rides
+      core clients; tenant timezone field.
+- [ ] 05 — temp-password expiry in/out; restore endpoint for soft-deleted users in/out;
+      voluntary password-change profile page (endpoint exists regardless).
+- [ ] 07 — fiscal block nested vs flat in responses; 360 summary strip via
+      `GET /customers/:id/summary` vs detail fields; tags `text[]` vs normalized table.
+- [ ] 08 — status transition endpoint vs plain PATCH; which system-event emitters ship
+      v1; source-stats endpoint for the dashboard card v1 or later.
+- [ ] 09 — overdue derived vs stored; folio format (per-tenant consecutive).
+- [ ] 10 — tracking-mode immutability after first movement; serialized consumption:
+      `consumed` status vs virtual location; nesting depth (one sub-level enough?);
+      van-as-sub-warehouse assumption; inbound dialog vs `replenishment` reason.
+- [ ] 12 — report→visit closing heuristic; `missed` auto-sweep cron (same infra as
+      13's expiry cron).
+- [ ] 13 — visit generation upfront vs rolling; `active → expired` cron; Spanish
+      contract-type label wording.
+
+### 5.4 Cross-module asks (coordinate, never build the other side)
+
+- [ ] 05 ↔ 06 — shared delete-dialog base component (extract only if both agree).
+- [ ] 07 ← 08/09/11/12/13 — customer-view reserves card slots: CRM timeline, bills,
+      equipment, upcoming visits, contracts.
+- [ ] 10 ↔ 11 — serialized-unit-consumed → equipment auto-create hook (v1 or later;
+      `materialUnitId` FK direction).
+- [ ] 05 ← 10 — user detail shows assigned warehouse (read-only link).
+- [ ] 05 ← 12 — technician color assignment (v1 fallback: hash from user id).
+- [ ] 06 ↔ 11 — equipment badges/links on report-view when both land.
+
+### 5.5 Field-app work orders (fork `frontend/`, outside these plans)
+
+- [ ] **Dynamic capture forms from templates** (06 §5): datatype → control, constraint
+      enforcement, template picker (>1 active), answer-snapshot submission.
+- [ ] `mustChangePassword` forced-change dialog (shared `users` flag — 02 §3).
+- [ ] Font migration Inter → brand CSS vars (defaults Work Sans/Rubik; keep
+      `font-data`/Atkinson for numeric columns).
+- [ ] Tailwind palette → CSS variables repoint with manttio fallbacks (both apps —
+      03 §4).
+- [ ] Upstream-style asks: explicit visit pick at capture (12); serviced-equipment pick
+      at capture (11).
+
+### 5.6 Revisit-on-demand (non-blocking — don't resolve preemptively)
+
+- 03 — per-step scale override leanness; favicon/PWA regen on isologo change.
+- 06 — images block position (fixed at end until a tenant asks).
+- 08 — author-edit of manual timeline entries (default no); v2 deals + task entity.
+- 12 — FullCalendar adoption; swap approval step; external-event title privacy;
+  timeline logging of matched events; secondary calendars; overlay freshness cache.
+- 13 — billing integration; contract PDF (póliza); `one_time_maintenance` prefill;
+  v2 behavior-bearing types.
+- 14 — per-warehouse self-checkout flag; office correcting report materials.
+- Backend — refresh-token encryption; PDF font-embedding cost measurement.
+
+---
+
+## 6. Legacy plan
 
 `superadmin/manttio-whitelabeled-superadmin-plan.md` (CMS-only scope) is superseded; its
 content was folded into `04-cms.md` (content) + `03-branding.md` (brand) and the file
