@@ -88,7 +88,7 @@ Rules for agents:
 | 03 branding | **done** (frontend side; branch `feature/superadmin-branding`) | CP-3 |
 | 04 cms | **done** (frontend side; branch `feature/superadmin-cms`) | CP-3 |
 | 05 users | **done** (frontend side; branch `feature/superadmin-users`) | CP-3 |
-| 06 reports | not-started | — |
+| 06 reports | **done** (frontend side; branch `feature/superadmin-reports`) | CP-5 |
 | 07 clients | not-started | — |
 | 08 crm | not-started | — |
 | 09 billing | not-started | — |
@@ -242,7 +242,9 @@ agent hitting a checkpoint checks this page for items tagged to it.
       Typography).
 - [x] ~~04 CP-2 start — rich-text control~~ — **resolved 2026-07-06: minimal custom
       contenteditable CVA** (no Quill dep; whitelist + paste-as-plain-text).
-- [ ] 06 CP-1 — confirm report **status enum + folio field** against backend `reports`.
+- [x] ~~06 CP-1 — confirm report status enum + folio~~ — **resolved 2026-07-06:**
+      enum confirmed (`created|in-progress|finished|mailed`); folio has no backend
+      column yet (backend ask).
 - [ ] 06 CP-2 — resend-email action: in or out for v1.
 - [ ] 07 CP-1 — confirm net-new `customers` columns (status, source, blacklist,
       follow-up, referral, tags, contacts, fiscal) for the backend migration; trim or

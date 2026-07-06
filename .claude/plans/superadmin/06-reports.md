@@ -1,7 +1,8 @@
 # 06 — Reports
 
-> **Status:** not-started · **Depends on:** 02 (CP-3)
-> **Owner:** — · **Last updated:** 2026-07-05
+> **Status:** done (frontend side — backend reports/report-templates changes pending)
+> **Depends on:** 02 (CP-3, done)
+> **Owner:** branch `feature/superadmin-reports` (stacked on the 02 shell PR) · **Last updated:** 2026-07-06
 
 Admin-side browser for service reports captured in the field app. Superadmin **reads and
 administers** report *instances*; it does not author them (capture stays in `frontend/`) —
@@ -238,47 +239,61 @@ ReportAnswer { questionId, label, datatype, value }               // label+datat
 ## Checkpoints
 
 ### CP-1 — List
-- [ ] DTOs + service + `ReportsState`
-- [ ] List page with full filter bar + status pills
-- [ ] Route + sidebar entry live
+- [x] DTOs + service + `ReportsState` (lazy `provideStates`); **status enum
+      confirmed against the backend model 2026-07-06**
+      (`created|in-progress|finished|mailed`); `folio` optional — no backend
+      column yet (ask below)
+- [x] List page: lazy server-side table, search + date-range + template +
+      status filters, status pills (customer/technician selects wait for the
+      07/05 lookup endpoints — the query DTO already carries both ids)
+- [x] Route + sidebar entry live (shipped with 02)
 
 ### CP-2 — Detail
-- [ ] Report view page (cards, photos, signature, PDF link)
-- [ ] Placeholder regions for billing (09) + materials (10) marked in template comments
-- [ ] Delete dialog + toasts
+- [x] Report view: header card + **snapshot-rendered sections at captured
+      column counts** (1-col = label|value rows), photo grid, signature on
+      white, PDF download
+- [x] Placeholder regions for billing (09) + materials (10) marked in template
+      comments
+- [x] Delete dialog (audit comment) + toasts
 
 ### CP-3 — Roles + polish
-- [ ] "My reports" technician route (locked filter, actions hidden) + route `data`
-      declared on all pages
-- [ ] Dark-mode audit; empty/loading/error states
-- [ ] Build green; manual pass: filter by client + date → open report → download PDF →
-      delete; as technician: only own reports, no destructive actions
+- [x] "Mis reportes" technician rendering of the same page (backend-scoped
+      query; filters locked to search+dates, destructive actions hidden —
+      no forked variant); route `data` declared (02)
+- [x] Dark-mode variants; empty/loading states
+- [x] Build green; headless pass (2026-07-06, part of 27/27): filter → view →
+      PDF download → audit delete; technician sees own report only, no
+      delete, no admin filters
 
 ### CP-4 — Templates: list + builder (owner/admin)
-- [ ] `ReportTemplatesState` + `report-templates.service.ts` + DTOs
-- [ ] Templates list at `/templates` (own top-level **Plantillas** nav entry),
-      status pills
-- [ ] Builder: section editor (add/reorder/remove/rename, per-section column selector)
-      + nested question editor (add/reorder/remove, datatype, required, options,
-      **per-datatype constraint fields** — §5.1), live full-skeleton preview (heading
-      mock, stacked sections incl. 1-col `| Label | value |` rendering, images/footer
-      mock; true per-section column count at every viewport — overflow-x scroll on
-      mobile, no collapse)
-- [ ] Route `data` owner/admin only; office/tech never see the entry
+- [x] `ReportTemplatesState` + `report-templates.service.ts` + DTOs
+- [x] Templates list at `/templates` (own **Plantillas** nav entry), status
+      pills + question counts
+- [x] Builder: section editor (add/reorder/remove/rename, per-section 1/2/3
+      column selector) + nested question editor (add/reorder/remove, the nine
+      datatypes, required, options, per-datatype constraint fields) + live
+      full-skeleton preview (heading mock, stacked sections incl. 1-col
+      `| Label | value |`, images/footer mock; true column count at every
+      viewport via `min-w-preview` + overflow-x scroll)
+- [x] Route `data` owner/admin only (verified: office bounces)
 
 ### CP-5 — Templates: lifecycle
-- [ ] Activate (draft → active) + deactivate (active → draft, the edit path) with
-      confirm dialogs
-- [ ] Disable dialog with required reason; detail view surfaces the stored reason on
-      disabled templates
-- [ ] Draft-only editing enforced in UI (active/disabled open read-only; "edit" on an
-      active template offers the pull-to-draft transition)
-- [ ] Build green; manual pass: create draft → preview at 1/2/3 cols → activate →
-      deactivate → edit → re-activate → disable with reason → confirm terminal
-      read-only
+- [x] Activate + deactivate (active → draft, the edit path) with confirm dialogs
+- [x] Disable dialog with required reason; detail surfaces the stored reason
+- [x] Draft-only editing in UI (active/disabled read-only; "Editar" on active =
+      pull-to-draft)
+- [x] Build green; headless pass 27/27 (2026-07-06): create draft → 3-col
+      preview fidelity → constraints per datatype → save → activate (read-only)
+      → deactivate (editable) → disable with reason (terminal read-only)
 
 ## Open decisions / asks
-- Status enum + folio field: confirm against backend `reports` module before CP-1.
+- ~~Status enum~~ — **confirmed 2026-07-06** against
+  `backend/src/modules/reports/models/reports.model.ts`:
+  `created|in-progress|finished|mailed`. **Folio: no backend column yet** —
+  backend ask (DTO keeps it optional).
+- Customer/technician list filters: UI ships search + date + template + status;
+  the id-based selects light up when 07 (customers) and a users lookup endpoint
+  exist — query DTO already carries `customerId`/`technicianId`.
 - Resend-email action: in or out for v1?
 - Shared delete-dialog base component with 05: coordinate, don't duplicate silently.
 - ~~Datatype set~~ — **resolved 2026-07-05, final nine:** `text` / `textarea` /

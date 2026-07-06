@@ -114,6 +114,12 @@ module.exports = {
       maxWidth: {
         '11/12': '91.6667%',
       },
+
+      // Template-builder preview floor: the pane scrolls horizontally on
+      // narrow viewports instead of collapsing section columns (06 §5.3).
+      minWidth: {
+        preview: '34rem',
+      },
     },
   },
   plugins: [],

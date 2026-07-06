@@ -1,0 +1,139 @@
+<div class="flex flex-wrap items-start justify-between gap-3">
+  <div>
+    <h1 class="text-xl font-bold text-granite-950 dark:text-granite-50">
+      @if (isTechnician()) {
+        Mis reportes
+      } @else {
+        Reportes
+      }
+    </h1>
+    <p class="mt-1 text-sm text-granite-600 dark:text-granite-400">
+      @if (isTechnician()) {
+        Los reportes de servicio que has capturado.
+      } @else {
+        Los reportes de servicio capturados en campo.
+      }
+    </p>
+  </div>
+</div>
+
+<div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+  <div class="field-group" [class.sm:col-span-2]="isTechnician()">
+    <label class="field-label" for="reports-search">Buscar</label>
+    <input
+      id="reports-search"
+      pInputText
+      type="search"
+      [formControl]="search"
+      placeholder="Folio o cliente"
+    />
+  </div>
+  <div class="field-group">
+    <label class="field-label" for="reports-dates">Fechas</label>
+    <p-datepicker
+      inputId="reports-dates"
+      [formControl]="dateRange"
+      selectionMode="range"
+      dateFormat="yy-mm-dd"
+      [readonlyInput]="true"
+      placeholder="Rango de servicio"
+    />
+  </div>
+  @if (!isTechnician()) {
+    <div class="field-group">
+      <label class="field-label" for="reports-template">Plantilla</label>
+      <p-select
+        inputId="reports-template"
+        [formControl]="templateFilter"
+        [options]="templateOptions()"
+        optionLabel="label"
+        optionValue="value"
+        appendTo="body"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="reports-status">Estado</label>
+      <p-select
+        inputId="reports-status"
+        [formControl]="statusFilter"
+        [options]="statusOptions"
+        optionLabel="label"
+        optionValue="value"
+        appendTo="body"
+      />
+    </div>
+  }
+</div>
+
+<div class="mt-4">
+  <p-table
+    [value]="reports()"
+    [lazy]="true"
+    (onLazyLoad)="onLazyLoad($event)"
+    [paginator]="true"
+    [rows]="PAGE_SIZE"
+    [totalRecords]="total()"
+    [loading]="loading()"
+    dataKey="id"
+  >
+    <ng-template #header>
+      <tr>
+        <th scope="col">Folio</th>
+        <th scope="col">Cliente</th>
+        <th scope="col">Técnico</th>
+        <th scope="col">Plantilla</th>
+        <th scope="col">Servicio</th>
+        <th scope="col">Estado</th>
+        <th scope="col"><span class="sr-only">Acciones</span></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-report>
+      <tr>
+        <td class="font-data tabular-nums">{{ report.folio || '—' }}</td>
+        <td class="font-medium">{{ report.customerName }}</td>
+        <td>{{ report.technicianName }}</td>
+        <td>{{ report.templateName }}</td>
+        <td class="font-data tabular-nums">{{ report.serviceDate }}</td>
+        <td>
+          <p-tag
+            [severity]="report.status | reportStatusSeverity"
+            [value]="report.status | reportStatusLabel"
+          />
+        </td>
+        <td class="w-24">
+          <div class="flex justify-end gap-1">
+            <a
+              [routerLink]="['/reports', report.id]"
+              class="inline-flex size-9 items-center justify-center rounded-md text-granite-600 transition-colors hover:bg-granite-100 hover:text-granite-900 dark:text-granite-400 dark:hover:bg-granite-800 dark:hover:text-granite-100"
+              [attr.aria-label]="'Ver reporte de ' + report.customerName"
+            >
+              <svg lucideEye class="size-4" aria-hidden="true"></svg>
+            </a>
+            @if (!isTechnician()) {
+              <button
+                type="button"
+                class="inline-flex size-9 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                (click)="openDelete(report)"
+                [attr.aria-label]="'Eliminar reporte de ' + report.customerName"
+              >
+                <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
+              </button>
+            }
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr class="p-datatable-emptymessage">
+        <td colspan="7">
+          <span class="inline-flex flex-col items-center gap-2">
+            <svg lucideFileText class="size-6 text-granite-400" aria-hidden="true"></svg>
+            Sin reportes con esos filtros.
+          </span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<app-delete-report-dialog #deleteDialog (deleted)="reload()" />

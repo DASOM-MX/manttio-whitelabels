@@ -1,0 +1,44 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="max-w-11/12"
+  [style]="{ width: '28rem' }"
+  header="Deshabilitar plantilla"
+>
+  <form [formGroup]="form" (ngSubmit)="confirm()" class="flex flex-col gap-4">
+    <p class="text-sm text-granite-700 dark:text-granite-300">
+      Vas a deshabilitar
+      <strong class="text-granite-950 dark:text-granite-50">{{ target()?.name }}</strong
+      >. Es permanente: para recuperar esta forma tendrás que duplicarla en un borrador nuevo. Los
+      reportes ya capturados se siguen mostrando.
+    </p>
+
+    <div class="field-group">
+      <label class="field-label" for="disable-reason"
+        >Motivo<span aria-hidden="true"> *</span></label
+      >
+      <textarea id="disable-reason" pTextarea formControlName="reason" rows="2"></textarea>
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <button type="button" class="btn-neutral" (click)="close()" [disabled]="submitting()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn-danger" [disabled]="!canConfirm()">
+        @if (submitting()) {
+          <span
+            class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+            aria-hidden="true"
+          ></span>
+          Deshabilitando…
+        } @else {
+          Deshabilitar
+        }
+      </button>
+    </div>
+  </form>
+</p-dialog>
