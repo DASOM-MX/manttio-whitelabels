@@ -26,10 +26,11 @@ before writing any component.
   `sans: ['"Commissioner Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif']`,
   plus a `data` stack for numeric table/money columns. Weights: **400 body ·
   500 labels/buttons · 600–700 headings**.
-- **Tabular numerals:** data cells set `font-feature-settings: 'tnum'`. Verify at
-  CP-2 that Commissioner's tnum aligns digits correctly; if it disappoints, `font-data`
-  falls back to Atkinson Hyperlegible (the frontend's existing numeric stack) with
-  Commissioner everywhere else.
+- **Tabular numerals:** data cells set `font-feature-settings: 'tnum'`.
+  **Resolved at CP-2 (2026-07-06): Commissioner's tnum is a no-op** (digit widths
+  measured unequal with the feature on), so `font-data` heads with **Atkinson
+  Hyperlegible** (the frontend's existing numeric stack — tnum verified: all digit
+  groups measure identically) with Commissioner everywhere else.
 - PrimeNG inherits the body font — no per-component font overrides.
 
 ## Design language — solid & tight (decided 2026-07-05)
@@ -60,15 +61,19 @@ auto-loads it — **edit both in the same commit.**
   iconography. This is a professional environment; clients must never read the
   product as AI-generated. Color arrives through palette scales and status pills.
   Sole tolerated gradient: a subtle single-hue area fill under chart lines.
-- **Icons: outlined only — `lucide-angular`.** `size-4` inline, `size-5` nav, stroke-2
+- **Icons: outlined only — `@lucide/angular`** (the maintained successor of
+  `lucide-angular`). `size-4` inline, `size-5` nav, stroke-2
   everywhere; never PrimeIcons in our own templates (PrimeNG's internal chevrons are
   the only tolerated appearance), never filled/duotone sets.
-- **Motion system (anime.js):** tokens in `shared/motion.ts` — `fast` 150ms (micro
-  feedback), `base` 220ms (enter/exit, accordions, reorder), `slow` 320ms (route/page
-  content enter: fade + 6px rise). `easeOutCubic` enters / `easeInCubic` exits; list
-  stagger 30ms capped at ~8 items; hover/focus via CSS `transition-colors`, not JS;
-  PrimeNG overlays animate themselves (don't double-animate); every call passes the
-  `prefers-reduced-motion` guard.
+- **Motion system (revised 2026-07-06 — Angular native, not anime.js):** Angular's
+  `animate.enter`/`animate.leave` class bindings + `src/animations.scss`, which owns
+  the keyframes and tokens as CSS custom properties — `--motion-fast` 150ms (micro
+  feedback, exits), `--motion-base` 220ms (enter/exit, accordions, reorder),
+  `--motion-slow` 320ms (route/page content enter: fade + 6px rise, `.anim-page-enter`).
+  `--ease-enter` (easeOutCubic) / `--ease-exit` (easeInCubic); list stagger via
+  `.anim-stagger` (30ms, capped at 8); hover/focus via CSS `transition-colors`;
+  PrimeNG overlays animate themselves (don't double-animate); every shared class
+  collapses under `prefers-reduced-motion`.
 
 ## Accessibility (CRITICAL — added 2026-07-05)
 
@@ -283,11 +288,15 @@ Forms & feedback rules (MEDIUM — added 2026-07-05; implementation notes in the
 
 ## Animations
 
-- **anime.js only**, and only as an animation tool. No CSS keyframes, no Angular
-  animations, no other libs unless explicitly requested.
-- All durations/easings come from the **`shared/motion.ts` tokens** (Design language
-  section) — never hardcode milliseconds in components; every call passes the
-  reduced-motion guard.
+- **Angular native + `animations.scss` only** (revised 2026-07-06; supersedes the
+  original anime.js rule). Motion runs through Angular's `animate.enter` /
+  `animate.leave` class bindings paired with the shared keyframes in
+  `src/animations.scss`; the deprecated `@angular/animations` package and anime.js
+  are both off the table. No ad-hoc keyframes in component styles — new animations
+  are added to `animations.scss` inside its `prefers-reduced-motion` guard.
+- All durations/easings come from the **CSS custom properties in `animations.scss`**
+  (`--motion-fast/base/slow`, `--ease-enter/exit` — Design language section) — never
+  hardcode milliseconds in components.
 
 Animation rules (MEDIUM — added 2026-07-05; implementation notes in the skill):
 
@@ -299,7 +308,8 @@ Animation rules (MEDIUM — added 2026-07-05; implementation notes in the skill)
   **motion-meaning** — cause-effect, never decoration · **state-transition** — state
   changes animate, don't snap · **continuity** — directional/spatial continuity
   between screens · **parallax-subtle** — sparingly, reduced-motion aware ·
-  **spring-physics** — anime.js `spring()` for gesture-driven motion, cubic tokens
+  **spring-physics** — natural physics curves for gesture-driven motion (CSS
+  `linear()` approximations if ever needed), cubic tokens
   for standard enter/exit · **exit-faster-than-enter** — exits ~60–70% of enter
   (base 220 in / fast 150 out) · **stagger-sequence** — 30–50ms per item (ours 30ms,
   cap ~8) · **shared-element-transition** — where practical; approximate with

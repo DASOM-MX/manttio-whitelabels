@@ -1,0 +1,18 @@
+/* PrimeNG component theme — split per component for clarity (frontend parity).
+   Each file targets PrimeNG's class hooks and applies our Tailwind design
+   tokens (.field-input, .btn-*, palette utilities) at the superadmin's
+   compact scale. Aura lives in the `primeng` CSS layer (app.config), so these
+   unlayered sheets win without `!important`. */
+@import './inputtext';
+@import './password';
+@import './textarea';
+@import './inputnumber';
+@import './select';
+@import './datepicker';
+@import './checkbox';
+@import './button';
+@import './tag';
+@import './table';
+@import './dialog';
+@import './toast';
+@import './popover';

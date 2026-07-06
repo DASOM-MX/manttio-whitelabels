@@ -1,1 +1,114 @@
-/* You can add global styles to this file, and also import other style files */
+/* Superadmin global styles — ported from `frontend/src/styles.scss` at the
+   compact "solid & tight" scale (01-conventions Design language). Deliberate
+   deviations from frontend: Commissioner (not Inter), `.field-input` h-12
+   (not h-14), borders-not-shadows card chrome, lucide icons (no PrimeIcons). */
+
+/* Self-hosted fonts — no CDN. Commissioner Variable is the product voice;
+   Atkinson Hyperlegible backs the numeric `font-data` stack (Commissioner's
+   tnum proved non-tabular — 01 Typography fallback). */
+@import '@fontsource-variable/commissioner';
+@import '@fontsource/atkinson-hyperlegible/400.css';
+@import '@fontsource/atkinson-hyperlegible/700.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Motion tokens + keyframes (Angular `animate.enter`/`animate.leave` classes). */
+@import './animations';
+
+/* PrimeNG component theme (per-component sheets in src/theme/*) */
+@import './theme/index';
+
+@layer base {
+  html {
+    @apply h-full text-granite-950 antialiased dark:text-granite-50;
+  }
+  body {
+    @apply h-full bg-background text-base dark:bg-granite-950;
+  }
+  app-root {
+    @apply block h-full;
+  }
+
+  /* Global visible focus ring (01 Accessibility: focus-states). Form controls
+     carry their own focus chrome via `.field-input`. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-sky-600/70 ring-offset-2 ring-offset-background
+           dark:ring-sky-400/70 dark:ring-offset-granite-950;
+  }
+}
+
+/* PrimeNG icon sizing fallback (internal chevrons/close icons only —
+   our own templates use lucide exclusively). */
+.p-icon {
+  @apply size-4 inline-block;
+}
+
+@layer components {
+  .field-label {
+    @apply block text-sm font-bold uppercase tracking-wide text-granite-800 dark:text-granite-200;
+  }
+  .field-group {
+    @apply flex flex-col gap-2;
+  }
+  .field-input {
+    // Height is fixed (not `min-h-*`) so `<p-select>`, `<p-datepicker>`,
+    // `<input pInputText>`, and `<p-inputnumber>` all render at the exact
+    // same height when laid out side-by-side. Superadmin baseline is 48px
+    // (`h-12`) — a deliberate deviation from the frontend's 56px field app
+    // controls (desk console vs glove-friendly capture). Textareas opt out
+    // via `!h-auto`; compact controls opt down to `!h-10`.
+    @apply w-full h-12 px-4 py-2.5 bg-white border-2 border-granite-200 rounded-lg text-base text-granite-950 font-data tabular-nums transition-colors duration-150 focus:outline-none focus:border-sky-700 focus:ring-4 focus:ring-sky-700/20 disabled:bg-granite-50 disabled:text-granite-400
+           dark:bg-granite-900 dark:border-granite-700 dark:text-granite-50 dark:focus:border-sky-400 dark:focus:ring-sky-400/25 dark:disabled:bg-granite-800 dark:disabled:text-granite-500;
+  }
+  .field-input--error {
+    @apply border-red-500 focus:border-red-500 focus:ring-red-500/15 dark:border-red-400 dark:focus:border-red-400 dark:focus:ring-red-400/25;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 min-h-12 px-5 py-2.5 rounded-lg text-base font-semibold transition-colors duration-150 focus:outline-none focus-visible:ring-4 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-sky-700 text-white enabled:hover:bg-sky-800 enabled:active:bg-sky-900 focus-visible:ring-sky-700/30 dark:bg-sky-600 dark:enabled:hover:bg-sky-500 dark:enabled:active:bg-sky-400 dark:focus-visible:ring-sky-400/30;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-sky-800 border-2 border-sky-700 enabled:hover:bg-sky-50 enabled:active:bg-sky-100 focus-visible:ring-sky-700/30 dark:bg-granite-900 dark:text-sky-300 dark:border-sky-400 dark:enabled:hover:bg-granite-800 dark:enabled:active:bg-granite-700;
+  }
+  .btn-neutral {
+    @apply btn bg-white text-granite-900 border-2 border-granite-300 enabled:hover:bg-granite-50 enabled:active:bg-granite-100 focus-visible:ring-granite-300/40 dark:bg-granite-900 dark:text-granite-100 dark:border-granite-700 dark:enabled:hover:bg-granite-800 dark:enabled:active:bg-granite-700 dark:focus-visible:ring-granite-700/50;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white enabled:hover:bg-red-700 enabled:active:bg-red-800 focus-visible:ring-red-600/30 dark:bg-red-500 dark:enabled:hover:bg-red-400 dark:enabled:active:bg-red-300;
+  }
+
+  /* Borders-not-shadows (01 Design language): in-page surfaces are flat with
+     1px hairlines; shadows are reserved for true overlays. */
+  .card {
+    @apply bg-white border border-granite-200 rounded-xl dark:bg-granite-900 dark:border-granite-800;
+  }
+  .card-section {
+    @apply bg-white border border-granite-200 rounded-xl p-4 sm:p-5 dark:bg-granite-900 dark:border-granite-800;
+  }
+
+  /* Uppercase micro-label for card/section/table headers (01 Design language). */
+  .micro-label {
+    @apply text-2xs font-medium uppercase tracking-caps text-granite-500 dark:text-granite-400;
+  }
+
+  /* Skip-to-content link (01 Accessibility: skip-links) — visually hidden
+     until focused, then pinned top-left above everything. */
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[1200]
+           focus:rounded-lg focus:bg-sky-700 focus:px-4 focus:py-2 focus:text-sm
+           focus:font-semibold focus:text-white;
+  }
+
+  /* Active sidebar entry: 2px primary left-accent bar + tinted bg. */
+  .nav-active {
+    @apply bg-sky-50 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300;
+  }
+  .nav-active::before {
+    content: '';
+    @apply absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-sky-600 dark:bg-sky-400;
+  }
+}

@@ -1,0 +1,24 @@
+/* PrimeNG Tag — status pills. Intentionally vibrant in both light and dark
+   modes (01 Dark mode: pills unchanged). */
+.p-tag {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold;
+
+  &.p-tag-success {
+    @apply bg-emerald-100 text-emerald-900 ring-1 ring-emerald-300;
+  }
+  &.p-tag-warn {
+    @apply bg-amber-100 text-amber-900 ring-1 ring-amber-300;
+  }
+  &.p-tag-danger {
+    @apply bg-red-100 text-red-900 ring-1 ring-red-300;
+  }
+  &.p-tag-info {
+    @apply bg-sky-100 text-sky-900 ring-1 ring-sky-300;
+  }
+  &.p-tag-secondary {
+    @apply bg-granite-100 text-granite-900 ring-1 ring-granite-300;
+  }
+}
+.p-tag-icon {
+  @apply size-3;
+}

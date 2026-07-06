@@ -1,0 +1,29 @@
+<h1 class="text-xl font-bold text-granite-950 dark:text-granite-50">Panel</h1>
+<p class="mt-1 text-sm text-granite-600 dark:text-granite-400">
+  Resumen de la operación de tu negocio.
+</p>
+
+<!-- Card-slot regions: modules register their cards here from their own
+     plans (08 lead-source counts, 12 today's visits, …). -->
+<div class="anim-stagger mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+  <section class="card-section md:col-span-2 xl:col-span-3" aria-labelledby="dashboard-empty-title">
+    <div class="flex flex-col items-center gap-3 py-10 text-center">
+      <span
+        class="inline-flex size-12 items-center justify-center rounded-full bg-granite-100 text-granite-500 dark:bg-granite-800 dark:text-granite-400"
+      >
+        <svg lucideInbox class="size-6" aria-hidden="true"></svg>
+      </span>
+      <div>
+        <h2
+          id="dashboard-empty-title"
+          class="text-base font-semibold text-granite-900 dark:text-granite-100"
+        >
+          Aún no hay tarjetas
+        </h2>
+        <p class="mx-auto mt-1 max-w-sm text-sm text-granite-600 dark:text-granite-400">
+          Conforme se activen los módulos de tu instancia, sus resúmenes aparecerán aquí.
+        </p>
+      </div>
+    </div>
+  </section>
+</div>

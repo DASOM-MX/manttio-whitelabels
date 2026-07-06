@@ -1,0 +1,221 @@
+<a class="skip-link" href="#main-content">Saltar al contenido</a>
+
+@if (meStatus() === 'idle' || meStatus() === 'loading') {
+  <!-- Splash: no gated UI renders until /auth/me resolves (02 §3). -->
+  <div
+    class="flex h-dvh flex-col items-center justify-center gap-4 bg-background dark:bg-granite-950"
+  >
+    <p class="font-semibold text-2xl tracking-tight text-granite-950 dark:text-granite-50">
+      manttio
+    </p>
+    <div
+      class="size-8 animate-spin rounded-full border-2 border-granite-200 border-t-sky-600 dark:border-granite-700 dark:border-t-sky-400"
+      role="status"
+      aria-label="Cargando"
+    ></div>
+  </div>
+} @else if (meStatus() === 'error') {
+  <div class="flex h-dvh items-center justify-center bg-background p-6 dark:bg-granite-950">
+    <div class="card-section w-full max-w-sm text-center">
+      <h1 class="text-lg font-bold text-granite-950 dark:text-granite-50">
+        No se pudo cargar tu sesión
+      </h1>
+      <p class="mt-2 text-sm text-granite-600 dark:text-granite-400">
+        Revisa tu conexión e inténtalo de nuevo.
+      </p>
+      <div class="mt-4 flex flex-col gap-2">
+        <button type="button" class="btn-primary" (click)="retryMe()">
+          <svg lucideRefreshCw class="size-4" aria-hidden="true"></svg>
+          Reintentar
+        </button>
+        <button type="button" class="btn-neutral" (click)="logout()">Cerrar sesión</button>
+      </div>
+    </div>
+  </div>
+} @else {
+  <div class="flex h-dvh bg-background dark:bg-granite-950">
+    <!-- Desktop sidebar -->
+    <aside
+      class="hidden w-64 shrink-0 flex-col border-r border-granite-200 bg-white lg:flex dark:border-granite-800 dark:bg-granite-900"
+      aria-label="Navegación principal"
+    >
+      <ng-container *ngTemplateOutlet="sidebarContent"></ng-container>
+    </aside>
+
+    <!-- Mobile drawer -->
+    @if (drawerOpen()) {
+      <div
+        class="fixed inset-0 z-40 bg-granite-950/50 lg:hidden"
+        animate.enter="anim-fade-enter"
+        animate.leave="anim-leave"
+        (click)="drawerOpen.set(false)"
+        aria-hidden="true"
+      ></div>
+      <aside
+        class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-11/12 flex-col border-r border-granite-200 bg-white shadow-xl lg:hidden dark:border-granite-800 dark:bg-granite-900"
+        animate.enter="anim-drawer-enter"
+        animate.leave="anim-drawer-leave"
+        aria-label="Navegación principal"
+      >
+        <ng-container *ngTemplateOutlet="sidebarContent"></ng-container>
+      </aside>
+    }
+
+    <div class="flex min-w-0 flex-1 flex-col">
+      <!-- Topbar -->
+      <header
+        class="flex h-14 shrink-0 items-center gap-2 border-b border-granite-200 bg-white px-4 dark:border-granite-800 dark:bg-granite-900"
+      >
+        <button
+          type="button"
+          class="inline-flex size-10 items-center justify-center rounded-lg text-granite-700 hover:bg-granite-100 lg:hidden dark:text-granite-300 dark:hover:bg-granite-800"
+          (click)="drawerOpen.set(true)"
+          aria-label="Abrir menú"
+        >
+          <svg lucideMenu class="size-5" aria-hidden="true"></svg>
+        </button>
+
+        <div class="flex-1"></div>
+
+        <button
+          type="button"
+          class="inline-flex size-10 items-center justify-center rounded-lg text-granite-700 transition-colors hover:bg-granite-100 dark:text-granite-300 dark:hover:bg-granite-800"
+          (click)="toggleDark()"
+          [attr.aria-label]="darkMode() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+        >
+          @if (darkMode()) {
+            <svg lucideSun class="size-5" aria-hidden="true"></svg>
+          } @else {
+            <svg lucideMoon class="size-5" aria-hidden="true"></svg>
+          }
+        </button>
+
+        <button
+          type="button"
+          class="flex h-10 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-granite-800 transition-colors hover:bg-granite-100 dark:text-granite-200 dark:hover:bg-granite-800"
+          (click)="userMenu.toggle($event)"
+          aria-haspopup="true"
+        >
+          <span
+            class="inline-flex size-7 items-center justify-center rounded-full bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300"
+          >
+            <svg lucideUserRound class="size-4" aria-hidden="true"></svg>
+          </span>
+          <span class="hidden max-w-40 truncate sm:inline">{{ me()?.user?.name }}</span>
+          <svg lucideChevronDown class="size-4 text-granite-500" aria-hidden="true"></svg>
+        </button>
+        <p-popover #userMenu appendTo="body">
+          <div class="w-64 py-1.5">
+            <div class="border-b border-granite-200 px-4 py-3 dark:border-granite-800">
+              <p class="truncate text-sm font-semibold text-granite-950 dark:text-granite-50">
+                {{ me()?.user?.name }}
+              </p>
+              <p class="mt-0.5 truncate text-sm text-granite-600 dark:text-granite-400">
+                {{ me()?.user?.email }}
+              </p>
+              <p class="micro-label mt-2">{{ me()?.role }}</p>
+            </div>
+            <button
+              type="button"
+              class="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-red-700 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+              (click)="logout()"
+            >
+              <svg lucideLogOut class="size-4" aria-hidden="true"></svg>
+              Cerrar sesión
+            </button>
+          </div>
+        </p-popover>
+      </header>
+
+      <!-- Single scroll region -->
+      <main #scrollContainer id="main-content" class="flex-1 overflow-y-auto" tabindex="-1">
+        <div #pageContainer class="anim-page-enter mx-auto w-full max-w-7xl px-4 py-5 sm:px-6">
+          <router-outlet />
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <app-force-password-dialog />
+}
+
+<ng-template #sidebarContent>
+  <div
+    class="flex h-14 shrink-0 items-center gap-2 border-b border-granite-200 px-4 dark:border-granite-800"
+  >
+    <p class="text-lg font-bold tracking-tight text-granite-950 dark:text-granite-50">manttio</p>
+    <p class="micro-label mt-0.5">Admin</p>
+    <div class="flex-1"></div>
+    <button
+      type="button"
+      class="inline-flex size-9 items-center justify-center rounded-lg text-granite-600 hover:bg-granite-100 lg:hidden dark:text-granite-400 dark:hover:bg-granite-800"
+      (click)="drawerOpen.set(false)"
+      aria-label="Cerrar menú"
+    >
+      <svg lucideX class="size-5" aria-hidden="true"></svg>
+    </button>
+  </div>
+
+  <nav class="flex-1 overflow-y-auto px-3 py-3" aria-label="Módulos">
+    <ul class="flex flex-col gap-0.5">
+      @for (entry of navEntries(); track entry.label) {
+        <li>
+          @if (entry.children) {
+            <button
+              type="button"
+              class="relative flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-granite-700 transition-colors hover:bg-granite-100 dark:text-granite-300 dark:hover:bg-granite-800"
+              [class.nav-active]="isGroupActive(childRoutes(entry))"
+              (click)="toggleGroup(entry.label)"
+              [attr.aria-expanded]="isExpanded(entry.label)"
+            >
+              <svg
+                lucideIcon
+                [lucideIcon]="entry.icon"
+                class="size-5 shrink-0"
+                aria-hidden="true"
+              ></svg>
+              <span class="flex-1 text-left">{{ entry.label }}</span>
+              <svg
+                lucideChevronDown
+                class="size-4 shrink-0 text-granite-400 transition-transform"
+                [class.-rotate-90]="!isExpanded(entry.label)"
+                aria-hidden="true"
+              ></svg>
+            </button>
+            @if (isExpanded(entry.label)) {
+              <ul class="mt-0.5 flex flex-col gap-0.5 pl-11" animate.enter="anim-fade-enter">
+                @for (child of entry.children; track child.route) {
+                  <li>
+                    <a
+                      class="relative flex h-9 items-center rounded-md px-3 text-sm text-granite-600 transition-colors hover:bg-granite-100 dark:text-granite-400 dark:hover:bg-granite-800"
+                      [routerLink]="child.route"
+                      routerLinkActive="nav-active"
+                      [routerLinkActiveOptions]="{ exact: child.exact ?? false }"
+                    >
+                      {{ child.label }}
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          } @else {
+            <a
+              class="relative flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-granite-700 transition-colors hover:bg-granite-100 dark:text-granite-300 dark:hover:bg-granite-800"
+              [routerLink]="entry.route"
+              routerLinkActive="nav-active"
+              [routerLinkActiveOptions]="{ exact: entry.exact ?? false }"
+            >
+              <svg
+                lucideIcon
+                [lucideIcon]="entry.icon"
+                class="size-5 shrink-0"
+                aria-hidden="true"
+              ></svg>
+              {{ entry.label }}
+            </a>
+          }
+        </li>
+      }
+    </ul>
+  </nav>
+</ng-template>

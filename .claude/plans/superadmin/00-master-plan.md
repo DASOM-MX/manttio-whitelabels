@@ -84,9 +84,9 @@ Rules for agents:
 | Module | Status | Checkpoint |
 |---|---|---|
 | 01 conventions | done (doc) | — |
-| 02 app-shell | not-started | — |
-| 03 branding | not-started · **priority: first after 02** | — |
-| 04 cms | not-started · **priority: first after 02** | — |
+| 02 app-shell | **done** (PR: `feature/superadmin-app-shell`) | CP-3 |
+| 03 branding | not-started · **priority: next** | — |
+| 04 cms | not-started · **priority: next** | — |
 | 05 users | not-started | — |
 | 06 reports | not-started | — |
 | 07 clients | not-started | — |
@@ -178,8 +178,9 @@ Rules for agents:
 - **Design language — decided 2026-07-05: "solid & tight."** Dense operations-console
   aesthetic (dark-fintech reference): low-to-mid whitespace, hairline borders over
   shadows, strong status cues (pills, accent bars, uppercase micro-labels, tabular
-  numerals, skeletons), fluid anime.js motion via shared tokens, **no emojis ever,
-  outlined icons only (`lucide-angular`)**, compact `h-12` control baseline — plus
+  numerals, skeletons), fluid motion via Angular `animate.enter`/`animate.leave` + `animations.scss`
+  tokens (**revised 2026-07-06** — anime.js dropped), **no emojis ever,
+  outlined icons only (`@lucide/angular`)**, compact `h-12` control baseline — plus
   binding **Accessibility (CRITICAL)**, **Layout & responsive (HIGH)**, **Animation
   (MEDIUM)**, and **Forms & feedback (MEDIUM)** rule sets (WCAG contrast, focus
   rings, aria-labels, keyboard nav, reduced motion; Tailwind breakpoints, 16px mobile
@@ -236,8 +237,9 @@ agent hitting a checkpoint checks this page for items tagged to it.
 
 ### 5.2 Decide-by-checkpoint
 
-- [ ] 02 CP-2 — Commissioner `tnum` check on a sample numeric column (fallback:
-      Atkinson Hyperlegible for `data` stack).
+- [x] ~~02 CP-2 — Commissioner `tnum` check~~ — **resolved 2026-07-06: tnum is a
+      no-op in Commissioner; `font-data` heads with Atkinson Hyperlegible** (01
+      Typography).
 - [ ] 04 CP-2 start — rich-text control: PrimeNG Editor (Quill) constrained toolbar vs
       minimal custom contenteditable.
 - [ ] 06 CP-1 — confirm report **status enum + folio field** against backend `reports`.
