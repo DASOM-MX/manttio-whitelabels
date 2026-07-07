@@ -1,0 +1,276 @@
+<div class="flex flex-wrap items-center gap-3">
+  <a
+    routerLink="/customers"
+    class="inline-flex size-10 items-center justify-center rounded-lg text-granite-600 transition-colors hover:bg-granite-100 dark:text-granite-400 dark:hover:bg-granite-800"
+    aria-label="Volver a clientes"
+  >
+    <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
+  </a>
+  <h1 class="text-xl font-bold text-granite-950 dark:text-granite-50">Cliente</h1>
+</div>
+
+@if (customer(); as c) {
+  <!-- 360 header -->
+  <section class="card-section mt-5" aria-labelledby="cust-360-title">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 id="cust-360-title" class="text-lg font-bold text-granite-950 dark:text-granite-50">
+            {{ c.name }}
+          </h2>
+          <p-tag
+            [severity]="c.status | customerStatusSeverity"
+            [value]="c.status | customerStatusLabel"
+          />
+        </div>
+        <div class="mt-2 flex flex-wrap gap-1">
+          @for (tag of c.tags; track tag) {
+            <span
+              class="rounded-full bg-granite-100 px-2 py-0.5 text-xs font-medium text-granite-700 dark:bg-granite-800 dark:text-granite-300"
+              >{{ tag }}</span
+            >
+          }
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        @if (phoneHref(); as href) {
+          <a
+            [href]="href"
+            class="inline-flex size-10 items-center justify-center rounded-lg border border-granite-200 text-granite-700 transition-colors hover:bg-granite-100 dark:border-granite-800 dark:text-granite-300 dark:hover:bg-granite-800"
+            aria-label="Llamar al cliente"
+          >
+            <svg lucidePhone class="size-4" aria-hidden="true"></svg>
+          </a>
+        }
+        @if (whatsappHref(); as href) {
+          <a
+            [href]="href"
+            target="_blank"
+            rel="noopener"
+            class="inline-flex size-10 items-center justify-center rounded-lg border border-granite-200 text-granite-700 transition-colors hover:bg-granite-100 dark:border-granite-800 dark:text-granite-300 dark:hover:bg-granite-800"
+            aria-label="Escribir por WhatsApp"
+          >
+            <svg lucideMessageCircle class="size-4" aria-hidden="true"></svg>
+          </a>
+        }
+        @if (emailHref(); as href) {
+          <a
+            [href]="href"
+            class="inline-flex size-10 items-center justify-center rounded-lg border border-granite-200 text-granite-700 transition-colors hover:bg-granite-100 dark:border-granite-800 dark:text-granite-300 dark:hover:bg-granite-800"
+            aria-label="Enviar correo"
+          >
+            <svg lucideMail class="size-4" aria-hidden="true"></svg>
+          </a>
+        }
+        <a [routerLink]="['/customers', c.id, 'edit']" class="btn-secondary">
+          <svg lucidePencil class="size-4" aria-hidden="true"></svg>
+          Editar
+        </a>
+      </div>
+    </div>
+
+    <!-- Summary strip: figures compose from 06/09 once they land ("—" now). -->
+    <dl
+      class="mt-4 grid grid-cols-2 gap-3 border-t border-granite-200 pt-4 sm:grid-cols-4 dark:border-granite-800"
+    >
+      <div>
+        <dt class="micro-label">Último servicio</dt>
+        <dd
+          class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-950 dark:text-granite-50"
+        >
+          {{ c.lastServiceDate || '—' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="micro-label">Trabajos totales</dt>
+        <dd
+          class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-950 dark:text-granite-50"
+        >
+          {{ c.totalJobs ?? '—' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="micro-label">Facturado</dt>
+        <dd
+          class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-950 dark:text-granite-50"
+        >
+          {{ c.totalBilled ?? '—' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="micro-label">Seguimiento</dt>
+        <dd
+          class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-950 dark:text-granite-50"
+        >
+          {{ c.nextFollowUpAt || '—' }}
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <div class="mt-4 grid gap-4 xl:grid-cols-2">
+    <!-- General -->
+    <section class="card-section" aria-labelledby="cust-general-view">
+      <h2 id="cust-general-view" class="micro-label">General</h2>
+      <dl class="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+        <div>
+          <dt class="micro-label">Contacto principal</dt>
+          <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+            {{ c.contactName || '—' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Teléfono</dt>
+          <dd
+            class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+          >
+            {{ c.phone || '—' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Correo</dt>
+          <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+            {{ c.email || '—' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Dirección</dt>
+          <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+            {{ c.address || '—' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Origen</dt>
+          <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+            {{ c.source | customerSourceLabel }}
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Alta</dt>
+          <dd
+            class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+          >
+            {{ c.createdAt | slice: 0 : 10 }}
+          </dd>
+        </div>
+      </dl>
+
+      <!-- Referral links (07 CP-3) -->
+      @if (c.referredByCustomerName && c.referredByCustomerId) {
+        <p class="mt-4 text-sm text-granite-700 dark:text-granite-300">
+          Referido por
+          <a
+            [routerLink]="['/customers', c.referredByCustomerId]"
+            class="font-semibold text-sky-700 hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
+            >{{ c.referredByCustomerName }}</a
+          >
+        </p>
+      }
+      @if (c.referredCount) {
+        <p class="mt-1 text-sm text-granite-700 dark:text-granite-300">
+          Ha referido a
+          <strong class="font-data tabular-nums">{{ c.referredCount }}</strong>
+          {{ c.referredCount === 1 ? 'cliente' : 'clientes' }}.
+        </p>
+      }
+
+      @if (c.contacts.length) {
+        <h3 class="micro-label mt-5">Contactos</h3>
+        <ul class="mt-2 divide-y divide-granite-200 dark:divide-granite-800">
+          @for (contact of c.contacts; track contact.name) {
+            <li class="flex flex-wrap items-center justify-between gap-2 py-2">
+              <div>
+                <p class="text-sm font-medium text-granite-950 dark:text-granite-50">
+                  {{ contact.name }}
+                </p>
+                @if (contact.role) {
+                  <p class="text-xs text-granite-500 dark:text-granite-400">{{ contact.role }}</p>
+                }
+              </div>
+              <div class="text-right">
+                @if (contact.phone) {
+                  <p class="font-data text-sm tabular-nums text-granite-700 dark:text-granite-300">
+                    {{ contact.phone }}
+                  </p>
+                }
+                @if (contact.email) {
+                  <p class="text-sm text-granite-700 dark:text-granite-300">{{ contact.email }}</p>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <!-- Fiscal -->
+    <section class="card-section" aria-labelledby="cust-fiscal-view">
+      <h2 id="cust-fiscal-view" class="micro-label">Datos fiscales</h2>
+      @if (c.fiscal; as f) {
+        <dl class="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+          <div>
+            <dt class="micro-label">RFC</dt>
+            <dd
+              class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+            >
+              {{ f.rfc }}
+            </dd>
+          </div>
+          <div>
+            <dt class="micro-label">Razón social</dt>
+            <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+              {{ f.legalName }}
+            </dd>
+          </div>
+          <div>
+            <dt class="micro-label">Régimen</dt>
+            <dd
+              class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+            >
+              {{ f.taxRegimeCode }}
+            </dd>
+          </div>
+          <div>
+            <dt class="micro-label">CP fiscal</dt>
+            <dd
+              class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+            >
+              {{ f.fiscalZip }}
+            </dd>
+          </div>
+          <div>
+            <dt class="micro-label">Uso CFDI</dt>
+            <dd
+              class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+            >
+              {{ f.cfdiUseCode }}
+            </dd>
+          </div>
+          <div>
+            <dt class="micro-label">Correo de facturación</dt>
+            <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+              {{ f.billingEmail || '—' }}
+            </dd>
+          </div>
+        </dl>
+      } @else {
+        <p class="mt-3 text-sm text-granite-500 dark:text-granite-400">
+          Sin datos fiscales. Agrégalos desde Editar cuando el cliente requiera factura.
+        </p>
+      }
+    </section>
+  </div>
+
+  <!-- Slot reserved for 08 (CRM): status card + activity timeline mount here.
+       Do not build here — module 08 owns that UI. -->
+  <!-- Slot reserved for 09 (Bills): client billing card mounts here. -->
+} @else {
+  <div class="mt-10 flex justify-center">
+    <div
+      class="size-8 animate-spin rounded-full border-2 border-granite-200 border-t-sky-600 dark:border-granite-700 dark:border-t-sky-400"
+      role="status"
+      aria-label="Cargando cliente"
+    ></div>
+  </div>
+}
