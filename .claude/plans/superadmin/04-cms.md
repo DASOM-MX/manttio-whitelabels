@@ -1,9 +1,10 @@
 # 04 — CMS (headless webpage content)
 
 > **Status:** v1 done · **v1.1 home-doc extension done (frontend side — §6, approved
-> 2026-07-07)** — backend `modules/cms` pending
+> 2026-07-07)** · **backend `modules/cms` done 2026-07-07 (PR #54, migration `0009`
+> — detail in `backend/manttio-whitelabeled-backend-plan.md` §3)**
 > **Depends on:** 02 (CP-3, done)
-> **Owner:** branch `feature/superadmin-cms` (stacked on the 02 shell PR) · **Last updated:** 2026-07-06
+> **Owner:** branch `feature/superadmin-cms` (stacked on the 02 shell PR) · **Last updated:** 2026-07-07
 
 The logged-in client edits their marketing-site content (`cms_home`, `cms_clients`).
 **The CMS is headless (decided 2026-07-05):** the backend stores and serves content
@@ -29,6 +30,13 @@ access (`14-access-control.md` §2). The module is behind the tenant `cms` confi
   `POST /cms/:section/publish` (section = `home` | `clients`) copies draft → published;
   the public read surface serves **published only**.
 - `POST /upload` → R2 key (existing upload module) for content images
+
+**Implemented 2026-07-07** (PR #54, `backend/src/modules/cms/`): all of the above plus
+the public reads `GET /public/cms/home|clients` (404 until first publish → the site
+keeps its fallbacks). Editor GETs return `{ data, unpublishedChanges }`; logo
+`logoUrl`s are materialized from the stored R2 key on read. Gated
+`requireRole('admin')` until the backend role migration adds `owner`; the tenant `cms`
+flag is enforced once tenant-config infra exists (backend plan §1).
 
 ## 3. Pages & components
 

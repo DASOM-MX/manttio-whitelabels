@@ -270,9 +270,10 @@ agent hitting a checkpoint checks this page for items tagged to it.
       13's expiry cron).
 - [ ] 13 — visit generation upfront vs rolling; `active → expired` cron; Spanish
       contract-type label wording.
-- [ ] 15 — public **published-only** CMS read routes for the website (04's GETs serve
-      drafts to editors); whether published docs ride the `TenantCacheDO` with
-      publish-time invalidation.
+- [~] 15 — ~~public **published-only** CMS read routes for the website~~ — **shipped
+      2026-07-07 (PR #54): `GET /public/cms/home|clients`**. Still open: whether
+      published docs ride the `TenantCacheDO` with publish-time invalidation
+      (backend plan §6).
 
 ### 5.4 Cross-module asks (coordinate, never build the other side)
 
