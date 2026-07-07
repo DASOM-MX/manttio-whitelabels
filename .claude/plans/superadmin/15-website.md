@@ -69,9 +69,13 @@ runs against whichever model wins. Hostname→tenant mapping is provisioning/man
 ## 4. Section mapping (current site → CMS home/clients docs)
 
 Hero ← home titles/badges · Services ← services + services_content · service
-targets/areas ← service_targets + service_area · Clients ← `cms_clients` entries ·
-Manufacturers/Location — fold into home doc groups or drop per-tenant (open, §6).
-Header/Footer ← brand only.
+targets/areas ← service_targets + service_area · Clients ← `cms_clients` entries +
+`clients_content` section copy · Manufacturers ← `manufacturers_content` +
+`manufacturers` logo wall · Location ← `location_content` copy + `brand.contact` /
+`brand.social.googleMaps` (proposed 2026-07-07 — 04 §6 home-doc v1.1; supersedes the
+fold-vs-drop open decision) · Header/Footer ← brand only (footer blurb ←
+`brand.description`, tagline ← `brand.slogan`; industries chips derived from
+`cms_clients` sectors).
 
 ## 5. Out of scope in v1 (decided 2026-07-06)
 
@@ -108,8 +112,11 @@ Header/Footer ← brand only.
 
 ## Open decisions / asks
 - Rendering model (§2) — infra call, lean SSR-on-CF.
-- **Ask backend (mirrored in backend plan §6):** public published-CMS read routes +
-  published docs riding `TenantCacheDO` with publish-time invalidation.
-- Manufacturers + Location sections: CMS-modeled groups vs dropped from the whitelabel
-  skeleton (§4) — decide at CP-2 start.
+- ~~Ask backend: public published-CMS read routes~~ — **shipped 2026-07-07 (PR #54):
+  `GET /public/cms/home` (bare doc) · `GET /public/cms/clients` (bare array), exactly
+  the shapes `website/src/lib/api.ts` already fetches; 404 until first publish.**
+  Still open (backend plan §6): published docs riding `TenantCacheDO` with
+  publish-time invalidation.
+- ~~Manufacturers + Location sections: CMS-modeled groups vs dropped~~ — **proposed
+  resolution 2026-07-07: modeled in the home doc (04 §6 v1.1)**; pending owner approval.
 - v2 (recorded, not planned): website lead-capture form → CRM (§5).

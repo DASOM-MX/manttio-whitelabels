@@ -86,7 +86,7 @@ Rules for agents:
 | 01 conventions | done (doc) | — |
 | 02 app-shell | **done** (PR: `feature/superadmin-app-shell`) | CP-3 |
 | 03 branding | **done** (frontend side; branch `feature/superadmin-branding`) | CP-3 |
-| 04 cms | not-started · **priority: next** | — |
+| 04 cms | **done** (frontend side; branch `feature/superadmin-cms`) | CP-3 |
 | 05 users | not-started | — |
 | 06 reports | not-started | — |
 | 07 clients | not-started | — |
@@ -240,8 +240,8 @@ agent hitting a checkpoint checks this page for items tagged to it.
 - [x] ~~02 CP-2 — Commissioner `tnum` check~~ — **resolved 2026-07-06: tnum is a
       no-op in Commissioner; `font-data` heads with Atkinson Hyperlegible** (01
       Typography).
-- [ ] 04 CP-2 start — rich-text control: PrimeNG Editor (Quill) constrained toolbar vs
-      minimal custom contenteditable.
+- [x] ~~04 CP-2 start — rich-text control~~ — **resolved 2026-07-06: minimal custom
+      contenteditable CVA** (no Quill dep; whitelist + paste-as-plain-text).
 - [ ] 06 CP-1 — confirm report **status enum + folio field** against backend `reports`.
 - [ ] 06 CP-2 — resend-email action: in or out for v1.
 - [ ] 07 CP-1 — confirm net-new `customers` columns (status, source, blacklist,
@@ -270,9 +270,10 @@ agent hitting a checkpoint checks this page for items tagged to it.
       13's expiry cron).
 - [ ] 13 — visit generation upfront vs rolling; `active → expired` cron; Spanish
       contract-type label wording.
-- [ ] 15 — public **published-only** CMS read routes for the website (04's GETs serve
-      drafts to editors); whether published docs ride the `TenantCacheDO` with
-      publish-time invalidation.
+- [~] 15 — ~~public **published-only** CMS read routes for the website~~ — **shipped
+      2026-07-07 (PR #54): `GET /public/cms/home|clients`**. Still open: whether
+      published docs ride the `TenantCacheDO` with publish-time invalidation
+      (backend plan §6).
 
 ### 5.4 Cross-module asks (coordinate, never build the other side)
 
