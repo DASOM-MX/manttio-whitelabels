@@ -1,7 +1,7 @@
 # 04 — CMS (headless webpage content)
 
-> **Status:** v1 done (frontend side — backend `modules/cms` pending) · **v1.1 home-doc
-> extension proposed (§6, 2026-07-07)**
+> **Status:** v1 done · **v1.1 home-doc extension done (frontend side — §6, approved
+> 2026-07-07)** — backend `modules/cms` pending
 > **Depends on:** 02 (CP-3, done)
 > **Owner:** branch `feature/superadmin-cms` (stacked on the 02 shell PR) · **Last updated:** 2026-07-06
 
@@ -82,6 +82,7 @@ Everything brand-shaped is already owned by 03 and is **not** duplicated here:
 (jsonb doc → no migration pain; all optional so published v1 docs stay valid):
 
 ```ts
+hero_video_url?: string;       // hero background video URL; empty → gradient fallback
 clients_content?: {            // Clients section copy (entries stay in cms_clients)
   eyebrow?: string;            // "Clientes"
   title: string;               // "Construyendo confianza, proyecto por proyecto."
@@ -92,28 +93,30 @@ clients_content?: {            // Clients section copy (entries stay in cms_clie
 manufacturers_content?: {      // Manufacturers section copy
   eyebrow?: string; title: string; description: string;
 };
-manufacturers?: {              // logo wall — repeater with per-row image upload
+manufacturers?: {              // logo wall — name + logo only (decided 2026-07-07)
   name: string; logoKey?: string;   // upload → R2 key (same pipeline as cms_clients logos)
 }[];
 location_content?: {           // Location section copy (contact/map come from brand)
   eyebrow?: string; title: string; description: string;
   schedule?: string;           // "Lun a vie, 8:00 – 18:00" — shown under the phone item
 };
+// on CmsHomeService:
+icon?: string;                 // curated lucide code — picker with exactly 12 icons
+                               // (3×4 grid; model/constants/cms/service-icons.const);
+                               // empty → the site keeps its positional defaults
 ```
 
-**Recorded as open (not in v1.1):**
-- **Hero background media** (`heroVideoUrl` today, empty + gradient fallback) — a
-  per-tenant hero image upload is plausible, but video hosting/size is its own problem;
-  skeleton gradient suffices for launch.
-- **Per-service icons** — cards hardcode SVG paths per index. An optional curated
-  `icon` code (lucide name) on `CmsHomeService` would need an icon-picker UI; until
-  then the site keeps positional defaults. Card accent colors derive from brand scales
-  (website-side concern).
+**Decided 2026-07-07 (owner):** hero video URL and per-service icons are **in** v1.1
+(icon picker = `cms/components/icon-picker/`, a CVA popover over the fixed 12-code set
+rendered by `cms/components/service-icon/`). Manufacturers carry name + logo only.
+Card accent colors still derive from brand scales (website-side concern).
 
-**Editor impact:** home editor grows three tabs alongside Portada/Servicios —
-**Clientes** (clients_content), **Marcas** (manufacturers_content + manufacturers
-repeater w/ logo upload), **Ubicación** (location_content). Same single-document save +
-publish bar; all panels stay mounted (validation spans inactive tabs).
+**Editor impact (implemented):** home editor grows three tabs alongside
+Portada/Servicios — **Clientes** (clients_content), **Marcas** (manufacturers_content +
+manufacturers repeater w/ per-row logo upload, one upload at a time), **Ubicación**
+(location_content). Section-copy groups are validator-free: an all-blank group is
+omitted from the saved doc so the site keeps its fallbacks and published v1 docs
+round-trip clean. Same single-document save + publish bar; all panels stay mounted.
 
 ---
 
@@ -144,15 +147,17 @@ publish bar; all panels stay mounted (validation spans inactive tabs).
       dirty-guard confirm; cms-flag bounce. Verification on the *rendered site*
       pends the real backend's published-read routes (15 §1.1)
 
-### CP-4 — Home-doc v1.1 (§6 — pending approval)
-- [ ] `CmsHome` DTO + mock backend extended with `clients_content`,
-      `manufacturers_content`, `manufacturers`, `location_content`
-- [ ] Home editor: Clientes / Marcas / Ubicación tabs; manufacturers repeater with
-      per-row logo upload → R2 key
+### CP-4 — Home-doc v1.1 (§6 — approved 2026-07-07)
+- [x] `CmsHome` DTO + mock backend extended with `hero_video_url`, `clients_content`,
+      `manufacturers_content`, `manufacturers`, `location_content`, `services[].icon`
+- [x] Home editor: Clientes / Marcas / Ubicación tabs; hero video URL field;
+      manufacturers repeater with per-row logo upload → R2 key
+- [x] Icon picker (12-code curated lucide set, 3×4 popover grid, CVA) on service cards
 - [ ] Website consumes the new groups (tracked in 15 CP-2)
 
 ## Open decisions / asks
 - ~~Rich-text control choice~~ — **decided 2026-07-06: minimal custom contenteditable
   CVA** (b/i/ul whitelist, paste-as-plain-text, DOM-walk sanitize) — no Quill
   dependency; backend sanitization stays authoritative.
-- §6 open items: hero background media; per-service icon codes.
+- ~~§6 open items: hero background media; per-service icon codes~~ — **decided
+  2026-07-07: both in** (hero video by URL; icons via the curated 12-code picker).

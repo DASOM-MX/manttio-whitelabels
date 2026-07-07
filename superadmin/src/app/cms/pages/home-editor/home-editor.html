@@ -12,7 +12,7 @@
       type="button"
       class="btn-primary"
       (click)="save()"
-      [disabled]="form.invalid || busy() || !form.dirty"
+      [disabled]="form.invalid || busy() || !form.dirty || uploadingLogo() !== null"
     >
       Guardar borrador
     </button>
@@ -26,6 +26,9 @@
     <p-tablist>
       <p-tab value="portada">Portada</p-tab>
       <p-tab value="servicios">Servicios</p-tab>
+      <p-tab value="clientes">Clientes</p-tab>
+      <p-tab value="marcas">Marcas</p-tab>
+      <p-tab value="ubicacion">Ubicación</p-tab>
     </p-tablist>
     <p-tabpanels>
       <p-tabpanel value="portada">
@@ -50,6 +53,20 @@
               formControlName="description"
               rows="3"
             ></textarea>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="cms-hero-video">Video de fondo (URL)</label>
+            <input
+              id="cms-hero-video"
+              pInputText
+              type="url"
+              formControlName="hero_video_url"
+              placeholder="https://…/video.mp4"
+            />
+            <p class="text-sm text-granite-500 dark:text-granite-400">
+              Opcional. Sin video, la portada muestra el degradado por defecto.
+            </p>
           </div>
 
           <div class="field-group">
@@ -152,12 +169,16 @@
             >
               <ng-template #row let-ctrl let-i="index">
                 <div class="grid gap-2" [formGroup]="ctrl | asGroup">
-                  <input
-                    pInputText
-                    formControlName="title"
-                    [attr.aria-label]="'Título del servicio ' + (i + 1)"
-                    placeholder="Mantenimiento"
-                  />
+                  <div class="flex items-center gap-2">
+                    <app-icon-picker formControlName="icon" />
+                    <input
+                      pInputText
+                      class="flex-1"
+                      formControlName="title"
+                      [attr.aria-label]="'Título del servicio ' + (i + 1)"
+                      placeholder="Mantenimiento"
+                    />
+                  </div>
                   <textarea
                     pTextarea
                     formControlName="description"
@@ -174,6 +195,184 @@
                 </div>
               </ng-template>
             </app-repeater>
+          </div>
+        </div>
+      </p-tabpanel>
+
+      <p-tabpanel value="clientes">
+        <div class="flex max-w-3xl flex-col gap-4" formGroupName="clients_content">
+          <p class="text-sm text-granite-500 dark:text-granite-400">
+            Textos de la sección de clientes. Las empresas y sus logotipos se administran en
+            «CMS — Clientes». Los campos vacíos usan el texto por defecto del sitio.
+          </p>
+          <div class="field-group">
+            <label class="field-label" for="cms-cl-eyebrow">Antetítulo</label>
+            <input id="cms-cl-eyebrow" pInputText formControlName="eyebrow" placeholder="Clientes" />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="cms-cl-title">Título de la sección</label>
+            <input
+              id="cms-cl-title"
+              pInputText
+              formControlName="title"
+              placeholder="Construyendo confianza, proyecto por proyecto."
+            />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="cms-cl-description">Descripción</label>
+            <textarea
+              id="cms-cl-description"
+              pTextarea
+              formControlName="description"
+              rows="2"
+            ></textarea>
+          </div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="field-group">
+              <label class="field-label" for="cms-cl-cta-title">Título del llamado</label>
+              <input
+                id="cms-cl-cta-title"
+                pInputText
+                formControlName="cta_title"
+                placeholder="¿Quieres ser nuestro próximo proyecto?"
+              />
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="cms-cl-cta-description">Texto del llamado</label>
+              <input
+                id="cms-cl-cta-description"
+                pInputText
+                formControlName="cta_description"
+                placeholder="Un especialista te contacta en menos de 24 horas."
+              />
+            </div>
+          </div>
+        </div>
+      </p-tabpanel>
+
+      <p-tabpanel value="marcas">
+        <div class="flex max-w-3xl flex-col gap-4">
+          <div class="grid gap-4" formGroupName="manufacturers_content">
+            <div class="field-group">
+              <label class="field-label" for="cms-mf-eyebrow">Antetítulo</label>
+              <input id="cms-mf-eyebrow" pInputText formControlName="eyebrow" placeholder="Marcas" />
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="cms-mf-title">Título de la sección</label>
+              <input
+                id="cms-mf-title"
+                pInputText
+                formControlName="title"
+                placeholder="Expertos en las marcas líderes del mercado"
+              />
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="cms-mf-description">Descripción</label>
+              <textarea
+                id="cms-mf-description"
+                pTextarea
+                formControlName="description"
+                rows="2"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <span class="field-label">Logotipos de marcas</span>
+            <app-repeater
+              [array]="manufacturers"
+              addLabel="Agregar marca"
+              itemName="marca"
+              (add)="addManufacturer()"
+            >
+              <ng-template #row let-ctrl let-i="index">
+                @let mrow = ctrl | asGroup;
+                <div class="flex items-center gap-3" [formGroup]="mrow">
+                  <div
+                    class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-granite-200 bg-white dark:border-granite-800 dark:bg-granite-900"
+                  >
+                    @if (mrow.value.logoUrl) {
+                      <img
+                        [src]="mrow.value.logoUrl"
+                        [alt]="'Logotipo de ' + mrow.value.name"
+                        class="max-h-10 max-w-full object-contain p-1"
+                      />
+                    } @else {
+                      <svg lucideImage class="size-4 text-granite-400" aria-hidden="true"></svg>
+                    }
+                  </div>
+                  <input
+                    pInputText
+                    class="min-w-0 flex-1"
+                    formControlName="name"
+                    [attr.aria-label]="'Nombre de la marca ' + (i + 1)"
+                    placeholder="Carrier"
+                  />
+                  <label
+                    class="inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm font-medium text-sky-700 transition-colors hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
+                  >
+                    <svg lucideImageUp class="size-4" aria-hidden="true"></svg>
+                    @if (uploadingLogo() === mrow) {
+                      Subiendo…
+                    } @else {
+                      Logotipo
+                    }
+                    <input
+                      type="file"
+                      class="sr-only"
+                      accept="image/png,image/svg+xml,image/webp,image/jpeg"
+                      (change)="onManufacturerLogo($event, mrow)"
+                      [disabled]="uploadingLogo() !== null"
+                    />
+                  </label>
+                </div>
+              </ng-template>
+            </app-repeater>
+          </div>
+        </div>
+      </p-tabpanel>
+
+      <p-tabpanel value="ubicacion">
+        <div class="flex max-w-3xl flex-col gap-4" formGroupName="location_content">
+          <p class="text-sm text-granite-500 dark:text-granite-400">
+            Textos de la sección de ubicación. La dirección, el teléfono, el correo y el mapa
+            provienen de la Marca.
+          </p>
+          <div class="field-group">
+            <label class="field-label" for="cms-loc-eyebrow">Antetítulo</label>
+            <input
+              id="cms-loc-eyebrow"
+              pInputText
+              formControlName="eyebrow"
+              placeholder="Ubicación"
+            />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="cms-loc-title">Título de la sección</label>
+            <input
+              id="cms-loc-title"
+              pInputText
+              formControlName="title"
+              placeholder="Al pie del corredor industrial"
+            />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="cms-loc-description">Descripción</label>
+            <textarea
+              id="cms-loc-description"
+              pTextarea
+              formControlName="description"
+              rows="2"
+            ></textarea>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="cms-loc-schedule">Horario de atención</label>
+            <input
+              id="cms-loc-schedule"
+              pInputText
+              formControlName="schedule"
+              placeholder="Lun a vie, 8:00 – 18:00"
+            />
           </div>
         </div>
       </p-tabpanel>
