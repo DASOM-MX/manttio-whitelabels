@@ -19,11 +19,11 @@ import { LoadFonts } from '../../../../state/brand/brand.actions';
 import { UploadService } from '../../../services/http/upload.service';
 import { BrandThemeService } from '../../../services/theme/brand-theme.service';
 import { ColorScaleService } from '../../../services/theme/color-scale.service';
+import { FontLoaderService } from '../../../services/theme/font-loader.service';
 import { errorMessage } from '../../../data/utils';
 import { FONT_PREVIEW_SIZES } from '../../../model/constants/brand/font-preview-sizes.const';
 import { PRIMARY_STEPS } from '../../../model/constants/brand/primary-steps.const';
 import { SURFACE_STEPS } from '../../../model/constants/brand/surface-steps.const';
-import { ensureFontLoaded } from '../../font-preview';
 import { ScaleEditor } from '../../components/scale-editor/scale-editor';
 import { ApplyBrandDialog } from '../../components/apply-brand-dialog/apply-brand-dialog';
 import type { Brand, FontCatalogEntry, SaveBrandRequest } from '../../../data/dtos/brand';
@@ -62,6 +62,7 @@ export class BrandEditor {
   private uploads = inject(UploadService);
   private theme = inject(BrandThemeService);
   private colorScale = inject(ColorScaleService);
+  private fontLoader = inject(FontLoaderService);
 
   protected readonly PRIMARY_STEPS = PRIMARY_STEPS;
   protected readonly SURFACE_STEPS = SURFACE_STEPS;
@@ -195,7 +196,7 @@ export class BrandEditor {
     const code = this.form.controls.font.controls[role].value;
     const entry = this.fontEntry(code);
     if (!entry) return;
-    await ensureFontLoaded(entry);
+    await this.fontLoader.ensureLoaded(entry);
     const family = `'${entry.label}', ${entry.fallbackStack ?? 'sans-serif'}`;
     if (role === 'body') this.bodyFontFamily.set(family);
     else this.headingFontFamily.set(family);
