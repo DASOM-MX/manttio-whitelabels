@@ -196,6 +196,13 @@ borders-not-shadows surface chrome from the Design language.)
       (appears, ESC blocked, submit clears)
 
 ## Open decisions / asks
+- **Zoneless fallback (user call, 2026-07-06):** stay zoneless (frontend parity;
+  signals + PrimeNG 21 update correctly — the only timing artifacts seen were
+  test-harness races, not UI defects). **If real update gaps appear in usage,
+  reintroducing the Angular zone is sanctioned**: add the `zone.js` polyfill to
+  `angular.json` + swap `provideZonelessChangeDetection()` for
+  `provideZoneChangeDetection()` in `app.config.ts` — confined to the shell,
+  no component changes needed.
 - ~~NGXS-on-Angular-21 compat~~ — **resolved 2026-07-05:** NGXS v21 supports Angular 21;
   pin `@ngxs/*@^21` (see §2).
 - ~~SSR vs CSR~~ — **resolved 2026-07-05: CSR now, SSR when client volume justifies it**
