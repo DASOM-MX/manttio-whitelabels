@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
 import { catchError, tap } from 'rxjs';
-import { ReportsService } from '../../http/reports.service';
+import { ReportsService } from '../../app/services/http/reports.service';
 import { DeleteReport, LoadReport, LoadReports } from './reports.actions';
 import type { ReportDetail, ReportListQuery, ReportSummary } from '../../app/data/dtos/report';
 

@@ -7,7 +7,7 @@ import { select, Store } from '@ngxs/store';
 import { ReportsState } from '../../../../state/reports/reports.state';
 import { LoadReport } from '../../../../state/reports/reports.actions';
 import { AuthState } from '../../../../state/auth/auth.state';
-import { ReportsService } from '../../../../http/reports.service';
+import { ReportsService } from '../../../services/http/reports.service';
 import { REPORT_STATUS_LABELS } from '../../../model/constants/report/report-status-labels.const';
 import { REPORT_STATUS_SEVERITIES } from '../../../model/constants/report/report-status-severities.const';
 import { ReportStatusLabelPipe, ReportStatusSeverityPipe } from '../../../pipes/report-status.pipe';

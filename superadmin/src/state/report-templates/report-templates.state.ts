@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
 import { catchError, tap } from 'rxjs';
-import { ReportTemplatesService } from '../../http/report-templates.service';
+import { ReportTemplatesService } from '../../app/services/http/report-templates.service';
 import {
   ActivateTemplate,
   CreateTemplate,
