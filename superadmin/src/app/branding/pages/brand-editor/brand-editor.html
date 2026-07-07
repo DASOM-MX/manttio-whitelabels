@@ -186,18 +186,22 @@
       </div>
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-3" formGroupName="social">
+    <div class="grid gap-4 sm:grid-cols-2" formGroupName="social">
       <div class="field-group">
         <label class="field-label" for="brand-facebook">Facebook</label>
         <input id="brand-facebook" pInputText type="url" formControlName="facebook" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="brand-tiktok">TikTok</label>
+        <input id="brand-tiktok" pInputText type="url" formControlName="tiktok" />
       </div>
       <div class="field-group">
         <label class="field-label" for="brand-instagram">Instagram</label>
         <input id="brand-instagram" pInputText type="url" formControlName="instagram" />
       </div>
       <div class="field-group">
-        <label class="field-label" for="brand-tiktok">TikTok</label>
-        <input id="brand-tiktok" pInputText type="url" formControlName="tiktok" />
+        <label class="field-label" for="brand-googlemaps">Pin de Google</label>
+        <input id="brand-googlemaps" pInputText type="url" formControlName="googleMaps" />
       </div>
     </div>
   </section>
@@ -236,9 +240,9 @@
       </div>
       <!-- Font-family preview binds [style] with a runtime catalog font —
            part of the documented brand-editor exception (01 Styling). -->
-      <ul class="flex flex-col gap-2">
+      <ul class="flex flex-col">
         @for (size of FONT_PREVIEW_SIZES; track size.class) {
-          <li class="flex items-baseline gap-4">
+          <li class="flex items-baseline gap-8 {{ size.gap }}">
             <span class="micro-label w-12 shrink-0 text-right font-data">{{ size.label }}</span>
             <p
               class="{{ size.class }} truncate text-granite-800 dark:text-granite-200"
@@ -268,9 +272,9 @@
           (onChange)="onFontChange('heading')"
         />
       </div>
-      <ul class="flex flex-col gap-2">
+      <ul class="flex flex-col">
         @for (size of FONT_PREVIEW_SIZES; track size.class) {
-          <li class="flex items-baseline gap-4">
+          <li class="flex items-baseline gap-8 {{ size.gap }}">
             <span class="micro-label w-12 shrink-0 text-right font-data">{{ size.label }}</span>
             <p
               class="{{ size.class }} truncate font-bold text-granite-900 dark:text-granite-100"

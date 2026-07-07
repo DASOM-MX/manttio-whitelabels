@@ -17,6 +17,7 @@ export interface BrandSocial {
   facebook?: string;
   instagram?: string;
   tiktok?: string;
+  googleMaps?: string; // Google Business pin / maps listing URL
   [network: string]: string | undefined;
 }
 

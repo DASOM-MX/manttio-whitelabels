@@ -90,6 +90,7 @@ export class BrandEditor {
       facebook: [''],
       instagram: [''],
       tiktok: [''],
+      googleMaps: [''],
     }),
     font: this.fb.nonNullable.group({
       body: ['work_sans'],
@@ -272,6 +273,7 @@ export class BrandEditor {
           facebook: brand.social?.['facebook'] ?? '',
           instagram: brand.social?.['instagram'] ?? '',
           tiktok: brand.social?.['tiktok'] ?? '',
+          googleMaps: brand.social?.['googleMaps'] ?? '',
         },
         font: {
           body: brand.font?.body ?? 'work_sans',
