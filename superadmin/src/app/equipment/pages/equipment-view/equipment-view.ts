@@ -15,7 +15,7 @@ import {
   SetEquipmentStatus,
   UnlinkReport,
 } from '../../../../state/equipment/equipment.actions';
-import { EquipmentService } from '../../../../http/equipment.service';
+import { EquipmentService } from '../../../services/http/equipment.service';
 import {
   EquipmentStatusLabelPipe,
   EquipmentStatusSeverityPipe,

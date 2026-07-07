@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
 import { catchError, tap } from 'rxjs';
-import { EquipmentService } from '../../http/equipment.service';
+import { EquipmentService } from '../../app/services/http/equipment.service';
 import {
   CreateEquipment,
   DeleteEquipment,
