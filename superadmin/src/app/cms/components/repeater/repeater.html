@@ -1,9 +1,6 @@
-<div class="flex flex-col gap-2">
-  @for (ctrl of array().controls; track ctrl; let i = $index; let last = $last) {
-    <div
-      class="flex items-start gap-2 rounded-lg border border-granite-200 p-3 dark:border-granite-800"
-      animate.enter="anim-enter"
-    >
+<div class="flex flex-col gap-2" cdkDropList [cdkDropListDisabled]="readOnly()" (cdkDropListDropped)="drop($event)">
+  @for (ctrl of array().controls; track ctrl; let i = $index) {
+    <div class="flex items-center gap-2" cdkDrag animate.enter="anim-enter">
       <div class="min-w-0 flex-1">
         <ng-container
           *ngTemplateOutlet="rowTemplate(); context: { $implicit: ctrl, index: i }"
@@ -11,34 +8,23 @@
       </div>
 
       @if (!readOnly()) {
-        <div class="flex shrink-0 flex-col gap-0.5">
-          <button
-            type="button"
-            class="inline-flex size-8 items-center justify-center rounded-md text-granite-500 transition-colors hover:bg-granite-100 hover:text-granite-800 disabled:cursor-not-allowed disabled:opacity-30 dark:text-granite-400 dark:hover:bg-granite-800 dark:hover:text-granite-200"
-            (click)="move(i, -1)"
-            [disabled]="i === 0"
-            [attr.aria-label]="'Subir ' + itemName() + ' ' + (i + 1)"
-          >
-            <svg lucideChevronUp class="size-4" aria-hidden="true"></svg>
-          </button>
-          <button
-            type="button"
-            class="inline-flex size-8 items-center justify-center rounded-md text-granite-500 transition-colors hover:bg-granite-100 hover:text-granite-800 disabled:cursor-not-allowed disabled:opacity-30 dark:text-granite-400 dark:hover:bg-granite-800 dark:hover:text-granite-200"
-            (click)="move(i, 1)"
-            [disabled]="last"
-            [attr.aria-label]="'Bajar ' + itemName() + ' ' + (i + 1)"
-          >
-            <svg lucideChevronDown class="size-4" aria-hidden="true"></svg>
-          </button>
-          <button
-            type="button"
-            class="inline-flex size-8 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
-            (click)="remove(i)"
-            [attr.aria-label]="'Eliminar ' + itemName() + ' ' + (i + 1)"
-          >
-            <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
-          </button>
-        </div>
+        <button
+          type="button"
+          class="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+          (click)="remove(i)"
+          [attr.aria-label]="'Eliminar ' + itemName() + ' ' + (i + 1)"
+        >
+          <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
+        </button>
+        <button
+          type="button"
+          cdkDragHandle
+          class="inline-flex size-8 shrink-0 cursor-grab items-center justify-center rounded-md text-granite-400 transition-colors hover:bg-granite-100 hover:text-granite-700 active:cursor-grabbing dark:text-granite-500 dark:hover:bg-granite-800 dark:hover:text-granite-300"
+          (keydown)="onHandleKeydown($event, i)"
+          [attr.aria-label]="'Reordenar ' + itemName() + ' ' + (i + 1) + ' (↑/↓ para mover)'"
+        >
+          <svg lucideGripVertical class="size-4" aria-hidden="true"></svg>
+        </button>
       }
     </div>
   } @empty {
