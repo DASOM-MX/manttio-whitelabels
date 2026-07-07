@@ -111,6 +111,16 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   editors; `POST /cms/:section/publish` copies draft → published; public reads serve
   **published only**. Owner + admin, behind the `cms` module flag. **Tenant-only
   writes — CMS content has no manager push path** (decided 2026-07-05).
+  **Implemented 2026-07-07 (`modules/cms/`, migration `0009`):** `cms_documents`
+  (section-keyed draft/published jsonb; publish copies draft → published) +
+  `cms_clients` entry rows snapshotted into the published doc on publish;
+  whitelist HTML sanitizer (mirrors the editor CVA: b/strong/i/em/ul/li/p/br/div,
+  attributes dropped); manufacturers `logoUrl` materialized from `logoKey` on
+  read, never stored; service icon codes validated against the curated 12
+  (superadmin 04 §6); public reads at `GET /public/cms/home|clients` (never
+  published → 404 so the site keeps its fallbacks). Gated `requireRole('admin')`
+  for now — `owner` joins when the §1 role migration lands, the `cms` module
+  flag when tenant-config enforcement exists.
 - **reports** (06): confirm status enum/folio; soft delete with comment; PDF/resend
   as today. **Signature gate (decided 2026-07-05):** every report — whatever its
   template — **requires a captured signature to transition to `finished` and to be
@@ -275,11 +285,12 @@ Pattern:
   counts vs timeline first page too); whether brand + CRM stay in the one
   `TenantCacheDO` class or split per concern — start shared, split only if CRM churn
   crowds the brand entry.
-- Website read surface (superadmin plan 15): the public tenant site consumes
-  **published-only** CMS docs — 04's `GET /cms/*` serve drafts to editors, so the
-  published counterpart needs its own public routes (e.g. `GET /public/cms/home|clients`
-  — shape TBD here); decide whether published docs join the `TenantCacheDO` (§5) with
-  invalidation on `POST /cms/:section/publish` (same hot-public profile as `GET /brand`).
+- ~~Website read surface (superadmin plan 15): public published-read route shape~~ —
+  **decided + shipped 2026-07-07: `GET /public/cms/home` · `GET /public/cms/clients`**
+  (bare doc / bare array, matching the website fetchers in PR #44; 404 until first
+  publish). Still open: whether published docs join the `TenantCacheDO` (§5) with
+  invalidation on `POST /cms/:section/publish` (same hot-public profile as
+  `GET /brand`) — they read Neon directly until then.
 
 ## 7. Build checklist
 
@@ -301,8 +312,10 @@ Pattern:
       `GET /brand` + `GET /fonts` (curated catalog), owner-only `PUT /brand`,
       materialized scales, font codes validated; pdf render-time brand consumption
       incl. static-instance font embedding (emails: colors/logo only)
-- [ ] **cms — first wave, alongside branding**: headless content endpoints
-      (draft→publish, sanitize on write, published-only public reads)
+- [x] **cms — first wave, alongside branding**: headless content endpoints
+      (draft→publish, sanitize on write, published-only public reads) —
+      **done 2026-07-07** (`modules/cms/`, migration `0009`, `test/cms.test.ts`;
+      owner-role + `cms`-flag gating pend the Auth & config items above)
 - [ ] customers CRM extensions + contacts + interactions + status transition
 - [ ] billing · wms (incl. replenishments parse + R2 evidence) · equipment ·
       visits/assignments · contracts (activate → visit generation)

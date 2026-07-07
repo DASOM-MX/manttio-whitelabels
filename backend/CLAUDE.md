@@ -2,7 +2,7 @@
 
 ## Project state (as of 2026-07-04)
 - **Cloudflare Workers** (Wrangler v4) running **Hono 4** in TypeScript. Entry: `src/index.ts`, deployed as `manttio-api`. `compatibility_flags = ["nodejs_compat"]` so we can use `bcryptjs` and a few Node-flavored libs.
-- **Postgres** on **Neon** via `@neondatabase/serverless`'s **WebSocket driver** (not neon-http) — chosen for real transactions (the create-report flow updates a counter + a header row + N detail rows atomically). Live DB is current through migration `0008` (`deleted_by` on users).
+- **Postgres** on **Neon** via `@neondatabase/serverless`'s **WebSocket driver** (not neon-http) — chosen for real transactions (the create-report flow updates a counter + a header row + N detail rows atomically). Live DB is current through migration `0009` (CMS tables).
 - **Drizzle ORM** for the schema (`src/modules/database/schema.ts` barrel + per-module `models/*.model.ts`) and queries (`src/modules/<resource>/repository/*`). Migrations live in `drizzle/migrations/` and are run via `drizzle-kit` (see `db:*` scripts).
 - **Auth** via JWT (HS256) using `jose`. Token payload is `{ sub: userId, role }`. TTL: `7d` in dev, `1d` in prod.
 - **R2** bucket (binding: `MANTTIO_REPORTS`) for report images + generated PDFs. Public reads served via `CDN_BASE_URL` (Cloudflare CDN sitting in front of the bucket).
@@ -10,11 +10,12 @@
 - **Tests:** Vitest with `@cloudflare/vitest-pool-workers` running inside miniflare. **Hits the live Neon DB** (with isolated `test+...` and `dasom.mx+test-...` fixture emails); Resend is mocked. See "Testing" below — don't run `pnpm test` casually.
 - **Audited soft-delete on users:** `DELETE /users/:id` requires a Zod-validated `{ deleteComment }` body and stamps `users.delete_comment` + `users.deleted_by` (self-FK to `users.id`, `ON DELETE RESTRICT`) alongside `deleted_at`. The route guards self-delete (`me.id === id → 400 cannot_delete_self`). Customers/reports keep the no-comment soft delete for now — this audit shape is users-only.
 - **Customer timezone:** `customers.timezone` (IANA, e.g. `America/Monterrey`) is the source of truth for any report date rendered to a customer; user rows no longer carry a timezone. Validators default to `DEFAULT_MEXICAN_TIMEZONE` from `src/modules/customers/constants/timezones.ts` when omitted.
+- **Headless CMS (whitelabel fork):** `modules/cms/` stores the tenant's marketing-site content — a `cms_documents` row per section (`home` | `clients`) holding draft + published jsonb, plus `cms_clients` entry rows snapshotted into the published doc on `POST /cms/:section/publish`. Editor routes (`/cms/*`, draft-serving, `requireRole('admin')` until the owner-role migration) vs public published-only reads (`GET /public/cms/home|clients`, 404 until first publish). The rich-text field is whitelist-sanitized on write (`cms/utils/sanitize-html.ts`); logo `logoUrl`s are materialized from R2 keys at read time, never stored. Detail: `manttio-whitelabeled-backend-plan.md` §3.
 
 ## Module layout (NestJS-like, module-first)
 `src/` holds only `env.ts` (global bindings + `AuthUser`), `index.ts` (composition root), and `modules/`. **All logic for a domain lives under its own module.** No top-level `routes/`, `db/`, `lib/`, `middleware/`, or `validators/` — those were removed in the modular refactor.
 
-- **Domain modules:** `auth/`, `users/`, `customers/`, `reports/`, `upload/`.
+- **Domain modules:** `auth/`, `users/`, `customers/`, `reports/`, `upload/`, `cms/`.
 - **Cross-cutting modules (not junk drawers; must be generic/reusable):** `database/` (Drizzle client + schema barrel + `db-errors`), `storage/` (R2 service + form-data utils), `email/` (generic Resend transport), `pdf/` (generic pdf-lib toolkit — page setup, tables/rows/cells, section headers, image grid, image embedding, default theme). Domain composition that *uses* a cross-cutting module stays in the domain module (e.g. the report PDF **layout** lives in `reports/helpers/report-pdf.helpers.ts` and calls the `pdf/` toolkit — same split as `email/` transport vs `reports/` email composition).
 - **Per-module folders (create only what a module needs):**
   - `controllers/*.controller.ts` — the thin Hono router (validate → service → respond).
@@ -35,8 +36,8 @@
 
 ## Routing structure
 - All routes mounted off `src/index.ts`. Order matters: `app.use('*', logger())` + `cors()` first, then the public auth router, then the JWT middleware on every protected prefix, then the protected routers.
-- One controller per resource under `src/modules/<resource>/controllers/*.controller.ts` (`auth`, `users`, `customers`, `reports`, `upload`). **Controllers stay thin** — validate → look up auth context → call a service → respond. Business rules/orchestration live in `services/`; queries in `repository/`.
-- Path conventions: kebab/lowercase, plural collection nouns (`/customers`, `/reports`), `:id` for the single-resource sub-route. Public-by-design endpoints get an explicit prefix that the JWT middleware whitelists — currently only `/reports/download/{token}` (per-recipient access token model below).
+- One controller per resource under `src/modules/<resource>/controllers/*.controller.ts` (`auth`, `users`, `customers`, `reports`, `upload`, `cms` — which also owns the unauthenticated `public-cms` controller). **Controllers stay thin** — validate → look up auth context → call a service → respond. Business rules/orchestration live in `services/`; queries in `repository/`.
+- Path conventions: kebab/lowercase, plural collection nouns (`/customers`, `/reports`), `:id` for the single-resource sub-route. Public-by-design endpoints get an explicit prefix that the JWT middleware whitelists — `/reports/download/{token}` (per-recipient access token model below) and `/public/cms/*` (published-only website reads, mounted before the JWT middleware).
 - Hono router instances are `Hono<AppBindings>` (see `src/env.ts`) so `c.env`, `c.get('user')`, etc. are typed.
 
 ## Auth + roles
@@ -48,7 +49,7 @@
 
 ## Database
 - **Use the WebSocket driver** (`@neondatabase/serverless` `Pool` → `drizzle/neon-serverless`). Real transactions are needed for the atomic create-report flow (counter increment + header insert + details insert). Do not switch to neon-http.
-- **Schema** is defined per-module in `models/*.model.ts` and re-exported from the barrel `src/modules/database/schema.ts` (which also holds every `relations()`). Tables: `users` (incl. `delete_comment`, `deleted_by` self-FK), `customers` (incl. `timezone`), `reports`, `reportDetails`, `reportCounters`, `reportEmails`. Use Drizzle's column helpers; pull types via `typeof table.$inferSelect` / `$inferInsert` (aliased in each module's `types/*.types.ts`).
+- **Schema** is defined per-module in `models/*.model.ts` and re-exported from the barrel `src/modules/database/schema.ts` (which also holds every `relations()`). Tables: `users` (incl. `delete_comment`, `deleted_by` self-FK), `customers` (incl. `timezone`), `reports`, `reportDetails`, `reportCounters`, `reportEmails`, `cmsDocuments`, `cmsClients`. Use Drizzle's column helpers; pull types via `typeof table.$inferSelect` / `$inferInsert` (aliased in each module's `types/*.types.ts`).
 - **Repository pattern**: every query/mutation goes in `src/modules/<resource>/repository/<resource>.repository.ts`. Controllers/services never call `db.select(...)` directly outside a repository. Repository functions take a `Db` (from `modules/database/client.ts`) plus typed args, return typed rows.
 - **Soft deletes** via `deleted_at` (`isNull(table.deletedAt)` in every list filter). Hard deletes are reserved for fixture cleanup.
 - **Postgres error mapping**: `src/modules/database/db-errors.ts` exports `isForeignKeyViolation` / `isUniqueViolation` that match SQLSTATE codes (and string fallbacks). Use these on inserts/updates rather than catching `Error` blindly — the service can then translate to the right HTTP status (400 vs 409 vs 422).
@@ -85,7 +86,7 @@
   - **Don't run on top of in-flight production data without checking the fixture cleanup.**
   - Resend is mocked in the test suite; the fixture email patterns (`test+...@penanevadachillers.com` for users, `dasom.mx+test-...@gmail.com` for customers) are still designed to be defense-in-depth deliverable in case a real send slips through.
 - Test helpers live in `test/helpers/`: `request(path, init?)` calls `app.request` with the test env bindings, `json(res)` parses + asserts shape, `authHeader(token)` / `jsonHeaders(token?)` for typical headers, `fixtures.ts` for seeded users/customers/reports.
-- One `*.test.ts` file per resource (`auth`, `users`, `customers`, `reports`, `upload`) + a `smoke.test.ts` for the bare `/` endpoint.
+- One `*.test.ts` file per resource (`auth`, `users`, `customers`, `reports`, `upload`, `cms`) + a `smoke.test.ts` for the bare `/` endpoint. The CMS suite can't isolate by fixture email (per-tenant singleton docs) — it snapshots the `cms_*` tables in `beforeAll` and restores them in `afterAll` instead.
 - Fixture cleanup is by email pattern — easy to wipe at release: `DELETE FROM users WHERE email LIKE 'test+%'` and `DELETE FROM customers WHERE email LIKE 'dasom.mx+test-%@gmail.com'`.
 
 ## Configuration + secrets
