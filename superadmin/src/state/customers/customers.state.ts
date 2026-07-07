@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
 import { catchError, tap } from 'rxjs';
-import { CustomersService } from '../../http/customers.service';
+import { CustomersService } from '../../app/services/http/customers.service';
 import {
   CreateCustomer,
   DeleteCustomer,
