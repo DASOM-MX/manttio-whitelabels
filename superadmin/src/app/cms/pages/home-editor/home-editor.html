@@ -32,109 +32,120 @@
     </p-tablist>
     <p-tabpanels>
       <p-tabpanel value="portada">
-        <div class="flex max-w-3xl flex-col gap-4">
-          <div class="field-group">
-            <label class="field-label" for="cms-title"
-              >Título<span aria-hidden="true"> *</span></label
-            >
-            <input id="cms-title" pInputText formControlName="title" />
-            <p class="text-sm text-granite-500 dark:text-granite-400">
-              El rotador de audiencias lo completa (p. ej. «… para plantas»).
-            </p>
+        <!-- Two columns with a hairline divider (01 Design language): scalars
+             left, list groups right — uses the panel's full width so neither
+             column drowns in whitespace. -->
+        <div
+          class="grid gap-6 divide-granite-200 lg:grid-cols-2 lg:gap-0 lg:divide-x dark:divide-granite-800"
+        >
+          <div class="flex flex-col gap-4 lg:pr-8">
+            <div class="field-group">
+              <label class="field-label" for="cms-title"
+                >Título<span aria-hidden="true"> *</span></label
+              >
+              <input id="cms-title" pInputText formControlName="title" />
+              <p class="text-sm text-granite-500 dark:text-granite-400">
+                El rotador de audiencias lo completa (p. ej. «… para plantas»).
+              </p>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="cms-description"
+                >Descripción<span aria-hidden="true"> *</span></label
+              >
+              <textarea
+                id="cms-description"
+                pTextarea
+                formControlName="description"
+                rows="3"
+              ></textarea>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="cms-hero-video">Video de fondo (URL)</label>
+              <input
+                id="cms-hero-video"
+                pInputText
+                type="url"
+                formControlName="hero_video_url"
+                placeholder="https://…/video.mp4"
+              />
+              <p class="text-sm text-granite-500 dark:text-granite-400">
+                Opcional. Sin video, la portada muestra el degradado por defecto.
+              </p>
+            </div>
           </div>
 
-          <div class="field-group">
-            <label class="field-label" for="cms-description"
-              >Descripción<span aria-hidden="true"> *</span></label
-            >
-            <textarea
-              id="cms-description"
-              pTextarea
-              formControlName="description"
-              rows="3"
-            ></textarea>
-          </div>
+          <div class="flex flex-col gap-4 lg:pl-8">
+            <div class="field-group">
+              <span class="section-heading">Audiencias del rotador</span>
+              <app-repeater
+                [array]="serviceTargets"
+                addLabel="Agregar audiencia"
+                itemName="audiencia"
+                (add)="addTarget()"
+              >
+                <ng-template #row let-ctrl let-i="index">
+                  <input
+                    pInputText
+                    [formControl]="ctrl | asControl"
+                    [attr.aria-label]="'Audiencia ' + (i + 1)"
+                  />
+                </ng-template>
+              </app-repeater>
+            </div>
 
-          <div class="field-group">
-            <label class="field-label" for="cms-hero-video">Video de fondo (URL)</label>
-            <input
-              id="cms-hero-video"
-              pInputText
-              type="url"
-              formControlName="hero_video_url"
-              placeholder="https://…/video.mp4"
-            />
-            <p class="text-sm text-granite-500 dark:text-granite-400">
-              Opcional. Sin video, la portada muestra el degradado por defecto.
-            </p>
-          </div>
-
-          <div class="field-group">
-            <span class="field-label">Audiencias del rotador</span>
-            <app-repeater
-              [array]="serviceTargets"
-              addLabel="Agregar audiencia"
-              itemName="audiencia"
-              (add)="addTarget()"
-            >
-              <ng-template #row let-ctrl let-i="index">
-                <input
-                  pInputText
-                  [formControl]="ctrl | asControl"
-                  [attr.aria-label]="'Audiencia ' + (i + 1)"
-                />
-              </ng-template>
-            </app-repeater>
-          </div>
-
-          <div class="field-group">
-            <span class="field-label">Métricas de portada</span>
-            <app-repeater
-              [array]="badges"
-              addLabel="Agregar métrica"
-              itemName="métrica"
-              [divided]="true"
-              (add)="addBadge()"
-            >
-              <ng-template #row let-ctrl let-i="index">
-                <div class="grid gap-2 sm:grid-cols-3" [formGroup]="ctrl | asGroup">
-                  <div class="field-group">
-                    <label class="field-label" [for]="'cms-badge-value-' + i">Valor</label>
-                    <input
-                      [id]="'cms-badge-value-' + i"
-                      pInputText
-                      formControlName="value"
-                      placeholder="+120"
-                    />
+            <div class="field-group">
+              <span class="section-heading">Métricas de portada</span>
+              <app-repeater
+                [array]="badges"
+                addLabel="Agregar métrica"
+                itemName="métrica"
+                [divided]="true"
+                (add)="addBadge()"
+              >
+                <ng-template #row let-ctrl let-i="index">
+                  <div class="grid gap-2 sm:grid-cols-3" [formGroup]="ctrl | asGroup">
+                    <div class="field-group">
+                      <label class="micro-label" [for]="'cms-badge-value-' + i">Valor</label>
+                      <input
+                        [id]="'cms-badge-value-' + i"
+                        pInputText
+                        formControlName="value"
+                        placeholder="+120"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label class="micro-label" [for]="'cms-badge-unit-' + i">Unidad</label>
+                      <input
+                        [id]="'cms-badge-unit-' + i"
+                        pInputText
+                        formControlName="unit"
+                        placeholder="toneladas"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label class="micro-label" [for]="'cms-badge-label-' + i">Etiqueta</label>
+                      <input
+                        [id]="'cms-badge-label-' + i"
+                        pInputText
+                        formControlName="label"
+                        placeholder="instaladas"
+                      />
+                    </div>
                   </div>
-                  <div class="field-group">
-                    <label class="field-label" [for]="'cms-badge-unit-' + i">Unidad</label>
-                    <input
-                      [id]="'cms-badge-unit-' + i"
-                      pInputText
-                      formControlName="unit"
-                      placeholder="toneladas"
-                    />
-                  </div>
-                  <div class="field-group">
-                    <label class="field-label" [for]="'cms-badge-label-' + i">Etiqueta</label>
-                    <input
-                      [id]="'cms-badge-label-' + i"
-                      pInputText
-                      formControlName="label"
-                      placeholder="instaladas"
-                    />
-                  </div>
-                </div>
-              </ng-template>
-            </app-repeater>
+                </ng-template>
+              </app-repeater>
+            </div>
           </div>
         </div>
       </p-tabpanel>
 
       <p-tabpanel value="servicios">
-        <div class="flex max-w-3xl flex-col gap-4">
-          <div class="grid gap-4" formGroupName="services_content">
+        <div
+          class="grid gap-6 divide-granite-200 lg:grid-cols-2 lg:gap-0 lg:divide-x dark:divide-granite-800"
+        >
+          <div class="flex flex-col gap-4 lg:pr-8" formGroupName="services_content">
             <div class="field-group">
               <label class="field-label" for="cms-sc-eyebrow">Antetítulo</label>
               <input id="cms-sc-eyebrow" pInputText formControlName="eyebrow" />
@@ -158,8 +169,8 @@
             </div>
           </div>
 
-          <div class="field-group">
-            <span class="field-label">Tarjetas de servicio</span>
+          <div class="field-group lg:pl-8">
+            <span class="section-heading">Tarjetas de servicio</span>
             <app-repeater
               [array]="services"
               addLabel="Agregar servicio"
@@ -189,7 +200,9 @@
                   <input
                     pInputText
                     formControlName="tagsCsv"
-                    [attr.aria-label]="'Etiquetas del servicio ' + (i + 1) + ' (separadas por coma)'"
+                    [attr.aria-label]="
+                      'Etiquetas del servicio ' + (i + 1) + ' (separadas por coma)'
+                    "
                     placeholder="Preventivo, Correctivo 24/7"
                   />
                 </div>
@@ -200,62 +213,80 @@
       </p-tabpanel>
 
       <p-tabpanel value="clientes">
-        <div class="flex max-w-3xl flex-col gap-4" formGroupName="clients_content">
+        <div class="flex flex-col gap-4" formGroupName="clients_content">
           <p class="text-sm text-granite-500 dark:text-granite-400">
-            Textos de la sección de clientes. Las empresas y sus logotipos se administran en
-            «CMS — Clientes». Los campos vacíos usan el texto por defecto del sitio.
+            Textos de la sección de clientes. Las empresas y sus logotipos se administran en «CMS —
+            Clientes». Los campos vacíos usan el texto por defecto del sitio.
           </p>
-          <div class="field-group">
-            <label class="field-label" for="cms-cl-eyebrow">Antetítulo</label>
-            <input id="cms-cl-eyebrow" pInputText formControlName="eyebrow" placeholder="Clientes" />
-          </div>
-          <div class="field-group">
-            <label class="field-label" for="cms-cl-title">Título de la sección</label>
-            <input
-              id="cms-cl-title"
-              pInputText
-              formControlName="title"
-              placeholder="Construyendo confianza, proyecto por proyecto."
-            />
-          </div>
-          <div class="field-group">
-            <label class="field-label" for="cms-cl-description">Descripción</label>
-            <textarea
-              id="cms-cl-description"
-              pTextarea
-              formControlName="description"
-              rows="2"
-            ></textarea>
-          </div>
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div class="field-group">
-              <label class="field-label" for="cms-cl-cta-title">Título del llamado</label>
-              <input
-                id="cms-cl-cta-title"
-                pInputText
-                formControlName="cta_title"
-                placeholder="¿Quieres ser nuestro próximo proyecto?"
-              />
+          <div
+            class="grid gap-6 divide-granite-200 lg:grid-cols-2 lg:gap-0 lg:divide-x dark:divide-granite-800"
+          >
+            <div class="flex flex-col gap-4 lg:pr-8">
+              <div class="field-group">
+                <label class="field-label" for="cms-cl-eyebrow">Antetítulo</label>
+                <input
+                  id="cms-cl-eyebrow"
+                  pInputText
+                  formControlName="eyebrow"
+                  placeholder="Clientes"
+                />
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="cms-cl-title">Título de la sección</label>
+                <input
+                  id="cms-cl-title"
+                  pInputText
+                  formControlName="title"
+                  placeholder="Construyendo confianza, proyecto por proyecto."
+                />
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="cms-cl-description">Descripción</label>
+                <textarea
+                  id="cms-cl-description"
+                  pTextarea
+                  formControlName="description"
+                  rows="2"
+                ></textarea>
+              </div>
             </div>
-            <div class="field-group">
-              <label class="field-label" for="cms-cl-cta-description">Texto del llamado</label>
-              <input
-                id="cms-cl-cta-description"
-                pInputText
-                formControlName="cta_description"
-                placeholder="Un especialista te contacta en menos de 24 horas."
-              />
+            <div class="flex flex-col gap-4 lg:pl-8">
+              <div class="field-group">
+                <label class="field-label" for="cms-cl-cta-title">Título del llamado</label>
+                <input
+                  id="cms-cl-cta-title"
+                  pInputText
+                  formControlName="cta_title"
+                  placeholder="¿Quieres ser nuestro próximo proyecto?"
+                />
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="cms-cl-cta-description">Texto del llamado</label>
+                <input
+                  id="cms-cl-cta-description"
+                  pInputText
+                  formControlName="cta_description"
+                  placeholder="Un especialista te contacta en menos de 24 horas."
+                />
+              </div>
             </div>
           </div>
         </div>
       </p-tabpanel>
 
       <p-tabpanel value="marcas">
-        <div class="flex max-w-3xl flex-col gap-4">
-          <div class="grid gap-4" formGroupName="manufacturers_content">
+        <div
+          class="grid gap-6 divide-granite-200 lg:grid-cols-2 lg:gap-0 lg:divide-x dark:divide-granite-800"
+        >
+          <div class="flex flex-col gap-4 lg:pr-8" formGroupName="manufacturers_content">
             <div class="field-group">
               <label class="field-label" for="cms-mf-eyebrow">Antetítulo</label>
-              <input id="cms-mf-eyebrow" pInputText formControlName="eyebrow" placeholder="Marcas" />
+              <input
+                id="cms-mf-eyebrow"
+                pInputText
+                formControlName="eyebrow"
+                placeholder="Marcas"
+              />
             </div>
             <div class="field-group">
               <label class="field-label" for="cms-mf-title">Título de la sección</label>
@@ -277,8 +308,8 @@
             </div>
           </div>
 
-          <div class="field-group">
-            <span class="field-label">Logotipos de marcas</span>
+          <div class="field-group lg:pl-8">
+            <span class="section-heading">Logotipos de marcas</span>
             <app-repeater
               [array]="manufacturers"
               addLabel="Agregar marca"
@@ -333,46 +364,54 @@
       </p-tabpanel>
 
       <p-tabpanel value="ubicacion">
-        <div class="flex max-w-3xl flex-col gap-4" formGroupName="location_content">
+        <div class="flex flex-col gap-4" formGroupName="location_content">
           <p class="text-sm text-granite-500 dark:text-granite-400">
             Textos de la sección de ubicación. La dirección, el teléfono, el correo y el mapa
             provienen de la Marca.
           </p>
-          <div class="field-group">
-            <label class="field-label" for="cms-loc-eyebrow">Antetítulo</label>
-            <input
-              id="cms-loc-eyebrow"
-              pInputText
-              formControlName="eyebrow"
-              placeholder="Ubicación"
-            />
-          </div>
-          <div class="field-group">
-            <label class="field-label" for="cms-loc-title">Título de la sección</label>
-            <input
-              id="cms-loc-title"
-              pInputText
-              formControlName="title"
-              placeholder="Al pie del corredor industrial"
-            />
-          </div>
-          <div class="field-group">
-            <label class="field-label" for="cms-loc-description">Descripción</label>
-            <textarea
-              id="cms-loc-description"
-              pTextarea
-              formControlName="description"
-              rows="2"
-            ></textarea>
-          </div>
-          <div class="field-group">
-            <label class="field-label" for="cms-loc-schedule">Horario de atención</label>
-            <input
-              id="cms-loc-schedule"
-              pInputText
-              formControlName="schedule"
-              placeholder="Lun a vie, 8:00 – 18:00"
-            />
+          <div
+            class="grid gap-6 divide-granite-200 lg:grid-cols-2 lg:gap-0 lg:divide-x dark:divide-granite-800"
+          >
+            <div class="flex flex-col gap-4 lg:pr-8">
+              <div class="field-group">
+                <label class="field-label" for="cms-loc-eyebrow">Antetítulo</label>
+                <input
+                  id="cms-loc-eyebrow"
+                  pInputText
+                  formControlName="eyebrow"
+                  placeholder="Ubicación"
+                />
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="cms-loc-title">Título de la sección</label>
+                <input
+                  id="cms-loc-title"
+                  pInputText
+                  formControlName="title"
+                  placeholder="Al pie del corredor industrial"
+                />
+              </div>
+            </div>
+            <div class="flex flex-col gap-4 lg:pl-8">
+              <div class="field-group">
+                <label class="field-label" for="cms-loc-description">Descripción</label>
+                <textarea
+                  id="cms-loc-description"
+                  pTextarea
+                  formControlName="description"
+                  rows="2"
+                ></textarea>
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="cms-loc-schedule">Horario de atención</label>
+                <input
+                  id="cms-loc-schedule"
+                  pInputText
+                  formControlName="schedule"
+                  placeholder="Lun a vie, 8:00 – 18:00"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </p-tabpanel>
