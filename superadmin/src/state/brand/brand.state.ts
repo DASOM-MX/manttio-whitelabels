@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
 import { catchError, of, tap } from 'rxjs';
-import { BrandService } from '../../http/brand.service';
+import { BrandService } from '../../app/services/http/brand.service';
 import { BrandThemeService } from '../../app/services/theme/brand-theme.service';
 import { LoadBrand, LoadFonts, SaveBrand } from './brand.actions';
 import type { Brand, FontCatalogEntry } from '../../app/data/dtos/brand';

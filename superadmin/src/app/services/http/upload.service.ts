@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
-import type { UploadImageResponse } from '../app/data/dtos/upload';
+import type { UploadImageResponse } from '../../data/dtos/upload';
 
 @Injectable({ providedIn: 'root' })
 export class UploadService {

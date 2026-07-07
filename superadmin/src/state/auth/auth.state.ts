@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
 import { Router } from '@angular/router';
 import { catchError, switchMap, tap, throwError } from 'rxjs';
-import { AuthService } from '../../http/auth.service';
+import { AuthService } from '../../app/services/http/auth.service';
 import { ChangePassword, LoadMe, Login, Logout } from './auth.actions';
 import type { MeResponse, Role, TenantConfig } from '../../app/data/dtos/auth';
 

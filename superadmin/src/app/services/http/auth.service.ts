@@ -6,7 +6,7 @@ import type {
   LoginRequest,
   LoginResponse,
   MeResponse,
-} from '../app/data/dtos/auth';
+} from '../../data/dtos/auth';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {

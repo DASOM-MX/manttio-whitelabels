@@ -16,7 +16,7 @@ import { select, Store } from '@ngxs/store';
 import { AuthState } from '../../../../state/auth/auth.state';
 import { BrandState } from '../../../../state/brand/brand.state';
 import { LoadFonts } from '../../../../state/brand/brand.actions';
-import { UploadService } from '../../../../http/upload.service';
+import { UploadService } from '../../../services/http/upload.service';
 import { BrandThemeService } from '../../../services/theme/brand-theme.service';
 import { ColorScaleService } from '../../../services/theme/color-scale.service';
 import { errorMessage } from '../../../data/utils';

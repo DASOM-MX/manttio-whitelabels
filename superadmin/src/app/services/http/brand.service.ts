@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
-import type { Brand, FontCatalogEntry, SaveBrandRequest } from '../app/data/dtos/brand';
+import type { Brand, FontCatalogEntry, SaveBrandRequest } from '../../data/dtos/brand';
 
 @Injectable({ providedIn: 'root' })
 export class BrandService {
