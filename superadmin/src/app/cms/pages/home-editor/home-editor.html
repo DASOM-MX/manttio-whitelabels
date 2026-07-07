@@ -80,24 +80,33 @@
             >
               <ng-template #row let-ctrl let-i="index">
                 <div class="grid gap-2 sm:grid-cols-3" [formGroup]="ctrl | asGroup">
-                  <input
-                    pInputText
-                    formControlName="value"
-                    [attr.aria-label]="'Valor de la métrica ' + (i + 1)"
-                    placeholder="+120"
-                  />
-                  <input
-                    pInputText
-                    formControlName="unit"
-                    [attr.aria-label]="'Unidad de la métrica ' + (i + 1)"
-                    placeholder="toneladas"
-                  />
-                  <input
-                    pInputText
-                    formControlName="label"
-                    [attr.aria-label]="'Etiqueta de la métrica ' + (i + 1)"
-                    placeholder="instaladas"
-                  />
+                  <div class="field-group">
+                    <label class="field-label" [for]="'cms-badge-value-' + i">Valor</label>
+                    <input
+                      [id]="'cms-badge-value-' + i"
+                      pInputText
+                      formControlName="value"
+                      placeholder="+120"
+                    />
+                  </div>
+                  <div class="field-group">
+                    <label class="field-label" [for]="'cms-badge-unit-' + i">Unidad</label>
+                    <input
+                      [id]="'cms-badge-unit-' + i"
+                      pInputText
+                      formControlName="unit"
+                      placeholder="toneladas"
+                    />
+                  </div>
+                  <div class="field-group">
+                    <label class="field-label" [for]="'cms-badge-label-' + i">Etiqueta</label>
+                    <input
+                      [id]="'cms-badge-label-' + i"
+                      pInputText
+                      formControlName="label"
+                      placeholder="instaladas"
+                    />
+                  </div>
                 </div>
               </ng-template>
             </app-repeater>
