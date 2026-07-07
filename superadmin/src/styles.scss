@@ -103,12 +103,9 @@
            focus:font-semibold focus:text-white;
   }
 
-  /* Active sidebar entry: 2px primary left-accent bar + tinted bg. */
+  /* Active sidebar entry: tinted bg + primary underline on the label. */
   .nav-active {
-    @apply bg-sky-50 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300;
-  }
-  .nav-active::before {
-    content: '';
-    @apply absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-sky-600 dark:bg-sky-400;
+    @apply bg-sky-50 text-sky-800 underline decoration-sky-600 decoration-2 underline-offset-4
+           dark:bg-sky-950/40 dark:text-sky-300 dark:decoration-sky-400;
   }
 }
