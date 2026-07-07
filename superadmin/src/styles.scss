@@ -103,9 +103,12 @@
            focus:font-semibold focus:text-white;
   }
 
-  /* Active sidebar entry: tinted bg + primary underline on the label. */
+  /* Active sidebar entry: tinted bg + primary underline across the whole item. */
   .nav-active {
-    @apply bg-sky-50 text-sky-800 underline decoration-sky-600 decoration-2 underline-offset-4
-           dark:bg-sky-950/40 dark:text-sky-300 dark:decoration-sky-400;
+    @apply bg-sky-50 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300;
+  }
+  .nav-active::after {
+    content: '';
+    @apply absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-sky-600 dark:bg-sky-400;
   }
 }
