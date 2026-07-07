@@ -17,12 +17,12 @@ import { AuthState } from '../../../../state/auth/auth.state';
 import { BrandState } from '../../../../state/brand/brand.state';
 import { LoadFonts } from '../../../../state/brand/brand.actions';
 import { UploadService } from '../../../../http/upload.service';
-import { applyBrandTheme } from '../../../theme/apply-brand';
+import { BrandThemeService } from '../../../services/theme/brand-theme.service';
+import { ColorScaleService } from '../../../services/theme/color-scale.service';
 import { errorMessage } from '../../../data/utils';
 import { FONT_PREVIEW_SIZES } from '../../../model/constants/brand/font-preview-sizes.const';
 import { PRIMARY_STEPS } from '../../../model/constants/brand/primary-steps.const';
 import { SURFACE_STEPS } from '../../../model/constants/brand/surface-steps.const';
-import { contrastRatio, deriveScale, isHex } from '../../derive-scale';
 import { ensureFontLoaded } from '../../font-preview';
 import { ScaleEditor } from '../../components/scale-editor/scale-editor';
 import { ApplyBrandDialog } from '../../components/apply-brand-dialog/apply-brand-dialog';
@@ -60,6 +60,8 @@ export class BrandEditor {
   private store = inject(Store);
   private messages = inject(MessageService);
   private uploads = inject(UploadService);
+  private theme = inject(BrandThemeService);
+  private colorScale = inject(ColorScaleService);
 
   protected readonly PRIMARY_STEPS = PRIMARY_STEPS;
   protected readonly SURFACE_STEPS = SURFACE_STEPS;
@@ -100,8 +102,14 @@ export class BrandEditor {
 
   protected primaryBase = this.fb.nonNullable.control('#3F7A9D');
   protected surfaceBase = this.fb.nonNullable.control('#4C5B5C');
-  protected primaryScale = this.buildScaleGroup([...PRIMARY_STEPS], deriveScale('#3F7A9D', false));
-  protected surfaceScale = this.buildScaleGroup([...SURFACE_STEPS], deriveScale('#4C5B5C', true));
+  protected primaryScale = this.buildScaleGroup(
+    [...PRIMARY_STEPS],
+    this.colorScale.deriveScale('#3F7A9D', false),
+  );
+  protected surfaceScale = this.buildScaleGroup(
+    [...SURFACE_STEPS],
+    this.colorScale.deriveScale('#4C5B5C', true),
+  );
 
   protected readonly imageSlots: { id: ImageSlot; label: string; dark: boolean }[] = [
     { id: 'logo', label: 'Logotipo', dark: false },
@@ -125,11 +133,15 @@ export class BrandEditor {
     // Re-derive full ramps when a base changes (per-step overrides reset — the
     // advanced expander refines a derivation, it doesn't survive a new base).
     this.primaryBase.valueChanges.pipe(takeUntilDestroyed()).subscribe((hex) => {
-      if (isHex(hex)) this.primaryScale.patchValue(deriveScale(hex, false));
+      if (this.colorScale.isHex(hex)) {
+        this.primaryScale.patchValue(this.colorScale.deriveScale(hex, false));
+      }
       this.updateContrast();
     });
     this.surfaceBase.valueChanges.pipe(takeUntilDestroyed()).subscribe((hex) => {
-      if (isHex(hex)) this.surfaceScale.patchValue(deriveScale(hex, true));
+      if (this.colorScale.isHex(hex)) {
+        this.surfaceScale.patchValue(this.colorScale.deriveScale(hex, true));
+      }
       this.updateContrast();
     });
     this.primaryScale.valueChanges
@@ -214,12 +226,12 @@ export class BrandEditor {
   // ── Preview + save ───────────────────────────────────────────────────────
 
   protected previewDraft(): void {
-    applyBrandTheme({ name: this.form.getRawValue().name, colors: this.draftColors() });
+    this.theme.apply({ name: this.form.getRawValue().name, colors: this.draftColors() });
     this.previewing.set(true);
   }
 
   protected revertPreview(): void {
-    applyBrandTheme(this.brand());
+    this.theme.apply(this.brand());
     this.previewing.set(false);
   }
 
@@ -314,12 +326,12 @@ export class BrandEditor {
     const p = this.primaryScale.getRawValue() as Record<string, string>;
     const s = this.surfaceScale.getRawValue() as Record<string, string>;
     const warnings: string[] = [];
-    if (contrastRatio(p['600'], '#FFFFFF') < 4.5) {
+    if (this.colorScale.contrastRatio(p['600'], '#FFFFFF') < 4.5) {
       warnings.push(
         'El primario 600 sobre blanco queda por debajo de 4.5:1 — el texto de botones puede costar leerse.',
       );
     }
-    if (contrastRatio(p['300'], s['950']) < 3) {
+    if (this.colorScale.contrastRatio(p['300'], s['950']) < 3) {
       warnings.push(
         'El primario 300 sobre la superficie 950 queda por debajo de 3:1 — los acentos en modo oscuro pueden perderse.',
       );

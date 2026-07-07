@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
 import { catchError, of, tap } from 'rxjs';
 import { BrandService } from '../../http/brand.service';
-import { applyBrandTheme } from '../../app/theme/apply-brand';
+import { BrandThemeService } from '../../app/services/theme/brand-theme.service';
 import { LoadBrand, LoadFonts, SaveBrand } from './brand.actions';
 import type { Brand, FontCatalogEntry } from '../../app/data/dtos/brand';
 
@@ -22,6 +22,7 @@ export interface BrandStateModel {
 @Injectable()
 export class BrandState {
   private readonly api = inject(BrandService);
+  private readonly theme = inject(BrandThemeService);
 
   @Selector() static brand(s: BrandStateModel): Brand | null {
     return s.brand;
@@ -41,12 +42,12 @@ export class BrandState {
     return this.api.getBrand().pipe(
       tap((brand) => {
         ctx.patchState({ brand, loaded: true });
-        applyBrandTheme(brand);
+        this.theme.apply(brand);
       }),
       // Fail soft: no brand (404/network) → manttio fallbacks keep rendering.
       catchError(() => {
         ctx.patchState({ loaded: true });
-        applyBrandTheme(null);
+        this.theme.apply(null);
         return of(null);
       }),
     );
@@ -58,7 +59,7 @@ export class BrandState {
     return this.api.saveBrand(payload).pipe(
       tap((brand) => {
         ctx.patchState({ brand, saving: false });
-        applyBrandTheme(brand);
+        this.theme.apply(brand);
       }),
       catchError((err) => {
         ctx.patchState({ saving: false });
