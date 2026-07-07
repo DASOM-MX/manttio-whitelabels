@@ -19,6 +19,7 @@ import { LoadFonts } from '../../../../state/brand/brand.actions';
 import { UploadService } from '../../../../http/upload.service';
 import { applyBrandTheme } from '../../../theme/apply-brand';
 import { errorMessage } from '../../../data/utils';
+import { FONT_PREVIEW_SIZES } from '../../../model/constants/brand/font-preview-sizes.const';
 import { PRIMARY_STEPS } from '../../../model/constants/brand/primary-steps.const';
 import { SURFACE_STEPS } from '../../../model/constants/brand/surface-steps.const';
 import { contrastRatio, deriveScale, isHex } from '../../derive-scale';
@@ -62,6 +63,7 @@ export class BrandEditor {
 
   protected readonly PRIMARY_STEPS = PRIMARY_STEPS;
   protected readonly SURFACE_STEPS = SURFACE_STEPS;
+  protected readonly FONT_PREVIEW_SIZES = FONT_PREVIEW_SIZES;
 
   private me = select(AuthState.me);
   protected brand = select(BrandState.brand);
