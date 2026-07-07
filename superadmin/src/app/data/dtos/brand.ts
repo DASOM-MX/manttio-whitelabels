@@ -28,6 +28,7 @@ export interface BrandFont {
 export interface Brand {
   name: string;
   slogan?: string;
+  description?: string; // business blurb — the public site's meta description
   logoUrl?: string; // full logo / wordmark (CDN URL)
   logoDarkUrl?: string; // dark-surface variant; falls back to logoUrl
   isologoUrl?: string; // square mark — favicon source, PDF header
@@ -46,6 +47,7 @@ export interface Brand {
 export interface SaveBrandRequest {
   name: string;
   slogan?: string;
+  description?: string;
   logoKey?: string;
   logoDarkKey?: string;
   isologoKey?: string;

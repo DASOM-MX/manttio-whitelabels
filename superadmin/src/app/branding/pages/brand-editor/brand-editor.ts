@@ -8,6 +8,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
+import { TextareaModule } from 'primeng/textarea';
 import { SelectModule } from 'primeng/select';
 import { MessageService } from 'primeng/api';
 import { LucideEye, LucideImageUp, LucideTriangleAlert, LucideUndo2 } from '@lucide/angular';
@@ -42,6 +43,7 @@ interface ImageState {
   imports: [
     ReactiveFormsModule,
     InputTextModule,
+    TextareaModule,
     SelectModule,
     ScaleEditor,
     ApplyBrandDialog,
@@ -75,6 +77,7 @@ export class BrandEditor {
   protected form = this.fb.nonNullable.group({
     name: ['', Validators.required],
     slogan: [''],
+    description: [''],
     contact: this.fb.nonNullable.group({
       phone: [''],
       whatsapp: [''],
@@ -233,6 +236,7 @@ export class BrandEditor {
     return {
       name: raw.name,
       slogan: raw.slogan || undefined,
+      description: raw.description || undefined,
       logoKey: img.logo.key,
       logoDarkKey: img.logoDark.key,
       isologoKey: img.isologo.key,
@@ -255,6 +259,7 @@ export class BrandEditor {
       {
         name: brand.name,
         slogan: brand.slogan ?? '',
+        description: brand.description ?? '',
         contact: {
           phone: brand.contact?.phone ?? '',
           whatsapp: brand.contact?.whatsapp ?? '',

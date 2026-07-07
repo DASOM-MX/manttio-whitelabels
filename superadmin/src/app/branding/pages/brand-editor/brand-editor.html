@@ -42,7 +42,7 @@
 <form [formGroup]="form" class="mt-5 grid gap-4 xl:grid-cols-2" (ngSubmit)="save()">
   <!-- Identity -->
   <section class="card-section flex flex-col gap-4" aria-labelledby="brand-identity-title">
-    <h2 id="brand-identity-title" class="micro-label">Identidad</h2>
+    <h2 id="brand-identity-title" class="section-heading">Identidad</h2>
 
     <div class="field-group">
       <label class="field-label" for="brand-name">Nombre<span aria-hidden="true"> *</span></label>
@@ -55,6 +55,57 @@
         Frase corta bajo el logotipo en el sitio público.
       </p>
     </div>
+    <div class="field-group">
+      <label class="field-label" for="brand-description">Descripción del negocio</label>
+      <textarea
+        id="brand-description"
+        pTextarea
+        formControlName="description"
+        rows="3"
+        class="!min-h-20"
+        placeholder="Qué hace tu negocio, en dos o tres frases."
+      ></textarea>
+      <p class="text-sm text-granite-500 dark:text-granite-400">
+        Aparece en los resultados de búsqueda (meta descripción del sitio público).
+      </p>
+    </div>
+  </section>
+
+  <!-- Colors -->
+  <section class="card-section flex flex-col gap-5" aria-labelledby="brand-colors-title">
+    <h2 id="brand-colors-title" class="section-heading">Colores</h2>
+
+    <app-scale-editor
+      label="Color primario"
+      inputId="brand-primary"
+      [baseControl]="primaryBase"
+      [scaleGroup]="primaryScale"
+      [steps]="PRIMARY_STEPS"
+      [readOnly]="readOnly()"
+    />
+    <app-scale-editor
+      label="Superficie (neutro)"
+      inputId="brand-surface"
+      [baseControl]="surfaceBase"
+      [scaleGroup]="surfaceScale"
+      [steps]="SURFACE_STEPS"
+      [readOnly]="readOnly()"
+    />
+
+    @for (warning of contrastWarnings(); track warning) {
+      <p
+        class="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200"
+        role="status"
+      >
+        <svg lucideTriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true"></svg>
+        {{ warning }}
+      </p>
+    }
+  </section>
+
+  <!-- Logos -->
+  <section class="card-section flex flex-col gap-4" aria-labelledby="brand-logos-title">
+    <h2 id="brand-logos-title" class="section-heading">Logotipos</h2>
 
     <div class="grid gap-4 sm:grid-cols-3">
       @for (slot of imageSlots; track slot.id) {
@@ -97,45 +148,13 @@
     </div>
   </section>
 
-  <!-- Colors -->
-  <section class="card-section flex flex-col gap-5" aria-labelledby="brand-colors-title">
-    <h2 id="brand-colors-title" class="micro-label">Colores</h2>
-
-    <app-scale-editor
-      label="Color primario"
-      inputId="brand-primary"
-      [baseControl]="primaryBase"
-      [scaleGroup]="primaryScale"
-      [steps]="PRIMARY_STEPS"
-      [readOnly]="readOnly()"
-    />
-    <app-scale-editor
-      label="Superficie (neutro)"
-      inputId="brand-surface"
-      [baseControl]="surfaceBase"
-      [scaleGroup]="surfaceScale"
-      [steps]="SURFACE_STEPS"
-      [readOnly]="readOnly()"
-    />
-
-    @for (warning of contrastWarnings(); track warning) {
-      <p
-        class="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200"
-        role="status"
-      >
-        <svg lucideTriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true"></svg>
-        {{ warning }}
-      </p>
-    }
-  </section>
-
   <!-- Typography -->
   <section
     class="card-section flex flex-col gap-4"
     aria-labelledby="brand-fonts-title"
     formGroupName="font"
   >
-    <h2 id="brand-fonts-title" class="micro-label">Tipografía</h2>
+    <h2 id="brand-fonts-title" class="section-heading">Tipografía</h2>
     <p class="text-sm text-granite-600 dark:text-granite-400">
       Se aplica al sitio y a la aplicación de campo; esta administración conserva su propia letra.
     </p>
@@ -191,7 +210,7 @@
 
   <!-- Contact + social -->
   <section class="card-section flex flex-col gap-4" aria-labelledby="brand-contact-title">
-    <h2 id="brand-contact-title" class="micro-label">Contacto y redes</h2>
+    <h2 id="brand-contact-title" class="section-heading">Contacto y redes</h2>
 
     <div class="grid gap-4 sm:grid-cols-2" formGroupName="contact">
       <div class="field-group">
