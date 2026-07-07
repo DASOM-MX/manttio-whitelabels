@@ -1,4 +1,4 @@
 import { Routes } from '@angular/router';
-import { ModuleStub } from '../shared/components/module-stub/module-stub';
+import { BrandEditor } from './pages/brand-editor/brand-editor';
 
-export default [{ path: '', component: ModuleStub, data: { title: 'Marca' } }] satisfies Routes;
+export default [{ path: '', component: BrandEditor }] satisfies Routes;

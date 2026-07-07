@@ -1,0 +1,51 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!busy()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="max-w-11/12"
+  [style]="{ width: '30rem' }"
+  header="Aplicar identidad de marca"
+>
+  <div class="flex flex-col gap-4">
+    <p class="text-sm text-granite-700 dark:text-granite-300">
+      Los cambios se aplican <strong>de inmediato</strong> — no hay borrador:
+    </p>
+    <ul class="list-disc space-y-1 pl-5 text-sm text-granite-700 dark:text-granite-300">
+      <li>El sitio web público se restiliza para todos los visitantes.</li>
+      <li>La aplicación de campo y esta administración cambian de colores y logotipos.</li>
+      <li>Los PDF y correos nuevos usan la identidad actualizada.</li>
+    </ul>
+
+    <label
+      class="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200"
+    >
+      <p-checkbox [formControl]="acknowledge" [binary]="true" inputId="brand-ack" />
+      <span>Entiendo que la nueva identidad se aplica de inmediato en todas las superficies.</span>
+    </label>
+
+    <div class="flex justify-end gap-2">
+      <button type="button" class="btn-neutral" (click)="close()" [disabled]="busy()">
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="btn-primary"
+        (click)="confirm()"
+        [disabled]="!acknowledge.value || busy()"
+      >
+        @if (busy()) {
+          <span
+            class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+            aria-hidden="true"
+          ></span>
+          Aplicando…
+        } @else {
+          Aplicar cambios
+        }
+      </button>
+    </div>
+  </div>
+</p-dialog>

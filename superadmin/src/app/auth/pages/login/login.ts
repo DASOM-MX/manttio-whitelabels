@@ -3,8 +3,9 @@ import { Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
-import { Store } from '@ngxs/store';
+import { select, Store } from '@ngxs/store';
 import { Login as LoginAction } from '../../../../state/auth/auth.actions';
+import { BrandState } from '../../../../state/brand/brand.state';
 import { errorMessage } from '../../../data/utils';
 
 /** Two-panel login (02-app-shell.md §3): 60% clean form / 40% brand panel on
@@ -19,6 +20,11 @@ export class Login {
   private fb = inject(FormBuilder);
   private store = inject(Store);
   private router = inject(Router);
+
+  /** Tenant brand (boot `GET /brand`, 03 §4) — logo + name on the brand
+   *  panel; manttio wordmark only once the fetch settled brandless. */
+  protected brand = select(BrandState.brand);
+  protected brandLoaded = select(BrandState.loaded);
 
   protected form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],

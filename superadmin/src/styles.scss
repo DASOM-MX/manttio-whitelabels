@@ -95,12 +95,11 @@
     @apply text-2xs font-medium uppercase tracking-caps text-granite-500 dark:text-granite-400;
   }
 
-  /* Skip-to-content link (01 Accessibility: skip-links) — visually hidden
-     until focused, then pinned top-left above everything. */
-  .skip-link {
-    @apply sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[1200]
-           focus:rounded-lg focus:bg-sky-700 focus:px-4 focus:py-2 focus:text-sm
-           focus:font-semibold focus:text-white;
+  /* Editor-card section heading — larger and darker than .micro-label, with
+     extra breathing room below. Our owners skew older; the heading has to
+     read at a glance. Whitespace comes from padding, not leading. */
+  .section-heading {
+    @apply pb-3 text-sm font-semibold leading-none uppercase tracking-caps text-granite-800 dark:text-granite-200;
   }
 
   /* Active sidebar entry: tinted bg + 2px primary accent bar — on the right

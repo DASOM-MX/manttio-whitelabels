@@ -85,7 +85,7 @@ Rules for agents:
 |---|---|---|
 | 01 conventions | done (doc) | — |
 | 02 app-shell | **done** (PR: `feature/superadmin-app-shell`) | CP-3 |
-| 03 branding | not-started · **priority: next** | — |
+| 03 branding | **done** (frontend side; branch `feature/superadmin-branding`) | CP-3 |
 | 04 cms | not-started · **priority: next** | — |
 | 05 users | not-started | — |
 | 06 reports | not-started | — |
