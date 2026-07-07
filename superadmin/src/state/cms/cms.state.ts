@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
 import { catchError, tap } from 'rxjs';
-import { CmsService } from '../../http/cms.service';
+import { CmsService } from '../../app/services/http/cms.service';
 import {
   CreateCmsClient,
   DeleteCmsClient,

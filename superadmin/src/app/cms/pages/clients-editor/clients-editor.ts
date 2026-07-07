@@ -14,7 +14,7 @@ import {
   PublishCms,
   UpdateCmsClient,
 } from '../../../../state/cms/cms.actions';
-import { UploadService } from '../../../../http/upload.service';
+import { UploadService } from '../../../services/http/upload.service';
 import { PublishBar } from '../../components/publish-bar/publish-bar';
 import { RichText } from '../../components/rich-text/rich-text';
 import { errorMessage } from '../../../data/utils';
