@@ -35,6 +35,7 @@ One brand object per tenant — the single source of truth for every branded sur
 Brand {
   name,                            // public brand name (never "manttio")
   slogan?,
+  description?,                    // business blurb — the public site's meta description (QA 2026-07-07)
   logoKey,                         // full logo/wordmark — R2 key
   logoDarkKey?,                    // dark-mode variant; falls back to logoKey
   isologoKey,                      // square mark — favicon/PWA-icon source, PDF header
@@ -43,7 +44,7 @@ Brand {
     surface: { 0: …, 950: … }      // run palette math
   },
   contact: { phone?, whatsapp?, email?, address? },
-  social?: { facebook?, instagram?, ... },
+  social?: { facebook?, instagram?, tiktok?, googleMaps?, ... },  // googleMaps = Google Business pin URL (QA 2026-07-07)
   font?: {
     body: string,                  // catalog code — default 'work_sans'
     heading?: string               // catalog code — falls back to body; default 'rubik'
