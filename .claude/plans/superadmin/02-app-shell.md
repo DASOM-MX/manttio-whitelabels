@@ -1,11 +1,12 @@
 # 02 — App shell
 
-> **Status:** not-started
-> **Owner:** — · **Last updated:** 2026-07-05
+> **Status:** done
+> **Owner:** branch `feature/superadmin-app-shell` · **Last updated:** 2026-07-06
 
 The platform layer every module plugs into: build setup, auth gate, layout, navigation,
-theming, HTTP plumbing. **This is the current PR's branch (`feature/superadmin-UI-shell`).**
-No module agent starts until CP-3 here is done.
+theming, HTTP plumbing. **Implemented on `feature/superadmin-app-shell`** (the old
+`feature/superadmin-UI-shell` branch predates the plan-suite move and holds only docs).
+No module agent starts until CP-3 here is done — **CP-3 is done.**
 
 ---
 
@@ -138,54 +139,70 @@ borders-not-shadows surface chrome from the Design language.)
 ## Checkpoints
 
 ### CP-1 — Platform reset
-- [ ] SSR scaffold stripped (per §2); plain browser build, `dist/superadmin/browser/`
-- [ ] Zoneless change detection enabled
-- [ ] NGXS installed (`@ngxs/store@^21` + `@ngxs/storage-plugin@^21`, per §2)
-- [ ] Tailwind 3.4 wired into the build
-- [ ] `npm run build` green
+- [x] SSR scaffold stripped (per §2); plain browser build, `dist/superadmin/browser/`
+- [x] Zoneless change detection enabled
+- [x] NGXS installed (`@ngxs/store@^21` + `@ngxs/storage-plugin@^21`, per §2)
+- [x] Tailwind 3.4 wired into the build (postcss.config.js, palette via brand CSS vars)
+- [x] `npm run build` green (896 kB initial, within budget)
 
 ### CP-2 — Theming + conventions port
-- [ ] `tailwind.config.js` ported (palette, semantic tokens, dark class, max-w-11/12)
-- [ ] **Commissioner Variable** self-hosted (`@fontsource-variable/commissioner`,
-      preloaded) + `sans`/`data` stacks per 01 Typography; tnum check on a sample
-      numeric column (fallback: Atkinson Hyperlegible for `data`)
-- [ ] **`lucide-angular`** installed + icon conventions wired (outlined-only, stroke-2,
-      `size-4`/`size-5` — 01 Design language); no PrimeIcons in own templates
-- [ ] **`shared/motion.ts`**: MOTION tokens (150/220/320ms), easings, stagger helper,
-      `prefers-reduced-motion` guard; route-enter animation on the layout
-- [ ] Global classes ported at the **compact scale**: `.field-input` = `h-12`
+- [x] `tailwind.config.js` ported (palette, semantic tokens, dark class, max-w-11/12; sky/granite resolve through `--brand-primary-*`/`--brand-surface-*` CSS vars with manttio fallbacks — §5 whitelabel twist)
+- [x] **Commissioner Variable** self-hosted (`@fontsource-variable/commissioner`)
+      + `sans`/`data` stacks per 01 Typography; **tnum check done 2026-07-06:
+      Commissioner tnum is a no-op → fallback taken, `font-data` heads with
+      Atkinson Hyperlegible (tnum verified tabular by measurement)**
+- [x] **`@lucide/angular`** installed (maintained successor of `lucide-angular`) +
+      icon conventions wired (outlined-only, stroke-2, `size-4`/`size-5` — 01 Design
+      language); no PrimeIcons anywhere (not even the CSS import)
+- [x] **Motion system** (revised 2026-07-06 — Angular `animate.enter`/`animate.leave`
+      + `src/animations.scss`, no anime.js): tokens as CSS custom properties
+      (150/220/320ms), easings, `.anim-stagger` (30ms cap 8),
+      `prefers-reduced-motion` guard; route-enter animation replayed by the layout
+- [x] Global classes ported at the **compact scale**: `.field-input` = `h-12`
       (superadmin deviation, 01), compact opt-down `!h-10`; borders-not-shadows card
-      chrome
-- [ ] `styles.scss` globals ported
-- [ ] `manttio-preset.ts` + PrimeNG providers (Aura, cssLayer, darkModeSelector)
-- [ ] `src/theme/_index.scss` + initial override sheets
-- [ ] `AppState` dark mode toggle working end-to-end (persisted, `<html>.app-dark`)
-- [ ] `data/utils.ts` helpers ported
+      chrome; `.micro-label`, `.skip-link`, `.nav-active` added
+- [x] `styles.scss` globals ported
+- [x] `manttio-preset.ts` + PrimeNG providers (Aura via `@primeuix/themes`, cssLayer, darkModeSelector)
+- [x] `src/theme/_index.scss` + override sheets (inputtext, password, textarea, inputnumber, select, datepicker, checkbox, button, tag, table+paginator, dialog, toast, popover)
+- [x] `AppState` dark mode toggle working end-to-end (persisted, `<html>.app-dark`)
+- [x] `data/utils.ts` helpers ported (`toParams`, `errorMessage`)
 
 ### CP-3 — Auth + gated layout (gate for module agents)
-- [ ] `AuthState` + login page (**two-panel 60/40 spec, §3**: brand panel w/ dark
+- [x] `AuthState` + login page (**two-panel 60/40 spec, §3**: brand panel w/ dark
       primary bg, clean email+password form, contact-admin reset disclaimer) +
       interceptor (401 redirect) + `authGuard`
-- [ ] `/auth/me` on boot + post-login → `AuthState`; splash until resolved
-- [ ] Forced-change dialog (`mustChangePassword`, §3): unskippable modal →
+- [x] `/auth/me` on boot + post-login → `AuthState`; splash until resolved (only `auth.token` persists — `me` refetched every boot)
+- [x] Forced-change dialog (`mustChangePassword`, §3): unskippable modal →
       `POST /auth/password` → into the shell
-- [ ] `access.ts` matrix + central `canMatch` guard reading route `data`
-- [ ] `AuthenticatedLayout`: sidebar/topbar, mobile drawer, scroll reset, **nav filtered
-      by config + role** (verify technician sees only My reports / My warehouse /
-      Stock lookup)
-- [ ] Dashboard stub page (`dashboard/pages/dashboard/`, §4): empty state + card-slot
-      regions; default landing route owner/admin/office (technicians land on Calendar)
-- [ ] Lazy route stubs for all module areas (branding, cms, users, reports, templates,
+- [x] `access.ts` matrix + central `canMatch` guard reading route `data` (guards short-circuit when no token so anonymous hits reach /login)
+- [x] `AuthenticatedLayout`: sidebar/topbar, mobile drawer, scroll reset, **nav filtered
+      by config + role** (verified: technician sees exactly Calendario / Mis reportes /
+      Mi almacén / Consulta de stock; drops Calendario without `scheduling`)
+- [x] Dashboard stub page (`dashboard/pages/dashboard/`, §4): empty state + card-slot
+      regions; default landing route owner/admin/office (technicians land on Calendar,
+      or Reports when the tenant lacks `scheduling`)
+- [x] Lazy route stubs for all module areas (branding, cms, users, reports, templates,
       billing, customers + equipment, contracts, calendar, wms) with
       `data: { module, roles }` declared
-- [ ] Global toast + confirm dialog mounted; 403 toast handling
-- [ ] A11y shell infrastructure: skip-to-content link, global `:focus-visible` ring,
-      one-h1-per-page pattern, `min-h-dvh` layout, container max-width constant
-      (01 Accessibility + Layout & responsive)
-- [ ] `public/_redirects` SPA catch-all
-- [ ] Build green; manual pass: login as each role → nav matches the matrix
+- [x] Global toast + confirm dialog mounted; 403 toast handling
+- [x] A11y shell infrastructure: skip-to-content link, global `:focus-visible` ring,
+      one-h1-per-page pattern, `h-dvh` layout w/ inner `<main>` as the single scroll
+      region, container max-width `max-w-7xl` (01 Accessibility + Layout & responsive)
+- [x] `public/_redirects` SPA catch-all
+- [x] Build green; role pass done headlessly 2026-07-06 (Playwright vs a mock
+      backend): 19/19 — anonymous redirect, 401 inline error, per-role landing
+      routes, nav matrix for owner/admin/office/technician, config-flag hiding
+      (billing/cms/wms off), direct-URL bounces, forced-password dialog
+      (appears, ESC blocked, submit clears)
 
 ## Open decisions / asks
+- **Zoneless fallback (user call, 2026-07-06):** stay zoneless (frontend parity;
+  signals + PrimeNG 21 update correctly — the only timing artifacts seen were
+  test-harness races, not UI defects). **If real update gaps appear in usage,
+  reintroducing the Angular zone is sanctioned**: add the `zone.js` polyfill to
+  `angular.json` + swap `provideZonelessChangeDetection()` for
+  `provideZoneChangeDetection()` in `app.config.ts` — confined to the shell,
+  no component changes needed.
 - ~~NGXS-on-Angular-21 compat~~ — **resolved 2026-07-05:** NGXS v21 supports Angular 21;
   pin `@ngxs/*@^21` (see §2).
 - ~~SSR vs CSR~~ — **resolved 2026-07-05: CSR now, SSR when client volume justifies it**

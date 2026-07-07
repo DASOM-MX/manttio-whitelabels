@@ -1,0 +1,103 @@
+/* Motion system — CSS keyframes driven by Angular's native `animate.enter` /
+   `animate.leave` class bindings (decided 2026-07-06; supersedes the original
+   anime.js plan — the deprecated `@angular/animations` package is not used).
+
+   Tokens (01-conventions Design language):
+     fast 150ms — micro feedback / exits
+     base 220ms — enter/exit, accordions, reorder
+     slow 320ms — route/page content enter (fade + 6px rise)
+   Enters ease out, exits ease in, exits faster than enters. List stagger is
+   30ms per item, capped at ~8 items. Everything collapses under
+   `prefers-reduced-motion`. */
+
+:root {
+  --motion-fast: 150ms;
+  --motion-base: 220ms;
+  --motion-slow: 320ms;
+  --ease-enter: cubic-bezier(0.33, 1, 0.68, 1); /* easeOutCubic */
+  --ease-exit: cubic-bezier(0.32, 0, 0.67, 0); /* easeInCubic */
+}
+
+/* Enter keyframes declare only `from` and run with fill `backwards`: the
+   element's natural styles are the end state, so nothing (especially no
+   transform) lingers after the animation — a filled transform would turn the
+   animated container into the containing block for `position: fixed`
+   descendants and break PrimeNG overlays rendered inside it. */
+@keyframes anim-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes anim-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes anim-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes anim-drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+/* Route/page content enter — re-triggered by the layout on NavigationEnd. */
+.anim-page-enter {
+  animation: anim-rise-in var(--motion-slow) var(--ease-enter) backwards;
+}
+
+/* Generic element enter/exit — pair with `animate.enter="anim-enter"` /
+   `animate.leave="anim-leave"`. */
+.anim-enter {
+  animation: anim-rise-in var(--motion-base) var(--ease-enter) backwards;
+}
+.anim-fade-enter {
+  animation: anim-fade-in var(--motion-base) var(--ease-enter) backwards;
+}
+.anim-leave {
+  animation: anim-fade-out var(--motion-fast) var(--ease-exit) both;
+}
+
+/* Mobile nav drawer. */
+.anim-drawer-enter {
+  animation: anim-drawer-in var(--motion-base) var(--ease-enter) backwards;
+}
+.anim-drawer-leave {
+  animation: anim-fade-out var(--motion-fast) var(--ease-exit) both;
+}
+
+/* List stagger: 30ms per item, capped at 8 — items past the cap share the
+   last delay so long lists don't crawl. */
+.anim-stagger > * {
+  animation: anim-rise-in var(--motion-base) var(--ease-enter) backwards;
+}
+@for $i from 1 through 8 {
+  .anim-stagger > :nth-child(#{$i}) {
+    animation-delay: #{($i - 1) * 30}ms;
+  }
+}
+.anim-stagger > :nth-child(n + 9) {
+  animation-delay: 240ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-page-enter,
+  .anim-enter,
+  .anim-fade-enter,
+  .anim-leave,
+  .anim-drawer-enter,
+  .anim-drawer-leave,
+  .anim-stagger > * {
+    animation: none !important;
+  }
+}

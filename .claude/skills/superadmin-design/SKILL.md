@@ -18,7 +18,8 @@ from decoration.
 
 1. **No emojis. Anywhere.** Not in templates, empty states, toasts, placeholder copy, or
    comments that render. Icons carry all iconography.
-2. **Outlined icons only — `lucide-angular`.** Never PrimeIcons in our own templates
+2. **Outlined icons only — `@lucide/angular`** (the maintained successor of
+   `lucide-angular`). Never PrimeIcons in our own templates
    (PrimeNG's internal chevrons/close glyphs are the only tolerated appearance), never
    filled/duotone sets, never inline SVG one-offs when a Lucide glyph exists.
    Defaults: `size-4` inline with text, `size-5` in nav/buttons-only contexts,
@@ -26,8 +27,12 @@ from decoration.
 3. **Typeface is Commissioner** (variable, self-hosted `@fontsource-variable/commissioner`).
    400 body · 500 labels/buttons · 600–700 headings. Numeric table/money cells use the
    `font-data` stack with `tnum`.
-4. **anime.js is the only animation tool.** No CSS keyframes, no Angular animations.
-   Always respect `prefers-reduced-motion` (skip the animation, land in the end state).
+4. **Motion = Angular's native `animate.enter`/`animate.leave` + `src/animations.scss`**
+   (revised 2026-07-06; supersedes the original anime.js mandate). Keyframes and
+   tokens live in `animations.scss` only — no anime.js, no deprecated
+   `@angular/animations` package, no ad-hoc keyframes in component styles.
+   Always respect `prefers-reduced-motion` (the shared classes already collapse
+   under the media query — use them instead of hand-rolling).
 5. **No AI-slop aesthetics.** This is a professional tool and must read as one —
    clients should never suspect "AI-generated product." Banned outright: glowing /
    colored drop shadows (`shadow-*` with color, `box-shadow` halos), neon gradients,
@@ -72,20 +77,24 @@ from decoration.
 
 ## Motion — fluid, brief, purposeful
 
-Tokens (put in `shared/motion.ts`, import everywhere — never hardcode durations):
+Tokens live as CSS custom properties in `src/animations.scss` (revised 2026-07-06 —
+Angular `animate.enter`/`animate.leave` classes, not anime.js). Never hardcode
+durations in components:
 
 | Token | ms | Use |
 |---|---|---|
-| `MOTION.fast` | 150 | micro feedback (chip toggles, icon swaps) |
-| `MOTION.base` | 220 | element enter/exit, accordions, repeater reorder |
-| `MOTION.slow` | 320 | route/page content enter |
+| `--motion-fast` | 150 | micro feedback (chip toggles, icon swaps), exits |
+| `--motion-base` | 220 | element enter/exit, accordions, repeater reorder |
+| `--motion-slow` | 320 | route/page content enter |
 
-- Easing: `easeOutCubic` for enters, `easeInCubic` for exits.
-- Route/page enter: fade in + `translateY(6px → 0)` on the page container.
-- List/table appear: stagger 30ms, cap at ~8 items (rest appear instantly).
-- Hover/focus states are CSS transitions (Tailwind `transition-colors`), not anime.js.
+- Easing: `--ease-enter` (easeOutCubic) for enters, `--ease-exit` (easeInCubic) for exits.
+- Route/page enter: `.anim-page-enter` (fade + 6px rise) — the layout replays it per navigation.
+- Element enter/exit: `animate.enter="anim-enter"` / `animate.leave="anim-leave"`.
+- List/table appear: `.anim-stagger` on the container — 30ms per item, capped at 8.
+- Hover/focus states are CSS transitions (Tailwind `transition-colors`), not keyframes.
 - Dialogs/popovers: PrimeNG's own show/hide — do not double-animate them.
-- Every anime.js call goes through the reduced-motion guard in `shared/motion.ts`.
+- All shared animation classes collapse under `prefers-reduced-motion` — add new
+  keyframes to `animations.scss` inside the same guard, never in component styles.
 
 ## Animation (MEDIUM)
 
@@ -105,7 +114,8 @@ Tokens (put in `shared/motion.ts`, import everywhere — never hardcode duration
 - **parallax-subtle** — parallax sparingly (rarely fits this console); must respect
   reduced-motion, never disorient (Apple HIG).
 - **spring-physics** — prefer natural physics curves for gesture-driven motion
-  (anime.js `spring()`); standard enter/exit keeps the cubic tokens (Apple HIG).
+  (CSS `linear()` spring approximations if ever needed); standard enter/exit keeps
+  the cubic tokens (Apple HIG).
 - **exit-faster-than-enter** — exits ~60–70% of enter duration: `base` 220ms enter
   pairs with the 150ms `fast` exit (MD motion).
 - **stagger-sequence** — stagger list/grid entrances 30–50ms per item (ours: 30ms,

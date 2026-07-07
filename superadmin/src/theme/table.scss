@@ -1,0 +1,118 @@
+/* PrimeNG Table — compact operations-console density (01 Design language):
+   hairline borders, micro-label headers, 13–14px cell text, tabular numerals
+   via `font-data` on numeric columns (module templates opt in per column). */
+.p-datatable {
+  @apply block w-full max-w-full bg-white border border-granite-200 rounded-xl overflow-hidden
+         dark:bg-granite-900 dark:border-granite-800;
+}
+
+/* Wrappers PrimeNG always renders but that should stay hidden until active. */
+.p-datatable-mask,
+.p-datatable-loading-overlay {
+  @apply hidden;
+}
+.p-datatable-mask.p-overlay-mask,
+.p-datatable-loading-overlay.p-component-overlay {
+  @apply absolute inset-0 flex items-center justify-center bg-white/70 z-20 dark:bg-granite-950/70;
+}
+
+.p-datatable-table-container {
+  @apply w-full max-w-full overflow-x-auto;
+}
+.p-datatable-table {
+  @apply w-full border-collapse;
+}
+.p-datatable-thead {
+  @apply bg-granite-50 dark:bg-granite-900;
+
+  > tr > th {
+    @apply px-4 py-3 text-left micro-label whitespace-nowrap border-b border-granite-200 dark:border-granite-800;
+
+    &.p-sortable-column {
+      @apply cursor-pointer select-none;
+
+      &:hover {
+        @apply bg-granite-100 dark:bg-granite-800;
+      }
+    }
+  }
+}
+.p-sortable-column-icon {
+  @apply ml-1 inline-block align-middle size-3.5 text-sky-600 dark:text-sky-400;
+}
+.p-datatable-sort-badge {
+  @apply ml-1 inline-flex items-center justify-center size-4 rounded-full bg-sky-600 text-white text-2xs font-bold;
+}
+.p-datatable-tbody {
+  @apply bg-white dark:bg-granite-900;
+
+  > tr {
+    @apply transition-colors duration-100 border-t border-granite-200 dark:border-granite-800;
+
+    &:first-child {
+      @apply border-t-0;
+    }
+    &:hover {
+      @apply bg-sky-50 dark:bg-granite-800;
+    }
+    &:active {
+      @apply bg-sky-100 dark:bg-granite-700;
+    }
+    &.p-row-selected {
+      @apply bg-sky-100 dark:bg-granite-700;
+    }
+    &.p-datatable-emptymessage {
+      @apply hover:bg-transparent dark:hover:bg-transparent;
+
+      > td {
+        @apply px-5 py-12 text-center text-base text-granite-700 whitespace-normal dark:text-granite-300;
+      }
+    }
+    > td {
+      @apply px-4 py-2.5 whitespace-nowrap text-sm text-granite-900 dark:text-granite-100;
+    }
+  }
+}
+
+/* Paginator (rendered when [paginator]="true") */
+.p-paginator {
+  @apply flex items-center justify-end gap-1.5 px-4 py-3 border-t border-granite-200 bg-white
+         dark:bg-granite-900 dark:border-granite-800;
+}
+.p-paginator-page,
+.p-paginator-prev,
+.p-paginator-next,
+.p-paginator-first,
+.p-paginator-last {
+  @apply size-9 inline-flex items-center justify-center rounded-lg text-sm font-semibold font-data tabular-nums text-granite-800 hover:bg-sky-50 cursor-pointer transition-colors
+         dark:text-granite-200 dark:hover:bg-granite-800;
+
+  &.p-paginator-page-selected {
+    @apply bg-sky-700 text-white font-bold hover:bg-sky-800 dark:bg-sky-600 dark:hover:bg-sky-500;
+  }
+  &.p-disabled {
+    @apply opacity-30 cursor-not-allowed;
+  }
+}
+
+/* Compact "rows per page" select — inherits .p-select → .field-input by
+   default. Shrink it to match the paginator buttons (compact opt-down). */
+.p-paginator .p-select {
+  @apply w-auto !h-10 px-3 py-1.5 text-sm;
+}
+.p-paginator .p-select-label {
+  @apply pr-1;
+}
+
+/* Caption / footer slots — collapse when empty. */
+.p-datatable-header:empty,
+.p-datatable-footer:empty {
+  @apply hidden;
+}
+.p-datatable-header {
+  @apply bg-granite-50 dark:bg-granite-900;
+}
+.p-datatable-footer {
+  @apply px-4 py-3 border-t border-granite-200 bg-granite-50
+         dark:bg-granite-900 dark:border-granite-800;
+}
