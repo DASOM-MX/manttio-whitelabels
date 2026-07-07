@@ -9,6 +9,7 @@ import {
 } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
+import { TabsModule } from 'primeng/tabs';
 import { MessageService } from 'primeng/api';
 import { select, Store } from '@ngxs/store';
 import { CmsState } from '../../../../state/cms/cms.state';
@@ -28,6 +29,7 @@ import type { CmsHome } from '../../../data/dtos/cms';
     ReactiveFormsModule,
     InputTextModule,
     TextareaModule,
+    TabsModule,
     Repeater,
     PublishBar,
     AsFormControlPipe,

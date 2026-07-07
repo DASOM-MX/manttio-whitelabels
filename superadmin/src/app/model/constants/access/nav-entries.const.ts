@@ -43,7 +43,7 @@ export const NAV: NavEntry[] = [
     route: '/cms',
     module: 'cms',
     children: [
-      { label: 'Contenido', route: '/cms/home' },
+      { label: 'Home', route: '/cms/home' },
       { label: 'Clientes', route: '/cms/clients' },
     ],
   },
