@@ -107,12 +107,11 @@
   <section class="card-section flex flex-col gap-4" aria-labelledby="brand-logos-title">
     <h2 id="brand-logos-title" class="section-heading">Logotipos</h2>
 
-    <div class="grid gap-4 sm:grid-cols-3">
+    <div class="flex flex-col gap-4">
       @for (slot of imageSlots; track slot.id) {
-        <div class="field-group">
-          <span class="field-label">{{ slot.label }}</span>
+        <div class="flex items-center gap-4">
           <div
-            class="flex h-24 items-center justify-center overflow-hidden rounded-lg border border-granite-200 dark:border-granite-800"
+            class="flex h-24 w-44 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-granite-200 dark:border-granite-800"
             [class.bg-granite-900]="slot.dark"
             [class.bg-granite-50]="!slot.dark"
           >
@@ -124,25 +123,30 @@
               >
             }
           </div>
-          @if (!readOnly()) {
-            <label
-              class="inline-flex cursor-pointer items-center gap-2 self-start text-sm font-medium text-sky-700 transition-colors hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
-            >
-              <svg lucideImageUp class="size-4" aria-hidden="true"></svg>
-              @if (images()[slot.id].uploading) {
-                Subiendo…
-              } @else {
-                Subir imagen
-              }
-              <input
-                type="file"
-                class="sr-only"
-                accept="image/png,image/svg+xml,image/webp"
-                (change)="onFile(slot.id, $event)"
-                [disabled]="images()[slot.id].uploading"
-              />
-            </label>
-          }
+          <div class="flex min-w-0 flex-col gap-1.5">
+            <span class="field-label">{{ slot.label }}</span>
+            @if (!readOnly()) {
+              <!-- relative: anchors the sr-only file input, which otherwise
+                   positions against the document and adds phantom page scroll -->
+              <label
+                class="relative inline-flex cursor-pointer items-center gap-2 self-start text-sm font-medium text-sky-700 transition-colors hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
+              >
+                <svg lucideImageUp class="size-4" aria-hidden="true"></svg>
+                @if (images()[slot.id].uploading) {
+                  Subiendo…
+                } @else {
+                  Subir imagen
+                }
+                <input
+                  type="file"
+                  class="sr-only"
+                  accept="image/png,image/svg+xml,image/webp"
+                  (change)="onFile(slot.id, $event)"
+                  [disabled]="images()[slot.id].uploading"
+                />
+              </label>
+            }
+          </div>
         </div>
       }
     </div>
