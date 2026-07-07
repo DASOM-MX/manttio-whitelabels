@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
 import { catchError, tap } from 'rxjs';
-import { UsersService } from '../../http/users.service';
+import { UsersService } from '../../app/services/http/users.service';
 import {
   ClearTempPassword,
   CreateUser,
