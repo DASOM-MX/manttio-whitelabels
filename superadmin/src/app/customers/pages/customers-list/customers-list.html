@@ -81,6 +81,12 @@
         <th scope="col">Estado</th>
         <th scope="col">Origen</th>
         <th scope="col">Etiquetas</th>
+        @if (isLeadsView) {
+          <th scope="col">Seguimiento</th>
+        }
+        @if (isBlacklistView) {
+          <th scope="col">Motivo</th>
+        }
         <th scope="col">RFC</th>
         <th scope="col">Alta</th>
         <th scope="col"><span class="sr-only">Acciones</span></th>
@@ -119,10 +125,44 @@
             }
           </div>
         </td>
+        @if (isLeadsView) {
+          <td>
+            @if (customer.nextFollowUpAt) {
+              @if (customer.nextFollowUpAt | isOverdue) {
+                <span
+                  class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 font-data text-xs font-semibold tabular-nums text-red-900 ring-1 ring-red-300"
+                  >{{ customer.nextFollowUpAt | slice: 0 : 10 }}</span
+                >
+              } @else {
+                <span class="font-data text-sm tabular-nums">{{
+                  customer.nextFollowUpAt | slice: 0 : 10
+                }}</span>
+              }
+            } @else {
+              <span class="text-granite-400">—</span>
+            }
+          </td>
+        }
+        @if (isBlacklistView) {
+          <td class="max-w-56 whitespace-normal text-sm">{{ customer.blacklistReason || '—' }}</td>
+        }
         <td class="font-data tabular-nums">{{ customer.fiscal?.rfc || '—' }}</td>
         <td class="font-data tabular-nums">{{ customer.createdAt | slice: 0 : 10 }}</td>
         <td class="w-32" (click)="$event.stopPropagation()">
           <div class="flex justify-end gap-1">
+            @if (isLeadsView || isBlacklistView) {
+              <button
+                type="button"
+                class="inline-flex size-9 items-center justify-center rounded-md text-emerald-700 transition-colors hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+                (click)="openConvert(customer)"
+                [attr.aria-label]="
+                  (isBlacklistView ? 'Quitar de lista negra a ' : 'Convertir a activo a ') +
+                  customer.name
+                "
+              >
+                <svg lucideUserCheck class="size-4" aria-hidden="true"></svg>
+              </button>
+            }
             <a
               [routerLink]="['/customers', customer.id]"
               class="inline-flex size-9 items-center justify-center rounded-md text-granite-600 transition-colors hover:bg-granite-100 hover:text-granite-900 dark:text-granite-400 dark:hover:bg-granite-800 dark:hover:text-granite-100"
@@ -151,7 +191,7 @@
     </ng-template>
     <ng-template #emptymessage>
       <tr class="p-datatable-emptymessage">
-        <td colspan="8">
+        <td colspan="10">
           <span class="inline-flex flex-col items-center gap-2">
             <svg lucideBuilding2 class="size-6 text-granite-400" aria-hidden="true"></svg>
             Sin clientes con esos filtros.
@@ -163,3 +203,4 @@
 </div>
 
 <app-delete-customer-dialog #deleteDialog (deleted)="refresh()" />
+<app-change-status-dialog #statusDialog (changed)="refresh()" />

@@ -3,14 +3,19 @@ import { State, Action, Selector, StateContext } from '@ngxs/store';
 import { catchError, tap } from 'rxjs';
 import { CustomersService } from '../../app/services/http/customers.service';
 import {
+  AddInteraction,
+  ChangeCustomerStatus,
   CreateCustomer,
   DeleteCustomer,
   LoadCustomer,
   LoadCustomers,
+  LoadInteractions,
   SaveCustomerContacts,
+  SetFollowUp,
   UpdateCustomer,
 } from './customers.actions';
 import type { Customer, CustomerListQuery } from '../../app/data/dtos/customer';
+import type { Interaction } from '../../app/data/dtos/interaction';
 
 export interface CustomersStateModel {
   items: Customer[];
@@ -19,6 +24,11 @@ export interface CustomersStateModel {
   selected: Customer | null;
   selectedError: boolean;
   query: CustomerListQuery;
+  /** Timeline of the selected customer (08 §2), newest-first, paged. */
+  interactions: Interaction[];
+  interactionsTotal: number;
+  interactionsPage: number;
+  interactionsLoading: boolean;
 }
 
 @State<CustomersStateModel>({
@@ -30,6 +40,10 @@ export interface CustomersStateModel {
     selected: null,
     selectedError: false,
     query: {},
+    interactions: [],
+    interactionsTotal: 0,
+    interactionsPage: 1,
+    interactionsLoading: false,
   },
 })
 @Injectable()
@@ -51,6 +65,16 @@ export class CustomersState {
   @Selector() static selectedError(s: CustomersStateModel): boolean {
     return s.selectedError;
   }
+  @Selector() static interactions(s: CustomersStateModel): Interaction[] {
+    return s.interactions;
+  }
+  @Selector() static interactionsTotal(s: CustomersStateModel): number {
+    return s.interactionsTotal;
+  }
+  @Selector() static interactionsLoading(s: CustomersStateModel): boolean {
+    return s.interactionsLoading;
+  }
+
   /** Distinct tag set from the loaded rows — feeds the tags filter and the
    *  form's autocomplete until a dedicated endpoint exists (07 open ask). */
   @Selector() static knownTags(s: CustomersStateModel): string[] {
@@ -108,6 +132,62 @@ export class CustomersState {
         ctx.patchState({
           selected: c,
           items: ctx.getState().items.map((x) => (x.id === id ? c : x)),
+        }),
+      ),
+    );
+  }
+
+  @Action(ChangeCustomerStatus)
+  changeStatus(ctx: StateContext<CustomersStateModel>, { id, payload }: ChangeCustomerStatus) {
+    return this.api.changeStatus(id, payload).pipe(
+      tap((c) =>
+        ctx.patchState({
+          selected: ctx.getState().selected?.id === id ? c : ctx.getState().selected,
+          items: ctx.getState().items.map((x) => (x.id === id ? c : x)),
+        }),
+      ),
+    );
+  }
+
+  @Action(SetFollowUp)
+  setFollowUp(ctx: StateContext<CustomersStateModel>, { id, nextFollowUpAt }: SetFollowUp) {
+    return this.api.update(id, { nextFollowUpAt }).pipe(
+      tap((c) =>
+        ctx.patchState({
+          selected: ctx.getState().selected?.id === id ? c : ctx.getState().selected,
+          items: ctx.getState().items.map((x) => (x.id === id ? c : x)),
+        }),
+      ),
+    );
+  }
+
+  @Action(LoadInteractions)
+  loadInteractions(ctx: StateContext<CustomersStateModel>, { customerId, page }: LoadInteractions) {
+    ctx.patchState({ interactionsLoading: true });
+    return this.api.listInteractions(customerId, page).pipe(
+      tap(({ items, total }) =>
+        ctx.patchState({
+          // page 1 replaces (read-your-writes reload); later pages append.
+          interactions: page === 1 ? items : [...ctx.getState().interactions, ...items],
+          interactionsTotal: total,
+          interactionsPage: page,
+          interactionsLoading: false,
+        }),
+      ),
+      catchError((err) => {
+        ctx.patchState({ interactionsLoading: false });
+        throw err;
+      }),
+    );
+  }
+
+  @Action(AddInteraction)
+  addInteraction(ctx: StateContext<CustomersStateModel>, { customerId, payload }: AddInteraction) {
+    return this.api.addInteraction(customerId, payload).pipe(
+      tap((entry) =>
+        ctx.patchState({
+          interactions: [entry, ...ctx.getState().interactions],
+          interactionsTotal: ctx.getState().interactionsTotal + 1,
         }),
       ),
     );

@@ -13,6 +13,7 @@ import {
   LucidePencil,
   LucidePlus,
   LucideTrash2,
+  LucideUserCheck,
 } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { CustomersState } from '../../../../state/customers/customers.state';
@@ -26,12 +27,10 @@ import {
   CustomerStatusSeverityPipe,
 } from '../../../pipes/customer-status.pipe';
 import { DeleteCustomerDialog } from '../../components/delete-customer-dialog/delete-customer-dialog';
-import type {
-  Customer,
-  CustomerListQuery,
-  CustomerSource,
-  CustomerStatus,
-} from '../../../data/dtos/customer';
+import { ChangeStatusDialog } from '../../../crm/components/change-status-dialog/change-status-dialog';
+import { IsOverduePipe } from '../../../pipes/interaction.pipe';
+import { CustomerStatus } from '../../../data/dtos/customer';
+import type { Customer, CustomerListQuery, CustomerSource } from '../../../data/dtos/customer';
 
 /** Clients directory (07 §3). The `/customers/leads` and
  *  `/customers/blacklist` nav children reuse this page with a preset status
@@ -54,12 +53,15 @@ import type {
     CustomerStatusLabelPipe,
     CustomerStatusSeverityPipe,
     CustomerSourceLabelPipe,
+    IsOverduePipe,
     DeleteCustomerDialog,
+    ChangeStatusDialog,
     LucidePlus,
     LucideEye,
     LucidePencil,
     LucideTrash2,
     LucideBuilding2,
+    LucideUserCheck,
   ],
   providers: [ListQueryService],
   templateUrl: './customers-list.html',
@@ -102,6 +104,11 @@ export class CustomersList {
   protected tagOptions = computed(() => this.knownTags().map((t) => ({ label: t, value: t })));
 
   protected deleteDialog = viewChild<DeleteCustomerDialog>('deleteDialog');
+  protected statusDialog = viewChild<ChangeStatusDialog>('statusDialog');
+
+  /** Leads view shows the follow-up column; blacklist shows reason/since. */
+  protected isLeadsView = this.presetStatus === 'lead';
+  protected isBlacklistView = this.presetStatus === 'blacklisted';
 
   constructor() {
     this.list.init({
@@ -156,5 +163,11 @@ export class CustomersList {
    *  action links remain the keyboard path. */
   protected openCustomer(customer: Customer): void {
     this.router.navigate(['/customers', customer.id]);
+  }
+
+  /** Leads: convert quick-action; blacklist: un-blacklist — both through the
+   *  status dialog with `active` preselected (08 §5). */
+  protected openConvert(customer: Customer): void {
+    this.statusDialog()?.open(customer, CustomerStatus.Active);
   }
 }

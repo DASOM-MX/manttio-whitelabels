@@ -1,7 +1,8 @@
 # 08 — Light CRM
 
-> **Status:** not-started · **Depends on:** 07 (CP-1)
-> **Owner:** — · **Last updated:** 2026-07-05
+> **Status:** done (frontend side — backend Interaction entity + transition endpoint pending)
+> **Depends on:** 07 (CP-1, done)
+> **Owner:** branch `feature/superadmin-crm` (stacked on the 07 customers PR) · **Last updated:** 2026-07-06
 
 A thin CRM layer **on top of the Customer resource**. It owns the status lifecycle, source
 tracking views, the blacklist, the **per-client activity timeline**, and the **follow-up
@@ -149,29 +150,38 @@ as ask), don't fork the table.
 ## Checkpoints
 
 ### CP-1 — Status engine
-- [ ] `ChangeCustomerStatus` action + service call
-- [ ] Change-status dialog (legal transitions, blacklist reason required, optional
-      follow-up date)
-- [ ] Wired into 07's customer-view CRM slot + customers-list row action
+- [x] `ChangeCustomerStatus` action + `POST /customers/:id/status` service call
+- [x] Change-status dialog (legal transitions from
+      `model/constants/customer/status-transitions.const`, blacklist reason
+      required, optional follow-up date)
+- [x] Wired into 07's customer-view CRM slot + leads/blacklist row quick actions
 
 ### CP-2 — Timeline
-- [ ] `Interaction` DTO + service endpoints + state actions
-- [ ] `customer-timeline` component (composer, paged list, system-entry styling)
-- [ ] Composer `open(type)` API + 07's quick-contact buttons wired (§2.1)
-- [ ] Mounted in 07's customer-view; status change → system entry appears in timeline
+- [x] `Interaction` DTO + service endpoints + state actions (page 1 replaces —
+      read-your-writes reload; later pages append)
+- [x] `customer-timeline` component (composer with manual types only, paged
+      "Cargar más", muted system entries w/ report links, relative-time pipe)
+- [x] Composer `open(type)` API + quick-contact buttons open the channel AND
+      pre-fill the composer — never auto-saved (§2.1)
+- [x] Mounted in 07's customer-view; status change → system entry verified
 
 ### CP-3 — CRM views + follow-ups
-- [ ] Leads view (pre-filtered, follow-up sort + overdue pill, convert quick-action)
-- [ ] Blacklist view (reason, since, un-blacklist)
-- [ ] `nextFollowUpAt` set/clear inline on customer view header
-- [ ] Nested nav entries under Clients (All / Leads / Blacklist)
+- [x] Leads view (pre-filtered, follow-up column w/ overdue red pill, sort by
+      follow-up server-side, convert quick-action)
+- [x] Blacklist view (reason column, un-blacklist quick action → dialog preset
+      `active`)
+- [x] `nextFollowUpAt` set/clear inline on the CRM card (saves on change)
+- [x] Nested nav entries under Clients (shipped with 02/07)
 
 ### CP-4 — Polish
-- [ ] Blacklist warning surfaced where other modules act on a client (coordinate w/ 05)
-- [ ] Dark-mode audit; empty states ("no leads yet", "no activity yet")
-- [ ] Build green; manual pass: lead (follow-up date set → overdue pill) → log a call →
-      active (system entry in timeline) → blacklist (reason) → appears in blacklist view
-      → un-blacklist
+- [~] Blacklist warning where other modules act on a client — the CRM card
+      surfaces the reason; 09 (billing) must surface it at bill creation
+      (recorded ask, module not built yet)
+- [x] Dark-mode variants; empty states ("Sin actividad todavía…")
+- [x] Build green; headless pass 14/14 (2026-07-06): leads follow-up column +
+      convert action, composer + manual call, WhatsApp quick-contact pre-fill,
+      blacklist transition (reason gate) → system entry → blacklist view →
+      un-blacklist preset
 
 ## Open decisions / asks
 - Transition endpoint vs plain PATCH — backend call.
