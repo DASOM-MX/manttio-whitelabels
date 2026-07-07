@@ -1,0 +1,101 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="max-w-11/12"
+  [style]="{ width: '34rem' }"
+  [header]="editing() ? 'Editar equipo' : 'Registrar equipo'"
+>
+  <form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-4 sm:grid-cols-2">
+    <div class="field-group sm:col-span-2">
+      <label class="field-label" for="eq-customer">Cliente<span aria-hidden="true"> *</span></label>
+      <p-select
+        inputId="eq-customer"
+        formControlName="customerId"
+        [options]="customerOptions()"
+        optionLabel="label"
+        optionValue="value"
+        [filter]="true"
+        placeholder="Elegir cliente"
+        appendTo="body"
+      />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="eq-name">Nombre / etiqueta</label>
+      <input id="eq-name" pInputText formControlName="name" placeholder="Chiller principal" />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="eq-kind">Tipo</label>
+      <input id="eq-kind" pInputText formControlName="kind" placeholder="chiller, minisplit…" />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="eq-brand">Marca</label>
+      <input id="eq-brand" pInputText formControlName="brand" />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="eq-model">Modelo</label>
+      <input id="eq-model" pInputText formControlName="model" />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="eq-serial">Número de serie</label>
+      <input id="eq-serial" pInputText formControlName="serialNumber" spellcheck="false" />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="eq-capacity">Capacidad</label>
+      <input
+        id="eq-capacity"
+        pInputText
+        formControlName="capacity"
+        placeholder="3 TR, 60,000 BTU"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="eq-location">Ubicación en sitio</label>
+      <input id="eq-location" pInputText formControlName="location" placeholder="azotea" />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="eq-installdate">Fecha de instalación</label>
+      <input
+        id="eq-installdate"
+        pInputText
+        formControlName="installDate"
+        placeholder="2026-01-15"
+      />
+    </div>
+
+    <label
+      class="flex items-center gap-3 text-sm font-medium text-granite-800 sm:col-span-2 dark:text-granite-200"
+    >
+      <p-checkbox formControlName="installedByUs" [binary]="true" inputId="eq-installedbyus" />
+      Instalado por nosotros
+    </label>
+
+    <div class="field-group sm:col-span-2">
+      <label class="field-label" for="eq-notes">Notas</label>
+      <textarea
+        id="eq-notes"
+        pTextarea
+        formControlName="notes"
+        rows="2"
+        class="!min-h-16"
+      ></textarea>
+    </div>
+
+    <div class="flex justify-end gap-2 sm:col-span-2">
+      <button type="button" class="btn-neutral" (click)="close()" [disabled]="submitting()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn-primary" [disabled]="form.invalid || submitting()">
+        @if (submitting()) {
+          Guardando…
+        } @else {
+          Guardar
+        }
+      </button>
+    </div>
+  </form>
+</p-dialog>

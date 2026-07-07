@@ -1,7 +1,8 @@
 # 11 — Equipment (client asset registry)
 
-> **Status:** not-started · **Depends on:** 07 (CP-1); hooks into 06, 10
-> **Owner:** — · **Last updated:** 2026-07-05
+> **Status:** done (frontend side — backend equipment module + report join pending)
+> **Depends on:** 07 (CP-1, done); hooks into 06, 10
+> **Owner:** branch `feature/superadmin-equipment` (stacked on the 08 CRM PR) · **Last updated:** 2026-07-06
 
 The client's installed units — what an HVAC/service shop actually maintains. Each piece of
 equipment belongs to a customer and accumulates a **per-unit service history** (reports
@@ -93,21 +94,28 @@ view.
 ## Checkpoints
 
 ### CP-1 — Registry
-- [ ] DTOs + service + `EquipmentState`
-- [ ] Global list page + filters; nested nav entry under Clients
-- [ ] Form dialog (create/edit) from list + customer-view card
-- [ ] Customer-view equipment card in 07's slot (coordinate with 07)
+- [x] DTOs + service + `EquipmentState` (lazy; also registered in the
+      customers route area for the card)
+- [x] Global list page + search/client/status filters; nested nav entry (02)
+- [x] Form dialog (shape 3, create/edit) from list + customer-view card, client
+      pre-locked when opened from the card
+- [x] Customer-view equipment card mounted in 07's slot
 
 ### CP-2 — Service history
-- [ ] Equipment view page with linked-reports table
-- [ ] Retro-link/unlink actions + toasts
-- [ ] Retire/reactivate flow (status pill everywhere)
+- [x] Equipment view with linked-reports list (newest first, links to 06's
+      report view)
+- [x] Retro-link (searchable same-client report select, candidates exclude
+      already-linked) / unlink (plain confirm — categorization fix) + toasts
+- [x] Retire/reactivate flow with confirms; status pill everywhere
 
 ### CP-3 — Polish
-- [ ] WMS unit link rendered when `materialUnitId` present (link to 10's views)
-- [ ] Dark-mode audit; empty states ("no equipment registered — add the first unit")
-- [ ] Route `data` declared on all pages; build green; manual pass: create client → add
-      2 units → retro-link a report → history shows it → retire one unit
+- [~] `materialUnitId` rendered on the ficha; becomes a link when 10's views
+      exist (plain id until then)
+- [x] Dark-mode variants; empty states
+- [x] Route `data` declared (02); build green; headless pass 14/14
+      (2026-07-06): list/filters, ficha + WMS id + installed-by-us badge,
+      unlink → retro-link cycle, retire/reactivate, customer card add with
+      locked client
 
 ## Open decisions / asks
 - Ask to 07: reserve an **Equipment** slot on customer-view (like CRM/Bills).

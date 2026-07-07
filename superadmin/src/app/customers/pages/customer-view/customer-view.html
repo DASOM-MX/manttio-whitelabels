@@ -362,6 +362,11 @@
     </p-tabs>
   </section>
 
+  <!-- Equipment slot (11): the client's installed units -->
+  <div class="mt-4">
+    <app-customer-equipment-card [customerId]="customerId" />
+  </div>
+
   <!-- Slot reserved for 09 (Bills): client billing card mounts here. -->
 
   <app-add-contact-dialog #addContactDialog />

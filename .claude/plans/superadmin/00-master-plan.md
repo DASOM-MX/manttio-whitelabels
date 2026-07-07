@@ -96,7 +96,7 @@ Rules for agents:
 | 08 crm | **done** (frontend side; branch `feature/superadmin-crm`) | CP-4 |
 | 09 billing | not-started | — |
 | 10 wms | not-started | — |
-| 11 equipment | not-started | — |
+| 11 equipment | **done** (frontend side; branch `feature/superadmin-equipment`) | CP-3 |
 | 12 calendar | not-started | — |
 | 13 contracts | not-started | — |
 | 14 access-control | done (doc) | — |
