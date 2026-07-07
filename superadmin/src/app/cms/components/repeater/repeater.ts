@@ -23,6 +23,9 @@ export class Repeater {
   addLabel = input('Agregar');
   /** What a row is, for the icon-button aria-labels (e.g. "insignia"). */
   itemName = input('elemento');
+  /** Divider between rows — for multi-field rows that would otherwise run
+   *  together now that per-row borders are gone. */
+  divided = input(false);
   readOnly = input(false);
 
   add = output<void>();

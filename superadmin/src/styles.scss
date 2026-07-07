@@ -102,6 +102,11 @@
     @apply pb-3 text-sm font-semibold leading-none uppercase tracking-caps text-granite-800 dark:text-granite-200;
   }
 
+  /* Divider between multi-field repeater rows (rows carry no border). */
+  .repeater-divided {
+    @apply border-t border-granite-200 pt-2 dark:border-granite-800;
+  }
+
   /* Active sidebar entry: tinted bg + 2px primary accent bar — on the right
      edge for top-level items, on the left edge for child items. */
   .nav-active {

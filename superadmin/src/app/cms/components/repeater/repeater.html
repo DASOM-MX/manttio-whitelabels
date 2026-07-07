@@ -1,6 +1,11 @@
 <div class="flex flex-col gap-2" cdkDropList [cdkDropListDisabled]="readOnly()" (cdkDropListDropped)="drop($event)">
   @for (ctrl of array().controls; track ctrl; let i = $index) {
-    <div class="flex items-center gap-2" cdkDrag animate.enter="anim-enter">
+    <div
+      class="flex items-center gap-2"
+      [class.repeater-divided]="divided() && i > 0"
+      cdkDrag
+      animate.enter="anim-enter"
+    >
       <div class="min-w-0 flex-1">
         <ng-container
           *ngTemplateOutlet="rowTemplate(); context: { $implicit: ctrl, index: i }"

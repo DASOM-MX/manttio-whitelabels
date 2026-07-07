@@ -76,6 +76,7 @@
               [array]="badges"
               addLabel="Agregar métrica"
               itemName="métrica"
+              [divided]="true"
               (add)="addBadge()"
             >
               <ng-template #row let-ctrl let-i="index">
@@ -146,6 +147,7 @@
               [array]="services"
               addLabel="Agregar servicio"
               itemName="servicio"
+              [divided]="true"
               (add)="addService()"
             >
               <ng-template #row let-ctrl let-i="index">
