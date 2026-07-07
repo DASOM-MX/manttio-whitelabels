@@ -101,9 +101,11 @@
 
   /* Editor-card section heading — larger and darker than .micro-label, with
      extra breathing room below. Our owners skew older; the heading has to
-     read at a glance. Whitespace comes from padding, not leading. */
+     read at a glance. Whitespace comes from padding, not leading. Tracking
+     matches .field-label — headings and labels sit side by side in the
+     two-column editors, so a wider caps-tracking reads as a different font. */
   .section-heading {
-    @apply pb-3 text-sm font-semibold leading-none uppercase tracking-caps text-granite-800 dark:text-granite-200;
+    @apply pb-3 text-sm font-semibold leading-none uppercase tracking-wide text-granite-800 dark:text-granite-200;
   }
 
   /* Divider between multi-field repeater rows (rows carry no border). */
