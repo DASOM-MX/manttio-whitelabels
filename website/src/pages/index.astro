@@ -18,19 +18,21 @@ import { buildBrandCss } from '../lib/theme';
 const { brand, home, clients, fonts } = await getSiteData();
 const brandCss = buildBrandCss(brand, fonts);
 
-const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? 'https://penanevadachillers.com';
-const canonicalUrl = new URL(Astro.url.pathname, `${siteUrl}/`).toString();
 const requestOrigin = new URL(Astro.request.url).origin;
+// Each tenant serves its own domain, so the request origin is the canonical
+// host when no `site` is configured.
+const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? requestOrigin;
+const canonicalUrl = new URL(Astro.url.pathname, `${siteUrl}/`).toString();
 const pageTitle = `${brand.name} — ${home.services_content.title}`;
 // brand.description is the business blurb (03 §2 — the site's meta
 // description); the hero lede is only a fallback.
 const pageDescription = brand.description?.trim() ? brand.description : home.description;
-const toAbsolute = (url: string | undefined, fallback: string) => {
-  const path = url ?? fallback;
-  return /^https?:\/\//.test(path) ? path : `${requestOrigin}${path}`;
-};
-const ogImage = toAbsolute(brand.logoUrl, '/brand/penanevada-full-light.png');
-const faviconUrl = brand.isologoUrl ?? '/brand/penanevada-mark.png';
+// Only origin-prefix root-relative paths — CDN URLs and data: URIs pass through.
+const toAbsolute = (path: string) => (path.startsWith('/') ? `${requestOrigin}${path}` : path);
+// Social image + favicon are tenant assets — omitted entirely when the brand
+// hasn't uploaded them; there is no bundled fallback.
+const ogImage = brand.logoUrl ? toAbsolute(brand.logoUrl) : undefined;
+const faviconUrl = brand.isologoUrl || undefined;
 const socialUrls = Object.values(brand.social ?? {}).filter(
   (url): url is string => typeof url === 'string' && url.length > 0,
 );
@@ -40,8 +42,7 @@ const organizationSchema = {
   '@type': 'LocalBusiness',
   name: brand.name,
   url: siteUrl,
-  logo: ogImage,
-  image: ogImage,
+  ...(ogImage ? { logo: ogImage, image: ogImage } : {}),
   description: pageDescription,
   ...(brand.contact?.address
     ? { address: { '@type': 'PostalAddress', streetAddress: brand.contact.address, addressCountry: 'MX' } }
@@ -57,8 +58,8 @@ const organizationSchema = {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
     <meta name="theme-color" content="#0c4a6e" />
-    <link rel="icon" type="image/png" href={faviconUrl} />
-    <link rel="apple-touch-icon" href={faviconUrl} />
+    {faviconUrl && <link rel="icon" type="image/png" href={faviconUrl} />}
+    {faviconUrl && <link rel="apple-touch-icon" href={faviconUrl} />}
     <link rel="canonical" href={canonicalUrl} />
 
     <title>{pageTitle}</title>
@@ -72,14 +73,14 @@ const organizationSchema = {
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={pageDescription} />
-    <meta property="og:image" content={ogImage} />
-    <meta property="og:image:alt" content={brand.name} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    {ogImage && <meta property="og:image:alt" content={brand.name} />}
 
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={pageDescription} />
-    <meta name="twitter:image" content={ogImage} />
-    <meta name="twitter:image:alt" content={brand.name} />
+    {ogImage && <meta name="twitter:image" content={ogImage} />}
+    {ogImage && <meta name="twitter:image:alt" content={brand.name} />}
 
     {socialUrls.map((url) => <link rel="me" href={url} />)}
 
@@ -91,7 +92,7 @@ const organizationSchema = {
     <main>
       <Hero brand={brand} home={home} />
       <Services home={home} />
-      <Clients brand={brand} home={home} clients={clients} />
+      {clients.length > 0 && <Clients brand={brand} home={home} clients={clients} />}
       <Location brand={brand} home={home} />
       <Manufacturers home={home} />
     </main>

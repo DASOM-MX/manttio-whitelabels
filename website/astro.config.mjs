@@ -5,6 +5,7 @@ import cloudflare from '@astrojs/cloudflare';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://penanevadachillers.com',
+  // No `site`: each tenant serves its own domain, so canonical URLs derive
+  // from the request origin at runtime.
   adapter: cloudflare(),
 });

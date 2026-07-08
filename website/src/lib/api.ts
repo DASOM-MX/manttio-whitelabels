@@ -1,6 +1,6 @@
 // Typed fetchers against the whitelabeled backend (plan 15 §1).
 // Every read fails soft: timeout, non-2xx, or malformed payload → null → the
-// caller falls back to the Peña Nevada defaults and the site renders unchanged.
+// caller falls back to the brand-neutral defaults and the site still renders.
 
 import { DEFAULT_BRAND, DEFAULT_CLIENTS, DEFAULT_HOME } from './defaults';
 import type { Brand, CmsClient, CmsHome, FontCatalogEntry, SiteData } from './types';

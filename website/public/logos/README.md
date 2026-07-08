@@ -23,5 +23,5 @@ Drop one SVG per brand into this folder, using the exact filenames below so
 
 ## Trademarks
 All brand names and logos are property of their respective owners. Usage on
-this site is limited to identifying manufacturers whose equipment Peña Nevada
-Chillers integrates, installs and services.
+this site is limited to identifying manufacturers whose equipment the tenant
+integrates, installs and services.

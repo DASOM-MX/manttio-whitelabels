@@ -1,25 +1,17 @@
-// Peña Nevada Chillers content — the fallback for every fetch (plan 15 CP-1:
-// with no backend configured or reachable, the site renders exactly as before).
+// Brand-neutral fallback content — used when no backend is configured or
+// reachable (plan 15 CP-1). Tenant identity (name, logos, contact, clients)
+// always comes from the brand/CMS API; these defaults only keep the template
+// rendering with generic industry copy.
 
 import type { Brand, CmsClient, CmsHome } from './types';
 
 export const DEFAULT_BRAND: Brand = {
-  name: 'Peña Nevada Chillers',
-  slogan: 'Orgullosamente regiomontanos',
+  name: 'Climatización Industrial',
   description:
-    'Mantenimiento, renta y venta de chillers, HVAC y refrigeración de proceso para plantas, almacenes y líneas productivas del noreste de México. Orgullosamente regiomontanos.',
-  logoUrl: '/brand/penanevada-wordmark-light.png',
-  isologoUrl: '/brand/penanevada-mark-light.png',
-  contact: {
-    // No fallback phone: the old env-provided number is gone and a placeholder
-    // would render as a live (fake) tel: link — contact rows hide when absent.
-    email: 'contacto@penanevadachillers.com',
-    address: 'Gral. Plutarco Elías Calles 2403, Guadalupe, Nuevo León 67169',
-  },
-  social: {
-    instagram: 'https://www.instagram.com/penanevadachillers/',
-    tiktok: 'https://www.tiktok.com/@pena.nevada.chillers',
-  },
+    'Mantenimiento, renta y venta de chillers, HVAC y refrigeración de proceso para plantas, almacenes y líneas productivas.',
+  // No fallback logos, contact, or socials: those are tenant identity — the
+  // header/footer/contact rows hide when absent (a placeholder would render
+  // as live-looking but fake links).
   font: {
     body: 'work_sans',
     heading: 'rubik',
@@ -62,7 +54,7 @@ export const DEFAULT_HOME: CmsHome = {
       tags: ['Ingeniería en sitio', 'Marcas líderes', 'Llave en mano'],
     },
   ],
-  service_area: 'Chillers, HVAC y refrigeración de proceso para el noreste de México.',
+  service_area: 'Chillers, HVAC y refrigeración de proceso.',
   contact_cta: {
     title: 'Cotiza tu próximo proyecto de climatización industrial',
     description:
@@ -70,42 +62,6 @@ export const DEFAULT_HOME: CmsHome = {
   },
 };
 
-export const DEFAULT_CLIENTS: CmsClient[] = [
-  {
-    name: 'Oriente Sobre Hielo',
-    sector: 'Pistas de patinaje sobre hielo',
-    logoUrl: '/clients/oriente-sobre-hielo.jpg',
-  },
-  {
-    name: 'FIMEX',
-    legal: 'Fluidos Industriales Mexicanos',
-    sector: 'Fluidos industriales',
-    logoUrl: '/clients/fimex.jpg',
-  },
-  {
-    name: 'Coverpack',
-    sector: 'Empaque industrial',
-    logoUrl: '/clients/coverpack.png',
-  },
-  {
-    name: 'Ice Dreams',
-    sector: 'Pistas de patinaje sobre hielo',
-    logoUrl: '/clients/ice-dreams.jpeg',
-  },
-  {
-    name: 'ISSSTE',
-    legal: 'Instituto de Seguridad y Servicios Sociales de los Trabajadores del Estado',
-    sector: 'Sector salud',
-    logoUrl: '/clients/ISSSTE.png',
-  },
-  {
-    name: 'NG Equipos Especializados en Renta',
-    sector: 'Renta industrial',
-    logoUrl: '/clients/ng-equipos.jpg',
-  },
-  {
-    name: 'Grupo Collado',
-    sector: 'Industria del acero',
-    logoUrl: '/clients/grupo-collado.png',
-  },
-];
+// Client roster is tenant content (cms_clients) — no fallback wall; the
+// Clientes section hides entirely when the CMS has nothing published.
+export const DEFAULT_CLIENTS: CmsClient[] = [];

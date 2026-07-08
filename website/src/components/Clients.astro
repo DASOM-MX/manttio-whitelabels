@@ -13,7 +13,7 @@ const { brand, home, clients } = Astro.props;
 const industries = [...new Set(clients.map((c) => c.sector).filter((s): s is string => !!s))];
 
 // Section copy from the CMS (04 §6 v1.1); each field falls back to the
-// original Peña Nevada copy so a blank group renders the site unchanged.
+// default copy so a blank group renders the section unchanged.
 const cc = home.clients_content;
 const ccTitle = filled(cc?.title);
 const ccLede =
