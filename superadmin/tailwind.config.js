@@ -105,12 +105,8 @@ module.exports = {
       },
 
       fontSize: {
-        // Uppercase micro-labels (01 Design language): 11px caps headers.
+        // Micro-labels (01 Design language): 11px card/table headers.
         '2xs': ['0.6875rem', { lineHeight: '1rem' }],
-      },
-
-      letterSpacing: {
-        caps: '0.18em',
       },
 
       // Used to cap PrimeNG dialogs on narrow viewports so the chrome
