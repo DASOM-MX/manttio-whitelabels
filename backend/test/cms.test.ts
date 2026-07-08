@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { authHeader, env, json, jsonHeaders, request } from './helpers/request';
-import { seedAdminAndLogin, seedTechnicianAndLogin } from './helpers/fixtures';
+import { seedAdminAndLogin, seedOwnerAndLogin, seedTechnicianAndLogin } from './helpers/fixtures';
 import { createDb } from '../src/modules/database/client';
 import { cmsClients, cmsDocuments } from '../src/modules/database/schema';
 
@@ -70,11 +70,15 @@ type ClientDto = {
 };
 
 describe('cms module', () => {
-  test('auth gates: 401 without token, 403 for technician, publics stay open', async () => {
+  test('auth gates: 401 without token, 403 for technician, owner allowed, publics stay open', async () => {
     expect((await request('/cms/home')).status).toBe(401);
     const { token } = await seedTechnicianAndLogin();
     expect((await request('/cms/home', { headers: authHeader(token) })).status).toBe(403);
     expect((await request('/cms/clients', { headers: authHeader(token) })).status).toBe(403);
+    // owner passes the gate alongside admin
+    const { token: ownerToken } = await seedOwnerAndLogin();
+    expect((await request('/cms/home', { headers: authHeader(ownerToken) })).status).toBe(200);
+    expect((await request('/cms/clients', { headers: authHeader(ownerToken) })).status).toBe(200);
     // nothing published yet → public routes 404 (website falls back to defaults)
     expect((await request('/public/cms/home')).status).toBe(404);
     expect((await request('/public/cms/clients')).status).toBe(404);

@@ -6,6 +6,7 @@ import { requireRole } from '../../auth/middleware/roles.middleware';
 import { createUserSchema, deleteUserSchema, updateUserSchema } from '../validators/users.validator';
 import {
   CannotDeleteSelfError,
+  CannotModifyOwnerError,
   EmailInUseError,
   createUser,
   editUser,
@@ -59,6 +60,7 @@ users.patch('/:id', zValidator('json', updateUserSchema), async (c) => {
     return c.json({ user });
   } catch (err) {
     if (err instanceof EmailInUseError) return c.json({ error: 'email_in_use' }, 409);
+    if (err instanceof CannotModifyOwnerError) return c.json({ error: 'cannot_modify_owner' }, 403);
     throw err;
   }
 });
@@ -73,6 +75,7 @@ users.delete('/:id', zValidator('json', deleteUserSchema), async (c) => {
     return c.json({ id: row.id, deleted: true });
   } catch (err) {
     if (err instanceof CannotDeleteSelfError) return c.json({ error: 'cannot_delete_self' }, 400);
+    if (err instanceof CannotModifyOwnerError) return c.json({ error: 'cannot_modify_owner' }, 403);
     throw err;
   }
 });

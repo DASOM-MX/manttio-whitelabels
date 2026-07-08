@@ -39,9 +39,13 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   fork tasks). Open: temp-password expiry (05 open decisions).
 - **`role` enum on `users`:** `'owner' | 'admin' | 'office' | 'technician'` — migration
   on the existing users table **plus** the hardcoded role surfaces:
-  `auth/middleware/jwt.middleware.ts` (currently asserts `['admin','technician']`),
-  `requireRole` call sites, and `users/enums`. **Owner protection:** admins cannot
-  edit/delete/re-role the owner or grant `owner`.
+  `auth/middleware/jwt.middleware.ts`, `requireRole` call sites, and `users/enums`.
+  **Owner protection:** admins cannot edit/delete/re-role the owner or grant `owner`.
+  **`owner` slice shipped 2026-07-07 (migration `0010`):** role check + JWT middleware +
+  enums accept `owner`; `GRANTABLE_ROLES` keeps it out of the users API; owner-row
+  mutations → `403 cannot_modify_owner`; `/cms/*` gates `requireRole('owner','admin')`.
+  Still pending: `office` (lands with the users-module backend work) and the full
+  owner-vs-admin surface split (plan 14).
 - **Backend is the sole authority**: every endpoint enforces tenant-config *and* role on
   its own — superadmin rendering/guards are UX only (`.claude/plans/superadmin/14` §2 matrix and
   §2.1 WMS action matrix are the binding spec).

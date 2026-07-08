@@ -1,11 +1,13 @@
 import { z } from 'zod';
-import { ROLES } from '../enums/users.enum';
+import { GRANTABLE_ROLES } from '../enums/users.enum';
 
+// `role` accepts GRANTABLE_ROLES, not ROLES: `owner` is provisioning-time only
+// and can never be granted through the users API (backend plan §1).
 export const createUserSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(8),
-  role: z.enum(ROLES),
+  role: z.enum(GRANTABLE_ROLES),
 });
 
 export const updateUserSchema = z
@@ -13,7 +15,7 @@ export const updateUserSchema = z
     name: z.string().min(1).optional(),
     email: z.string().email().optional(),
     password: z.string().min(8).optional(),
-    role: z.enum(ROLES).optional(),
+    role: z.enum(GRANTABLE_ROLES).optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: 'no fields to update' });
 

@@ -5,6 +5,7 @@ import {
   loginAs,
   seedAdmin,
   seedAdminAndLogin,
+  seedOwner,
   seedTechnician,
   seedTechnicianAndLogin,
   uniqueEmail,
@@ -170,7 +171,8 @@ describe('POST /users', () => {
 
     const del = await request(`/users/${firstBody.user.id}`, {
       method: 'DELETE',
-      headers: authHeader(token),
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ deleteComment: 'Test cleanup' }),
     });
     expect(del.status).toBe(200);
 
@@ -220,6 +222,21 @@ describe('POST /users', () => {
     expect(res.status).toBe(400);
   });
 
+  test('owner role is not grantable via the API → 400', async () => {
+    const { token } = await seedAdminAndLogin();
+    const res = await request('/users', {
+      method: 'POST',
+      headers: headersWith(token),
+      body: JSON.stringify({
+        name: 'wannabe-owner',
+        email: uniqueEmail('wannabe-owner'),
+        password: 'password-123',
+        role: 'owner',
+      }),
+    });
+    expect(res.status).toBe(400);
+  });
+
   test('technician cannot create users → 403', async () => {
     const { token } = await seedTechnicianAndLogin();
     const res = await request('/users', {
@@ -237,6 +254,20 @@ describe('POST /users', () => {
 });
 
 describe('PATCH /users/:id', () => {
+  test('owner rows are immutable in-tenant → 403 cannot_modify_owner', async () => {
+    const { token } = await seedAdminAndLogin();
+    const owner = await seedOwner();
+
+    const res = await request(`/users/${owner.id}`, {
+      method: 'PATCH',
+      headers: headersWith(token),
+      body: JSON.stringify({ password: 'hijacked-password-1' }),
+    });
+    expect(res.status).toBe(403);
+    const body = await json<{ error: string }>(res);
+    expect(body.error).toBe('cannot_modify_owner');
+  });
+
   test('admin can rename a user', async () => {
     const { token } = await seedAdminAndLogin();
     const tech = await seedTechnician();
@@ -327,6 +358,20 @@ describe('PATCH /users/:id', () => {
 
 describe('DELETE /users/:id', () => {
   const deleteBody = { deleteComment: 'Test cleanup' };
+
+  test('owner rows cannot be deleted in-tenant → 403 cannot_modify_owner', async () => {
+    const { token } = await seedAdminAndLogin();
+    const owner = await seedOwner();
+
+    const res = await request(`/users/${owner.id}`, {
+      method: 'DELETE',
+      headers: jsonHeaders(token),
+      body: JSON.stringify(deleteBody),
+    });
+    expect(res.status).toBe(403);
+    const body = await json<{ error: string }>(res);
+    expect(body.error).toBe('cannot_modify_owner');
+  });
 
   test('admin can soft-delete another user', async () => {
     const { token } = await seedAdminAndLogin();

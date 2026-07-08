@@ -25,11 +25,10 @@ export const cms = new Hono<AppBindings>();
 
 // Editor surface (superadmin plan 04): GETs serve the DRAFT; the public site
 // reads published-only via the /public/cms controller. Owner + admin only —
-// reads included (office/technician have no CMS access, plan 14 §2). Today's
-// role enum has no `owner` yet, so this gate is `admin`; `owner` joins when
-// the role migration lands (backend plan §1). The tenant `cms` module flag is
-// likewise enforced here once tenant-config infra exists.
-cms.use('*', requireRole('admin'));
+// reads included (office/technician have no CMS access, plan 14 §2). The
+// tenant `cms` module flag is likewise enforced here once tenant-config
+// infra exists.
+cms.use('*', requireRole('owner', 'admin'));
 
 const uuidSchema = z.string().uuid();
 
