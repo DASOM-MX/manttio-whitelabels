@@ -1,6 +1,17 @@
-import { Component, computed, effect, inject, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild,
+  viewChildren,
+  type ElementRef,
+} from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { map } from 'rxjs';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -17,14 +28,19 @@ import {
 } from '../../../../state/users/users.actions';
 import { canManageUser, canResetPassword } from '../../../access';
 import { ROLE_LABELS } from '../../../model/constants/user/role-labels.const';
+import { GRANTABLE_ROLES } from '../../../model/constants/user/grantable-roles.const';
 import { TempPasswordDialog } from '../../components/temp-password-dialog/temp-password-dialog';
 import { errorMessage } from '../../../data/utils';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
 import type { Role } from '../../../data/dtos/auth';
 
+const TAB_ORDER = ['datos', 'critico'] as const;
+type Tab = (typeof TAB_ORDER)[number];
+
 /** Add + edit in one page (05 §3); the route param decides. Edit mode is
  *  tabbed — the last tab is "Crítico" (danger zone: role-gated password
- *  reset). Owner protection hides forbidden edits from admins. */
+ *  reset). Owner rows are immutable in-tenant (whitelabel-manager
+ *  provisioning): the whole page goes read-only on the owner account. */
 @Component({
   selector: 'app-user-form',
   imports: [
@@ -51,12 +67,16 @@ export class UserForm implements HasPendingChanges {
   protected selected = select(UsersState.selected);
   private tempPassword = select(UsersState.tempPassword);
 
-  protected userId: string | null = this.route.snapshot.paramMap.get('id');
-  protected isEdit = !!this.userId;
+  /** Reactive so router-reused instances (edit → edit) rehydrate. */
+  private userId = toSignal(this.route.paramMap.pipe(map((params) => params.get('id'))), {
+    initialValue: this.route.snapshot.paramMap.get('id'),
+  });
+  protected isEdit = computed(() => !!this.userId());
 
-  protected tab = signal<'datos' | 'critico'>('datos');
+  protected tab = signal<Tab>('datos');
   protected busy = signal(false);
   protected tempDialog = viewChild<TempPasswordDialog>('tempDialog');
+  private tabButtons = viewChildren<ElementRef<HTMLButtonElement>>('tabBtn');
   /** Where to go after the one-time password is acknowledged. */
   private afterPasswordRoute: string | null = null;
 
@@ -68,19 +88,14 @@ export class UserForm implements HasPendingChanges {
     active: [true],
   });
 
-  /** Admins can't grant `owner` (14 §2 note 1). */
-  protected roleOptions = computed(() => {
-    const actor = this.me()?.role;
-    return (Object.entries(ROLE_LABELS) as [Role, string][])
-      .filter(([value]) => value !== 'owner' || actor === 'owner')
-      .map(([value, label]) => ({ label, value }));
-  });
+  /** In-tenant grantable roles only — `owner` is never offered (14 §2 note 1). */
+  protected roleOptions = GRANTABLE_ROLES.map((value) => ({ label: ROLE_LABELS[value], value }));
 
-  /** Editing the owner as a non-owner → whole page read-only. */
+  /** The owner account is immutable in-tenant → whole page read-only. */
   protected readOnly = computed(() => {
     const target = this.selected();
-    if (!this.isEdit || !target) return false;
-    return !canManageUser(this.me()?.role ?? null, target.role);
+    if (!this.isEdit() || !target) return false;
+    return !canManageUser(target.role);
   });
 
   protected canReset = computed(() => {
@@ -89,11 +104,17 @@ export class UserForm implements HasPendingChanges {
   });
 
   constructor() {
-    if (this.userId) this.store.dispatch(new LoadUser(this.userId));
+    effect(() => {
+      const id = this.userId();
+      if (id) {
+        this.tab.set('datos');
+        this.store.dispatch(new LoadUser(id));
+      }
+    });
 
     effect(() => {
       const user = this.selected();
-      if (!user || !this.isEdit) return;
+      if (!user || !this.isEdit()) return;
       this.form.patchValue(
         {
           name: user.name,
@@ -116,15 +137,43 @@ export class UserForm implements HasPendingChanges {
     return this.form.dirty && !this.busy();
   }
 
+  /** ARIA tabs pattern: arrow keys / Home / End move + activate + focus. */
+  protected onTabKeydown(event: KeyboardEvent): void {
+    const current = TAB_ORDER.indexOf(this.tab());
+    let next: number;
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        next = (current + 1) % TAB_ORDER.length;
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        next = (current - 1 + TAB_ORDER.length) % TAB_ORDER.length;
+        break;
+      case 'Home':
+        next = 0;
+        break;
+      case 'End':
+        next = TAB_ORDER.length - 1;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    this.tab.set(TAB_ORDER[next]);
+    this.tabButtons()[next]?.nativeElement.focus();
+  }
+
   protected submit(): void {
     if (this.form.invalid || this.busy() || this.readOnly()) return;
     const raw = this.form.getRawValue();
     this.busy.set(true);
 
-    if (this.isEdit && this.userId) {
+    const id = this.userId();
+    if (id) {
       this.store
         .dispatch(
-          new UpdateUser(this.userId, {
+          new UpdateUser(id, {
             name: raw.name,
             email: raw.email,
             phone: raw.phone || undefined,

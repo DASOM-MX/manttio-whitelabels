@@ -8,13 +8,13 @@
   </a>
   <div>
     <h1 class="text-xl font-bold text-granite-950 dark:text-granite-50">
-      @if (isEdit) {
+      @if (isEdit()) {
         Editar usuario
       } @else {
         Nuevo usuario
       }
     </h1>
-    @if (isEdit && selected(); as user) {
+    @if (isEdit() && selected(); as user) {
       <p class="mt-0.5 text-sm text-granite-600 dark:text-granite-400">{{ user.email }}</p>
     }
   </div>
@@ -25,19 +25,24 @@
     class="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
     role="note"
   >
-    La cuenta del propietario solo puede editarla el propietario.
+    La cuenta del propietario no se administra desde aquí: los cambios se solicitan al equipo de
+    soporte.
   </p>
 }
 
-@if (isEdit && !readOnly()) {
+@if (isEdit() && !readOnly()) {
   <div
     class="mt-5 inline-flex rounded-lg border border-granite-200 p-0.5 dark:border-granite-800"
     role="tablist"
     aria-label="Secciones del usuario"
+    (keydown)="onTabKeydown($event)"
   >
     <button
+      #tabBtn
       type="button"
       role="tab"
+      id="tab-datos"
+      aria-controls="panel-datos"
       class="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
       [class.bg-sky-50]="tab() === 'datos'"
       [class.text-sky-800]="tab() === 'datos'"
@@ -46,13 +51,17 @@
       [class.text-granite-600]="tab() !== 'datos'"
       [class.dark:text-granite-400]="tab() !== 'datos'"
       [attr.aria-selected]="tab() === 'datos'"
+      [tabindex]="tab() === 'datos' ? 0 : -1"
       (click)="tab.set('datos')"
     >
       Datos
     </button>
     <button
+      #tabBtn
       type="button"
       role="tab"
+      id="tab-critico"
+      aria-controls="panel-critico"
       class="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
       [class.bg-red-50]="tab() === 'critico'"
       [class.text-red-800]="tab() === 'critico'"
@@ -61,6 +70,7 @@
       [class.text-granite-600]="tab() !== 'critico'"
       [class.dark:text-granite-400]="tab() !== 'critico'"
       [attr.aria-selected]="tab() === 'critico'"
+      [tabindex]="tab() === 'critico' ? 0 : -1"
       (click)="tab.set('critico')"
     >
       Crítico
@@ -68,10 +78,13 @@
   </div>
 }
 
-@if (tab() === 'datos' || !isEdit) {
+@if (tab() === 'datos' || !isEdit()) {
   <form
     [formGroup]="form"
     (ngSubmit)="submit()"
+    id="panel-datos"
+    [attr.role]="isEdit() ? 'tabpanel' : null"
+    [attr.aria-labelledby]="isEdit() ? 'tab-datos' : null"
     class="card-section mt-4 flex max-w-2xl flex-col gap-4"
   >
     <div class="grid gap-4 sm:grid-cols-2">
@@ -98,7 +111,7 @@
         <p-select
           inputId="user-role"
           formControlName="role"
-          [options]="roleOptions()"
+          [options]="roleOptions"
           optionLabel="label"
           optionValue="value"
           appendTo="body"
@@ -106,7 +119,7 @@
       </div>
     </div>
 
-    @if (isEdit) {
+    @if (isEdit()) {
       <label
         class="flex items-center gap-3 text-sm font-medium text-granite-800 dark:text-granite-200"
       >
@@ -131,7 +144,7 @@
               aria-hidden="true"
             ></span>
             Guardando…
-          } @else if (isEdit) {
+          } @else if (isEdit()) {
             Guardar cambios
           } @else {
             Crear usuario
@@ -142,12 +155,14 @@
   </form>
 }
 
-@if (tab() === 'critico' && isEdit && !readOnly()) {
+@if (tab() === 'critico' && isEdit() && !readOnly()) {
   <section
+    id="panel-critico"
+    role="tabpanel"
+    aria-labelledby="tab-critico"
     class="card-section mt-4 flex max-w-2xl flex-col gap-4 !border-red-200 dark:!border-red-900/60"
-    aria-labelledby="critical-title"
   >
-    <h2 id="critical-title" class="micro-label !text-red-700 dark:!text-red-400">Zona crítica</h2>
+    <h2 class="micro-label !text-red-700 dark:!text-red-400">Zona crítica</h2>
 
     @if (canReset()) {
       <div class="flex flex-wrap items-center justify-between gap-3">

@@ -7,7 +7,9 @@ import { ClearTempPassword } from '../../../../state/users/users.actions';
 
 /** One-time temp-password display (05 §2/§3): shown exactly once with a copy
  *  button and a "won't be shown again" warning; wipes the value from state on
- *  close. Used after create and after a Crítico-tab reset. */
+ *  close. Used after create and after a Crítico-tab reset. Deliberate
+ *  escape-routes deviation: ESC/X are disabled so the one-time secret can't
+ *  be dismissed by accident — the acknowledge button is the single exit. */
 @Component({
   selector: 'app-temp-password-dialog',
   imports: [DialogModule, LucideCopy, LucideTriangleAlert],
