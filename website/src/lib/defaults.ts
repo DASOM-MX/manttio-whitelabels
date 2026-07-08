@@ -29,9 +29,9 @@ export const DEFAULT_HOME: CmsHome = {
     'Mantenimiento, renta y venta de equipos de aire acondicionado, calefacción y refrigeración. Soluciones confiables diseñadas para el clima del norte.',
   service_targets: ['Nave Industrial', 'Fábrica', 'Pista de hielo', 'Negocio', 'Hogar'],
   badges: [
-    { label: 'Clientes', value: '6+' },
-    { label: 'Proyectos', value: '10+' },
-    { label: 'Experiencia', value: '10+', unit: 'años' },
+    { heading: 'Clientes', value: '6+' },
+    { heading: 'Proyectos', value: '10+' },
+    { heading: 'Experiencia', value: '10+', description: 'años' },
   ],
   services_content: {
     eyebrow: 'Servicios',
