@@ -18,7 +18,7 @@ export type Env = {
 
 export type AuthUser = {
   id: string;
-  role: 'owner' | 'admin' | 'technician';
+  role: 'owner' | 'admin' | 'office' | 'technician';
 };
 
 export type Variables = {

@@ -78,6 +78,13 @@
       "when": 1783483623935,
       "tag": "0010_spicy_chronomancer",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1783500986393,
+      "tag": "0011_luxuriant_klaw",
+      "breakpoints": true
     }
   ]
 }
