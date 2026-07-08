@@ -42,8 +42,13 @@ Baseline four, no specialist roles until a real tenant needs one:
 | CMS (04) | full⁵ | full⁵ | — | — |
 | WMS | full | full | **operational** (§2.1) | **van + self-checkout** (§2.1) |
 
-1. **Owner protection:** admins cannot edit, delete, or change the role of the `owner`
-   account, and cannot grant `owner`. UI hides those actions; backend enforces.
+1. **Owner protection (hardened 2026-07-08):** owner rows are **immutable in-tenant for
+   everyone — the owner included**. Owner accounts are provisioned from the **whitelabel
+   manager**; changes or invalidation go through the support team (an in-tenant slip
+   could lock out the whole tenant). Nobody grants `owner` here — the role select offers
+   `GRANTABLE_ROLES` (admin/office/technician) only. UI hides every owner mutation
+   affordance for all actors; backend enforces (`cannot_modify_owner`, zod
+   `GRANTABLE_ROLES`). Soft deletes only, as everywhere.
    **Password resets (decided 2026-07-05) follow the same hierarchy:** only the
    **owner** can reset an **admin's** password; owner **and** admins can reset
    **office/technician** passwords; **nobody in-tenant resets the owner's** (a locked-out

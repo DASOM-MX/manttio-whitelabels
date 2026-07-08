@@ -1,8 +1,10 @@
 # 05 — Users
 
-> **Status:** done (frontend side — backend users-module changes pending)
+> **Status:** done (frontend side — backend users-module changes pending, except the
+> role enum: `office` added to `ROLES`/`GRANTABLE_ROLES` + `users_role_check`, migration
+> `0011`, 2026-07-08)
 > **Depends on:** 02 (CP-3, done)
-> **Owner:** branch `feature/superadmin-users` (stacked on the 02 shell PR) · **Last updated:** 2026-07-06
+> **Owner:** branch `feature/superadmin-users` (stacked on the 02 shell PR) · **Last updated:** 2026-07-08
 
 Manage the tenant's product users (admins, technicians, office staff). This mirrors the
 frontend's `users/` feature — reuse its shapes, don't redesign them.
@@ -21,9 +23,13 @@ User {
 }
 ```
 
-**Owner protection** (`14-access-control.md` §2 note 1): admins cannot edit/delete the
-`owner` account or grant/change the `owner` role — hide those row actions and exclude
-`owner` from the role select for non-owners; backend enforces.
+**Owner protection** (`14-access-control.md` §2 note 1 — hardened 2026-07-08): owner
+rows are **immutable in-tenant for everyone, the owner included**. Owner accounts are
+provisioned from the **whitelabel manager** (the higher-level internal tool); changes or
+invalidation go through the support team — an in-tenant slip could lock out the whole
+tenant. UI: hide edit/delete on owner rows for all actors, exclude `owner` from the role
+select entirely (offer `GRANTABLE_ROLES` only: admin/office/technician); backend enforces
+(`cannot_modify_owner`, `GRANTABLE_ROLES` zod enum).
 
 WMS link (module 10): a technician can have an **assigned warehouse** (their van/mobile
 stock). That assignment is owned by module 10 — this module only *shows* it read-only on
@@ -49,7 +55,10 @@ the user detail once 10 lands.
 ## 3. Pages & components
 
 - `users/pages/users-list/` — lazy `<p-table>`: name, email, role pill, active pill,
-  created. Filters: search, role, active. Row actions: edit, delete.
+  created. Filters: search, role, active. Row actions: edit, delete. **Filters + page
+  persist as GET query params (`?q&role&active&page`, decided 2026-07-08)** so browser
+  back/forward walks the filter history — the `queryParamMap` subscription is the single
+  load path. This is the canonical pattern for every superadmin list page.
 - `users/pages/user-form/` — one reactive-form page for add + edit (route param decides).
   Fields: name, email, phone, role (`<p-select>`), active toggle. **Edit mode is
   tabbed; the last tab is "Crítico"** — the danger zone holding the **reset password**
@@ -79,8 +88,8 @@ the user detail once 10 lands.
 - [x] Route + sidebar entry live (shipped with 02)
 
 ### CP-2 — Write path
-- [x] User form page (add + edit; owner-protection read-only for admins; role
-      select excludes `owner` for non-owners) with validators
+- [x] User form page (add + edit; owner account read-only for everyone; role
+      select offers `GRANTABLE_ROLES` only — hardened 2026-07-08) with validators
 - [x] Delete dialog ported from frontend canon (audit comment + typed-email,
       case-insensitive match)
 - [x] "Crítico" tab on edit mode: reset-password (confirm dialog → temp password
@@ -99,8 +108,13 @@ the user detail once 10 lands.
 
 ## Open decisions / asks
 - ~~Role enum~~ — **resolved 2026-07-05:** `owner|admin|office|technician`
-  (`14-access-control.md`); backend migration of the existing role column is a backend
-  ask.
+  (`14-access-control.md`); ~~backend migration of the existing role column is a backend
+  ask~~ — **done 2026-07-08:** `office` added to backend `ROLES`/`GRANTABLE_ROLES` +
+  `users_role_check` (migration `0011`, applied to Neon). Per-module permissions for
+  `office` on existing endpoints remain a per-module backend ask.
+- ~~Owner self-edit~~ — **resolved 2026-07-08:** owner rows are immutable in-tenant for
+  everyone (owner included). Owners are provisioned/changed from the whitelabel manager;
+  invalidation goes through support (lockout safety). Soft deletes only, as everywhere.
 - ~~New-user credential flow~~ — **resolved 2026-07-05: temp-password model.** Reset
   issues a generated temporary password (shown once) + forced change at next login;
   creation follows the same shape (`POST /users` response carries the initial temp
