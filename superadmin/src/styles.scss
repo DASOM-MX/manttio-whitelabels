@@ -101,6 +101,14 @@
     @apply text-2xs font-medium text-granite-500 dark:text-granite-400;
   }
 
+  /* Role pill — the app-wide role visual language (QA 2026-07-08): one blue
+     ladder on the static navy/cyan scales, darker = higher rank. Color comes
+     from ROLE_PILL_CLASSES via the rolePillClass pipe; like status pills,
+     unchanged in dark mode. */
+  .role-pill {
+    @apply inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold leading-none;
+  }
+
   /* Editor-card section heading — larger and darker than .micro-label, with
      extra breathing room below. Our owners skew older; the heading has to
      read at a glance. Whitespace comes from padding, not leading. */

@@ -108,7 +108,22 @@ export class UserForm implements HasPendingChanges {
       const id = this.userId();
       if (id) {
         this.tab.set('datos');
-        this.store.dispatch(new LoadUser(id));
+        this.store.dispatch(new LoadUser(id)).subscribe({
+          // The page is useless without the user → back to the list either
+          // way (QA 2026-07-08); 404 gets the specific message.
+          error: (err) => {
+            this.messages.add(
+              err?.status === 404
+                ? { severity: 'warn', summary: 'Usuario no encontrado' }
+                : {
+                    severity: 'error',
+                    summary: 'No se pudo cargar el usuario',
+                    detail: errorMessage(err, 'Inténtalo de nuevo.'),
+                  },
+            );
+            this.router.navigate(['/users']);
+          },
+        });
       }
     });
 

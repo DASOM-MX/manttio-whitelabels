@@ -59,6 +59,10 @@ the user detail once 10 lands.
   persist as GET query params (`?q&role&active&page`, decided 2026-07-08)** so browser
   back/forward walks the filter history — the `queryParamMap` subscription is the single
   load path. This is the canonical pattern for every superadmin list page.
+  **QA 2026-07-08:** whole row clicks through to the user's page (action links remain
+  the keyboard path; owner rows carry a read-only "view" link instead of edit/delete);
+  role pills use the app-wide blue hierarchy ladder (14 §1); a failed detail load
+  (e.g. 404) toasts and redirects back to the list.
 - `users/pages/user-form/` — one reactive-form page for add + edit (route param decides).
   Fields: name, email, phone, role (`<p-select>`), active toggle. **Edit mode is
   tabbed; the last tab is "Crítico"** — the danger zone holding the **reset password**

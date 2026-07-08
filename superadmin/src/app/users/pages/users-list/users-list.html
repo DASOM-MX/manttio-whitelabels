@@ -56,6 +56,7 @@
     [first]="first()"
     [totalRecords]="total()"
     [loading]="loading()"
+    [rowHover]="true"
     dataKey="id"
   >
     <ng-template #header>
@@ -69,10 +70,16 @@
       </tr>
     </ng-template>
     <ng-template #body let-user>
-      <tr>
+      <!-- Whole row opens the user (QA 2026-07-08); the action links stay as
+           the keyboard path. Owner rows link too — their page is read-only. -->
+      <tr class="cursor-pointer" (click)="openUser(user)">
         <td class="font-medium">{{ user.name }}</td>
         <td>{{ user.email }}</td>
-        <td><p-tag [severity]="user.role | roleSeverity" [value]="user.role | roleLabel" /></td>
+        <td>
+          <span class="role-pill" [class]="user.role | rolePillClass">{{
+            user.role | roleLabel
+          }}</span>
+        </td>
         <td>
           @if (user.active) {
             <p-tag severity="success" value="Activo" />
@@ -81,7 +88,7 @@
           }
         </td>
         <td class="font-data tabular-nums">{{ user.createdAt | date: 'dd/MM/y' }}</td>
-        <td class="w-24">
+        <td class="w-24" (click)="$event.stopPropagation()">
           @if (user.role | canManage) {
             <div class="flex justify-end gap-1">
               <a
@@ -99,6 +106,17 @@
               >
                 <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
               </button>
+            </div>
+          } @else {
+            <!-- Owner rows: read-only view link keeps a keyboard path. -->
+            <div class="flex justify-end gap-1">
+              <a
+                [routerLink]="['/users', user.id, 'edit']"
+                class="inline-flex size-9 items-center justify-center rounded-md text-granite-600 transition-colors hover:bg-granite-100 hover:text-granite-900 dark:text-granite-400 dark:hover:bg-granite-800 dark:hover:text-granite-100"
+                [attr.aria-label]="'Ver ' + user.name"
+              >
+                <svg lucideEye class="size-4" aria-hidden="true"></svg>
+              </a>
             </div>
           }
         </td>

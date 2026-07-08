@@ -8,12 +8,12 @@ import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
-import { LucidePencil, LucidePlus, LucideTrash2, LucideUsers } from '@lucide/angular';
+import { LucideEye, LucidePencil, LucidePlus, LucideTrash2, LucideUsers } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { UsersState } from '../../../../state/users/users.state';
 import { LoadUsers } from '../../../../state/users/users.actions';
 import { ROLE_LABELS } from '../../../model/constants/user/role-labels.const';
-import { RoleLabelPipe, RoleSeverityPipe } from '../../../pipes/role.pipe';
+import { RoleLabelPipe, RolePillClassPipe } from '../../../pipes/role.pipe';
 import { CanManagePipe } from '../../../pipes/access.pipe';
 import { DeleteUserDialog } from '../../components/delete-user-dialog/delete-user-dialog';
 import type { Role } from '../../../data/dtos/auth';
@@ -38,13 +38,14 @@ const PAGE_SIZE = 10;
     InputTextModule,
     TagModule,
     RoleLabelPipe,
-    RoleSeverityPipe,
+    RolePillClassPipe,
     CanManagePipe,
     DeleteUserDialog,
     LucidePlus,
     LucidePencil,
     LucideTrash2,
     LucideUsers,
+    LucideEye,
   ],
   templateUrl: './users-list.html',
 })
@@ -147,5 +148,10 @@ export class UsersList {
 
   protected openDelete(user: User): void {
     this.deleteDialog()?.open(user);
+  }
+
+  /** Row click → user details (QA 2026-07-08); owner pages open read-only. */
+  protected openUser(user: User): void {
+    this.router.navigate(['/users', user.id, 'edit']);
   }
 }

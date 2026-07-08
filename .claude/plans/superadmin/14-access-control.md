@@ -25,6 +25,14 @@ Everything in this doc about rendering/guards is UX and bundle hygiene, not secu
 Baseline four, no specialist roles until a real tenant needs one:
 `'owner' | 'admin' | 'office' | 'technician'`
 
+**Role visual language (QA 2026-07-08):** roles render app-wide as `.role-pill`s on one
+blue ladder — darker = higher rank: owner `navy-900`, admin `cyan-700`, office
+`cyan-300`, technician `cyan-100`. Built on the **static** `navy`/`cyan` scales (never
+the brand-driven `sky`) so hierarchy reads identically on every tenant; the label always
+rides the color (color-not-only). Source of truth:
+`superadmin/src/app/model/constants/user/role-pill-classes.const.ts` + the
+`rolePillClass` pipe.
+
 ## 2. Access matrix
 
 | Module | owner | admin | office | technician |
