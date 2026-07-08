@@ -1,52 +1,24 @@
 ---
-const clients = [
-  {
-    name: 'Oriente Sobre Hielo',
-    sector: 'Pistas de patinaje sobre hielo',
-    src: '/clients/oriente-sobre-hielo.jpg',
-  },
-  {
-    name: 'FIMEX',
-    legal: 'Fluidos Industriales Mexicanos',
-    sector: 'Fluidos industriales',
-    src: '/clients/fimex.jpg',
-  },
-  {
-    name: 'Coverpack',
-    sector: 'Empaque industrial',
-    src: '/clients/coverpack.png',
-  },
-  {
-    name: 'Ice Dreams',
-    sector: 'Pistas de patinaje sobre hielo',
-    src: '/clients/ice-dreams.jpeg',
-  },
-  {
-    name: 'ISSSTE',
-    legal: 'Instituto de Seguridad y Servicios Sociales de los Trabajadores del Estado',
-    sector: 'Sector salud',
-    src: '/clients/ISSSTE.png',
-  },
-  {
-    name: 'NG Equipos Especializados en Renta',
-    sector: 'Renta industrial',
-    src: '/clients/ng-equipos.jpg',
-  },
-  {
-    name: 'Grupo Collado',
-    sector: 'Industria del acero',
-    src: '/clients/grupo-collado.png',
-  },
-];
+import { filled } from '../lib/content';
+import type { Brand, CmsClient, CmsHome } from '../lib/types';
 
-const industries = [
-  'Pistas de patinaje sobre hielo',
-  'Fluidos industriales',
-  'Empaque industrial',
-  'Sector salud',
-  'Renta industrial',
-  'Industria del acero',
-];
+interface Props {
+  brand: Brand;
+  home: CmsHome;
+  clients: CmsClient[];
+}
+
+const { brand, home, clients } = Astro.props;
+
+const industries = [...new Set(clients.map((c) => c.sector).filter((s): s is string => !!s))];
+
+// Section copy from the CMS (04 §6 v1.1); each field falls back to the
+// default copy so a blank group renders the section unchanged.
+const cc = home.clients_content;
+const ccTitle = filled(cc?.title);
+const ccLede =
+  filled(cc?.description) ??
+  `Una selección de empresas que han elegido a ${brand.name} para diseñar, instalar y mantener su climatización industrial — desde cadena de frío y empaque hasta servicios públicos y renta de equipo.`;
 ---
 
 <section
@@ -75,21 +47,25 @@ const industries = [
           class="text-sm font-semibold uppercase tracking-caps text-cyan-600"
           data-clients-eyebrow
         >
-          Clientes
+          {filled(cc?.eyebrow) ?? 'Clientes'}
         </p>
       </div>
       <h2
         class="mt-4 font-heading text-3xl font-bold text-granite-900 sm:text-4xl lg:text-5xl"
         data-clients-heading
       >
-        Construyendo confianza,
-        <span class="text-cyan-600">proyecto por proyecto</span>.
+        {ccTitle ?? (
+          <Fragment>
+            Construyendo confianza,
+            <span class="text-cyan-600">proyecto por proyecto</span>.
+          </Fragment>
+        )}
       </h2>
       <p
         class="mt-5 text-lg text-granite-700"
         data-clients-lede
       >
-        Una selección de empresas que han elegido a Peña Nevada Chillers para diseñar, instalar y mantener su climatización industrial — desde cadena de frío y empaque hasta servicios públicos y renta de equipo.
+        {ccLede}
       </p>
     </div>
 
@@ -115,7 +91,7 @@ const industries = [
         >
           <div class="flex h-28 items-center justify-center px-6 sm:h-32">
             <img
-              src={c.src}
+              src={c.logoUrl}
               alt={c.name}
               loading="lazy"
               decoding="async"
@@ -129,7 +105,7 @@ const industries = [
             {c.legal && (
               <p class="mt-0.5 text-xs text-granite-400">{c.legal}</p>
             )}
-            <p class="mt-1 text-sm text-granite-500">{c.sector}</p>
+            {c.sector && <p class="mt-1 text-sm text-granite-500">{c.sector}</p>}
           </div>
           <span class="pointer-events-none absolute inset-0" aria-hidden="true">
             <span class="absolute bottom-0 left-0 right-1/2 h-0.5 origin-right scale-x-0 bg-cyan-500" data-trail="bl"></span>
@@ -149,10 +125,11 @@ const industries = [
     >
       <div>
         <p class="font-heading text-lg font-bold text-granite-900 sm:text-xl">
-          ¿Quieres ser nuestro próximo proyecto?
+          {filled(cc?.cta_title) ?? '¿Quieres ser nuestro próximo proyecto?'}
         </p>
         <p class="mt-1 text-sm text-granite-600">
-          Cuéntanos qué necesitas y un especialista te contacta en menos de 24 horas.
+          {filled(cc?.cta_description) ??
+            'Cuéntanos qué necesitas y un especialista te contacta en menos de 24 horas.'}
         </p>
       </div>
       <a

@@ -1,25 +1,39 @@
 ---
-// Logo files live in /public/logos/ — see /public/logos/README.md for expected
-// filenames. The <img> falls back to the alt text if the asset is missing.
-const manufacturers = [
-  { name: 'Carrier', src: '/logos/carrier.png' },
-  { name: 'York', src: '/logos/york.png' },
-  { name: 'Trane', src: '/logos/trane.png' },
-  { name: 'Daikin', src: '/logos/daikin.png' },
+import { filled } from '../lib/content';
+import type { CmsHome, CmsHomeManufacturer } from '../lib/types';
+
+interface Props {
+  home: CmsHome;
+}
+
+const { home } = Astro.props;
+
+// Default logo files live in /public/logos/ — see /public/logos/README.md.
+// A published CMS `manufacturers` wall (04 §6 v1.1) replaces the default set;
+// entries without an uploaded logo render their name as text.
+const DEFAULT_MANUFACTURERS: CmsHomeManufacturer[] = [
+  { name: 'Carrier', logoUrl: '/logos/carrier.png' },
+  { name: 'York', logoUrl: '/logos/york.png' },
+  { name: 'Trane', logoUrl: '/logos/trane.png' },
+  { name: 'Daikin', logoUrl: '/logos/daikin.png' },
 ];
+const manufacturers = home.manufacturers?.length ? home.manufacturers : DEFAULT_MANUFACTURERS;
+
+const mc = home.manufacturers_content;
 ---
 
 <section id="marcas" class="bg-granite-50 py-20 lg:py-24" data-manufacturers-section>
   <div class="mx-auto max-w-7xl px-6 lg:px-10">
     <div class="max-w-3xl">
       <p class="text-sm font-semibold uppercase tracking-caps text-navy-600" data-manufacturers-eyebrow>
-        Marcas
+        {filled(mc?.eyebrow) ?? 'Marcas'}
       </p>
       <h2 class="mt-3 font-heading text-3xl font-bold text-granite-900 sm:text-4xl lg:text-5xl" data-manufacturers-heading>
-        Expertos en los equipos de las marcas líderes del mercado
+        {filled(mc?.title) ?? 'Expertos en los equipos de las marcas líderes del mercado'}
       </h2>
       <p class="mt-5 text-lg text-granite-700" data-manufacturers-lede>
-        Damos servicio, mantenimiento y renta a equipos originales de las marcas más reconocidas del sector — la experiencia técnica que tu operación necesita, sin importar la antigüedad del equipo.
+        {filled(mc?.description) ??
+          'Damos servicio, mantenimiento y renta a equipos originales de las marcas más reconocidas del sector — la experiencia técnica que tu operación necesita, sin importar la antigüedad del equipo.'}
       </p>
     </div>
 
@@ -29,13 +43,19 @@ const manufacturers = [
           class="group flex h-24 items-center justify-center rounded-xl border border-granite-200 bg-white px-6 transition duration-300 hover:-translate-y-0.5 hover:border-granite-300 hover:shadow-lg hover:shadow-granite-900/5 sm:h-28"
           data-manufacturer-logo
         >
-          <img
-            src={m.src}
-            alt={m.name}
-            loading="lazy"
-            decoding="async"
-            class="max-h-10 w-auto max-w-full object-contain opacity-70 grayscale transition duration-300 group-hover:opacity-100 group-hover:grayscale-0 sm:max-h-12"
-          />
+          {m.logoUrl ? (
+            <img
+              src={m.logoUrl}
+              alt={m.name}
+              loading="lazy"
+              decoding="async"
+              class="max-h-10 w-auto max-w-full object-contain opacity-70 grayscale transition duration-300 group-hover:opacity-100 group-hover:grayscale-0 sm:max-h-12"
+            />
+          ) : (
+            <span class="text-base font-semibold text-granite-500 transition duration-300 group-hover:text-granite-700">
+              {m.name}
+            </span>
+          )}
         </div>
       ))}
     </div>

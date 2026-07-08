@@ -105,7 +105,19 @@
                 (add)="addBadge()"
               >
                 <ng-template #row let-ctrl let-i="index">
+                  <!-- Hero renders each metric as: heading on top, then value with
+                       the description inline after it. Input order mirrors that:
+                       Etiqueta | Valor | Descripción. -->
                   <div class="grid gap-2 sm:grid-cols-3" [formGroup]="ctrl | asGroup">
+                    <div class="field-group">
+                      <label class="micro-label" [for]="'cms-badge-heading-' + i">Etiqueta</label>
+                      <input
+                        [id]="'cms-badge-heading-' + i"
+                        pInputText
+                        formControlName="heading"
+                        placeholder="Equipos"
+                      />
+                    </div>
                     <div class="field-group">
                       <label class="micro-label" [for]="'cms-badge-value-' + i">Valor</label>
                       <input
@@ -116,21 +128,12 @@
                       />
                     </div>
                     <div class="field-group">
-                      <label class="micro-label" [for]="'cms-badge-unit-' + i">Unidad</label>
+                      <label class="micro-label" [for]="'cms-badge-description-' + i">Descripción</label>
                       <input
-                        [id]="'cms-badge-unit-' + i"
+                        [id]="'cms-badge-description-' + i"
                         pInputText
-                        formControlName="unit"
-                        placeholder="toneladas"
-                      />
-                    </div>
-                    <div class="field-group">
-                      <label class="micro-label" [for]="'cms-badge-label-' + i">Etiqueta</label>
-                      <input
-                        [id]="'cms-badge-label-' + i"
-                        pInputText
-                        formControlName="label"
-                        placeholder="instaladas"
+                        formControlName="description"
+                        placeholder="instalados"
                       />
                     </div>
                   </div>

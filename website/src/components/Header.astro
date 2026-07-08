@@ -1,4 +1,12 @@
 ---
+import type { Brand } from '../lib/types';
+
+interface Props {
+  brand: Brand;
+}
+
+const { brand } = Astro.props;
+
 const navLinks = [
   { href: '#servicios', label: 'Servicios' },
   { href: '#ubicacion', label: 'Ubicación' },
@@ -18,23 +26,27 @@ const navLinks = [
     <a
       href="/"
       class="inline-flex items-center gap-2.5"
-      aria-label="Peña Nevada Chillers"
+      aria-label={brand.name}
     >
-      <img
-        src="/brand/penanevada-mark-light.png"
-        alt=""
-        width="48"
-        height="48"
-        class="size-10 rounded-full bg-white p-0.5 shadow-sm sm:size-11"
-        aria-hidden="true"
-      />
-      <img
-        src="/brand/penanevada-wordmark-light.png"
-        alt=""
-        height="40"
-        class="h-7 w-auto rounded-md bg-white px-2 py-1.5 shadow-sm sm:h-8"
-        aria-hidden="true"
-      />
+      {brand.isologoUrl && (
+        <img
+          src={brand.isologoUrl}
+          alt=""
+          width="48"
+          height="48"
+          class="size-10 rounded-full bg-white p-0.5 shadow-sm sm:size-11"
+          aria-hidden="true"
+        />
+      )}
+      {brand.logoUrl && (
+        <img
+          src={brand.logoUrl}
+          alt=""
+          height="40"
+          class="h-7 w-auto rounded-md bg-white px-2 py-1.5 shadow-sm sm:h-8"
+          aria-hidden="true"
+        />
+      )}
     </a>
 
     <nav class="hidden items-center gap-8 md:flex" aria-label="Navegación principal">

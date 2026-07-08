@@ -1,10 +1,17 @@
 ---
-const services = [
+import type { CmsHome } from '../lib/types';
+
+interface Props {
+  home: CmsHome;
+}
+
+const { home } = Astro.props;
+const { services_content: content, services } = home;
+
+// Visual identity per card stays site-side (icons/accents are not CMS content);
+// cards beyond three cycle through the three accent variants.
+const cardStyles = [
   {
-    title: 'Mantenimiento',
-    description:
-      'Programas preventivos y correctivos para chillers, manejadoras y sistemas industriales. Minimizamos paros en planta y prolongamos la vida útil de tus equipos.',
-    tags: ['Preventivo', 'Correctivo 24/7', 'Industrial + residencial'],
     iconBg: 'bg-cyan-500/10',
     iconText: 'text-cyan-700',
     tagBg: 'bg-cyan-500/10',
@@ -16,10 +23,6 @@ const services = [
       'M14.7 6.3a5 5 0 0 0-6.4 6.4L3 18l3 3 5.3-5.3a5 5 0 0 0 6.4-6.4l-2.6 2.6-2.1-2.1 2.7-2.5z',
   },
   {
-    title: 'Renta',
-    description:
-      'Chillers portátiles y enfriadores industriales para respaldar tu operación durante paros programados, picos estacionales o montajes temporales.',
-    tags: ['Chillers', 'Maniobra e Instalación', 'Mes o Temporada'],
     iconBg: 'bg-navy-500/10',
     iconText: 'text-navy-700',
     tagBg: 'bg-navy-500/10',
@@ -27,14 +30,9 @@ const services = [
     linkText: 'text-navy-700',
     linkHover: 'group-hover:text-navy-900',
     accent: 'bg-navy-500',
-    iconPath:
-      'M4 4v6h6M20 20v-6h-6M20 4l-7 7M4 20l7-7',
+    iconPath: 'M4 4v6h6M20 20v-6h-6M20 4l-7 7M4 20l7-7',
   },
   {
-    title: 'Venta',
-    description:
-      'Proyectos llave en mano: diseño, suministro e instalación de chillers, HVAC y refrigeración de proceso para plantas productivas.',
-    tags: ['Ingeniería en sitio', 'Marcas líderes', 'Llave en mano'],
     iconBg: 'bg-sky-500/10',
     iconText: 'text-sky-700',
     tagBg: 'bg-sky-500/10',
@@ -46,6 +44,8 @@ const services = [
       'M20.6 12.6L12.6 4.6A2 2 0 0 0 11.2 4H5a1 1 0 0 0-1 1v6.2a2 2 0 0 0 .6 1.4l8 8a2 2 0 0 0 2.8 0l5.2-5.2a2 2 0 0 0 0-2.8zM8 9a1 1 0 1 1 0-2 1 1 0 0 1 0 2z',
   },
 ];
+
+const cards = services.map((service, i) => ({ ...service, ...cardStyles[i % cardStyles.length] }));
 ---
 
 <section
@@ -56,18 +56,18 @@ const services = [
   <div class="mx-auto w-full max-w-7xl px-6 lg:px-10">
     <div class="max-w-3xl">
       <p class="text-sm font-semibold uppercase tracking-caps text-cyan-600" data-services-eyebrow>
-        Servicios
+        {content.eyebrow ?? 'Servicios'}
       </p>
       <h2 class="mt-3 font-heading text-3xl font-bold text-granite-900 sm:text-4xl lg:text-4xl xl:text-5xl" data-services-heading>
-        Climatización industrial, sin comprometer la producción
+        {content.title}
       </h2>
       <p class="mt-4 text-base text-granite-700 sm:text-lg" data-services-lede>
-        Especialistas en chillers, HVAC y refrigeración de proceso para plantas, almacenes y líneas productivas del norte. También atendemos proyectos residenciales bajo solicitud.
+        {content.description}
       </p>
     </div>
 
     <div class="mt-12 grid gap-6 md:grid-cols-3 lg:gap-7 xl:gap-8">
-      {services.map((s) => (
+      {cards.map((s) => (
         <article
           class="group relative flex flex-col overflow-hidden rounded-2xl border border-granite-200 bg-white p-7 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-granite-300 hover:shadow-xl hover:shadow-granite-900/10 xl:p-8"
           data-service-card

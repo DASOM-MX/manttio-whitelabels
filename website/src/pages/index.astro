@@ -1,4 +1,9 @@
 ---
+// Server-rendered (plan 15 §2): brand + published CMS content are fetched per
+// request, so a superadmin publish is live on the next page load — never baked
+// into a static build.
+export const prerender = false;
+
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
@@ -7,38 +12,45 @@ import Clients from '../components/Clients.astro';
 import Location from '../components/Location.astro';
 import Manufacturers from '../components/Manufacturers.astro';
 import Footer from '../components/Footer.astro';
+import { getSiteData } from '../lib/api';
+import { buildBrandCss } from '../lib/theme';
 
-const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? 'https://penanevadachillers.com';
-const canonicalUrl = new URL(Astro.url.pathname, `${siteUrl}/`).toString();
+const { brand, home, clients, fonts } = await getSiteData();
+const brandCss = buildBrandCss(brand, fonts);
+
 const requestOrigin = new URL(Astro.request.url).origin;
-const pageTitle = 'Peña Nevada Chillers — Climatización industrial: chillers, HVAC y refrigeración';
-const pageDescription =
-  'Mantenimiento, renta y venta de chillers, HVAC y refrigeración de proceso para plantas, almacenes y líneas productivas del noreste de México. Orgullosamente regiomontanos.';
-const ogImagePath = '/brand/penanevada-full-light.png';
-const ogImage = `${requestOrigin}${ogImagePath}`;
-const ogImageWidth = 1024;
-const ogImageHeight = 931;
-const instagramUrl = 'https://www.instagram.com/penanevadachillers/';
-const tiktokUrl = 'https://www.tiktok.com/@pena.nevada.chillers';
+// Each tenant serves its own domain, so the request origin is the canonical
+// host when no `site` is configured.
+const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? requestOrigin;
+const canonicalUrl = new URL(Astro.url.pathname, `${siteUrl}/`).toString();
+const pageTitle = `${brand.name} — ${home.services_content.title}`;
+// brand.description is the business blurb (03 §2 — the site's meta
+// description); the hero lede is only a fallback.
+const pageDescription = brand.description?.trim() ? brand.description : home.description;
+// Only origin-prefix root-relative paths — CDN URLs and data: URIs pass through.
+const toAbsolute = (path: string) => (path.startsWith('/') ? `${requestOrigin}${path}` : path);
+// Brand uploads win; bundled brand-neutral placeholders keep every tag populated.
+const ogImage = toAbsolute(brand.logoUrl || '/og-default.png');
+const faviconUrl = brand.isologoUrl || '/favicon.svg';
+const faviconType = faviconUrl.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
+const appleTouchUrl = brand.isologoUrl || '/apple-touch-icon.png';
+const socialUrls = Object.values(brand.social ?? {}).filter(
+  (url): url is string => typeof url === 'string' && url.length > 0,
+);
 
 const organizationSchema = {
   '@context': 'https://schema.org',
   '@type': 'LocalBusiness',
-  name: 'Peña Nevada Chillers',
+  name: brand.name,
   url: siteUrl,
-  logo: `${requestOrigin}${ogImagePath}`,
+  logo: ogImage,
   image: ogImage,
   description: pageDescription,
-  areaServed: 'MX-NL',
-  address: {
-    '@type': 'PostalAddress',
-    streetAddress: 'Gral. Plutarco Elías Calles 2403',
-    addressLocality: 'Guadalupe',
-    addressRegion: 'Nuevo León',
-    postalCode: '67169',
-    addressCountry: 'MX',
-  },
-  sameAs: [instagramUrl, tiktokUrl],
+  ...(brand.contact?.address
+    ? { address: { '@type': 'PostalAddress', streetAddress: brand.contact.address, addressCountry: 'MX' } }
+    : {}),
+  ...(brand.contact?.phone ? { telephone: brand.contact.phone } : {}),
+  ...(socialUrls.length ? { sameAs: socialUrls } : {}),
 };
 ---
 
@@ -48,54 +60,44 @@ const organizationSchema = {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
     <meta name="theme-color" content="#0c4a6e" />
-    <link rel="icon" type="image/png" href="/brand/penanevada-mark.png" />
-    <link rel="apple-touch-icon" href="/brand/penanevada-mark-light.png" />
+    <link rel="icon" type={faviconType} href={faviconUrl} />
+    <link rel="apple-touch-icon" href={appleTouchUrl} />
     <link rel="canonical" href={canonicalUrl} />
 
     <title>{pageTitle}</title>
     <meta name="description" content={pageDescription} />
-    <meta
-      name="keywords"
-      content="chillers, HVAC, refrigeración industrial, climatización industrial, mantenimiento de chillers, renta de chillers, Monterrey, Nuevo León, Carrier, York, Trane, Daikin"
-    />
-    <meta name="author" content="Peña Nevada Chillers" />
+    <meta name="author" content={brand.name} />
     <meta name="robots" content="index, follow, max-image-preview:large" />
-    <meta name="geo.region" content="MX-NL" />
-    <meta name="geo.placename" content="Guadalupe, Nuevo León" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Peña Nevada Chillers" />
+    <meta property="og:site_name" content={brand.name} />
     <meta property="og:locale" content="es_MX" />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={pageDescription} />
     <meta property="og:image" content={ogImage} />
-    <meta property="og:image:secure_url" content={ogImage} />
-    <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:width" content={ogImageWidth.toString()} />
-    <meta property="og:image:height" content={ogImageHeight.toString()} />
-    <meta property="og:image:alt" content="Peña Nevada Chillers" />
+    <meta property="og:image:alt" content={brand.name} />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={pageDescription} />
     <meta name="twitter:image" content={ogImage} />
-    <meta name="twitter:image:alt" content="Peña Nevada Chillers" />
+    <meta name="twitter:image:alt" content={brand.name} />
 
-    <link rel="me" href={instagramUrl} />
-    <link rel="me" href={tiktokUrl} />
+    {socialUrls.map((url) => <link rel="me" href={url} />)}
 
     <script type="application/ld+json" set:html={JSON.stringify(organizationSchema)} />
+    {brandCss && <style is:inline set:html={brandCss}></style>}
   </head>
   <body class="min-h-screen bg-granite-50 text-granite-900 antialiased">
-    <Header />
+    <Header brand={brand} />
     <main>
-      <Hero />
-      <Services />
-      <Clients />
-      <Location />
-      <Manufacturers />
+      <Hero brand={brand} home={home} />
+      <Services home={home} />
+      {clients.length > 0 && <Clients brand={brand} home={home} clients={clients} />}
+      <Location brand={brand} home={home} />
+      <Manufacturers home={home} />
     </main>
-    <Footer />
+    <Footer brand={brand} home={home} />
   </body>
 </html>
