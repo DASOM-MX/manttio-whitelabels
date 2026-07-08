@@ -29,10 +29,11 @@ const pageTitle = `${brand.name} — ${home.services_content.title}`;
 const pageDescription = brand.description?.trim() ? brand.description : home.description;
 // Only origin-prefix root-relative paths — CDN URLs and data: URIs pass through.
 const toAbsolute = (path: string) => (path.startsWith('/') ? `${requestOrigin}${path}` : path);
-// Social image + favicon are tenant assets — omitted entirely when the brand
-// hasn't uploaded them; there is no bundled fallback.
-const ogImage = brand.logoUrl ? toAbsolute(brand.logoUrl) : undefined;
-const faviconUrl = brand.isologoUrl || undefined;
+// Brand uploads win; bundled brand-neutral placeholders keep every tag populated.
+const ogImage = toAbsolute(brand.logoUrl || '/og-default.png');
+const faviconUrl = brand.isologoUrl || '/favicon.svg';
+const faviconType = faviconUrl.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
+const appleTouchUrl = brand.isologoUrl || '/apple-touch-icon.png';
 const socialUrls = Object.values(brand.social ?? {}).filter(
   (url): url is string => typeof url === 'string' && url.length > 0,
 );
@@ -42,7 +43,8 @@ const organizationSchema = {
   '@type': 'LocalBusiness',
   name: brand.name,
   url: siteUrl,
-  ...(ogImage ? { logo: ogImage, image: ogImage } : {}),
+  logo: ogImage,
+  image: ogImage,
   description: pageDescription,
   ...(brand.contact?.address
     ? { address: { '@type': 'PostalAddress', streetAddress: brand.contact.address, addressCountry: 'MX' } }
@@ -58,8 +60,8 @@ const organizationSchema = {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
     <meta name="theme-color" content="#0c4a6e" />
-    {faviconUrl && <link rel="icon" type="image/png" href={faviconUrl} />}
-    {faviconUrl && <link rel="apple-touch-icon" href={faviconUrl} />}
+    <link rel="icon" type={faviconType} href={faviconUrl} />
+    <link rel="apple-touch-icon" href={appleTouchUrl} />
     <link rel="canonical" href={canonicalUrl} />
 
     <title>{pageTitle}</title>
@@ -73,14 +75,14 @@ const organizationSchema = {
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={pageDescription} />
-    {ogImage && <meta property="og:image" content={ogImage} />}
-    {ogImage && <meta property="og:image:alt" content={brand.name} />}
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:alt" content={brand.name} />
 
-    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={pageDescription} />
-    {ogImage && <meta name="twitter:image" content={ogImage} />}
-    {ogImage && <meta name="twitter:image:alt" content={brand.name} />}
+    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content={brand.name} />
 
     {socialUrls.map((url) => <link rel="me" href={url} />)}
 
