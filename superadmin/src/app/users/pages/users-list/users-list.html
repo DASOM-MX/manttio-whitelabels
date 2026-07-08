@@ -53,6 +53,7 @@
     (onLazyLoad)="onLazyLoad($event)"
     [paginator]="true"
     [rows]="PAGE_SIZE"
+    [first]="first()"
     [totalRecords]="total()"
     [loading]="loading()"
     dataKey="id"
@@ -79,9 +80,9 @@
             <p-tag severity="secondary" value="Inactivo" />
           }
         </td>
-        <td class="font-data tabular-nums">{{ user.createdAt | slice: 0 : 10 }}</td>
+        <td class="font-data tabular-nums">{{ user.createdAt | date: 'dd/MM/y' }}</td>
         <td class="w-24">
-          @if (user.role | canManage: myRole()) {
+          @if (user.role | canManage) {
             <div class="flex justify-end gap-1">
               <a
                 [routerLink]="['/users', user.id, 'edit']"
@@ -116,4 +117,4 @@
   </p-table>
 </div>
 
-<app-delete-user-dialog #deleteDialog (deleted)="reload()" />
+<app-delete-user-dialog #deleteDialog (deleted)="refresh()" />
