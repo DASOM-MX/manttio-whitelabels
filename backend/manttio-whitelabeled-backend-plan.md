@@ -43,9 +43,11 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   **Owner protection:** admins cannot edit/delete/re-role the owner or grant `owner`.
   **`owner` slice shipped 2026-07-07 (migration `0010`):** role check + JWT middleware +
   enums accept `owner`; `GRANTABLE_ROLES` keeps it out of the users API; owner-row
-  mutations → `403 cannot_modify_owner`; `/cms/*` gates `requireRole('owner','admin')`.
-  Still pending: `office` (lands with the users-module backend work) and the full
-  owner-vs-admin surface split (plan 14).
+  mutations → `403 cannot_modify_owner`. **Hierarchy (decided 2026-07-07): owner is
+  always above admin** — `requireRole` passes owners through every gate and inline
+  branches use `isAdminTier` (`auth/utils/role-tier.ts`), so owners inherit the full
+  admin surface (users/customers/reports/cms). Still pending: `office` (lands with the
+  users-module backend work) and owner-*exclusive* surfaces like `PUT /brand` (plan 14).
 - **Backend is the sole authority**: every endpoint enforces tenant-config *and* role on
   its own — superadmin rendering/guards are UX only (`.claude/plans/superadmin/14` §2 matrix and
   §2.1 WMS action matrix are the binding spec).

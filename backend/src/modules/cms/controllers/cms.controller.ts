@@ -24,11 +24,12 @@ import {
 export const cms = new Hono<AppBindings>();
 
 // Editor surface (superadmin plan 04): GETs serve the DRAFT; the public site
-// reads published-only via the /public/cms controller. Owner + admin only —
-// reads included (office/technician have no CMS access, plan 14 §2). The
+// reads published-only via the /public/cms controller. Admin tier and up —
+// owner passes via the role hierarchy in requireRole; technician (and the
+// future office role) have no CMS access, reads included (plan 14 §2). The
 // tenant `cms` module flag is likewise enforced here once tenant-config
 // infra exists.
-cms.use('*', requireRole('owner', 'admin'));
+cms.use('*', requireRole('admin'));
 
 const uuidSchema = z.string().uuid();
 

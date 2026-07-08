@@ -6,6 +6,7 @@ import {
   seedAdmin,
   seedAdminAndLogin,
   seedOwner,
+  seedOwnerAndLogin,
   seedTechnician,
   seedTechnicianAndLogin,
   uniqueEmail,
@@ -67,6 +68,12 @@ describe('GET /users/list', () => {
     expect(Array.isArray(body.users)).toBe(true);
     expect(body.users.some((u) => u.id === admin.id)).toBe(true);
     body.users.forEach((u) => expect(u).not.toHaveProperty('passwordHash'));
+  });
+
+  test('owner passes the admin gate via the role hierarchy', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const res = await request('/users/list', { headers: authHeader(token) });
+    expect(res.status).toBe(200);
   });
 
   test('technician is rejected with 403 forbidden', async () => {
