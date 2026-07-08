@@ -2,7 +2,7 @@ import type { MiddlewareHandler } from 'hono';
 import { jwtVerify } from 'jose';
 import type { AppBindings, AuthUser } from '../../../env';
 
-const ROLES = ['admin', 'technician'] as const;
+const ROLES = ['owner', 'admin', 'technician'] as const;
 
 // Token-bearer download (§9). PDFs are typically delivered as email attachments, but for
 // oversized reports the email contains a download link instead. The link route is gated by

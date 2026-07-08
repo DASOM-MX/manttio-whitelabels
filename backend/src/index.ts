@@ -7,6 +7,8 @@ import { users } from './modules/users/controllers/users.controller';
 import { customers } from './modules/customers/controllers/customers.controller';
 import { reports } from './modules/reports/controllers/reports.controller';
 import { upload } from './modules/upload/controllers/upload.controller';
+import { cms } from './modules/cms/controllers/cms.controller';
+import { publicCms } from './modules/cms/controllers/public-cms.controller';
 import { jwtMiddleware } from './modules/auth/middleware/jwt.middleware';
 
 const app = new Hono<AppBindings>();
@@ -18,17 +20,22 @@ app.get('/', (c) => c.json({ name: 'manttio-api', status: 'ok' }));
 
 app.route('/auth', auth);
 
-// JWT is required everywhere except `/auth/*`, `/`, and the public report-view path
-// (the public path is also skipped inside jwtMiddleware itself for defense in depth).
+// Public published-only CMS reads for the tenant website (no auth by design).
+app.route('/public/cms', publicCms);
+
+// JWT is required everywhere except `/auth/*`, `/`, `/public/*`, and the public
+// report-view path (also skipped inside jwtMiddleware itself for defense in depth).
 app.use('/users/*', jwtMiddleware);
 app.use('/customers/*', jwtMiddleware);
 app.use('/reports/*', jwtMiddleware);
 app.use('/upload/*', jwtMiddleware);
+app.use('/cms/*', jwtMiddleware);
 
 app.route('/users', users);
 app.route('/customers', customers);
 app.route('/reports', reports);
 app.route('/upload', upload);
+app.route('/cms', cms);
 
 app.onError((err, c) => {
   if (err instanceof SyntaxError || /JSON/i.test(err.message)) {

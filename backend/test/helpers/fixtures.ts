@@ -27,10 +27,10 @@ type SeededUser = {
   id: string;
   email: string;
   password: string;
-  role: 'admin' | 'technician';
+  role: 'owner' | 'admin' | 'technician';
 };
 
-const seedUser = async (role: 'admin' | 'technician'): Promise<SeededUser> => {
+const seedUser = async (role: 'owner' | 'admin' | 'technician'): Promise<SeededUser> => {
   const email = uniqueEmail(role);
   const password = `pw-${tag()}-${tag()}`;
   const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
@@ -46,6 +46,9 @@ const seedUser = async (role: 'admin' | 'technician'): Promise<SeededUser> => {
 
 export const seedAdmin = () => seedUser('admin');
 export const seedTechnician = () => seedUser('technician');
+// Owners only exist via provisioning (the users API can't grant `owner`), so the
+// fixture inserts the row directly through the repository, same as the others.
+export const seedOwner = () => seedUser('owner');
 
 type SeededCustomer = {
   id: string;
@@ -84,6 +87,12 @@ export const seedTechnicianAndLogin = async () => {
   const tech = await seedTechnician();
   const token = await loginAs(tech);
   return { tech, token };
+};
+
+export const seedOwnerAndLogin = async () => {
+  const owner = await seedOwner();
+  const token = await loginAs(owner);
+  return { owner, token };
 };
 
 type SeedReportOpts = {

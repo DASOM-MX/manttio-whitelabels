@@ -32,6 +32,7 @@ import {
 } from '../../storage/services/storage.service';
 import { isFile, type FormValue } from '../../storage/utils/form-data';
 import { canAccess } from '../utils/report-access';
+import { isAdminTier } from '../../auth/utils/role-tier';
 import { isEditableStatus } from '../utils/report-lifecycle';
 import { validateReportData } from '../validators/reports.validator';
 import { renderReportPdf } from '../helpers/report-pdf.helpers';
@@ -139,7 +140,7 @@ export const listReportsForUser = async (
   if (q.date_from) filters.dateFrom = new Date(q.date_from);
   if (q.date_to) filters.dateTo = new Date(q.date_to);
 
-  if (user.role === 'admin') {
+  if (isAdminTier(user)) {
     if (q.assigned_to) filters.assignedTo = q.assigned_to;
   } else {
     // Technicians are auto-scoped to their own assigned reports — query param is ignored.

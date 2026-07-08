@@ -39,9 +39,18 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   fork tasks). Open: temp-password expiry (05 open decisions).
 - **`role` enum on `users`:** `'owner' | 'admin' | 'office' | 'technician'` — migration
   on the existing users table **plus** the hardcoded role surfaces:
-  `auth/middleware/jwt.middleware.ts` (currently asserts `['admin','technician']`),
-  `requireRole` call sites, and `users/enums`. **Owner protection:** admins cannot
-  edit/delete/re-role the owner or grant `owner`.
+  `auth/middleware/jwt.middleware.ts`, `requireRole` call sites, and `users/enums`.
+  **Owner protection:** admins cannot edit/delete/re-role the owner or grant `owner`.
+  **`owner` slice shipped 2026-07-07 (migration `0010`):** role check + JWT middleware +
+  enums accept `owner`; `GRANTABLE_ROLES` keeps it out of the users API; owner-row
+  mutations → `403 cannot_modify_owner`. **Hierarchy (decided 2026-07-07): owner is
+  always above admin**, enforced as **explicit allow-lists** — `requireRole(roles[])`
+  has no implicit pass-through; every admin gate lists `['owner', 'admin']` and inline
+  branches use `isAdminTier`/`ADMIN_TIER` (`auth/utils/role-tier.ts`), so owners hold
+  the full admin surface (users/customers/reports/cms) with per-route granularity for
+  the future (owner-only or office-included gates just change that route's array).
+  Still pending: `office` (lands with the users-module backend work) and
+  owner-*exclusive* surfaces like `PUT /brand` (plan 14).
 - **Backend is the sole authority**: every endpoint enforces tenant-config *and* role on
   its own — superadmin rendering/guards are UX only (`.claude/plans/superadmin/14` §2 matrix and
   §2.1 WMS action matrix are the binding spec).
@@ -111,6 +120,16 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   editors; `POST /cms/:section/publish` copies draft → published; public reads serve
   **published only**. Owner + admin, behind the `cms` module flag. **Tenant-only
   writes — CMS content has no manager push path** (decided 2026-07-05).
+  **Implemented 2026-07-07 (`modules/cms/`, migration `0009`):** `cms_documents`
+  (section-keyed draft/published jsonb; publish copies draft → published) +
+  `cms_clients` entry rows snapshotted into the published doc on publish;
+  whitelist HTML sanitizer (mirrors the editor CVA: b/strong/i/em/ul/li/p/br/div,
+  attributes dropped); manufacturers `logoUrl` materialized from `logoKey` on
+  read, never stored; service icon codes validated against the curated 12
+  (superadmin 04 §6); public reads at `GET /public/cms/home|clients` (never
+  published → 404 so the site keeps its fallbacks). Gated `requireRole('admin')`
+  for now — `owner` joins when the §1 role migration lands, the `cms` module
+  flag when tenant-config enforcement exists.
 - **reports** (06): confirm status enum/folio; soft delete with comment; PDF/resend
   as today. **Signature gate (decided 2026-07-05):** every report — whatever its
   template — **requires a captured signature to transition to `finished` and to be
@@ -275,11 +294,12 @@ Pattern:
   counts vs timeline first page too); whether brand + CRM stay in the one
   `TenantCacheDO` class or split per concern — start shared, split only if CRM churn
   crowds the brand entry.
-- Website read surface (superadmin plan 15): the public tenant site consumes
-  **published-only** CMS docs — 04's `GET /cms/*` serve drafts to editors, so the
-  published counterpart needs its own public routes (e.g. `GET /public/cms/home|clients`
-  — shape TBD here); decide whether published docs join the `TenantCacheDO` (§5) with
-  invalidation on `POST /cms/:section/publish` (same hot-public profile as `GET /brand`).
+- ~~Website read surface (superadmin plan 15): public published-read route shape~~ —
+  **decided + shipped 2026-07-07: `GET /public/cms/home` · `GET /public/cms/clients`**
+  (bare doc / bare array, matching the website fetchers in PR #44; 404 until first
+  publish). Still open: whether published docs join the `TenantCacheDO` (§5) with
+  invalidation on `POST /cms/:section/publish` (same hot-public profile as
+  `GET /brand`) — they read Neon directly until then.
 
 ## 7. Build checklist
 
@@ -301,8 +321,10 @@ Pattern:
       `GET /brand` + `GET /fonts` (curated catalog), owner-only `PUT /brand`,
       materialized scales, font codes validated; pdf render-time brand consumption
       incl. static-instance font embedding (emails: colors/logo only)
-- [ ] **cms — first wave, alongside branding**: headless content endpoints
-      (draft→publish, sanitize on write, published-only public reads)
+- [x] **cms — first wave, alongside branding**: headless content endpoints
+      (draft→publish, sanitize on write, published-only public reads) —
+      **done 2026-07-07** (`modules/cms/`, migration `0009`, `test/cms.test.ts`;
+      owner-role + `cms`-flag gating pend the Auth & config items above)
 - [ ] customers CRM extensions + contacts + interactions + status transition
 - [ ] billing · wms (incl. replenishments parse + R2 evidence) · equipment ·
       visits/assignments · contracts (activate → visit generation)

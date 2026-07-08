@@ -64,6 +64,20 @@
       "when": 1780737766216,
       "tag": "0008_good_doctor_strange",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783450250424,
+      "tag": "0009_wandering_phil_sheldon",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783483623935,
+      "tag": "0010_spicy_chronomancer",
+      "breakpoints": true
     }
   ]
 }

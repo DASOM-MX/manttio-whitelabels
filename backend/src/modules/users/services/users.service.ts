@@ -17,6 +17,9 @@ import type { CreateUserInput, UpdateUserInput } from '../validators/users.valid
 export class EmailInUseError extends Error {}
 // Thrown when an admin tries to delete their own account; controller → 400.
 export class CannotDeleteSelfError extends Error {}
+// Thrown when a mutation targets an `owner` row — the owner is never
+// editable/deletable in-tenant (backend plan §1); controller → 403.
+export class CannotModifyOwnerError extends Error {}
 
 export const getUserById = async (db: Db, id: string): Promise<PublicUser | null> => {
   const user = await findUserById(db, id);
@@ -49,6 +52,10 @@ export const editUser = async (
   id: string,
   input: UpdateUserInput,
 ): Promise<PublicUser | null> => {
+  const target = await findUserById(db, id);
+  if (!target) return null;
+  if (target.role === 'owner') throw new CannotModifyOwnerError();
+
   const fields: UpdateUserFields = {};
   if (input.name !== undefined) fields.name = input.name;
   if (input.email !== undefined) fields.email = input.email;
@@ -71,5 +78,8 @@ export const removeUser = async (
   deleteComment: string,
 ): Promise<{ id: string } | null> => {
   if (actorId === id) throw new CannotDeleteSelfError();
+  const target = await findUserById(db, id);
+  if (!target) return null;
+  if (target.role === 'owner') throw new CannotModifyOwnerError();
   return softDeleteUser(db, id, deleteComment, actorId);
 };
