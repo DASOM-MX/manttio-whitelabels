@@ -22,7 +22,9 @@ const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? 'https://penanevada
 const canonicalUrl = new URL(Astro.url.pathname, `${siteUrl}/`).toString();
 const requestOrigin = new URL(Astro.request.url).origin;
 const pageTitle = `${brand.name} — ${home.services_content.title}`;
-const pageDescription = home.description;
+// brand.description is the business blurb (03 §2 — the site's meta
+// description); the hero lede is only a fallback.
+const pageDescription = brand.description?.trim() ? brand.description : home.description;
 const toAbsolute = (url: string | undefined, fallback: string) => {
   const path = url ?? fallback;
   return /^https?:\/\//.test(path) ? path : `${requestOrigin}${path}`;
@@ -89,9 +91,9 @@ const organizationSchema = {
     <main>
       <Hero brand={brand} home={home} />
       <Services home={home} />
-      <Clients brand={brand} clients={clients} />
-      <Location brand={brand} />
-      <Manufacturers />
+      <Clients brand={brand} home={home} clients={clients} />
+      <Location brand={brand} home={home} />
+      <Manufacturers home={home} />
     </main>
     <Footer brand={brand} home={home} />
   </body>

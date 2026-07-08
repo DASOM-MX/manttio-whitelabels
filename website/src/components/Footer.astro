@@ -15,7 +15,9 @@ const phoneHref = phone ? `tel:${phone.replace(/\s+/g, '')}` : undefined;
 const email = brand.contact?.email;
 const emailHref = email ? `mailto:${email}` : undefined;
 const cta = home.contact_cta ?? DEFAULT_HOME.contact_cta!;
-const blurb = `${home.services_content.title}. ${home.service_area ?? ''}`.trim();
+// Footer blurb ← brand.description (plan 15 §4); services title + area as fallback.
+const blurb =
+  brand.description?.trim() || `${home.services_content.title}. ${home.service_area ?? ''}`.trim();
 
 const quickLinks = [
   { href: '#servicios', label: 'Servicios' },

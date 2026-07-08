@@ -1,4 +1,5 @@
 ---
+import { filled } from '../lib/content';
 import type { Brand, CmsHome } from '../lib/types';
 
 interface Props {
@@ -8,10 +9,8 @@ interface Props {
 
 const { brand, home } = Astro.props;
 
-// TODO: replace with the direct videos.pexels.com CDN URL (grab it from
-// https://www.pexels.com/video/30900353/ — right-click the <video> element
-// in DevTools and copy the .mp4 src). Leaving empty falls back to the gradient.
-const heroVideoUrl = '';
+// CMS-provided background video (04 §6 v1.1); empty falls back to the gradient.
+const heroVideoUrl = filled(home.hero_video_url) ?? '';
 
 const rotatorWords = home.service_targets.length ? home.service_targets : ['Negocio'];
 const metrics = home.badges;

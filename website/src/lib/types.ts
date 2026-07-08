@@ -9,6 +9,7 @@ export interface BrandColorScale {
 export interface Brand {
   name: string;
   slogan?: string;
+  description?: string; // business blurb — meta description + footer blurb (03 §2)
   logoUrl?: string; // full logo / wordmark (CDN URL)
   logoDarkUrl?: string; // dark-surface variant; falls back to logoUrl
   isologoUrl?: string; // square mark — favicon source, header chip
@@ -55,21 +56,40 @@ export interface CmsHomeService {
   tags: string[];
 }
 
+/** Section-copy group (04 §6 v1.1). The editor saves these validator-free, so
+ *  fields may arrive as empty strings — treat blank as "use the fallback". */
+export interface CmsSectionContent {
+  eyebrow?: string;
+  title: string;
+  description: string;
+}
+
+export interface CmsHomeManufacturer {
+  name: string;
+  logoUrl?: string; // materialized from the R2 key on read; '' when no logo
+}
+
 export interface CmsHome {
   title: string; // hero heading (the service-target rotator completes it)
   description: string; // hero lede
+  hero_video_url?: string; // hero background video; absent → gradient
   service_targets: string[]; // hero rotator words
   badges: CmsHomeBadge[]; // hero metrics strip
-  services_content: {
-    eyebrow?: string;
-    title: string;
-    description: string;
-  };
+  services_content: CmsSectionContent;
   services: CmsHomeService[];
   service_area?: string; // one-liner used in the footer blurb
   contact_cta?: {
     title: string;
     description: string;
+  };
+  clients_content?: CmsSectionContent & {
+    cta_title?: string;
+    cta_description?: string;
+  };
+  manufacturers_content?: CmsSectionContent;
+  manufacturers?: CmsHomeManufacturer[]; // logo wall
+  location_content?: CmsSectionContent & {
+    schedule?: string; // e.g. 'Lun a vie, 8:00 – 18:00'
   };
 }
 

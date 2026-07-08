@@ -6,10 +6,13 @@ import type { Brand, CmsClient, CmsHome } from './types';
 export const DEFAULT_BRAND: Brand = {
   name: 'Peña Nevada Chillers',
   slogan: 'Orgullosamente regiomontanos',
+  description:
+    'Mantenimiento, renta y venta de chillers, HVAC y refrigeración de proceso para plantas, almacenes y líneas productivas del noreste de México. Orgullosamente regiomontanos.',
   logoUrl: '/brand/penanevada-wordmark-light.png',
   isologoUrl: '/brand/penanevada-mark-light.png',
   contact: {
-    phone: '+52 81 0000 0000',
+    // No fallback phone: the old env-provided number is gone and a placeholder
+    // would render as a live (fake) tel: link — contact rows hide when absent.
     email: 'contacto@penanevadachillers.com',
     address: 'Gral. Plutarco Elías Calles 2403, Guadalupe, Nuevo León 67169',
   },

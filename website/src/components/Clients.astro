@@ -1,14 +1,24 @@
 ---
-import type { Brand, CmsClient } from '../lib/types';
+import { filled } from '../lib/content';
+import type { Brand, CmsClient, CmsHome } from '../lib/types';
 
 interface Props {
   brand: Brand;
+  home: CmsHome;
   clients: CmsClient[];
 }
 
-const { brand, clients } = Astro.props;
+const { brand, home, clients } = Astro.props;
 
 const industries = [...new Set(clients.map((c) => c.sector).filter((s): s is string => !!s))];
+
+// Section copy from the CMS (04 §6 v1.1); each field falls back to the
+// original Peña Nevada copy so a blank group renders the site unchanged.
+const cc = home.clients_content;
+const ccTitle = filled(cc?.title);
+const ccLede =
+  filled(cc?.description) ??
+  `Una selección de empresas que han elegido a ${brand.name} para diseñar, instalar y mantener su climatización industrial — desde cadena de frío y empaque hasta servicios públicos y renta de equipo.`;
 ---
 
 <section
@@ -37,21 +47,25 @@ const industries = [...new Set(clients.map((c) => c.sector).filter((s): s is str
           class="text-sm font-semibold uppercase tracking-caps text-cyan-600"
           data-clients-eyebrow
         >
-          Clientes
+          {filled(cc?.eyebrow) ?? 'Clientes'}
         </p>
       </div>
       <h2
         class="mt-4 font-heading text-3xl font-bold text-granite-900 sm:text-4xl lg:text-5xl"
         data-clients-heading
       >
-        Construyendo confianza,
-        <span class="text-cyan-600">proyecto por proyecto</span>.
+        {ccTitle ?? (
+          <Fragment>
+            Construyendo confianza,
+            <span class="text-cyan-600">proyecto por proyecto</span>.
+          </Fragment>
+        )}
       </h2>
       <p
         class="mt-5 text-lg text-granite-700"
         data-clients-lede
       >
-        Una selección de empresas que han elegido a {brand.name} para diseñar, instalar y mantener su climatización industrial — desde cadena de frío y empaque hasta servicios públicos y renta de equipo.
+        {ccLede}
       </p>
     </div>
 
@@ -111,10 +125,11 @@ const industries = [...new Set(clients.map((c) => c.sector).filter((s): s is str
     >
       <div>
         <p class="font-heading text-lg font-bold text-granite-900 sm:text-xl">
-          ¿Quieres ser nuestro próximo proyecto?
+          {filled(cc?.cta_title) ?? '¿Quieres ser nuestro próximo proyecto?'}
         </p>
         <p class="mt-1 text-sm text-granite-600">
-          Cuéntanos qué necesitas y un especialista te contacta en menos de 24 horas.
+          {filled(cc?.cta_description) ??
+            'Cuéntanos qué necesitas y un especialista te contacta en menos de 24 horas.'}
         </p>
       </div>
       <a
