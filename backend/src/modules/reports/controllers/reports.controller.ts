@@ -124,7 +124,7 @@ reports.patch('/:id', zValidator('json', patchReportSchema), async (c) => {
 
 // --- Reassign (admin only, any status) ---
 
-reports.put('/:id/assignee', requireRole('admin'), zValidator('json', assignReportSchema), async (c) => {
+reports.put('/:id/assignee', requireRole(['owner', 'admin']), zValidator('json', assignReportSchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const { assigned_to } = c.req.valid('json');
   const { status, body } = await reassign(db, c.req.param('id'), assigned_to);
@@ -187,7 +187,7 @@ reports.delete('/:id/pictures', zValidator('json', removePicturesSchema), async 
 
 // --- Delete (admin, soft) ---
 
-reports.delete('/:id', requireRole('admin'), async (c) => {
+reports.delete('/:id', requireRole(['owner', 'admin']), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const { status, body } = await deleteReport(db, c.req.param('id'));
   return c.json(body, status);
@@ -195,7 +195,7 @@ reports.delete('/:id', requireRole('admin'), async (c) => {
 
 // --- §9: email + history + revoke ---
 
-reports.post('/:id/email', requireRole('admin'), zValidator('json', sendReportEmailSchema), async (c) => {
+reports.post('/:id/email', requireRole(['owner', 'admin']), zValidator('json', sendReportEmailSchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const { status, body } = await emailReport(
     db,
@@ -207,13 +207,13 @@ reports.post('/:id/email', requireRole('admin'), zValidator('json', sendReportEm
   return c.json(body, status);
 });
 
-reports.get('/:id/emails', requireRole('admin'), async (c) => {
+reports.get('/:id/emails', requireRole(['owner', 'admin']), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const { status, body } = await listReportEmails(db, c.req.param('id'));
   return c.json(body, status);
 });
 
-reports.post('/emails/:emailId/revoke', requireRole('admin'), async (c) => {
+reports.post('/emails/:emailId/revoke', requireRole(['owner', 'admin']), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const { status, body } = await revokeReportEmail(db, c.req.param('emailId'));
   return c.json(body, status);

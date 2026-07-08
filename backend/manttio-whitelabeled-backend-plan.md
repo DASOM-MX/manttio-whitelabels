@@ -44,10 +44,13 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   **`owner` slice shipped 2026-07-07 (migration `0010`):** role check + JWT middleware +
   enums accept `owner`; `GRANTABLE_ROLES` keeps it out of the users API; owner-row
   mutations → `403 cannot_modify_owner`. **Hierarchy (decided 2026-07-07): owner is
-  always above admin** — `requireRole` passes owners through every gate and inline
-  branches use `isAdminTier` (`auth/utils/role-tier.ts`), so owners inherit the full
-  admin surface (users/customers/reports/cms). Still pending: `office` (lands with the
-  users-module backend work) and owner-*exclusive* surfaces like `PUT /brand` (plan 14).
+  always above admin**, enforced as **explicit allow-lists** — `requireRole(roles[])`
+  has no implicit pass-through; every admin gate lists `['owner', 'admin']` and inline
+  branches use `isAdminTier`/`ADMIN_TIER` (`auth/utils/role-tier.ts`), so owners hold
+  the full admin surface (users/customers/reports/cms) with per-route granularity for
+  the future (owner-only or office-included gates just change that route's array).
+  Still pending: `office` (lands with the users-module backend work) and
+  owner-*exclusive* surfaces like `PUT /brand` (plan 14).
 - **Backend is the sole authority**: every endpoint enforces tenant-config *and* role on
   its own — superadmin rendering/guards are UX only (`.claude/plans/superadmin/14` §2 matrix and
   §2.1 WMS action matrix are the binding spec).

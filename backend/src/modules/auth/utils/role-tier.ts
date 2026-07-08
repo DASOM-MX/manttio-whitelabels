@@ -1,6 +1,10 @@
 import type { AuthUser } from '../../../env';
 
-// Role hierarchy: owner > admin > (office) > technician. Inline role checks
-// must use the tier predicate, never `role === 'admin'` — otherwise owners
-// silently fall into the technician branch (auto-scoping, access denials).
-export const isAdminTier = (user: AuthUser) => user.role === 'owner' || user.role === 'admin';
+// The admin tier: owner outranks admin, so every admin surface admits both.
+// Gates name their allow-list explicitly (`requireRole(['owner', 'admin'])`);
+// inline role branches use the predicate, never `role === 'admin'` — that
+// would silently drop owners into the technician branch (auto-scoping,
+// access denials).
+export const ADMIN_TIER: AuthUser['role'][] = ['owner', 'admin'];
+
+export const isAdminTier = (user: AuthUser) => ADMIN_TIER.includes(user.role);

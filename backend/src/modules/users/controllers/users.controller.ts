@@ -18,7 +18,7 @@ import {
 export const users = new Hono<AppBindings>();
 
 // `GET /users/me` is available to any authenticated user — registered before the
-// admin gate so it bypasses `requireRole('admin')`.
+// admin gate so it bypasses `requireRole(['owner', 'admin'])`.
 users.get('/me', async (c) => {
   const me = c.get('user');
   const db = createDb(c.env.DATABASE_URL);
@@ -27,7 +27,7 @@ users.get('/me', async (c) => {
   return c.json({ user });
 });
 
-users.use('*', requireRole('admin'));
+users.use('*', requireRole(['owner', 'admin']));
 
 users.get('/list', async (c) => {
   const db = createDb(c.env.DATABASE_URL);

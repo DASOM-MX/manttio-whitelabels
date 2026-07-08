@@ -28,7 +28,7 @@ customers.get('/:id', async (c) => {
 });
 
 // Write endpoints are admin-only.
-customers.post('/', requireRole('admin'), zValidator('json', createCustomerSchema), async (c) => {
+customers.post('/', requireRole(['owner', 'admin']), zValidator('json', createCustomerSchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const row = await createCustomer(db, c.req.valid('json'));
   return c.json({ customer: row }, 201);
@@ -36,7 +36,7 @@ customers.post('/', requireRole('admin'), zValidator('json', createCustomerSchem
 
 customers.patch(
   '/:id',
-  requireRole('admin'),
+  requireRole(['owner', 'admin']),
   zValidator('json', updateCustomerSchema),
   async (c) => {
     const db = createDb(c.env.DATABASE_URL);
@@ -46,7 +46,7 @@ customers.patch(
   },
 );
 
-customers.delete('/:id', requireRole('admin'), async (c) => {
+customers.delete('/:id', requireRole(['owner', 'admin']), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const row = await removeCustomer(db, c.req.param('id'));
   if (!row) return c.json({ error: 'not_found' }, 404);
