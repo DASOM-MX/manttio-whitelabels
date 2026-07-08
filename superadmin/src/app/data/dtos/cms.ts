@@ -4,9 +4,9 @@
  *  surface serves published-only (04 §5). */
 
 export interface CmsHomeBadge {
-  label: string;
+  heading: string;
   value: string;
-  unit?: string;
+  description?: string;
 }
 
 export interface CmsHomeService {

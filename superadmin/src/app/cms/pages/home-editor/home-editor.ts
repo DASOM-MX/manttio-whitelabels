@@ -134,12 +134,12 @@ export class HomeEditor implements HasPendingChanges {
     this.form.markAsDirty();
   }
 
-  protected addBadge(badge?: { label?: string; value?: string; unit?: string }): void {
+  protected addBadge(badge?: { heading?: string; value?: string; description?: string }): void {
     this.badges.push(
       this.fb.nonNullable.group({
-        label: [badge?.label ?? '', Validators.required],
+        heading: [badge?.heading ?? '', Validators.required],
         value: [badge?.value ?? '', Validators.required],
-        unit: [badge?.unit ?? ''],
+        description: [badge?.description ?? ''],
       }),
     );
     if (!badge) this.form.markAsDirty();

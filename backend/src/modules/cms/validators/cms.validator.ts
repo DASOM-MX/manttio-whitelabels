@@ -14,10 +14,11 @@ const sectionContentSchema = z.object({
   description: z.string(),
 });
 
+// Hero metric: heading on top, then value with the description inline after it.
 const badgeSchema = z.object({
-  label: z.string().min(1),
+  heading: z.string().min(1),
   value: z.string().min(1),
-  unit: z.string().optional(),
+  description: z.string().optional(),
 });
 
 const serviceSchema = z.object({

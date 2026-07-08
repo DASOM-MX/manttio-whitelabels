@@ -37,7 +37,7 @@ const HOME_DOC = {
   description: 'Mantenimiento, renta y venta de chillers.',
   hero_video_url: 'https://cdn.example.com/hero.mp4',
   service_targets: ['plantas'],
-  badges: [{ label: 'instalaciones', value: '+120', unit: 'equipos' }],
+  badges: [{ heading: 'Equipos', value: '+120', description: 'instalados' }],
   services_content: { eyebrow: 'Servicios', title: 'Lo que hacemos', description: 'Chillers y más.' },
   services: [{ title: 'Mantenimiento', description: 'Preventivo.', tags: ['24/7'], icon: 'wrench' }],
   service_area: 'Noreste de México',
