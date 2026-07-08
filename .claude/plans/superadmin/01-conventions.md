@@ -49,8 +49,10 @@ auto-loads it — **edit both in the same commit.**
   reserved for true overlays (dialogs, popovers, drawers). Nested grouping = background
   shift or divider, never another shadowed box.
 - **Strong cues:** status pills wherever state exists (never color alone); active nav =
-  2px primary left-accent bar + tinted bg; uppercase micro-labels
-  (`text-[11px] font-medium tracking-caps uppercase`) for card/section/table headers;
+  2px primary left-accent bar + tinted bg; micro-labels (`text-2xs font-medium`) for
+  card/section/table headers — **title/sentence case, never uppercase** (QA 2026-07-07:
+  uppercase is reserved for warnings or explicit requests; headings/labels render in
+  their authored case);
   tabular numerals on every numeric column; skeleton loaders for content regions
   (spinners only inside buttons).
 - **No emojis, anywhere** — templates, empty states, toasts, copy. Icons carry all
