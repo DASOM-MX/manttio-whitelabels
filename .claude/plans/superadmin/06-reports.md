@@ -1,6 +1,11 @@
 # 06 — Reports
 
-> **Status:** done (frontend side — backend reports/report-templates changes pending)
+> **Status:** done (frontend side — backend reports changes pending; **backend
+> report-templates module shipped 2026-07-09**: `modules/report-templates/` per §5.4
+> — jsonb sections doc, draft⇄active→disabled lifecycle, reads open to any authed
+> user / mutations admin-tier, `unit` whitelisted server-side (MAGNITUDES enum,
+> number-only zod refine), migration `0013` applied to Neon. Still pending: reports
+> capture/answer-snapshot rework, folio column, provisioning-time HVAC seed.)
 > **Depends on:** 02 (CP-3, done)
 > **Owner:** branch `feature/superadmin-reports` (stacked on the 02 shell PR) · **Last updated:** 2026-07-06
 
