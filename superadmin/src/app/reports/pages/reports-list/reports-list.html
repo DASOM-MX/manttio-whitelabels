@@ -72,6 +72,7 @@
     (onLazyLoad)="onLazyLoad($event)"
     [paginator]="true"
     [rows]="PAGE_SIZE"
+    [first]="first()"
     [totalRecords]="total()"
     [loading]="loading()"
     dataKey="id"
@@ -136,4 +137,4 @@
   </p-table>
 </div>
 
-<app-delete-report-dialog #deleteDialog (deleted)="reload()" />
+<app-delete-report-dialog #deleteDialog (deleted)="refresh()" />
