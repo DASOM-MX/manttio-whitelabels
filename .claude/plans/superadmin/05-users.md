@@ -67,9 +67,16 @@ the user detail once 10 lands.
   the keyboard path; owner rows carry a read-only "view" link instead of edit/delete);
   role pills use the app-wide blue hierarchy ladder (14 §1); a failed detail load
   (e.g. 404) toasts and redirects back to the list.
-- `users/pages/user-form/` — one reactive-form page for add + edit (route param decides).
-  Fields: name, email, phone, role (`<p-select>`), active toggle. **Edit mode is
-  tabbed; the last tab is "Crítico"** — the danger zone holding the **reset password**
+- `users/pages/user-form/` — one page for add + detail/edit (route param decides).
+  **The detail is view-first (QA 2026-07-09):** static labels (name, email, phone, role
+  pill, estado tag, created) — the reactive-form inputs only render after an explicit
+  "Editar" click, so no live controls sit armed by default (fewer accidental/unwanted
+  requests, and the view will later grow into a fuller user detail). Cancel reverts to
+  view mode; a successful save stays on the detail in view mode. Form fields: name,
+  email, phone, role (`<p-select>`). **Edit mode is tabbed; the last tab is "Crítico"**
+  — the danger zone holding (a) the **account activation toggle** (QA 2026-07-09:
+  disabling an account is a lockout action, not a form field — moved out of Datos;
+  confirm dialog → `PATCH /users/:id { active }`), and (b) the **reset password**
   button (rendered only for the allowed pairings — 14 §2 note 1; confirm dialog →
   calls `POST /users/:id/password` → shows the generated temp password **once** with a
   copy button and a "won't be shown again" warning). New users get the same
