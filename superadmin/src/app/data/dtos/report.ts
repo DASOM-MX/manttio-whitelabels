@@ -61,3 +61,12 @@ export interface ReportListQuery {
 export interface DeleteReportRequest {
   deleteComment: string;
 }
+
+/** `POST /reports/:id/email` — all fields optional; the backend defaults `to`
+ *  to the customer's email (mirrors the field app's resend flow). */
+export interface SendReportEmailRequest {
+  to?: string;
+  cc?: string[];
+  message?: string;
+  expiresInDays?: number;
+}

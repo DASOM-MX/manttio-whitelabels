@@ -75,6 +75,7 @@
     [first]="list.first()"
     [totalRecords]="total()"
     [loading]="loading()"
+    [rowHover]="true"
     dataKey="id"
   >
     <ng-template #header>
@@ -89,7 +90,7 @@
       </tr>
     </ng-template>
     <ng-template #body let-report>
-      <tr>
+      <tr class="cursor-pointer" (click)="openReport(report)">
         <td class="font-data tabular-nums">{{ report.folio || '—' }}</td>
         <td class="font-medium">{{ report.customerName }}</td>
         <td>{{ report.technicianName }}</td>
@@ -101,7 +102,7 @@
             [value]="report.status | reportStatusLabel"
           />
         </td>
-        <td class="w-24">
+        <td class="w-24" (click)="$event.stopPropagation()">
           <div class="flex justify-end gap-1">
             <a
               [routerLink]="['/reports', report.id]"

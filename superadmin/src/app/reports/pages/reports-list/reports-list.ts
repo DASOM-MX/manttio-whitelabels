@@ -1,5 +1,5 @@
 import { Component, computed, inject, viewChild } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { SelectModule } from 'primeng/select';
@@ -62,6 +62,7 @@ const isoDate = (d: Date | undefined | null): string | undefined =>
 })
 export class ReportsList {
   private store = inject(Store);
+  private router = inject(Router);
   protected list = inject(ListQueryService);
 
   protected reports = select(ReportsState.items);
@@ -145,5 +146,11 @@ export class ReportsList {
 
   protected openDelete(report: ReportSummary): void {
     this.deleteDialog()?.open(report);
+  }
+
+  /** Whole row clicks through to the report (05 §3 QA pattern); the action
+   *  links remain the keyboard path. */
+  protected openReport(report: ReportSummary): void {
+    this.router.navigate(['/reports', report.id]);
   }
 }

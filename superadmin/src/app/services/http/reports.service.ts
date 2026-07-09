@@ -7,6 +7,7 @@ import type {
   ReportDetail,
   ReportListQuery,
   ReportSummary,
+  SendReportEmailRequest,
 } from '../../data/dtos/report';
 
 @Injectable({ providedIn: 'root' })
@@ -33,6 +34,10 @@ export class ReportsService {
 
   pdf(id: string): Observable<Blob> {
     return this.remote.getBlob(`/reports/${id}/pdf`);
+  }
+
+  email(id: string, body: SendReportEmailRequest): Observable<void> {
+    return this.remote.post<void>(`/reports/${id}/email`, body);
   }
 
   remove(id: string, body: DeleteReportRequest): Observable<void> {

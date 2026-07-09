@@ -17,6 +17,16 @@
         PDF
       }
     </button>
+    @if (canEmail()) {
+      <button type="button" class="btn-primary" (click)="emailReport()" [disabled]="sending()">
+        <svg lucideMail class="size-4" aria-hidden="true"></svg>
+        @if (sending()) {
+          Enviando…
+        } @else {
+          Enviar por correo
+        }
+      </button>
+    }
   }
 </div>
 

@@ -51,14 +51,20 @@ ReportDetail = ReportSummary + {
 
 - `reports/pages/reports-list/` — lazy `<p-table>`: folio, client, technician, template,
   service date, status pill; filters: date range (`<p-datepicker>` range), client select,
-  technician select, **template select**, status. Row: view, PDF, delete.
+  technician select, **template select**, status. Row: view, PDF, delete. **QA
+  2026-07-09:** whole row clicks through to the report view (05 §3 row-click pattern —
+  `[rowHover]`, action cell stops propagation; action links stay the keyboard path).
 - `reports/pages/report-view/` — read-only detail: header card (client/tech/date/
   template/status), **template-shaped body**: one `.card-section` per answer section,
   rendered at the section's captured column count (same skeleton the builder previews —
   reports are dynamic now, never assume the old fixed HVAC shape), photo grid, signature
   image (unstyled in dark mode per
-  conventions), PDF download button. Slots reserved for 09 (billing card) and 10
-  (materials card) — leave a clearly-marked placeholder region, don't build their UI.
+  conventions), PDF download button. **"Enviar por correo" button (QA 2026-07-09,
+  field-app parity):** finished/mailed reports, admin tier only (backend gate on
+  `POST /reports/:id/email` is owner/admin); confirm dialog → send (backend defaults
+  `to` to the customer email) → toast + reload so `finished` flips to `mailed`. Slots
+  reserved for 09 (billing card) and 10 (materials card) — leave a clearly-marked
+  placeholder region, don't build their UI.
 - `reports/components/delete-report-dialog/` — shape-3 dialog, audit comment (reuse the
   delete-dialog pattern; extract a shared base only if 05's agent agrees — record as ask).
 
