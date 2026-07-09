@@ -183,15 +183,19 @@ TemplateQuestion {
 
 - `templates/pages/templates-list/` — table: name, status pill (draft/active/disabled),
   question count, updated. Row: open. (Own feature folder — `/templates` is its own
-  route area; still owned by this module's agent.)
+  route area; still owned by this module's agent.) **QA 2026-07-09:** whole row clicks
+  through to the builder (05 §3 row-click pattern) and the page rides ListQueryService
+  (`?page` persists; no filters yet).
 - `templates/pages/template-detail/` — the builder: **section editor** (add / reorder /
   remove / rename sections; per-section column selector 1/2/3) with a **question
   editor nested per section** (add / reorder / remove; label, datatype, required,
-  options), and a **live preview** pane rendering the full skeleton — heading mock,
+  options), and a **live preview** rendering the full skeleton — heading mock,
   the sections stacked with their own grids (incl. the `| Label | value |` table for
-  1-col sections), images/footer mock. **The preview always renders each section's
+  1-col sections), images/footer mock. **The preview lives on its own tab (QA
+  2026-07-09 — Editor | Vista previa, ARIA tabs pattern; was a side-by-side pane).**
+  **The preview always renders each section's
   selected column count — never collapse it (decided 2026-07-05):** on narrow
-  viewports the pane becomes its own `overflow-x: auto` container (01 layout rule
+  viewports the panel becomes its own `overflow-x: auto` container (01 layout rule
   `horizontal-scroll`); a 2/3-col section collapsing to 1 col in the preview would
   read as the selection not applying. Editing is draft-only — active and disabled
   templates open the builder read-only.

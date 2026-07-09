@@ -68,9 +68,62 @@
   </p>
 }
 
-<div class="mt-5 grid gap-4 xl:grid-cols-2">
+<!-- Editor and preview are separate tabs (QA 2026-07-09) -->
+<div
+  class="mt-5 inline-flex rounded-lg border border-granite-200 p-0.5 dark:border-granite-800"
+  role="tablist"
+  aria-label="Secciones de la plantilla"
+  (keydown)="onTabKeydown($event)"
+>
+  <button
+    #tabBtn
+    type="button"
+    role="tab"
+    id="tab-editor"
+    aria-controls="panel-editor"
+    class="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
+    [class.bg-sky-50]="tab() === 'editor'"
+    [class.text-sky-800]="tab() === 'editor'"
+    [class.dark:bg-sky-950/40]="tab() === 'editor'"
+    [class.dark:text-sky-300]="tab() === 'editor'"
+    [class.text-granite-600]="tab() !== 'editor'"
+    [class.dark:text-granite-400]="tab() !== 'editor'"
+    [attr.aria-selected]="tab() === 'editor'"
+    [tabindex]="tab() === 'editor' ? 0 : -1"
+    (click)="tab.set('editor')"
+  >
+    Editor
+  </button>
+  <button
+    #tabBtn
+    type="button"
+    role="tab"
+    id="tab-preview"
+    aria-controls="panel-preview"
+    class="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
+    [class.bg-sky-50]="tab() === 'preview'"
+    [class.text-sky-800]="tab() === 'preview'"
+    [class.dark:bg-sky-950/40]="tab() === 'preview'"
+    [class.dark:text-sky-300]="tab() === 'preview'"
+    [class.text-granite-600]="tab() !== 'preview'"
+    [class.dark:text-granite-400]="tab() !== 'preview'"
+    [attr.aria-selected]="tab() === 'preview'"
+    [tabindex]="tab() === 'preview' ? 0 : -1"
+    (click)="tab.set('preview')"
+  >
+    Vista previa
+  </button>
+</div>
+
+@if (tab() === 'editor') {
   <!-- ── Builder ─────────────────────────────────────────────────────── -->
-  <form [formGroup]="form" class="flex flex-col gap-4">
+  <form
+    [formGroup]="form"
+    id="panel-editor"
+    role="tabpanel"
+    aria-labelledby="tab-editor"
+    class="mt-4 flex max-w-3xl flex-col gap-4"
+  >
     <section class="card-section flex flex-col gap-4" aria-labelledby="tpl-id-title">
       <h2 id="tpl-id-title" class="micro-label">Identificación</h2>
       <div class="field-group">
@@ -351,10 +404,18 @@
       </button>
     }
   </form>
+}
 
+@if (tab() === 'preview') {
   <!-- ── Live preview: full fixed skeleton, true column counts at every
        viewport (overflow-x scroll — never collapse; 06 §5.3). ──────────── -->
-  <aside aria-label="Vista previa de la plantilla">
+  <aside
+    id="panel-preview"
+    role="tabpanel"
+    aria-labelledby="tab-preview"
+    aria-label="Vista previa de la plantilla"
+    class="mt-4 max-w-3xl"
+  >
     <div class="card overflow-x-auto p-4">
       <div class="min-w-preview">
         <p class="micro-label">Vista previa</p>
@@ -447,6 +508,6 @@
       </div>
     </div>
   </aside>
-</div>
+}
 
 <app-disable-template-dialog #disableDialog />

@@ -16,11 +16,13 @@
   <p-table
     [value]="templates()"
     [lazy]="true"
-    (onLazyLoad)="onLazyLoad($event)"
+    (onLazyLoad)="list.onLazyLoad($event)"
     [paginator]="true"
     [rows]="PAGE_SIZE"
+    [first]="list.first()"
     [totalRecords]="total()"
     [loading]="loading()"
+    [rowHover]="true"
     dataKey="id"
   >
     <ng-template #header>
@@ -34,7 +36,7 @@
       </tr>
     </ng-template>
     <ng-template #body let-tpl>
-      <tr>
+      <tr class="cursor-pointer" (click)="openTemplate(tpl)">
         <td class="font-medium">
           {{ tpl.name }}
           @if (tpl.description) {
@@ -52,7 +54,7 @@
         <td class="font-data tabular-nums">{{ tpl.sections.length }}</td>
         <td class="font-data tabular-nums">{{ tpl | questionCount }}</td>
         <td class="font-data tabular-nums">{{ tpl.updatedAt | slice: 0 : 10 }}</td>
-        <td class="w-24 text-right">
+        <td class="w-24 text-right" (click)="$event.stopPropagation()">
           <a
             [routerLink]="['/templates', tpl.id]"
             class="text-sm font-semibold text-sky-700 transition-colors hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"

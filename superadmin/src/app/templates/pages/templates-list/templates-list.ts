@@ -1,22 +1,25 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { SlicePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { TableModule, TableLazyLoadEvent } from 'primeng/table';
+import { Router, RouterLink } from '@angular/router';
+import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { LucideLayoutTemplate, LucidePlus } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { ReportTemplatesState } from '../../../../state/report-templates/report-templates.state';
 import { LoadTemplates } from '../../../../state/report-templates/report-templates.actions';
+import { ListQueryService } from '../../../services/table/list-query.service';
 import {
   QuestionCountPipe,
   TemplateStatusLabelPipe,
   TemplateStatusSeverityPipe,
 } from '../../../pipes/report-status.pipe';
+import type { ReportTemplate } from '../../../data/dtos/report-template';
 
 const PAGE_SIZE = 10;
 
 /** Templates list (06 §5.3) — own top-level Plantillas area, owner/admin
- *  only (route data enforces; office/tech never see the nav entry). */
+ *  only (route data enforces; office/tech never see the nav entry). Page
+ *  persists as a GET param (?page) through ListQueryService (05 §3 canon). */
 @Component({
   selector: 'app-templates-list',
   imports: [
@@ -30,22 +33,31 @@ const PAGE_SIZE = 10;
     LucidePlus,
     LucideLayoutTemplate,
   ],
+  providers: [ListQueryService],
   templateUrl: './templates-list.html',
 })
 export class TemplatesList {
   private store = inject(Store);
+  private router = inject(Router);
+  protected list = inject(ListQueryService);
 
   protected templates = select(ReportTemplatesState.items);
   protected total = select(ReportTemplatesState.total);
   protected loading = select(ReportTemplatesState.loading);
   protected readonly PAGE_SIZE = PAGE_SIZE;
 
-  private page = signal(1);
+  constructor() {
+    this.list.init({
+      pageSize: PAGE_SIZE,
+      read: () => {},
+      write: () => ({}),
+      load: (page) => this.store.dispatch(new LoadTemplates({ page, limit: PAGE_SIZE })),
+    });
+  }
 
-  protected onLazyLoad(event: TableLazyLoadEvent): void {
-    const first = event.first ?? 0;
-    const rows = event.rows ?? PAGE_SIZE;
-    this.page.set(Math.floor(first / rows) + 1);
-    this.store.dispatch(new LoadTemplates({ page: this.page(), limit: rows }));
+  /** Whole row clicks through to the builder (05 §3 QA pattern); the "Abrir"
+   *  link remains the keyboard path. */
+  protected openTemplate(tpl: ReportTemplate): void {
+    this.router.navigate(['/templates', tpl.id]);
   }
 }
