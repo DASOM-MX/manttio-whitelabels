@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   pgTable,
   text,
@@ -16,7 +17,10 @@ export const users = pgTable(
     name: text('name').notNull(),
     email: text('email').notNull(),
     passwordHash: text('password_hash').notNull(),
-    role: text('role').$type<'owner' | 'admin' | 'technician'>().notNull(),
+    role: text('role').$type<'owner' | 'admin' | 'office' | 'technician'>().notNull(),
+    // Temp-password model (backend plan §1): set when a temp password is issued
+    // (create/reset), cleared by POST /auth/password; clients block entry on it.
+    mustChangePassword: boolean('must_change_password').default(false).notNull(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     deleteComment: text('delete_comment'),
     // Self-reference: the admin who soft-deleted this row. Restrict-on-delete so
@@ -34,6 +38,6 @@ export const users = pgTable(
     uniqueIndex('users_email_active_idx')
       .on(table.email)
       .where(sql`${table.deletedAt} is null`),
-    check('users_role_check', sql`${table.role} in ('owner', 'admin', 'technician')`),
+    check('users_role_check', sql`${table.role} in ('owner', 'admin', 'office', 'technician')`),
   ],
 );

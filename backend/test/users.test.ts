@@ -486,3 +486,133 @@ describe('DELETE /users/:id', () => {
     expect(res.status).toBe(403);
   });
 });
+
+// Temp-password model + role-gated reset (backend plan §1).
+const TEMP_PASSWORD_RE = /^tmp_[A-Za-z0-9]{18}$/;
+
+describe('POST /users (temp-password model)', () => {
+  test('omitting password issues a one-time temp password and flags the forced change', async () => {
+    const { token } = await seedAdminAndLogin();
+    const email = uniqueEmail('temp-create');
+    const res = await request('/users', {
+      method: 'POST',
+      headers: headersWith(token),
+      body: JSON.stringify({ name: 'test temp create', email, role: 'technician' }),
+    });
+    expect(res.status).toBe(201);
+    const body = await json<{ user: PublicUser & { mustChangePassword: boolean }; tempPassword: string }>(res);
+    expect(body.tempPassword).toMatch(TEMP_PASSWORD_RE);
+    expect(body.user.mustChangePassword).toBe(true);
+
+    // The temp password is a live credential; login surfaces the flag.
+    const login = await request('/auth/login', {
+      method: 'POST',
+      headers: jsonHeaders(),
+      body: JSON.stringify({ email, password: body.tempPassword }),
+    });
+    expect(login.status).toBe(200);
+    const loginBody = await json<{ token: string; mustChangePassword: boolean }>(login);
+    expect(loginBody.mustChangePassword).toBe(true);
+  });
+
+  test('supplying a password keeps the legacy path: no tempPassword, no flag', async () => {
+    const { token } = await seedAdminAndLogin();
+    const res = await request('/users', {
+      method: 'POST',
+      headers: headersWith(token),
+      body: JSON.stringify({
+        name: 'test legacy create',
+        email: uniqueEmail('legacy-create'),
+        password: 'explicit-pw-123',
+        role: 'technician',
+      }),
+    });
+    expect(res.status).toBe(201);
+    const body = await json<{ user: { mustChangePassword: boolean }; tempPassword?: string }>(res);
+    expect(body.tempPassword).toBeUndefined();
+    expect(body.user.mustChangePassword).toBe(false);
+  });
+});
+
+describe('POST /users/:id/password (role-gated reset)', () => {
+  test('owner resets an admin: temp replaces the old credential', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const admin = await seedAdmin();
+    const res = await request(`/users/${admin.id}/password`, {
+      method: 'POST',
+      headers: headersWith(token),
+    });
+    expect(res.status).toBe(200);
+    const { tempPassword } = await json<{ tempPassword: string }>(res);
+    expect(tempPassword).toMatch(TEMP_PASSWORD_RE);
+
+    const oldLogin = await request('/auth/login', {
+      method: 'POST',
+      headers: jsonHeaders(),
+      body: JSON.stringify({ email: admin.email, password: admin.password }),
+    });
+    expect(oldLogin.status).toBe(401);
+
+    const tempLogin = await request('/auth/login', {
+      method: 'POST',
+      headers: jsonHeaders(),
+      body: JSON.stringify({ email: admin.email, password: tempPassword }),
+    });
+    expect(tempLogin.status).toBe(200);
+    const body = await json<{ mustChangePassword: boolean }>(tempLogin);
+    expect(body.mustChangePassword).toBe(true);
+  });
+
+  test('admin resets a technician', async () => {
+    const { token } = await seedAdminAndLogin();
+    const tech = await seedTechnician();
+    const res = await request(`/users/${tech.id}/password`, {
+      method: 'POST',
+      headers: headersWith(token),
+    });
+    expect(res.status).toBe(200);
+  });
+
+  test('admin cannot reset another admin → 403 cannot_reset_password', async () => {
+    const { token } = await seedAdminAndLogin();
+    const other = await seedAdmin();
+    const res = await request(`/users/${other.id}/password`, {
+      method: 'POST',
+      headers: headersWith(token),
+    });
+    expect(res.status).toBe(403);
+    expect(await json(res)).toEqual({ error: 'cannot_reset_password' });
+  });
+
+  test('nobody resets the owner in-tenant (admin nor owner)', async () => {
+    const owner = await seedOwner();
+    for (const seeded of [await seedAdminAndLogin(), await seedOwnerAndLogin()]) {
+      const res = await request(`/users/${owner.id}/password`, {
+        method: 'POST',
+        headers: headersWith(seeded.token),
+      });
+      expect(res.status).toBe(403);
+      expect(await json(res)).toEqual({ error: 'cannot_reset_password' });
+    }
+  });
+
+  test('technician is rejected by the admin gate → 403 forbidden', async () => {
+    const { token } = await seedTechnicianAndLogin();
+    const target = await seedTechnician();
+    const res = await request(`/users/${target.id}/password`, {
+      method: 'POST',
+      headers: headersWith(token),
+    });
+    expect(res.status).toBe(403);
+    expect(await json(res)).toEqual({ error: 'forbidden' });
+  });
+
+  test('unknown id → 404', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const res = await request(`/users/${crypto.randomUUID()}/password`, {
+      method: 'POST',
+      headers: headersWith(token),
+    });
+    expect(res.status).toBe(404);
+  });
+});

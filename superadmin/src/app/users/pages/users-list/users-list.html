@@ -1,0 +1,138 @@
+<div class="flex flex-wrap items-start justify-between gap-3">
+  <div>
+    <h1 class="text-xl font-bold text-granite-950 dark:text-granite-50">Usuarios</h1>
+    <p class="mt-1 text-sm text-granite-600 dark:text-granite-400">
+      El personal de tu negocio y sus roles de acceso.
+    </p>
+  </div>
+  <a routerLink="/users/new" class="btn-primary">
+    <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+    Nuevo usuario
+  </a>
+</div>
+
+<div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="field-group sm:col-span-2">
+    <label class="field-label" for="users-search">Buscar</label>
+    <input
+      id="users-search"
+      pInputText
+      type="search"
+      [formControl]="search"
+      placeholder="Nombre o correo"
+    />
+  </div>
+  <div class="field-group">
+    <label class="field-label" for="users-role">Rol</label>
+    <p-select
+      inputId="users-role"
+      [formControl]="roleFilter"
+      [options]="roleOptions"
+      optionLabel="label"
+      optionValue="value"
+      appendTo="body"
+    />
+  </div>
+  <div class="field-group">
+    <label class="field-label" for="users-active">Estado</label>
+    <p-select
+      inputId="users-active"
+      [formControl]="activeFilter"
+      [options]="activeOptions"
+      optionLabel="label"
+      optionValue="value"
+      appendTo="body"
+    />
+  </div>
+</div>
+
+<div class="mt-4">
+  <p-table
+    [value]="users()"
+    [lazy]="true"
+    (onLazyLoad)="list.onLazyLoad($event)"
+    [paginator]="true"
+    [rows]="PAGE_SIZE"
+    [first]="list.first()"
+    [totalRecords]="total()"
+    [loading]="loading()"
+    [rowHover]="true"
+    dataKey="id"
+  >
+    <ng-template #header>
+      <tr>
+        <th scope="col">Nombre</th>
+        <th scope="col">Correo</th>
+        <th scope="col">Rol</th>
+        <th scope="col">Estado</th>
+        <th scope="col">Creado</th>
+        <th scope="col"><span class="sr-only">Acciones</span></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-user>
+      <!-- Whole row opens the user (QA 2026-07-08); the action links stay as
+           the keyboard path. Owner rows link too — their page is read-only. -->
+      <tr class="cursor-pointer" (click)="openUser(user)">
+        <td class="font-medium">{{ user.name }}</td>
+        <td>{{ user.email }}</td>
+        <td>
+          <span class="role-pill" [class]="user.role | rolePillClass">{{
+            user.role | roleLabel
+          }}</span>
+        </td>
+        <td>
+          @if (user.active) {
+            <p-tag severity="success" value="Activo" />
+          } @else {
+            <p-tag severity="secondary" value="Inactivo" />
+          }
+        </td>
+        <td class="font-data tabular-nums">{{ user.createdAt | date: 'dd/MM/y' }}</td>
+        <td class="w-24" (click)="$event.stopPropagation()">
+          @if (user.role | canManage) {
+            <div class="flex justify-end gap-1">
+              <a
+                [routerLink]="['/users', user.id, 'edit']"
+                class="inline-flex size-9 items-center justify-center rounded-md text-granite-600 transition-colors hover:bg-granite-100 hover:text-granite-900 dark:text-granite-400 dark:hover:bg-granite-800 dark:hover:text-granite-100"
+                [attr.aria-label]="'Editar ' + user.name"
+              >
+                <svg lucidePencil class="size-4" aria-hidden="true"></svg>
+              </a>
+              <button
+                type="button"
+                class="inline-flex size-9 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                (click)="openDelete(user)"
+                [attr.aria-label]="'Eliminar ' + user.name"
+              >
+                <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
+              </button>
+            </div>
+          } @else {
+            <!-- Owner rows: read-only view link keeps a keyboard path. -->
+            <div class="flex justify-end gap-1">
+              <a
+                [routerLink]="['/users', user.id, 'edit']"
+                class="inline-flex size-9 items-center justify-center rounded-md text-granite-600 transition-colors hover:bg-granite-100 hover:text-granite-900 dark:text-granite-400 dark:hover:bg-granite-800 dark:hover:text-granite-100"
+                [attr.aria-label]="'Ver ' + user.name"
+              >
+                <svg lucideEye class="size-4" aria-hidden="true"></svg>
+              </a>
+            </div>
+          }
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr class="p-datatable-emptymessage">
+        <td colspan="6">
+          <span class="inline-flex flex-col items-center gap-2">
+            <svg lucideUsers class="size-6 text-granite-400" aria-hidden="true"></svg>
+            Sin usuarios con esos filtros.
+          </span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<app-delete-user-dialog #deleteDialog (deleted)="refresh()" />

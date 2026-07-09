@@ -3,10 +3,13 @@ import { GRANTABLE_ROLES } from '../enums/users.enum';
 
 // `role` accepts GRANTABLE_ROLES, not ROLES: `owner` is provisioning-time only
 // and can never be granted through the users API (backend plan §1).
+// `password` is optional under the temp-password model: omitted → the backend
+// generates a one-time temp password and flags the forced change (superadmin
+// path). Supplying it is the legacy field-app path until that UI adopts the flow.
 export const createUserSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
-  password: z.string().min(8),
+  password: z.string().min(8).optional(),
   role: z.enum(GRANTABLE_ROLES),
 });
 

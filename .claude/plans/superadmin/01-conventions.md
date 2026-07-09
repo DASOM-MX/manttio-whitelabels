@@ -193,6 +193,18 @@ Binding for every component; the skill carries the same list with implementation
   sequence with `switchMap`/`concatMap`/`mergeMap`; `finalize` for cleanup, `catchError`
   for per-item failure handling. `store.dispatch(...)` already returns an Observable.
   Canonical shape: `frontend/src/state/offline-reports/offline-reports.state.ts`.
+- **List pages: URL-persisted filters via `ListQueryService` (added 2026-07-08 —
+  binding).** Every list page persists its filters + page as GET query params and loads
+  **only** from the `queryParamMap` subscription (back/forward walks the filter history;
+  filtered views are shareable). Inject the **component-provided**
+  `ListQueryService` (`app/services/table/list-query.service.ts`,
+  `providers: [ListQueryService]`) — it owns page clamping, the `[first]` paginator
+  offset, filter→URL navigation (empty → param drops off), lazy-load page changes, and
+  the refetch/step-back refresh. The component keeps only its `read`/`write` param
+  mapping (**sanitize on read**: `keyIn` whitelists for enum params, validate/clamp
+  everything else — garbage never reaches state or the API), typed query building, and
+  the dispatch. Never hand-roll filter/pagination wiring in a component. Canon consumer:
+  `users/pages/users-list/users-list.ts` (05 §3).
 
 ## PrimeNG
 
