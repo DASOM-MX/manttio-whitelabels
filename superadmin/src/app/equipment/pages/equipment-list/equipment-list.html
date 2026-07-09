@@ -54,6 +54,7 @@
     (onLazyLoad)="onLazyLoad($event)"
     [paginator]="true"
     [rows]="PAGE_SIZE"
+    [first]="first()"
     [totalRecords]="total()"
     [loading]="loading()"
     dataKey="id"
@@ -114,4 +115,4 @@
   </p-table>
 </div>
 
-<app-equipment-form-dialog #formDialog (saved)="reload()" />
+<app-equipment-form-dialog #formDialog (saved)="refresh()" />
