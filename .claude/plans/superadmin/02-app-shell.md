@@ -210,7 +210,10 @@ borders-not-shadows surface chrome from the Design language.)
 - Backend asks (recorded for backend planning): superadmin login endpoint,
   `GET /auth/me` returning `{ user, role, tenantConfig }`, `role` enum
   `owner|admin|office|technician` on users, per-tenant `modules` config in the manager
-  push schema; `mustChangePassword` on `/auth/me` + `POST /auth/password` (change own,
-  clears the flag — §3 forced-change flow). **Explicitly not needed in v1:**
+  push schema; ~~`mustChangePassword` + `POST /auth/password`~~ — **shipped 2026-07-09**
+  (§3 forced-change flow): `must_change_password` column (migration `0012`), flag rides
+  the **login response** and `PublicUser` (`/auth/me` itself still pending with
+  tenantConfig), `POST /auth/password` (change own, new password only — matches the
+  shipped dialog contract) clears it. **Explicitly not needed in v1:**
   forgot-password / reset-email endpoint — resets go through the owner via the users
   module (§3 login spec).

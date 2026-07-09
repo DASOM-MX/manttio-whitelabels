@@ -1,8 +1,11 @@
 # 05 — Users
 
-> **Status:** done (frontend side — backend users-module changes pending, except the
-> role enum: `office` added to `ROLES`/`GRANTABLE_ROLES` + `users_role_check`, migration
-> `0011`, 2026-07-08)
+> **Status:** done (frontend side — backend users-module changes pending, except:
+> the role enum — `office` in `ROLES`/`GRANTABLE_ROLES` + `users_role_check`, migration
+> `0011`, 2026-07-08 — and the **password-reset process, shipped 2026-07-09**:
+> `POST /users/:id/password` (pairing-gated), temp-password create, `must_change_password`
+> (migration `0012`), `POST /auth/password`. Temp passwords are always `tmp_` + 18 random
+> chars. Still pending: paged `GET /users` list query, `active` + `phone` columns.)
 > **Depends on:** 02 (CP-3, done)
 > **Owner:** branch `feature/superadmin-users` (stacked on the 02 shell PR) · **Last updated:** 2026-07-08
 
@@ -130,12 +133,13 @@ the user detail once 10 lands.
 - ~~Owner self-edit~~ — **resolved 2026-07-08:** owner rows are immutable in-tenant for
   everyone (owner included). Owners are provisioned/changed from the whitelabel manager;
   invalidation goes through support (lockout safety). Soft deletes only, as everywhere.
-- ~~New-user credential flow~~ — **resolved 2026-07-05: temp-password model.** Reset
-  issues a generated temporary password (shown once) + forced change at next login;
-  creation follows the same shape (`POST /users` response carries the initial temp
-  password, `mustChangePassword` set). No invite emails in v1.
-- ~~Self-service password change~~ — **partially resolved 2026-07-05:** a change-own
-  endpoint (`POST /auth/password`) must exist for the forced-change dialog. Whether a
-  profile page exposes it voluntarily is still open.
+- ~~New-user credential flow~~ — **resolved 2026-07-05: temp-password model; backend
+  shipped 2026-07-09.** Reset issues a generated temporary password (shown once,
+  always `tmp_` + 18 random chars) + forced change at next login; creation follows the
+  same shape (`POST /users` response carries the initial temp password when `password`
+  is omitted, `mustChangePassword` set). No invite emails in v1.
+- ~~Self-service password change~~ — **partially resolved 2026-07-05; endpoint shipped
+  2026-07-09:** `POST /auth/password` (change own, new password only) exists for the
+  forced-change dialog. Whether a profile page exposes it voluntarily is still open.
 - Temp-password expiry (e.g. force a new reset after N days unused): in or out for v1?
 - Restore endpoint for soft-deleted users: in or out for v1?

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { SignJWT } from 'jose';
 import { eq } from 'drizzle-orm';
 import { authHeader, env, json, jsonHeaders, request } from './helpers/request';
-import { loginAs, seedAdmin, seedTechnician } from './helpers/fixtures';
+import { loginAs, seedAdmin, seedOwner, seedTechnician } from './helpers/fixtures';
 import { createDb } from '../src/modules/database/client';
 import { users } from '../src/modules/database/schema';
 
@@ -204,5 +204,74 @@ describe('auth – jwt middleware on protected routes', () => {
   test('public download path bypasses jwt middleware (does not return 401)', async () => {
     const res = await request('/reports/download/nonexistent-token');
     expect(res.status).not.toBe(401);
+  });
+});
+
+describe('POST /auth/password (change own — forced-change flow)', () => {
+  test('full loop: reset → temp login → change own → flag cleared, credential swapped', async () => {
+    const owner = await seedOwner();
+    const ownerToken = await loginAs(owner);
+    const tech = await seedTechnician();
+
+    const reset = await request(`/users/${tech.id}/password`, {
+      method: 'POST',
+      headers: jsonHeaders(ownerToken),
+    });
+    expect(reset.status).toBe(200);
+    const { tempPassword } = await json<{ tempPassword: string }>(reset);
+
+    const tempLogin = await request('/auth/login', {
+      method: 'POST',
+      headers: jsonHeaders(),
+      body: JSON.stringify({ email: tech.email, password: tempPassword }),
+    });
+    expect(tempLogin.status).toBe(200);
+    const tempBody = await json<{ token: string; mustChangePassword: boolean }>(tempLogin);
+    expect(tempBody.mustChangePassword).toBe(true);
+
+    const change = await request('/auth/password', {
+      method: 'POST',
+      headers: jsonHeaders(tempBody.token),
+      body: JSON.stringify({ password: 'my-new-password-1' }),
+    });
+    expect(change.status).toBe(200);
+    expect(await json(change)).toEqual({ changed: true });
+
+    // Temp password is dead; the new one logs in with the flag cleared.
+    const deadLogin = await request('/auth/login', {
+      method: 'POST',
+      headers: jsonHeaders(),
+      body: JSON.stringify({ email: tech.email, password: tempPassword }),
+    });
+    expect(deadLogin.status).toBe(401);
+
+    const newLogin = await request('/auth/login', {
+      method: 'POST',
+      headers: jsonHeaders(),
+      body: JSON.stringify({ email: tech.email, password: 'my-new-password-1' }),
+    });
+    expect(newLogin.status).toBe(200);
+    const newBody = await json<{ mustChangePassword: boolean }>(newLogin);
+    expect(newBody.mustChangePassword).toBe(false);
+  });
+
+  test('short password → 400', async () => {
+    const admin = await seedAdmin();
+    const token = await loginAs(admin);
+    const res = await request('/auth/password', {
+      method: 'POST',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ password: 'short' }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  test('requires auth → 401', async () => {
+    const res = await request('/auth/password', {
+      method: 'POST',
+      headers: jsonHeaders(),
+      body: JSON.stringify({ password: 'long-enough-pw' }),
+    });
+    expect(res.status).toBe(401);
   });
 });

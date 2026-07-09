@@ -8,3 +8,14 @@ export type Role = (typeof ROLES)[number];
 // Roles assignable in-tenant via POST/PATCH /users. `owner` is provisioned
 // from the whitelabel manager only — never granted here.
 export const GRANTABLE_ROLES = ['admin', 'office', 'technician'] as const;
+
+// Server-side password-reset hierarchy (backend plan §1): owner resets the
+// grantable tier; admins reset office/technicians only (never another admin,
+// never the owner); the owner's password is never resettable in-tenant — a
+// locked-out owner goes through the manager/support path.
+export const PASSWORD_RESET_PAIRINGS: Record<Role, readonly Role[]> = {
+  owner: GRANTABLE_ROLES,
+  admin: ['office', 'technician'],
+  office: [],
+  technician: [],
+};

@@ -8,6 +8,7 @@ export type PublicUser = {
   name: string;
   email: string;
   role: Role;
+  mustChangePassword: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -17,6 +18,7 @@ export const toPublicUser = (u: UserRow): PublicUser => ({
   name: u.name,
   email: u.email,
   role: u.role,
+  mustChangePassword: u.mustChangePassword,
   createdAt: u.createdAt,
   updatedAt: u.updatedAt,
 });
