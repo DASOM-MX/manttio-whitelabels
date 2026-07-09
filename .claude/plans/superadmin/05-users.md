@@ -58,7 +58,11 @@ the user detail once 10 lands.
   created. Filters: search, role, active. Row actions: edit, delete. **Filters + page
   persist as GET query params (`?q&role&active&page`, decided 2026-07-08)** so browser
   back/forward walks the filter history — the `queryParamMap` subscription is the single
-  load path. This is the canonical pattern for every superadmin list page.
+  load path. This is the canonical pattern for every superadmin list page, and its
+  mechanics live in **`app/services/table/list-query.service.ts`** (`ListQueryService`,
+  component-provided; extracted 2026-07-08): page clamping, `[first]` offset, filter→URL
+  navigation, lazy-load page changes, refetch/step-back refresh, plus the `keyIn` param
+  whitelist helper. List components keep only param mapping, query building and dispatch.
   **QA 2026-07-08:** whole row clicks through to the user's page (action links remain
   the keyboard path; owner rows carry a read-only "view" link instead of edit/delete);
   role pills use the app-wide blue hierarchy ladder (14 §1); a failed detail load
