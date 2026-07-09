@@ -27,6 +27,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import {
   LucideArrowLeft,
   LucideChevronDown,
+  LucideChevronRight,
   LucideChevronUp,
   LucidePlus,
   LucideTrash2,
@@ -43,9 +44,11 @@ import {
 import { TEMPLATE_STATUS_LABELS } from '../../../model/constants/report-template/template-status-labels.const';
 import { TEMPLATE_STATUS_SEVERITIES } from '../../../model/constants/report-template/template-status-severities.const';
 import { DATATYPE_OPTIONS } from '../../../model/constants/report-template/datatype-options.const';
+import { MAGNITUDE_OPTIONS } from '../../../model/constants/report-template/magnitude-options.const';
 import { OPTION_DATATYPES } from '../../../model/constants/report-template/option-datatypes.const';
 import { DisableTemplateDialog } from '../../components/disable-template-dialog/disable-template-dialog';
 import { FormArrayPipe } from '../../../pipes/cast.pipe';
+import { InSetPipe } from '../../../pipes/collection.pipe';
 import { HasOptionsPipe } from '../../../pipes/question-datatype.pipe';
 import { ColumnsGridPipe } from '../../../pipes/report-answer.pipe';
 import { errorMessage } from '../../../data/utils';
@@ -58,6 +61,14 @@ import type {
 
 const TAB_ORDER = ['editor', 'preview'] as const;
 type Tab = (typeof TAB_ORDER)[number];
+
+/** Immutable Set toggle — the InSetPipe is pure, so state must be replaced. */
+const toggleIn = <T>(set: ReadonlySet<T>, item: T): ReadonlySet<T> => {
+  const next = new Set(set);
+  if (next.has(item)) next.delete(item);
+  else next.add(item);
+  return next;
+};
 
 /** The template builder (06 §5.3): section editor + nested question editor +
  *  full-skeleton preview on its own tab (QA 2026-07-09 — was side-by-side).
@@ -78,11 +89,13 @@ type Tab = (typeof TAB_ORDER)[number];
     HasOptionsPipe,
     ColumnsGridPipe,
     DisableTemplateDialog,
+    InSetPipe,
     LucideArrowLeft,
     LucidePlus,
     LucideTrash2,
     LucideChevronUp,
     LucideChevronDown,
+    LucideChevronRight,
   ],
   templateUrl: './template-detail.html',
 })
@@ -95,6 +108,7 @@ export class TemplateDetail implements HasPendingChanges {
   private confirmation = inject(ConfirmationService);
 
   protected readonly DATATYPE_OPTIONS = DATATYPE_OPTIONS;
+  protected readonly MAGNITUDE_OPTIONS = MAGNITUDE_OPTIONS;
 
   protected selected = select(ReportTemplatesState.selected);
 
@@ -104,6 +118,12 @@ export class TemplateDetail implements HasPendingChanges {
 
   protected tab = signal<Tab>('editor');
   private tabButtons = viewChildren<ElementRef<HTMLButtonElement>>('tabBtn');
+
+  /** Accordion state (QA 2026-07-09: titles always visible, the rest folds),
+   *  keyed by control instance so it survives reorders. User-added
+   *  sections/questions open expanded; hydrated ones start collapsed. */
+  protected expandedSections = signal<ReadonlySet<AbstractControl>>(new Set());
+  protected expandedQuestions = signal<ReadonlySet<AbstractControl>>(new Set());
 
   protected disableDialog = viewChild<DisableTemplateDialog>('disableDialog');
 
@@ -129,7 +149,7 @@ export class TemplateDetail implements HasPendingChanges {
       const s = section.getRawValue() as {
         title: string;
         columns: 1 | 2 | 3;
-        questions: { label: string; datatype: QuestionDatatype; required: boolean }[];
+        questions: { label: string; datatype: QuestionDatatype; required: boolean; unit: string }[];
       };
       return {
         title: s.title || 'Sección sin título',
@@ -138,6 +158,7 @@ export class TemplateDetail implements HasPendingChanges {
           label: q.label || 'Pregunta sin título',
           datatype: q.datatype,
           required: q.required,
+          unit: q.datatype === 'number' ? q.unit : '',
         })),
       };
     });
@@ -202,16 +223,26 @@ export class TemplateDetail implements HasPendingChanges {
     return (section as FormGroup).controls['questions'] as FormArray<FormGroup>;
   }
 
+  protected toggleSection(section: AbstractControl): void {
+    this.expandedSections.update((set) => toggleIn(set, section));
+  }
+
+  protected toggleQuestion(question: AbstractControl): void {
+    this.expandedQuestions.update((set) => toggleIn(set, question));
+  }
+
   protected addSection(initial?: { title?: string; columns?: 1 | 2 | 3 }): void {
-    this.sections.push(
-      this.fb.nonNullable.group({
-        id: [''],
-        title: [initial?.title ?? '', Validators.required],
-        columns: [initial?.columns ?? (1 as 1 | 2 | 3)],
-        questions: this.fb.array<FormGroup>([]),
-      }),
-    );
-    if (!initial) this.form.markAsDirty();
+    const group = this.fb.nonNullable.group({
+      id: [''],
+      title: [initial?.title ?? '', Validators.required],
+      columns: [initial?.columns ?? (1 as 1 | 2 | 3)],
+      questions: this.fb.array<FormGroup>([]),
+    });
+    this.sections.push(group);
+    if (!initial) {
+      this.form.markAsDirty();
+      this.expandedSections.update((set) => toggleIn(set, group));
+    }
   }
 
   protected addQuestion(
@@ -221,6 +252,7 @@ export class TemplateDetail implements HasPendingChanges {
       datatype?: QuestionDatatype;
       required?: boolean;
       options?: string[];
+      unit?: string;
       constraints?: {
         min?: number;
         max?: number;
@@ -230,21 +262,24 @@ export class TemplateDetail implements HasPendingChanges {
       };
     },
   ): void {
-    this.questionsOf(section).push(
-      this.fb.nonNullable.group({
-        id: [''],
-        label: [initial?.label ?? '', Validators.required],
-        datatype: [initial?.datatype ?? ('text' as QuestionDatatype)],
-        required: [initial?.required ?? false],
-        optionsCsv: [initial?.options?.join(', ') ?? ''],
-        min: [initial?.constraints?.min ?? (null as number | null)],
-        max: [initial?.constraints?.max ?? (null as number | null)],
-        maxLength: [initial?.constraints?.maxLength ?? (null as number | null)],
-        minDate: [initial?.constraints?.minDate ?? ''],
-        maxDate: [initial?.constraints?.maxDate ?? ''],
-      }),
-    );
-    if (!initial) this.form.markAsDirty();
+    const group = this.fb.nonNullable.group({
+      id: [''],
+      label: [initial?.label ?? '', Validators.required],
+      datatype: [initial?.datatype ?? ('text' as QuestionDatatype)],
+      required: [initial?.required ?? false],
+      optionsCsv: [initial?.options?.join(', ') ?? ''],
+      unit: [initial?.unit ?? ''],
+      min: [initial?.constraints?.min ?? (null as number | null)],
+      max: [initial?.constraints?.max ?? (null as number | null)],
+      maxLength: [initial?.constraints?.maxLength ?? (null as number | null)],
+      minDate: [initial?.constraints?.minDate ?? ''],
+      maxDate: [initial?.constraints?.maxDate ?? ''],
+    });
+    this.questionsOf(section).push(group);
+    if (!initial) {
+      this.form.markAsDirty();
+      this.expandedQuestions.update((set) => toggleIn(set, group));
+    }
   }
 
   protected move(array: FormArray, index: number, delta: -1 | 1): void {
@@ -305,6 +340,8 @@ export class TemplateDetail implements HasPendingChanges {
                   .map((o) => o.trim())
                   .filter(Boolean)
               : undefined,
+            // Magnitude is number-only; switching datatype drops a stale unit.
+            unit: datatype === 'number' && q['unit'] ? (q['unit'] as string) : undefined,
             constraints: Object.keys(constraints).length ? constraints : undefined,
           };
         }),

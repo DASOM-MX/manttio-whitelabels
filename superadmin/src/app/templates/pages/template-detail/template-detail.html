@@ -145,7 +145,25 @@
         >
           @let sectionCols = $any(section).controls.columns.value;
           @let sectionQuestions = section | formArray: 'questions';
+          @let sectionOpen = expandedSections() | inSet: section;
           <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-granite-500 transition-colors hover:bg-granite-100 dark:text-granite-400 dark:hover:bg-granite-800"
+              (click)="toggleSection(section)"
+              [attr.aria-expanded]="sectionOpen"
+              [attr.aria-controls]="'section-body-' + si"
+              [attr.aria-label]="
+                (sectionOpen ? 'Contraer sección ' : 'Expandir sección ') + (si + 1)
+              "
+            >
+              <svg
+                lucideChevronRight
+                class="size-4 transition-transform"
+                [class.rotate-90]="sectionOpen"
+                aria-hidden="true"
+              ></svg>
+            </button>
             <h2 class="micro-label flex-1">Sección {{ si + 1 }}</h2>
             @if (!readOnly()) {
               <button
@@ -177,218 +195,273 @@
             }
           </div>
 
-          <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
-            <div class="field-group">
-              <label class="field-label" [for]="'section-title-' + si"
-                >Título<span aria-hidden="true"> *</span></label
-              >
-              <input [id]="'section-title-' + si" pInputText formControlName="title" />
-            </div>
-            <div class="field-group">
-              <span class="field-label" [id]="'section-cols-' + si">Columnas</span>
-              <div
-                class="inline-flex h-12 items-center gap-0.5 rounded-lg border-2 border-granite-200 p-1 dark:border-granite-700"
-                role="group"
-                [attr.aria-labelledby]="'section-cols-' + si"
-              >
-                @for (col of [1, 2, 3]; track col) {
+          <!-- Title stays visible when collapsed (QA 2026-07-09) -->
+          <div class="field-group">
+            <label class="field-label" [for]="'section-title-' + si"
+              >Título<span aria-hidden="true"> *</span></label
+            >
+            <input [id]="'section-title-' + si" pInputText formControlName="title" />
+          </div>
+
+          @if (sectionOpen) {
+            <div [id]="'section-body-' + si" class="flex flex-col gap-3">
+              <div class="field-group">
+                <span class="field-label" [id]="'section-cols-' + si">Columnas</span>
+                <div
+                  class="inline-flex h-12 items-center gap-0.5 self-start rounded-lg border-2 border-granite-200 p-1 dark:border-granite-700"
+                  role="group"
+                  [attr.aria-labelledby]="'section-cols-' + si"
+                >
+                  @for (col of [1, 2, 3]; track col) {
+                    <button
+                      type="button"
+                      class="h-9 rounded-md px-3 font-data text-sm font-semibold tabular-nums transition-colors"
+                      [class.bg-sky-700]="sectionCols === col"
+                      [class.text-white]="sectionCols === col"
+                      [class.text-granite-600]="sectionCols !== col"
+                      [class.dark:text-granite-300]="sectionCols !== col"
+                      (click)="setColumns(section, $any(col))"
+                      [attr.aria-pressed]="sectionCols === col"
+                      [attr.aria-label]="col + (col === 1 ? ' columna' : ' columnas')"
+                      [disabled]="readOnly()"
+                    >
+                      {{ col }}
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <div formArrayName="questions" class="flex flex-col gap-2">
+                @for (
+                  question of sectionQuestions.controls;
+                  track question;
+                  let qi = $index;
+                  let lastQ = $last
+                ) {
+                  <div
+                    class="flex flex-col gap-2 rounded-lg border border-granite-200 p-3 dark:border-granite-800"
+                    [formGroupName]="qi"
+                  >
+                    @let questionType = $any(question).controls.datatype.value;
+                    @let questionOpen = expandedQuestions() | inSet: question;
+                    <!-- Question label stays visible when collapsed (QA 2026-07-09) -->
+                    <div class="flex items-end gap-2">
+                      <button
+                        type="button"
+                        class="mb-2 inline-flex size-8 shrink-0 items-center justify-center rounded-md text-granite-500 transition-colors hover:bg-granite-100 dark:text-granite-400 dark:hover:bg-granite-800"
+                        (click)="toggleQuestion(question)"
+                        [attr.aria-expanded]="questionOpen"
+                        [attr.aria-controls]="'q-body-' + si + '-' + qi"
+                        [attr.aria-label]="
+                          (questionOpen ? 'Contraer pregunta ' : 'Expandir pregunta ') + (qi + 1)
+                        "
+                      >
+                        <svg
+                          lucideChevronRight
+                          class="size-4 transition-transform"
+                          [class.rotate-90]="questionOpen"
+                          aria-hidden="true"
+                        ></svg>
+                      </button>
+                      <div class="field-group min-w-0 flex-1">
+                        <label class="field-label" [for]="'q-label-' + si + '-' + qi"
+                          >Pregunta<span aria-hidden="true"> *</span></label
+                        >
+                        <input
+                          [id]="'q-label-' + si + '-' + qi"
+                          pInputText
+                          formControlName="label"
+                        />
+                      </div>
+                      @if (!readOnly()) {
+                        <div class="mb-2 flex shrink-0 gap-0.5">
+                          <button
+                            type="button"
+                            class="inline-flex size-8 items-center justify-center rounded-md text-granite-500 transition-colors hover:bg-granite-100 disabled:opacity-30 dark:text-granite-400 dark:hover:bg-granite-800"
+                            (click)="move(sectionQuestions, qi, -1)"
+                            [disabled]="qi === 0"
+                            [attr.aria-label]="'Subir pregunta ' + (qi + 1)"
+                          >
+                            <svg lucideChevronUp class="size-4" aria-hidden="true"></svg>
+                          </button>
+                          <button
+                            type="button"
+                            class="inline-flex size-8 items-center justify-center rounded-md text-granite-500 transition-colors hover:bg-granite-100 disabled:opacity-30 dark:text-granite-400 dark:hover:bg-granite-800"
+                            (click)="move(sectionQuestions, qi, 1)"
+                            [disabled]="lastQ"
+                            [attr.aria-label]="'Bajar pregunta ' + (qi + 1)"
+                          >
+                            <svg lucideChevronDown class="size-4" aria-hidden="true"></svg>
+                          </button>
+                          <button
+                            type="button"
+                            class="inline-flex size-8 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                            (click)="removeAt(sectionQuestions, qi)"
+                            [attr.aria-label]="'Eliminar pregunta ' + (qi + 1)"
+                          >
+                            <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
+                          </button>
+                        </div>
+                      }
+                    </div>
+
+                    @if (questionOpen) {
+                      <div class="grid gap-2 sm:grid-cols-2" [id]="'q-body-' + si + '-' + qi">
+                        <div class="field-group">
+                          <label class="field-label" [for]="'q-type-' + si + '-' + qi">Tipo</label>
+                          <p-select
+                            [inputId]="'q-type-' + si + '-' + qi"
+                            formControlName="datatype"
+                            [options]="DATATYPE_OPTIONS"
+                            optionLabel="label"
+                            optionValue="value"
+                            appendTo="body"
+                          />
+                        </div>
+                        <label
+                          class="flex items-center gap-2 self-end pb-3 text-sm font-medium text-granite-800 dark:text-granite-200"
+                        >
+                          <p-checkbox formControlName="required" [binary]="true" />
+                          Obligatoria
+                        </label>
+
+                        @if (questionType | hasOptions) {
+                          <div class="field-group sm:col-span-2">
+                            <label class="field-label" [for]="'q-options-' + si + '-' + qi"
+                              >Opciones (separadas por coma)</label
+                            >
+                            <input
+                              [id]="'q-options-' + si + '-' + qi"
+                              pInputText
+                              formControlName="optionsCsv"
+                              placeholder="Buena, Regular, Mala"
+                            />
+                          </div>
+                        }
+                        @switch (questionType) {
+                          @case ('number') {
+                            <!-- Magnitude rule (06 §5.1, 2026-07-09): number questions
+                           carry an optional unit, grouped by category. -->
+                            <div class="field-group sm:col-span-2">
+                              <label class="field-label" [for]="'q-unit-' + si + '-' + qi"
+                                >Magnitud</label
+                              >
+                              <p-select
+                                [inputId]="'q-unit-' + si + '-' + qi"
+                                formControlName="unit"
+                                [options]="MAGNITUDE_OPTIONS"
+                                [group]="true"
+                                optionLabel="label"
+                                optionValue="value"
+                                optionGroupLabel="label"
+                                optionGroupChildren="items"
+                                [filter]="true"
+                                filterBy="label"
+                                appendTo="body"
+                              />
+                            </div>
+                            <div class="field-group">
+                              <label class="field-label" [for]="'q-min-' + si + '-' + qi"
+                                >Mínimo</label
+                              >
+                              <input
+                                [id]="'q-min-' + si + '-' + qi"
+                                pInputText
+                                type="number"
+                                inputmode="decimal"
+                                formControlName="min"
+                              />
+                            </div>
+                            <div class="field-group">
+                              <label class="field-label" [for]="'q-max-' + si + '-' + qi"
+                                >Máximo</label
+                              >
+                              <input
+                                [id]="'q-max-' + si + '-' + qi"
+                                pInputText
+                                type="number"
+                                inputmode="decimal"
+                                formControlName="max"
+                              />
+                            </div>
+                          }
+                          @case ('text') {
+                            <div class="field-group">
+                              <label class="field-label" [for]="'q-maxlen-' + si + '-' + qi"
+                                >Longitud máxima</label
+                              >
+                              <input
+                                [id]="'q-maxlen-' + si + '-' + qi"
+                                pInputText
+                                type="number"
+                                inputmode="numeric"
+                                formControlName="maxLength"
+                              />
+                            </div>
+                          }
+                          @case ('textarea') {
+                            <div class="field-group">
+                              <label class="field-label" [for]="'q-maxlen-' + si + '-' + qi"
+                                >Longitud máxima</label
+                              >
+                              <input
+                                [id]="'q-maxlen-' + si + '-' + qi"
+                                pInputText
+                                type="number"
+                                inputmode="numeric"
+                                formControlName="maxLength"
+                              />
+                            </div>
+                          }
+                          @case ('date') {
+                            <div class="field-group">
+                              <label class="field-label" [for]="'q-mindate-' + si + '-' + qi"
+                                >Fecha mínima</label
+                              >
+                              <input
+                                [id]="'q-mindate-' + si + '-' + qi"
+                                pInputText
+                                formControlName="minDate"
+                                placeholder="today o 2026-01-01"
+                              />
+                            </div>
+                            <div class="field-group">
+                              <label class="field-label" [for]="'q-maxdate-' + si + '-' + qi"
+                                >Fecha máxima</label
+                              >
+                              <input
+                                [id]="'q-maxdate-' + si + '-' + qi"
+                                pInputText
+                                formControlName="maxDate"
+                                placeholder="today o 2026-12-31"
+                              />
+                            </div>
+                          }
+                        }
+                      </div>
+                    }
+                  </div>
+                } @empty {
+                  <p
+                    class="rounded-lg border border-dashed border-granite-300 px-4 py-4 text-center text-sm text-granite-500 dark:border-granite-700 dark:text-granite-400"
+                  >
+                    Sin preguntas en esta sección.
+                  </p>
+                }
+
+                @if (!readOnly()) {
                   <button
                     type="button"
-                    class="h-9 rounded-md px-3 font-data text-sm font-semibold tabular-nums transition-colors"
-                    [class.bg-sky-700]="sectionCols === col"
-                    [class.text-white]="sectionCols === col"
-                    [class.text-granite-600]="sectionCols !== col"
-                    [class.dark:text-granite-300]="sectionCols !== col"
-                    (click)="setColumns(section, $any(col))"
-                    [attr.aria-pressed]="sectionCols === col"
-                    [attr.aria-label]="col + (col === 1 ? ' columna' : ' columnas')"
-                    [disabled]="readOnly()"
+                    class="inline-flex items-center gap-2 self-start text-sm font-semibold text-sky-700 transition-colors hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
+                    (click)="addQuestion(section)"
                   >
-                    {{ col }}
+                    <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+                    Agregar pregunta
                   </button>
                 }
               </div>
             </div>
-          </div>
-
-          <div formArrayName="questions" class="flex flex-col gap-2">
-            @for (
-              question of sectionQuestions.controls;
-              track question;
-              let qi = $index;
-              let lastQ = $last
-            ) {
-              <div
-                class="flex items-start gap-2 rounded-lg border border-granite-200 p-3 dark:border-granite-800"
-                [formGroupName]="qi"
-              >
-                @let questionType = $any(question).controls.datatype.value;
-                <div class="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
-                  <div class="field-group sm:col-span-2">
-                    <label class="field-label" [for]="'q-label-' + si + '-' + qi"
-                      >Pregunta<span aria-hidden="true"> *</span></label
-                    >
-                    <input [id]="'q-label-' + si + '-' + qi" pInputText formControlName="label" />
-                  </div>
-                  <div class="field-group">
-                    <label class="field-label" [for]="'q-type-' + si + '-' + qi">Tipo</label>
-                    <p-select
-                      [inputId]="'q-type-' + si + '-' + qi"
-                      formControlName="datatype"
-                      [options]="DATATYPE_OPTIONS"
-                      optionLabel="label"
-                      optionValue="value"
-                      appendTo="body"
-                    />
-                  </div>
-                  <label
-                    class="flex items-center gap-2 self-end pb-3 text-sm font-medium text-granite-800 dark:text-granite-200"
-                  >
-                    <p-checkbox formControlName="required" [binary]="true" />
-                    Obligatoria
-                  </label>
-
-                  @if (questionType | hasOptions) {
-                    <div class="field-group sm:col-span-2">
-                      <label class="field-label" [for]="'q-options-' + si + '-' + qi"
-                        >Opciones (separadas por coma)</label
-                      >
-                      <input
-                        [id]="'q-options-' + si + '-' + qi"
-                        pInputText
-                        formControlName="optionsCsv"
-                        placeholder="Buena, Regular, Mala"
-                      />
-                    </div>
-                  }
-                  @switch (questionType) {
-                    @case ('number') {
-                      <div class="field-group">
-                        <label class="field-label" [for]="'q-min-' + si + '-' + qi">Mínimo</label>
-                        <input
-                          [id]="'q-min-' + si + '-' + qi"
-                          pInputText
-                          type="number"
-                          inputmode="decimal"
-                          formControlName="min"
-                        />
-                      </div>
-                      <div class="field-group">
-                        <label class="field-label" [for]="'q-max-' + si + '-' + qi">Máximo</label>
-                        <input
-                          [id]="'q-max-' + si + '-' + qi"
-                          pInputText
-                          type="number"
-                          inputmode="decimal"
-                          formControlName="max"
-                        />
-                      </div>
-                    }
-                    @case ('text') {
-                      <div class="field-group">
-                        <label class="field-label" [for]="'q-maxlen-' + si + '-' + qi"
-                          >Longitud máxima</label
-                        >
-                        <input
-                          [id]="'q-maxlen-' + si + '-' + qi"
-                          pInputText
-                          type="number"
-                          inputmode="numeric"
-                          formControlName="maxLength"
-                        />
-                      </div>
-                    }
-                    @case ('textarea') {
-                      <div class="field-group">
-                        <label class="field-label" [for]="'q-maxlen-' + si + '-' + qi"
-                          >Longitud máxima</label
-                        >
-                        <input
-                          [id]="'q-maxlen-' + si + '-' + qi"
-                          pInputText
-                          type="number"
-                          inputmode="numeric"
-                          formControlName="maxLength"
-                        />
-                      </div>
-                    }
-                    @case ('date') {
-                      <div class="field-group">
-                        <label class="field-label" [for]="'q-mindate-' + si + '-' + qi"
-                          >Fecha mínima</label
-                        >
-                        <input
-                          [id]="'q-mindate-' + si + '-' + qi"
-                          pInputText
-                          formControlName="minDate"
-                          placeholder="today o 2026-01-01"
-                        />
-                      </div>
-                      <div class="field-group">
-                        <label class="field-label" [for]="'q-maxdate-' + si + '-' + qi"
-                          >Fecha máxima</label
-                        >
-                        <input
-                          [id]="'q-maxdate-' + si + '-' + qi"
-                          pInputText
-                          formControlName="maxDate"
-                          placeholder="today o 2026-12-31"
-                        />
-                      </div>
-                    }
-                  }
-                </div>
-
-                @if (!readOnly()) {
-                  <div class="flex shrink-0 flex-col gap-0.5">
-                    <button
-                      type="button"
-                      class="inline-flex size-8 items-center justify-center rounded-md text-granite-500 transition-colors hover:bg-granite-100 disabled:opacity-30 dark:text-granite-400 dark:hover:bg-granite-800"
-                      (click)="move(sectionQuestions, qi, -1)"
-                      [disabled]="qi === 0"
-                      [attr.aria-label]="'Subir pregunta ' + (qi + 1)"
-                    >
-                      <svg lucideChevronUp class="size-4" aria-hidden="true"></svg>
-                    </button>
-                    <button
-                      type="button"
-                      class="inline-flex size-8 items-center justify-center rounded-md text-granite-500 transition-colors hover:bg-granite-100 disabled:opacity-30 dark:text-granite-400 dark:hover:bg-granite-800"
-                      (click)="move(sectionQuestions, qi, 1)"
-                      [disabled]="lastQ"
-                      [attr.aria-label]="'Bajar pregunta ' + (qi + 1)"
-                    >
-                      <svg lucideChevronDown class="size-4" aria-hidden="true"></svg>
-                    </button>
-                    <button
-                      type="button"
-                      class="inline-flex size-8 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
-                      (click)="removeAt(sectionQuestions, qi)"
-                      [attr.aria-label]="'Eliminar pregunta ' + (qi + 1)"
-                    >
-                      <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
-                    </button>
-                  </div>
-                }
-              </div>
-            } @empty {
-              <p
-                class="rounded-lg border border-dashed border-granite-300 px-4 py-4 text-center text-sm text-granite-500 dark:border-granite-700 dark:text-granite-400"
-              >
-                Sin preguntas en esta sección.
-              </p>
-            }
-
-            @if (!readOnly()) {
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 self-start text-sm font-semibold text-sky-700 transition-colors hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
-                (click)="addQuestion(section)"
-              >
-                <svg lucidePlus class="size-4" aria-hidden="true"></svg>
-                Agregar pregunta
-              </button>
-            }
-          </div>
+          }
         </section>
       }
     </div>
@@ -442,6 +515,9 @@
                   <div class="grid grid-cols-2 gap-2 py-1.5">
                     <p class="text-xs text-granite-600 dark:text-granite-400">
                       {{ q.label }}
+                      @if (q.unit) {
+                        <span class="text-granite-400 dark:text-granite-500">({{ q.unit }})</span>
+                      }
                       @if (q.required) {
                         <span class="text-red-600" aria-hidden="true"> *</span>
                       }
@@ -462,6 +538,9 @@
                   <div>
                     <p class="text-xs text-granite-600 dark:text-granite-400">
                       {{ q.label }}
+                      @if (q.unit) {
+                        <span class="text-granite-400 dark:text-granite-500">({{ q.unit }})</span>
+                      }
                       @if (q.required) {
                         <span class="text-red-600" aria-hidden="true"> *</span>
                       }

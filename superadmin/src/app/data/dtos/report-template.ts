@@ -33,6 +33,9 @@ export interface TemplateQuestion {
   required: boolean;
   options?: string[];
   constraints?: QuestionConstraints;
+  /** Magnitude for `number` questions (06 §5.1 rule, 2026-07-09) — a display
+   *  symbol from MAGNITUDE_OPTIONS ('cm', 'V', '°C', …); absent = unitless. */
+  unit?: string;
 }
 
 export interface TemplateSection {
@@ -81,6 +84,7 @@ export interface SaveTemplateRequest {
       required: boolean;
       options?: string[];
       constraints?: QuestionConstraints;
+      unit?: string;
     }[];
   }[];
 }

@@ -107,6 +107,13 @@ TemplateQuestion {
           // final set — decided 2026-07-05
   required: boolean,
   options?: string[],     // select / multiselect / radio / checkbox_group
+  unit?: string,          // number only (rule 2026-07-09): nullable magnitude,
+                          //   a display symbol from MAGNITUDE_OPTIONS ('cm',
+                          //   'V', '°C', …) — grouped by category (longitud,
+                          //   masa, volumen, eléctrico, presión, temperatura,
+                          //   caudal, tiempo, general incl. u/par/%) and
+                          //   rendered as-is next to the label everywhere
+                          //   (builder preview, field app, PDF)
   constraints?: {         // per-datatype validation — in v1 (decided 2026-07-05)
     min?, max?,           //   number
     maxLength?,           //   text / textarea
@@ -189,7 +196,13 @@ TemplateQuestion {
 - `templates/pages/template-detail/` — the builder: **section editor** (add / reorder /
   remove / rename sections; per-section column selector 1/2/3) with a **question
   editor nested per section** (add / reorder / remove; label, datatype, required,
-  options), and a **live preview** rendering the full skeleton — heading mock,
+  options; **magnitude select for number questions** — nullable, category-grouped,
+  rule 2026-07-09). **Sections and question metadata are accordions (QA 2026-07-09):
+  the section title input and question label input stay always visible in the
+  accordion headers; columns/questions and the per-question metadata fold. State is
+  keyed by control instance (survives reorders); user-added items open expanded,
+  hydrated ones start collapsed.** The **live preview** renders the full skeleton —
+  heading mock,
   the sections stacked with their own grids (incl. the `| Label | value |` table for
   1-col sections), images/footer mock. **The preview lives on its own tab (QA
   2026-07-09 — Editor | Vista previa, ARIA tabs pattern; was a side-by-side pane).**
@@ -328,3 +341,6 @@ ReportAnswer { questionId, label, datatype, value }               // label+datat
 - ~~Question-level validation~~ — **resolved 2026-07-05: in v1** — per-datatype
   `constraints` (number min/max, text maxLength, date min/max — §5.1), enforced in
   the field-app form and backend.
+- **Number magnitudes (rule 2026-07-09):** `unit?` on number questions (§5.1) —
+  field-app obligation: render the symbol next to the input label (and on the PDF)
+  exactly as stored; no conversion, display-only.
