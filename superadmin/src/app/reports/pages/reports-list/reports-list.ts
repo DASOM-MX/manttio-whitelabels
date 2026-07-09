@@ -1,9 +1,7 @@
-import { Component, computed, inject, signal, viewChild } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Component, computed, inject, viewChild } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { debounceTime, distinctUntilChanged } from 'rxjs';
-import { TableModule, TableLazyLoadEvent } from 'primeng/table';
+import { TableModule } from 'primeng/table';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -15,6 +13,7 @@ import { LoadReports } from '../../../../state/reports/reports.actions';
 import { ReportTemplatesState } from '../../../../state/report-templates/report-templates.state';
 import { LoadTemplates } from '../../../../state/report-templates/report-templates.actions';
 import { AuthState } from '../../../../state/auth/auth.state';
+import { ListQueryService, keyIn } from '../../../services/table/list-query.service';
 import { REPORT_STATUS_LABELS } from '../../../model/constants/report/report-status-labels.const';
 import { ReportStatusLabelPipe, ReportStatusSeverityPipe } from '../../../pipes/report-status.pipe';
 import { DeleteReportDialog } from '../../components/delete-report-dialog/delete-report-dialog';
@@ -31,13 +30,16 @@ const parseDateParam = (value: string | null): Date | null => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
+const isoDate = (d: Date | undefined | null): string | undefined =>
+  d ? d.toISOString().slice(0, 10) : undefined;
+
 /** Reports browser (06 §3). Technicians get the exact same page as
  *  "Mis reportes": the backend scopes their query; the UI locks the filters
  *  down to search + dates and hides destructive actions — same components,
  *  never a forked variant (14 §4). Filters + page persist as GET query
- *  params (?q&status&template&from&to&page — 05 §3 canon): the queryParamMap
- *  subscription sanitizes and is the single load path, so browser
- *  back/forward walks the filter history. */
+ *  params (?q&status&template&from&to&page) through ListQueryService
+ *  (05 §3 canon) — only the param mapping, query building and dispatch live
+ *  here. */
 @Component({
   selector: 'app-reports-list',
   imports: [
@@ -55,12 +57,12 @@ const parseDateParam = (value: string | null): Date | null => {
     LucideTrash2,
     LucideFileText,
   ],
+  providers: [ListQueryService],
   templateUrl: './reports-list.html',
 })
 export class ReportsList {
   private store = inject(Store);
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
+  protected list = inject(ListQueryService);
 
   protected reports = select(ReportsState.items);
   protected total = select(ReportsState.total);
@@ -89,89 +91,56 @@ export class ReportsList {
     ...this.templates().map((t) => ({ label: t.name, value: t.id })),
   ]);
 
-  /** Current page (1-based) as read from the URL. */
-  private page = 1;
-  /** Paginator offset for the table, kept in sync with the URL page. */
-  protected first = signal(0);
   protected deleteDialog = viewChild<DeleteReportDialog>('deleteDialog');
 
   constructor() {
     if (!this.isTechnician()) this.store.dispatch(new LoadTemplates({ limit: 100 }));
 
-    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
-      const page = Math.max(1, Number(params.get('page') ?? '1') || 1);
-      const search = params.get('q') ?? '';
-      const statusParam = params.get('status') ?? '';
-      const status = (statusParam in REPORT_STATUS_LABELS ? statusParam : '') as ReportStatus | '';
-      const template = params.get('template') ?? '';
-      const from = parseDateParam(params.get('from'));
-      const to = parseDateParam(params.get('to'));
-      const range = from ? (to ? [from, to] : [from]) : null;
-
-      this.page = page;
-      this.first.set((page - 1) * PAGE_SIZE);
-      this.search.setValue(search, { emitEvent: false });
-      this.statusFilter.setValue(status, { emitEvent: false });
-      this.templateFilter.setValue(template, { emitEvent: false });
-      this.dateRange.setValue(range, { emitEvent: false });
-      this.store.dispatch(new LoadReports(this.query(page)));
+    this.list.init({
+      pageSize: PAGE_SIZE,
+      read: (params) => {
+        const from = parseDateParam(params.get('from'));
+        const to = parseDateParam(params.get('to'));
+        this.search.setValue(params.get('q') ?? '', { emitEvent: false });
+        this.statusFilter.setValue(keyIn(REPORT_STATUS_LABELS, params.get('status')), {
+          emitEvent: false,
+        });
+        this.templateFilter.setValue(params.get('template') ?? '', { emitEvent: false });
+        this.dateRange.setValue(from ? (to ? [from, to] : [from]) : null, { emitEvent: false });
+      },
+      write: () => {
+        const range = this.dateRange.value;
+        return {
+          q: this.search.value || null,
+          status: this.statusFilter.value || null,
+          template: this.templateFilter.value || null,
+          from: isoDate(range?.[0]) ?? null,
+          to: isoDate(range?.[1]) ?? null,
+        };
+      },
+      load: (page) => this.store.dispatch(new LoadReports(this.query(page))),
     });
-
-    this.search.valueChanges
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
-      .subscribe(() => this.applyFilters());
-    this.statusFilter.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.applyFilters());
-    this.templateFilter.valueChanges
-      .pipe(takeUntilDestroyed())
-      .subscribe(() => this.applyFilters());
-    this.dateRange.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.applyFilters());
+    this.list.bindFilters({
+      debounced: [this.search],
+      instant: [this.statusFilter, this.templateFilter, this.dateRange],
+    });
   }
 
   private query(page: number): ReportListQuery {
     const range = this.dateRange.value;
-    const iso = (d: Date | undefined | null) => (d ? d.toISOString().slice(0, 10) : undefined);
     return {
       page,
       limit: PAGE_SIZE,
       search: this.search.value || undefined,
       status: this.statusFilter.value || undefined,
       templateId: this.templateFilter.value || undefined,
-      from: iso(range?.[0]),
-      to: iso(range?.[1]),
+      from: isoDate(range?.[0]),
+      to: isoDate(range?.[1]),
     };
   }
 
-  /** Pushes the filter/page state into the URL; the queryParamMap
-   *  subscription picks it up and loads. Empty values drop off the URL. */
-  private applyFilters(page = 1): void {
-    const range = this.dateRange.value;
-    const iso = (d: Date | undefined | null) => (d ? d.toISOString().slice(0, 10) : null);
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        q: this.search.value || null,
-        status: this.statusFilter.value || null,
-        template: this.templateFilter.value || null,
-        from: iso(range?.[0]),
-        to: iso(range?.[1]),
-        page: page > 1 ? page : null,
-      },
-    });
-  }
-
-  protected onLazyLoad(event: TableLazyLoadEvent): void {
-    const rows = event.rows ?? PAGE_SIZE;
-    const page = Math.floor((event.first ?? 0) / rows) + 1;
-    if (page !== this.page) this.applyFilters(page);
-  }
-
-  /** After a delete: step back a page if this one just emptied, else refetch. */
   protected refresh(): void {
-    if (this.reports().length === 0 && this.page > 1) {
-      this.applyFilters(this.page - 1);
-      return;
-    }
-    this.store.dispatch(new LoadReports(this.query(this.page)));
+    this.list.refresh(this.reports().length);
   }
 
   protected openDelete(report: ReportSummary): void {

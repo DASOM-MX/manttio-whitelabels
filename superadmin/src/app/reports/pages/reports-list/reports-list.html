@@ -69,10 +69,10 @@
   <p-table
     [value]="reports()"
     [lazy]="true"
-    (onLazyLoad)="onLazyLoad($event)"
+    (onLazyLoad)="list.onLazyLoad($event)"
     [paginator]="true"
     [rows]="PAGE_SIZE"
-    [first]="first()"
+    [first]="list.first()"
     [totalRecords]="total()"
     [loading]="loading()"
     dataKey="id"
