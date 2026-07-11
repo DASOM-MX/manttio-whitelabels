@@ -1,6 +1,11 @@
 // Lifecycle (superadmin plan 06 §5.2): draft ⇄ active → disabled (terminal).
-export const TEMPLATE_STATUSES = ['draft', 'active', 'disabled'] as const;
-export type TemplateStatus = (typeof TEMPLATE_STATUSES)[number];
+// An enum so services compare against named members (`status === TemplateStatus.Draft`)
+// rather than magic strings; the string values are what the DB persists.
+export enum TemplateStatus {
+  Draft = 'draft',
+  Active = 'active',
+  Disabled = 'disabled',
+}
 
 // The final nine datatypes (06 §5.1, decided 2026-07-05). No `photo` — the
 // fixed images block covers photos.

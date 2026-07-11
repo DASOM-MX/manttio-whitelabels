@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { check, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { users } from '../../users/models/users.model';
+import { TemplateStatus } from '../enums/report-templates.enum';
 import type { TemplateSection } from '../types/report-templates.types';
 
 // Tenant-designed report templates (superadmin plan 06 §5). Sections/questions
@@ -13,7 +14,7 @@ export const reportTemplates = pgTable(
     id: uuid('id').defaultRandom().primaryKey(),
     name: text('name').notNull(),
     description: text('description'),
-    status: text('status').$type<'draft' | 'active' | 'disabled'>().notNull().default('draft'),
+    status: text('status').$type<TemplateStatus>().notNull().default(TemplateStatus.Draft),
     sections: jsonb('sections').$type<TemplateSection[]>().notNull(),
     disabledReason: text('disabled_reason'),
     disabledBy: uuid('disabled_by').references(() => users.id, { onDelete: 'restrict' }),

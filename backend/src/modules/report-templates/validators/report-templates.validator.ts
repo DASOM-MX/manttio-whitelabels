@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MAGNITUDES, QUESTION_DATATYPES, TEMPLATE_STATUSES } from '../enums/report-templates.enum';
+import { MAGNITUDES, QUESTION_DATATYPES, TemplateStatus } from '../enums/report-templates.enum';
 
 const constraintsSchema = z.object({
   min: z.number().optional(),
@@ -50,7 +50,7 @@ export const listTemplatesQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(10),
   // '' (superadmin "all") collapses to undefined = no filter.
   status: z
-    .enum(TEMPLATE_STATUSES)
+    .nativeEnum(TemplateStatus)
     .optional()
     .or(z.literal('').transform(() => undefined)),
 });
