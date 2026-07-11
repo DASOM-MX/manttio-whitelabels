@@ -34,6 +34,7 @@ import { isFile, type FormValue } from '../../storage/utils/form-data';
 import { canAccess } from '../utils/report-access';
 import { isAdminTier } from '../../auth/utils/role-tier';
 import { isEditableStatus } from '../utils/report-lifecycle';
+import { ReportStatus } from '../enums/reports.enum';
 import { validateReportData } from '../validators/reports.validator';
 import { renderReportPdf } from '../helpers/report-pdf.helpers';
 import { dispatchReportEmail } from './report-email.service';
@@ -326,10 +327,10 @@ export const applyPatch = async (
         })
         .where(eq(reportDetails.reportId, report.id));
     }
-    if (report.status === 'created') {
+    if (report.status === ReportStatus.Created) {
       await tx
         .update(reports)
-        .set({ status: 'in-progress', updatedAt: now })
+        .set({ status: ReportStatus.InProgress, updatedAt: now })
         .where(eq(reports.id, report.id));
     }
   });
@@ -474,7 +475,7 @@ export const emailReport = async (
 ): Promise<JsonResult> => {
   const report = await findReportById(db, id);
   if (!report) return { status: 404, body: { error: 'not_found' } };
-  if (report.status !== 'finished' && report.status !== 'mailed') {
+  if (report.status !== ReportStatus.Finished && report.status !== ReportStatus.Mailed) {
     return { status: 409, body: { error: 'report_not_ready', status: report.status } };
   }
 

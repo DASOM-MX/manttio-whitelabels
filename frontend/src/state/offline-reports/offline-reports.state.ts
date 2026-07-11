@@ -6,7 +6,7 @@ import { errorMessage } from '../../app/data/utils';
 import { OfflineReportsService } from '../../offline/offline-reports.service';
 import {
   toPendingSummary,
-  type PendingReportStatus,
+  PendingReportStatus,
   type PendingReportSummary,
 } from '../../offline/pending-report.model';
 import { CreateReport } from '../reports/reports.actions';
@@ -52,10 +52,10 @@ export class OfflineReportsState {
     return from(this.offline.list()).pipe(
       // Recover from an interrupted sync: anything stuck `uploading` is reset to `pending`.
       switchMap((records) => {
-        const stuck = records.filter((r) => r.status === 'uploading');
+        const stuck = records.filter((r) => r.status === PendingReportStatus.Uploading);
         if (!stuck.length) return of(records);
         return from(stuck).pipe(
-          mergeMap((r) => from(this.offline.setStatus(r.tempId, 'pending'))),
+          mergeMap((r) => from(this.offline.setStatus(r.tempId, PendingReportStatus.Pending))),
           toArray(),
           switchMap(() => of(records)),
         );
@@ -63,7 +63,11 @@ export class OfflineReportsState {
       tap((records) =>
         ctx.patchState({
           pending: records.map((r) =>
-            toPendingSummary(r.status === 'uploading' ? { ...r, status: 'pending' } : r),
+            toPendingSummary(
+              r.status === PendingReportStatus.Uploading
+                ? { ...r, status: PendingReportStatus.Pending }
+                : r,
+            ),
           ),
         }),
       ),
@@ -137,8 +141,8 @@ export class OfflineReportsState {
           this.removeFromMirror(ctx, tempId);
           return EMPTY;
         }
-        return from(this.offline.setStatus(tempId, 'uploading')).pipe(
-          tap(() => this.patchStatus(ctx, tempId, 'uploading')),
+        return from(this.offline.setStatus(tempId, PendingReportStatus.Uploading)).pipe(
+          tap(() => this.patchStatus(ctx, tempId, PendingReportStatus.Uploading)),
           // Attribute the upload to the original creator, not whoever is logged in now.
           switchMap(() =>
             this.store.dispatch(
@@ -150,8 +154,8 @@ export class OfflineReportsState {
           catchError((err) => {
             const message = errorMessage(err, 'Error al subir el reporte');
             console.error('[OfflineReportsState] sync failed', tempId, err);
-            return from(this.offline.setStatus(tempId, 'failed', message)).pipe(
-              tap(() => this.patchStatus(ctx, tempId, 'failed', message)),
+            return from(this.offline.setStatus(tempId, PendingReportStatus.Failed, message)).pipe(
+              tap(() => this.patchStatus(ctx, tempId, PendingReportStatus.Failed, message)),
             );
           }),
         );

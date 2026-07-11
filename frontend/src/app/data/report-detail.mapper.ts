@@ -1,10 +1,10 @@
 import type { ReportRow, ReportDetailRow, ReportData } from './dtos/report';
-import type { ReportStatus } from './types/report';
+import { ReportStatus } from './types/report';
 import type { PendingReport } from '../../offline/pending-report.model';
 import type { ReportViewModel } from './report-detail.model';
 
 /** Statuses that count as "done" (read-only, finished workflow). */
-const DONE_STATUSES: ReportStatus[] = ['finished', 'mailed'];
+const DONE_STATUSES: ReportStatus[] = [ReportStatus.Finished, ReportStatus.Mailed];
 
 /** Maps a server report (+ details) into the view model. */
 export const toViewModel = (report: ReportRow, details: ReportDetailRow | null): ReportViewModel => {

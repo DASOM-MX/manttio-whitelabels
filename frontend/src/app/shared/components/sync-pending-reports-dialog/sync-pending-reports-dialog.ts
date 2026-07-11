@@ -15,7 +15,7 @@ import {
   SyncOfflineReports,
 } from '../../../../state/offline-reports/offline-reports.actions';
 import { SyncDialogBridge } from '../../../../offline/sync-dialog-bridge.service';
-import type { PendingReportStatus } from '../../../../offline/pending-report.model';
+import { PendingReportStatus } from '../../../../offline/pending-report.model';
 import type { ReportType } from '../../../data/types/report';
 
 interface SyncRow {
@@ -23,7 +23,8 @@ interface SyncRow {
   typeLabel: string;
   createdByName: string;
   createdAt: string;
-  status: PendingReportStatus;
+  isUploading: boolean;
+  isFailed: boolean;
   lastError?: string;
 }
 
@@ -71,7 +72,8 @@ export class SyncPendingReportsDialog {
       typeLabel: TYPE_LABELS[p.reportType],
       createdByName: p.createdBy.name,
       createdAt: p.createdAt,
-      status: p.status,
+      isUploading: p.status === PendingReportStatus.Uploading,
+      isFailed: p.status === PendingReportStatus.Failed,
       lastError: p.lastError,
     })),
   );

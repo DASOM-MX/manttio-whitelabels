@@ -18,7 +18,7 @@ import {
 import { select, Store } from '@ngxs/store';
 import { AppState } from '../../../state/app/app.state';
 import { SetDarkMode } from '../../../state/app/app.actions';
-import { AuthState } from '../../../state/auth/auth.state';
+import { AuthState, MeStatus } from '../../../state/auth/auth.state';
 import { LoadMe, Logout } from '../../../state/auth/auth.actions';
 import { navFor } from '../../access';
 import { ForcePasswordDialog } from '../../auth/components/force-password-dialog/force-password-dialog';
@@ -49,6 +49,12 @@ export class AuthenticatedLayout {
   protected me = select(AuthState.me);
   protected meStatus = select(AuthState.meStatus);
   protected darkMode = select(AppState.darkMode);
+
+  /** Boot splash until /auth/me resolves, error panel on failure (02 §3). */
+  protected isBooting = computed(
+    () => this.meStatus() === MeStatus.Idle || this.meStatus() === MeStatus.Loading,
+  );
+  protected hasError = computed(() => this.meStatus() === MeStatus.Error);
 
   /** Sidebar entries the current `(tenantConfig, role)` allows (access.ts). */
   private navEntries = computed(() => navFor(this.me()));

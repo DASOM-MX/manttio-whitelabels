@@ -1,5 +1,6 @@
 import { and, desc, eq, gte, ilike, isNull, lte, sql } from 'drizzle-orm';
 import type { Db } from '../../database/client';
+import { ReportStatus } from '../enums/reports.enum';
 import { reportCounters, reportDetails, reports } from '../models/reports.model';
 import { formatReportId } from '../utils/report-id';
 import type {
@@ -134,8 +135,8 @@ export const reassignReport = async (db: Db, id: string, assignedTo: string) => 
 export const bumpToInProgress = async (db: Db, id: string) => {
   await db
     .update(reports)
-    .set({ status: 'in-progress', updatedAt: new Date() })
-    .where(and(eq(reports.id, id), eq(reports.status, 'created'), activeFilter));
+    .set({ status: ReportStatus.InProgress, updatedAt: new Date() })
+    .where(and(eq(reports.id, id), eq(reports.status, ReportStatus.Created), activeFilter));
 };
 
 export const markFinished = async (
@@ -150,7 +151,7 @@ export const markFinished = async (
     const [reportRow] = await tx
       .update(reports)
       .set({
-        status: 'finished',
+        status: ReportStatus.Finished,
         finishedAt: now,
         signedAt: now,
         // Signing the report = leaving the site. The frontend no longer collects
@@ -181,8 +182,8 @@ export const markMailed = async (db: Db, id: string) => {
   const now = new Date();
   await db
     .update(reports)
-    .set({ status: 'mailed', mailedAt: now, updatedAt: now })
-    .where(and(eq(reports.id, id), eq(reports.status, 'finished'), activeFilter));
+    .set({ status: ReportStatus.Mailed, mailedAt: now, updatedAt: now })
+    .where(and(eq(reports.id, id), eq(reports.status, ReportStatus.Finished), activeFilter));
 };
 
 export const appendPictures = async (

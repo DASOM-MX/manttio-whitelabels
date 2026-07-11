@@ -3,8 +3,9 @@
 //   → finished (after signature; locked)
 //   → mailed (auto after first email send; locked)
 // Editable statuses: 'created', 'in-progress'.
-export type ReportStatus =
-  | 'created'
-  | 'in-progress'
-  | 'finished'
-  | 'mailed';
+export enum ReportStatus {
+  Created = 'created',
+  InProgress = 'in-progress',
+  Finished = 'finished',
+  Mailed = 'mailed',
+}

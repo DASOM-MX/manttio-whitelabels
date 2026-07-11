@@ -11,7 +11,7 @@ import {
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
-import type { WorkType } from '../enums/reports.enum';
+import { ReportStatus, type WorkType } from '../enums/reports.enum';
 import { users } from '../../users/models/users.model';
 import { customers } from '../../customers/models/customers.model';
 
@@ -34,9 +34,9 @@ export const reports = pgTable(
       .references(() => customers.id, { onDelete: 'restrict' }),
     signedBy: text('signed_by'),
     status: text('status')
-      .$type<'created' | 'in-progress' | 'finished' | 'mailed'>()
+      .$type<ReportStatus>()
       .notNull()
-      .default('created'),
+      .default(ReportStatus.Created),
     state: text('state'),
     signedAt: timestamp('signed_at', { withTimezone: true }),
     signedLatitude: doublePrecision('signed_latitude'),

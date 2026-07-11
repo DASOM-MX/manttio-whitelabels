@@ -2,7 +2,7 @@ import { CanMatchFn, Router, Route } from '@angular/router';
 import { inject } from '@angular/core';
 import { Store } from '@ngxs/store';
 import { filter, map, take } from 'rxjs';
-import { AuthState } from '../../state/auth/auth.state';
+import { AuthState, MeStatus } from '../../state/auth/auth.state';
 import { canAccess, defaultRouteFor, type ModuleKey } from '../access';
 import type { Role } from '../data/dtos/auth';
 
@@ -22,7 +22,7 @@ export const accessGuard: CanMatchFn = (route: Route) => {
   if (!store.selectSnapshot(AuthState.token)) return true;
 
   return store.select(AuthState.meStatus).pipe(
-    filter((s) => s === 'loaded' || s === 'error'),
+    filter((s) => s === MeStatus.Loaded || s === MeStatus.Error),
     take(1),
     map(() => {
       const me = store.selectSnapshot(AuthState.me);

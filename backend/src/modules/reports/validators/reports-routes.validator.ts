@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { REPORT_STATUSES, reportTypes, workTypes, type WorkType } from '../enums/reports.enum';
+import { ReportStatus, reportTypes, workTypes, type WorkType } from '../enums/reports.enum';
 
 // Narrow the inferred type to WorkType (zod's tuple signature loses literals through a bare cast).
 const workTypeEnum = z.enum(workTypes as unknown as [WorkType, ...WorkType[]]);
@@ -52,7 +52,7 @@ export const removePicturesSchema = z.object({
 });
 
 export const listReportsQuerySchema = z.object({
-  status: z.enum(REPORT_STATUSES as unknown as readonly [string, ...string[]]).optional(),
+  status: z.nativeEnum(ReportStatus).optional(),
   client_id: z.string().uuid().optional(),
   assigned_to: z.string().uuid().optional(),
   work_type: workTypeEnum.optional(),
