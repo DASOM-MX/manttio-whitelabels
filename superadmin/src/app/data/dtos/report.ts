@@ -2,7 +2,12 @@
  *  `backend/src/modules/reports/models/reports.model.ts` (2026-07-06);
  *  `folio` has no backend column yet — recorded as a backend ask. */
 
-export type ReportStatus = 'created' | 'in-progress' | 'finished' | 'mailed';
+export enum ReportStatus {
+  Created = 'created',
+  InProgress = 'in-progress',
+  Finished = 'finished',
+  Mailed = 'mailed',
+}
 
 export interface ReportSummary {
   id: string;

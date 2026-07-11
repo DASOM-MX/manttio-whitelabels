@@ -53,6 +53,7 @@ import { HasOptionsPipe } from '../../../pipes/question-datatype.pipe';
 import { ColumnsGridPipe } from '../../../pipes/report-answer.pipe';
 import { errorMessage } from '../../../data/utils';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
+import { TemplateStatus } from '../../../data/dtos/report-template';
 import type {
   QuestionDatatype,
   ReportTemplate,
@@ -100,6 +101,7 @@ export class TemplateDetail implements HasPendingChanges {
 
   protected readonly DATATYPE_OPTIONS = DATATYPE_OPTIONS;
   protected readonly MAGNITUDE_OPTIONS = MAGNITUDE_OPTIONS;
+  protected readonly TemplateStatus = TemplateStatus;
 
   protected selected = select(ReportTemplatesState.selected);
 
@@ -128,8 +130,10 @@ export class TemplateDetail implements HasPendingChanges {
   /** Live preview reads the whole form as a signal. */
   private formValue = toSignal(this.form.valueChanges, { initialValue: this.form.value });
 
-  protected status = computed(() => (this.isNew ? 'draft' : (this.selected()?.status ?? 'draft')));
-  protected readOnly = computed(() => this.status() !== 'draft');
+  protected status = computed(() =>
+    this.isNew ? TemplateStatus.Draft : (this.selected()?.status ?? TemplateStatus.Draft),
+  );
+  protected readOnly = computed(() => this.status() !== TemplateStatus.Draft);
 
   protected statusLabel = computed(() => TEMPLATE_STATUS_LABELS[this.status()]);
   protected statusSeverity = computed(() => TEMPLATE_STATUS_SEVERITIES[this.status()]);

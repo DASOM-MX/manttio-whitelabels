@@ -20,7 +20,7 @@
 
   <div class="flex flex-wrap gap-2">
     @switch (status()) {
-      @case ('draft') {
+      @case (TemplateStatus.Draft) {
         <button
           type="button"
           class="btn-primary"
@@ -38,7 +38,7 @@
           </button>
         }
       }
-      @case ('active') {
+      @case (TemplateStatus.Active) {
         <button type="button" class="btn-secondary" (click)="deactivate()" [disabled]="busy()">
           Editar (pasar a borrador)
         </button>
@@ -50,7 +50,7 @@
   </div>
 </div>
 
-@if (status() === 'disabled' && selected(); as tpl) {
+@if (status() === TemplateStatus.Disabled && selected(); as tpl) {
   <p
     class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200"
     role="note"
@@ -58,7 +58,7 @@
     Deshabilitada el {{ tpl.disabledAt | slice: 0 : 10 }} — «{{ tpl.disabledReason }}». Es un estado
     permanente; duplica su contenido en una plantilla nueva para reutilizar la forma.
   </p>
-} @else if (status() === 'active') {
+} @else if (status() === TemplateStatus.Active) {
   <p
     class="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
     role="note"

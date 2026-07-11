@@ -1,7 +1,11 @@
 /** Report-template DTOs (06-reports.md §5.1) — the custom report builder.
  *  Lifecycle: draft ⇄ active → disabled (terminal); no versioning in v1. */
 
-export type TemplateStatus = 'draft' | 'active' | 'disabled';
+export enum TemplateStatus {
+  Draft = 'draft',
+  Active = 'active',
+  Disabled = 'disabled',
+}
 
 /** Final nine (decided 2026-07-05). No `photo` — the fixed images block
  *  covers photos. */

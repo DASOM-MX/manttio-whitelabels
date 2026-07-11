@@ -9,9 +9,9 @@ import { LoadReport } from '../../../../state/reports/reports.actions';
 import { AuthState } from '../../../../state/auth/auth.state';
 import { ReportsService } from '../../../services/http/reports.service';
 import { hasRole } from '../../../access';
+import { ReportStatus } from '../../../data/dtos/report';
 import { REPORT_STATUS_LABELS } from '../../../model/constants/report/report-status-labels.const';
 import { REPORT_STATUS_SEVERITIES } from '../../../model/constants/report/report-status-severities.const';
-import { ReportStatusLabelPipe, ReportStatusSeverityPipe } from '../../../pipes/report-status.pipe';
 import { AnswerValuePipe, ColumnsGridPipe } from '../../../pipes/report-answer.pipe';
 import { errorMessage } from '../../../data/utils';
 
@@ -23,8 +23,6 @@ import { errorMessage } from '../../../data/utils';
   imports: [
     RouterLink,
     TagModule,
-    ReportStatusLabelPipe,
-    ReportStatusSeverityPipe,
     AnswerValuePipe,
     ColumnsGridPipe,
     LucideArrowLeft,
@@ -53,7 +51,7 @@ export class ReportView {
     const r = this.report();
     return (
       !!r &&
-      (r.status === 'finished' || r.status === 'mailed') &&
+      (r.status === ReportStatus.Finished || r.status === ReportStatus.Mailed) &&
       hasRole(this.me(), ['owner', 'admin'])
     );
   });
