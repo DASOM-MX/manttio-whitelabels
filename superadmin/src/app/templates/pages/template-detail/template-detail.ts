@@ -101,7 +101,6 @@ export class TemplateDetail implements HasPendingChanges {
 
   protected readonly DATATYPE_OPTIONS = DATATYPE_OPTIONS;
   protected readonly MAGNITUDE_OPTIONS = MAGNITUDE_OPTIONS;
-  protected readonly TemplateStatus = TemplateStatus;
 
   protected selected = select(ReportTemplatesState.selected);
 
@@ -134,6 +133,10 @@ export class TemplateDetail implements HasPendingChanges {
     this.isNew ? TemplateStatus.Draft : (this.selected()?.status ?? TemplateStatus.Draft),
   );
   protected readOnly = computed(() => this.status() !== TemplateStatus.Draft);
+
+  protected isDraft = computed(() => this.status() === TemplateStatus.Draft);
+  protected isActive = computed(() => this.status() === TemplateStatus.Active);
+  protected isDisabled = computed(() => this.status() === TemplateStatus.Disabled);
 
   protected statusLabel = computed(() => TEMPLATE_STATUS_LABELS[this.status()]);
   protected statusSeverity = computed(() => TEMPLATE_STATUS_SEVERITIES[this.status()]);
