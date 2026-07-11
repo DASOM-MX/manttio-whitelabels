@@ -8,6 +8,7 @@ import {
 } from '../repository/report-templates.repository';
 import type { ReportTemplateRow, TemplateSection } from '../types/report-templates.types';
 import type { ListTemplatesQuery, SaveTemplateInput } from '../validators/report-templates.validator';
+import { isActive, isDisabled, isDraft } from '../utils/template-lifecycle';
 
 // Draft-only editing (06 §5.2): PATCH against active/disabled → 409.
 export class TemplateNotDraftError extends Error {}
@@ -58,7 +59,7 @@ export const editTemplate = async (
 ): Promise<ReportTemplateRow | null> => {
   const target = await findTemplateById(db, id);
   if (!target) return null;
-  if (target.status !== 'draft') throw new TemplateNotDraftError();
+  if (!isDraft(target.status)) throw new TemplateNotDraftError();
   return updateTemplateContent(db, id, {
     name: input.name,
     description: input.description ?? null,
@@ -69,14 +70,14 @@ export const editTemplate = async (
 export const activateTemplate = async (db: Db, id: string): Promise<ReportTemplateRow | null> => {
   const target = await findTemplateById(db, id);
   if (!target) return null;
-  if (target.status !== 'draft') throw new TemplateNotDraftError();
+  if (!isDraft(target.status)) throw new TemplateNotDraftError();
   return updateTemplateStatus(db, id, { status: 'active' });
 };
 
 export const deactivateTemplate = async (db: Db, id: string): Promise<ReportTemplateRow | null> => {
   const target = await findTemplateById(db, id);
   if (!target) return null;
-  if (target.status !== 'active') throw new TemplateNotActiveError();
+  if (!isActive(target.status)) throw new TemplateNotActiveError();
   return updateTemplateStatus(db, id, { status: 'draft' });
 };
 
@@ -88,7 +89,7 @@ export const disableTemplate = async (
 ): Promise<ReportTemplateRow | null> => {
   const target = await findTemplateById(db, id);
   if (!target) return null;
-  if (target.status === 'disabled') throw new TemplateAlreadyDisabledError();
+  if (isDisabled(target.status)) throw new TemplateAlreadyDisabledError();
   return updateTemplateStatus(db, id, {
     status: 'disabled',
     disabledReason: reason,
