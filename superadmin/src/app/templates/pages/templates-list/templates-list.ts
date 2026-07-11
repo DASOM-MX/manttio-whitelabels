@@ -15,8 +15,6 @@ import {
 } from '../../../pipes/report-status.pipe';
 import type { ReportTemplate } from '../../../data/dtos/report-template';
 
-const PAGE_SIZE = 10;
-
 /** Templates list (06 §5.3) — own top-level Plantillas area, owner/admin
  *  only (route data enforces; office/tech never see the nav entry). Page
  *  persists as a GET param (?page) through ListQueryService (05 §3 canon). */
@@ -44,14 +42,12 @@ export class TemplatesList {
   protected templates = select(ReportTemplatesState.items);
   protected total = select(ReportTemplatesState.total);
   protected loading = select(ReportTemplatesState.loading);
-  protected readonly PAGE_SIZE = PAGE_SIZE;
 
   constructor() {
     this.list.init({
-      pageSize: PAGE_SIZE,
       read: () => {},
       write: () => ({}),
-      load: (page) => this.store.dispatch(new LoadTemplates({ page, limit: PAGE_SIZE })),
+      load: (page) => this.store.dispatch(new LoadTemplates({ page, limit: this.list.PAGE_SIZE })),
     });
   }
 

@@ -59,16 +59,7 @@ import type {
   SaveTemplateRequest,
 } from '../../../data/dtos/report-template';
 
-const TAB_ORDER = ['editor', 'preview'] as const;
-type Tab = (typeof TAB_ORDER)[number];
-
-/** Immutable Set toggle — the InSetPipe is pure, so state must be replaced. */
-const toggleIn = <T>(set: ReadonlySet<T>, item: T): ReadonlySet<T> => {
-  const next = new Set(set);
-  if (next.has(item)) next.delete(item);
-  else next.add(item);
-  return next;
-};
+type Tab = 'editor' | 'preview';
 
 /** The template builder (06 §5.3): section editor + nested question editor +
  *  full-skeleton preview on its own tab (QA 2026-07-09 — was side-by-side).
@@ -116,6 +107,7 @@ export class TemplateDetail implements HasPendingChanges {
   protected isNew = !this.templateId;
   protected busy = signal(false);
 
+  protected readonly TAB_ORDER: readonly Tab[] = ['editor', 'preview'];
   protected tab = signal<Tab>('editor');
   private tabButtons = viewChildren<ElementRef<HTMLButtonElement>>('tabBtn');
 
@@ -188,28 +180,28 @@ export class TemplateDetail implements HasPendingChanges {
 
   /** ARIA tabs pattern: arrow keys / Home / End move + activate + focus. */
   protected onTabKeydown(event: KeyboardEvent): void {
-    const current = TAB_ORDER.indexOf(this.tab());
+    const current = this.TAB_ORDER.indexOf(this.tab());
     let next: number;
     switch (event.key) {
       case 'ArrowRight':
       case 'ArrowDown':
-        next = (current + 1) % TAB_ORDER.length;
+        next = (current + 1) % this.TAB_ORDER.length;
         break;
       case 'ArrowLeft':
       case 'ArrowUp':
-        next = (current - 1 + TAB_ORDER.length) % TAB_ORDER.length;
+        next = (current - 1 + this.TAB_ORDER.length) % this.TAB_ORDER.length;
         break;
       case 'Home':
         next = 0;
         break;
       case 'End':
-        next = TAB_ORDER.length - 1;
+        next = this.TAB_ORDER.length - 1;
         break;
       default:
         return;
     }
     event.preventDefault();
-    this.tab.set(TAB_ORDER[next]);
+    this.tab.set(this.TAB_ORDER[next]);
     this.tabButtons()[next]?.nativeElement.focus();
   }
 
@@ -223,12 +215,20 @@ export class TemplateDetail implements HasPendingChanges {
     return (section as FormGroup).controls['questions'] as FormArray<FormGroup>;
   }
 
+  /** Immutable Set toggle — the InSetPipe is pure, so state must be replaced. */
+  private toggleIn<T>(set: ReadonlySet<T>, item: T): ReadonlySet<T> {
+    const next = new Set(set);
+    if (next.has(item)) next.delete(item);
+    else next.add(item);
+    return next;
+  }
+
   protected toggleSection(section: AbstractControl): void {
-    this.expandedSections.update((set) => toggleIn(set, section));
+    this.expandedSections.update((set) => this.toggleIn(set, section));
   }
 
   protected toggleQuestion(question: AbstractControl): void {
-    this.expandedQuestions.update((set) => toggleIn(set, question));
+    this.expandedQuestions.update((set) => this.toggleIn(set, question));
   }
 
   protected addSection(initial?: { title?: string; columns?: 1 | 2 | 3 }): void {
@@ -241,7 +241,7 @@ export class TemplateDetail implements HasPendingChanges {
     this.sections.push(group);
     if (!initial) {
       this.form.markAsDirty();
-      this.expandedSections.update((set) => toggleIn(set, group));
+      this.expandedSections.update((set) => this.toggleIn(set, group));
     }
   }
 
@@ -278,7 +278,7 @@ export class TemplateDetail implements HasPendingChanges {
     this.questionsOf(section).push(group);
     if (!initial) {
       this.form.markAsDirty();
-      this.expandedQuestions.update((set) => toggleIn(set, group));
+      this.expandedQuestions.update((set) => this.toggleIn(set, group));
     }
   }
 

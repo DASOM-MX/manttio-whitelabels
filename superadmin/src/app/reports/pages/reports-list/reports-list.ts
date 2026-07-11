@@ -19,20 +19,6 @@ import { ReportStatusLabelPipe, ReportStatusSeverityPipe } from '../../../pipes/
 import { DeleteReportDialog } from '../../components/delete-report-dialog/delete-report-dialog';
 import type { ReportListQuery, ReportStatus, ReportSummary } from '../../../data/dtos/report';
 
-const PAGE_SIZE = 10;
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-
-/** Local-midnight parse of a sanitized `YYYY-MM-DD` URL param — anything
- *  malformed is dropped, never fed to the picker or the API. */
-const parseDateParam = (value: string | null): Date | null => {
-  if (!value || !ISO_DATE.test(value)) return null;
-  const date = new Date(`${value}T00:00:00`);
-  return Number.isNaN(date.getTime()) ? null : date;
-};
-
-const isoDate = (d: Date | undefined | null): string | undefined =>
-  d ? d.toISOString().slice(0, 10) : undefined;
-
 /** Reports browser (06 §3). Technicians get the exact same page as
  *  "Mis reportes": the backend scopes their query; the UI locks the filters
  *  down to search + dates and hides destructive actions — same components,
@@ -71,7 +57,7 @@ export class ReportsList {
   private me = select(AuthState.me);
   private templates = select(ReportTemplatesState.items);
 
-  protected readonly PAGE_SIZE = PAGE_SIZE;
+  private readonly ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
   protected isTechnician = computed(() => this.me()?.role === 'technician');
 
   protected search = new FormControl('', { nonNullable: true });
@@ -98,10 +84,9 @@ export class ReportsList {
     if (!this.isTechnician()) this.store.dispatch(new LoadTemplates({ limit: 100 }));
 
     this.list.init({
-      pageSize: PAGE_SIZE,
       read: (params) => {
-        const from = parseDateParam(params.get('from'));
-        const to = parseDateParam(params.get('to'));
+        const from = this.parseDateParam(params.get('from'));
+        const to = this.parseDateParam(params.get('to'));
         this.search.setValue(params.get('q') ?? '', { emitEvent: false });
         this.statusFilter.setValue(keyIn(REPORT_STATUS_LABELS, params.get('status')), {
           emitEvent: false,
@@ -115,8 +100,8 @@ export class ReportsList {
           q: this.search.value || null,
           status: this.statusFilter.value || null,
           template: this.templateFilter.value || null,
-          from: isoDate(range?.[0]) ?? null,
-          to: isoDate(range?.[1]) ?? null,
+          from: this.isoDate(range?.[0]) ?? null,
+          to: this.isoDate(range?.[1]) ?? null,
         };
       },
       load: (page) => this.store.dispatch(new LoadReports(this.query(page))),
@@ -131,13 +116,25 @@ export class ReportsList {
     const range = this.dateRange.value;
     return {
       page,
-      limit: PAGE_SIZE,
+      limit: this.list.PAGE_SIZE,
       search: this.search.value || undefined,
       status: this.statusFilter.value || undefined,
       templateId: this.templateFilter.value || undefined,
-      from: isoDate(range?.[0]),
-      to: isoDate(range?.[1]),
+      from: this.isoDate(range?.[0]),
+      to: this.isoDate(range?.[1]),
     };
+  }
+
+  /** Local-midnight parse of a sanitized `YYYY-MM-DD` URL param — anything
+   *  malformed is dropped, never fed to the picker or the API. */
+  private parseDateParam(value: string | null): Date | null {
+    if (!value || !this.ISO_DATE.test(value)) return null;
+    const date = new Date(`${value}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  private isoDate(d: Date | undefined | null): string | undefined {
+    return d ? d.toISOString().slice(0, 10) : undefined;
   }
 
   protected refresh(): void {

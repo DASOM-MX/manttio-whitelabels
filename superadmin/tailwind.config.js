@@ -117,8 +117,10 @@ module.exports = {
 
       // Template-builder preview floor: the pane scrolls horizontally on
       // narrow viewports instead of collapsing section columns (06 §5.3).
+      // Keyed on the spacing scale (136 × 0.25rem = 34rem) so it reads as a
+      // Tailwind token, not a component-named one-off.
       minWidth: {
-        preview: '34rem',
+        136: '34rem',
       },
     },
   },
