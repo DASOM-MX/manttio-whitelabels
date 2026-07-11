@@ -9,13 +9,9 @@ import {
 import type { ReportTemplateRow, TemplateSection } from '../types/report-templates.types';
 import type { ListTemplatesQuery, SaveTemplateInput } from '../validators/report-templates.validator';
 import { TemplateStatus } from '../enums/report-templates.enum';
-
-// Draft-only editing (06 §5.2): PATCH against active/disabled → 409.
-export class TemplateNotDraftError extends Error {}
-// deactivate is the active → draft edit path; anything else → 409.
-export class TemplateNotActiveError extends Error {}
-// `disabled` is terminal — no transition leaves it; re-disable → 409.
-export class TemplateAlreadyDisabledError extends Error {}
+import { TemplateNotDraftError } from '../http-errors/template-not-draft.error';
+import { TemplateNotActiveError } from '../http-errors/template-not-active.error';
+import { TemplateAlreadyDisabledError } from '../http-errors/template-already-disabled.error';
 
 /** Server-authoritative normalization: mint missing section/question ids and
  *  re-derive `order` from array position — the arrays are the truth. */

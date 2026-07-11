@@ -9,9 +9,6 @@ import {
   saveTemplateSchema,
 } from '../validators/report-templates.validator';
 import {
-  TemplateAlreadyDisabledError,
-  TemplateNotActiveError,
-  TemplateNotDraftError,
   activateTemplate,
   createTemplate,
   deactivateTemplate,
@@ -20,6 +17,9 @@ import {
   getTemplate,
   getTemplates,
 } from '../services/report-templates.service';
+import { TemplateNotDraftError } from '../http-errors/template-not-draft.error';
+import { TemplateNotActiveError } from '../http-errors/template-not-active.error';
+import { TemplateAlreadyDisabledError } from '../http-errors/template-already-disabled.error';
 
 export const reportTemplates = new Hono<AppBindings>();
 
