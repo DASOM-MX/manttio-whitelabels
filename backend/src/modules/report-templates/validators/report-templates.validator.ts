@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MAGNITUDES, QUESTION_DATATYPES, TemplateStatus } from '../enums/report-templates.enum';
+import { Magnitude, QuestionDatatype, TemplateStatus } from '../enums/report-templates.enum';
 
 const constraintsSchema = z.object({
   min: z.number().optional(),
@@ -9,7 +9,7 @@ const constraintsSchema = z.object({
   maxDate: z.string().optional(),
 });
 
-// `unit` is whitelisted against MAGNITUDES and only valid on `number`
+// `unit` is whitelisted against the Magnitude enum and only valid on `number`
 // questions (06 §5.1 rule, 2026-07-09) — anything else is a 400, never
 // stored as free text.
 const questionSchema = z
@@ -17,13 +17,13 @@ const questionSchema = z
     id: z.string().optional(),
     order: z.number().int().min(0).optional(),
     label: z.string().min(1),
-    datatype: z.enum(QUESTION_DATATYPES),
+    datatype: z.nativeEnum(QuestionDatatype),
     required: z.boolean(),
     options: z.array(z.string().min(1)).optional(),
-    unit: z.enum(MAGNITUDES).optional(),
+    unit: z.nativeEnum(Magnitude).optional(),
     constraints: constraintsSchema.optional(),
   })
-  .refine((q) => q.unit === undefined || q.datatype === 'number', {
+  .refine((q) => q.unit === undefined || q.datatype === QuestionDatatype.Number, {
     message: 'unit is only valid on number questions',
   });
 
