@@ -53,14 +53,43 @@ import { HasOptionsPipe } from '../../../pipes/question-datatype.pipe';
 import { ColumnsGridPipe } from '../../../pipes/report-answer.pipe';
 import { errorMessage } from '../../../data/utils';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
-import { TemplateStatus } from '../../../data/dtos/report-template';
+import { QuestionDatatype, TemplateStatus } from '../../../data/dtos/report-template';
 import type {
-  QuestionDatatype,
+  QuestionConstraints,
   ReportTemplate,
   SaveTemplateRequest,
 } from '../../../data/dtos/report-template';
 
 type Tab = 'editor' | 'preview';
+
+/** Optional seed for a new or hydrated section row in the builder form. */
+interface SectionSeed {
+  title?: string;
+  columns?: 1 | 2 | 3;
+}
+
+/** Optional seed for a new or hydrated question row in the builder form. */
+interface QuestionSeed {
+  label?: string;
+  datatype?: QuestionDatatype;
+  required?: boolean;
+  options?: string[];
+  unit?: string;
+  constraints?: QuestionConstraints;
+}
+
+/** Raw values read off the section/question FormGroups for the live preview. */
+interface QuestionFormValue {
+  label: string;
+  datatype: QuestionDatatype;
+  required: boolean;
+  unit: string;
+}
+interface SectionFormValue {
+  title: string;
+  columns: 1 | 2 | 3;
+  questions: QuestionFormValue[];
+}
 
 /** The template builder (06 §5.3): section editor + nested question editor +
  *  full-skeleton preview on its own tab (QA 2026-07-09 — was side-by-side).
@@ -145,11 +174,7 @@ export class TemplateDetail implements HasPendingChanges {
   protected preview = computed(() => {
     this.formValue(); // dependency — FormArray mutations re-emit valueChanges
     return this.sections.controls.map((section) => {
-      const s = section.getRawValue() as {
-        title: string;
-        columns: 1 | 2 | 3;
-        questions: { label: string; datatype: QuestionDatatype; required: boolean; unit: string }[];
-      };
+      const s = section.getRawValue() as SectionFormValue;
       return {
         title: s.title || 'Sección sin título',
         columns: Number(s.columns) as 1 | 2 | 3,
@@ -157,7 +182,7 @@ export class TemplateDetail implements HasPendingChanges {
           label: q.label || 'Pregunta sin título',
           datatype: q.datatype,
           required: q.required,
-          unit: q.datatype === 'number' ? q.unit : '',
+          unit: q.datatype === QuestionDatatype.Number ? q.unit : '',
         })),
       };
     });
@@ -238,7 +263,7 @@ export class TemplateDetail implements HasPendingChanges {
     this.expandedQuestions.update((set) => this.toggleIn(set, question));
   }
 
-  protected addSection(initial?: { title?: string; columns?: 1 | 2 | 3 }): void {
+  protected addSection(initial?: SectionSeed): void {
     const group = this.fb.nonNullable.group({
       id: [''],
       title: [initial?.title ?? '', Validators.required],
@@ -252,27 +277,11 @@ export class TemplateDetail implements HasPendingChanges {
     }
   }
 
-  protected addQuestion(
-    section: AbstractControl,
-    initial?: {
-      label?: string;
-      datatype?: QuestionDatatype;
-      required?: boolean;
-      options?: string[];
-      unit?: string;
-      constraints?: {
-        min?: number;
-        max?: number;
-        maxLength?: number;
-        minDate?: string;
-        maxDate?: string;
-      };
-    },
-  ): void {
+  protected addQuestion(section: AbstractControl, initial?: QuestionSeed): void {
     const group = this.fb.nonNullable.group({
       id: [''],
       label: [initial?.label ?? '', Validators.required],
-      datatype: [initial?.datatype ?? ('text' as QuestionDatatype)],
+      datatype: [initial?.datatype ?? QuestionDatatype.Text],
       required: [initial?.required ?? false],
       optionsCsv: [initial?.options?.join(', ') ?? ''],
       unit: [initial?.unit ?? ''],
@@ -324,14 +333,14 @@ export class TemplateDetail implements HasPendingChanges {
         questions: (s['questions'] as Record<string, unknown>[]).map((q, qi) => {
           const datatype = q['datatype'] as QuestionDatatype;
           const constraints: Record<string, unknown> = {};
-          if (datatype === 'number') {
+          if (datatype === QuestionDatatype.Number) {
             if (q['min'] !== null && q['min'] !== '') constraints['min'] = Number(q['min']);
             if (q['max'] !== null && q['max'] !== '') constraints['max'] = Number(q['max']);
           }
-          if (datatype === 'text' || datatype === 'textarea') {
+          if (datatype === QuestionDatatype.Text || datatype === QuestionDatatype.Textarea) {
             if (q['maxLength']) constraints['maxLength'] = Number(q['maxLength']);
           }
-          if (datatype === 'date') {
+          if (datatype === QuestionDatatype.Date) {
             if (q['minDate']) constraints['minDate'] = q['minDate'] as string;
             if (q['maxDate']) constraints['maxDate'] = q['maxDate'] as string;
           }
@@ -348,7 +357,7 @@ export class TemplateDetail implements HasPendingChanges {
                   .filter(Boolean)
               : undefined,
             // Magnitude is number-only; switching datatype drops a stale unit.
-            unit: datatype === 'number' && q['unit'] ? (q['unit'] as string) : undefined,
+            unit: datatype === QuestionDatatype.Number && q['unit'] ? (q['unit'] as string) : undefined,
             constraints: Object.keys(constraints).length ? constraints : undefined,
           };
         }),

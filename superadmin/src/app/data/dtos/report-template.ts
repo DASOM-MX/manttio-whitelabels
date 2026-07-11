@@ -9,16 +9,17 @@ export enum TemplateStatus {
 
 /** Final nine (decided 2026-07-05). No `photo` — the fixed images block
  *  covers photos. */
-export type QuestionDatatype =
-  | 'text'
-  | 'textarea'
-  | 'number'
-  | 'date'
-  | 'boolean'
-  | 'select'
-  | 'multiselect'
-  | 'radio'
-  | 'checkbox_group';
+export enum QuestionDatatype {
+  Text = 'text',
+  Textarea = 'textarea',
+  Number = 'number',
+  Date = 'date',
+  Boolean = 'boolean',
+  Select = 'select',
+  Multiselect = 'multiselect',
+  Radio = 'radio',
+  CheckboxGroup = 'checkbox_group',
+}
 
 export interface QuestionConstraints {
   min?: number;
