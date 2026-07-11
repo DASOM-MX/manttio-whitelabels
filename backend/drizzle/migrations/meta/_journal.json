@@ -92,6 +92,13 @@
       "when": 1783582760941,
       "tag": "0012_free_nova",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1783587487425,
+      "tag": "0013_medical_oracle",
+      "breakpoints": true
     }
   ]
 }

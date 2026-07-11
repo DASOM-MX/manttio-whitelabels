@@ -18,8 +18,6 @@ import { DeleteUserDialog } from '../../components/delete-user-dialog/delete-use
 import type { Role } from '../../../data/dtos/auth';
 import type { User, UserListQuery } from '../../../data/dtos/user';
 
-const PAGE_SIZE = 10;
-
 /** Users list (05 §3): lazy server-side table with search/role/active
  *  filters, role + active pills, edit/delete row actions. Owner rows never
  *  show manage actions — owner accounts are immutable in-tenant (14 §2
@@ -58,8 +56,6 @@ export class UsersList {
   protected total = select(UsersState.total);
   protected loading = select(UsersState.loading);
 
-  protected readonly PAGE_SIZE = PAGE_SIZE;
-
   protected search = new FormControl('', { nonNullable: true });
   protected roleFilter = new FormControl<Role | ''>('', { nonNullable: true });
   protected activeFilter = new FormControl<'' | 'true' | 'false'>('', { nonNullable: true });
@@ -81,7 +77,6 @@ export class UsersList {
 
   constructor() {
     this.list.init({
-      pageSize: PAGE_SIZE,
       read: (params) => {
         const active = params.get('active');
         this.search.setValue(params.get('q') ?? '', { emitEvent: false });
@@ -106,7 +101,7 @@ export class UsersList {
   private query(page: number): UserListQuery {
     return {
       page,
-      limit: PAGE_SIZE,
+      limit: this.list.PAGE_SIZE,
       search: this.search.value || undefined,
       role: this.roleFilter.value || undefined,
       active: this.activeFilter.value === '' ? undefined : this.activeFilter.value === 'true',
