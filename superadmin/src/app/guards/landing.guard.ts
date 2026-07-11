@@ -2,7 +2,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { Store } from '@ngxs/store';
 import { filter, map, take } from 'rxjs';
-import { AuthState } from '../../state/auth/auth.state';
+import { AuthState, MeStatus } from '../../state/auth/auth.state';
 import { defaultRouteFor } from '../access';
 
 /** Resolves the empty path to the role-appropriate landing route (02 §4):
@@ -15,7 +15,7 @@ export const landingGuard: CanActivateFn = () => {
   // waiting on a status that will never resolve.
   if (!store.selectSnapshot(AuthState.token)) return router.parseUrl('/login');
   return store.select(AuthState.meStatus).pipe(
-    filter((s) => s === 'loaded' || s === 'error'),
+    filter((s) => s === MeStatus.Loaded || s === MeStatus.Error),
     take(1),
     map(() => router.parseUrl(defaultRouteFor(store.selectSnapshot(AuthState.me)))),
   );

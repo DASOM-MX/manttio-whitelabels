@@ -9,7 +9,12 @@ import type { MeResponse, Role, TenantConfig } from '../../app/data/dtos/auth';
 /** `me` deliberately does NOT persist (only `auth.token` rides the storage
  *  plugin): gating data is refetched on every boot so no gated UI renders
  *  from stale data (14-access-control.md §3). */
-export type MeStatus = 'idle' | 'loading' | 'loaded' | 'error';
+export enum MeStatus {
+  Idle = 'idle',
+  Loading = 'loading',
+  Loaded = 'loaded',
+  Error = 'error',
+}
 
 export interface AuthStateModel {
   token: string | null;
@@ -17,7 +22,7 @@ export interface AuthStateModel {
   meStatus: MeStatus;
 }
 
-const DEFAULTS: AuthStateModel = { token: null, me: null, meStatus: 'idle' };
+const DEFAULTS: AuthStateModel = { token: null, me: null, meStatus: MeStatus.Idle };
 
 @State<AuthStateModel>({
   name: 'auth',
@@ -53,19 +58,19 @@ export class AuthState {
   @Action(Login)
   login(ctx: StateContext<AuthStateModel>, { payload }: Login) {
     return this.auth.login(payload).pipe(
-      tap(({ token }) => ctx.patchState({ token, meStatus: 'loading' })),
+      tap(({ token }) => ctx.patchState({ token, meStatus: MeStatus.Loading })),
       switchMap(() => this.auth.me()),
-      tap((me) => ctx.patchState({ me, meStatus: 'loaded' })),
+      tap((me) => ctx.patchState({ me, meStatus: MeStatus.Loaded })),
     );
   }
 
   @Action(LoadMe)
   loadMe(ctx: StateContext<AuthStateModel>) {
-    ctx.patchState({ meStatus: 'loading' });
+    ctx.patchState({ meStatus: MeStatus.Loading });
     return this.auth.me().pipe(
-      tap((me) => ctx.patchState({ me, meStatus: 'loaded' })),
+      tap((me) => ctx.patchState({ me, meStatus: MeStatus.Loaded })),
       catchError((err) => {
-        ctx.patchState({ meStatus: 'error' });
+        ctx.patchState({ meStatus: MeStatus.Error });
         return throwError(() => err);
       }),
     );

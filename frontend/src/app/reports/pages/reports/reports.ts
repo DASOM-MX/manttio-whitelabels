@@ -19,6 +19,7 @@ import { CustomersState } from '../../../../state/customers/customers.state';
 import { OfflineReportsState } from '../../../../state/offline-reports/offline-reports.state';
 import type { ReportRow } from '../../../data/dtos/report';
 import type { ReportStatus } from '../../../data/types/report';
+import { PendingReportStatus } from '../../../../offline/pending-report.model';
 import { DEFAULT_MEXICAN_TIMEZONE, MEXICAN_STATES } from '../../../data/constants';
 
 type ReportListBucket = 'pending' | 'done';
@@ -110,6 +111,8 @@ export class Reports {
         ...p,
         clientName: c?.name ?? 'Cliente',
         clientTimezone: c?.timezone ?? DEFAULT_MEXICAN_TIMEZONE,
+        isUploading: p.status === PendingReportStatus.Uploading,
+        isFailed: p.status === PendingReportStatus.Failed,
       };
     });
   });

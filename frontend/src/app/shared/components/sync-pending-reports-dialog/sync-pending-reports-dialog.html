@@ -49,25 +49,21 @@
                 {{ row.createdByName }} · <span class="font-data tabular-nums">{{ row.createdAt | date: 'short' }}</span>
               </span>
             </label>
-            @switch (row.status) {
-              @case ('uploading') {
-                <p-tag severity="info" value="Subiendo"></p-tag>
-              }
-              @case ('failed') {
-                <p-tag
-                  severity="danger"
-                  value="Falló"
-                  [pTooltip]="row.lastError ?? ''"
-                  tooltipPosition="top"
-                ></p-tag>
-              }
-              @default {
-                <span
-                  class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 text-xs font-bold"
-                >
-                  Pendiente
-                </span>
-              }
+            @if (row.isUploading) {
+              <p-tag severity="info" value="Subiendo"></p-tag>
+            } @else if (row.isFailed) {
+              <p-tag
+                severity="danger"
+                value="Falló"
+                [pTooltip]="row.lastError ?? ''"
+                tooltipPosition="top"
+              ></p-tag>
+            } @else {
+              <span
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 text-xs font-bold"
+              >
+                Pendiente
+              </span>
             }
             <button
               type="button"

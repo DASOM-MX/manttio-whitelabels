@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import type { CreateReportFields } from '../app/data/dtos/report';
 import { OfflineReportsDb } from './offline-reports.db';
-import type { PendingReport, PendingReportCreator, PendingReportStatus } from './pending-report.model';
+import { PendingReportStatus } from './pending-report.model';
+import type { PendingReport, PendingReportCreator } from './pending-report.model';
 
 /** Persistence layer for reports captured offline. Wraps the IndexedDB store;
  *  all methods are Promise-based. Higher layers (NGXS `OfflineReportsState`)
@@ -17,7 +18,7 @@ export class OfflineReportsService {
       fields,
       createdBy,
       createdAt: new Date().toISOString(),
-      status: 'pending',
+      status: PendingReportStatus.Pending,
     };
     await this.db.pendingReports.add(record);
     return record;

@@ -5,7 +5,7 @@ import { insertCustomer } from '../../src/modules/customers/repository/customers
 import { insertUser } from '../../src/modules/users/repository/users.repository';
 import { hashPassword } from '../../src/modules/auth/services/password.service';
 import { reportCounters, reportDetails, reports } from '../../src/modules/database/schema';
-import type { ReportStatus, WorkType } from '../../src/modules/reports/enums/reports.enum';
+import { ReportStatus, type WorkType } from '../../src/modules/reports/enums/reports.enum';
 import { request, json, jsonHeaders } from './request';
 
 const tag = () => Math.random().toString(36).slice(2, 10);
@@ -129,7 +129,7 @@ const defaultMinisplitData = () => ({
 // /reports for tests that need to validate the create path itself.
 export const seedReport = async (opts: SeedReportOpts): Promise<SeededReport> => {
   const reportType = opts.reportType ?? 'minisplit';
-  const status: ReportStatus = opts.status ?? 'created';
+  const status: ReportStatus = opts.status ?? ReportStatus.Created;
   const assignedTo = opts.assignedTo ?? opts.createdBy;
   const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
 

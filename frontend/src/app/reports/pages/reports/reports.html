@@ -47,16 +47,12 @@
                     {{ p.createdAt | dateInTz: p.clientTimezone : "short" }}
                   </span>
                 </div>
-                @switch (p.status) {
-                  @case ('uploading') {
-                    <p-tag severity="info" value="Subiendo"></p-tag>
-                  }
-                  @case ('failed') {
-                    <p-tag severity="danger" value="Error"></p-tag>
-                  }
-                  @default {
-                    <p-tag severity="warn" value="Pendiente"></p-tag>
-                  }
+                @if (p.isUploading) {
+                  <p-tag severity="info" value="Subiendo"></p-tag>
+                } @else if (p.isFailed) {
+                  <p-tag severity="danger" value="Error"></p-tag>
+                } @else {
+                  <p-tag severity="warn" value="Pendiente"></p-tag>
                 }
               </button>
             </li>

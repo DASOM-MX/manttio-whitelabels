@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { ReportStatus } from '../src/modules/reports/enums/reports.enum';
 import { authHeader, json, jsonHeaders, request } from './helpers/request';
 import {
   seedAdmin,
@@ -85,12 +86,12 @@ describe('GET /reports', () => {
     const created = await seedReport({
       createdBy: admin.id,
       clientId: customer.id,
-      status: 'created',
+      status: ReportStatus.Created,
     });
     const finished = await seedReport({
       createdBy: admin.id,
       clientId: customer.id,
-      status: 'finished',
+      status: ReportStatus.Finished,
     });
 
     const res = await request(`/reports?status=finished&client_id=${customer.id}`, {
@@ -444,7 +445,7 @@ describe('PATCH /reports/:id', () => {
     const seeded = await seedReport({
       createdBy: admin.id,
       clientId: customer.id,
-      status: 'created',
+      status: ReportStatus.Created,
     });
 
     const res = await request(`/reports/${seeded.id}`, {
@@ -464,7 +465,7 @@ describe('PATCH /reports/:id', () => {
     const seeded = await seedReport({
       createdBy: admin.id,
       clientId: customer.id,
-      status: 'in-progress',
+      status: ReportStatus.InProgress,
     });
 
     const newData = { ...validMinisplitData(), observations: 'updated by patch' };
@@ -544,7 +545,7 @@ describe('PATCH /reports/:id', () => {
     const seeded = await seedReport({
       createdBy: admin.id,
       clientId: customer.id,
-      status: 'finished',
+      status: ReportStatus.Finished,
     });
 
     const res = await request(`/reports/${seeded.id}`, {

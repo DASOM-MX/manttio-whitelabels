@@ -1,5 +1,5 @@
 
-@if (meStatus() === 'idle' || meStatus() === 'loading') {
+@if (isBooting()) {
   <!-- Splash: no gated UI renders until /auth/me resolves (02 §3). -->
   <div
     class="flex h-dvh flex-col items-center justify-center gap-4 bg-background dark:bg-granite-950"
@@ -13,7 +13,7 @@
       aria-label="Cargando"
     ></div>
   </div>
-} @else if (meStatus() === 'error') {
+} @else if (hasError()) {
   <div class="flex h-dvh items-center justify-center bg-background p-6 dark:bg-granite-950">
     <div class="card-section w-full max-w-sm text-center">
       <h1 class="text-lg font-bold text-granite-950 dark:text-granite-50">

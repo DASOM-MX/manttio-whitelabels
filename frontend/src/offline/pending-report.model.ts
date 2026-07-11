@@ -2,7 +2,11 @@ import type { CreateReportFields } from '../app/data/dtos/report';
 import type { ReportType } from '../app/data/types/report';
 
 /** Upload lifecycle of a report captured while offline. */
-export type PendingReportStatus = 'pending' | 'uploading' | 'failed';
+export enum PendingReportStatus {
+  Pending = 'pending',
+  Uploading = 'uploading',
+  Failed = 'failed',
+}
 
 /** Snapshot of the user who created the report, taken at capture time so
  *  attribution survives a phone being handed to another technician/admin. */
