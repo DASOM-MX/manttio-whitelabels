@@ -5,7 +5,7 @@ import { Store } from '@ngxs/store';
 import { MessageService } from 'primeng/api';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
-import { SaveCustomerContacts } from '../../../../state/customers/customers.actions';
+import { AddCustomerContact } from '../../../../state/customers/customers.actions';
 import { errorMessage } from '../../../data/utils';
 import type { Customer, CustomerContact } from '../../../data/dtos/customer';
 
@@ -62,7 +62,7 @@ export class AddContactDialog {
     if (v.email?.trim()) contact.email = v.email.trim();
 
     this.submitting.set(true);
-    this.store.dispatch(new SaveCustomerContacts(target.id, [...target.contacts, contact])).subscribe({
+    this.store.dispatch(new AddCustomerContact(target.id, contact)).subscribe({
       next: () => {
         this.submitting.set(false);
         this.dialogOpen.set(false);

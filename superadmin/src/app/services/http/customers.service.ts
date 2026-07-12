@@ -41,10 +41,10 @@ export class CustomersService {
     return this.remote.delete<void>(`/customers/${id}`, body);
   }
 
-  /** Persist the full contact list (backend replaces contacts wholesale on
-   *  PATCH). Used by the in-view "add contact" flow so users don't have to open
-   *  the edit form. */
-  saveContacts(id: string, contacts: CustomerContact[]): Observable<Customer> {
-    return this.remote.patch<Customer>(`/customers/${id}`, { contacts });
+  /** Add a single contact via the top-level contacts resource — returns the
+   *  created contact (stable id). Used by the in-view "add contact" flow so
+   *  users don't have to open the edit form. */
+  addContact(customerId: string, contact: CustomerContact): Observable<CustomerContact> {
+    return this.remote.post<CustomerContact>('/contacts', { customerId, ...contact });
   }
 }

@@ -1,23 +1,18 @@
 import type { Db } from '../../database/client';
-import type {
-  CustomerContactDto,
-  CustomerDto,
-  CustomerFiscalDto,
-} from '../dtos/customer.dto';
+import type { ContactDto } from '../../contacts/dtos/contact.dto';
+import { listContacts, replaceContactsForCustomer } from '../../contacts/services/contacts.service';
+import type { CustomerDto, CustomerFiscalDto } from '../dtos/customer.dto';
 import {
   findCustomerById,
   findFiscalByCustomerIds,
   insertCustomer,
-  listContactsByCustomerIds,
   listCustomers,
-  replaceContacts,
   softDeleteCustomer,
   updateCustomer,
   upsertFiscal,
   deleteFiscal,
 } from '../repository/customers.repository';
 import type {
-  CustomerContactRow,
   CustomerFiscalRow,
   CustomerRow,
   ListCustomersFilters,
@@ -41,17 +36,9 @@ const mapFiscal = (row: CustomerFiscalRow): CustomerFiscalDto => ({
   billingEmail: row.billingEmail,
 });
 
-const mapContact = (row: CustomerContactRow): CustomerContactDto => ({
-  id: row.id,
-  name: row.name,
-  role: row.role,
-  phone: row.phone,
-  email: row.email,
-});
-
 const toDto = (
   row: CustomerRow,
-  contacts: CustomerContactRow[],
+  contacts: ContactDto[],
   fiscal: CustomerFiscalRow | null,
 ): CustomerDto => ({
   id: row.id,
@@ -71,7 +58,7 @@ const toDto = (
   nextFollowUpAt: row.nextFollowUpAt ? row.nextFollowUpAt.toISOString() : null,
   tags: row.tags,
   fiscal: fiscal ? mapFiscal(fiscal) : null,
-  contacts: contacts.map(mapContact),
+  contacts,
   createdAt: row.createdAt.toISOString(),
   updatedAt: row.updatedAt.toISOString(),
   deletedAt: row.deletedAt ? row.deletedAt.toISOString() : null,
@@ -139,7 +126,7 @@ export const getCustomerById = async (db: Db, id: string): Promise<CustomerDto |
   const row = await findCustomerById(db, id);
   if (!row) return null;
   const [contacts, fiscalRows] = await Promise.all([
-    listContactsByCustomerIds(db, [id]),
+    listContacts(db, id),
     findFiscalByCustomerIds(db, [id]),
   ]);
   return toDto(row, contacts, fiscalRows[0] ?? null);
@@ -154,7 +141,7 @@ export const createCustomer = async (
   const id = await db.transaction(async (tx) => {
     const base = toBaseFields(input) as NewCustomer; // name is required by the schema
     const row = await insertCustomer(tx, base);
-    if (input.contacts !== undefined) await replaceContacts(tx, row.id, input.contacts);
+    if (input.contacts !== undefined) await replaceContactsForCustomer(tx, row.id, input.contacts);
     if (input.fiscal) await upsertFiscal(tx, { customerId: row.id, ...input.fiscal });
     return row.id;
   });
@@ -177,7 +164,7 @@ export const editCustomer = async (
         : await findCustomerById(tx, id);
     if (!row) return false;
 
-    if (input.contacts !== undefined) await replaceContacts(tx, id, input.contacts);
+    if (input.contacts !== undefined) await replaceContactsForCustomer(tx, id, input.contacts);
     if (input.fiscal !== undefined) {
       if (input.fiscal === null) await deleteFiscal(tx, id);
       else await upsertFiscal(tx, { customerId: id, ...input.fiscal });

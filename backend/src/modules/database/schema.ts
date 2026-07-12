@@ -7,14 +7,14 @@
 import { relations } from 'drizzle-orm';
 import { users } from '../users/models/users.model';
 import { customers } from '../customers/models/customers.model';
-import { customerContacts } from '../customers/models/customer-contacts.model';
+import { contacts } from '../contacts/models/contact.model';
 import { customerFiscal } from '../customers/models/customer-fiscal.model';
 import { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 import { reportEmails } from '../reports/models/report-emails.model';
 
 export { users } from '../users/models/users.model';
 export { customers } from '../customers/models/customers.model';
-export { customerContacts } from '../customers/models/customer-contacts.model';
+export { contacts } from '../contacts/models/contact.model';
 export { customerFiscal } from '../customers/models/customer-fiscal.model';
 export { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 export { reportEmails } from '../reports/models/report-emails.model';
@@ -29,7 +29,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 
 export const customersRelations = relations(customers, ({ one, many }) => ({
   reports: many(reports),
-  contacts: many(customerContacts),
+  contacts: many(contacts),
   fiscal: one(customerFiscal),
   deletedByUser: one(users, {
     fields: [customers.deletedBy],
@@ -37,9 +37,9 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
   }),
 }));
 
-export const customerContactsRelations = relations(customerContacts, ({ one }) => ({
+export const contactsRelations = relations(contacts, ({ one }) => ({
   customer: one(customers, {
-    fields: [customerContacts.customerId],
+    fields: [contacts.customerId],
     references: [customers.id],
   }),
 }));

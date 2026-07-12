@@ -1,5 +1,4 @@
 import type { customers } from '../models/customers.model';
-import type { customerContacts } from '../models/customer-contacts.model';
 import type { customerFiscal } from '../models/customer-fiscal.model';
 
 export type CustomerRow = typeof customers.$inferSelect;
@@ -24,9 +23,6 @@ export type UpdateCustomerFields = Partial<
     | 'tags'
   >
 >;
-
-export type CustomerContactRow = typeof customerContacts.$inferSelect;
-export type NewCustomerContact = typeof customerContacts.$inferInsert;
 
 export type CustomerFiscalRow = typeof customerFiscal.$inferSelect;
 export type NewCustomerFiscal = typeof customerFiscal.$inferInsert;

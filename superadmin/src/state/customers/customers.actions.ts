@@ -36,10 +36,10 @@ export class DeleteCustomer {
   ) {}
 }
 
-export class SaveCustomerContacts {
-  static readonly type = '[Customers] Save Contacts';
+export class AddCustomerContact {
+  static readonly type = '[Customers] Add Contact';
   constructor(
-    public id: string,
-    public contacts: CustomerContact[],
+    public customerId: string,
+    public contact: CustomerContact,
   ) {}
 }

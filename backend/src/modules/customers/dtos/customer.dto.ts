@@ -1,17 +1,11 @@
+import type { ContactDto } from '../../contacts/dtos/contact.dto';
 import type { CustomerSource, CustomerStatus } from '../enums/customers.enum';
 
 // Assembled response shape (plan 07 §1). The service composes this from the
-// base customer row + its contacts + its 1:1 fiscal row. `fiscal` is null when
-// the client has no fiscal data; referral links and the 360 summary figures
-// (lastServiceDate/totalJobs/totalBilled) are deferred (06/09 + a later pass).
-
-export interface CustomerContactDto {
-  id: string;
-  name: string;
-  role: string | null;
-  phone: string | null;
-  email: string | null;
-}
+// base customer row + its contacts (owned by the contacts module) + its 1:1
+// fiscal row. `fiscal` is null when the client has no fiscal data; referral
+// links and the 360 summary figures (lastServiceDate/totalJobs/totalBilled)
+// are deferred (06/09 + a later pass).
 
 export interface CustomerFiscalDto {
   rfc: string;
@@ -40,7 +34,7 @@ export interface CustomerDto {
   nextFollowUpAt: string | null;
   tags: string[];
   fiscal: CustomerFiscalDto | null;
-  contacts: CustomerContactDto[];
+  contacts: ContactDto[];
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;

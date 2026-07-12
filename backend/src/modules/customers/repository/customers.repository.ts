@@ -1,15 +1,12 @@
 import { and, arrayOverlaps, count, desc, eq, ilike, inArray, isNull, or, type SQL } from 'drizzle-orm';
 import type { DbClient } from '../../database/client';
 import { customers } from '../models/customers.model';
-import { customerContacts } from '../models/customer-contacts.model';
 import { customerFiscal } from '../models/customer-fiscal.model';
 import type {
-  CustomerContactRow,
   CustomerFiscalRow,
   CustomerRow,
   ListCustomersFilters,
   NewCustomer,
-  NewCustomerContact,
   NewCustomerFiscal,
   UpdateCustomerFields,
 } from '../types/customers.types';
@@ -95,27 +92,6 @@ export const softDeleteCustomer = async (
     .where(and(eq(customers.id, id), isNull(customers.deletedAt)))
     .returning({ id: customers.id });
   return row ?? null;
-};
-
-// ---- contacts ----
-
-export const listContactsByCustomerIds = async (
-  db: DbClient,
-  ids: string[],
-): Promise<CustomerContactRow[]> => {
-  if (ids.length === 0) return [];
-  return db.select().from(customerContacts).where(inArray(customerContacts.customerId, ids));
-};
-
-export const replaceContacts = async (
-  db: DbClient,
-  customerId: string,
-  rows: Omit<NewCustomerContact, 'customerId'>[],
-): Promise<void> => {
-  await db.delete(customerContacts).where(eq(customerContacts.customerId, customerId));
-  if (rows.length > 0) {
-    await db.insert(customerContacts).values(rows.map((r) => ({ ...r, customerId })));
-  }
 };
 
 // ---- fiscal ----

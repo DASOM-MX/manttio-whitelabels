@@ -16,6 +16,7 @@ import {
   getCustomers,
   removeCustomer,
 } from '../services/customers.service';
+import { listContacts } from '../../contacts/services/contacts.service';
 
 export const customers = new Hono<AppBindings>();
 
@@ -35,6 +36,13 @@ customers.get('/:id', async (c) => {
   const row = await getCustomerById(db, c.req.param('id'));
   if (!row) return c.json({ error: 'not_found' }, 404);
   return c.json(row);
+});
+
+// A client's contacts collection. The contact entity itself lives at /contacts;
+// this parent-scoped list delegates to the contacts service.
+customers.get('/:id/contacts', async (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  return c.json({ items: await listContacts(db, c.req.param('id')) });
 });
 
 // Write endpoints are owner/admin.

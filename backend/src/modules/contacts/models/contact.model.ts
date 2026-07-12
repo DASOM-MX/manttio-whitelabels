@@ -1,11 +1,12 @@
 import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
-import { customers } from './customers.model';
+import { customers } from '../../customers/models/customers.model';
 
-// Additional people on an account (B2B: facility mgr, AP, owner). The primary
-// contact stays denormalized on `customers.contactName`; these are the extras
-// (plan 07 §1). Owned by the customer — replaced wholesale on update, cascade
-// on hard delete (customer delete is soft, so cascade only fires on cleanup).
-export const customerContacts = pgTable(
+// Additional people on a client account (B2B: facility mgr, AP, owner). The
+// primary contact stays denormalized on `customers.contactName`; these are the
+// extras (plan 07 §1). Own module so contact responsibilities (validation,
+// persistence, endpoints) live apart from the customers domain. Cascade on hard
+// delete only (customer delete is soft, so cascade fires just on cleanup).
+export const contacts = pgTable(
   'customer_contacts',
   {
     id: uuid('id').defaultRandom().primaryKey(),

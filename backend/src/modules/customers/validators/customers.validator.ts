@@ -1,17 +1,10 @@
 import { z } from 'zod';
+import { nestedContactSchema } from '../../contacts/validators/contacts.validator';
 import { MEXICAN_TIMEZONE_VALUES } from '../constants/timezones';
 import { CustomerSource, CustomerStatus } from '../enums/customers.enum';
 
 // RFC: 3 (moral) or 4 (física) letters + 6 date digits + 3 homoclave chars.
 const RFC_PATTERN = /^[A-ZÑ&]{3,4}\d{6}[A-Z\d]{3}$/;
-
-const contactSchema = z.object({
-  id: z.string().uuid().optional(),
-  name: z.string().min(1),
-  role: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email().optional(),
-});
 
 // Fiscal is optional *as a whole*; once present, every field but billingEmail
 // is required (all-or-nothing — the object shape enforces it, no partials).
@@ -59,7 +52,7 @@ const customerFields = {
   blacklistReason: z.string().optional(),
   nextFollowUpAt: z.string().datetime().optional(),
   tags: z.array(z.string().min(1)).optional(),
-  contacts: z.array(contactSchema).optional(),
+  contacts: z.array(nestedContactSchema).optional(),
   fiscal: fiscalSchema.nullable().optional(),
 };
 
@@ -99,5 +92,4 @@ export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
 export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;
 export type DeleteCustomerInput = z.infer<typeof deleteCustomerSchema>;
 export type ListCustomersQuery = z.infer<typeof listCustomersQuerySchema>;
-export type CustomerContactInput = z.infer<typeof contactSchema>;
 export type CustomerFiscalInput = z.infer<typeof fiscalSchema>;

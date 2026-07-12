@@ -5,6 +5,7 @@ import type { AppBindings } from './env';
 import { auth } from './modules/auth/controllers/auth.controller';
 import { users } from './modules/users/controllers/users.controller';
 import { customers } from './modules/customers/controllers/customers.controller';
+import { contacts } from './modules/contacts/controllers/contacts.controller';
 import { reports } from './modules/reports/controllers/reports.controller';
 import { reportTemplates } from './modules/report-templates/controllers/report-templates.controller';
 import { upload } from './modules/upload/controllers/upload.controller';
@@ -28,6 +29,7 @@ app.route('/public/cms', publicCms);
 // report-view path (also skipped inside jwtMiddleware itself for defense in depth).
 app.use('/users/*', jwtMiddleware);
 app.use('/customers/*', jwtMiddleware);
+app.use('/contacts/*', jwtMiddleware);
 app.use('/reports/*', jwtMiddleware);
 app.use('/report-templates/*', jwtMiddleware);
 app.use('/upload/*', jwtMiddleware);
@@ -35,6 +37,9 @@ app.use('/cms/*', jwtMiddleware);
 
 app.route('/users', users);
 app.route('/customers', customers);
+// Contacts are a first-class top-level resource (own module); list/create scope
+// to a client via ?customerId / body, item ops address the contact's own uuid.
+app.route('/contacts', contacts);
 app.route('/reports', reports);
 app.route('/report-templates', reportTemplates);
 app.route('/upload', upload);

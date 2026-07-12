@@ -3,11 +3,11 @@ import { State, Action, Selector, StateContext } from '@ngxs/store';
 import { catchError, tap } from 'rxjs';
 import { CustomersService } from '../../app/services/http/customers.service';
 import {
+  AddCustomerContact,
   CreateCustomer,
   DeleteCustomer,
   LoadCustomer,
   LoadCustomers,
-  SaveCustomerContacts,
   UpdateCustomer,
 } from './customers.actions';
 import type { Customer, CustomerListQuery } from '../../app/data/dtos/customer';
@@ -81,18 +81,18 @@ export class CustomersState {
     );
   }
 
-  @Action(SaveCustomerContacts)
-  saveCustomerContacts(
+  @Action(AddCustomerContact)
+  addCustomerContact(
     ctx: StateContext<CustomersStateModel>,
-    { id, contacts }: SaveCustomerContacts,
+    { customerId, contact }: AddCustomerContact,
   ) {
-    return this.api.saveContacts(id, contacts).pipe(
-      tap((c) =>
-        ctx.patchState({
-          selected: c,
-          items: ctx.getState().items.map((x) => (x.id === id ? c : x)),
-        }),
-      ),
+    return this.api.addContact(customerId, contact).pipe(
+      tap((created) => {
+        const cur = ctx.getState().selected;
+        if (cur && cur.id === customerId) {
+          ctx.patchState({ selected: { ...cur, contacts: [...cur.contacts, created] } });
+        }
+      }),
     );
   }
 
