@@ -1,4 +1,5 @@
 import type {
+  CustomerContact,
   CustomerListQuery,
   DeleteCustomerRequest,
   SaveCustomerRequest,
@@ -32,5 +33,13 @@ export class DeleteCustomer {
   constructor(
     public id: string,
     public payload: DeleteCustomerRequest,
+  ) {}
+}
+
+export class SaveCustomerContacts {
+  static readonly type = '[Customers] Save Contacts';
+  constructor(
+    public id: string,
+    public contacts: CustomerContact[],
   ) {}
 }

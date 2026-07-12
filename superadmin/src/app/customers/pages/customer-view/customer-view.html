@@ -10,7 +10,7 @@
 </div>
 
 @if (customer(); as c) {
-  <!-- 360 header -->
+  <!-- 360 header: identity, status, tags, quick contact + edit. -->
   <section class="card-section mt-5" aria-labelledby="cust-360-title">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div class="min-w-0">
@@ -51,6 +51,19 @@
             class="inline-flex size-10 items-center justify-center rounded-lg border border-granite-200 text-granite-700 transition-colors hover:bg-granite-100 dark:border-granite-800 dark:text-granite-300 dark:hover:bg-granite-800"
             aria-label="Escribir por WhatsApp"
           >
+            <svg viewBox="0 0 24 24" fill="currentColor" class="size-4" aria-hidden="true">
+              <path
+                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"
+              />
+            </svg>
+          </a>
+        }
+        @if (smsHref(); as href) {
+          <a
+            [href]="href"
+            class="inline-flex size-10 items-center justify-center rounded-lg border border-granite-200 text-granite-700 transition-colors hover:bg-granite-100 dark:border-granite-800 dark:text-granite-300 dark:hover:bg-granite-800"
+            aria-label="Enviar mensaje de texto"
+          >
             <svg lucideMessageCircle class="size-4" aria-hidden="true"></svg>
           </a>
         }
@@ -69,202 +82,211 @@
         </a>
       </div>
     </div>
-
-    <!-- Summary strip: figures compose from 06/09 once they land ("—" now). -->
-    <dl
-      class="mt-4 grid grid-cols-2 gap-3 border-t border-granite-200 pt-4 sm:grid-cols-4 dark:border-granite-800"
-    >
-      <div>
-        <dt class="micro-label">Último servicio</dt>
-        <dd
-          class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-950 dark:text-granite-50"
-        >
-          {{ c.lastServiceDate || '—' }}
-        </dd>
-      </div>
-      <div>
-        <dt class="micro-label">Trabajos totales</dt>
-        <dd
-          class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-950 dark:text-granite-50"
-        >
-          {{ c.totalJobs ?? '—' }}
-        </dd>
-      </div>
-      <div>
-        <dt class="micro-label">Facturado</dt>
-        <dd
-          class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-950 dark:text-granite-50"
-        >
-          {{ c.totalBilled ?? '—' }}
-        </dd>
-      </div>
-      <div>
-        <dt class="micro-label">Seguimiento</dt>
-        <dd
-          class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-950 dark:text-granite-50"
-        >
-          {{ c.nextFollowUpAt || '—' }}
-        </dd>
-      </div>
-    </dl>
   </section>
 
-  <div class="mt-4 grid gap-4 xl:grid-cols-2">
-    <!-- General -->
-    <section class="card-section" aria-labelledby="cust-general-view">
-      <h2 id="cust-general-view" class="micro-label">General</h2>
-      <dl class="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
-        <div>
-          <dt class="micro-label">Contacto principal</dt>
-          <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
-            {{ c.contactName || '—' }}
-          </dd>
-        </div>
-        <div>
-          <dt class="micro-label">Teléfono</dt>
-          <dd
-            class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
-          >
-            {{ c.phone || '—' }}
-          </dd>
-        </div>
-        <div>
-          <dt class="micro-label">Correo</dt>
-          <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
-            {{ c.email || '—' }}
-          </dd>
-        </div>
-        <div>
-          <dt class="micro-label">Dirección</dt>
-          <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
-            {{ c.address || '—' }}
-          </dd>
-        </div>
-        <div>
-          <dt class="micro-label">Origen</dt>
-          <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
-            {{ c.source | customerSourceLabel }}
-          </dd>
-        </div>
-        <div>
-          <dt class="micro-label">Alta</dt>
-          <dd
-            class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
-          >
-            {{ c.createdAt | slice: 0 : 10 }}
-          </dd>
-        </div>
-      </dl>
-
-      <!-- Referral links (07 CP-3) -->
-      @if (c.referredByCustomerName && c.referredByCustomerId) {
-        <p class="mt-4 text-sm text-granite-700 dark:text-granite-300">
-          Referido por
-          <a
-            [routerLink]="['/customers', c.referredByCustomerId]"
-            class="font-semibold text-sky-700 hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
-            >{{ c.referredByCustomerName }}</a
-          >
-        </p>
-      }
-      @if (c.referredCount) {
-        <p class="mt-1 text-sm text-granite-700 dark:text-granite-300">
-          Ha referido a
-          <strong class="font-data tabular-nums">{{ c.referredCount }}</strong>
-          {{ c.referredCount === 1 ? 'cliente' : 'clientes' }}.
-        </p>
-      }
-
-      @if (c.contacts.length) {
-        <h3 class="micro-label mt-5">Contactos</h3>
-        <ul class="mt-2 divide-y divide-granite-200 dark:divide-granite-800">
-          @for (contact of c.contacts; track contact.name) {
-            <li class="flex flex-wrap items-center justify-between gap-2 py-2">
-              <div>
-                <p class="text-sm font-medium text-granite-950 dark:text-granite-50">
-                  {{ contact.name }}
-                </p>
-                @if (contact.role) {
-                  <p class="text-xs text-granite-500 dark:text-granite-400">{{ contact.role }}</p>
-                }
-              </div>
-              <div class="text-right">
-                @if (contact.phone) {
-                  <p class="font-data text-sm tabular-nums text-granite-700 dark:text-granite-300">
-                    {{ contact.phone }}
-                  </p>
-                }
-                @if (contact.email) {
-                  <p class="text-sm text-granite-700 dark:text-granite-300">{{ contact.email }}</p>
-                }
-              </div>
-            </li>
-          }
-        </ul>
-      }
-    </section>
-
-    <!-- Fiscal -->
-    <section class="card-section" aria-labelledby="cust-fiscal-view">
-      <h2 id="cust-fiscal-view" class="micro-label">Datos fiscales</h2>
-      @if (c.fiscal; as f) {
-        <dl class="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+  <!-- Detail tabs. General leads (the day-to-day view for our users); fiscal
+       data is a billing-time concern, so it gets its own tab. Framed in a card
+       (theme/tabs.scss flattens the tablist + pads the panel to match). -->
+  <section class="card mt-4">
+    <p-tabs value="general">
+      <p-tablist>
+        <p-tab value="general">General</p-tab>
+        <p-tab value="contactos">Contactos</p-tab>
+        <p-tab value="fiscal">Datos fiscales</p-tab>
+      </p-tablist>
+    <p-tabpanels>
+      <p-tabpanel value="general">
+        <!-- General data first, then the primary-contact card, then metrics. -->
+        <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
           <div>
-            <dt class="micro-label">RFC</dt>
-            <dd
-              class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
-            >
-              {{ f.rfc }}
-            </dd>
-          </div>
-          <div>
-            <dt class="micro-label">Razón social</dt>
+            <dt class="micro-label">Dirección</dt>
             <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
-              {{ f.legalName }}
+              {{ c.address || '—' }}
             </dd>
           </div>
           <div>
-            <dt class="micro-label">Régimen</dt>
-            <dd
-              class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
-            >
-              {{ f.taxRegimeCode }}
-            </dd>
-          </div>
-          <div>
-            <dt class="micro-label">CP fiscal</dt>
-            <dd
-              class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
-            >
-              {{ f.fiscalZip }}
-            </dd>
-          </div>
-          <div>
-            <dt class="micro-label">Uso CFDI</dt>
-            <dd
-              class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
-            >
-              {{ f.cfdiUseCode }}
-            </dd>
-          </div>
-          <div>
-            <dt class="micro-label">Correo de facturación</dt>
+            <dt class="micro-label">Origen</dt>
             <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
-              {{ f.billingEmail || '—' }}
+              {{ c.source | customerSourceLabel }}
+            </dd>
+          </div>
+          <div>
+            <dt class="micro-label">Alta</dt>
+            <dd
+              class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+            >
+              {{ c.createdAt | slice: 0 : 10 }}
             </dd>
           </div>
         </dl>
-      } @else {
-        <p class="mt-3 text-sm text-granite-500 dark:text-granite-400">
-          Sin datos fiscales. Agrégalos desde Editar cuando el cliente requiera factura.
-        </p>
-      }
-    </section>
-  </div>
+
+        <h3 class="micro-label mt-6">Contacto principal</h3>
+        <div
+          class="mt-2 flex flex-wrap items-start justify-between gap-2 rounded-lg border border-granite-200 bg-granite-50 p-4 dark:border-granite-800 dark:bg-granite-800/40"
+        >
+          <div>
+            <p class="text-sm font-medium text-granite-950 dark:text-granite-50">
+              {{ c.contactName || '—' }}
+            </p>
+            <p class="text-xs text-granite-500 dark:text-granite-400">Contacto principal</p>
+          </div>
+          <div class="text-right">
+            @if (c.phone) {
+              <p class="font-data text-sm tabular-nums text-granite-700 dark:text-granite-300">
+                {{ c.phone }}
+              </p>
+            }
+            @if (c.email) {
+              <p class="text-sm text-granite-700 dark:text-granite-300">{{ c.email }}</p>
+            }
+          </div>
+        </div>
+
+        <!-- Account metrics (figures compose from 06/09 once they land — "—"
+             until then). -->
+        <h3 class="micro-label mt-6">Resumen</h3>
+        <dl
+          class="mt-2 grid grid-cols-2 gap-3 border-t border-granite-200 pt-3 sm:grid-cols-4 dark:border-granite-800"
+        >
+          <div>
+            <dt class="micro-label">Último servicio</dt>
+            <dd
+              class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-950 dark:text-granite-50"
+            >
+              {{ c.lastServiceDate || '—' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="micro-label">Trabajos totales</dt>
+            <dd
+              class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-950 dark:text-granite-50"
+            >
+              {{ c.totalJobs ?? '—' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="micro-label">Facturado</dt>
+            <dd
+              class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-950 dark:text-granite-50"
+            >
+              {{ c.totalBilled ?? '—' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="micro-label">Seguimiento</dt>
+            <dd
+              class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-950 dark:text-granite-50"
+            >
+              {{ c.nextFollowUpAt || '—' }}
+            </dd>
+          </div>
+        </dl>
+      </p-tabpanel>
+
+      <p-tabpanel value="contactos">
+        <!-- The client's full contact list; the primary contact lives in
+             General. Add inline so users don't have to open the edit form. -->
+        <div class="mb-3 flex justify-end">
+          <button type="button" class="btn-secondary" (click)="openAddContact()">
+            <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+            Agregar contacto
+          </button>
+        </div>
+        @if (c.contacts.length) {
+          <ul class="divide-y divide-granite-200 dark:divide-granite-800">
+            @for (contact of c.contacts; track contact.name) {
+              <li class="flex flex-wrap items-center justify-between gap-2 py-2">
+                <div>
+                  <p class="text-sm font-medium text-granite-950 dark:text-granite-50">
+                    {{ contact.name }}
+                  </p>
+                  @if (contact.role) {
+                    <p class="text-xs text-granite-500 dark:text-granite-400">{{ contact.role }}</p>
+                  }
+                </div>
+                <div class="text-right">
+                  @if (contact.phone) {
+                    <p class="font-data text-sm tabular-nums text-granite-700 dark:text-granite-300">
+                      {{ contact.phone }}
+                    </p>
+                  }
+                  @if (contact.email) {
+                    <p class="text-sm text-granite-700 dark:text-granite-300">{{ contact.email }}</p>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="text-sm text-granite-500 dark:text-granite-400">
+            Sin contactos adicionales.
+          </p>
+        }
+      </p-tabpanel>
+
+      <p-tabpanel value="fiscal">
+        @if (c.fiscal; as f) {
+          <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+            <div>
+              <dt class="micro-label">RFC</dt>
+              <dd
+                class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+              >
+                {{ f.rfc }}
+              </dd>
+            </div>
+            <div>
+              <dt class="micro-label">Razón social</dt>
+              <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+                {{ f.legalName }}
+              </dd>
+            </div>
+            <div>
+              <dt class="micro-label">Régimen</dt>
+              <dd
+                class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+              >
+                {{ f.taxRegimeCode }}
+              </dd>
+            </div>
+            <div>
+              <dt class="micro-label">CP fiscal</dt>
+              <dd
+                class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+              >
+                {{ f.fiscalZip }}
+              </dd>
+            </div>
+            <div>
+              <dt class="micro-label">Uso CFDI</dt>
+              <dd
+                class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+              >
+                {{ f.cfdiUseCode }}
+              </dd>
+            </div>
+            <div>
+              <dt class="micro-label">Correo de facturación</dt>
+              <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+                {{ f.billingEmail || '—' }}
+              </dd>
+            </div>
+          </dl>
+        } @else {
+          <p class="text-sm text-granite-500 dark:text-granite-400">
+            Sin datos fiscales. Agrégalos desde Editar cuando el cliente requiera factura.
+          </p>
+        }
+      </p-tabpanel>
+    </p-tabpanels>
+    </p-tabs>
+  </section>
 
   <!-- Slot reserved for 08 (CRM): status card + activity timeline mount here.
        Do not build here — module 08 owns that UI. -->
   <!-- Slot reserved for 09 (Bills): client billing card mounts here. -->
+
+  <app-add-contact-dialog #addContactDialog />
 } @else {
   <div class="mt-10 flex justify-center">
     <div

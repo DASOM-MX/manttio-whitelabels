@@ -1,12 +1,14 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, viewChild } from '@angular/core';
 import { SlicePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import {
   LucideArrowLeft,
   LucideMail,
   LucidePencil,
   LucidePhone,
+  LucidePlus,
   LucideMessageCircle,
 } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
@@ -17,6 +19,7 @@ import {
   CustomerStatusLabelPipe,
   CustomerStatusSeverityPipe,
 } from '../../../pipes/customer-status.pipe';
+import { AddContactDialog } from '../../components/add-contact-dialog/add-contact-dialog';
 
 /** Client detail (07 §3): 360 header (status, tags, quick contact, summary
  *  strip) + general/fiscal cards + reserved CRM (08) and Bills (09) slots. */
@@ -25,6 +28,7 @@ import {
   imports: [
     SlicePipe,
     RouterLink,
+    TabsModule,
     TagModule,
     CustomerStatusLabelPipe,
     CustomerStatusSeverityPipe,
@@ -32,8 +36,10 @@ import {
     LucideArrowLeft,
     LucidePencil,
     LucidePhone,
+    LucidePlus,
     LucideMail,
     LucideMessageCircle,
+    AddContactDialog,
   ],
   templateUrl: './customer-view.html',
 })
@@ -42,6 +48,12 @@ export class CustomerView {
   private route = inject(ActivatedRoute);
 
   protected customer = select(CustomersState.selected);
+  protected addContactDialog = viewChild<AddContactDialog>('addContactDialog');
+
+  protected openAddContact(): void {
+    const c = this.customer();
+    if (c) this.addContactDialog()?.open(c);
+  }
 
   /** Quick-action hrefs (07 §2.1) — precomputed, no template calls. */
   protected phoneHref = computed(() => {
@@ -51,6 +63,11 @@ export class CustomerView {
   protected whatsappHref = computed(() => {
     const phone = this.customer()?.phone;
     return phone ? `https://wa.me/${phone.replace(/\D/g, '')}` : null;
+  });
+  /** SMS deep-link (the bubble action) — separate channel from WhatsApp. */
+  protected smsHref = computed(() => {
+    const phone = this.customer()?.phone;
+    return phone ? `sms:${phone.replace(/\s+/g, '')}` : null;
   });
   protected emailHref = computed(() => {
     const email = this.customer()?.email;

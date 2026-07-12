@@ -4,6 +4,7 @@ import { RemoteService } from './remote.service';
 import type { PagedResponse } from '../../data/dtos/paged-response';
 import type {
   Customer,
+  CustomerContact,
   CustomerListQuery,
   DeleteCustomerRequest,
   SaveCustomerRequest,
@@ -38,5 +39,12 @@ export class CustomersService {
 
   remove(id: string, body: DeleteCustomerRequest): Observable<void> {
     return this.remote.delete<void>(`/customers/${id}`, body);
+  }
+
+  /** Persist the full contact list (backend replaces contacts wholesale on
+   *  PATCH). Used by the in-view "add contact" flow so users don't have to open
+   *  the edit form. */
+  saveContacts(id: string, contacts: CustomerContact[]): Observable<Customer> {
+    return this.remote.patch<Customer>(`/customers/${id}`, { contacts });
   }
 }

@@ -1,0 +1,65 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="max-w-11/12"
+  [style]="{ width: '28rem' }"
+  header="Agregar contacto"
+>
+  <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+    <p class="text-sm text-granite-700 dark:text-granite-300">
+      Nuevo contacto para
+      <strong class="text-granite-950 dark:text-granite-50">{{ target()?.name }}</strong
+      >.
+    </p>
+
+    <div class="field-group">
+      <label class="field-label" for="add-contact-name"
+        >Nombre<span aria-hidden="true"> *</span></label
+      >
+      <input id="add-contact-name" pInputText formControlName="name" autocomplete="off" />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="add-contact-role">Puesto</label>
+      <input id="add-contact-role" pInputText formControlName="role" autocomplete="off" />
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="field-group">
+        <label class="field-label" for="add-contact-phone">Teléfono</label>
+        <input id="add-contact-phone" pInputText formControlName="phone" autocomplete="off" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="add-contact-email">Correo</label>
+        <input
+          id="add-contact-email"
+          pInputText
+          type="email"
+          formControlName="email"
+          autocomplete="off"
+        />
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <button type="button" class="btn-neutral" (click)="close()" [disabled]="submitting()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn-primary" [disabled]="!canSubmit()">
+        @if (submitting()) {
+          <span
+            class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+            aria-hidden="true"
+          ></span>
+          Agregando…
+        } @else {
+          Agregar contacto
+        }
+      </button>
+    </div>
+  </form>
+</p-dialog>

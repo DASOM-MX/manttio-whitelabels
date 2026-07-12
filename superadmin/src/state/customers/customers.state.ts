@@ -7,6 +7,7 @@ import {
   DeleteCustomer,
   LoadCustomer,
   LoadCustomers,
+  SaveCustomerContacts,
   UpdateCustomer,
 } from './customers.actions';
 import type { Customer, CustomerListQuery } from '../../app/data/dtos/customer';
@@ -71,6 +72,21 @@ export class CustomersState {
   @Action(UpdateCustomer)
   updateCustomer(ctx: StateContext<CustomersStateModel>, { id, payload }: UpdateCustomer) {
     return this.api.update(id, payload).pipe(
+      tap((c) =>
+        ctx.patchState({
+          selected: c,
+          items: ctx.getState().items.map((x) => (x.id === id ? c : x)),
+        }),
+      ),
+    );
+  }
+
+  @Action(SaveCustomerContacts)
+  saveCustomerContacts(
+    ctx: StateContext<CustomersStateModel>,
+    { id, contacts }: SaveCustomerContacts,
+  ) {
+    return this.api.saveContacts(id, contacts).pipe(
       tap((c) =>
         ctx.patchState({
           selected: c,
