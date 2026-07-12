@@ -7,11 +7,15 @@
 import { relations } from 'drizzle-orm';
 import { users } from '../users/models/users.model';
 import { customers } from '../customers/models/customers.model';
+import { customerContacts } from '../customers/models/customer-contacts.model';
+import { customerFiscal } from '../customers/models/customer-fiscal.model';
 import { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 import { reportEmails } from '../reports/models/report-emails.model';
 
 export { users } from '../users/models/users.model';
 export { customers } from '../customers/models/customers.model';
+export { customerContacts } from '../customers/models/customer-contacts.model';
+export { customerFiscal } from '../customers/models/customer-fiscal.model';
 export { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 export { reportEmails } from '../reports/models/report-emails.model';
 export { cmsDocuments, cmsClients } from '../cms/models/cms.model';
@@ -23,8 +27,28 @@ export const usersRelations = relations(users, ({ many }) => ({
   emailsSent: many(reportEmails),
 }));
 
-export const customersRelations = relations(customers, ({ many }) => ({
+export const customersRelations = relations(customers, ({ one, many }) => ({
   reports: many(reports),
+  contacts: many(customerContacts),
+  fiscal: one(customerFiscal),
+  deletedByUser: one(users, {
+    fields: [customers.deletedBy],
+    references: [users.id],
+  }),
+}));
+
+export const customerContactsRelations = relations(customerContacts, ({ one }) => ({
+  customer: one(customers, {
+    fields: [customerContacts.customerId],
+    references: [customers.id],
+  }),
+}));
+
+export const customerFiscalRelations = relations(customerFiscal, ({ one }) => ({
+  customer: one(customers, {
+    fields: [customerFiscal.customerId],
+    references: [customers.id],
+  }),
 }));
 
 export const reportsRelations = relations(reports, ({ one, many }) => ({

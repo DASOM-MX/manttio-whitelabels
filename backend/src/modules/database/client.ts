@@ -10,3 +10,7 @@ export const createDb = (databaseUrl: string) => {
 };
 
 export type Db = ReturnType<typeof createDb>;
+
+// A db handle OR an open transaction — repository functions typed with this can
+// run standalone or be composed inside `db.transaction(async (tx) => ...)`.
+export type DbClient = Db | Parameters<Parameters<Db['transaction']>[0]>[0];

@@ -7,9 +7,11 @@ import {
   uniqueName,
   uniqueRecipientEmail,
 } from './helpers/fixtures';
+import { eq } from 'drizzle-orm';
 import { createDb } from '../src/modules/database/client';
 import { ReportStatus } from '../src/modules/reports/enums/reports.enum';
-import { reportCounters, reports } from '../src/modules/database/schema';
+import { CustomerSource, CustomerStatus } from '../src/modules/customers/enums/customers.enum';
+import { customers as customersTable, reportCounters, reports } from '../src/modules/database/schema';
 
 type WorkerEnv = { DATABASE_URL: string };
 
@@ -245,7 +247,7 @@ describe('PATCH /customers/:id', () => {
 });
 
 describe('DELETE /customers/:id', () => {
-  test('admin can hard-delete a customer with no reports', async () => {
+  test('admin can soft-delete a customer with no reports', async () => {
     const { token } = await seedAdminAndLogin();
     const customer = await seedCustomer();
     const res = await request(`/customers/${customer.id}`, {
@@ -255,17 +257,40 @@ describe('DELETE /customers/:id', () => {
     expect(res.status).toBe(200);
     expect(await json(res)).toEqual({ id: customer.id, deleted: true });
 
+    // Soft delete: the row is tombstoned, so it 404s on fetch and drops from the list.
     const after = await request(`/customers/${customer.id}`, { headers: authHeader(token) });
     expect(after.status).toBe(404);
   });
 
-  test('cannot delete a customer that has reports → 409 in_use', async () => {
+  test('admin can record an audit comment on delete', async () => {
+    const { admin, token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const res = await request(`/customers/${customer.id}`, {
+      method: 'DELETE',
+      headers: headersWith(token),
+      body: JSON.stringify({ deleteComment: 'duplicate account' }),
+    });
+    expect(res.status).toBe(200);
+
+    // The comment + acting user land on the tombstoned row.
+    const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
+    const [row] = await db
+      .select()
+      .from(customersTable)
+      .where(eq(customersTable.id, customer.id))
+      .limit(1);
+    expect(row?.deleteComment).toBe('duplicate account');
+    expect(row?.deletedBy).toBe(admin.id);
+    expect(row?.deletedAt).not.toBeNull();
+  });
+
+  test('soft-deleting a customer that has reports succeeds (FK untouched)', async () => {
     const { admin, token } = await seedAdminAndLogin();
     const customer = await seedCustomer();
 
-    // Plant a report referencing this customer so the FK restrict trips on DELETE.
-    // We use a synthetic folio in the year-2099 partition so it cannot collide with
-    // anything real and is easy to truncate later.
+    // Plant a report referencing this customer. A hard delete would trip the
+    // reports → customers FK restrict; a soft delete is just an UPDATE, so it
+    // succeeds and the report still resolves to the (tombstoned) row.
     const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
     const day = '2099-12-31';
     await db
@@ -286,9 +311,8 @@ describe('DELETE /customers/:id', () => {
       method: 'DELETE',
       headers: authHeader(token),
     });
-    expect(res.status).toBe(409);
-    const body = await json<{ error: string; message?: string }>(res);
-    expect(body.error).toBe('in_use');
+    expect(res.status).toBe(200);
+    expect(await json(res)).toEqual({ id: customer.id, deleted: true });
   });
 
   test('deleting an unknown id → 404', async () => {
@@ -308,5 +332,169 @@ describe('DELETE /customers/:id', () => {
       headers: authHeader(token),
     });
     expect(res.status).toBe(403);
+  });
+});
+
+type FullCustomer = {
+  id: string;
+  status: string;
+  source: string;
+  tags: string[];
+  contacts: { id: string; name: string; role: string | null }[];
+  fiscal: { rfc: string; legalName: string; billingEmail: string | null } | null;
+};
+
+const validFiscal = {
+  rfc: 'XAXX010101000',
+  legalName: 'ACME SA DE CV',
+  taxRegimeCode: '601',
+  fiscalZip: '64000',
+  cfdiUseCode: 'G03',
+  billingEmail: 'billing@example.com',
+};
+
+describe('customers — CRM fields, tags, contacts, fiscal', () => {
+  test('create defaults status=active, source=other, tags=[]', async () => {
+    const { token } = await seedAdminAndLogin();
+    const res = await request('/customers', {
+      method: 'POST',
+      headers: headersWith(token),
+      body: JSON.stringify({ name: uniqueName('defaults') }),
+    });
+    expect(res.status).toBe(201);
+    const { customer } = await json<{ customer: FullCustomer }>(res);
+    expect(customer.status).toBe(CustomerStatus.Active);
+    expect(customer.source).toBe(CustomerSource.Other);
+    expect(customer.tags).toEqual([]);
+    expect(customer.contacts).toEqual([]);
+    expect(customer.fiscal).toBeNull();
+  });
+
+  test('create with CRM fields, tags, contacts and fiscal (nested)', async () => {
+    const { token } = await seedAdminAndLogin();
+    const res = await request('/customers', {
+      method: 'POST',
+      headers: headersWith(token),
+      body: JSON.stringify({
+        name: uniqueName('full-crm'),
+        status: CustomerStatus.Lead,
+        source: CustomerSource.Referral,
+        tags: ['vip', 'monterrey'],
+        contacts: [
+          { name: 'Ana Torres', role: 'Facility Manager', phone: '81-1111-2222' },
+          { name: 'Beto Ruiz', email: 'beto@example.com' },
+        ],
+        fiscal: validFiscal,
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { customer } = await json<{ customer: FullCustomer }>(res);
+    expect(customer.status).toBe(CustomerStatus.Lead);
+    expect(customer.source).toBe(CustomerSource.Referral);
+    expect(customer.tags).toEqual(['vip', 'monterrey']);
+    expect(customer.contacts).toHaveLength(2);
+    expect(customer.contacts.every((c) => typeof c.id === 'string')).toBe(true);
+    expect(customer.fiscal?.rfc).toBe(validFiscal.rfc);
+  });
+
+  test('rfc is uppercased and bad rfc → 400', async () => {
+    const { token } = await seedAdminAndLogin();
+    const ok = await request('/customers', {
+      method: 'POST',
+      headers: headersWith(token),
+      body: JSON.stringify({
+        name: uniqueName('rfc-lower'),
+        fiscal: { ...validFiscal, rfc: 'xaxx010101000' },
+      }),
+    });
+    expect(ok.status).toBe(201);
+    const { customer } = await json<{ customer: FullCustomer }>(ok);
+    expect(customer.fiscal?.rfc).toBe('XAXX010101000');
+
+    const bad = await request('/customers', {
+      method: 'POST',
+      headers: headersWith(token),
+      body: JSON.stringify({
+        name: uniqueName('rfc-bad'),
+        fiscal: { ...validFiscal, rfc: 'NOPE' },
+      }),
+    });
+    expect(bad.status).toBe(400);
+  });
+
+  test('partial fiscal (missing legalName) → 400 (all-or-nothing)', async () => {
+    const { token } = await seedAdminAndLogin();
+    const res = await request('/customers', {
+      method: 'POST',
+      headers: headersWith(token),
+      body: JSON.stringify({
+        name: uniqueName('fiscal-partial'),
+        fiscal: { rfc: 'XAXX010101000', taxRegimeCode: '601', fiscalZip: '64000', cfdiUseCode: 'G03' },
+      }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  test('blacklisted status without reason → 400', async () => {
+    const { token } = await seedAdminAndLogin();
+    const res = await request('/customers', {
+      method: 'POST',
+      headers: headersWith(token),
+      body: JSON.stringify({ name: uniqueName('bl'), status: CustomerStatus.Blacklisted }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  test('patch replaces contacts wholesale and clears fiscal with null', async () => {
+    const { token } = await seedAdminAndLogin();
+    const created = await request('/customers', {
+      method: 'POST',
+      headers: headersWith(token),
+      body: JSON.stringify({
+        name: uniqueName('replace'),
+        contacts: [{ name: 'First Contact' }],
+        fiscal: validFiscal,
+      }),
+    });
+    const { customer } = await json<{ customer: FullCustomer }>(created);
+
+    const patched = await request(`/customers/${customer.id}`, {
+      method: 'PATCH',
+      headers: headersWith(token),
+      body: JSON.stringify({
+        contacts: [{ name: 'Replacement A' }, { name: 'Replacement B' }],
+        fiscal: null,
+      }),
+    });
+    expect(patched.status).toBe(200);
+    const updated = await json<{ customer: FullCustomer }>(patched);
+    expect(updated.customer.contacts.map((c) => c.name)).toEqual(['Replacement A', 'Replacement B']);
+    expect(updated.customer.fiscal).toBeNull();
+  });
+
+  test('list is filterable by status, source and tag; paged with total', async () => {
+    const { token } = await seedAdminAndLogin();
+    const tag = `t-${Math.random().toString(36).slice(2, 8)}`;
+    await request('/customers', {
+      method: 'POST',
+      headers: headersWith(token),
+      body: JSON.stringify({
+        name: uniqueName('lead-fb'),
+        status: CustomerStatus.Lead,
+        source: CustomerSource.Facebook,
+        tags: [tag],
+      }),
+    });
+
+    const byTag = await request(`/customers?tags=${tag}&status=${CustomerStatus.Lead}&limit=10&page=1`, {
+      headers: authHeader(token),
+    });
+    expect(byTag.status).toBe(200);
+    const body = await json<{ customers: FullCustomer[]; total: number; page: number; limit: number }>(byTag);
+    expect(body.page).toBe(1);
+    expect(body.limit).toBe(10);
+    expect(body.total).toBeGreaterThanOrEqual(1);
+    expect(body.customers.every((c) => c.tags.includes(tag))).toBe(true);
+    expect(body.customers.every((c) => c.status === CustomerStatus.Lead)).toBe(true);
   });
 });
