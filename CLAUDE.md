@@ -31,6 +31,8 @@ Keep changes that belong upstream in the `../manttio` checkout; use this repo fo
 
 - **`manttio`** is the repo dir + internal product code-name for the field-service app (backend + frontend).
 - **Peña Nevada Chillers** is the customer-facing brand for the marketing site under `website/`. Never use "manttio" in user-facing copy on the marketing site.
+- **Whitelabel de-branding (fork rule):** this fork must **not hardcode the Peña Nevada Chillers brand** in shipped app code or config — brand name, PWA title/manifest, logo, colors, domains (`penanevadachillers.com`), email `from`/subject, and CDN base all come from **tenant brand config at runtime** (the backend `/brand` endpoint), never a literal. Treat every hardcoded reference as debt to migrate to tenant config. Known references (2026-07-10): `frontend/public/manifest.webmanifest`, `frontend/src/index.html` (`apple-mobile-web-app-title`), `frontend/src/theme/_index.scss` (comment), `backend/src/modules/reports/helpers/report-email.helpers.ts` (email subject), `backend/wrangler.toml` (`BRAND_*`, `RESEND_FROM`, `CDN_BASE_URL`, API/site domains), `website/wrangler.jsonc` (worker name), `website/src/lib/defaults.ts` (fallback copy), `website/tailwind.config.mjs` + `website/.env.example` (comments).
+  - **Two caveats when removing:** (1) the generic HVAC noun **"chillers"** (e.g. `website/src/lib/defaults.ts` marketing copy — "renta y venta de chillers…") is legitimate domain vocabulary, **not** the brand — leave it. (2) `backend/wrangler.toml` `BRAND_*`/domains are the **live current-tenant deployment values** — migrate them into tenant config, don't blind-delete (would break the running deployment).
 
 ### Cross-cutting conventions
 
