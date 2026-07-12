@@ -1,6 +1,6 @@
 # Whitelabel 01 — Backend brand source (PR-A)
 
-> **Status:** planned · **Last updated:** 2026-07-11 · **PR:** PR-A
+> **Status:** planned · **Last updated:** 2026-07-12 · **PR:** PR-A
 > **Part of:** `.claude/plans/field-app-whitelabeling/` (see `00-master` for the canonical
 > Branding rules, shared brand contract, current reality, and de-brand inventory).
 > **Owner:** branch `feature/fullstack-whitelabel-branding`.
@@ -15,23 +15,24 @@ Governed by `00-master` → Branding rules. Enums are **TS enums** (`z.nativeEnu
 ## 1. `modules/brand/` (net-new, module-first per `backend/CLAUDE.md`)
 
 ### 1.1 Table + migration (single row, direct-apply, no draft)
-`brand` table (next migration after `0013`). Store the **two seed colors** (HSL, no hex) and
-materialize on read — keep the seed the sole source (recommend store `primary_hsl` + `surface_hsl`
-and ramp to the **0…1000** scale on read so a re-tint change needs no backfill). Columns:
-`id` (single-row guard), `name`, `slogan?`, `description?`, `logo_key?`, `logo_dark_key?`,
-`isologo_key?`, `favicon_key?`, icon/maskable set (for the PWA manifest, `02`), `primary_hsl`,
-`surface_hsl`, `contact` (jsonb), `social` (jsonb), `font_body?`, `font_heading?`, timestamps.
+`brand` table (next migration after `0013`). The editor **sends fully materialized scales**
+(mock/superadmin contract, §1.4), so the backend **stores them verbatim** — no server-side tinting.
+Columns: `id` (single-row guard), `name`, `slogan?`, `description?`, `logo_key?`, `logo_dark_key?`,
+`isologo_key?`, `favicon_key?` (PWA manifest, `02`), `colors` (jsonb —
+`{ primary: HslScale, surface: HslScale }`, HSL components at steps `0…1000`, **no hex**, rule 2),
+`contact` (jsonb), `social` (jsonb), `font` (jsonb `{ body?, heading? }`), timestamps.
 **No `tenant_id`** (one deploy = one tenant).
 
 ### 1.2 Endpoints (mount `GET /brand` + `GET /fonts` BEFORE the JWT guards, like `/public/cms`)
-- `GET /brand` — **public**, returns the materialized `Brand` (master → Shared brand contract):
-  ramp `primary_hsl`/`surface_hsl` → **0…1000 HSL** scales (vary lightness across the stops);
-  `*_key` → `cdnUrl(CDN_BASE_URL, key)`; assemble contact/social/font. Fail-soft is the client's
-  job (both apps already default).
+- `GET /brand` — **public**, returns the stored `Brand` (§1.4): `colors` scales as stored (HSL
+  `0…1000`); `*_key` → `cdnUrl(CDN_BASE_URL, key)` for `logoUrl`/`logoDarkUrl`/`isologoUrl`;
+  contact/social/font as stored. Fail-soft is the client's job (both apps already default).
 - `GET /fonts` — **public**, a curated OFL catalog (constants-only `FontCatalogEntry[]`, woff2
-  URLs on the CDN/R2). Matches what the website already resolves against.
-- `PUT /brand` — **JWT + owner** (`requireRole(['owner'])`), upsert the single row, direct-apply
-  (no publish step).
+  URLs on the CDN/R2). Matches what the website + superadmin editor resolve against.
+- `PUT /brand` — **JWT + owner** (`requireRole(['owner'])`), body `SaveBrandRequest` (§1.4): images
+  as **R2 keys** (`logoKey`/`logoDarkKey`/`isologoKey`, from `POST /upload/image`), `colors` =
+  materialized HSL `0…1000` scales, + `contact`/`social`/`font`. Upsert the single row,
+  direct-apply (no publish). Response = the `Brand` read shape (keys materialized to CDN URLs).
 
 ### 1.3 De-hardcode the render paths (supersede `BRAND_*` — CLAUDE.md rule)
 - **Email** (`reports/services/report-email.service.ts` + `helpers/report-email.helpers.ts` +
@@ -46,12 +47,53 @@ and ramp to the **0…1000** scale on read so a re-tint change needs no backfill
   then drop from `[vars]`. `CDN_BASE_URL`, `API_BASE_URL`, `RESEND_FROM` **stay** (infra). Fix the
   dev gap: `API_BASE_URL` is only in `[env.production.vars]` — add to top-level `[vars]`/`.dev.vars`.
 
+### 1.4 Concrete contract — pinned 2026-07-12 (from the shipped superadmin + smoke mock)
+
+Pinned from `superadmin/src/app/data/dtos/brand.ts` (mirrors `website/src/lib/types.ts`) and the
+smoke mock the editor was built against. **Structure adopted as-is; color scales stay HSL `0…1000`,
+no hex (rule 2).**
+
+```ts
+HslScale = { [step: string]: string }   // steps '0'…'1000' by 100 → "H S% L%" (no hex)
+
+// GET /brand → Brand
+Brand {
+  name; slogan?; description?;
+  logoUrl?; logoDarkUrl?; isologoUrl?;                       // materialized from *_key via cdnUrl
+  colors?: { primary?: HslScale; surface?: HslScale };
+  contact?: { phone?; whatsapp?; email?; address? };
+  social?: { facebook?; instagram?; tiktok?; googleMaps?; [k]: string };
+  font?: { body?; heading? };                               // catalog codes
+}
+
+// PUT /brand (owner) → SaveBrandRequest
+SaveBrandRequest {
+  name; slogan?; description?;
+  logoKey?; logoDarkKey?; isologoKey?;                       // R2 keys from POST /upload/image
+  colors: { primary: HslScale; surface: HslScale };          // required, materialized by the editor
+  contact?; social?; font?;
+}
+
+// GET /fonts → FontCatalogEntry[]  (constants)
+FontCatalogEntry {
+  code; label; group?; roles?: 'body' | 'heading' | 'both';
+  files: { variable? };                                     // woff2 URL
+  fallbackStack?; tnumVerified?; recommendedHeading?;
+}
+```
+
+**Reconciliation (2026-07-12):** the shipped superadmin editor + smoke mock currently emit **hex at
+steps 50–950** (surface +0) and send materialized scales. We keep **HSL / 0…1000** (rule 2) — so the
+**superadmin brand editor + its `brand.ts` `BrandColorScale` must be reworked** to emit HSL `0…1000`
+(track in superadmin `03-branding`), and the **website** migrates too (§3). The backend is the
+canonical shape; **images-as-keys** and **client-materialized-scales** are adopted from the mock
+as-is (the backend stores scales verbatim, no server-side tinting).
+
 ## 2. Seeding the current tenant (Peña as data)
-- One-time seed of the `brand` row from today's values: `name='Peña Nevada Chillers'`,
-  `primary_hsl`/`surface_hsl` = the current navy/granite bases (from `website/PLAN.md`) **converted
-  to HSL** (no hex stored), contact from `PUBLIC_CONTACT_*`, and **upload the current logo assets
-  to R2** (`penanevada-*` from `website/public/brand/` + `frontend/src/assets/logo.jpg`) → set
-  `*_key`s.
+- One-time seed of the `brand` row from today's values: `name='Peña Nevada Chillers'`, `colors` =
+  the current navy/granite palette materialized as **HSL `0…1000` scales** (no hex stored), contact
+  from `PUBLIC_CONTACT_*`, and **upload the current logo assets to R2** (`penanevada-*` from
+  `website/public/brand/` + `frontend/src/assets/logo.jpg`) → set `*_key`s.
 - After seeding, Peña renders identically — but every surface now reads the row, so the same infra
   serves a different tenant by swapping the row + assets + `API_BASE_URL`.
 
@@ -67,10 +109,10 @@ and ramp to the **0…1000** scale on read so a re-tint change needs no backfill
 
 ## Checkpoints
 ### CP-1 — Table + endpoints
-- [ ] `brand` table + migration; TS-enum any enums
-- [ ] `GET /brand` + `/fonts` (public) + `PUT /brand` (owner)
-- [ ] Color materialization (2 HSL seeds → 0…1000 for `primary` + `surface`, incl. the neutral
-      default), key → CDN URL; `Brand` DTO === master's shared contract
+- [ ] `brand` table + migration (`colors` jsonb HSL `0…1000`; `*_key` image cols); TS-enum any enums
+- [ ] `GET /brand` (public) + `/fonts` (public) + `PUT /brand` (owner) per the §1.4 contract
+- [ ] Store scales verbatim (no tinting); `*_key` → `cdnUrl` on read; validators reject hex /
+      non-`0…1000` steps
 
 ### CP-2 — De-hardcode render paths
 - [ ] Email subject + colors and PDF read brand at render (no `env.BRAND_*`)
@@ -92,7 +134,7 @@ and ramp to the **0…1000** scale on read so a re-tint change needs no backfill
 - **Font catalog contents:** `/fonts` needs a curated OFL list + hosted woff2s. Which families
   beyond the two defaults (Rubik/Work Sans, already self-hosted)? Can ship with just the two and
   grow the catalog later.
-- **Color materialization / tint:** model is fixed (HSL, 0…1000, no hex); tenant picks 2 HSL seeds
-  and the backend ramps **lightness** across the 11 stops (same ramp yields the neutral default).
-  Open: the exact L stops, whether `0` is lightest or darkest, and whether the ramp also nudges S.
-  Reference: adapt the website's materializer (hex/50–950 today).
+- **Color materialization (resolved 2026-07-12):** the **editor** materializes the HSL `0…1000`
+  scales and sends them in `PUT /brand` (mock/superadmin contract, §1.4); the backend **stores them
+  verbatim — no server-side tinting**. The tint/ramp algorithm lives in the superadmin editor (its
+  rework to HSL `0…1000`), not the backend.
