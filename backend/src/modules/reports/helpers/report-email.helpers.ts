@@ -1,11 +1,11 @@
 // Renderers for the report-delivery email (§9). Spanish copy. This file computes the
 // display values (dates in the customer's timezone, work-type label, signed location,
-// timezone footnote) and delegates the HTML markup to ../templates/report-email.html.ts —
+// timezone footnote) and delegates the HTML markup to ../templates/report-email.template.ts —
 // the markup lives in templates/ to keep this renderer readable. The plain-text body is
 // assembled here.
 
 import { labelForTimezone } from '../../customers/constants/timezones';
-import { reportEmailHtml } from '../templates/report-email.html';
+import { reportEmailHtml } from '../templates/report-email.template';
 
 const REPORT_TYPE_LABELS: Record<string, string> = {
   minisplit: 'Minisplit',
