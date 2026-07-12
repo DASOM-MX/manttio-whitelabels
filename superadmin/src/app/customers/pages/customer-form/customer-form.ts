@@ -34,15 +34,18 @@ import { SAT_CFDI_USES } from '../../../model/constants/customer/sat-cfdi-uses.c
 import { rfcValidator } from '../../../validators/rfc.validator';
 import { fiscalGroupValidator } from '../../../validators/fiscal-group.validator';
 import { TagsInput } from '../../components/tags-input/tags-input';
-import { AsFormGroupPipe } from '../../../pipes/cast.pipe';
 import { errorMessage } from '../../../data/utils';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
-import type {
-  Customer,
-  CustomerSource,
-  CustomerStatus,
-  SaveCustomerRequest,
-} from '../../../data/dtos/customer';
+import { CustomerSource, CustomerStatus } from '../../../data/dtos/customer';
+import type { Customer, SaveCustomerRequest } from '../../../data/dtos/customer';
+
+/** Optional seed for a new or hydrated contact row in the form. */
+interface ContactSeed {
+  name?: string;
+  role?: string;
+  phone?: string;
+  email?: string;
+}
 
 /** Add/edit client (07 §3): General + Contactos (repeater) + Datos fiscales
  *  (all-or-nothing). CRM status/source ship as plain selects; the richer
@@ -55,7 +58,6 @@ import type {
     InputTextModule,
     SelectModule,
     TagsInput,
-    AsFormGroupPipe,
     LucideArrowLeft,
     LucidePlus,
     LucideTrash2,
@@ -95,8 +97,8 @@ export class CustomerForm implements HasPendingChanges {
     phone: [''],
     address: [''],
     tags: [[] as string[]],
-    status: ['active' as CustomerStatus, Validators.required],
-    source: ['other' as CustomerSource, Validators.required],
+    status: [CustomerStatus.Active, Validators.required],
+    source: [CustomerSource.Other, Validators.required],
     referredByCustomerId: [''],
     contacts: this.fb.array<FormGroup>([]),
     fiscal: this.fb.nonNullable.group(
@@ -115,7 +117,7 @@ export class CustomerForm implements HasPendingChanges {
   private sourceValue = toSignal(this.form.controls.source.valueChanges, {
     initialValue: this.form.controls.source.value,
   });
-  protected isReferral = computed(() => this.sourceValue() === 'referral');
+  protected isReferral = computed(() => this.sourceValue() === CustomerSource.Referral);
 
   /** Searchable "referred by" options — excludes self (07 §3). */
   protected referralOptions = computed(() =>
@@ -147,12 +149,7 @@ export class CustomerForm implements HasPendingChanges {
     return this.form.controls.fiscal.hasError('fiscalIncomplete');
   }
 
-  protected addContact(initial?: {
-    name?: string;
-    role?: string;
-    phone?: string;
-    email?: string;
-  }): void {
+  protected addContact(initial?: ContactSeed): void {
     this.contacts.push(
       this.fb.nonNullable.group({
         name: [initial?.name ?? '', Validators.required],
@@ -225,7 +222,7 @@ export class CustomerForm implements HasPendingChanges {
       status: raw.status,
       source: raw.source,
       referredByCustomerId:
-        raw.source === 'referral' && raw.referredByCustomerId
+        raw.source === CustomerSource.Referral && raw.referredByCustomerId
           ? raw.referredByCustomerId
           : undefined,
       contacts: raw.contacts as SaveCustomerRequest['contacts'],

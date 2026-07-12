@@ -3,10 +3,22 @@
  *  fields (UI in 08) and CFDI 4.0 fiscal basics. Net-new columns are a
  *  recorded backend ask. */
 
-export type CustomerStatus = 'active' | 'lead' | 'disabled' | 'blacklisted';
+export enum CustomerStatus {
+  Active = 'active',
+  Lead = 'lead',
+  Disabled = 'disabled',
+  Blacklisted = 'blacklisted',
+}
 
-export type CustomerSource =
-  'facebook' | 'google' | 'referral' | 'website' | 'phonecall' | 'personal_meeting' | 'other';
+export enum CustomerSource {
+  Facebook = 'facebook',
+  Google = 'google',
+  Referral = 'referral',
+  Website = 'website',
+  Phonecall = 'phonecall',
+  PersonalMeeting = 'personal_meeting',
+  Other = 'other',
+}
 
 export interface CustomerContact {
   id?: string;

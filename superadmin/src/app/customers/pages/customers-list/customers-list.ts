@@ -1,6 +1,6 @@
 import { Component, computed, inject, viewChild } from '@angular/core';
 import { SlicePipe } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { SelectModule } from 'primeng/select';
@@ -32,8 +32,6 @@ import type {
   CustomerSource,
   CustomerStatus,
 } from '../../../data/dtos/customer';
-
-const PAGE_SIZE = 10;
 
 /** Clients directory (07 §3). The `/customers/leads` and
  *  `/customers/blacklist` nav children reuse this page with a preset status
@@ -69,14 +67,13 @@ const PAGE_SIZE = 10;
 export class CustomersList {
   private store = inject(Store);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   protected list = inject(ListQueryService);
 
   protected customers = select(CustomersState.items);
   protected total = select(CustomersState.total);
   protected loading = select(CustomersState.loading);
   protected knownTags = select(CustomersState.knownTags);
-
-  protected readonly PAGE_SIZE = PAGE_SIZE;
 
   /** Preset from route data (leads / blacklist views). */
   protected presetStatus: CustomerStatus | '' =
@@ -108,7 +105,6 @@ export class CustomersList {
 
   constructor() {
     this.list.init({
-      pageSize: PAGE_SIZE,
       read: (params) => {
         const status = this.presetStatus || keyIn(CUSTOMER_STATUS_LABELS, params.get('status'));
         const tags = (params.get('tags') ?? '')
@@ -140,7 +136,7 @@ export class CustomersList {
   private query(page: number): CustomerListQuery {
     return {
       page,
-      limit: PAGE_SIZE,
+      limit: this.list.PAGE_SIZE,
       search: this.search.value || undefined,
       status: this.statusFilter.value || undefined,
       source: this.sourceFilter.value || undefined,
@@ -154,5 +150,11 @@ export class CustomersList {
 
   protected openDelete(customer: Customer): void {
     this.deleteDialog()?.open(customer);
+  }
+
+  /** Whole row clicks through to the client 360 view (05 §3 QA pattern); the
+   *  action links remain the keyboard path. */
+  protected openCustomer(customer: Customer): void {
+    this.router.navigate(['/customers', customer.id]);
   }
 }

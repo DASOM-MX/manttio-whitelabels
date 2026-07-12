@@ -67,10 +67,11 @@
     [lazy]="true"
     (onLazyLoad)="list.onLazyLoad($event)"
     [paginator]="true"
-    [rows]="PAGE_SIZE"
+    [rows]="list.PAGE_SIZE"
     [first]="list.first()"
     [totalRecords]="total()"
     [loading]="loading()"
+    [rowHover]="true"
     dataKey="id"
   >
     <ng-template #header>
@@ -86,7 +87,9 @@
       </tr>
     </ng-template>
     <ng-template #body let-customer>
-      <tr>
+      <!-- Whole row opens the client 360 view (05 §3 QA); the action links stay
+           the keyboard path. -->
+      <tr class="cursor-pointer" (click)="openCustomer(customer)">
         <td class="font-medium">{{ customer.name }}</td>
         <td>
           {{ customer.contactName || '—' }}
@@ -118,7 +121,7 @@
         </td>
         <td class="font-data tabular-nums">{{ customer.fiscal?.rfc || '—' }}</td>
         <td class="font-data tabular-nums">{{ customer.createdAt | slice: 0 : 10 }}</td>
-        <td class="w-32">
+        <td class="w-32" (click)="$event.stopPropagation()">
           <div class="flex justify-end gap-1">
             <a
               [routerLink]="['/customers', customer.id]"
