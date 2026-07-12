@@ -22,24 +22,26 @@ export const customers = new Hono<AppBindings>();
 // Read endpoints are open to any authenticated user (admins + technicians).
 // Paged when `page`/`limit` are supplied; full active list otherwise (the main
 // frontend calls this with no params and relies on getting everything).
+// Response envelope is the superadmin standard: list → PagedResponse
+// { items, total, page, limit }, single/write → the bare Customer entity.
 customers.get('/', zValidator('query', listCustomersQuerySchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  const { customers: list, total, page, limit } = await getCustomers(db, c.req.valid('query'));
-  return c.json({ customers: list, total, page, limit });
+  const { customers: items, total, page, limit } = await getCustomers(db, c.req.valid('query'));
+  return c.json({ items, total, page, limit });
 });
 
 customers.get('/:id', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const row = await getCustomerById(db, c.req.param('id'));
   if (!row) return c.json({ error: 'not_found' }, 404);
-  return c.json({ customer: row });
+  return c.json(row);
 });
 
 // Write endpoints are owner/admin.
 customers.post('/', requireRole(['owner', 'admin']), zValidator('json', createCustomerSchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const row = await createCustomer(db, c.req.valid('json'));
-  return c.json({ customer: row }, 201);
+  return c.json(row, 201);
 });
 
 customers.patch(
@@ -50,7 +52,7 @@ customers.patch(
     const db = createDb(c.env.DATABASE_URL);
     const row = await editCustomer(db, c.req.param('id'), c.req.valid('json'));
     if (!row) return c.json({ error: 'not_found' }, 404);
-    return c.json({ customer: row });
+    return c.json(row);
   },
 );
 

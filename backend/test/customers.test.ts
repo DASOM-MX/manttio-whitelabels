@@ -34,9 +34,9 @@ describe('GET /customers', () => {
     const customer = await seedCustomer();
     const res = await request('/customers', { headers: authHeader(token) });
     expect(res.status).toBe(200);
-    const body = await json<{ customers: CustomerRow[] }>(res);
-    expect(Array.isArray(body.customers)).toBe(true);
-    expect(body.customers.some((c) => c.id === customer.id)).toBe(true);
+    const body = await json<{ items: CustomerRow[] }>(res);
+    expect(Array.isArray(body.items)).toBe(true);
+    expect(body.items.some((c) => c.id === customer.id)).toBe(true);
   });
 
   test('technician can also list customers (read is open to any authed user)', async () => {
@@ -44,8 +44,8 @@ describe('GET /customers', () => {
     const customer = await seedCustomer();
     const res = await request('/customers', { headers: authHeader(token) });
     expect(res.status).toBe(200);
-    const body = await json<{ customers: CustomerRow[] }>(res);
-    expect(body.customers.some((c) => c.id === customer.id)).toBe(true);
+    const body = await json<{ items: CustomerRow[] }>(res);
+    expect(body.items.some((c) => c.id === customer.id)).toBe(true);
   });
 });
 
@@ -55,10 +55,10 @@ describe('GET /customers/:id', () => {
     const customer = await seedCustomer();
     const res = await request(`/customers/${customer.id}`, { headers: authHeader(token) });
     expect(res.status).toBe(200);
-    const body = await json<{ customer: CustomerRow }>(res);
-    expect(body.customer.id).toBe(customer.id);
-    expect(body.customer.name).toBe(customer.name);
-    expect(body.customer.email).toBe(customer.email);
+    const body = await json<CustomerRow>(res);
+    expect(body.id).toBe(customer.id);
+    expect(body.name).toBe(customer.name);
+    expect(body.email).toBe(customer.email);
   });
 
   test('technician can fetch a customer by id', async () => {
@@ -88,15 +88,15 @@ describe('POST /customers', () => {
       body: JSON.stringify({ name }),
     });
     expect(res.status).toBe(201);
-    const body = await json<{ customer: CustomerRow }>(res);
-    expect(body.customer.id).toMatch(
+    const body = await json<CustomerRow>(res);
+    expect(body.id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
     );
-    expect(body.customer.name).toBe(name);
-    expect(body.customer.identification).toBeNull();
-    expect(body.customer.phone).toBeNull();
-    expect(body.customer.email).toBeNull();
-    expect(body.customer.observation).toBeNull();
+    expect(body.name).toBe(name);
+    expect(body.identification).toBeNull();
+    expect(body.phone).toBeNull();
+    expect(body.email).toBeNull();
+    expect(body.observation).toBeNull();
   });
 
   test('admin creates a customer with all optional fields (201)', async () => {
@@ -114,8 +114,8 @@ describe('POST /customers', () => {
       body: JSON.stringify(payload),
     });
     expect(res.status).toBe(201);
-    const body = await json<{ customer: CustomerRow }>(res);
-    expect(body.customer).toMatchObject(payload);
+    const body = await json<CustomerRow>(res);
+    expect(body).toMatchObject(payload);
   });
 
   test('missing name → 400', async () => {
@@ -170,9 +170,9 @@ describe('PATCH /customers/:id', () => {
       body: JSON.stringify({ name: newName }),
     });
     expect(res.status).toBe(200);
-    const body = await json<{ customer: CustomerRow }>(res);
-    expect(body.customer.name).toBe(newName);
-    expect(body.customer.email).toBe(customer.email);
+    const body = await json<CustomerRow>(res);
+    expect(body.name).toBe(newName);
+    expect(body.email).toBe(customer.email);
   });
 
   test('admin can set phone on a customer that did not have one', async () => {
@@ -184,8 +184,8 @@ describe('PATCH /customers/:id', () => {
       body: JSON.stringify({ phone: '+52 81 1234 5678' }),
     });
     expect(res.status).toBe(200);
-    const body = await json<{ customer: CustomerRow }>(res);
-    expect(body.customer.phone).toBe('+52 81 1234 5678');
+    const body = await json<CustomerRow>(res);
+    expect(body.phone).toBe('+52 81 1234 5678');
   });
 
   test('admin can change email', async () => {
@@ -198,8 +198,8 @@ describe('PATCH /customers/:id', () => {
       body: JSON.stringify({ email: newEmail }),
     });
     expect(res.status).toBe(200);
-    const body = await json<{ customer: CustomerRow }>(res);
-    expect(body.customer.email).toBe(newEmail);
+    const body = await json<CustomerRow>(res);
+    expect(body.email).toBe(newEmail);
   });
 
   test('unknown id → 404 not_found', async () => {
@@ -362,7 +362,7 @@ describe('customers — CRM fields, tags, contacts, fiscal', () => {
       body: JSON.stringify({ name: uniqueName('defaults') }),
     });
     expect(res.status).toBe(201);
-    const { customer } = await json<{ customer: FullCustomer }>(res);
+    const customer = await json<FullCustomer>(res);
     expect(customer.status).toBe(CustomerStatus.Active);
     expect(customer.source).toBe(CustomerSource.Other);
     expect(customer.tags).toEqual([]);
@@ -388,7 +388,7 @@ describe('customers — CRM fields, tags, contacts, fiscal', () => {
       }),
     });
     expect(res.status).toBe(201);
-    const { customer } = await json<{ customer: FullCustomer }>(res);
+    const customer = await json<FullCustomer>(res);
     expect(customer.status).toBe(CustomerStatus.Lead);
     expect(customer.source).toBe(CustomerSource.Referral);
     expect(customer.tags).toEqual(['vip', 'monterrey']);
@@ -408,7 +408,7 @@ describe('customers — CRM fields, tags, contacts, fiscal', () => {
       }),
     });
     expect(ok.status).toBe(201);
-    const { customer } = await json<{ customer: FullCustomer }>(ok);
+    const customer = await json<FullCustomer>(ok);
     expect(customer.fiscal?.rfc).toBe('XAXX010101000');
 
     const bad = await request('/customers', {
@@ -456,7 +456,7 @@ describe('customers — CRM fields, tags, contacts, fiscal', () => {
         fiscal: validFiscal,
       }),
     });
-    const { customer } = await json<{ customer: FullCustomer }>(created);
+    const customer = await json<FullCustomer>(created);
 
     const patched = await request(`/customers/${customer.id}`, {
       method: 'PATCH',
@@ -467,9 +467,9 @@ describe('customers — CRM fields, tags, contacts, fiscal', () => {
       }),
     });
     expect(patched.status).toBe(200);
-    const updated = await json<{ customer: FullCustomer }>(patched);
-    expect(updated.customer.contacts.map((c) => c.name)).toEqual(['Replacement A', 'Replacement B']);
-    expect(updated.customer.fiscal).toBeNull();
+    const updated = await json<FullCustomer>(patched);
+    expect(updated.contacts.map((c) => c.name)).toEqual(['Replacement A', 'Replacement B']);
+    expect(updated.fiscal).toBeNull();
   });
 
   test('list is filterable by status, source and tag; paged with total', async () => {
@@ -490,11 +490,11 @@ describe('customers — CRM fields, tags, contacts, fiscal', () => {
       headers: authHeader(token),
     });
     expect(byTag.status).toBe(200);
-    const body = await json<{ customers: FullCustomer[]; total: number; page: number; limit: number }>(byTag);
+    const body = await json<{ items: FullCustomer[]; total: number; page: number; limit: number }>(byTag);
     expect(body.page).toBe(1);
     expect(body.limit).toBe(10);
     expect(body.total).toBeGreaterThanOrEqual(1);
-    expect(body.customers.every((c) => c.tags.includes(tag))).toBe(true);
-    expect(body.customers.every((c) => c.status === CustomerStatus.Lead)).toBe(true);
+    expect(body.items.every((c) => c.tags.includes(tag))).toBe(true);
+    expect(body.items.every((c) => c.status === CustomerStatus.Lead)).toBe(true);
   });
 });
