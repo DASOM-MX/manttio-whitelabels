@@ -48,6 +48,7 @@ import {
   DiscardPendingReport,
 } from '../../../../state/offline-reports/offline-reports.actions';
 import { OfflineReportsService } from '../../../../offline/offline-reports.service';
+import { PendingReportStatus } from '../../../../offline/pending-report.model';
 import type { PendingReport } from '../../../../offline/pending-report.model';
 import type {
   ReportData,
@@ -263,7 +264,7 @@ export class ReportDetail {
         if (!still) {
           this.messages.add({ severity: 'success', summary: 'Reporte subido' });
           this.router.navigate(['/reports']);
-        } else if (still.status === 'failed') {
+        } else if (still.status === PendingReportStatus.Failed) {
           this.uploadingPending.set(false);
           this.messages.add({
             severity: 'error',

@@ -1,0 +1,293 @@
+<div class="flex flex-wrap items-center gap-3">
+  <a
+    routerLink="/users"
+    class="inline-flex size-10 items-center justify-center rounded-lg text-granite-600 transition-colors hover:bg-granite-100 dark:text-granite-400 dark:hover:bg-granite-800"
+    aria-label="Volver a usuarios"
+  >
+    <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
+  </a>
+  <div>
+    <h1 class="text-xl font-bold text-granite-950 dark:text-granite-50">
+      @if (isEdit()) {
+        {{ selected()?.name || 'Usuario' }}
+      } @else {
+        Nuevo usuario
+      }
+    </h1>
+    @if (isEdit() && selected(); as user) {
+      <p class="mt-0.5 text-sm text-granite-600 dark:text-granite-400">{{ user.email }}</p>
+    }
+  </div>
+</div>
+
+@if (readOnly()) {
+  <p
+    class="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
+    role="note"
+  >
+    La cuenta del propietario no se administra desde aquí: los cambios se solicitan al equipo de
+    soporte.
+  </p>
+}
+
+@if (isEdit() && !readOnly()) {
+  <div
+    class="mt-5 inline-flex rounded-lg border border-granite-200 p-0.5 dark:border-granite-800"
+    role="tablist"
+    aria-label="Secciones del usuario"
+    (keydown)="onTabKeydown($event)"
+  >
+    <button
+      #tabBtn
+      type="button"
+      role="tab"
+      id="tab-datos"
+      aria-controls="panel-datos"
+      class="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
+      [class.bg-sky-50]="tab() === 'datos'"
+      [class.text-sky-800]="tab() === 'datos'"
+      [class.dark:bg-sky-950/40]="tab() === 'datos'"
+      [class.dark:text-sky-300]="tab() === 'datos'"
+      [class.text-granite-600]="tab() !== 'datos'"
+      [class.dark:text-granite-400]="tab() !== 'datos'"
+      [attr.aria-selected]="tab() === 'datos'"
+      [tabindex]="tab() === 'datos' ? 0 : -1"
+      (click)="tab.set('datos')"
+    >
+      Datos
+    </button>
+    <button
+      #tabBtn
+      type="button"
+      role="tab"
+      id="tab-critico"
+      aria-controls="panel-critico"
+      class="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
+      [class.bg-red-50]="tab() === 'critico'"
+      [class.text-red-800]="tab() === 'critico'"
+      [class.dark:bg-red-950/30]="tab() === 'critico'"
+      [class.dark:text-red-300]="tab() === 'critico'"
+      [class.text-granite-600]="tab() !== 'critico'"
+      [class.dark:text-granite-400]="tab() !== 'critico'"
+      [attr.aria-selected]="tab() === 'critico'"
+      [tabindex]="tab() === 'critico' ? 0 : -1"
+      (click)="tab.set('critico')"
+    >
+      Crítico
+    </button>
+  </div>
+}
+
+@if (tab() === 'datos' || !isEdit()) {
+  <!-- View-first detail: static labels until "Editar" is clicked (QA 2026-07-09) —
+       no live inputs, no accidental requests. -->
+  @if (isEdit() && !editing()) {
+    <section
+      id="panel-datos"
+      [attr.role]="!readOnly() ? 'tabpanel' : null"
+      [attr.aria-labelledby]="!readOnly() ? 'tab-datos' : null"
+      class="card-section mt-4 flex max-w-2xl flex-col gap-4"
+    >
+      @if (selected(); as user) {
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <p class="field-label">Nombre</p>
+            <p class="mt-1 text-sm font-medium text-granite-900 dark:text-granite-100">
+              {{ user.name }}
+            </p>
+          </div>
+          <div>
+            <p class="field-label">Correo</p>
+            <p class="mt-1 text-sm font-medium text-granite-900 dark:text-granite-100">
+              {{ user.email }}
+            </p>
+          </div>
+          <div>
+            <p class="field-label">Teléfono</p>
+            <p class="mt-1 text-sm font-medium text-granite-900 dark:text-granite-100">
+              {{ user.phone || '—' }}
+            </p>
+          </div>
+          <div>
+            <p class="field-label">Rol</p>
+            <p class="mt-1">
+              <span class="role-pill" [class]="user.role | rolePillClass">{{
+                user.role | roleLabel
+              }}</span>
+            </p>
+          </div>
+          <div>
+            <p class="field-label">Estado</p>
+            <p class="mt-1">
+              @if (user.active) {
+                <p-tag severity="success" value="Activo" />
+              } @else {
+                <p-tag severity="secondary" value="Inactivo" />
+              }
+            </p>
+          </div>
+          <div>
+            <p class="field-label">Alta</p>
+            <p class="mt-1 text-sm font-medium text-granite-900 dark:text-granite-100">
+              {{ user.createdAt | date: 'dd/MM/y' }}
+            </p>
+          </div>
+        </div>
+
+        @if (!readOnly()) {
+          <div class="flex justify-end">
+            <button type="button" class="btn-primary" (click)="startEdit()">
+              <svg lucidePencil class="size-4" aria-hidden="true"></svg>
+              Editar
+            </button>
+          </div>
+        }
+      } @else {
+        <p class="text-sm text-granite-600 dark:text-granite-400">Cargando usuario…</p>
+      }
+    </section>
+  } @else {
+    <form
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+      id="panel-datos"
+      [attr.role]="isEdit() ? 'tabpanel' : null"
+      [attr.aria-labelledby]="isEdit() ? 'tab-datos' : null"
+      class="card-section mt-4 flex max-w-2xl flex-col gap-4"
+    >
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="field-group">
+          <label class="field-label" for="user-name"
+            >Nombre<span aria-hidden="true"> *</span></label
+          >
+          <input id="user-name" pInputText formControlName="name" autocomplete="name" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="user-email"
+            >Correo<span aria-hidden="true"> *</span></label
+          >
+          <input
+            id="user-email"
+            pInputText
+            type="email"
+            formControlName="email"
+            autocomplete="email"
+          />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="user-phone">Teléfono</label>
+          <input id="user-phone" pInputText type="tel" formControlName="phone" autocomplete="tel" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="user-role">Rol<span aria-hidden="true"> *</span></label>
+          <p-select
+            inputId="user-role"
+            formControlName="role"
+            [options]="roleOptions"
+            optionLabel="label"
+            optionValue="value"
+            appendTo="body"
+          />
+        </div>
+      </div>
+
+      @if (!isEdit()) {
+        <p
+          class="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
+        >
+          Al crear la cuenta se genera una contraseña temporal que verás una sola vez.
+        </p>
+      }
+
+      <div class="flex justify-end gap-2">
+        @if (isEdit()) {
+          <button type="button" class="btn-neutral" (click)="cancelEdit()">Cancelar</button>
+        } @else {
+          <a routerLink="/users" class="btn-neutral">Cancelar</a>
+        }
+        <button type="submit" class="btn-primary" [disabled]="form.invalid || busy()">
+          @if (busy()) {
+            <span
+              class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+              aria-hidden="true"
+            ></span>
+            Guardando…
+          } @else if (isEdit()) {
+            Guardar cambios
+          } @else {
+            Crear usuario
+          }
+        </button>
+      </div>
+    </form>
+  }
+}
+
+@if (tab() === 'critico' && isEdit() && !readOnly()) {
+  <section
+    id="panel-critico"
+    role="tabpanel"
+    aria-labelledby="tab-critico"
+    class="card-section mt-4 flex max-w-2xl flex-col gap-4 !border-red-200 dark:!border-red-900/60"
+  >
+    <h2 class="micro-label !text-red-700 dark:!text-red-400">Zona crítica</h2>
+
+    @if (selected(); as user) {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-sm font-semibold text-granite-900 dark:text-granite-100">
+            @if (user.active) {
+              Desactivar cuenta
+            } @else {
+              Reactivar cuenta
+            }
+          </p>
+          <p class="mt-0.5 max-w-md text-sm text-granite-600 dark:text-granite-400">
+            @if (user.active) {
+              La cuenta queda bloqueada para iniciar sesión; sus datos e historial se conservan.
+            } @else {
+              La cuenta está desactivada; al reactivarla podrá iniciar sesión de nuevo.
+            }
+          </p>
+        </div>
+        @if (user.active) {
+          <button type="button" class="btn-danger" (click)="toggleActive()" [disabled]="busy()">
+            <svg lucideUserX class="size-4" aria-hidden="true"></svg>
+            Desactivar
+          </button>
+        } @else {
+          <button type="button" class="btn-primary" (click)="toggleActive()" [disabled]="busy()">
+            <svg lucideUserCheck class="size-4" aria-hidden="true"></svg>
+            Reactivar
+          </button>
+        }
+      </div>
+
+      <hr class="border-granite-100 dark:border-granite-800" />
+    }
+
+    @if (canReset()) {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-sm font-semibold text-granite-900 dark:text-granite-100">
+            Restablecer contraseña
+          </p>
+          <p class="mt-0.5 max-w-md text-sm text-granite-600 dark:text-granite-400">
+            Genera una contraseña temporal que se muestra una sola vez; el usuario deberá crear la
+            suya al iniciar sesión.
+          </p>
+        </div>
+        <button type="button" class="btn-danger" (click)="resetPassword()" [disabled]="busy()">
+          <svg lucideKeyRound class="size-4" aria-hidden="true"></svg>
+          Restablecer
+        </button>
+      </div>
+    } @else {
+      <p class="text-sm text-granite-600 dark:text-granite-400">
+        Tu rol no puede restablecer la contraseña de esta cuenta.
+      </p>
+    }
+  </section>
+}
+
+<app-temp-password-dialog #tempDialog (closed)="onTempPasswordClosed()" />

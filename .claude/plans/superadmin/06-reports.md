@@ -1,7 +1,13 @@
 # 06 — Reports
 
-> **Status:** not-started · **Depends on:** 02 (CP-3)
-> **Owner:** — · **Last updated:** 2026-07-05
+> **Status:** done (frontend side — backend reports changes pending; **backend
+> report-templates module shipped 2026-07-09**: `modules/report-templates/` per §5.4
+> — jsonb sections doc, draft⇄active→disabled lifecycle, reads open to any authed
+> user / mutations admin-tier, `unit` whitelisted server-side (MAGNITUDES enum,
+> number-only zod refine), migration `0013` applied to Neon. Still pending: reports
+> capture/answer-snapshot rework, folio column, provisioning-time HVAC seed.)
+> **Depends on:** 02 (CP-3, done)
+> **Owner:** branch `feature/superadmin-reports` (stacked on the 02 shell PR) · **Last updated:** 2026-07-06
 
 Admin-side browser for service reports captured in the field app. Superadmin **reads and
 administers** report *instances*; it does not author them (capture stays in `frontend/`) —
@@ -50,14 +56,20 @@ ReportDetail = ReportSummary + {
 
 - `reports/pages/reports-list/` — lazy `<p-table>`: folio, client, technician, template,
   service date, status pill; filters: date range (`<p-datepicker>` range), client select,
-  technician select, **template select**, status. Row: view, PDF, delete.
+  technician select, **template select**, status. Row: view, PDF, delete. **QA
+  2026-07-09:** whole row clicks through to the report view (05 §3 row-click pattern —
+  `[rowHover]`, action cell stops propagation; action links stay the keyboard path).
 - `reports/pages/report-view/` — read-only detail: header card (client/tech/date/
   template/status), **template-shaped body**: one `.card-section` per answer section,
   rendered at the section's captured column count (same skeleton the builder previews —
   reports are dynamic now, never assume the old fixed HVAC shape), photo grid, signature
   image (unstyled in dark mode per
-  conventions), PDF download button. Slots reserved for 09 (billing card) and 10
-  (materials card) — leave a clearly-marked placeholder region, don't build their UI.
+  conventions), PDF download button. **"Enviar por correo" button (QA 2026-07-09,
+  field-app parity):** finished/mailed reports, admin tier only (backend gate on
+  `POST /reports/:id/email` is owner/admin); confirm dialog → send (backend defaults
+  `to` to the customer email) → toast + reload so `finished` flips to `mailed`. Slots
+  reserved for 09 (billing card) and 10 (materials card) — leave a clearly-marked
+  placeholder region, don't build their UI.
 - `reports/components/delete-report-dialog/` — shape-3 dialog, audit comment (reuse the
   delete-dialog pattern; extract a shared base only if 05's agent agrees — record as ask).
 
@@ -100,6 +112,13 @@ TemplateQuestion {
           // final set — decided 2026-07-05
   required: boolean,
   options?: string[],     // select / multiselect / radio / checkbox_group
+  unit?: string,          // number only (rule 2026-07-09): nullable magnitude,
+                          //   a display symbol from MAGNITUDE_OPTIONS ('cm',
+                          //   'V', '°C', …) — grouped by category (longitud,
+                          //   masa, volumen, eléctrico, presión, temperatura,
+                          //   caudal, tiempo, general incl. u/par/%) and
+                          //   rendered as-is next to the label everywhere
+                          //   (builder preview, field app, PDF)
   constraints?: {         // per-datatype validation — in v1 (decided 2026-07-05)
     min?, max?,           //   number
     maxLength?,           //   text / textarea
@@ -176,15 +195,25 @@ TemplateQuestion {
 
 - `templates/pages/templates-list/` — table: name, status pill (draft/active/disabled),
   question count, updated. Row: open. (Own feature folder — `/templates` is its own
-  route area; still owned by this module's agent.)
+  route area; still owned by this module's agent.) **QA 2026-07-09:** whole row clicks
+  through to the builder (05 §3 row-click pattern) and the page rides ListQueryService
+  (`?page` persists; no filters yet).
 - `templates/pages/template-detail/` — the builder: **section editor** (add / reorder /
   remove / rename sections; per-section column selector 1/2/3) with a **question
   editor nested per section** (add / reorder / remove; label, datatype, required,
-  options), and a **live preview** pane rendering the full skeleton — heading mock,
+  options; **magnitude select for number questions** — nullable, category-grouped,
+  rule 2026-07-09). **Sections and question metadata are accordions (QA 2026-07-09):
+  the section title input and question label input stay always visible in the
+  accordion headers; columns/questions and the per-question metadata fold. State is
+  keyed by control instance (survives reorders); user-added items open expanded,
+  hydrated ones start collapsed.** The **live preview** renders the full skeleton —
+  heading mock,
   the sections stacked with their own grids (incl. the `| Label | value |` table for
-  1-col sections), images/footer mock. **The preview always renders each section's
+  1-col sections), images/footer mock. **The preview lives on its own tab (QA
+  2026-07-09 — Editor | Vista previa, ARIA tabs pattern; was a side-by-side pane).**
+  **The preview always renders each section's
   selected column count — never collapse it (decided 2026-07-05):** on narrow
-  viewports the pane becomes its own `overflow-x: auto` container (01 layout rule
+  viewports the panel becomes its own `overflow-x: auto` container (01 layout rule
   `horizontal-scroll`); a 2/3-col section collapsing to 1 col in the preview would
   read as the selection not applying. Editing is draft-only — active and disabled
   templates open the builder read-only.
@@ -238,47 +267,61 @@ ReportAnswer { questionId, label, datatype, value }               // label+datat
 ## Checkpoints
 
 ### CP-1 — List
-- [ ] DTOs + service + `ReportsState`
-- [ ] List page with full filter bar + status pills
-- [ ] Route + sidebar entry live
+- [x] DTOs + service + `ReportsState` (lazy `provideStates`); **status enum
+      confirmed against the backend model 2026-07-06**
+      (`created|in-progress|finished|mailed`); `folio` optional — no backend
+      column yet (ask below)
+- [x] List page: lazy server-side table, search + date-range + template +
+      status filters, status pills (customer/technician selects wait for the
+      07/05 lookup endpoints — the query DTO already carries both ids)
+- [x] Route + sidebar entry live (shipped with 02)
 
 ### CP-2 — Detail
-- [ ] Report view page (cards, photos, signature, PDF link)
-- [ ] Placeholder regions for billing (09) + materials (10) marked in template comments
-- [ ] Delete dialog + toasts
+- [x] Report view: header card + **snapshot-rendered sections at captured
+      column counts** (1-col = label|value rows), photo grid, signature on
+      white, PDF download
+- [x] Placeholder regions for billing (09) + materials (10) marked in template
+      comments
+- [x] Delete dialog (audit comment) + toasts
 
 ### CP-3 — Roles + polish
-- [ ] "My reports" technician route (locked filter, actions hidden) + route `data`
-      declared on all pages
-- [ ] Dark-mode audit; empty/loading/error states
-- [ ] Build green; manual pass: filter by client + date → open report → download PDF →
-      delete; as technician: only own reports, no destructive actions
+- [x] "Mis reportes" technician rendering of the same page (backend-scoped
+      query; filters locked to search+dates, destructive actions hidden —
+      no forked variant); route `data` declared (02)
+- [x] Dark-mode variants; empty/loading states
+- [x] Build green; headless pass (2026-07-06, part of 27/27): filter → view →
+      PDF download → audit delete; technician sees own report only, no
+      delete, no admin filters
 
 ### CP-4 — Templates: list + builder (owner/admin)
-- [ ] `ReportTemplatesState` + `report-templates.service.ts` + DTOs
-- [ ] Templates list at `/templates` (own top-level **Plantillas** nav entry),
-      status pills
-- [ ] Builder: section editor (add/reorder/remove/rename, per-section column selector)
-      + nested question editor (add/reorder/remove, datatype, required, options,
-      **per-datatype constraint fields** — §5.1), live full-skeleton preview (heading
-      mock, stacked sections incl. 1-col `| Label | value |` rendering, images/footer
-      mock; true per-section column count at every viewport — overflow-x scroll on
-      mobile, no collapse)
-- [ ] Route `data` owner/admin only; office/tech never see the entry
+- [x] `ReportTemplatesState` + `report-templates.service.ts` + DTOs
+- [x] Templates list at `/templates` (own **Plantillas** nav entry), status
+      pills + question counts
+- [x] Builder: section editor (add/reorder/remove/rename, per-section 1/2/3
+      column selector) + nested question editor (add/reorder/remove, the nine
+      datatypes, required, options, per-datatype constraint fields) + live
+      full-skeleton preview (heading mock, stacked sections incl. 1-col
+      `| Label | value |`, images/footer mock; true column count at every
+      viewport via `min-w-preview` + overflow-x scroll)
+- [x] Route `data` owner/admin only (verified: office bounces)
 
 ### CP-5 — Templates: lifecycle
-- [ ] Activate (draft → active) + deactivate (active → draft, the edit path) with
-      confirm dialogs
-- [ ] Disable dialog with required reason; detail view surfaces the stored reason on
-      disabled templates
-- [ ] Draft-only editing enforced in UI (active/disabled open read-only; "edit" on an
-      active template offers the pull-to-draft transition)
-- [ ] Build green; manual pass: create draft → preview at 1/2/3 cols → activate →
-      deactivate → edit → re-activate → disable with reason → confirm terminal
-      read-only
+- [x] Activate + deactivate (active → draft, the edit path) with confirm dialogs
+- [x] Disable dialog with required reason; detail surfaces the stored reason
+- [x] Draft-only editing in UI (active/disabled read-only; "Editar" on active =
+      pull-to-draft)
+- [x] Build green; headless pass 27/27 (2026-07-06): create draft → 3-col
+      preview fidelity → constraints per datatype → save → activate (read-only)
+      → deactivate (editable) → disable with reason (terminal read-only)
 
 ## Open decisions / asks
-- Status enum + folio field: confirm against backend `reports` module before CP-1.
+- ~~Status enum~~ — **confirmed 2026-07-06** against
+  `backend/src/modules/reports/models/reports.model.ts`:
+  `created|in-progress|finished|mailed`. **Folio: no backend column yet** —
+  backend ask (DTO keeps it optional).
+- Customer/technician list filters: UI ships search + date + template + status;
+  the id-based selects light up when 07 (customers) and a users lookup endpoint
+  exist — query DTO already carries `customerId`/`technicianId`.
 - Resend-email action: in or out for v1?
 - Shared delete-dialog base component with 05: coordinate, don't duplicate silently.
 - ~~Datatype set~~ — **resolved 2026-07-05, final nine:** `text` / `textarea` /
@@ -303,3 +346,6 @@ ReportAnswer { questionId, label, datatype, value }               // label+datat
 - ~~Question-level validation~~ — **resolved 2026-07-05: in v1** — per-datatype
   `constraints` (number min/max, text maxLength, date min/max — §5.1), enforced in
   the field-app form and backend.
+- **Number magnitudes (rule 2026-07-09):** `unit?` on number questions (§5.1) —
+  field-app obligation: render the symbol next to the input label (and on the PDF)
+  exactly as stored; no conversion, display-only.

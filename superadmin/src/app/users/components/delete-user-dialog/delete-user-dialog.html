@@ -1,0 +1,63 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="max-w-11/12"
+  [style]="{ width: '30rem' }"
+  header="Eliminar usuario"
+>
+  <form [formGroup]="form" (ngSubmit)="confirm()" class="flex flex-col gap-4">
+    <p class="text-sm text-granite-700 dark:text-granite-300">
+      Vas a eliminar a
+      <strong class="text-granite-950 dark:text-granite-50">{{ target()?.name }}</strong> ({{
+        target()?.email
+      }}). La cuenta se desactiva y queda registrada en la auditoría.
+    </p>
+
+    <div class="field-group">
+      <label class="field-label" for="delete-comment"
+        >Motivo (auditoría)<span aria-hidden="true"> *</span></label
+      >
+      <textarea id="delete-comment" pTextarea formControlName="comment" rows="2"></textarea>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="delete-email-confirm"
+        >Escribe el correo del usuario para confirmar<span aria-hidden="true"> *</span></label
+      >
+      <input
+        id="delete-email-confirm"
+        pInputText
+        type="email"
+        formControlName="emailConfirm"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      @if (form.controls['emailConfirm'].touched && !emailMatches()) {
+        <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+          El correo no coincide.
+        </p>
+      }
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <button type="button" class="btn-neutral" (click)="close()" [disabled]="submitting()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn-danger" [disabled]="!canConfirm()">
+        @if (submitting()) {
+          <span
+            class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+            aria-hidden="true"
+          ></span>
+          Eliminando…
+        } @else {
+          Eliminar usuario
+        }
+      </button>
+    </div>
+  </form>
+</p-dialog>

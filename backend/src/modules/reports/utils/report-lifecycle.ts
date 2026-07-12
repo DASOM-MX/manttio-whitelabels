@@ -1,10 +1,10 @@
-import type { ReportStatus } from '../enums/reports.enum';
+import { ReportStatus } from '../enums/reports.enum';
 
-// Status transition predicates. The status literals + REPORT_STATUSES array live in
+// Status transition predicates. The ReportStatus enum lives in
 // enums/reports.enum.ts; these predicates are the single place lifecycle decisions
 // are made (don't hardcode status strings in controllers/services).
 export const isEditableStatus = (s: ReportStatus) =>
-  s === 'created' || s === 'in-progress';
+  s === ReportStatus.Created || s === ReportStatus.InProgress;
 
 export const isFinishedOrMailed = (s: ReportStatus) =>
-  s === 'finished' || s === 'mailed';
+  s === ReportStatus.Finished || s === ReportStatus.Mailed;

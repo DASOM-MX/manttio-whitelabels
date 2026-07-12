@@ -7,12 +7,14 @@ import { createUserSchema, deleteUserSchema, updateUserSchema } from '../validat
 import {
   CannotDeleteSelfError,
   CannotModifyOwnerError,
+  CannotResetPasswordError,
   EmailInUseError,
   createUser,
   editUser,
   getUserById,
   getUsers,
   removeUser,
+  resetUserPassword,
 } from '../services/users.service';
 
 export const users = new Hono<AppBindings>();
@@ -44,10 +46,29 @@ users.get('/:id', async (c) => {
 users.post('/', zValidator('json', createUserSchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   try {
-    const user = await createUser(db, c.req.valid('json'));
-    return c.json({ user }, 201);
+    // `tempPassword` (temp-password model) appears in this response only —
+    // it is never retrievable again.
+    const result = await createUser(db, c.req.valid('json'));
+    return c.json(result, 201);
   } catch (err) {
     if (err instanceof EmailInUseError) return c.json({ error: 'email_in_use' }, 409);
+    throw err;
+  }
+});
+
+// Role-gated password reset (backend plan §1): the service enforces the
+// actor→target pairing; the temp password in the response is shown once.
+users.post('/:id/password', async (c) => {
+  const me = c.get('user');
+  const db = createDb(c.env.DATABASE_URL);
+  try {
+    const result = await resetUserPassword(db, me, c.req.param('id'));
+    if (!result) return c.json({ error: 'not_found' }, 404);
+    return c.json(result);
+  } catch (err) {
+    if (err instanceof CannotResetPasswordError) {
+      return c.json({ error: 'cannot_reset_password' }, 403);
+    }
     throw err;
   }
 });

@@ -32,7 +32,7 @@ import type {
   SignedPayload,
 } from '../../../data/dtos/report';
 import { dataUrlToFile } from '../../../data/utils';
-import { WORK_TYPES, type ReportType, type WorkType } from '../../../data/types/report';
+import { WORK_TYPES, ReportStatus, type ReportType, type WorkType } from '../../../data/types/report';
 
 const yesNoToBool = (v: unknown): boolean => v === 'Sí' || v === true;
 
@@ -70,7 +70,7 @@ export class ReportAdd {
     const me = this.currentUser();
     if (!me) return [];
     return this.reportRows().filter(
-      (r) => r.assignedTo === me.id && (r.status === 'created' || r.status === 'in-progress'),
+      (r) => r.assignedTo === me.id && (r.status === ReportStatus.Created || r.status === ReportStatus.InProgress),
     );
   });
 

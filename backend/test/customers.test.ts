@@ -8,6 +8,7 @@ import {
   uniqueRecipientEmail,
 } from './helpers/fixtures';
 import { createDb } from '../src/modules/database/client';
+import { ReportStatus } from '../src/modules/reports/enums/reports.enum';
 import { reportCounters, reports } from '../src/modules/database/schema';
 
 type WorkerEnv = { DATABASE_URL: string };
@@ -278,7 +279,7 @@ describe('DELETE /customers/:id', () => {
       createdBy: admin.id,
       assignedTo: admin.id,
       clientId: customer.id,
-      status: 'created',
+      status: ReportStatus.Created,
     });
 
     const res = await request(`/customers/${customer.id}`, {

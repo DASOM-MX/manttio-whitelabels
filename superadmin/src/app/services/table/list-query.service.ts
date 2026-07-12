@@ -19,7 +19,6 @@ interface FilterControl {
 }
 
 export interface ListQueryConfig {
-  pageSize: number;
   /** Sync sanitized URL params into the form controls (`emitEvent: false` —
    *  the URL is already the source of truth here). */
   read: (params: ParamMap) => void;
@@ -45,6 +44,10 @@ export class ListQueryService {
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
 
+  /** Rows per page — one shared value: only one list is ever on screen at a
+   *  time, so pages read `list.PAGE_SIZE` rather than each carrying its own. */
+  readonly PAGE_SIZE = 10;
+
   /** Paginator offset for `[first]`, kept in sync with the URL page. */
   readonly first = signal(0);
 
@@ -63,7 +66,7 @@ export class ListQueryService {
       .subscribe((params) => {
         const page = Math.max(1, Number(params.get('page') ?? '1') || 1);
         this.currentPage = page;
-        this.first.set((page - 1) * config.pageSize);
+        this.first.set((page - 1) * this.PAGE_SIZE);
         config.read(params);
         config.load(page);
       });
@@ -97,7 +100,7 @@ export class ListQueryService {
   }
 
   onLazyLoad(event: TableLazyLoadEvent): void {
-    const rows = event.rows ?? this.config?.pageSize ?? 1;
+    const rows = event.rows ?? this.PAGE_SIZE;
     const page = Math.floor((event.first ?? 0) / rows) + 1;
     if (page !== this.currentPage) this.apply(page);
   }

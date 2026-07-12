@@ -1,0 +1,157 @@
+<div class="flex flex-wrap items-center gap-3">
+  <a
+    routerLink="/reports"
+    class="inline-flex size-10 items-center justify-center rounded-lg text-granite-600 transition-colors hover:bg-granite-100 dark:text-granite-400 dark:hover:bg-granite-800"
+    aria-label="Volver a reportes"
+  >
+    <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
+  </a>
+  <h1 class="text-xl font-bold text-granite-950 dark:text-granite-50">Reporte de servicio</h1>
+  <div class="flex-1"></div>
+  @if (report(); as r) {
+    <button type="button" class="btn-secondary" (click)="downloadPdf()" [disabled]="downloading()">
+      <svg lucideDownload class="size-4" aria-hidden="true"></svg>
+      @if (downloading()) {
+        Descargando…
+      } @else {
+        PDF
+      }
+    </button>
+    @if (canEmail()) {
+      <button type="button" class="btn-primary" (click)="emailReport()" [disabled]="sending()">
+        <svg lucideMail class="size-4" aria-hidden="true"></svg>
+        @if (sending()) {
+          Enviando…
+        } @else {
+          Enviar por correo
+        }
+      </button>
+    }
+  }
+</div>
+
+@if (report(); as r) {
+  <!-- Header card: system-owned heading (client/tech/date/template/status) -->
+  <section class="card-section mt-5" aria-labelledby="report-head-title">
+    <h2 id="report-head-title" class="micro-label">Datos del servicio</h2>
+    <dl class="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div>
+        <dt class="micro-label">Cliente</dt>
+        <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+          {{ r.customerName }}
+        </dd>
+      </div>
+      <div>
+        <dt class="micro-label">Técnico</dt>
+        <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+          {{ r.technicianName }}
+        </dd>
+      </div>
+      <div>
+        <dt class="micro-label">Fecha de servicio</dt>
+        <dd
+          class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+        >
+          {{ r.serviceDate }}
+        </dd>
+      </div>
+      <div>
+        <dt class="micro-label">Plantilla</dt>
+        <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+          {{ r.templateName }}
+        </dd>
+      </div>
+      <div>
+        <dt class="micro-label">Folio</dt>
+        <dd
+          class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+        >
+          {{ r.folio || '—' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="micro-label">Estado</dt>
+        <dd class="mt-1"><p-tag [severity]="statusSeverity()" [value]="statusLabel()" /></dd>
+      </div>
+    </dl>
+  </section>
+
+  <!-- Template-shaped body: one card per snapshot section, rendered at its
+       captured column count (§5.5 — never re-join the live template). -->
+  @for (section of r.sections; track section.title) {
+    <section class="card-section mt-4" [attr.aria-label]="section.title">
+      <h2 class="micro-label">{{ section.title }}</h2>
+      @if (section.columns === 1) {
+        <!-- 1-col renders | Label | value | rows -->
+        <dl class="mt-3 divide-y divide-granite-200 dark:divide-granite-800">
+          @for (answer of section.answers; track answer.questionId) {
+            <div class="grid grid-cols-2 gap-3 py-2">
+              <dt class="text-sm text-granite-600 dark:text-granite-400">{{ answer.label }}</dt>
+              <dd class="text-sm font-medium text-granite-950 dark:text-granite-50">
+                {{ answer | answerValue }}
+              </dd>
+            </div>
+          }
+        </dl>
+      } @else {
+        <dl class="mt-3" [class]="section.columns | columnsGrid">
+          @for (answer of section.answers; track answer.questionId) {
+            <div>
+              <dt class="micro-label">{{ answer.label }}</dt>
+              <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+                {{ answer | answerValue }}
+              </dd>
+            </div>
+          }
+        </dl>
+      }
+    </section>
+  }
+
+  <!-- Photos -->
+  @if (r.photos.length) {
+    <section class="card-section mt-4" aria-labelledby="report-photos-title">
+      <h2 id="report-photos-title" class="micro-label">Evidencia fotográfica</h2>
+      <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        @for (photo of r.photos; track photo) {
+          <img
+            [src]="photo"
+            alt="Fotografía del servicio"
+            class="aspect-square w-full rounded-lg border border-granite-200 object-cover dark:border-granite-800"
+            loading="lazy"
+          />
+        }
+      </div>
+    </section>
+  }
+
+  <!-- Footer: comments + signature (fixed skeleton) -->
+  <section class="card-section mt-4" aria-labelledby="report-footer-title">
+    <h2 id="report-footer-title" class="micro-label">Comentarios y firma</h2>
+    <p class="mt-3 text-sm text-granite-800 dark:text-granite-200">
+      {{ r.comments || 'Sin comentarios.' }}
+    </p>
+    @if (r.signatureUrl) {
+      <!-- Signature stays on white in dark mode (01 Dark mode: dark canvas
+           would hide the black strokes). -->
+      <img
+        [src]="r.signatureUrl"
+        alt="Firma del cliente"
+        class="mt-4 h-28 w-auto rounded-lg border border-granite-200 bg-white p-2"
+      />
+    }
+  </section>
+
+  <!-- Slot reserved for 09 (billing card): renders the report's billing
+       status + linked bill once the billing module lands. Do not build here. -->
+  <!-- Slot reserved for 10 (materials card): report-materials-editor mounts
+       here once WMS lands (tech-editable on own reports). Do not build here. -->
+} @else {
+  <div class="mt-10 flex justify-center">
+    <div
+      class="size-8 animate-spin rounded-full border-2 border-granite-200 border-t-sky-600 dark:border-granite-700 dark:border-t-sky-400"
+      role="status"
+      aria-label="Cargando reporte"
+    ></div>
+  </div>
+}

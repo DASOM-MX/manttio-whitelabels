@@ -24,7 +24,7 @@
   - `models/*.model.ts` — Drizzle table definitions (entities).
   - `validators/*.validator.ts` — zod request schemas **+ their `z.infer` input types**.
   - `dtos/*.dto.ts` — output/response shapes with no zod equivalent (only `users/` has one: `PublicUser`).
-  - `enums/*.enum.ts` — literal unions + value arrays (`Role`, `WorkType`, `ReportType`, `ReportStatus`).
+  - `enums/*.enum.ts` — string-valued TS `enum`s (e.g. `TemplateStatus`, `QuestionDatatype`, `Magnitude`), so call sites read `status === TemplateStatus.Draft` instead of magic strings; validate with `z.nativeEnum(...)`, type DB columns via `.$type<TheEnum>()`. Preferred over the older const-array + `(typeof X)[number]` union pattern (`Role`, `WorkType`, `ReportType`, `ReportStatus` still use it — migrate to enums as those modules are touched).
   - `constants/*.ts` — fixed values / reference data (e.g. `customers/constants/timezones.ts`). Plain values only — **not** markup.
   - `types/*.types.ts` — internal TS types (DB row aliases, service/filter params).
   - `templates/*` — static markup assets that a helper renders (e.g. the report-email HTML in `reports/templates/report-email.html.ts`). Markup lives here, never inline in a renderer.

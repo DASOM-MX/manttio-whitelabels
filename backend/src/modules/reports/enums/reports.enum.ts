@@ -12,7 +12,12 @@ export type WorkType = (typeof workTypes)[number];
 export const reportTypes = ['minisplit', 'chiller', 'uma'] as const;
 export type ReportType = (typeof reportTypes)[number];
 
-// Report lifecycle status. Keep in sync with the `reports_status_check` constraint
-// and the `status` column `$type` in `models/reports.model.ts`.
-export const REPORT_STATUSES = ['created', 'in-progress', 'finished', 'mailed'] as const;
-export type ReportStatus = (typeof REPORT_STATUSES)[number];
+// Report lifecycle status. Keep the string values in sync with the
+// `reports_status_check` constraint and the `status` column `$type` in
+// `models/reports.model.ts`.
+export enum ReportStatus {
+  Created = 'created',
+  InProgress = 'in-progress',
+  Finished = 'finished',
+  Mailed = 'mailed',
+}

@@ -1,23 +1,42 @@
 import type { Db } from '../../database/client';
-import { findUserByEmail } from '../../users/repository/users.repository';
-import { verifyPassword } from './password.service';
+import { findUserByEmail, updateUser } from '../../users/repository/users.repository';
+import { hashPassword, verifyPassword } from './password.service';
 import { signAuthToken } from './jwt.service';
 import type { LoginInput } from '../validators/auth.validator';
 
+export type LoginResult = { token: string; mustChangePassword: boolean };
+
 // Verifies credentials and returns a signed JWT, or null when they don't match
 // (the caller maps null → 401 invalid_credentials). Registration is closed:
-// only admins create users via POST /users.
+// only admins create users via POST /users. `mustChangePassword` rides the
+// response so clients can interpose the forced-change dialog right after
+// login (backend plan §1 — `/auth/me` will carry it too when it lands).
 export const login = async (
   db: Db,
   { email, password }: LoginInput,
   secret: string,
   environment: string,
-): Promise<string | null> => {
+): Promise<LoginResult | null> => {
   const user = await findUserByEmail(db, email);
   if (!user) return null;
 
   const ok = await verifyPassword(password, user.passwordHash);
   if (!ok) return null;
 
-  return signAuthToken(secret, environment, { id: user.id, role: user.role });
+  const token = await signAuthToken(secret, environment, { id: user.id, role: user.role });
+  return { token, mustChangePassword: user.mustChangePassword };
+};
+
+// Change-own password for the forced-change flow (backend plan §1): rehash and
+// clear the flag. The caller is already JWT-authenticated (they just logged in
+// with the temp password), so only the new password is required — matches the
+// superadmin dialog's contract. Returns false when the user no longer exists.
+export const changeOwnPassword = async (
+  db: Db,
+  userId: string,
+  password: string,
+): Promise<boolean> => {
+  const passwordHash = await hashPassword(password);
+  const row = await updateUser(db, userId, { passwordHash, mustChangePassword: false });
+  return row !== null;
 };
