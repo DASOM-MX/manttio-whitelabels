@@ -8,7 +8,8 @@ export const upload = new Hono<AppBindings>();
 
 // Generic image upload. Used by the frontend to upload report pictures one at a time
 // and stash the returned URL until the report is submitted. Auth required (mounted
-// behind the JWT middleware in `index.ts`); both admins and technicians may use it.
+// behind `managerOr(jwtMiddleware)` in `index.ts`): any product user may use it, and
+// the whitelabel manager's shared token is admitted so brand pushes can carry logos.
 upload.post('/image', async (c) => {
   const fd = await c.req.formData();
   const file = fdGet(fd, 'file');
