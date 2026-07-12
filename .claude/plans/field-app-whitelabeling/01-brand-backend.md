@@ -9,9 +9,8 @@ Build the backend brand source the whole suite depends on, de-hardcode the rende
 the current Peña values into data, and clear the website's residual literals. **Independently
 valuable: this alone lights up the already-built website against a real `/brand` + `/fonts`.**
 
-Governed by `00-master` → Branding rules (esp. HSL/no-hex/0–1000, backend-provided fallback,
-one-deploy-per-tenant, server-side materialization). Enums are **TS enums** (`z.nativeEnum` +
-`.$type<>()` — repo convention).
+Governed by `00-master` → Branding rules. Enums are **TS enums** (`z.nativeEnum` + `.$type<>()`
+— repo convention).
 
 ## 1. `modules/brand/` (net-new, module-first per `backend/CLAUDE.md`)
 
@@ -32,8 +31,7 @@ and ramp to the **0…1000** scale on read so a re-tint change needs no backfill
 - `GET /fonts` — **public**, a curated OFL catalog (constants-only `FontCatalogEntry[]`, woff2
   URLs on the CDN/R2). Matches what the website already resolves against.
 - `PUT /brand` — **JWT + owner** (`requireRole(['owner'])`), upsert the single row, direct-apply
-  (no publish step). Second writer: the manager's shared-token provisioning push (out of scope;
-  note the seam).
+  (no publish step).
 
 ### 1.3 De-hardcode the render paths (supersede `BRAND_*` — CLAUDE.md rule)
 - **Email** (`reports/services/report-email.service.ts` + `helpers/report-email.helpers.ts` +
@@ -47,11 +45,6 @@ and ramp to the **0…1000** scale on read so a re-tint change needs no backfill
 - **`wrangler.toml`:** `BRAND_NAME`/`BRAND_SITE_URL`/`BRAND_LOGO_URL` become the **seed** (§2),
   then drop from `[vars]`. `CDN_BASE_URL`, `API_BASE_URL`, `RESEND_FROM` **stay** (infra). Fix the
   dev gap: `API_BASE_URL` is only in `[env.production.vars]` — add to top-level `[vars]`/`.dev.vars`.
-
-### 1.4 Explicitly descoped
-No `TenantCacheDO`, no `tenant_id`, no cross-tenant host resolution. Brand read hits Neon per
-request (as the website already does, uncached). **Optional** later: wrap `GET /brand` in the CF
-`Cache API` with short TTL — noted, not built (brand is hot: every app boot + site visit).
 
 ## 2. Seeding the current tenant (Peña as data)
 - One-time seed of the `brand` row from today's values: `name='Peña Nevada Chillers'`,

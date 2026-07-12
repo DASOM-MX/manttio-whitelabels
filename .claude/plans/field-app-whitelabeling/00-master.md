@@ -71,51 +71,39 @@ Settled invariants — they govern every plan in this suite; treat them as fixed
 
 ---
 
-## Current reality (from exploration 2026-07-10)
+## Current reality (re-verified against `main` `5321e57`, 2026-07-11)
 
-- **Backend:** no `brand` table, no `GET /brand`, no `GET /fonts`, no DO. Brand lives as
-  hardcoded `wrangler.toml` vars (`BRAND_*`, `RESEND_FROM`, `CDN_BASE_URL`, domains) consumed
-  only by the report-email module; the email **subject** hardcodes the literal
-  `"Peña Nevada Chillers"` (bypasses even `BRAND_NAME`); email HTML + PDF theme colors are
-  hardcoded hex. DB is **single-tenant** (no `tenant_id` anywhere; CMS keyed by `section`/`id`).
-- **Website:** already fetches `GET /brand` + `/fonts` (+ CMS) SSR, fail-soft to neutral
-  defaults, applies colors via a request-time `:root{}` inline style over Tailwind
-  `rgb(var(--brand-…, <fallback>) / <alpha-value>)`. It currently always hits the fallback
-  because `/brand` 404s (unbuilt). Residual literal: worker name `pena-nevada-website`.
-- **Field app (`frontend/`):** **zero** runtime brand machinery — compile-time hex palette
-  (`tailwind.config.js` + PrimeNG `manttio-preset.ts`), brand literals in `manifest.webmanifest`,
-  `index.html` (`apple-mobile-web-app-title`), a `_index.scss` comment, and the login
-  `assets/logo.jpg`. Its palette hexes are **byte-identical to the website's fallback palette**
-  (two logical scales: `primary`, `surface`) → the website's CSS-var repoint technique ports over
-  (retargeted to HSL / 0–1000 per the Branding rules). It already has a `provideAppInitializer`
-  hook and an `app.ts` `effect()` that mutates `<html>`/`theme-color` — the natural boot-fetch +
-  apply seams.
+Nothing of `01`/`02` has landed — the plan is fully pending. Already on `main`: website brand
+*consumption* (#44), the CMS module (#54), report-templates (#50), status enums as TS enums (#57);
+latest migration `0013`.
+
+- **Backend:** no `brand` table, no `GET /brand`/`/fonts`, no DO. Brand is hardcoded `wrangler.toml`
+  vars (`BRAND_*`, `RESEND_FROM`, domains) read only by the report-email module; the email
+  **subject** is the literal `"…– Peña Nevada Chillers"` (helpers L68); email + PDF theme colors are
+  hardcoded hex. DB is **single-tenant** (no `tenant_id`).
+- **Website:** brand *consumption* is **done** (#44) — fetches `/brand` + `/fonts` + CMS SSR,
+  fail-soft to neutral defaults. **Residual only:** still **hex / RGB / steps 50–950**, worker named
+  `pena-nevada-website` → `01` migrates it to HSL/0–1000 + renames. Falls back today because
+  `/brand` 404s (until `01`).
+- **Field app (`frontend/`):** **zero** runtime brand machinery — compile-time hex palette, brand
+  literals in `manifest.webmanifest` / `index.html` / a `_index.scss` comment / the login
+  `assets/logo.jpg`. Palette byte-identical to the website's; `app.config.ts`
+  (`provideAppInitializer`) + `app.ts` (`effect()` already mutating `<html>`/`theme-color`) are the
+  boot-fetch + apply seams.
 
 ---
 
-## Shared brand contract (canonical: `website/src/lib/types.ts`)
+## Shared brand contract
 
-The backend `GET /brand` **must emit exactly** the shape the website already consumes; the field
-app mirrors the same types. Do not invent a second shape.
+The canonical `Brand` / `FontCatalogEntry` types **already exist** in `website/src/lib/types.ts`
+(shipped #44) — that *is* the contract. Backend `GET /brand` must emit exactly that shape and the
+field app mirrors it; **do not re-declare it here or fork a second shape.**
 
-```ts
-interface BrandColorScale { [step: string]: string; }        // '0'…'1000' by 100 → HSL components "H S% L%" (no hex), materialized server-side
-interface Brand {
-  name: string; slogan?: string; description?: string;
-  logoUrl?: string; logoDarkUrl?: string; isologoUrl?: string;   // resolved CDN URLs (backend maps keys → cdnUrl)
-  colors?: { primary?: BrandColorScale; surface?: BrandColorScale };
-  contact?: { phone?: string; whatsapp?: string; email?: string; address?: string };
-  social?: { facebook?: string; instagram?: string; tiktok?: string; [k: string]: string | undefined };
-  font?: { body?: string; heading?: string };                    // catalog codes, e.g. 'work_sans'
-}
-interface FontCatalogEntry { code: string; label: string; files: { variable?: string }; fallbackStack?: string; }
-```
-
-Colors are **full HSL scales** (steps `0`…`1000` by 100, values `H S% L%`, **no hex**); logos are
-**finished CDN URLs**; fonts are **catalog codes** resolved against `/fonts`. Absent identity
-fields **hide** (rule 5). CSS output everywhere is `hsl(var(--brand-<scale>-<step>) / <alpha-value>)`
-with each var holding the `H S% L%` triplet. **This diverges from the website's current impl** (hex,
-50–950), which 01 migrates onto this contract.
+**One delta vs. the repo today** (rule 2): colors move to **HSL, steps 0–1000, no hex** — the
+shipped `BrandColorScale` comment still says `'50'…'950' → hex`. So its values become `H S% L%`
+components at steps `0`…`1000`, and CSS output everywhere is `hsl(var(--brand-<scale>-<step>) /
+<alpha-value>)`. Logos stay finished CDN URLs, fonts stay catalog codes, absent fields hide (rule
+5). `01` migrates the website + backend onto this delta.
 
 ---
 

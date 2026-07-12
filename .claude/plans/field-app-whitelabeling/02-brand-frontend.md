@@ -46,8 +46,7 @@ HSL / 0…1000 per the master's Branding rules).
   utilities across templates + `styles.scss`/`theme/*.scss`: **`-50 → -0`, `-950 → -1000`** (interior
   `100`–`900` unchanged). Map `granite → surface`, `navy/sky/cyan → primary`; repoint semantic
   tokens (`background/surface/primary/secondary/dark`). Fallback = minimal neutral grayscale (rule
-  3 — the real default palette comes from `/brand`). `@apply`-based global classes follow brand
-  automatically — no per-class edits.
+  3). `@apply`-based global classes follow brand automatically — no per-class edits.
 - PrimeNG `manttio-preset.ts`: swap the raw-hex `primary`/`surface` scales to
   `hsl(var(--brand-primary-<step>))` / `hsl(var(--brand-surface-<step>))` at steps `0`…`1000` (no
   `<alpha-value>` placeholder — PrimeNG tokens don't consume it). Verify dark mode still keys off
