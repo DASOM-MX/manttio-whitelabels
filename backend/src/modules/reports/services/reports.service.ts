@@ -37,6 +37,7 @@ import { isEditableStatus } from '../utils/report-lifecycle';
 import { ReportStatus } from '../enums/reports.enum';
 import { validateReportData } from '../validators/reports.validator';
 import { renderReportPdf } from '../helpers/report-pdf.helpers';
+import { getBrand } from '../../brand/services/brand.service';
 import { dispatchReportEmail } from './report-email.service';
 import type { ReportRow } from '../types/reports.types';
 import type {
@@ -524,6 +525,7 @@ export const revokeReportEmail = async (db: Db, emailId: string): Promise<JsonRe
 
 export const renderPdfForToken = async (
   db: Db,
+  cdnBase: string,
   token: string,
 ): Promise<{ id: string; pdf: Uint8Array } | null> => {
   const found = await findEmailByToken(db, token);
@@ -532,13 +534,15 @@ export const renderPdfForToken = async (
   const fullReport = await findReportWithDetails(db, found.email.reportId);
   if (!fullReport) return null;
 
-  const [creator, customer] = await Promise.all([
+  const [creator, customer, brand] = await Promise.all([
     findUserById(db, fullReport.report.createdBy),
     findCustomerById(db, fullReport.report.clientId),
+    getBrand(db, cdnBase),
   ]);
   if (!customer) return null;
 
   const pdf = await renderReportPdf({
+    brand,
     report: {
       id: fullReport.report.id,
       reportType: fullReport.report.reportType,

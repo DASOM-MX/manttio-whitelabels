@@ -4,13 +4,8 @@
 // signature — mirroring the frontend pdfmake layout
 // (`frontend/src/app/pages/report-detail/report-detail.ts`).
 
-import {
-  BORDER,
-  CONTENT_WIDTH,
-  MARGIN,
-  TEXT,
-  FILL_GRAY,
-} from '../../pdf/constants/pdf-layout';
+import { rgb } from 'pdf-lib';
+import { CONTENT_WIDTH, DEFAULT_PDF_THEME, MARGIN } from '../../pdf/constants/pdf-layout';
 import {
   createRenderer,
   drawImageGrid,
@@ -19,7 +14,9 @@ import {
   embedImageFromUrl,
   ensureSpace,
 } from '../../pdf/services/pdf.service';
-import type { Renderer } from '../../pdf/types/pdf.types';
+import { hslToRgb01 } from '../../brand/utils/hsl-color';
+import type { PdfTheme, Renderer } from '../../pdf/types/pdf.types';
+import type { Brand, HslScale } from '../../brand/dtos/brand.dto';
 
 const formatDate = (d: Date | null, timezone: string) => {
   if (!d) return '';
@@ -33,7 +30,22 @@ const formatDate = (d: Date | null, timezone: string) => {
   }).format(d);
 };
 
+// Brand scales → document theme (the whitelabel-PDF hook). Steps chosen to sit
+// closest to the pre-brand constants; any unparsable value falls back to the
+// matching neutral default component.
+const themeColor = (scale: HslScale, step: string, fallback: PdfTheme[keyof PdfTheme]) => {
+  const color = hslToRgb01(scale[step] ?? '');
+  return color ? rgb(color.r, color.g, color.b) : fallback;
+};
+
+export const pdfThemeFromBrand = (brand: Brand): PdfTheme => ({
+  fill: themeColor(brand.colors.surface, '100', DEFAULT_PDF_THEME.fill),
+  border: themeColor(brand.colors.surface, '300', DEFAULT_PDF_THEME.border),
+  text: themeColor(brand.colors.primary, '900', DEFAULT_PDF_THEME.text),
+});
+
 export type RenderReportPdfParams = {
+  brand: Brand;
   report: {
     id: string;
     reportType: string;
@@ -61,6 +73,19 @@ export type RenderReportPdfParams = {
   signatureUrl: string | null;
 };
 
+// Tenant logo above the title bar. Absent brand logo → no strip at all, the
+// document starts at the title bar exactly as before.
+const drawBrandLogo = async (r: Renderer, logoUrl: string | undefined) => {
+  if (!logoUrl) return;
+  const logo = await embedImageFromUrl(r.doc, logoUrl);
+  if (!logo) return;
+  const ratio = Math.min(180 / logo.width, 36 / logo.height, 1);
+  const w = logo.width * ratio;
+  const h = logo.height * ratio;
+  r.page.drawImage(logo, { x: MARGIN, y: r.y - h, width: w, height: h });
+  r.y -= h + 10;
+};
+
 const drawTitleBar = (r: Renderer, customerName: string, folio: string) => {
   ensureSpace(r, 36);
   // Two-cell row with bottom border only — emulate pdfmake's title bar.
@@ -70,7 +95,7 @@ const drawTitleBar = (r: Renderer, customerName: string, folio: string) => {
     start: { x: MARGIN, y: r.y - height + 0.5 },
     end: { x: MARGIN + CONTENT_WIDTH, y: r.y - height + 0.5 },
     thickness: 0.6,
-    color: BORDER,
+    color: r.theme.border,
   });
   // Customer name (left, h1)
   r.page.drawText(customerName, {
@@ -78,7 +103,7 @@ const drawTitleBar = (r: Renderer, customerName: string, folio: string) => {
     y: r.y - 22,
     size: 18,
     font: r.fontBold,
-    color: TEXT,
+    color: r.theme.text,
   });
   // Folio (right, h2)
   const folioWidth = r.fontBold.widthOfTextAtSize(folio, 14);
@@ -87,7 +112,7 @@ const drawTitleBar = (r: Renderer, customerName: string, folio: string) => {
     y: r.y - 22,
     size: 14,
     font: r.fontBold,
-    color: TEXT,
+    color: r.theme.text,
   });
   r.y -= height + 6;
 };
@@ -95,7 +120,7 @@ const drawTitleBar = (r: Renderer, customerName: string, folio: string) => {
 const drawCustomerTable = (r: Renderer, customer: RenderReportPdfParams['customer']) => {
   const cols = [CONTENT_WIDTH / 2, CONTENT_WIDTH / 2];
   drawRow(r, cols, [
-    { text: 'Datos del Cliente', bold: true, fill: FILL_GRAY, align: 'center', colSpan: 2 },
+    { text: 'Datos del Cliente', bold: true, fill: r.theme.fill, align: 'center', colSpan: 2 },
     { text: '' },
   ]);
   drawRow(r, cols, [
@@ -121,7 +146,7 @@ const drawActivitiesTable = (r: Renderer, p: RenderReportPdfParams) => {
   const w = CONTENT_WIDTH / 4;
   const cols = [w, w, w, w];
   drawRow(r, cols, [
-    { text: 'Informaciones de las actividades', bold: true, fill: FILL_GRAY, align: 'center', colSpan: 4 },
+    { text: 'Informaciones de las actividades', bold: true, fill: r.theme.fill, align: 'center', colSpan: 4 },
     { text: '' },
     { text: '' },
     { text: '' },
@@ -158,7 +183,7 @@ const drawVariantTable = (r: Renderer, reportType: string, data: Record<string, 
 
   if (reportType === 'minisplit') {
     drawRow(r, cols4, [
-      { text: 'Formulario: Mantenimiento Minisplit', bold: true, fill: FILL_GRAY, align: 'center', colSpan: 4 },
+      { text: 'Formulario: Mantenimiento Minisplit', bold: true, fill: r.theme.fill, align: 'center', colSpan: 4 },
       { text: '' },
       { text: '' },
       { text: '' },
@@ -193,7 +218,7 @@ const drawVariantTable = (r: Renderer, reportType: string, data: Record<string, 
       CONTENT_WIDTH * 0.15,
     ];
     drawRow(r, cols, [
-      { text: 'Informaciones de las actividades', bold: true, fill: FILL_GRAY, align: 'center', colSpan: 4 },
+      { text: 'Informaciones de las actividades', bold: true, fill: r.theme.fill, align: 'center', colSpan: 4 },
       { text: '' },
       { text: '' },
       { text: '' },
@@ -240,7 +265,7 @@ const drawVariantTable = (r: Renderer, reportType: string, data: Record<string, 
     ]);
   } else if (reportType === 'uma') {
     drawRow(r, cols4, [
-      { text: 'Formulario UMAS', bold: true, fill: FILL_GRAY, align: 'center', colSpan: 4 },
+      { text: 'Formulario UMAS', bold: true, fill: r.theme.fill, align: 'center', colSpan: 4 },
       { text: '' },
       { text: '' },
       { text: '' },
@@ -312,7 +337,7 @@ const drawSignature = async (
     y: r.y - 14,
     size: 12,
     font: r.fontBold,
-    color: TEXT,
+    color: r.theme.text,
   });
   r.y -= 22;
 
@@ -328,7 +353,7 @@ const drawSignature = async (
       y: r.y - 18,
       size: 14,
       font: r.fontBold,
-      color: TEXT,
+      color: r.theme.text,
     });
     r.y -= 22;
   }
@@ -345,15 +370,16 @@ const drawSignature = async (
       y: r.y - 12,
       size: 9,
       font: r.font,
-      color: TEXT,
+      color: r.theme.text,
     });
     r.y -= 16;
   }
 };
 
 export const renderReportPdf = async (p: RenderReportPdfParams): Promise<Uint8Array> => {
-  const r = await createRenderer();
+  const r = await createRenderer(pdfThemeFromBrand(p.brand));
 
+  await drawBrandLogo(r, p.brand.logoUrl ?? p.brand.isologoUrl);
   drawTitleBar(r, p.customer.name, p.report.id);
   drawCustomerTable(r, p.customer);
   drawActivitiesTable(r, p);
