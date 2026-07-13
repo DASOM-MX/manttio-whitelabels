@@ -160,10 +160,20 @@
       <div class="field-group">
         <label class="field-label" for="brand-phone">Teléfono<span aria-hidden="true"> *</span></label>
         <input id="brand-phone" pInputText type="tel" formControlName="phone" autocomplete="tel" />
+        @if (contactControls.phone.touched && contactControls.phone.errors?.['phone']) {
+          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+            Ingresa un número de teléfono válido (10 a 15 dígitos).
+          </p>
+        }
       </div>
       <div class="field-group">
         <label class="field-label" for="brand-whatsapp">WhatsApp<span aria-hidden="true"> *</span></label>
         <input id="brand-whatsapp" pInputText type="tel" formControlName="whatsapp" />
+        @if (contactControls.whatsapp.touched && contactControls.whatsapp.errors?.['phone']) {
+          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+            Ingresa un número de teléfono válido (10 a 15 dígitos).
+          </p>
+        }
       </div>
       <div class="field-group">
         <label class="field-label" for="brand-email">Correo<span aria-hidden="true"> *</span></label>
@@ -174,6 +184,11 @@
           formControlName="email"
           autocomplete="email"
         />
+        @if (contactControls.email.touched && contactControls.email.errors?.['email']) {
+          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+            Ingresa un correo válido.
+          </p>
+        }
       </div>
       <div class="field-group">
         <label class="field-label" for="brand-address">Dirección<span aria-hidden="true"> *</span></label>
@@ -181,6 +196,7 @@
           id="brand-address"
           pInputText
           formControlName="address"
+          maxlength="250"
           autocomplete="street-address"
         />
       </div>

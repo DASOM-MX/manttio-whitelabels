@@ -21,6 +21,7 @@ import { BrandThemeService } from '../../../services/theme/brand-theme.service';
 import { ColorScaleService } from '../../../services/theme/color-scale.service';
 import { FontLoaderService } from '../../../services/theme/font-loader.service';
 import { errorMessage } from '../../../data/utils';
+import { phoneValidator } from '../../../validators/phone.validator';
 import { FONT_PREVIEW_SIZES } from '../../../model/constants/brand/font-preview-sizes.const';
 import { BRAND_SCALE_STEPS } from '../../../model/constants/brand/scale-steps.const';
 import { ScaleEditor } from '../../components/scale-editor/scale-editor';
@@ -77,17 +78,23 @@ export class BrandEditor {
 
   protected dialog = viewChild<ApplyBrandDialog>('applyDialog');
 
+  /** Template shorthand for the contact controls' error state. */
+  protected get contactControls() {
+    return this.form.controls.contact.controls;
+  }
+
   protected form = this.fb.nonNullable.group({
     name: ['', Validators.required],
     slogan: ['', Validators.required],
     description: [''],
     // Contact info is required brand data (PUT /brand rejects it missing);
     // social links are optional and blank ones never travel (buildPayload).
+    // Format rules mirror the backend's brand.validator.ts.
     contact: this.fb.nonNullable.group({
-      phone: ['', Validators.required],
-      whatsapp: ['', Validators.required],
+      phone: ['', [Validators.required, phoneValidator]],
+      whatsapp: ['', [Validators.required, phoneValidator]],
       email: ['', [Validators.required, Validators.email]],
-      address: ['', Validators.required],
+      address: ['', [Validators.required, Validators.maxLength(250)]],
     }),
     social: this.fb.nonNullable.group({
       facebook: [''],
