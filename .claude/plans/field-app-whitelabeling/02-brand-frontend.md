@@ -1,6 +1,7 @@
 # Whitelabel 02 — Field-app runtime theming + PWA manifest (PR-B + PR-C)
 
-> **Status:** CP-1 implemented (PR-B, 2026-07-12); CP-2 pending · **Last updated:** 2026-07-12 · **PRs:** PR-B (theming), PR-C (manifest)
+> **Status:** implemented — CP-1 (PR-B) + CP-2 (PR-C, backend-generated icons + `manttio-logos`
+> bucket), 2026-07-12 · **Last updated:** 2026-07-12 · **PRs:** PR-B (theming), PR-C (manifest)
 > **Part of:** `.claude/plans/field-app-whitelabeling/` (see `00-master` for the canonical
 > Branding rules, shared brand contract, current reality, de-brand inventory).
 > **Depends on:** `01-brand-backend` for a live `/brand` + `/fonts` (can build fail-soft before it lands).
@@ -95,13 +96,38 @@ the manifest **fresh at runtime**:
       modifiers intact, zero palette hexes); no-flash via persisted state; in-browser light/dark
       pass = user-run `ng serve` against the PR-A backend
 
-### CP-2 — Dynamic PWA manifest (PR-C)
-- [ ] Pages Function `manifest.webmanifest` from `/brand`; `index.html` link; SW prefetch of the
-      static manifest removed
-- [ ] Neutral bundled fallback icon set; install shows tenant name/icon; document the cache caveat
-- [ ] Static `manifest.webmanifest` brand literals gone (superseded by the route)
+### CP-2 — Dynamic PWA manifest (PR-C, implemented 2026-07-12)
+- [x] Pages Function `frontend/functions/manifest.webmanifest.ts` builds the manifest from
+      `GET {API_BASE_URL}/brand` per request (name/short_name/description; theme_color ←
+      primary-800, background_color ← surface-0, both hex-converted; 5-min edge cache;
+      fail-soft neutral manifest). `index.html` link unchanged (same path — the function
+      outranks static assets); SW prefetch of the manifest removed from `ngsw-config.json`
+- [x] **Icon set is backend-generated** (decided 2026-07-12): `brand/services/
+      brand-icons.service.ts` decodes the PNG mark (`faviconKey ?? isologoKey`, `upng-js`),
+      renders any-192/512 (transparent contain-fit) + maskable-192/512 (80% safe zone over a
+      solid surface-0 tile), stores them in the **`manttio-logos` bucket** (new
+      `MANTTIO_LOGOS` binding + `LOGOS_CDN_BASE_URL`; brand uploads moved to
+      `POST /upload/logo`, keys prefix `logos/`, generated icons `icons/`), regenerates on
+      every save (old objects best-effort deleted), and serves them as `brand.icons`
+      (migration `0015`, applied). Undecodable/missing source fails soft — brand saves, icons
+      absent
+- [x] Neutral bundled fallback icon set (solid `#40454F` tiles replace the Peña marks in
+      `public/icons/`); cache caveat documented in the function header; static
+      `manifest.webmanifest` deleted (Peña literals gone)
 
 ## Open decisions (this plan)
-- **PWA icon assets:** the dynamic manifest needs sized + maskable icons (192/512) per tenant. Does
-  the tenant upload a full icon set, or does the backend/build generate them from the uploaded
-  isologo (needs image processing)? Today's `icons/*` are static Peña assets.
+- **PWA icon assets (resolved 2026-07-12):** the **backend generates** the sized + maskable set
+  from the uploaded mark on every brand save and the manifest route injects the resulting CDN
+  URLs (user decision). Pure-TS pipeline (`upng-js` codec + `brand/utils/rgba-image.ts`
+  premultiplied bilinear resampler) — PNG sources only; anything else fails soft to the neutral
+  bundled set.
+- **Brand asset storage (decided 2026-07-12):** brand images + generated icons live in the
+  dedicated **`manttio-logos`** bucket (second binding on the tenant Worker), uploaded via
+  `POST /upload/logo` and materialized against `LOGOS_CDN_BASE_URL`; `manttio-reports` keeps
+  report data only.
+- **Deploy checklist (PR-C):** create the `manttio-logos` R2 bucket (dev + prod) and give it a
+  public/custom domain; set the real `LOGOS_CDN_BASE_URL` in `wrangler.toml` (currently a
+  placeholder `https://logos.penanevadachillers.com`); set the **Pages project env var
+  `API_BASE_URL`** on the frontend project (the manifest function needs it); migration `0015`
+  already applied to Neon (2026-07-12). Manager pushes now upload logos through
+  `POST /upload/logo` (not `/upload/image`).

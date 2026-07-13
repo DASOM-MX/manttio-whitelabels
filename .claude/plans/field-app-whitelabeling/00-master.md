@@ -1,8 +1,9 @@
 # Whitelabel — De-brand + runtime tenant branding (master)
 
-> **Status:** 01 implemented (PR-A, 2026-07-12 — **no seed**: brand provisioned via the manager's
-> shared-token push; contract gained `siteUrl?`); 02 CP-1 implemented (PR-B, 2026-07-12), CP-2
-> (dynamic manifest, PR-C) pending · **Last updated:** 2026-07-12
+> **Status:** suite implemented 2026-07-12 — 01 (PR-A: **no seed**, manager shared-token push;
+> contract gained `siteUrl?`) · 02 CP-1 (PR-B: field-app runtime theming) · 02 CP-2 (PR-C:
+> dynamic manifest; **backend-generated icon set** in the dedicated `manttio-logos` bucket,
+> contract gained `icons?`) · **Last updated:** 2026-07-12
 > **Suite:** `.claude/plans/field-app-whitelabeling/` — this master + two build plans:
 > **`01-brand-backend`** (backend brand source, PR-A) · **`02-brand-frontend`** (field-app
 > runtime theming + dynamic PWA manifest, PR-B + PR-C).
