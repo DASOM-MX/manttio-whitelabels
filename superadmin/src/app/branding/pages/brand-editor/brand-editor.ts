@@ -84,23 +84,24 @@ export class BrandEditor {
   }
 
   protected form = this.fb.nonNullable.group({
-    name: ['', Validators.required],
-    slogan: ['', Validators.required],
-    description: [''],
+    name: ['', [Validators.required, Validators.maxLength(100)]],
+    slogan: ['', [Validators.required, Validators.maxLength(150)]],
+    description: ['', Validators.maxLength(300)],
     // Contact info is required brand data (PUT /brand rejects it missing);
     // social links are optional and blank ones never travel (buildPayload).
-    // Format rules mirror the backend's brand.validator.ts.
+    // Format rules and length caps mirror the backend's brand.validator.ts;
+    // the template's maxlength attrs keep typing inside them.
     contact: this.fb.nonNullable.group({
-      phone: ['', [Validators.required, phoneValidator]],
-      whatsapp: ['', [Validators.required, phoneValidator]],
-      email: ['', [Validators.required, Validators.email]],
+      phone: ['', [Validators.required, phoneValidator, Validators.maxLength(20)]],
+      whatsapp: ['', [Validators.required, phoneValidator, Validators.maxLength(20)]],
+      email: ['', [Validators.required, Validators.email, Validators.maxLength(254)]],
       address: ['', [Validators.required, Validators.maxLength(250)]],
     }),
     social: this.fb.nonNullable.group({
-      facebook: [''],
-      instagram: [''],
-      tiktok: [''],
-      googleMaps: [''],
+      facebook: ['', Validators.maxLength(300)],
+      instagram: ['', Validators.maxLength(300)],
+      tiktok: ['', Validators.maxLength(300)],
+      googleMaps: ['', Validators.maxLength(300)],
     }),
     font: this.fb.nonNullable.group({
       body: ['work_sans'],

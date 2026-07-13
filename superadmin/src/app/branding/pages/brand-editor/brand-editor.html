@@ -46,11 +46,19 @@
 
     <div class="field-group">
       <label class="field-label" for="brand-name">Nombre<span aria-hidden="true"> *</span></label>
-      <input id="brand-name" pInputText formControlName="name" autocomplete="organization" />
+      <input
+        id="brand-name"
+        pInputText
+        formControlName="name"
+        maxlength="100"
+        autocomplete="organization"
+      />
     </div>
     <div class="field-group">
-      <label class="field-label" for="brand-slogan">Eslogan<span aria-hidden="true"> *</span></label>
-      <input id="brand-slogan" pInputText formControlName="slogan" />
+      <label class="field-label" for="brand-slogan"
+        >Eslogan<span aria-hidden="true"> *</span></label
+      >
+      <input id="brand-slogan" pInputText formControlName="slogan" maxlength="150" />
       <p class="text-sm text-granite-500 dark:text-granite-400">
         Frase corta bajo el logotipo en el sitio público.
       </p>
@@ -61,6 +69,7 @@
         id="brand-description"
         pTextarea
         formControlName="description"
+        maxlength="300"
         rows="3"
         class="!min-h-20"
         placeholder="Qué hace tu negocio, en dos o tres frases."
@@ -158,8 +167,17 @@
 
     <div class="grid gap-4 sm:grid-cols-2" formGroupName="contact">
       <div class="field-group">
-        <label class="field-label" for="brand-phone">Teléfono<span aria-hidden="true"> *</span></label>
-        <input id="brand-phone" pInputText type="tel" formControlName="phone" autocomplete="tel" />
+        <label class="field-label" for="brand-phone"
+          >Teléfono<span aria-hidden="true"> *</span></label
+        >
+        <input
+          id="brand-phone"
+          pInputText
+          type="tel"
+          formControlName="phone"
+          maxlength="20"
+          autocomplete="tel"
+        />
         @if (contactControls.phone.touched && contactControls.phone.errors?.['phone']) {
           <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
             Ingresa un número de teléfono válido (10 a 15 dígitos).
@@ -167,8 +185,16 @@
         }
       </div>
       <div class="field-group">
-        <label class="field-label" for="brand-whatsapp">WhatsApp<span aria-hidden="true"> *</span></label>
-        <input id="brand-whatsapp" pInputText type="tel" formControlName="whatsapp" />
+        <label class="field-label" for="brand-whatsapp"
+          >WhatsApp<span aria-hidden="true"> *</span></label
+        >
+        <input
+          id="brand-whatsapp"
+          pInputText
+          type="tel"
+          formControlName="whatsapp"
+          maxlength="20"
+        />
         @if (contactControls.whatsapp.touched && contactControls.whatsapp.errors?.['phone']) {
           <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
             Ingresa un número de teléfono válido (10 a 15 dígitos).
@@ -176,12 +202,15 @@
         }
       </div>
       <div class="field-group">
-        <label class="field-label" for="brand-email">Correo<span aria-hidden="true"> *</span></label>
+        <label class="field-label" for="brand-email"
+          >Correo<span aria-hidden="true"> *</span></label
+        >
         <input
           id="brand-email"
           pInputText
           type="email"
           formControlName="email"
+          maxlength="254"
           autocomplete="email"
         />
         @if (contactControls.email.touched && contactControls.email.errors?.['email']) {
@@ -191,7 +220,9 @@
         }
       </div>
       <div class="field-group">
-        <label class="field-label" for="brand-address">Dirección<span aria-hidden="true"> *</span></label>
+        <label class="field-label" for="brand-address"
+          >Dirección<span aria-hidden="true"> *</span></label
+        >
         <input
           id="brand-address"
           pInputText
@@ -205,19 +236,37 @@
     <div class="grid gap-4 sm:grid-cols-2" formGroupName="social">
       <div class="field-group">
         <label class="field-label" for="brand-facebook">Facebook</label>
-        <input id="brand-facebook" pInputText type="url" formControlName="facebook" />
+        <input
+          id="brand-facebook"
+          pInputText
+          type="url"
+          formControlName="facebook"
+          maxlength="300"
+        />
       </div>
       <div class="field-group">
         <label class="field-label" for="brand-tiktok">TikTok</label>
-        <input id="brand-tiktok" pInputText type="url" formControlName="tiktok" />
+        <input id="brand-tiktok" pInputText type="url" formControlName="tiktok" maxlength="300" />
       </div>
       <div class="field-group">
         <label class="field-label" for="brand-instagram">Instagram</label>
-        <input id="brand-instagram" pInputText type="url" formControlName="instagram" />
+        <input
+          id="brand-instagram"
+          pInputText
+          type="url"
+          formControlName="instagram"
+          maxlength="300"
+        />
       </div>
       <div class="field-group">
         <label class="field-label" for="brand-googlemaps">Pin de Google</label>
-        <input id="brand-googlemaps" pInputText type="url" formControlName="googleMaps" />
+        <input
+          id="brand-googlemaps"
+          pInputText
+          type="url"
+          formControlName="googleMaps"
+          maxlength="300"
+        />
       </div>
     </div>
   </section>
@@ -232,8 +281,7 @@
     <div>
       <h2 id="brand-fonts-title" class="section-heading">Tipografía</h2>
       <p class="text-sm text-granite-600 dark:text-granite-400">
-        Se aplica al sitio y a la aplicación de campo; esta administración conserva su propia
-        letra.
+        Se aplica al sitio y a la aplicación de campo; esta administración conserva su propia letra.
       </p>
     </div>
 
