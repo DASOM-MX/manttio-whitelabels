@@ -21,6 +21,8 @@ import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { AppState } from '../state/app/app.state';
 import { AuthState } from '../state/auth/auth.state';
+import { BrandState } from '../state/brand/brand.state';
+import { LoadBrand } from '../state/brand/brand.actions';
 import { UsersState } from '../state/users/users.state';
 import { CustomersState } from '../state/customers/customers.state';
 import { ReportsState } from '../state/reports/reports.state';
@@ -58,15 +60,20 @@ export const appConfig: ApplicationConfig = {
     ConfirmationService,
     MessageService,
     provideStore(
-      [AppState, AuthState, UsersState, CustomersState, ReportsState, ReportDraftState, OfflineReportsState],
-      withNgxsStoragePlugin({ keys: ['auth', 'reportDraft', 'app'] }),
+      [AppState, AuthState, BrandState, UsersState, CustomersState, ReportsState, ReportDraftState, OfflineReportsState],
+      // `brand` is persisted so the last-known tenant brand paints instantly on
+      // the next boot; LoadBrand refreshes it in the background (plan 02 §1.1).
+      withNgxsStoragePlugin({ keys: ['auth', 'reportDraft', 'app', 'brand'] }),
       withNgxsReduxDevtoolsPlugin({ disabled: !isDevMode() }),
       withNgxsLoggerPlugin({ disabled: !isDevMode() }),
     ),
     // Hydrate the offline queue from IndexedDB on boot (fire-and-forget; never blocks bootstrap)
     // and eagerly start the connectivity watcher so its online/offline listeners are bound.
+    // LoadBrand refreshes the (already persisted) tenant brand in the background.
     provideAppInitializer(() => {
-      inject(Store).dispatch(new LoadPendingReports());
+      const store = inject(Store);
+      store.dispatch(new LoadPendingReports());
+      store.dispatch(new LoadBrand());
       inject(OfflineSyncService);
     }),
     provideServiceWorker('ngsw-worker.js', {

@@ -51,7 +51,7 @@
       @apply border-t-0;
     }
     &:hover {
-      @apply bg-sky-50 dark:bg-granite-800;
+      @apply bg-sky-0 dark:bg-granite-800;
     }
     &:active {
       @apply bg-sky-100 dark:bg-granite-700;
@@ -82,7 +82,7 @@
 .p-paginator-next,
 .p-paginator-first,
 .p-paginator-last {
-  @apply size-11 inline-flex items-center justify-center rounded-lg text-base font-semibold text-granite-800 hover:bg-sky-50 cursor-pointer transition-colors
+  @apply size-11 inline-flex items-center justify-center rounded-lg text-base font-semibold text-granite-800 hover:bg-sky-0 cursor-pointer transition-colors
          dark:text-granite-200 dark:hover:bg-granite-800;
 
   &.p-paginator-page-selected {
@@ -112,9 +112,9 @@
   @apply hidden;
 }
 .p-datatable-header {
-  @apply bg-granite-50 dark:bg-granite-900;
+  @apply bg-granite-0 dark:bg-granite-900;
 }
 .p-datatable-footer {
-  @apply px-5 py-4 border-t border-granite-200 bg-granite-50
+  @apply px-5 py-4 border-t border-granite-200 bg-granite-0
          dark:bg-granite-900 dark:border-granite-700;
 }

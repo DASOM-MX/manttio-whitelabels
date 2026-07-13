@@ -32,12 +32,12 @@
 }
 .p-datepicker-prev-button,
 .p-datepicker-next-button {
-  @apply size-10 inline-flex items-center justify-center rounded-full text-granite-700 hover:bg-sky-50 transition-colors
+  @apply size-10 inline-flex items-center justify-center rounded-full text-granite-700 hover:bg-sky-0 transition-colors
          dark:text-granite-300 dark:hover:bg-granite-800;
 }
 .p-datepicker-select-month,
 .p-datepicker-select-year {
-  @apply px-2 py-1 rounded-md text-base font-semibold text-granite-900 hover:bg-sky-50 transition-colors
+  @apply px-2 py-1 rounded-md text-base font-semibold text-granite-900 hover:bg-sky-0 transition-colors
          dark:text-granite-100 dark:hover:bg-granite-800;
 }
 .p-datepicker-calendar {
@@ -56,7 +56,7 @@
          dark:text-granite-100;
 
   &:hover {
-    @apply bg-sky-50 dark:bg-granite-800;
+    @apply bg-sky-0 dark:bg-granite-800;
   }
   &.p-datepicker-day-selected,
   &[data-p-selected='true'] {
@@ -89,7 +89,7 @@
            dark:text-granite-100;
   }
   button {
-    @apply size-7 inline-flex items-center justify-center rounded-md text-granite-700 hover:bg-sky-50 transition-colors
+    @apply size-7 inline-flex items-center justify-center rounded-md text-granite-700 hover:bg-sky-0 transition-colors
            dark:text-granite-300 dark:hover:bg-granite-800;
   }
 }

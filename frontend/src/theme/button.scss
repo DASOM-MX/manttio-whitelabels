@@ -27,7 +27,7 @@
     @apply btn-danger;
   }
   &.p-button-text {
-    @apply bg-transparent text-sky-700 hover:bg-sky-50 active:bg-sky-100 border-transparent;
+    @apply bg-transparent text-sky-700 hover:bg-sky-0 active:bg-sky-100 border-transparent;
   }
 }
 .p-button-icon {
