@@ -7,8 +7,10 @@
 
 import { labelForTimezone } from '../../customers/constants/timezones';
 import { hslToHex } from '../../brand/utils/hsl-color';
-import { reportEmailHtml } from '../templates/report-email.html';
-import type { EmailPalette } from '../templates/report-email.html';
+// Explicit .ts extension: a specifier ending in `.html` matches wrangler's
+// built-in Text-module rule and breaks `wrangler dev` bundling.
+import { reportEmailHtml } from '../templates/report-email.html.ts';
+import type { EmailPalette } from '../templates/report-email.html.ts';
 import type { BrandColors, HslScale } from '../../brand/dtos/brand.dto';
 
 const REPORT_TYPE_LABELS: Record<string, string> = {
