@@ -75,7 +75,9 @@ export interface SaveBrandRequest {
     primary: BrandColorScale;
     surface: BrandColorScale;
   };
-  contact?: BrandContact;
+  // Contact info is required brand data (the backend rejects it missing);
+  // social links stay optional — blank ones are omitted, never sent empty.
+  contact: Required<BrandContact>;
   social?: BrandSocial;
   font?: BrandFont;
 }

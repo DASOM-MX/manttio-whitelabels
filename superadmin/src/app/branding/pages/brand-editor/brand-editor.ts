@@ -82,11 +82,13 @@ export class BrandEditor {
     slogan: [''],
     description: [''],
     siteUrl: [''],
+    // Contact info is required brand data (PUT /brand rejects it missing);
+    // social links are optional and blank ones never travel (buildPayload).
     contact: this.fb.nonNullable.group({
-      phone: [''],
-      whatsapp: [''],
-      email: ['', Validators.email],
-      address: [''],
+      phone: ['', Validators.required],
+      whatsapp: ['', Validators.required],
+      email: ['', [Validators.required, Validators.email]],
+      address: ['', Validators.required],
     }),
     social: this.fb.nonNullable.group({
       facebook: [''],
@@ -263,9 +265,16 @@ export class BrandEditor {
       faviconKey: img.favicon.key,
       colors: this.draftColors(),
       contact: raw.contact,
-      social: raw.social,
+      social: this.compactSocial(raw.social),
       font: raw.font,
     };
+  }
+
+  /** Blank social inputs mean "not provided" — they never travel, so the
+   *  backend's URL check only ever sees filled-in links. */
+  private compactSocial(social: Record<string, string>): SaveBrandRequest['social'] {
+    const entries = Object.entries(social).filter(([, url]) => url.trim() !== '');
+    return entries.length ? Object.fromEntries(entries) : undefined;
   }
 
   /** The editor's hex groups converted to the wire format — HSL components at
