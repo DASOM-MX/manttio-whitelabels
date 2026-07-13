@@ -64,9 +64,11 @@ export interface Brand {
  *  materialized as HSL 0…1000 so consumers never run palette math. */
 export interface SaveBrandRequest {
   name: string;
-  slogan?: string;
+  slogan: string;
   description?: string;
-  siteUrl?: string;
+  // no siteUrl: the tenant site is provisioned with the whitelabel package
+  // (manager push) — the in-tenant editor never sends it, the backend keeps
+  // the stored value on saves that omit it.
   logoKey?: string;
   logoDarkKey?: string;
   isologoKey?: string;

@@ -79,9 +79,8 @@ export class BrandEditor {
 
   protected form = this.fb.nonNullable.group({
     name: ['', Validators.required],
-    slogan: [''],
+    slogan: ['', Validators.required],
     description: [''],
-    siteUrl: [''],
     // Contact info is required brand data (PUT /brand rejects it missing);
     // social links are optional and blank ones never travel (buildPayload).
     contact: this.fb.nonNullable.group({
@@ -256,9 +255,8 @@ export class BrandEditor {
     const img = this.images();
     return {
       name: raw.name,
-      slogan: raw.slogan || undefined,
+      slogan: raw.slogan,
       description: raw.description || undefined,
-      siteUrl: raw.siteUrl || undefined,
       logoKey: img.logo.key,
       logoDarkKey: img.logoDark.key,
       isologoKey: img.isologo.key,
@@ -296,7 +294,6 @@ export class BrandEditor {
         name: brand.name,
         slogan: brand.slogan ?? '',
         description: brand.description ?? '',
-        siteUrl: brand.siteUrl ?? '',
         contact: {
           phone: brand.contact?.phone ?? '',
           whatsapp: brand.contact?.whatsapp ?? '',
