@@ -39,6 +39,15 @@ async function resolveBaseUrl(): Promise<string | null> {
   return raw.replace(/\/$/, '');
 }
 
+// Blank means "unset" throughout the brand contract — the backend's neutral
+// default (pre-provisioning) ships name '' — so drop blank/null fields before
+// merging or they'd clobber the built-in fallbacks with emptiness.
+function withoutBlanks<T extends object>(obj: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, value]) => value !== '' && value != null),
+  ) as Partial<T>;
+}
+
 export async function getSiteData(): Promise<SiteData> {
   const baseUrl = await resolveBaseUrl();
   if (!baseUrl) {
@@ -54,7 +63,7 @@ export async function getSiteData(): Promise<SiteData> {
   ]);
 
   return {
-    brand: brand ? { ...DEFAULT_BRAND, ...brand } : DEFAULT_BRAND,
+    brand: brand ? { ...DEFAULT_BRAND, ...withoutBlanks(brand) } : DEFAULT_BRAND,
     home: home ?? DEFAULT_HOME,
     clients: clients?.length ? clients : DEFAULT_CLIENTS,
     fonts: fonts ?? [],
