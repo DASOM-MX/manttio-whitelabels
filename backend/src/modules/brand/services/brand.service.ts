@@ -36,11 +36,14 @@ export const saveBrand = async (
   cdnBase: string,
   input: SaveBrandInput,
 ): Promise<Brand> => {
+  const existing = await findBrand(db);
   const row = await upsertBrand(db, {
     name: input.name,
-    slogan: input.slogan ?? null,
+    slogan: input.slogan,
     description: input.description ?? null,
-    siteUrl: input.siteUrl ?? null,
+    // siteUrl is manager-owned: the in-tenant editor never sends it, so an
+    // absent value means "keep what the whitelabel package provisioned".
+    siteUrl: input.siteUrl ?? existing?.siteUrl ?? null,
     logoKey: input.logoKey ?? null,
     logoDarkKey: input.logoDarkKey ?? null,
     isologoKey: input.isologoKey ?? null,

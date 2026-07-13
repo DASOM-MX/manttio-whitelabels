@@ -39,8 +39,10 @@ const socialSchema = z.preprocess(
 
 export const saveBrandSchema = z.object({
   name: z.string().min(1),
-  slogan: z.string().optional(),
+  slogan: z.string().min(1),
   description: z.string().optional(),
+  // siteUrl is manager-owned (the tenant site ships with the whitelabel
+  // package) — the in-tenant editor omits it and the stored value survives.
   siteUrl: z.string().url().optional(),
   // R2 keys from POST /upload/image — never URLs (rule 6).
   logoKey: z.string().min(1).optional(),
