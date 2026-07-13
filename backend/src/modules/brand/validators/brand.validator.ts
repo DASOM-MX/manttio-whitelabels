@@ -27,6 +27,16 @@ const fontCode = z
   .string()
   .refine((code) => FONT_CATALOG_CODES.has(code), 'unknown font catalog code');
 
+// Human-formatted phone numbers: optional +country code, separators allowed,
+// 10–15 digits once stripped (MX numbers are 10). Empty fails (0 digits), so
+// this is inherently required.
+const phoneNumber = z
+  .string()
+  .refine(
+    (value) => /^\+?\d{10,15}$/.test(value.replace(/[\s\-().]/g, '')),
+    'expected a phone number (10-15 digits)',
+  );
+
 // Social links are optional and editors send '' for untouched inputs, so blank
 // entries are dropped before the URL check instead of failing it.
 const socialSchema = z.preprocess(
@@ -57,10 +67,10 @@ export const saveBrandSchema = z.object({
   }),
   // Contact info is required brand data — every consumer surface renders it.
   contact: z.object({
-    phone: z.string().min(1),
-    whatsapp: z.string().min(1),
+    phone: phoneNumber,
+    whatsapp: phoneNumber,
     email: z.string().email(),
-    address: z.string().min(1),
+    address: z.string().min(1).max(250),
   }),
   social: socialSchema.optional(),
   font: z
