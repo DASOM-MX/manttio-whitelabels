@@ -27,6 +27,16 @@ const fontCode = z
   .string()
   .refine((code) => FONT_CATALOG_CODES.has(code), 'unknown font catalog code');
 
+// Social links are optional and editors send '' for untouched inputs, so blank
+// entries are dropped before the URL check instead of failing it.
+const socialSchema = z.preprocess(
+  (value) =>
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? Object.fromEntries(Object.entries(value).filter(([, url]) => url !== ''))
+      : value,
+  z.record(z.string().url()),
+);
+
 export const saveBrandSchema = z.object({
   name: z.string().min(1),
   slogan: z.string().optional(),
@@ -43,15 +53,14 @@ export const saveBrandSchema = z.object({
     primary: hslScaleSchema,
     surface: hslScaleSchema,
   }),
-  contact: z
-    .object({
-      phone: z.string().optional(),
-      whatsapp: z.string().optional(),
-      email: z.string().email().optional(),
-      address: z.string().optional(),
-    })
-    .optional(),
-  social: z.record(z.string().url()).optional(),
+  // Contact info is required brand data — every consumer surface renders it.
+  contact: z.object({
+    phone: z.string().min(1),
+    whatsapp: z.string().min(1),
+    email: z.string().email(),
+    address: z.string().min(1),
+  }),
+  social: socialSchema.optional(),
   font: z
     .object({
       body: fontCode.optional(),
