@@ -1,7 +1,8 @@
-import { cdnUrl } from '../../storage/services/storage.service';
+import { cdnUrl, deleteObjects } from '../../storage/services/storage.service';
 import { DEFAULT_BRAND } from '../constants/default-brand';
 import { FONT_CATALOG } from '../constants/font-catalog';
 import { findBrand, upsertBrand } from '../repository/brand.repository';
+import { generateBrandIcons } from './brand-icons.service';
 import type { Db } from '../../database/client';
 import type { Brand, FontCatalogEntry } from '../dtos/brand.dto';
 import type { BrandRow } from '../types/brand.types';
@@ -19,6 +20,14 @@ const materializeBrand = (row: BrandRow, cdnBase: string): Brand => {
   if (row.logoDarkKey) result.logoDarkUrl = cdnUrl(cdnBase, row.logoDarkKey);
   if (row.isologoKey) result.isologoUrl = cdnUrl(cdnBase, row.isologoKey);
   if (row.faviconKey) result.faviconUrl = cdnUrl(cdnBase, row.faviconKey);
+  if (row.icons) {
+    result.icons = {
+      any192: cdnUrl(cdnBase, row.icons.any192Key),
+      any512: cdnUrl(cdnBase, row.icons.any512Key),
+      maskable192: cdnUrl(cdnBase, row.icons.maskable192Key),
+      maskable512: cdnUrl(cdnBase, row.icons.maskable512Key),
+    };
+  }
   if (row.contact) result.contact = row.contact;
   if (row.social) result.social = row.social;
   if (row.font) result.font = row.font;
@@ -34,9 +43,19 @@ export const getBrand = async (db: Db, cdnBase: string): Promise<Brand> => {
 export const saveBrand = async (
   db: Db,
   cdnBase: string,
+  bucket: R2Bucket,
   input: SaveBrandInput,
 ): Promise<Brand> => {
   const existing = await findBrand(db);
+  // The PWA icon set is regenerated from the mark on every save — the mark,
+  // its bytes, or the maskable surface-0 background may all have changed, and
+  // saves are rare admin writes. A failed generation (missing object, non-PNG
+  // source) saves the brand without icons; the manifest then serves its
+  // neutral bundled set (rule 5).
+  const iconSourceKey = input.faviconKey ?? input.isologoKey ?? null;
+  const icons = iconSourceKey
+    ? await generateBrandIcons(bucket, iconSourceKey, input.colors)
+    : null;
   const row = await upsertBrand(db, {
     name: input.name,
     slogan: input.slogan,
@@ -49,10 +68,20 @@ export const saveBrand = async (
     isologoKey: input.isologoKey ?? null,
     faviconKey: input.faviconKey ?? null,
     colors: input.colors,
+    icons,
     contact: input.contact ?? null,
     social: input.social ?? null,
     font: input.font ?? null,
   });
+  if (existing?.icons) {
+    // Best-effort cleanup of the superseded generated objects (the new set
+    // always lands under fresh timestamped keys); orphans are harmless.
+    try {
+      await deleteObjects(bucket, Object.values(existing.icons));
+    } catch {
+      /* noop */
+    }
+  }
   return materializeBrand(row, cdnBase);
 };
 

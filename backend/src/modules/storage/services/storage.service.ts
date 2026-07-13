@@ -3,8 +3,8 @@
 
 const safeName = (name: string) => name.replace(/[^a-zA-Z0-9._-]/g, '_');
 
-export const r2Key = (originalName: string) =>
-  `reports/${Date.now()}-${safeName(originalName)}`;
+export const r2Key = (originalName: string, prefix = 'reports') =>
+  `${prefix}/${Date.now()}-${safeName(originalName)}`;
 
 export const cdnUrl = (cdnBase: string, key: string) => `${cdnBase}/${key}`;
 

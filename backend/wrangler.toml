@@ -11,6 +11,10 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 ENVIRONMENT = "dev"
 CDN_BASE_URL = "https://cdn.penanevadachillers.com"
+# Public base of the `manttio-logos` bucket (brand images + generated PWA
+# icons). Placeholder until the bucket's public/custom domain exists — set it
+# before provisioning the brand (deploy checklist, plan 02).
+LOGOS_CDN_BASE_URL = "https://logos.penanevadachillers.com"
 API_BASE_URL = "http://127.0.0.1:8787"
 RESEND_FROM = "no-reply@penanevadachillers.com"
 # FONT_CDN_BASE_URL — CDN fronting the shared `branding-fonts` bucket. Optional:
@@ -22,17 +26,26 @@ RESEND_FROM = "no-reply@penanevadachillers.com"
 binding = "MANTTIO_REPORTS"
 bucket_name = "manttio-reports"
 
+[[r2_buckets]]
+binding = "MANTTIO_LOGOS"
+bucket_name = "manttio-logos"
+
 # Production deploy: `wrangler deploy --env production`.
 # Wrangler v4 inherits top-level config; only the overrides live here.
 [env.production.vars]
 ENVIRONMENT = "production"
 CDN_BASE_URL = "https://cdn.penanevadachillers.com"
+LOGOS_CDN_BASE_URL = "https://logos.penanevadachillers.com"
 API_BASE_URL = "https://api.penanevadachillers.com"
 RESEND_FROM = "no-reply@penanevadachillers.com"
 
 [[env.production.r2_buckets]]
 binding = "MANTTIO_REPORTS"
 bucket_name = "manttio-reports"
+
+[[env.production.r2_buckets]]
+binding = "MANTTIO_LOGOS"
+bucket_name = "manttio-logos"
 
 # Secrets are set via `wrangler secret put [--env production]` and are NOT declared here:
 #   DATABASE_URL          Neon Postgres connection string

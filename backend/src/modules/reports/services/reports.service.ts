@@ -525,7 +525,7 @@ export const revokeReportEmail = async (db: Db, emailId: string): Promise<JsonRe
 
 export const renderPdfForToken = async (
   db: Db,
-  cdnBase: string,
+  logosCdnBase: string,
   token: string,
 ): Promise<{ id: string; pdf: Uint8Array } | null> => {
   const found = await findEmailByToken(db, token);
@@ -537,7 +537,7 @@ export const renderPdfForToken = async (
   const [creator, customer, brand] = await Promise.all([
     findUserById(db, fullReport.report.createdBy),
     findCustomerById(db, fullReport.report.clientId),
-    getBrand(db, cdnBase),
+    getBrand(db, logosCdnBase),
   ]);
   if (!customer) return null;
 

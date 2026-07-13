@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { check, integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import type { BrandColors, BrandContact, BrandFont, BrandSocial } from '../dtos/brand.dto';
+import type { BrandIconsRecord } from '../types/brand-icons.types';
 
 // Single-row tenant brand — one deployment per tenant (rule 8), so no
 // tenant_id and a CHECK pinning id = 1. Writers (owner editor / manager push)
@@ -20,6 +21,8 @@ export const brand = pgTable(
     isologoKey: text('isologo_key'),
     faviconKey: text('favicon_key'),
     colors: jsonb('colors').$type<BrandColors>().notNull(),
+    /** Generated PWA icon set (R2 keys) — rebuilt from the mark on every save. */
+    icons: jsonb('icons').$type<BrandIconsRecord>(),
     contact: jsonb('contact').$type<BrandContact>(),
     social: jsonb('social').$type<BrandSocial>(),
     font: jsonb('font').$type<BrandFont>(),
