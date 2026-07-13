@@ -141,9 +141,11 @@ Binding for every component; the skill carries the same list with implementation
   — see Dialogs below — and, added 2026-07-06, the brand editor's runtime previews:
   color-swatch backgrounds and font-sample `font-family` bind `[style.*]` because
   user-picked brand values can't be utility classes. Nothing else qualifies.)
-- The color palette is shared with `frontend/` and `website/`: the `granite`, `navy`, `sky`,
-  `cyan` scales and semantic tokens (`background`, `surface`, `primary`, `secondary`,
-  `dark`). **Do not introduce new ad-hoc hex values.**
+- The color palette is the **runtime tenant brand**, shared with `frontend/` and `website/`:
+  `granite`/`sky` read `--brand-surface-*`/`--brand-primary-*` (HSL components, steps
+  **0…1000 by 100** — no `-50`/`-950`; contract rework 2026-07-12), `navy`/`cyan` stay
+  static accents (standard 50…950). Use those scales or the semantic tokens (`background`,
+  `surface`, `primary`, `secondary`, `dark`). **Do not introduce new ad-hoc hex values.**
 - **Reuse the global classes from `styles.scss`** before re-styling locally: `.field-input`
   (form controls), `.field-label`, `.field-group`, `.btn-primary` / `-secondary` / `-neutral`
   / `-danger`, `.card`, `.card-section`. They already carry dark variants and
@@ -256,11 +258,11 @@ shape 3 fits.
 
   | Light | Dark |
   |---|---|
-  | `bg-background` (page bg) | `dark:bg-granite-950` |
+  | `bg-background` (page bg) | `dark:bg-granite-1000` |
   | `bg-white` (cards/panels) | `dark:bg-granite-900` |
-  | `bg-granite-50` | `dark:bg-granite-900` |
-  | `bg-sky-50` / `bg-amber-50` / `bg-red-50` / `bg-emerald-50` | `dark:bg-sky-950/40` / `dark:bg-amber-950/30` / `dark:bg-red-950/30` / `dark:bg-emerald-950/30` |
-  | `text-granite-950` (titles) | `dark:text-granite-50` |
+  | `bg-granite-0` | `dark:bg-granite-900` |
+  | `bg-sky-0` / `bg-amber-50` / `bg-red-50` / `bg-emerald-50` | `dark:bg-sky-1000/40` / `dark:bg-amber-950/30` / `dark:bg-red-950/30` / `dark:bg-emerald-950/30` |
+  | `text-granite-1000` (titles) | `dark:text-granite-0` |
   | `text-granite-900` | `dark:text-granite-100` |
   | `text-granite-800` | `dark:text-granite-200` |
   | `text-granite-700` / `-600` / `-500` (muted) | `dark:text-granite-300` / `-400` / `-400` |
