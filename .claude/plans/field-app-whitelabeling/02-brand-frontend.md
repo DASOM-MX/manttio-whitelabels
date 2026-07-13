@@ -1,6 +1,6 @@
 # Whitelabel 02 — Field-app runtime theming + PWA manifest (PR-B + PR-C)
 
-> **Status:** planned · **Last updated:** 2026-07-11 · **PRs:** PR-B (theming), PR-C (manifest)
+> **Status:** CP-1 implemented (PR-B, 2026-07-12); CP-2 pending · **Last updated:** 2026-07-12 · **PRs:** PR-B (theming), PR-C (manifest)
 > **Part of:** `.claude/plans/field-app-whitelabeling/` (see `00-master` for the canonical
 > Branding rules, shared brand contract, current reality, de-brand inventory).
 > **Depends on:** `01-brand-backend` for a live `/brand` + `/fonts` (can build fail-soft before it lands).
@@ -72,14 +72,28 @@ the manifest **fresh at runtime**:
   next fetch, and an already-installed home-screen icon only updates on reinstall — an accepted
   limitation of any dynamic-manifest approach.
 
-## Checkpoints
+## Checkpoints (CP-1 implemented 2026-07-12, PR-B)
 ### CP-1 — Runtime theming (PR-B)
-- [ ] `brand` DTO + `brand.service.ts` + `BrandState` (persisted) + boot `LoadBrand`
-- [ ] `tailwind.config.js` + `manttio-preset.ts` CSS-var repoint (HSL, 0…1000; remap `-50/-950` →
-      `-0/-1000`; neutral grayscale fallback; palette from `/brand`)
-- [ ] `app.ts` apply effect (vars, favicon, theme-color, apple title, document title, login logo)
-- [ ] Remove frontend brand literals (`index.html` apple title, `_index.scss` comment)
-- [ ] Build green; light + dark correct; no-brand path renders the neutral default (no flash)
+- [x] `brand` DTO (`data/dtos/brand/`, mirrors the backend canonical incl. `siteUrl?`/`faviconUrl?`)
+      + `http/brand.service.ts` + `state/brand/` (persisted via storage-plugin `brand` key;
+      `LoadBrand` = forkJoin brand+fonts, per-leg `catchError` so a missing catalog never costs
+      the brand) + boot dispatch in `provideAppInitializer`
+- [x] `tailwind.config.js` + `manttio-preset.ts` CSS-var repoint (HSL, 0…1000; remap `-50/-950` →
+      `-0/-1000` across 20 templates/sheets; neutral grayscale fallback; granite → surface,
+      navy/sky/cyan → primary; Aura keeps its `50`/`950` keys aliased to brand steps `0`/`1000`,
+      `surface.0` stays white to pair with the templates' `bg-white`); `frontend/CLAUDE.md`
+      palette/dark-pairing docs updated
+- [x] `app.ts` apply effect (ported `buildBrandCss` → `app/theme/brand-css.ts` — no default-code
+      skip, the app bundles no catalog font; favicon/apple-touch-icon ← `faviconUrl ?? isologoUrl`;
+      theme-color ← primary-800 / surface-1000 `hsl()` per mode; apple + document title ←
+      `brand.name`); login logo ← `brand.logoUrl` (dark mode prefers `logoDarkUrl`), hidden when
+      absent; bundled `assets/logo.jpg` deleted
+- [x] Remove frontend brand literals (`index.html` apple title + `theme-color` hex → neutral,
+      `_index.scss` comment; static `manifest.webmanifest` Peña literals stay for CP-2, which
+      supersedes the file)
+- [x] Build green; brand vars verified in the emitted CSS (fallback components + `<alpha-value>`
+      modifiers intact, zero palette hexes); no-flash via persisted state; in-browser light/dark
+      pass = user-run `ng serve` against the PR-A backend
 
 ### CP-2 — Dynamic PWA manifest (PR-C)
 - [ ] Pages Function `manifest.webmanifest` from `/brand`; `index.html` link; SW prefetch of the
