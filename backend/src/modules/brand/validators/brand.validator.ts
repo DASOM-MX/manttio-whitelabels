@@ -32,6 +32,7 @@ const fontCode = z
 // this is inherently required.
 const phoneNumber = z
   .string()
+  .max(20)
   .refine(
     (value) => /^\+?\d{10,15}$/.test(value.replace(/[\s\-().]/g, '')),
     'expected a phone number (10-15 digits)',
@@ -44,16 +45,18 @@ const socialSchema = z.preprocess(
     value && typeof value === 'object' && !Array.isArray(value)
       ? Object.fromEntries(Object.entries(value).filter(([, url]) => url !== ''))
       : value,
-  z.record(z.string().url()),
+  z.record(z.string().url().max(300)),
 );
 
+// Length caps mirror the editor's maxlength attrs — see the superadmin brand
+// editor; keep the two in sync.
 export const saveBrandSchema = z.object({
-  name: z.string().min(1),
-  slogan: z.string().min(1),
-  description: z.string().optional(),
+  name: z.string().min(1).max(100),
+  slogan: z.string().min(1).max(150),
+  description: z.string().max(300).optional(),
   // siteUrl is manager-owned (the tenant site ships with the whitelabel
   // package) — the in-tenant editor omits it and the stored value survives.
-  siteUrl: z.string().url().optional(),
+  siteUrl: z.string().url().max(300).optional(),
   // R2 keys from POST /upload/image — never URLs (rule 6).
   logoKey: z.string().min(1).optional(),
   logoDarkKey: z.string().min(1).optional(),
@@ -69,7 +72,7 @@ export const saveBrandSchema = z.object({
   contact: z.object({
     phone: phoneNumber,
     whatsapp: phoneNumber,
-    email: z.string().email(),
+    email: z.string().email().max(254),
     address: z.string().min(1).max(250),
   }),
   social: socialSchema.optional(),
