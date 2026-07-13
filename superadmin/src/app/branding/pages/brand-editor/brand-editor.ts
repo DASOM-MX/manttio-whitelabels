@@ -22,13 +22,12 @@ import { ColorScaleService } from '../../../services/theme/color-scale.service';
 import { FontLoaderService } from '../../../services/theme/font-loader.service';
 import { errorMessage } from '../../../data/utils';
 import { FONT_PREVIEW_SIZES } from '../../../model/constants/brand/font-preview-sizes.const';
-import { PRIMARY_STEPS } from '../../../model/constants/brand/primary-steps.const';
-import { SURFACE_STEPS } from '../../../model/constants/brand/surface-steps.const';
+import { BRAND_SCALE_STEPS } from '../../../model/constants/brand/scale-steps.const';
 import { ScaleEditor } from '../../components/scale-editor/scale-editor';
 import { ApplyBrandDialog } from '../../components/apply-brand-dialog/apply-brand-dialog';
 import type { Brand, FontCatalogEntry, SaveBrandRequest } from '../../../data/dtos/brand';
 
-type ImageSlot = 'logo' | 'logoDark' | 'isologo';
+type ImageSlot = 'logo' | 'logoDark' | 'isologo' | 'favicon';
 
 interface ImageState {
   key?: string;
@@ -64,8 +63,7 @@ export class BrandEditor {
   private colorScale = inject(ColorScaleService);
   private fontLoader = inject(FontLoaderService);
 
-  protected readonly PRIMARY_STEPS = PRIMARY_STEPS;
-  protected readonly SURFACE_STEPS = SURFACE_STEPS;
+  protected readonly BRAND_SCALE_STEPS = BRAND_SCALE_STEPS;
   protected readonly FONT_PREVIEW_SIZES = FONT_PREVIEW_SIZES;
 
   private me = select(AuthState.me);
@@ -83,6 +81,7 @@ export class BrandEditor {
     name: ['', Validators.required],
     slogan: [''],
     description: [''],
+    siteUrl: [''],
     contact: this.fb.nonNullable.group({
       phone: [''],
       whatsapp: [''],
@@ -104,11 +103,11 @@ export class BrandEditor {
   protected primaryBase = this.fb.nonNullable.control('#3F7A9D');
   protected surfaceBase = this.fb.nonNullable.control('#4C5B5C');
   protected primaryScale = this.buildScaleGroup(
-    [...PRIMARY_STEPS],
+    [...BRAND_SCALE_STEPS],
     this.colorScale.deriveScale('#3F7A9D', false),
   );
   protected surfaceScale = this.buildScaleGroup(
-    [...SURFACE_STEPS],
+    [...BRAND_SCALE_STEPS],
     this.colorScale.deriveScale('#4C5B5C', true),
   );
 
@@ -116,12 +115,16 @@ export class BrandEditor {
     { id: 'logo', label: 'Logotipo', dark: false },
     { id: 'logoDark', label: 'Logotipo (fondo oscuro)', dark: true },
     { id: 'isologo', label: 'Isologo (cuadrado)', dark: false },
+    // Icon-generation source: the backend renders the PWA icon set from this
+    // mark (falling back to the isologo) on every save (field-app plan 02).
+    { id: 'favicon', label: 'Favicon / ícono PWA (cuadrado, PNG)', dark: false },
   ];
 
   protected images = signal<Record<ImageSlot, ImageState>>({
     logo: { uploading: false },
     logoDark: { uploading: false },
     isologo: { uploading: false },
+    favicon: { uploading: false },
   });
 
   /** Draft theme is live on the shell (Previsualizar) until reverted/saved. */
@@ -210,7 +213,7 @@ export class BrandEditor {
     input.value = '';
     if (!file || this.readOnly()) return;
     this.images.update((s) => ({ ...s, [slot]: { ...s[slot], uploading: true } }));
-    this.uploads.uploadImage(file).subscribe({
+    this.uploads.uploadLogo(file).subscribe({
       next: ({ key, url }) =>
         this.images.update((s) => ({ ...s, [slot]: { key, url, uploading: false } })),
       error: (err) => {
@@ -253,9 +256,11 @@ export class BrandEditor {
       name: raw.name,
       slogan: raw.slogan || undefined,
       description: raw.description || undefined,
+      siteUrl: raw.siteUrl || undefined,
       logoKey: img.logo.key,
       logoDarkKey: img.logoDark.key,
       isologoKey: img.isologo.key,
+      faviconKey: img.favicon.key,
       colors: this.draftColors(),
       contact: raw.contact,
       social: raw.social,
@@ -263,10 +268,16 @@ export class BrandEditor {
     };
   }
 
+  /** The editor's hex groups converted to the wire format — HSL components at
+   *  0…1000 (rule 2). Shared by the PUT payload and the live preview. */
   private draftColors(): SaveBrandRequest['colors'] {
     return {
-      primary: this.primaryScale.getRawValue() as Record<string, string>,
-      surface: this.surfaceScale.getRawValue() as Record<string, string>,
+      primary: this.colorScale.toWireScale(
+        this.primaryScale.getRawValue() as Record<string, string>,
+      ),
+      surface: this.colorScale.toWireScale(
+        this.surfaceScale.getRawValue() as Record<string, string>,
+      ),
     };
   }
 
@@ -276,6 +287,7 @@ export class BrandEditor {
         name: brand.name,
         slogan: brand.slogan ?? '',
         description: brand.description ?? '',
+        siteUrl: brand.siteUrl ?? '',
         contact: {
           phone: brand.contact?.phone ?? '',
           whatsapp: brand.contact?.whatsapp ?? '',
@@ -295,20 +307,24 @@ export class BrandEditor {
       },
       { emitEvent: false },
     );
-    if (brand.colors?.primary)
-      this.primaryScale.patchValue(brand.colors.primary, { emitEvent: false });
-    if (brand.colors?.surface)
-      this.surfaceScale.patchValue(brand.colors.surface, { emitEvent: false });
-    if (brand.colors?.primary?.['600']) {
-      this.primaryBase.setValue(brand.colors.primary['600'], { emitEvent: false });
+    // The wire scales are HSL components (rule 2); the pickers work in hex.
+    const primaryHex = this.colorScale.fromWireScale(brand.colors?.primary);
+    const surfaceHex = this.colorScale.fromWireScale(brand.colors?.surface);
+    if (Object.keys(primaryHex).length)
+      this.primaryScale.patchValue(primaryHex, { emitEvent: false });
+    if (Object.keys(surfaceHex).length)
+      this.surfaceScale.patchValue(surfaceHex, { emitEvent: false });
+    if (primaryHex['600']) {
+      this.primaryBase.setValue(primaryHex['600'], { emitEvent: false });
     }
-    if (brand.colors?.surface?.['500']) {
-      this.surfaceBase.setValue(brand.colors.surface['500'], { emitEvent: false });
+    if (surfaceHex['500']) {
+      this.surfaceBase.setValue(surfaceHex['500'], { emitEvent: false });
     }
     this.images.set({
       logo: { url: brand.logoUrl, uploading: false },
       logoDark: { url: brand.logoDarkUrl, uploading: false },
       isologo: { url: brand.isologoUrl, uploading: false },
+      favicon: { url: brand.faviconUrl, uploading: false },
     });
     this.updateContrast();
     this.form.markAsPristine();
@@ -332,9 +348,9 @@ export class BrandEditor {
         'El primario 600 sobre blanco queda por debajo de 4.5:1 — el texto de botones puede costar leerse.',
       );
     }
-    if (this.colorScale.contrastRatio(p['300'], s['950']) < 3) {
+    if (this.colorScale.contrastRatio(p['300'], s['1000']) < 3) {
       warnings.push(
-        'El primario 300 sobre la superficie 950 queda por debajo de 3:1 — los acentos en modo oscuro pueden perderse.',
+        'El primario 300 sobre la superficie 1000 queda por debajo de 3:1 — los acentos en modo oscuro pueden perderse.',
       );
     }
     this.contrastWarnings.set(warnings);

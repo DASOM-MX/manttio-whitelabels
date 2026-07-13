@@ -2,9 +2,9 @@
 @if (isBooting()) {
   <!-- Splash: no gated UI renders until /auth/me resolves (02 §3). -->
   <div
-    class="flex h-dvh flex-col items-center justify-center gap-4 bg-background dark:bg-granite-950"
+    class="flex h-dvh flex-col items-center justify-center gap-4 bg-background dark:bg-granite-1000"
   >
-    <p class="font-semibold text-2xl tracking-tight text-granite-950 dark:text-granite-50">
+    <p class="font-semibold text-2xl tracking-tight text-granite-1000 dark:text-granite-0">
       manttio
     </p>
     <div
@@ -14,9 +14,9 @@
     ></div>
   </div>
 } @else if (hasError()) {
-  <div class="flex h-dvh items-center justify-center bg-background p-6 dark:bg-granite-950">
+  <div class="flex h-dvh items-center justify-center bg-background p-6 dark:bg-granite-1000">
     <div class="card-section w-full max-w-sm text-center">
-      <h1 class="text-lg font-bold text-granite-950 dark:text-granite-50">
+      <h1 class="text-lg font-bold text-granite-1000 dark:text-granite-0">
         No se pudo cargar tu sesión
       </h1>
       <p class="mt-2 text-sm text-granite-600 dark:text-granite-400">
@@ -32,7 +32,7 @@
     </div>
   </div>
 } @else {
-  <div class="flex h-dvh bg-background dark:bg-granite-950">
+  <div class="flex h-dvh bg-background dark:bg-granite-1000">
     <!-- Desktop sidebar -->
     <aside
       class="hidden w-64 shrink-0 flex-col border-r border-granite-200 bg-white lg:flex dark:border-granite-800 dark:bg-granite-900"
@@ -44,7 +44,7 @@
     <!-- Mobile drawer -->
     @if (drawerOpen()) {
       <div
-        class="fixed inset-0 z-40 bg-granite-950/50 lg:hidden"
+        class="fixed inset-0 z-40 bg-granite-1000/50 lg:hidden"
         animate.enter="anim-fade-enter"
         animate.leave="anim-leave"
         (click)="drawerOpen.set(false)"
@@ -96,7 +96,7 @@
           aria-haspopup="true"
         >
           <span
-            class="inline-flex size-7 items-center justify-center rounded-full bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300"
+            class="inline-flex size-7 items-center justify-center rounded-full bg-sky-100 text-sky-800 dark:bg-sky-1000/60 dark:text-sky-300"
           >
             <svg lucideUserRound class="size-4" aria-hidden="true"></svg>
           </span>
@@ -106,7 +106,7 @@
         <p-popover #userMenu appendTo="body">
           <div class="w-64 py-1.5">
             <div class="border-b border-granite-200 px-4 py-3 dark:border-granite-800">
-              <p class="truncate text-sm font-semibold text-granite-950 dark:text-granite-50">
+              <p class="truncate text-sm font-semibold text-granite-1000 dark:text-granite-0">
                 {{ me()?.user?.name }}
               </p>
               <p class="mt-0.5 truncate text-sm text-granite-600 dark:text-granite-400">
@@ -142,7 +142,7 @@
   <div
     class="flex h-14 shrink-0 items-center gap-2 border-b border-granite-200 px-4 dark:border-granite-800"
   >
-    <p class="text-lg font-bold tracking-tight text-granite-950 dark:text-granite-50">manttio</p>
+    <p class="text-lg font-bold tracking-tight text-granite-1000 dark:text-granite-0">manttio</p>
     <p class="micro-label mt-0.5">Admin</p>
     <div class="flex-1"></div>
     <button

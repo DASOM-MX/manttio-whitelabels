@@ -13,7 +13,7 @@
 }
 .p-datatable-mask.p-overlay-mask,
 .p-datatable-loading-overlay.p-component-overlay {
-  @apply absolute inset-0 flex items-center justify-center bg-white/70 z-20 dark:bg-granite-950/70;
+  @apply absolute inset-0 flex items-center justify-center bg-white/70 z-20 dark:bg-granite-1000/70;
 }
 
 .p-datatable-table-container {
@@ -23,7 +23,7 @@
   @apply w-full border-collapse;
 }
 .p-datatable-thead {
-  @apply bg-granite-50 dark:bg-granite-900;
+  @apply bg-granite-0 dark:bg-granite-900;
 
   > tr > th {
     @apply px-4 py-3 text-left micro-label whitespace-nowrap border-b border-granite-200 dark:border-granite-800;
@@ -53,7 +53,7 @@
       @apply border-t-0;
     }
     &:hover {
-      @apply bg-sky-50 dark:bg-granite-800;
+      @apply bg-sky-0 dark:bg-granite-800;
     }
     &:active {
       @apply bg-sky-100 dark:bg-granite-700;
@@ -84,7 +84,7 @@
 .p-paginator-next,
 .p-paginator-first,
 .p-paginator-last {
-  @apply size-9 inline-flex items-center justify-center rounded-lg text-sm font-semibold font-data tabular-nums text-granite-800 hover:bg-sky-50 cursor-pointer transition-colors
+  @apply size-9 inline-flex items-center justify-center rounded-lg text-sm font-semibold font-data tabular-nums text-granite-800 hover:bg-sky-0 cursor-pointer transition-colors
          dark:text-granite-200 dark:hover:bg-granite-800;
 
   &.p-paginator-page-selected {
@@ -110,9 +110,9 @@
   @apply hidden;
 }
 .p-datatable-header {
-  @apply bg-granite-50 dark:bg-granite-900;
+  @apply bg-granite-0 dark:bg-granite-900;
 }
 .p-datatable-footer {
-  @apply px-4 py-3 border-t border-granite-200 bg-granite-50
+  @apply px-4 py-3 border-t border-granite-200 bg-granite-0
          dark:bg-granite-900 dark:border-granite-800;
 }

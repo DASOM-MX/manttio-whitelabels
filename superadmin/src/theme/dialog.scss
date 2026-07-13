@@ -1,7 +1,7 @@
 /* PrimeNG Dialog + ConfirmDialog — true overlays, so shadows are allowed
    here (01 Design language: borders-not-shadows applies to in-page surfaces). */
 .p-dialog-mask.p-overlay-mask {
-  @apply bg-granite-950/60;
+  @apply bg-granite-1000/60;
 }
 .p-dialog {
   @apply bg-white border border-granite-200 rounded-xl shadow-xl flex flex-col max-h-[90dvh] overflow-hidden
@@ -12,7 +12,7 @@
          dark:border-granite-800;
 }
 .p-dialog-title {
-  @apply text-base font-bold text-granite-950 dark:text-granite-50;
+  @apply text-base font-bold text-granite-1000 dark:text-granite-0;
 }
 .p-dialog-header-actions {
   @apply flex items-center gap-1;

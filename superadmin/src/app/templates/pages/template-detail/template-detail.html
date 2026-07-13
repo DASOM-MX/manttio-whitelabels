@@ -7,7 +7,7 @@
     <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
   </a>
   <div>
-    <h1 class="text-xl font-bold text-granite-950 dark:text-granite-50">
+    <h1 class="text-xl font-bold text-granite-1000 dark:text-granite-0">
       @if (isNew) {
         Nueva plantilla
       } @else {
@@ -57,7 +57,7 @@
   </p>
 } @else if (isActive()) {
   <p
-    class="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
+    class="mt-4 rounded-lg border border-sky-200 bg-sky-0 px-4 py-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-1000/40 dark:text-sky-200"
     role="note"
   >
     Activa en la aplicación de campo. Para editarla, pásala a borrador — dejará de ofrecerse hasta
@@ -79,9 +79,9 @@
     id="tab-editor"
     aria-controls="panel-editor"
     class="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
-    [class.bg-sky-50]="tab() === 'editor'"
+    [class.bg-sky-0]="tab() === 'editor'"
     [class.text-sky-800]="tab() === 'editor'"
-    [class.dark:bg-sky-950/40]="tab() === 'editor'"
+    [class.dark:bg-sky-1000/40]="tab() === 'editor'"
     [class.dark:text-sky-300]="tab() === 'editor'"
     [class.text-granite-600]="tab() !== 'editor'"
     [class.dark:text-granite-400]="tab() !== 'editor'"
@@ -98,9 +98,9 @@
     id="tab-preview"
     aria-controls="panel-preview"
     class="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
-    [class.bg-sky-50]="tab() === 'preview'"
+    [class.bg-sky-0]="tab() === 'preview'"
     [class.text-sky-800]="tab() === 'preview'"
-    [class.dark:bg-sky-950/40]="tab() === 'preview'"
+    [class.dark:bg-sky-1000/40]="tab() === 'preview'"
     [class.dark:text-sky-300]="tab() === 'preview'"
     [class.text-granite-600]="tab() !== 'preview'"
     [class.dark:text-granite-400]="tab() !== 'preview'"
@@ -492,7 +492,7 @@
 
         <!-- Heading mock (system-owned) -->
         <div
-          class="mt-3 rounded-lg border border-granite-200 bg-granite-50 p-3 dark:border-granite-800 dark:bg-granite-900"
+          class="mt-3 rounded-lg border border-granite-200 bg-granite-0 p-3 dark:border-granite-800 dark:bg-granite-900"
         >
           <p class="text-sm font-bold text-granite-900 dark:text-granite-100">Datos del negocio</p>
           <p class="text-xs text-granite-500 dark:text-granite-400">
@@ -558,7 +558,7 @@
 
         <!-- Fixed images + footer mock -->
         <div
-          class="mt-3 rounded-lg border border-granite-200 bg-granite-50 p-3 dark:border-granite-800 dark:bg-granite-900"
+          class="mt-3 rounded-lg border border-granite-200 bg-granite-0 p-3 dark:border-granite-800 dark:bg-granite-900"
         >
           <p class="text-sm font-bold text-granite-900 dark:text-granite-100">
             Evidencia fotográfica
@@ -572,7 +572,7 @@
           </div>
         </div>
         <div
-          class="mt-3 rounded-lg border border-granite-200 bg-granite-50 p-3 dark:border-granite-800 dark:bg-granite-900"
+          class="mt-3 rounded-lg border border-granite-200 bg-granite-0 p-3 dark:border-granite-800 dark:bg-granite-900"
         >
           <p class="text-sm font-bold text-granite-900 dark:text-granite-100">
             Comentarios y firma
