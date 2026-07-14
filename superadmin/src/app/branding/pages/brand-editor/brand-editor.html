@@ -44,27 +44,55 @@
   <section class="card-section flex flex-col gap-4" aria-labelledby="brand-identity-title">
     <h2 id="brand-identity-title" class="section-heading">Identidad</h2>
 
-    <div class="field-group">
-      <label class="field-label" for="brand-name">Nombre<span aria-hidden="true"> *</span></label>
-      <input
-        id="brand-name"
-        pInputText
-        formControlName="name"
-        maxlength="100"
-        autocomplete="organization"
-      />
-    </div>
-    <div class="field-group">
-      <label class="field-label" for="brand-slogan"
-        >Eslogan<span aria-hidden="true"> *</span></label
-      >
-      <input id="brand-slogan" pInputText formControlName="slogan" maxlength="150" />
-      <p class="text-sm text-granite-500 dark:text-granite-400">
-        Frase corta bajo el logotipo en el sitio público.
-      </p>
-    </div>
-    <!-- Display-only: the tenant site is provisioned with the whitelabel
-         package (manager push) — never edited here. -->
+    <!-- Read-only (admin) renders values as text rows, never disabled inputs. -->
+    @if (!readOnly()) {
+      <div class="field-group">
+        <label class="field-label" for="brand-name">Nombre<span aria-hidden="true"> *</span></label>
+        <input
+          id="brand-name"
+          pInputText
+          formControlName="name"
+          maxlength="100"
+          autocomplete="organization"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="brand-slogan"
+          >Eslogan<span aria-hidden="true"> *</span></label
+        >
+        <input id="brand-slogan" pInputText formControlName="slogan" maxlength="150" />
+        <p class="text-sm text-granite-500 dark:text-granite-400">
+          Frase corta bajo el logotipo en el sitio público.
+        </p>
+      </div>
+    } @else if (brand(); as b) {
+      <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+        <div>
+          <dt class="micro-label">Nombre</dt>
+          <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
+            {{ b.name }}
+          </dd>
+        </div>
+        @if (b.slogan) {
+          <div>
+            <dt class="micro-label">Eslogan</dt>
+            <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
+              {{ b.slogan }}
+            </dd>
+          </div>
+        }
+        @if (b.description) {
+          <div class="sm:col-span-2">
+            <dt class="micro-label">Descripción del negocio</dt>
+            <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
+              {{ b.description }}
+            </dd>
+          </div>
+        }
+      </dl>
+    }
+    <!-- Display-only in every mode: the tenant site is provisioned with the
+         whitelabel package (manager push) — never edited here. -->
     @if (brand()?.siteUrl; as siteUrl) {
       <div class="field-group">
         <span class="field-label">Sitio web</span>
@@ -80,21 +108,23 @@
         </p>
       </div>
     }
-    <div class="field-group">
-      <label class="field-label" for="brand-description">Descripción del negocio</label>
-      <textarea
-        id="brand-description"
-        pTextarea
-        formControlName="description"
-        maxlength="300"
-        rows="3"
-        class="!min-h-20"
-        placeholder="Qué hace tu negocio, en dos o tres frases."
-      ></textarea>
-      <p class="text-sm text-granite-500 dark:text-granite-400">
-        Aparece en los resultados de búsqueda (meta descripción del sitio público).
-      </p>
-    </div>
+    @if (!readOnly()) {
+      <div class="field-group">
+        <label class="field-label" for="brand-description">Descripción del negocio</label>
+        <textarea
+          id="brand-description"
+          pTextarea
+          formControlName="description"
+          maxlength="300"
+          rows="3"
+          class="!min-h-20"
+          placeholder="Qué hace tu negocio, en dos o tres frases."
+        ></textarea>
+        <p class="text-sm text-granite-500 dark:text-granite-400">
+          Aparece en los resultados de búsqueda (meta descripción del sitio público).
+        </p>
+      </div>
+    }
   </section>
 
   <!-- Colors -->
@@ -182,110 +212,211 @@
   <section class="card-section flex flex-col gap-4" aria-labelledby="brand-contact-title">
     <h2 id="brand-contact-title" class="section-heading">Contacto y redes</h2>
 
-    <div class="grid gap-4 sm:grid-cols-2" formGroupName="contact">
-      <div class="field-group">
-        <label class="field-label" for="brand-phone"
-          >Teléfono<span aria-hidden="true"> *</span></label
-        >
-        <input
-          id="brand-phone"
-          pInputText
-          type="tel"
-          formControlName="phone"
-          maxlength="20"
-          autocomplete="tel"
-        />
-        @if (contactControls.phone.touched && contactControls.phone.errors?.['phone']) {
-          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
-            Ingresa un número de teléfono válido (10 a 15 dígitos).
-          </p>
-        }
+    @if (readOnly()) {
+      <!-- Read-only (admin): values as text rows, never disabled inputs. -->
+      @if (brand(); as b) {
+        <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+          @if (b.contact?.phone; as phone) {
+            <div>
+              <dt class="micro-label">Teléfono</dt>
+              <dd
+                class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-1000 dark:text-granite-0"
+              >
+                {{ phone }}
+              </dd>
+            </div>
+          }
+          @if (b.contact?.whatsapp; as whatsapp) {
+            <div>
+              <dt class="micro-label">WhatsApp</dt>
+              <dd
+                class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-1000 dark:text-granite-0"
+              >
+                {{ whatsapp }}
+              </dd>
+            </div>
+          }
+          @if (b.contact?.email; as email) {
+            <div>
+              <dt class="micro-label">Correo</dt>
+              <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
+                {{ email }}
+              </dd>
+            </div>
+          }
+          @if (b.contact?.address; as address) {
+            <div>
+              <dt class="micro-label">Dirección</dt>
+              <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
+                {{ address }}
+              </dd>
+            </div>
+          }
+          @if (b.social?.['facebook']; as url) {
+            <div>
+              <dt class="micro-label">Facebook</dt>
+              <dd class="mt-0.5">
+                <a
+                  [href]="url"
+                  target="_blank"
+                  rel="noopener"
+                  class="text-sm font-medium text-sky-700 underline-offset-2 hover:underline dark:text-sky-300"
+                  >{{ url }}</a
+                >
+              </dd>
+            </div>
+          }
+          @if (b.social?.['tiktok']; as url) {
+            <div>
+              <dt class="micro-label">TikTok</dt>
+              <dd class="mt-0.5">
+                <a
+                  [href]="url"
+                  target="_blank"
+                  rel="noopener"
+                  class="text-sm font-medium text-sky-700 underline-offset-2 hover:underline dark:text-sky-300"
+                  >{{ url }}</a
+                >
+              </dd>
+            </div>
+          }
+          @if (b.social?.['instagram']; as url) {
+            <div>
+              <dt class="micro-label">Instagram</dt>
+              <dd class="mt-0.5">
+                <a
+                  [href]="url"
+                  target="_blank"
+                  rel="noopener"
+                  class="text-sm font-medium text-sky-700 underline-offset-2 hover:underline dark:text-sky-300"
+                  >{{ url }}</a
+                >
+              </dd>
+            </div>
+          }
+          @if (b.social?.['googleMaps']; as url) {
+            <div>
+              <dt class="micro-label">Pin de Google</dt>
+              <dd class="mt-0.5">
+                <a
+                  [href]="url"
+                  target="_blank"
+                  rel="noopener"
+                  class="text-sm font-medium text-sky-700 underline-offset-2 hover:underline dark:text-sky-300"
+                  >{{ url }}</a
+                >
+              </dd>
+            </div>
+          }
+        </dl>
+      }
+    }
+    @if (!readOnly()) {
+      <div class="grid gap-4 sm:grid-cols-2" formGroupName="contact">
+        <div class="field-group">
+          <label class="field-label" for="brand-phone"
+            >Teléfono<span aria-hidden="true"> *</span></label
+          >
+          <input
+            id="brand-phone"
+            pInputText
+            type="tel"
+            formControlName="phone"
+            maxlength="20"
+            autocomplete="tel"
+          />
+          @if (contactControls.phone.touched && contactControls.phone.errors?.['phone']) {
+            <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+              Ingresa un número de teléfono válido (10 a 15 dígitos).
+            </p>
+          }
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="brand-whatsapp"
+            >WhatsApp<span aria-hidden="true"> *</span></label
+          >
+          <input
+            id="brand-whatsapp"
+            pInputText
+            type="tel"
+            formControlName="whatsapp"
+            maxlength="20"
+          />
+          @if (contactControls.whatsapp.touched && contactControls.whatsapp.errors?.['phone']) {
+            <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+              Ingresa un número de teléfono válido (10 a 15 dígitos).
+            </p>
+          }
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="brand-email"
+            >Correo<span aria-hidden="true"> *</span></label
+          >
+          <input
+            id="brand-email"
+            pInputText
+            type="email"
+            formControlName="email"
+            maxlength="254"
+            autocomplete="email"
+          />
+          @if (contactControls.email.touched && contactControls.email.errors?.['email']) {
+            <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+              Ingresa un correo válido.
+            </p>
+          }
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="brand-address"
+            >Dirección<span aria-hidden="true"> *</span></label
+          >
+          <input
+            id="brand-address"
+            pInputText
+            formControlName="address"
+            maxlength="250"
+            autocomplete="street-address"
+          />
+        </div>
       </div>
-      <div class="field-group">
-        <label class="field-label" for="brand-whatsapp"
-          >WhatsApp<span aria-hidden="true"> *</span></label
-        >
-        <input
-          id="brand-whatsapp"
-          pInputText
-          type="tel"
-          formControlName="whatsapp"
-          maxlength="20"
-        />
-        @if (contactControls.whatsapp.touched && contactControls.whatsapp.errors?.['phone']) {
-          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
-            Ingresa un número de teléfono válido (10 a 15 dígitos).
-          </p>
-        }
-      </div>
-      <div class="field-group">
-        <label class="field-label" for="brand-email"
-          >Correo<span aria-hidden="true"> *</span></label
-        >
-        <input
-          id="brand-email"
-          pInputText
-          type="email"
-          formControlName="email"
-          maxlength="254"
-          autocomplete="email"
-        />
-        @if (contactControls.email.touched && contactControls.email.errors?.['email']) {
-          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
-            Ingresa un correo válido.
-          </p>
-        }
-      </div>
-      <div class="field-group">
-        <label class="field-label" for="brand-address"
-          >Dirección<span aria-hidden="true"> *</span></label
-        >
-        <input
-          id="brand-address"
-          pInputText
-          formControlName="address"
-          maxlength="250"
-          autocomplete="street-address"
-        />
-      </div>
-    </div>
 
-    <div class="grid gap-4 sm:grid-cols-2" formGroupName="social">
-      <div class="field-group">
-        <label class="field-label" for="brand-facebook">Facebook</label>
-        <input
-          id="brand-facebook"
-          pInputText
-          type="url"
-          formControlName="facebook"
-          maxlength="300"
-        />
+      <div class="grid gap-4 sm:grid-cols-2" formGroupName="social">
+        <div class="field-group">
+          <label class="field-label" for="brand-facebook">Facebook</label>
+          <input
+            id="brand-facebook"
+            pInputText
+            type="url"
+            formControlName="facebook"
+            maxlength="300"
+          />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="brand-tiktok">TikTok</label>
+          <input id="brand-tiktok" pInputText type="url" formControlName="tiktok" maxlength="300" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="brand-instagram">Instagram</label>
+          <input
+            id="brand-instagram"
+            pInputText
+            type="url"
+            formControlName="instagram"
+            maxlength="300"
+          />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="brand-googlemaps">Pin de Google</label>
+          <input
+            id="brand-googlemaps"
+            pInputText
+            type="url"
+            formControlName="googleMaps"
+            maxlength="300"
+          />
+        </div>
       </div>
-      <div class="field-group">
-        <label class="field-label" for="brand-tiktok">TikTok</label>
-        <input id="brand-tiktok" pInputText type="url" formControlName="tiktok" maxlength="300" />
-      </div>
-      <div class="field-group">
-        <label class="field-label" for="brand-instagram">Instagram</label>
-        <input
-          id="brand-instagram"
-          pInputText
-          type="url"
-          formControlName="instagram"
-          maxlength="300"
-        />
-      </div>
-      <div class="field-group">
-        <label class="field-label" for="brand-googlemaps">Pin de Google</label>
-        <input
-          id="brand-googlemaps"
-          pInputText
-          type="url"
-          formControlName="googleMaps"
-          maxlength="300"
-        />
-      </div>
-    </div>
+    }
   </section>
 
   <!-- Typography — full-width: one column, one row per role, each with a
@@ -303,22 +434,31 @@
     </div>
 
     <div class="flex flex-col gap-4">
-      <div class="field-group max-w-md">
-        <label class="field-label" for="brand-font-body">Cuerpo</label>
-        <p-select
-          inputId="brand-font-body"
-          formControlName="body"
-          [options]="fontOptions()"
-          [group]="true"
-          optionLabel="label"
-          optionValue="value"
-          optionGroupLabel="label"
-          optionGroupChildren="items"
-          placeholder="Elegir fuente"
-          appendTo="body"
-          (onChange)="onFontChange('body')"
-        />
-      </div>
+      @if (!readOnly()) {
+        <div class="field-group max-w-md">
+          <label class="field-label" for="brand-font-body">Cuerpo</label>
+          <p-select
+            inputId="brand-font-body"
+            formControlName="body"
+            [options]="fontOptions()"
+            [group]="true"
+            optionLabel="label"
+            optionValue="value"
+            optionGroupLabel="label"
+            optionGroupChildren="items"
+            placeholder="Elegir fuente"
+            appendTo="body"
+            (onChange)="onFontChange('body')"
+          />
+        </div>
+      } @else {
+        <div>
+          <p class="micro-label">Cuerpo</p>
+          <p class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
+            {{ bodyFontLabel() }}
+          </p>
+        </div>
+      }
       <!-- Font-family preview binds [style] with a runtime catalog font —
            part of the documented brand-editor exception (01 Styling). -->
       <ul class="flex flex-col">
@@ -337,22 +477,31 @@
     </div>
 
     <div class="flex flex-col gap-4">
-      <div class="field-group max-w-md">
-        <label class="field-label" for="brand-font-heading">Encabezados</label>
-        <p-select
-          inputId="brand-font-heading"
-          formControlName="heading"
-          [options]="fontOptions()"
-          [group]="true"
-          optionLabel="label"
-          optionValue="value"
-          optionGroupLabel="label"
-          optionGroupChildren="items"
-          placeholder="Elegir fuente"
-          appendTo="body"
-          (onChange)="onFontChange('heading')"
-        />
-      </div>
+      @if (!readOnly()) {
+        <div class="field-group max-w-md">
+          <label class="field-label" for="brand-font-heading">Encabezados</label>
+          <p-select
+            inputId="brand-font-heading"
+            formControlName="heading"
+            [options]="fontOptions()"
+            [group]="true"
+            optionLabel="label"
+            optionValue="value"
+            optionGroupLabel="label"
+            optionGroupChildren="items"
+            placeholder="Elegir fuente"
+            appendTo="body"
+            (onChange)="onFontChange('heading')"
+          />
+        </div>
+      } @else {
+        <div>
+          <p class="micro-label">Encabezados</p>
+          <p class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
+            {{ headingFontLabel() }}
+          </p>
+        </div>
+      }
       <ul class="flex flex-col">
         @for (size of FONT_PREVIEW_SIZES; track size.class) {
           <li class="flex items-baseline gap-8 {{ size.gap }}">

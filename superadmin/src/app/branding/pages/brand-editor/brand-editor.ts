@@ -201,6 +201,18 @@ export class BrandEditor {
     return this.fonts().find((f) => f.code === code);
   }
 
+  /** Read-only rendering: catalog labels for the saved font codes — values
+   *  display as text, never inside disabled controls. */
+  protected bodyFontLabel = computed(() => {
+    const code = this.brand()?.font?.body ?? 'work_sans';
+    return this.fonts().find((f) => f.code === code)?.label ?? code;
+  });
+  protected headingFontLabel = computed(() => {
+    const font = this.brand()?.font;
+    const code = font?.heading ?? font?.body ?? 'rubik';
+    return this.fonts().find((f) => f.code === code)?.label ?? code;
+  });
+
   protected bodyFontFamily = signal<string>('');
   protected headingFontFamily = signal<string>('');
 
