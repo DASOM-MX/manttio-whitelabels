@@ -27,7 +27,16 @@ brand.put(
   zValidator('json', saveBrandSchema),
   async (c) => {
     const db = createDb(c.env.DATABASE_URL);
-    const saved = await saveBrand(db, c.env.CDN_BASE_URL, c.req.valid('json'));
+    const input = c.req.valid('json');
+    // siteUrl is manager-owned — the tenant site ships with the whitelabel
+    // package. Only shared-token pushes carry it (they set no context user);
+    // owner saves get it stripped and the stored value survives (saveBrand).
+    const isManagerPush = !c.get('user');
+    const saved = await saveBrand(
+      db,
+      c.env.CDN_BASE_URL,
+      isManagerPush ? input : { ...input, siteUrl: undefined },
+    );
     return c.json(saved);
   },
 );
