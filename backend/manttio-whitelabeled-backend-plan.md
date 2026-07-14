@@ -36,7 +36,7 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   **always `tmp_` + 18 random chars** (nanoid `customAlphabet`, look-alikes dropped;
   `users/utils/temp-password.ts`) — returns it **once** in the response (no email
   flow), and sets `must_change_password` (migration `0012`). The **login response**
-  and `PublicUser` expose the flag (`/auth/me` still pending with tenantConfig);
+  and `PublicUser` expose the flag (`/auth/me` carries it too, shipped 2026-07-14);
   **`POST /auth/password`** (change own — **new password only**, matching the shipped
   superadmin dialog: the caller just authenticated with the temp password) clears it —
   the superadmin blocks entry behind an unskippable change dialog until then (plan 02
@@ -311,7 +311,13 @@ Pattern:
 ## 7. Build checklist
 
 **Auth & config**
-- [ ] `role` migration + owner protection + superadmin login + `GET /auth/me`
+- [x] `role` migration + owner protection + superadmin login + `GET /auth/me`
+      (role work shipped 2026-07-09; `GET /auth/me` landed 2026-07-14 **without
+      `tenantConfig`** — the tenant module-flag feature is a **pending item**
+      stripped from the auth/users surface entirely; direction noted 2026-07-14
+      is flags applied at app **build time**, shape TBD when the feature is
+      picked up. Flagged superadmin modules stay off meanwhile — `hasModule`
+      passes core (unflagged) modules only)
 - [ ] Tenant-config enforcement middleware (module flags) + role checks per route
 
 **Cross-cutting**

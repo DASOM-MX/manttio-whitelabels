@@ -48,7 +48,7 @@ export const appConfig: ApplicationConfig = {
     MessageService,
     provideStore(
       [AppState, AuthState, BrandState],
-      // Only the token persists — `me` (role + tenantConfig) is refetched on
+      // Only the token persists — `me` (role) is refetched on
       // every boot so gated UI never renders from stale data (14 §3).
       withNgxsStoragePlugin({ keys: ['auth.token', 'app'] }),
       withNgxsReduxDevtoolsPlugin({ disabled: !isDevMode() }),
