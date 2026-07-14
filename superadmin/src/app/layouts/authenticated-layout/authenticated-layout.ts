@@ -56,7 +56,7 @@ export class AuthenticatedLayout {
   );
   protected hasError = computed(() => this.meStatus() === MeStatus.Error);
 
-  /** Sidebar entries the current `(tenantConfig, role)` allows (access.ts). */
+  /** Sidebar entries the current `(module availability, role)` allows (access.ts). */
   private navEntries = computed(() => navFor(this.me()));
 
   protected drawerOpen = signal(false);

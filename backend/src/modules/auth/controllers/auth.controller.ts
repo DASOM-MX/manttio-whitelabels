@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import type { AppBindings } from '../../../env';
 import { createDb } from '../../database/client';
 import { changePasswordSchema, loginSchema } from '../validators/auth.validator';
-import { changeOwnPassword, login } from '../services/auth.service';
+import { changeOwnPassword, getMe, login } from '../services/auth.service';
 import { jwtMiddleware } from '../middleware/jwt.middleware';
 
 export const auth = new Hono<AppBindings>();
@@ -15,6 +15,17 @@ auth.post('/login', zValidator('json', loginSchema), async (c) => {
   if (!result) {
     return c.json({ error: 'invalid_credentials' }, 401);
   }
+  return c.json(result);
+});
+
+// Session snapshot the superadmin boots on (backend plan §1). The /auth prefix
+// is mounted before the global JWT middleware (login must stay public), so
+// this route carries the guard itself.
+auth.get('/me', jwtMiddleware, async (c) => {
+  const me = c.get('user');
+  const db = createDb(c.env.DATABASE_URL);
+  const result = await getMe(db, me.id);
+  if (!result) return c.json({ error: 'not_found' }, 404);
   return c.json(result);
 });
 
