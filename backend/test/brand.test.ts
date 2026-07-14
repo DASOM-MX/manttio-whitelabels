@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import UPNG from 'upng-js';
 import app from '../src/index';
 import { authHeader, env, json, jsonHeaders, request } from './helpers/request';
 import { seedAdminAndLogin, seedOwnerAndLogin } from './helpers/fixtures';
@@ -7,7 +8,7 @@ import { brand } from '../src/modules/database/schema';
 import { BRAND_SCALE_STEPS } from '../src/modules/brand/constants/scale-steps';
 import type { Brand, FontCatalogEntry } from '../src/modules/brand/dtos/brand.dto';
 
-type WorkerEnv = { DATABASE_URL: string; CDN_BASE_URL: string };
+type WorkerEnv = { DATABASE_URL: string; CDN_BASE_URL: string; LOGOS_CDN_BASE_URL: string };
 
 const workerEnv = env as unknown as WorkerEnv;
 const db = () => createDb(workerEnv.DATABASE_URL);
@@ -99,7 +100,8 @@ describe('brand module', () => {
       body: JSON.stringify(SAVE_BODY),
     });
     const saved = await json<Brand & { logoKey?: string }>(put);
-    expect(saved.logoUrl).toBe(`${workerEnv.CDN_BASE_URL}/${SAVE_BODY.logoKey}`);
+    // Brand assets live in the manttio-logos bucket → its own CDN base.
+    expect(saved.logoUrl).toBe(`${workerEnv.LOGOS_CDN_BASE_URL}/${SAVE_BODY.logoKey}`);
     expect(saved.logoKey).toBeUndefined(); // keys never leave the backend
     expect(saved.colors.primary['1000']).toBe(SAVE_BODY.colors.primary['1000']);
 
@@ -170,21 +172,73 @@ describe('brand module', () => {
 
   test('upload admits the manager token (brand pushes carry logos)', async () => {
     // Empty form → 400 no_file proves the request cleared auth; without the
-    // token the same request 401s.
+    // token the same request 401s. /upload/logo is the brand-asset route
+    // (manttio-logos bucket); the managerOr mount covers all of /upload/*.
     const fd = new FormData();
     const withToken = await managerRequest(
-      '/upload/image',
+      '/upload/logo',
       { method: 'POST', headers: { 'X-Manager-Token': MANAGER_TOKEN }, body: fd },
       MANAGER_TOKEN,
     );
     expect(withToken.status).toBe(400);
 
     const anonymous = await managerRequest(
-      '/upload/image',
+      '/upload/logo',
       { method: 'POST', body: new FormData() },
       MANAGER_TOKEN,
     );
     expect(anonymous.status).toBe(401);
+  });
+
+  test('saving with a PNG mark generates the PWA icon set; GET serves the URLs', async () => {
+    const { token } = await seedOwnerAndLogin();
+
+    // A real 8×8 opaque PNG, uploaded through the same path a brand push uses.
+    const rgba = new Uint8Array(8 * 8 * 4);
+    for (let i = 0; i < rgba.length; i += 4) {
+      rgba[i] = 36; rgba[i + 1] = 51; rgba[i + 2] = 69; rgba[i + 3] = 255;
+    }
+    const png = UPNG.encode([rgba.buffer], 8, 8, 0);
+    const fd = new FormData();
+    fd.append('file', new File([png], 'mark.png', { type: 'image/png' }));
+    const uploaded = await request('/upload/logo', {
+      method: 'POST',
+      headers: authHeader(token),
+      body: fd,
+    });
+    expect(uploaded.status).toBe(201);
+    const { key } = await json<{ key: string }>(uploaded);
+    expect(key).toMatch(/^logos\//);
+
+    const put = await request('/brand', {
+      method: 'PUT',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ ...SAVE_BODY, faviconKey: key }),
+    });
+    expect(put.status).toBe(200);
+    const saved = await json<Brand>(put);
+    for (const url of Object.values(saved.icons ?? {})) {
+      expect(url).toMatch(new RegExp(`^${workerEnv.LOGOS_CDN_BASE_URL}/icons/`));
+    }
+    expect(Object.keys(saved.icons ?? {}).sort()).toEqual([
+      'any192', 'any512', 'maskable192', 'maskable512',
+    ]);
+
+    const read = await json<Brand>(await request('/brand'));
+    expect(read.icons?.any512).toBe(saved.icons?.any512);
+  });
+
+  test('an undecodable icon source fails soft — brand saves without icons', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const res = await request('/brand', {
+      method: 'PUT',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ ...SAVE_BODY, faviconKey: 'branding/does-not-exist.png' }),
+    });
+    expect(res.status).toBe(200);
+    const saved = await json<Brand>(res);
+    expect(saved.icons).toBeUndefined();
+    expect(saved.faviconUrl).toBe(`${workerEnv.LOGOS_CDN_BASE_URL}/branding/does-not-exist.png`);
   });
 
   test('GET /brand hides authored-but-empty identity and echoes social/contact', async () => {

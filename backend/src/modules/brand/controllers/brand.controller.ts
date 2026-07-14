@@ -15,7 +15,7 @@ export const brand = new Hono<AppBindings>();
 // row, or the neutral default until one exists (rule 3).
 brand.get('/', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  return c.json(await getBrand(db, c.env.CDN_BASE_URL));
+  return c.json(await getBrand(db, c.env.LOGOS_CDN_BASE_URL));
 });
 
 // Two write paths into the same single row, last write wins (decided
@@ -34,7 +34,8 @@ brand.put(
     const isManagerPush = !c.get('user');
     const saved = await saveBrand(
       db,
-      c.env.CDN_BASE_URL,
+      c.env.LOGOS_CDN_BASE_URL,
+      c.env.MANTTIO_LOGOS,
       isManagerPush ? input : { ...input, siteUrl: undefined },
     );
     return c.json(saved);

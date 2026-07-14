@@ -152,5 +152,7 @@ as-is (the backend stores scales verbatim, no server-side tinting).
 - **Deploy checklist (PR-A):** migration `0014` is applied to Neon (2026-07-12); set the
   `MANAGER_SHARED_TOKEN` secret (dev + production); verify `no-reply@` is deliverable under the
   Resend domain; provision the Peña brand row via the manager push (name, navy/granite scales as
-  HSL `0…1000`, logo keys from `POST /upload/image` using `../manttio/website/public/brand/
-  penanevada-*`), then confirm email/PDF/website render Peña unchanged.
+  HSL `0…1000`, logo keys from **`POST /upload/logo`** — moved off `/upload/image` when the
+  `manttio-logos` bucket landed in PR-C — using `../manttio/website/public/brand/
+  penanevada-*`), then confirm email/PDF/website render Peña unchanged. See plan 02 for the
+  PR-C additions (logos bucket + `LOGOS_CDN_BASE_URL` + Pages `API_BASE_URL`).

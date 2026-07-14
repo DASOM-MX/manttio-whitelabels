@@ -50,7 +50,7 @@ export const dispatchReportEmail = async (
       ? Promise.resolve(null)
       : findUserById(p.db, result.report.assignedTo),
     findCustomerById(p.db, result.report.clientId),
-    getBrand(p.db, p.env.CDN_BASE_URL),
+    getBrand(p.db, p.env.LOGOS_CDN_BASE_URL),
   ]);
   if (!customer) return { ok: false, error: 'customer_not_found' };
   const createdByName = creator?.name ?? 'Técnico';

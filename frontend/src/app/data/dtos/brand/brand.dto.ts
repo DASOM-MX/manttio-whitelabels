@@ -33,6 +33,14 @@ export interface BrandFont {
   heading?: string;
 }
 
+/** Backend-generated PWA manifest icon set — materialized CDN URLs. */
+export interface BrandIcons {
+  any192: string;
+  any512: string;
+  maskable192: string;
+  maskable512: string;
+}
+
 export interface Brand {
   name: string;
   slogan?: string;
@@ -46,6 +54,8 @@ export interface Brand {
   isologoUrl?: string;
   /** PWA manifest / favicon source. */
   faviconUrl?: string;
+  /** Generated from the mark (`faviconKey ?? isologoKey`) on brand save. */
+  icons?: BrandIcons;
   /** Always materialized: the tenant's scales or the neutral default (rule 3). */
   colors: BrandColors;
   contact?: BrandContact;

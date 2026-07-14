@@ -37,7 +37,7 @@ export const reports = new Hono<AppBindings>();
 // email contains a link to this route; we render the PDF on-demand and stream it back.
 reports.get('/download/:token', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  const rendered = await renderPdfForToken(db, c.env.CDN_BASE_URL, c.req.param('token'));
+  const rendered = await renderPdfForToken(db, c.env.LOGOS_CDN_BASE_URL, c.req.param('token'));
   if (!rendered) return c.json({ error: 'gone' }, 410);
 
   return new Response(rendered.pdf, {

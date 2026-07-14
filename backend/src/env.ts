@@ -10,6 +10,9 @@ export type Env = {
 
   ENVIRONMENT: Environment;
   CDN_BASE_URL: string;
+  /** Public base of the `manttio-logos` bucket — brand images (logo/isologo/
+   *  favicon uploads via POST /upload/logo) and the generated PWA icon set. */
+  LOGOS_CDN_BASE_URL: string;
   API_BASE_URL: string;
   RESEND_FROM: string;
   /** CDN fronting the shared `branding-fonts` bucket. Optional — until it is
@@ -17,6 +20,8 @@ export type Env = {
   FONT_CDN_BASE_URL?: string;
 
   MANTTIO_REPORTS: R2Bucket;
+  /** Brand asset bucket (`manttio-logos`) — separate lifecycle from report data. */
+  MANTTIO_LOGOS: R2Bucket;
 };
 
 export type AuthUser = {

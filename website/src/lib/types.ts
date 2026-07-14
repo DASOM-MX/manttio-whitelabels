@@ -6,6 +6,15 @@ export interface BrandColorScale {
   [step: string]: string; // '0'…'1000' by 100 → "H S% L%" components (rule 2)
 }
 
+/** Backend-generated PWA icon set (field-app plan 02) — unused here, mirrored
+ *  so the shape stays canonical. */
+export interface BrandIcons {
+  any192: string;
+  any512: string;
+  maskable192: string;
+  maskable512: string;
+}
+
 export interface Brand {
   name: string;
   slogan?: string;
@@ -15,6 +24,7 @@ export interface Brand {
   logoDarkUrl?: string; // dark-surface variant; falls back to logoUrl
   isologoUrl?: string; // square mark — favicon source, header chip
   faviconUrl?: string; // PWA manifest / favicon source (field-app plan 02)
+  icons?: BrandIcons; // generated from the mark on brand save
   colors?: {
     primary?: BrandColorScale;
     surface?: BrandColorScale;
