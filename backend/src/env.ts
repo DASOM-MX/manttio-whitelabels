@@ -4,14 +4,17 @@ export type Env = {
   DATABASE_URL: string;
   JWT_SECRET: string;
   RESEND_API_KEY: string;
+  /** Shared secret the whitelabel manager presents (X-Manager-Token) on its
+   *  config-push writes. Unset → the manager path fails closed. */
+  MANAGER_SHARED_TOKEN: string;
 
   ENVIRONMENT: Environment;
   CDN_BASE_URL: string;
   API_BASE_URL: string;
   RESEND_FROM: string;
-  BRAND_NAME: string;
-  BRAND_SITE_URL: string;
-  BRAND_LOGO_URL: string;
+  /** CDN fronting the shared `branding-fonts` bucket. Optional — until it is
+   *  configured, /fonts entries ship without files (defaults are bundled). */
+  FONT_CDN_BASE_URL?: string;
 
   MANTTIO_REPORTS: R2Bucket;
 };

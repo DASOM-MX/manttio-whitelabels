@@ -10,7 +10,10 @@ import { reportTemplates } from './modules/report-templates/controllers/report-t
 import { upload } from './modules/upload/controllers/upload.controller';
 import { cms } from './modules/cms/controllers/cms.controller';
 import { publicCms } from './modules/cms/controllers/public-cms.controller';
+import { brand } from './modules/brand/controllers/brand.controller';
+import { fonts } from './modules/brand/controllers/fonts.controller';
 import { jwtMiddleware } from './modules/auth/middleware/jwt.middleware';
+import { managerOr } from './modules/auth/middleware/manager.middleware';
 
 const app = new Hono<AppBindings>();
 
@@ -24,13 +27,21 @@ app.route('/auth', auth);
 // Public published-only CMS reads for the tenant website (no auth by design).
 app.route('/public/cms', publicCms);
 
-// JWT is required everywhere except `/auth/*`, `/`, `/public/*`, and the public
-// report-view path (also skipped inside jwtMiddleware itself for defense in depth).
+// Tenant brand identity + font catalog. GET /brand and GET /fonts are public
+// (login screens, website, field-app boot); PUT /brand carries its own guard
+// (owner JWT or the whitelabel manager's shared token).
+app.route('/brand', brand);
+app.route('/fonts', fonts);
+
+// JWT is required everywhere except `/auth/*`, `/`, `/public/*`, `/brand`,
+// `/fonts`, and the public report-view path (also skipped inside jwtMiddleware
+// itself for defense in depth). Uploads additionally admit the manager's
+// shared token so a brand push can carry logo assets.
 app.use('/users/*', jwtMiddleware);
 app.use('/customers/*', jwtMiddleware);
 app.use('/reports/*', jwtMiddleware);
 app.use('/report-templates/*', jwtMiddleware);
-app.use('/upload/*', jwtMiddleware);
+app.use('/upload/*', managerOr(jwtMiddleware));
 app.use('/cms/*', jwtMiddleware);
 
 app.route('/users', users);

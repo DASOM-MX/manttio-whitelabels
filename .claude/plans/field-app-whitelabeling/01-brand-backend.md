@@ -107,34 +107,50 @@ as-is (the backend stores scales verbatim, no server-side tinting).
   `/brand` supplies the real default palette. Comments (`tailwind.config.mjs`, `.env.example`)
   mentioning Peña → generic.
 
-## Checkpoints
+## Checkpoints (implemented 2026-07-12, PR-A)
 ### CP-1 — Table + endpoints
-- [ ] `brand` table + migration (`colors` jsonb HSL `0…1000`; `*_key` image cols); TS-enum any enums
-- [ ] `GET /brand` (public) + `/fonts` (public) + `PUT /brand` (owner) per the §1.4 contract
-- [ ] Store scales verbatim (no tinting); `*_key` → `cdnUrl` on read; validators reject hex /
-      non-`0…1000` steps
+- [x] `brand` table + migration `0014` (`colors` jsonb HSL `0…1000`; `*_key` image cols; singleton
+      CHECK `id = 1`); `FontRole` TS enum
+- [x] `GET /brand` (public, neutral default until the row exists) + `/fonts` (public) +
+      `PUT /brand` per the §1.4 contract **+ `siteUrl?`** (decided 2026-07-12 — the email footer
+      needs it; column `site_url`, optional, mirrored into the website types)
+- [x] Store scales verbatim (no tinting); `*_key` → `cdnUrl` on read; validators reject hex /
+      non-`0…1000` steps / unknown font codes
 
 ### CP-2 — De-hardcode render paths
-- [ ] Email subject + colors and PDF read brand at render (no `env.BRAND_*`)
-- [ ] `RESEND_FROM = no-reply@<domain>`, display name `brand.name`
-- [ ] Migrate `wrangler.toml` `BRAND_*` → brand row (drop from vars); dev `API_BASE_URL` gap fixed
+- [x] Email subject + colors and PDF read brand at render (no `env.BRAND_*`); email palette is
+      brand-derived **hex** (Outlook can't parse `hsl()`); PDF gets a `PdfTheme` + logo strip
+- [x] `RESEND_FROM = no-reply@<domain>`, display name `brand.name`; `brand.contact.email` → `reply_to`
+- [x] `wrangler.toml` `BRAND_*` dropped; dev `API_BASE_URL` gap fixed
 
-### CP-3 — Seed + verify
-- [ ] Seed the current tenant's row (§2); logo assets uploaded to R2
-- [ ] Email + PDF render unchanged for Peña
-- [ ] Grep clean of **backend** literals (`pe[ñn]a nevada`, `penanevadachillers`) except seed/data
-      + the generic "chillers" noun
+### CP-3 — Provisioning + verify (reshaped 2026-07-12: **no seed**)
+- [x] **No seed** — brand values arrive from the higher-level whitelabel manager:
+      `PUT /brand` dual guard (owner JWT **or** `X-Manager-Token` vs the `MANAGER_SHARED_TOKEN`
+      secret, constant-time, fail-closed; `auth/middleware/manager.middleware.ts`), and
+      `POST /upload/image` admits the manager token so pushes can carry logos
+- [x] Email + PDF fail-soft pre-provisioning (neutral palette, identity hides)
+- [x] Grep clean of **backend** literals (fixture emails + infra domains in `wrangler.toml` stay)
 
 ### CP-4 — Website residuals + light-up
-- [ ] Worker name neutral; website color model migrated to HSL / 0…1000 (`-50/-950` → `-0/-1000`)
-- [ ] Peña fallbacks stripped → neutral grayscale
-- [ ] Website renders against the real `/brand` + `/fonts`; website literals grep-clean
+- [x] Worker name `manttio-website`; color model HSL / 0…1000 (`-50/-950` → `-0/-1000`)
+- [x] Peña fallbacks stripped → neutral grayscale; `getSiteData` drops blank brand fields before
+      merging (backend default `name: ''` must not clobber the fallback copy)
+- [x] Verified against the real `/brand` + `/fonts` (local wrangler dev + astro dev: injected
+      `:root` vars + fallback title); production light-up = deploy backend → run migration →
+      manager push
 
 ## Open decisions (this plan)
-- **Font catalog contents:** `/fonts` needs a curated OFL list + hosted woff2s. Which families
-  beyond the two defaults (Rubik/Work Sans, already self-hosted)? Can ship with just the two and
-  grow the catalog later.
+- **Font catalog contents (resolved 2026-07-12):** the superadmin plan 03 §2.1 **launch set of 10**
+  (Work Sans, Rubik, Inter, Public Sans, Archivo, Figtree, DM Sans, Plus Jakarta Sans, Sora,
+  Source Serif 4) ships as `brand/constants/font-catalog.ts`. Hosted woff2s pending: entries emit
+  `files.variable` only once `FONT_CDN_BASE_URL` (shared `branding-fonts` bucket CDN) is configured;
+  until then consumers run on the two bundled defaults.
 - **Color materialization (resolved 2026-07-12):** the **editor** materializes the HSL `0…1000`
   scales and sends them in `PUT /brand` (mock/superadmin contract, §1.4); the backend **stores them
   verbatim — no server-side tinting**. The tint/ramp algorithm lives in the superadmin editor (its
   rework to HSL `0…1000`), not the backend.
+- **Deploy checklist (PR-A):** migration `0014` is applied to Neon (2026-07-12); set the
+  `MANAGER_SHARED_TOKEN` secret (dev + production); verify `no-reply@` is deliverable under the
+  Resend domain; provision the Peña brand row via the manager push (name, navy/granite scales as
+  HSL `0…1000`, logo keys from `POST /upload/image` using `../manttio/website/public/brand/
+  penanevada-*`), then confirm email/PDF/website render Peña unchanged.

@@ -1,6 +1,6 @@
 @if (!isOnline()) {
   <div
-    class="flex-shrink-0 flex items-center justify-center gap-2 bg-amber-500 text-granite-950 text-sm font-semibold py-1.5 px-4"
+    class="flex-shrink-0 flex items-center justify-center gap-2 bg-amber-500 text-granite-1000 text-sm font-semibold py-1.5 px-4"
   >
     <i class="pi pi-exclamation-triangle"></i>
     Sin conexión — los reportes se guardarán en este dispositivo
@@ -34,7 +34,7 @@
           </svg>
           @if (pendingCount() > 0) {
             <span
-              class="absolute -top-1.5 -right-2.5 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-amber-500 text-granite-950 text-xs font-bold leading-none"
+              class="absolute -top-1.5 -right-2.5 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-amber-500 text-granite-1000 text-xs font-bold leading-none"
               aria-label="Reportes pendientes de subir"
             >
               {{ pendingCount() }}
@@ -102,7 +102,7 @@
           <a
             routerLink="/customers"
             class="block px-4 py-3 text-base font-medium transition-colors
-                   hover:bg-sky-50 active:bg-sky-100
+                   hover:bg-sky-0 active:bg-sky-100
                    dark:hover:bg-granite-800 dark:active:bg-granite-700"
           >
             Clientes
@@ -110,7 +110,7 @@
           <a
             routerLink="/users"
             class="block px-4 py-3 text-base font-medium transition-colors
-                   hover:bg-sky-50 active:bg-sky-100
+                   hover:bg-sky-0 active:bg-sky-100
                    dark:hover:bg-granite-800 dark:active:bg-granite-700"
           >
             Usuarios
@@ -121,7 +121,7 @@
           (click)="toggleDarkMode()"
           [attr.aria-pressed]="darkMode()"
           class="flex w-full items-center justify-between gap-3 px-4 py-3 text-base font-medium transition-colors
-                 border-t border-granite-200 hover:bg-sky-50 active:bg-sky-100
+                 border-t border-granite-200 hover:bg-sky-0 active:bg-sky-100
                  dark:border-granite-700 dark:hover:bg-granite-800 dark:active:bg-granite-700"
         >
           <span class="flex items-center gap-2">

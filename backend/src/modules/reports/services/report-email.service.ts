@@ -15,6 +15,7 @@ import {
   renderReportEmailText,
   type ReportEmailParams,
 } from '../helpers/report-email.helpers';
+import { getBrand } from '../../brand/services/brand.service';
 import { sendEmail } from '../../email/services/email.service';
 
 export type DispatchEmailParams = {
@@ -43,12 +44,13 @@ export const dispatchReportEmail = async (
   const result = await findReportWithDetails(p.db, p.reportId);
   if (!result) return { ok: false, error: 'report_not_found' };
 
-  const [creator, signer, customer] = await Promise.all([
+  const [creator, signer, customer, brand] = await Promise.all([
     findUserById(p.db, result.report.createdBy),
     result.report.assignedTo === result.report.createdBy
       ? Promise.resolve(null)
       : findUserById(p.db, result.report.assignedTo),
     findCustomerById(p.db, result.report.clientId),
+    getBrand(p.db, p.env.CDN_BASE_URL),
   ]);
   if (!customer) return { ok: false, error: 'customer_not_found' };
   const createdByName = creator?.name ?? 'Técnico';
@@ -67,6 +69,9 @@ export const dispatchReportEmail = async (
   });
 
   const downloadUrl = `${p.env.API_BASE_URL}/reports/download/${accessToken}`;
+  // The neutral default row carries name '' — normalize blank identity to
+  // absent so subject/footer/sender hide it (rule 5).
+  const brandName = brand.name || undefined;
   const tplParams: ReportEmailParams = {
     folio: result.report.id,
     customerName: customer.name,
@@ -83,19 +88,28 @@ export const dispatchReportEmail = async (
     downloadUrl,
     timezone: customer.timezone,
     brand: {
-      name: p.env.BRAND_NAME,
-      siteUrl: p.env.BRAND_SITE_URL,
-      logoUrl: p.env.BRAND_LOGO_URL,
+      name: brandName,
+      siteUrl: brand.siteUrl,
+      logoUrl: brand.logoUrl,
+      colors: brand.colors,
     },
   };
+
+  // RESEND_FROM stays per-deploy infra (no-reply@<tenant-domain>); the brand
+  // supplies the display name, and its contact email — when set — receives
+  // replies (the copy invites them).
+  const from = brandName
+    ? `"${brandName.replace(/"/g, "'")}" <${p.env.RESEND_FROM}>`
+    : p.env.RESEND_FROM;
 
   try {
     const { id: resendId } = await sendEmail({
       apiKey: p.env.RESEND_API_KEY,
-      from: p.env.RESEND_FROM,
+      from,
       to: p.to,
       cc: p.cc,
-      subject: renderReportEmailSubject(result.report.id),
+      replyTo: brand.contact?.email,
+      subject: renderReportEmailSubject(result.report.id, brandName),
       html: renderReportEmailHTML(tplParams),
       text: renderReportEmailText(tplParams),
     });
