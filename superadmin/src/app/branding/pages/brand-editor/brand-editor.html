@@ -162,33 +162,46 @@
       <!-- Static heads-up, not a computed check: the apps keep fixed status
            colors alongside the brand, and a primary too close to them blurs
            the destructive/warning/success/info affordances. -->
-      <p
-        class="rounded-lg border border-granite-200 px-3 py-2 text-sm text-granite-600 dark:border-granite-800 dark:text-granite-400"
+      <div
+        class="rounded-lg border border-granite-200 px-3 py-2.5 dark:border-granite-800"
         role="note"
       >
-        Además de tu marca, las aplicaciones usan colores fijos para estados y acciones:
-        <span
-          class="mx-0.5 inline-block size-2.5 rounded-full bg-red-500 align-middle"
-          aria-hidden="true"
-        ></span>
-        rojo para errores y acciones destructivas,
-        <span
-          class="mx-0.5 inline-block size-2.5 rounded-full bg-amber-400 align-middle"
-          aria-hidden="true"
-        ></span>
-        ámbar para advertencias,
-        <span
-          class="mx-0.5 inline-block size-2.5 rounded-full bg-emerald-500 align-middle"
-          aria-hidden="true"
-        ></span>
-        verde para operaciones exitosas y
-        <span
-          class="mx-0.5 inline-block size-2.5 rounded-full bg-sky-500 align-middle"
-          aria-hidden="true"
-        ></span>
-        azul para confirmaciones y avisos. Estos colores no cambian con tu marca — si tu color
-        primario se parece a alguno de ellos, los botones y avisos podrían confundirse entre sí.
-      </p>
+        <p class="text-sm text-granite-600 dark:text-granite-400">
+          Además de tu marca, las aplicaciones usan colores fijos para estados y acciones. Estos no
+          cambian con tu marca — si tu color primario se parece a alguno de ellos, los botones y
+          avisos podrían confundirse entre sí:
+        </p>
+        <ul class="mt-2.5 flex flex-col gap-2 text-sm text-granite-600 dark:text-granite-400">
+          <li class="flex items-center gap-2.5">
+            <div
+              class="size-6 shrink-0 rounded-lg border border-granite-200 bg-red-500 dark:border-granite-800"
+              aria-hidden="true"
+            ></div>
+            Rojo — errores y acciones destructivas
+          </li>
+          <li class="flex items-center gap-2.5">
+            <div
+              class="size-6 shrink-0 rounded-lg border border-granite-200 bg-amber-400 dark:border-granite-800"
+              aria-hidden="true"
+            ></div>
+            Ámbar — advertencias
+          </li>
+          <li class="flex items-center gap-2.5">
+            <div
+              class="size-6 shrink-0 rounded-lg border border-granite-200 bg-emerald-500 dark:border-granite-800"
+              aria-hidden="true"
+            ></div>
+            Verde — operaciones exitosas
+          </li>
+          <li class="flex items-center gap-2.5">
+            <div
+              class="size-6 shrink-0 rounded-lg border border-granite-200 bg-sky-500 dark:border-granite-800"
+              aria-hidden="true"
+            ></div>
+            Azul — confirmaciones y avisos
+          </li>
+        </ul>
+      </div>
     }
   </section>
 
