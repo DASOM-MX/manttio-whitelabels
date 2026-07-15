@@ -1,18 +1,19 @@
 /** access.ts — the single place gating logic lives (14-access-control.md §3).
  *
- *  Gating is two-dimensional: module availability (the tenant-config feature
- *  is a pending item — flagged modules stay off until it lands, 2026-07-14)
- *  × user role (what the user may do inside them). Route `data`, the nav
- *  filter, and in-page `@if`s all consume these helpers — matrix logic is
- *  never duplicated in components. The backend enforces every call
- *  regardless; this is UX + bundle hygiene, not security.
+ *  Runtime gating is **role-only** (decided 2026-07-15): signed-in tenant
+ *  users are never gated out of a module by a flag — unbuilt modules show
+ *  their stub page. Which modules a tenant's instance ships is a build-time
+ *  concern (the pending, owner-driven tenant-modules feature), not a runtime
+ *  check. Route `data`, the nav filter, and in-page `@if`s all consume these
+ *  helpers — matrix logic is never duplicated in components. The backend
+ *  enforces every call regardless; this is UX + bundle hygiene, not
+ *  security.
  *
  *  Keeping it centralized is what makes the future SSR flip mechanical
  *  (14 §5).
  */
 import type { LucideIcon } from '@lucide/angular';
 import { MODULE_ROLES } from './model/constants/access/module-roles.const';
-import { MODULE_FLAG } from './model/constants/access/module-flags.const';
 import { NAV, TECH_NAV } from './model/constants/access/nav-entries.const';
 import type { MeResponse, Role } from './data/dtos/auth';
 
@@ -34,9 +35,12 @@ export const hasRole = (me: MeResponse | null, roles: readonly Role[]): boolean 
   !!me && roles.includes(me.role);
 
 export const hasModule = (me: MeResponse | null, module: ModuleKey): boolean => {
-  // Pending tenant-config feature: no flag = core = on; flagged modules stay
-  // off until that feature is defined (me reserved for when it carries flags).
-  return !!me && !MODULE_FLAG[module];
+  // Role-only runtime gating (2026-07-15): every module is on for signed-in
+  // users. Kept as the seam guards/nav already consume; `module` stays so
+  // call sites keep declaring intent. Module availability is a build-time
+  // concern of the pending tenant-modules feature — never a runtime flag.
+  void module;
+  return !!me;
 };
 
 export const canAccess = (
@@ -62,14 +66,11 @@ export const canResetPassword = (actor: Role | null, target: Role): boolean => {
 export const canManageUser = (target: Role): boolean => target !== 'owner';
 
 /** Default landing route per role (02 §4): owner/admin/office → dashboard;
- *  technicians → calendar, falling back to their reports when the tenant has
- *  no `scheduling`. */
+ *  technicians → their reports. Flip technicians to '/calendar' once module
+ *  12 ships — landing them on its stub page helps nobody. */
 export const defaultRouteFor = (me: MeResponse | null): string => {
   if (!me) return '/login';
-  if (me.role === 'technician') {
-    return hasModule(me, 'calendar') ? '/calendar' : '/reports';
-  }
-  return '/dashboard';
+  return me.role === 'technician' ? '/reports' : '/dashboard';
 };
 
 // ── Navigation ────────────────────────────────────────────────────────────

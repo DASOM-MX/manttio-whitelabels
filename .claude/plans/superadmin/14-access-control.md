@@ -1,13 +1,22 @@
 # 14 — Access control (roles + config gating)
 
 > **Status:** done (doc — implementation tasks live in `02-app-shell.md` and each module's
-> checklists) · **Last updated:** 2026-07-05
+> checklists) · **Last updated:** 2026-07-15
+>
+> ⚠️ **Correction (2026-07-15, owner):** axis 1 below is **not a runtime check** — there are
+> **no module flags against signed-in tenant users**; runtime gating is role-only
+> (`hasModule` returns true for every module, unbuilt modules show their stub). Which
+> modules a tenant's build ships is the pending, owner-driven **tenant-modules feature**,
+> applied at **app build time** — `/auth/me` carries no `tenantConfig` (stripped
+> 2026-07-14). The axis-1 module split below stays as the reference for that future
+> feature; do not reintroduce runtime flag gating.
 
 Reference doc, binding for all module agents. Gating is **two-dimensional**; keep the axes
 separate everywhere:
 
-1. **Tenant config** (set by *us* via the manager push): which modules this tenant's
-   instance even has. `modules: { billing, wms, crm, cms, scheduling }` — users, reports,
+1. **Tenant modules** (decided at *build time* by the pending owner-driven feature — see
+   the correction note above): which modules this tenant's build even contains.
+   `modules: { billing, wms, crm, cms, scheduling }` — users, reports,
    and clients are core and always on; **equipment rides core clients**,
    **`scheduling` covers calendar (12) + contracts (13)** (tentative flag split — open
    item), and **brand identity rides core** (the `cms` flag gates content editing only —
@@ -126,9 +135,10 @@ d. **Audit immutability (decided 2026-07-05):** movement records are **append-on
 Superadmin ships **CSR** (SSR comes later, §5). The gating input is fetched once and
 everything reads from it:
 
-- **`GET /auth/me` → `{ user, role, tenantConfig }`** — fetched after login and on app
-  boot when a token exists; stored in `AuthState`. The shell shows a splash until it
-  resolves; no gated UI renders from stale/absent data.
+- **`GET /auth/me` → `{ user, role, mustChangePassword }`** — fetched after login and on
+  app boot when a token exists; stored in `AuthState`. The shell shows a splash until it
+  resolves; no gated UI renders from stale/absent data. (**No `tenantConfig`** — stripped
+  2026-07-14; module availability is build-time, see the correction note at the top.)
 - **`access.ts` (single source):** the matrix above as data, plus `hasRole` / `hasModule`
   helpers. Route `data`, the nav filter, and in-page `@if`s all consume it — matrix logic
   is never duplicated in components.
