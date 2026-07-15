@@ -157,6 +157,39 @@
         {{ warning }}
       </p>
     }
+
+    @if (!readOnly()) {
+      <!-- Static heads-up, not a computed check: the apps keep fixed status
+           colors alongside the brand, and a primary too close to them blurs
+           the destructive/warning/success/info affordances. -->
+      <p
+        class="rounded-lg border border-granite-200 px-3 py-2 text-sm text-granite-600 dark:border-granite-800 dark:text-granite-400"
+        role="note"
+      >
+        Además de tu marca, las aplicaciones usan colores fijos para estados y acciones:
+        <span
+          class="mx-0.5 inline-block size-2.5 rounded-full bg-red-500 align-middle"
+          aria-hidden="true"
+        ></span>
+        rojo para errores y acciones destructivas,
+        <span
+          class="mx-0.5 inline-block size-2.5 rounded-full bg-amber-400 align-middle"
+          aria-hidden="true"
+        ></span>
+        ámbar para advertencias,
+        <span
+          class="mx-0.5 inline-block size-2.5 rounded-full bg-emerald-500 align-middle"
+          aria-hidden="true"
+        ></span>
+        verde para operaciones exitosas y
+        <span
+          class="mx-0.5 inline-block size-2.5 rounded-full bg-sky-500 align-middle"
+          aria-hidden="true"
+        ></span>
+        azul para confirmaciones y avisos. Estos colores no cambian con tu marca — si tu color
+        primario se parece a alguno de ellos, los botones y avisos podrían confundirse entre sí.
+      </p>
+    }
   </section>
 
   <!-- Logos -->
