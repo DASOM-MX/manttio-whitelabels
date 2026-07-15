@@ -7,6 +7,7 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SaveCustomerContacts } from '../../../../state/customers/customers.actions';
 import { errorMessage } from '../../../data/utils';
+import { phoneValidator } from '../../../validators/phone.validator';
 import type { Customer, CustomerContact } from '../../../data/dtos/customer';
 
 /** In-view "add contact" dialog (shape-3): owns the form + dispatch + toast, so
@@ -30,10 +31,10 @@ export class AddContactDialog {
   protected submitting = signal(false);
 
   protected form = this.fb.group({
-    name: ['', [Validators.required]],
-    role: [''],
-    phone: [''],
-    email: ['', [Validators.email]],
+    name: ['', [Validators.required, Validators.maxLength(100)]],
+    role: ['', Validators.maxLength(100)],
+    phone: ['', [phoneValidator, Validators.maxLength(20)]],
+    email: ['', [Validators.email, Validators.maxLength(254)]],
   });
 
   private status = toSignal(this.form.statusChanges, { initialValue: this.form.status });

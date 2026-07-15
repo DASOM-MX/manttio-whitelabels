@@ -6,7 +6,7 @@
   >
     <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
   </a>
-  <h1 class="text-xl font-bold text-granite-950 dark:text-granite-50">Cliente</h1>
+  <h1 class="text-xl font-bold text-granite-1000 dark:text-granite-0">Cliente</h1>
 </div>
 
 @if (customer(); as c) {
@@ -15,7 +15,7 @@
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div class="min-w-0">
         <div class="flex flex-wrap items-center gap-2">
-          <h2 id="cust-360-title" class="text-lg font-bold text-granite-950 dark:text-granite-50">
+          <h2 id="cust-360-title" class="text-lg font-bold text-granite-1000 dark:text-granite-0">
             {{ c.name }}
           </h2>
           <p-tag
@@ -100,20 +100,20 @@
         <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
           <div>
             <dt class="micro-label">Dirección</dt>
-            <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+            <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
               {{ c.address || '—' }}
             </dd>
           </div>
           <div>
             <dt class="micro-label">Origen</dt>
-            <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+            <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
               {{ c.source | customerSourceLabel }}
             </dd>
           </div>
           <div>
             <dt class="micro-label">Alta</dt>
             <dd
-              class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+              class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-1000 dark:text-granite-0"
             >
               {{ c.createdAt | slice: 0 : 10 }}
             </dd>
@@ -122,10 +122,10 @@
 
         <h3 class="micro-label mt-6">Contacto principal</h3>
         <div
-          class="mt-2 flex flex-wrap items-start justify-between gap-2 rounded-lg border border-granite-200 bg-granite-50 p-4 dark:border-granite-800 dark:bg-granite-800/40"
+          class="mt-2 flex flex-wrap items-start justify-between gap-2 rounded-lg border border-granite-200 bg-granite-0 p-4 dark:border-granite-800 dark:bg-granite-800/40"
         >
           <div>
-            <p class="text-sm font-medium text-granite-950 dark:text-granite-50">
+            <p class="text-sm font-medium text-granite-1000 dark:text-granite-0">
               {{ c.contactName || '—' }}
             </p>
             <p class="text-xs text-granite-500 dark:text-granite-400">Contacto principal</p>
@@ -151,7 +151,7 @@
           <div>
             <dt class="micro-label">Último servicio</dt>
             <dd
-              class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-950 dark:text-granite-50"
+              class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-1000 dark:text-granite-0"
             >
               {{ c.lastServiceDate || '—' }}
             </dd>
@@ -159,7 +159,7 @@
           <div>
             <dt class="micro-label">Trabajos totales</dt>
             <dd
-              class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-950 dark:text-granite-50"
+              class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-1000 dark:text-granite-0"
             >
               {{ c.totalJobs ?? '—' }}
             </dd>
@@ -167,7 +167,7 @@
           <div>
             <dt class="micro-label">Facturado</dt>
             <dd
-              class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-950 dark:text-granite-50"
+              class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-1000 dark:text-granite-0"
             >
               {{ c.totalBilled ?? '—' }}
             </dd>
@@ -175,7 +175,7 @@
           <div>
             <dt class="micro-label">Seguimiento</dt>
             <dd
-              class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-950 dark:text-granite-50"
+              class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-1000 dark:text-granite-0"
             >
               {{ c.nextFollowUpAt || '—' }}
             </dd>
@@ -197,7 +197,7 @@
             @for (contact of c.contacts; track contact.name) {
               <li class="flex flex-wrap items-center justify-between gap-2 py-2">
                 <div>
-                  <p class="text-sm font-medium text-granite-950 dark:text-granite-50">
+                  <p class="text-sm font-medium text-granite-1000 dark:text-granite-0">
                     {{ contact.name }}
                   </p>
                   @if (contact.role) {
@@ -230,21 +230,21 @@
             <div>
               <dt class="micro-label">RFC</dt>
               <dd
-                class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+                class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-1000 dark:text-granite-0"
               >
                 {{ f.rfc }}
               </dd>
             </div>
             <div>
               <dt class="micro-label">Razón social</dt>
-              <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+              <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
                 {{ f.legalName }}
               </dd>
             </div>
             <div>
               <dt class="micro-label">Régimen</dt>
               <dd
-                class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+                class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-1000 dark:text-granite-0"
               >
                 {{ f.taxRegimeCode }}
               </dd>
@@ -252,7 +252,7 @@
             <div>
               <dt class="micro-label">CP fiscal</dt>
               <dd
-                class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+                class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-1000 dark:text-granite-0"
               >
                 {{ f.fiscalZip }}
               </dd>
@@ -260,14 +260,14 @@
             <div>
               <dt class="micro-label">Uso CFDI</dt>
               <dd
-                class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+                class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-1000 dark:text-granite-0"
               >
                 {{ f.cfdiUseCode }}
               </dd>
             </div>
             <div>
               <dt class="micro-label">Correo de facturación</dt>
-              <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+              <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
                 {{ f.billingEmail || '—' }}
               </dd>
             </div>

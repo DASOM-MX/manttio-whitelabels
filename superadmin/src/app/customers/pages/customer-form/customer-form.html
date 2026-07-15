@@ -6,7 +6,7 @@
   >
     <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
   </a>
-  <h1 class="text-xl font-bold text-granite-950 dark:text-granite-50">
+  <h1 class="text-xl font-bold text-granite-1000 dark:text-granite-0">
     @if (isEdit) {
       Editar cliente
     } @else {
@@ -18,23 +18,47 @@
 <form [formGroup]="form" (ngSubmit)="submit()" class="mt-5 grid gap-4 xl:grid-cols-2">
   <!-- General -->
   <section class="card-section flex flex-col gap-4" aria-labelledby="cust-general-title">
-    <h2 id="cust-general-title" class="micro-label">General</h2>
+    <h2 id="cust-general-title" class="section-heading">General</h2>
 
     <div class="field-group">
       <label class="field-label" for="cust-name"
         >Nombre comercial<span aria-hidden="true"> *</span></label
       >
-      <input id="cust-name" pInputText formControlName="name" autocomplete="organization" />
+      <input
+        id="cust-name"
+        pInputText
+        formControlName="name"
+        maxlength="100"
+        autocomplete="organization"
+      />
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2">
       <div class="field-group">
         <label class="field-label" for="cust-contact">Contacto principal</label>
-        <input id="cust-contact" pInputText formControlName="contactName" autocomplete="name" />
+        <input
+          id="cust-contact"
+          pInputText
+          formControlName="contactName"
+          maxlength="100"
+          autocomplete="name"
+        />
       </div>
       <div class="field-group">
         <label class="field-label" for="cust-phone">Teléfono</label>
-        <input id="cust-phone" pInputText type="tel" formControlName="phone" autocomplete="tel" />
+        <input
+          id="cust-phone"
+          pInputText
+          type="tel"
+          formControlName="phone"
+          maxlength="20"
+          autocomplete="tel"
+        />
+        @if (form.controls.phone.touched && form.controls.phone.errors?.['phone']) {
+          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+            Ingresa un número de teléfono válido (10 a 15 dígitos).
+          </p>
+        }
       </div>
       <div class="field-group">
         <label class="field-label" for="cust-email">Correo</label>
@@ -43,8 +67,14 @@
           pInputText
           type="email"
           formControlName="email"
+          maxlength="254"
           autocomplete="email"
         />
+        @if (form.controls.email.touched && form.controls.email.errors?.['email']) {
+          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+            Ingresa un correo válido.
+          </p>
+        }
       </div>
       <div class="field-group">
         <label class="field-label" for="cust-address">Dirección</label>
@@ -52,6 +82,7 @@
           id="cust-address"
           pInputText
           formControlName="address"
+          maxlength="250"
           autocomplete="street-address"
         />
       </div>
@@ -113,7 +144,7 @@
 
   <!-- Contacts -->
   <section class="card-section flex flex-col gap-3" aria-labelledby="cust-contacts-title">
-    <h2 id="cust-contacts-title" class="micro-label">Contactos adicionales</h2>
+    <h2 id="cust-contacts-title" class="section-heading">Contactos adicionales</h2>
     <p class="text-sm text-granite-600 dark:text-granite-400">
       Gerente de planta, cuentas por pagar, dueño… El contacto principal vive en General.
     </p>
@@ -129,19 +160,41 @@
               <label class="field-label" [for]="'contact-name-' + i"
                 >Nombre<span aria-hidden="true"> *</span></label
               >
-              <input [id]="'contact-name-' + i" pInputText formControlName="name" />
+              <input [id]="'contact-name-' + i" pInputText formControlName="name" maxlength="100" />
             </div>
             <div class="field-group">
               <label class="field-label" [for]="'contact-role-' + i">Puesto</label>
-              <input [id]="'contact-role-' + i" pInputText formControlName="role" />
+              <input [id]="'contact-role-' + i" pInputText formControlName="role" maxlength="100" />
             </div>
             <div class="field-group">
               <label class="field-label" [for]="'contact-phone-' + i">Teléfono</label>
-              <input [id]="'contact-phone-' + i" pInputText type="tel" formControlName="phone" />
+              <input
+                [id]="'contact-phone-' + i"
+                pInputText
+                type="tel"
+                formControlName="phone"
+                maxlength="20"
+              />
+              @if (contact.controls['phone'].touched && contact.controls['phone'].errors?.['phone']) {
+                <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+                  Ingresa un número de teléfono válido (10 a 15 dígitos).
+                </p>
+              }
             </div>
             <div class="field-group">
               <label class="field-label" [for]="'contact-email-' + i">Correo</label>
-              <input [id]="'contact-email-' + i" pInputText type="email" formControlName="email" />
+              <input
+                [id]="'contact-email-' + i"
+                pInputText
+                type="email"
+                formControlName="email"
+                maxlength="254"
+              />
+              @if (contact.controls['email'].touched && contact.controls['email'].errors?.['email']) {
+                <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+                  Ingresa un correo válido.
+                </p>
+              }
             </div>
           </div>
           <div class="flex shrink-0 flex-col gap-0.5">
@@ -197,7 +250,7 @@
     aria-labelledby="cust-fiscal-title"
     formGroupName="fiscal"
   >
-    <h2 id="cust-fiscal-title" class="micro-label">Datos fiscales (CFDI 4.0)</h2>
+    <h2 id="cust-fiscal-title" class="section-heading">Datos fiscales (CFDI 4.0)</h2>
     <p class="text-sm text-granite-600 dark:text-granite-400">
       Opcionales — pero si capturas uno, el bloque completo es obligatorio.
     </p>
@@ -213,7 +266,7 @@
           maxlength="13"
           spellcheck="false"
         />
-        @if (form.controls.fiscal.controls.rfc.hasError('rfc')) {
+        @if (fiscalControls.rfc.touched && fiscalControls.rfc.errors?.['rfc']) {
           <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
             RFC inválido: 12 caracteres (moral) o 13 (física).
           </p>
@@ -221,7 +274,13 @@
       </div>
       <div class="field-group xl:col-span-2">
         <label class="field-label" for="fiscal-legal">Razón social</label>
-        <input id="fiscal-legal" pInputText formControlName="legalName" class="uppercase" />
+        <input
+          id="fiscal-legal"
+          pInputText
+          formControlName="legalName"
+          class="uppercase"
+          maxlength="150"
+        />
       </div>
       <div class="field-group">
         <label class="field-label" for="fiscal-regime">Régimen fiscal</label>
@@ -245,7 +304,7 @@
           inputmode="numeric"
           maxlength="5"
         />
-        @if (form.controls.fiscal.controls.fiscalZip.hasError('pattern')) {
+        @if (fiscalControls.fiscalZip.touched && fiscalControls.fiscalZip.errors?.['pattern']) {
           <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
             El CP fiscal son 5 dígitos.
           </p>
@@ -266,7 +325,18 @@
       </div>
       <div class="field-group">
         <label class="field-label" for="fiscal-email">Correo de facturación</label>
-        <input id="fiscal-email" pInputText type="email" formControlName="billingEmail" />
+        <input
+          id="fiscal-email"
+          pInputText
+          type="email"
+          formControlName="billingEmail"
+          maxlength="254"
+        />
+        @if (fiscalControls.billingEmail.touched && fiscalControls.billingEmail.errors?.['email']) {
+          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+            Ingresa un correo válido.
+          </p>
+        }
       </div>
     </div>
 

@@ -12,7 +12,7 @@
   <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
     <p class="text-sm text-granite-700 dark:text-granite-300">
       Nuevo contacto para
-      <strong class="text-granite-950 dark:text-granite-50">{{ target()?.name }}</strong
+      <strong class="text-granite-1000 dark:text-granite-0">{{ target()?.name }}</strong
       >.
     </p>
 
@@ -20,18 +20,42 @@
       <label class="field-label" for="add-contact-name"
         >Nombre<span aria-hidden="true"> *</span></label
       >
-      <input id="add-contact-name" pInputText formControlName="name" autocomplete="off" />
+      <input
+        id="add-contact-name"
+        pInputText
+        formControlName="name"
+        maxlength="100"
+        autocomplete="off"
+      />
     </div>
 
     <div class="field-group">
       <label class="field-label" for="add-contact-role">Puesto</label>
-      <input id="add-contact-role" pInputText formControlName="role" autocomplete="off" />
+      <input
+        id="add-contact-role"
+        pInputText
+        formControlName="role"
+        maxlength="100"
+        autocomplete="off"
+      />
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2">
       <div class="field-group">
         <label class="field-label" for="add-contact-phone">Teléfono</label>
-        <input id="add-contact-phone" pInputText formControlName="phone" autocomplete="off" />
+        <input
+          id="add-contact-phone"
+          pInputText
+          type="tel"
+          formControlName="phone"
+          maxlength="20"
+          autocomplete="off"
+        />
+        @if (form.controls.phone.touched && form.controls.phone.errors?.['phone']) {
+          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+            Ingresa un número de teléfono válido (10 a 15 dígitos).
+          </p>
+        }
       </div>
       <div class="field-group">
         <label class="field-label" for="add-contact-email">Correo</label>
@@ -40,8 +64,14 @@
           pInputText
           type="email"
           formControlName="email"
+          maxlength="254"
           autocomplete="off"
         />
+        @if (form.controls.email.touched && form.controls.email.errors?.['email']) {
+          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+            Ingresa un correo válido.
+          </p>
+        }
       </div>
     </div>
 

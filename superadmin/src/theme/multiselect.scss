@@ -36,12 +36,12 @@
   @apply flex flex-col;
 }
 .p-multiselect-option {
-  @apply flex items-center gap-2 px-4 py-2.5 text-base text-granite-950 cursor-pointer transition-colors
+  @apply flex items-center gap-2 px-4 py-2.5 text-base text-granite-1000 cursor-pointer transition-colors
          dark:text-granite-100;
 
   &:hover,
   &[data-p-focus='true'] {
-    @apply bg-sky-50 dark:bg-granite-800;
+    @apply bg-sky-0 dark:bg-granite-800;
   }
   &[data-p-selected='true'] {
     @apply bg-sky-100 font-bold dark:bg-granite-700;

@@ -33,6 +33,7 @@ import { SAT_TAX_REGIMES } from '../../../model/constants/customer/sat-tax-regim
 import { SAT_CFDI_USES } from '../../../model/constants/customer/sat-cfdi-uses.const';
 import { rfcValidator } from '../../../validators/rfc.validator';
 import { fiscalGroupValidator } from '../../../validators/fiscal-group.validator';
+import { phoneValidator } from '../../../validators/phone.validator';
 import { TagsInput } from '../../components/tags-input/tags-input';
 import { errorMessage } from '../../../data/utils';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
@@ -91,11 +92,11 @@ export class CustomerForm implements HasPendingChanges {
   protected readonly SAT_CFDI_USES = SAT_CFDI_USES;
 
   protected form = this.fb.nonNullable.group({
-    name: ['', Validators.required],
-    contactName: [''],
-    email: ['', Validators.email],
-    phone: [''],
-    address: [''],
+    name: ['', [Validators.required, Validators.maxLength(100)]],
+    contactName: ['', Validators.maxLength(100)],
+    email: ['', [Validators.email, Validators.maxLength(254)]],
+    phone: ['', [phoneValidator, Validators.maxLength(20)]],
+    address: ['', Validators.maxLength(250)],
     tags: [[] as string[]],
     status: [CustomerStatus.Active, Validators.required],
     source: [CustomerSource.Other, Validators.required],
@@ -104,11 +105,11 @@ export class CustomerForm implements HasPendingChanges {
     fiscal: this.fb.nonNullable.group(
       {
         rfc: ['', rfcValidator],
-        legalName: [''],
+        legalName: ['', Validators.maxLength(150)],
         taxRegimeCode: [''],
         fiscalZip: ['', Validators.pattern(/^\d{5}$/)],
         cfdiUseCode: [''],
-        billingEmail: ['', Validators.email],
+        billingEmail: ['', [Validators.email, Validators.maxLength(254)]],
       },
       { validators: fiscalGroupValidator },
     ),
@@ -149,13 +150,17 @@ export class CustomerForm implements HasPendingChanges {
     return this.form.controls.fiscal.hasError('fiscalIncomplete');
   }
 
+  protected get fiscalControls() {
+    return this.form.controls.fiscal.controls;
+  }
+
   protected addContact(initial?: ContactSeed): void {
     this.contacts.push(
       this.fb.nonNullable.group({
-        name: [initial?.name ?? '', Validators.required],
-        role: [initial?.role ?? ''],
-        phone: [initial?.phone ?? ''],
-        email: [initial?.email ?? '', Validators.email],
+        name: [initial?.name ?? '', [Validators.required, Validators.maxLength(100)]],
+        role: [initial?.role ?? '', Validators.maxLength(100)],
+        phone: [initial?.phone ?? '', [phoneValidator, Validators.maxLength(20)]],
+        email: [initial?.email ?? '', [Validators.email, Validators.maxLength(254)]],
       }),
     );
     if (!initial) this.form.markAsDirty();
@@ -229,7 +234,7 @@ export class CustomerForm implements HasPendingChanges {
       fiscal: fiscalFilled
         ? {
             rfc: raw.fiscal.rfc.toUpperCase(),
-            legalName: raw.fiscal.legalName,
+            legalName: raw.fiscal.legalName.toUpperCase(),
             taxRegimeCode: raw.fiscal.taxRegimeCode,
             fiscalZip: raw.fiscal.fiscalZip,
             cfdiUseCode: raw.fiscal.cfdiUseCode,
