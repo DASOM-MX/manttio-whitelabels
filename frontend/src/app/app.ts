@@ -5,7 +5,10 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { select } from '@ngxs/store';
 import { AppState } from '../state/app/app.state';
+import { BrandState } from '../state/brand/brand.state';
+import { buildBrandCss } from './theme/brand-css';
 import { SyncPendingReportsDialog } from './shared/components/sync-pending-reports-dialog/sync-pending-reports-dialog';
+import type { Brand, FontCatalogEntry } from './data/dtos/brand';
 
 @Component({
   selector: 'app-root',
@@ -19,21 +22,68 @@ export class App {
    *  class — both Tailwind (`darkMode: ['class', '.app-dark']`) and PrimeNG
    *  (`darkModeSelector: '.app-dark'`) follow this single source of truth. */
   private darkMode = select(AppState.darkMode);
+  private brand = select(BrandState.brand);
+  private fonts = select(BrandState.fonts);
 
   protected title = 'manttio';
 
-  /** Browser chrome (Chrome/Firefox address bar, PWA status bar) color per mode.
-   *  Light = navy frame matching the bottom nav; dark = granite-950 page bg so
-   *  the toolbar blends into the dark app. */
-  private static readonly THEME_COLOR = { light: '#243345', dark: '#131717' };
+  /** Browser chrome (Chrome/Firefox address bar, PWA status bar) HSL components
+   *  per mode when no brand is loaded yet (rule 3 — neutral pre-fetch instant).
+   *  Light = a primary-800 frame matching the bottom nav; dark = surface-1000
+   *  page bg so the toolbar blends into the dark app. */
+  private static readonly THEME_COLOR_FALLBACK = { light: '220 10% 28%', dark: '0 0% 10%' };
 
   constructor() {
     effect(() => {
       const dark = this.darkMode();
       this.document.documentElement.classList.toggle('app-dark', dark);
-      this.document
-        .querySelector('meta[name="theme-color"]')
-        ?.setAttribute('content', dark ? App.THEME_COLOR.dark : App.THEME_COLOR.light);
+      this.applyThemeColor(dark, this.brand());
     });
+    // Apply the tenant brand (plan 02 §1.2): CSS vars + @font-face, favicon /
+    // apple-touch-icon, document + home-screen titles. Absent fields keep the
+    // neutral bundled defaults (rule 5 — hide, never fake).
+    effect(() => this.applyBrand(this.brand(), this.fonts()));
+  }
+
+  private applyThemeColor(dark: boolean, brand: Brand | null): void {
+    const components = dark
+      ? (brand?.colors.surface?.['1000'] ?? App.THEME_COLOR_FALLBACK.dark)
+      : (brand?.colors.primary?.['800'] ?? App.THEME_COLOR_FALLBACK.light);
+    this.document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute('content', `hsl(${components})`);
+  }
+
+  private applyBrand(brand: Brand | null, fonts: FontCatalogEntry[]): void {
+    if (!brand) return;
+
+    const css = buildBrandCss(brand, fonts);
+    let style = this.document.getElementById('brand-vars');
+    if (css) {
+      if (!style) {
+        style = this.document.createElement('style');
+        style.id = 'brand-vars';
+        this.document.head.appendChild(style);
+      }
+      style.textContent = css;
+    } else {
+      style?.remove();
+    }
+
+    const icon = brand.faviconUrl ?? brand.isologoUrl;
+    if (icon) {
+      const favicon = this.document.querySelector('link[rel="icon"]');
+      favicon?.setAttribute('href', icon);
+      favicon?.removeAttribute('type'); // let the browser sniff the CDN asset
+      this.document.querySelector('link[rel="apple-touch-icon"]')?.setAttribute('href', icon);
+    }
+
+    const name = brand.name.trim();
+    if (name) {
+      this.document.title = name;
+      this.document
+        .querySelector('meta[name="apple-mobile-web-app-title"]')
+        ?.setAttribute('content', name);
+    }
   }
 }

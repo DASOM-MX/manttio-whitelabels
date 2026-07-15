@@ -1,24 +1,23 @@
 // Brand → CSS: custom properties for the Tailwind palette repoint plus
 // @font-face rules for catalog fonts (plan 15 §3). Emits only what the fetched
 // brand actually carries — an empty string means "run on the built-in fallbacks".
+// Scale values arrive as HSL components ("H S% L%", steps 0…1000 — branding
+// rule 2) and drop into the vars verbatim; anything else (hex, rgb) is skipped.
 
 import type { Brand, BrandColorScale, FontCatalogEntry } from './types';
 
 const DEFAULT_FONT_CODES = { body: 'work_sans', heading: 'rubik' };
 
-export function hexToTriplet(hex: string): string | null {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
-  if (!m) return null;
-  const n = parseInt(m[1], 16);
-  return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
-}
+const HSL_COMPONENTS_RE = /^\d{1,3}(?:\.\d+)? \d{1,3}(?:\.\d+)?% \d{1,3}(?:\.\d+)?%$/;
 
 function scaleVars(prefix: string, scale: BrandColorScale | undefined): string[] {
   if (!scale) return [];
   const vars: string[] = [];
-  for (const [step, hex] of Object.entries(scale)) {
-    const triplet = hexToTriplet(hex);
-    if (triplet && /^\d{1,4}$/.test(step)) vars.push(`--brand-${prefix}-${step}: ${triplet};`);
+  for (const [step, value] of Object.entries(scale)) {
+    const components = value.trim();
+    if (HSL_COMPONENTS_RE.test(components) && /^\d{1,4}$/.test(step)) {
+      vars.push(`--brand-${prefix}-${step}: ${components};`);
+    }
   }
   return vars;
 }

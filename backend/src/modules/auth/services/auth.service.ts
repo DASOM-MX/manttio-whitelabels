@@ -1,8 +1,10 @@
 import type { Db } from '../../database/client';
 import { findUserByEmail, updateUser } from '../../users/repository/users.repository';
+import { getUserById } from '../../users/services/users.service';
 import { hashPassword, verifyPassword } from './password.service';
 import { signAuthToken } from './jwt.service';
 import type { LoginInput } from '../validators/auth.validator';
+import type { MeResponse } from '../dtos/me.dto';
 
 export type LoginResult = { token: string; mustChangePassword: boolean };
 
@@ -25,6 +27,20 @@ export const login = async (
 
   const token = await signAuthToken(secret, environment, { id: user.id, role: user.role });
   return { token, mustChangePassword: user.mustChangePassword };
+};
+
+// Session snapshot for GET /auth/me (backend plan §1): user + role +
+// mustChangePassword in one read. Returns null when the token's user no
+// longer exists (deleted since issue). Deliberately no tenantConfig — the
+// module-flag feature is a pending item (see dtos/me.dto.ts).
+export const getMe = async (db: Db, userId: string): Promise<MeResponse | null> => {
+  const user = await getUserById(db, userId);
+  if (!user) return null;
+  return {
+    user: { id: user.id, name: user.name, email: user.email },
+    role: user.role,
+    mustChangePassword: user.mustChangePassword,
+  };
 };
 
 // Change-own password for the forced-change flow (backend plan §1): rehash and

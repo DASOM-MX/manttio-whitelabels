@@ -12,4 +12,12 @@ export class UploadService {
     fd.set('file', file);
     return this.remote.postForm<UploadImageResponse>('/upload/image', fd);
   }
+
+  /** Brand assets (logo / isologo / favicon) — the dedicated `manttio-logos`
+   *  bucket; the returned key is what `PUT /brand` expects. */
+  uploadLogo(file: File): Observable<UploadImageResponse> {
+    const fd = new FormData();
+    fd.set('file', file);
+    return this.remote.postForm<UploadImageResponse>('/upload/logo', fd);
+  }
 }

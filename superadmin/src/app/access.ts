@@ -1,6 +1,7 @@
 /** access.ts — the single place gating logic lives (14-access-control.md §3).
  *
- *  Gating is two-dimensional: tenant config (which modules the instance has)
+ *  Gating is two-dimensional: module availability (the tenant-config feature
+ *  is a pending item — flagged modules stay off until it lands, 2026-07-14)
  *  × user role (what the user may do inside them). Route `data`, the nav
  *  filter, and in-page `@if`s all consume these helpers — matrix logic is
  *  never duplicated in components. The backend enforces every call
@@ -33,8 +34,9 @@ export const hasRole = (me: MeResponse | null, roles: readonly Role[]): boolean 
   !!me && roles.includes(me.role);
 
 export const hasModule = (me: MeResponse | null, module: ModuleKey): boolean => {
-  const flag = MODULE_FLAG[module];
-  return !flag || !!me?.tenantConfig?.modules?.[flag];
+  // Pending tenant-config feature: no flag = core = on; flagged modules stay
+  // off until that feature is defined (me reserved for when it carries flags).
+  return !!me && !MODULE_FLAG[module];
 };
 
 export const canAccess = (
@@ -89,7 +91,7 @@ export interface NavEntry {
   children?: NavChild[];
 }
 
-/** Sidebar entries `(tenantConfig, role)` allow — a user never sees an entry
+/** Sidebar entries `(module availability, role)` allow — a user never sees an entry
  *  the route guard would reject. */
 export const navFor = (me: MeResponse | null): NavEntry[] =>
   (me?.role === 'technician' ? TECH_NAV : NAV).filter((e) => canAccess(me, e.module));

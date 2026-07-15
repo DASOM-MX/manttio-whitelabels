@@ -1,4 +1,4 @@
-<div class="min-h-full bg-background dark:bg-granite-950">
+<div class="min-h-full bg-background dark:bg-granite-1000">
   <div class="max-w-5xl mx-auto px-4 sm:px-8 py-10 sm:py-12 flex flex-col gap-8">
     <!-- Header -->
     <div class="flex flex-wrap items-center justify-between gap-5">
@@ -7,7 +7,7 @@
           Directorio
         </p>
         <h1
-          class="text-3xl sm:text-4xl font-extrabold text-granite-950 dark:text-granite-50 leading-tight tracking-tight"
+          class="text-3xl sm:text-4xl font-extrabold text-granite-1000 dark:text-granite-0 leading-tight tracking-tight"
         >
           Clientes
         </h1>
@@ -39,7 +39,7 @@
           >
             <div class="flex items-center gap-3 min-w-0">
               <i class="pi pi-filter text-sky-800 dark:text-sky-300 text-lg"></i>
-              <span class="text-lg font-bold text-granite-950 dark:text-granite-50">Filtros</span>
+              <span class="text-lg font-bold text-granite-1000 dark:text-granite-0">Filtros</span>
               @if (activeFilterCount() > 0) {
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-sky-700 text-white text-sm font-bold">
                   {{ activeFilterCount() }}
@@ -97,7 +97,7 @@
                 @if (activeFilterCount() > 0) {
                   <button
                     type="button"
-                    class="text-base font-bold text-sky-800 dark:text-sky-300 hover:text-sky-900 inline-flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-sky-50 transition-colors"
+                    class="text-base font-bold text-sky-800 dark:text-sky-300 hover:text-sky-900 inline-flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-sky-0 transition-colors"
                     (click)="clearFilters()"
                   >
                     <i class="pi pi-times"></i>
@@ -120,7 +120,7 @@
       </ng-template>
       <ng-template pTemplate="body" let-c>
         <tr (click)="goToEdit(c.id)" class="cursor-pointer">
-          <td class="font-semibold text-granite-950 dark:text-granite-50">{{ c.name }}</td>
+          <td class="font-semibold text-granite-1000 dark:text-granite-0">{{ c.name }}</td>
           <td class="font-data tabular-nums">{{ c.identification ?? '—' }}</td>
           <td class="font-data tabular-nums">{{ c.phone ?? '—' }}</td>
           <td>{{ c.state ?? '—' }}</td>
@@ -132,7 +132,7 @@
                 tooltipPosition="top"
                 aria-label="Editar"
                 (click)="$event.stopPropagation(); goToEdit(c.id)"
-                class="size-9 inline-flex items-center justify-center rounded-lg text-sky-800 dark:text-sky-300 hover:bg-sky-50 active:bg-sky-100 transition-colors"
+                class="size-9 inline-flex items-center justify-center rounded-lg text-sky-800 dark:text-sky-300 hover:bg-sky-0 active:bg-sky-100 transition-colors"
               >
                 <i class="pi pi-pencil"></i>
               </button>

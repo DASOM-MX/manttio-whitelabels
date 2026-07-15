@@ -11,6 +11,9 @@
 
 # Angular Cache
 /frontend/.angular/cache
+
+# wrangler pages dev cache (manifest function testing)
+/frontend/.wrangler
 /frontend/sass-cache/
 
 # Node 

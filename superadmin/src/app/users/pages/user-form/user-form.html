@@ -7,7 +7,7 @@
     <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
   </a>
   <div>
-    <h1 class="text-xl font-bold text-granite-950 dark:text-granite-50">
+    <h1 class="text-xl font-bold text-granite-1000 dark:text-granite-0">
       @if (isEdit()) {
         {{ selected()?.name || 'Usuario' }}
       } @else {
@@ -22,7 +22,7 @@
 
 @if (readOnly()) {
   <p
-    class="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
+    class="mt-4 rounded-lg border border-sky-200 bg-sky-0 px-4 py-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-1000/40 dark:text-sky-200"
     role="note"
   >
     La cuenta del propietario no se administra desde aquí: los cambios se solicitan al equipo de
@@ -44,9 +44,9 @@
       id="tab-datos"
       aria-controls="panel-datos"
       class="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
-      [class.bg-sky-50]="tab() === 'datos'"
+      [class.bg-sky-0]="tab() === 'datos'"
       [class.text-sky-800]="tab() === 'datos'"
-      [class.dark:bg-sky-950/40]="tab() === 'datos'"
+      [class.dark:bg-sky-1000/40]="tab() === 'datos'"
       [class.dark:text-sky-300]="tab() === 'datos'"
       [class.text-granite-600]="tab() !== 'datos'"
       [class.dark:text-granite-400]="tab() !== 'datos'"
@@ -193,7 +193,7 @@
 
       @if (!isEdit()) {
         <p
-          class="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
+          class="rounded-lg border border-sky-200 bg-sky-0 px-3 py-2 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-1000/40 dark:text-sky-200"
         >
           Al crear la cuenta se genera una contraseña temporal que verás una sola vez.
         </p>

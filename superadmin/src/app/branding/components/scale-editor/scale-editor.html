@@ -1,23 +1,27 @@
 <div class="field-group">
   <label class="field-label" [for]="inputId()">{{ label() }}</label>
-  <div class="flex items-center gap-3">
-    <!-- Swatch/backgrounds below bind [style.*] with user-picked hex values —
-         the documented brand-editor exception to the no-inline-style rule
-         (01 Styling): runtime color data can't be utility classes. -->
-    <input
-      type="color"
-      [id]="inputId()"
-      [formControl]="baseControl()"
-      class="h-12 w-16 cursor-pointer rounded-lg border-2 border-granite-200 bg-white p-1 disabled:cursor-not-allowed disabled:opacity-50 dark:border-granite-700 dark:bg-granite-900"
-    />
-    <input
-      type="text"
-      [formControl]="baseControl()"
-      class="field-input max-w-36 uppercase"
-      [attr.aria-label]="label() + ' (hex)'"
-      spellcheck="false"
-    />
-  </div>
+  <!-- Read-only renders just the derived strip below — values never sit
+       inside disabled inputs. -->
+  @if (!readOnly()) {
+    <div class="flex items-center gap-3">
+      <!-- Swatch/backgrounds below bind [style.*] with user-picked hex values —
+           the documented brand-editor exception to the no-inline-style rule
+           (01 Styling): runtime color data can't be utility classes. -->
+      <input
+        type="color"
+        [id]="inputId()"
+        [formControl]="baseControl()"
+        class="h-12 w-16 cursor-pointer rounded-lg border-2 border-granite-200 bg-white p-1 dark:border-granite-700 dark:bg-granite-900"
+      />
+      <input
+        type="text"
+        [formControl]="baseControl()"
+        class="field-input max-w-36 uppercase"
+        [attr.aria-label]="label() + ' (hex)'"
+        spellcheck="false"
+      />
+    </div>
+  }
 
   <div
     class="mt-1 flex h-8 overflow-hidden rounded-lg border border-granite-200 dark:border-granite-800"
@@ -29,39 +33,41 @@
     }
   </div>
 
-  <button
-    type="button"
-    class="mt-1 inline-flex items-center gap-1.5 self-start text-sm font-medium text-sky-700 transition-colors hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
-    (click)="expanded.set(!expanded())"
-    [attr.aria-expanded]="expanded()"
-  >
-    <svg
-      lucideChevronDown
-      class="size-4 transition-transform"
-      [class.-rotate-90]="!expanded()"
-      aria-hidden="true"
-    ></svg>
-    Ajustar pasos individuales
-  </button>
-
-  @if (expanded()) {
-    <div
-      class="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6"
-      animate.enter="anim-fade-enter"
+  @if (!readOnly()) {
+    <button
+      type="button"
+      class="mt-1 inline-flex items-center gap-1.5 self-start text-sm font-medium text-sky-700 transition-colors hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
+      (click)="expanded.set(!expanded())"
+      [attr.aria-expanded]="expanded()"
     >
-      @for (row of rows(); track row.step) {
-        <div
-          class="flex items-center gap-2 rounded-lg border border-granite-200 p-1.5 dark:border-granite-800"
-        >
-          <input
-            type="color"
-            [formControl]="row.control"
-            class="size-8 shrink-0 cursor-pointer rounded border border-granite-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-granite-700"
-            [attr.aria-label]="label() + ' paso ' + row.step"
-          />
-          <span class="micro-label font-data tabular-nums">{{ row.step }}</span>
-        </div>
-      }
-    </div>
+      <svg
+        lucideChevronDown
+        class="size-4 transition-transform"
+        [class.-rotate-90]="!expanded()"
+        aria-hidden="true"
+      ></svg>
+      Ajustar pasos individuales
+    </button>
+
+    @if (expanded()) {
+      <div
+        class="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6"
+        animate.enter="anim-fade-enter"
+      >
+        @for (row of rows(); track row.step) {
+          <div
+            class="flex items-center gap-2 rounded-lg border border-granite-200 p-1.5 dark:border-granite-800"
+          >
+            <input
+              type="color"
+              [formControl]="row.control"
+              class="size-8 shrink-0 cursor-pointer rounded border border-granite-200 dark:border-granite-700"
+              [attr.aria-label]="label() + ' paso ' + row.step"
+            />
+            <span class="micro-label font-data tabular-nums">{{ row.step }}</span>
+          </div>
+        }
+      </div>
+    }
   }
 </div>

@@ -7,19 +7,20 @@
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 import type { PDFImage } from 'pdf-lib';
 import {
-  BORDER,
   CONTENT_WIDTH,
-  FILL_GRAY,
+  DEFAULT_PDF_THEME,
   MARGIN,
   PAGE_HEIGHT,
   PAGE_WIDTH,
-  TEXT,
 } from '../constants/pdf-layout';
-import type { Cell, Renderer } from '../types/pdf.types';
+import type { Cell, PdfTheme, Renderer } from '../types/pdf.types';
 
 // Create a document with Helvetica (+ bold) embedded and a first page, returning the
-// draw cursor. Callers draw with the primitives below, then `r.doc.save()`.
-export const createRenderer = async (): Promise<Renderer> => {
+// draw cursor. Callers draw with the primitives below, then `r.doc.save()`. The theme
+// (usually derived from the tenant brand) colors every primitive.
+export const createRenderer = async (
+  theme: PdfTheme = DEFAULT_PDF_THEME,
+): Promise<Renderer> => {
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -28,6 +29,7 @@ export const createRenderer = async (): Promise<Renderer> => {
     page: doc.addPage([PAGE_WIDTH, PAGE_HEIGHT]),
     font,
     fontBold,
+    theme,
     y: PAGE_HEIGHT - MARGIN,
   };
 };
@@ -119,7 +121,7 @@ const drawCellText = (
       xText = x + width - w - padX;
     }
     if (y - 2 < yTop - height) break; // overflow guard
-    r.page.drawText(ln, { x: xText, y, size, font, color: TEXT });
+    r.page.drawText(ln, { x: xText, y, size, font, color: r.theme.text });
     y -= lineH;
   }
 };
@@ -167,9 +169,9 @@ export const drawRow = (r: Renderer, widths: number[], cells: Cell[], size = 9) 
     const c = cells[i]!;
     const w = (c.colSpan ? widths.slice(i, i + c.colSpan).reduce((a, b) => a + b, 0) : widths[i]) ?? widths[widths.length - 1]!;
     if (c.fill) {
-      r.page.drawRectangle({ x, y: r.y - height, width: w, height, color: c.fill, borderColor: BORDER, borderWidth: c.border === false ? 0 : 0.5 });
+      r.page.drawRectangle({ x, y: r.y - height, width: w, height, color: c.fill, borderColor: r.theme.border, borderWidth: c.border === false ? 0 : 0.5 });
     } else if (c.border !== false) {
-      r.page.drawRectangle({ x, y: r.y - height, width: w, height, borderColor: BORDER, borderWidth: 0.5 });
+      r.page.drawRectangle({ x, y: r.y - height, width: w, height, borderColor: r.theme.border, borderWidth: 0.5 });
     }
     drawCellText(r, c, x, r.y, w, height, size);
     x += w;
@@ -185,7 +187,7 @@ export const drawSectionHeader = (r: Renderer, label: string, totalCols = 1) => 
       ? [CONTENT_WIDTH]
       : Array.from({ length: totalCols }, () => CONTENT_WIDTH / totalCols);
   drawRow(r, widths, [
-    { text: label, bold: true, fill: FILL_GRAY, align: 'center', colSpan: totalCols },
+    { text: label, bold: true, fill: r.theme.fill, align: 'center', colSpan: totalCols },
     ...Array.from({ length: totalCols - 1 }, () => ({ text: '' }) as Cell),
   ]);
 };
@@ -207,7 +209,7 @@ export const drawImageGrid = async (r: Renderer, urls: string[], cols = 3) => {
         y: r.y - cellH,
         width: cellW,
         height: cellH,
-        borderColor: BORDER,
+        borderColor: r.theme.border,
         borderWidth: 0.5,
       });
       if (img) {

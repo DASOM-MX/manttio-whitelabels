@@ -50,12 +50,12 @@
   @apply flex flex-col;
 }
 .p-select-option {
-  @apply px-4 py-2.5 text-base text-granite-950 cursor-pointer transition-colors
+  @apply px-4 py-2.5 text-base text-granite-1000 cursor-pointer transition-colors
          dark:text-granite-100;
 
   &:hover,
   &[data-p-focus='true'] {
-    @apply bg-sky-50 dark:bg-granite-800;
+    @apply bg-sky-0 dark:bg-granite-800;
   }
   &[data-p-selected='true'] {
     @apply bg-sky-100 font-bold dark:bg-granite-700;
@@ -65,7 +65,7 @@
   }
 }
 .p-select-option-group {
-  @apply px-4 py-2 micro-label bg-granite-50 dark:bg-granite-800;
+  @apply px-4 py-2 micro-label bg-granite-0 dark:bg-granite-800;
 }
 .p-select-empty-message {
   @apply px-4 py-2.5 text-base text-granite-700 italic

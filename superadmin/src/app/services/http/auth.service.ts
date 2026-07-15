@@ -16,7 +16,7 @@ export class AuthService {
     return this.remote.post<LoginResponse>('/auth/login', body);
   }
 
-  /** The single gating input: `{ user, role, tenantConfig, mustChangePassword }`. */
+  /** The single gating input: `{ user, role, mustChangePassword }`. */
   me(): Observable<MeResponse> {
     return this.remote.get<MeResponse>('/auth/me');
   }

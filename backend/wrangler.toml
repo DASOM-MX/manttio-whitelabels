@@ -3,34 +3,53 @@ main = "src/index.ts"
 compatibility_date = "2026-04-30"
 compatibility_flags = ["nodejs_compat"]
 
+# Brand identity (name, logos, colors, site URL, contact) is DATA, not config —
+# it lives in the `brand` table and is served by GET /brand (fork rule: no
+# hardcoded tenant brand in shipped code/config). The vars below are per-deploy
+# INFRA only. The retired BRAND_* values were migrated into the brand row via
+# the whitelabel manager's shared-token push.
 [vars]
 ENVIRONMENT = "dev"
 CDN_BASE_URL = "https://cdn.penanevadachillers.com"
-RESEND_FROM = "reports@penanevadachillers.com"
-BRAND_NAME = "Peña Nevada Chillers"
-BRAND_SITE_URL = "https://penanevadachillers.com"
-BRAND_LOGO_URL = "https://penanevadachillers.com/brand/penanevada-full.png"
+# Public base of the `manttio-logos` bucket (brand images + generated PWA
+# icons). Placeholder until the bucket's public/custom domain exists — set it
+# before provisioning the brand (deploy checklist, plan 02).
+LOGOS_CDN_BASE_URL = "https://logos.penanevadachillers.com"
+API_BASE_URL = "http://127.0.0.1:8787"
+RESEND_FROM = "no-reply@penanevadachillers.com"
+# FONT_CDN_BASE_URL — CDN fronting the shared `branding-fonts` bucket. Optional:
+# until it exists, GET /fonts serves entries without hosted files (the two
+# default families are bundled by every consumer).
+# FONT_CDN_BASE_URL = "https://<branding-fonts-cdn>"
 
 [[r2_buckets]]
 binding = "MANTTIO_REPORTS"
 bucket_name = "manttio-reports"
 
+[[r2_buckets]]
+binding = "MANTTIO_LOGOS"
+bucket_name = "manttio-logos"
+
 # Production deploy: `wrangler deploy --env production`.
-# Wrangler v4 inherits top-level config; only ENVIRONMENT is overridden here.
+# Wrangler v4 inherits top-level config; only the overrides live here.
 [env.production.vars]
 ENVIRONMENT = "production"
 CDN_BASE_URL = "https://cdn.penanevadachillers.com"
+LOGOS_CDN_BASE_URL = "https://logos.penanevadachillers.com"
 API_BASE_URL = "https://api.penanevadachillers.com"
-RESEND_FROM = "reports@penanevadachillers.com"
-BRAND_NAME = "Peña Nevada Chillers"
-BRAND_SITE_URL = "https://penanevadachillers.com"
-BRAND_LOGO_URL = "https://penanevadachillers.com/brand/penanevada-full.png"
+RESEND_FROM = "no-reply@penanevadachillers.com"
 
 [[env.production.r2_buckets]]
 binding = "MANTTIO_REPORTS"
 bucket_name = "manttio-reports"
 
+[[env.production.r2_buckets]]
+binding = "MANTTIO_LOGOS"
+bucket_name = "manttio-logos"
+
 # Secrets are set via `wrangler secret put [--env production]` and are NOT declared here:
-#   DATABASE_URL    Neon Postgres connection string
-#   JWT_SECRET      HS256 signing secret for jose
-#   RESEND_API_KEY  Resend API key for outbound report emails
+#   DATABASE_URL          Neon Postgres connection string
+#   JWT_SECRET            HS256 signing secret for jose
+#   RESEND_API_KEY        Resend API key for outbound report emails
+#   MANAGER_SHARED_TOKEN  shared secret for the whitelabel manager's config
+#                         pushes (X-Manager-Token on PUT /brand + /upload/image)

@@ -22,10 +22,10 @@
 
 @layer base {
   html {
-    @apply h-full text-granite-950 antialiased dark:text-granite-50;
+    @apply h-full text-granite-1000 antialiased dark:text-granite-0;
   }
   body {
-    @apply h-full bg-background text-base dark:bg-granite-950;
+    @apply h-full bg-background text-base dark:bg-granite-1000;
   }
   app-root {
     @apply block h-full;
@@ -35,7 +35,7 @@
      carry their own focus chrome via `.field-input`. */
   :focus-visible {
     @apply outline-none ring-2 ring-sky-600/70 ring-offset-2 ring-offset-background
-           dark:ring-sky-400/70 dark:ring-offset-granite-950;
+           dark:ring-sky-400/70 dark:ring-offset-granite-1000;
   }
 }
 
@@ -61,8 +61,8 @@
     // (`h-12`) — a deliberate deviation from the frontend's 56px field app
     // controls (desk console vs glove-friendly capture). Textareas opt out
     // via `!h-auto`; compact controls opt down to `!h-10`.
-    @apply w-full h-12 px-4 py-2.5 bg-white border-2 border-granite-200 rounded-lg text-base text-granite-950 font-data tabular-nums transition-colors duration-150 focus:outline-none focus:border-sky-700 focus:ring-4 focus:ring-sky-700/20 disabled:bg-granite-50 disabled:text-granite-400
-           dark:bg-granite-900 dark:border-granite-700 dark:text-granite-50 dark:focus:border-sky-400 dark:focus:ring-sky-400/25 dark:disabled:bg-granite-800 dark:disabled:text-granite-500;
+    @apply w-full h-12 px-4 py-2.5 bg-white border-2 border-granite-200 rounded-lg text-base text-granite-1000 font-data tabular-nums transition-colors duration-150 focus:outline-none focus:border-sky-700 focus:ring-4 focus:ring-sky-700/20 disabled:bg-granite-0 disabled:text-granite-400
+           dark:bg-granite-900 dark:border-granite-700 dark:text-granite-0 dark:focus:border-sky-400 dark:focus:ring-sky-400/25 dark:disabled:bg-granite-800 dark:disabled:text-granite-500;
   }
   .field-input--error {
     @apply border-red-500 focus:border-red-500 focus:ring-red-500/15 dark:border-red-400 dark:focus:border-red-400 dark:focus:ring-red-400/25;
@@ -78,10 +78,10 @@
   /* Outlined buttons carry a 1px hairline (borders-not-shadows rule extends
      to controls; 2px reads too heavy next to filled buttons). */
   .btn-secondary {
-    @apply btn bg-white text-sky-800 border border-sky-700 enabled:hover:bg-sky-50 enabled:active:bg-sky-100 focus-visible:ring-sky-700/30 dark:bg-granite-900 dark:text-sky-300 dark:border-sky-400 dark:enabled:hover:bg-granite-800 dark:enabled:active:bg-granite-700;
+    @apply btn bg-white text-sky-800 border border-sky-700 enabled:hover:bg-sky-0 enabled:active:bg-sky-100 focus-visible:ring-sky-700/30 dark:bg-granite-900 dark:text-sky-300 dark:border-sky-400 dark:enabled:hover:bg-granite-800 dark:enabled:active:bg-granite-700;
   }
   .btn-neutral {
-    @apply btn bg-white text-granite-900 border border-granite-300 enabled:hover:bg-granite-50 enabled:active:bg-granite-100 focus-visible:ring-granite-300/40 dark:bg-granite-900 dark:text-granite-100 dark:border-granite-700 dark:enabled:hover:bg-granite-800 dark:enabled:active:bg-granite-700 dark:focus-visible:ring-granite-700/50;
+    @apply btn bg-white text-granite-900 border border-granite-300 enabled:hover:bg-granite-0 enabled:active:bg-granite-100 focus-visible:ring-granite-300/40 dark:bg-granite-900 dark:text-granite-100 dark:border-granite-700 dark:enabled:hover:bg-granite-800 dark:enabled:active:bg-granite-700 dark:focus-visible:ring-granite-700/50;
   }
   .btn-danger {
     @apply btn bg-red-600 text-white enabled:hover:bg-red-700 enabled:active:bg-red-800 focus-visible:ring-red-600/30 dark:bg-red-500 dark:enabled:hover:bg-red-400 dark:enabled:active:bg-red-300;
@@ -124,7 +124,7 @@
   /* Active sidebar entry: tinted bg + 2px primary accent bar — on the right
      edge for top-level items, on the left edge for child items. */
   .nav-active {
-    @apply bg-sky-50 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300;
+    @apply bg-sky-0 text-sky-800 dark:bg-sky-1000/40 dark:text-sky-300;
   }
   .nav-active:not(.nav-child)::after {
     content: '';

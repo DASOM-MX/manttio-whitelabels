@@ -28,6 +28,7 @@
     "jose": "^5.9.6",
     "nanoid": "^5.1.16",
     "pdf-lib": "^1.17.1",
+    "upng-js": "^2.1.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -35,6 +36,7 @@
     "@cloudflare/workers-types": "^4.20241106.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/pg": "^8.11.10",
+    "@types/upng-js": "^2.1.5",
     "dotenv": "^16.4.5",
     "drizzle-kit": "^0.28.0",
     "pg": "^8.13.1",

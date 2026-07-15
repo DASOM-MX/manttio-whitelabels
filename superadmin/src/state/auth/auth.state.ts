@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, switchMap, tap, throwError } from 'rxjs';
 import { AuthService } from '../../app/services/http/auth.service';
 import { ChangePassword, LoadMe, Login, Logout } from './auth.actions';
-import type { MeResponse, Role, TenantConfig } from '../../app/data/dtos/auth';
+import type { MeResponse, Role } from '../../app/data/dtos/auth';
 
 /** `me` deliberately does NOT persist (only `auth.token` rides the storage
  *  plugin): gating data is refetched on every boot so no gated UI renders
@@ -47,9 +47,6 @@ export class AuthState {
   }
   @Selector() static role(s: AuthStateModel): Role | null {
     return s.me?.role ?? null;
-  }
-  @Selector() static tenantConfig(s: AuthStateModel): TenantConfig | null {
-    return s.me?.tenantConfig ?? null;
   }
   @Selector() static mustChangePassword(s: AuthStateModel): boolean {
     return s.me?.mustChangePassword ?? false;

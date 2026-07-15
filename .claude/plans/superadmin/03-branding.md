@@ -1,8 +1,10 @@
 # 03 — Branding (tenant identity)
 
-> **Status:** done (frontend side — backend `modules/brand` pending)
+> **Status:** done — reworked 2026-07-12 onto the shipped backend contract (CP-4 below; the
+> backend `modules/brand` landed in field-app-whitelabeling PR-A/PR-C)
 > **Depends on:** 02 (CP-3, done)
-> **Owner:** branch `feature/superadmin-branding` (stacked on the 02 shell PR) · **Last updated:** 2026-07-06
+> **Owner:** branch `feature/superadmin-branding` (stacked on the 02 shell PR); CP-4 on
+> `feature/superadmin-branding-hsl` · **Last updated:** 2026-07-12
 
 The logged-in client owns their **brand identity** — the name, logos, and colors that
 skin the public website, the field app, superadmin itself, and backend-rendered
@@ -224,6 +226,31 @@ which *is* draft→publish — `04-cms.md` §5.)
 - [x] Dark-mode variants throughout; build green; headless pass 17/17 (2026-07-06):
       boot theming pre-auth, hydrated editor, apply flow, admin read-only, office
       bounce; login logo rendered from fixture brand
+
+### CP-4 — Contract rework (2026-07-12, `feature/superadmin-branding-hsl`)
+The backend `modules/brand` shipped (field-app-whitelabeling PR-A/PR-C) with the canonical
+contract — **HSL components ("H S% L%") at steps 0…1000 by 100, no hex** (branding rule 2) —
+so the editor moved off its mock-era dialect:
+- [x] `data/dtos/brand.ts` re-mirrored (adds `siteUrl?`, `faviconUrl?`, `icons?`,
+      `faviconKey?`); `BRAND_SCALE_STEPS` (0…1000) replaces `PRIMARY_STEPS`/`SURFACE_STEPS`
+      (both scales now 11 steps; surface still anchors step 0 at white)
+- [x] Editor stays **hex internally** (pickers/strips/contrast math); conversion at the
+      boundaries — `ColorScaleService.toWireScale`/`fromWireScale` (+ hex↔HSL converters);
+      `palette()`'s 50…950 output remaps endpoints to 0/1000
+- [x] `BrandThemeService` sets the HSL component vars verbatim (regex-validated) and no
+      longer calls `updatePrimaryPalette`/`updateSurfacePalette` — the Aura preset now reads
+      `hsl(var(--brand-…))` directly (same pattern as the field app), so Tailwind + PrimeNG
+      follow one var set; `tailwind.config.js` moved from RGB triplets 50–950 to HSL 0…1000
+      with **neutral grayscale fallbacks** (rule 3 — the Peña hexes are gone), `-50/-950`
+      utilities remapped to `-0/-1000` (`navy`/`cyan` static accents untouched)
+- [x] Uploads via **`POST /upload/logo`** (the `manttio-logos` bucket); new **favicon slot**
+      (icon-generation source — the backend renders the PWA icon set from
+      `faviconKey ?? isologoKey` on every save, superseding the "provisioning-time icons"
+      note in §1/§4); new **Sitio web** field (`siteUrl` — report-email footers)
+- [x] Contrast warning now checks primary-300 on surface-**1000**; build green
+> §5.1's per-tenant cache DO was **not built** — the field-app suite (00-master rule 8)
+> settled on one deployment per tenant with `GET /brand` reading Neon directly.
+
 
 ## Open decisions / asks
 - **Superadmin palette repoint — done in 02** (`tailwind.config.js` reads

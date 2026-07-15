@@ -1,18 +1,30 @@
-// Read contracts for the whitelabeled backend (plan 15 §1).
-// The backend modules don't exist yet — these DTOs are the website's proposal
-// and get reconciled when `modules/brand/` and `modules/cms/` land.
+// Read contracts for the whitelabeled backend (plan 15 §1) — mirrors of the
+// canonical shapes in backend `modules/brand/dtos/brand.dto.ts` and the CMS
+// module. Never fork these; reconcile against the backend when it moves.
 
 export interface BrandColorScale {
-  [step: string]: string; // '50'…'950' → hex, materialized server-side (03 §3)
+  [step: string]: string; // '0'…'1000' by 100 → "H S% L%" components (rule 2)
+}
+
+/** Backend-generated PWA icon set (field-app plan 02) — unused here, mirrored
+ *  so the shape stays canonical. */
+export interface BrandIcons {
+  any192: string;
+  any512: string;
+  maskable192: string;
+  maskable512: string;
 }
 
 export interface Brand {
   name: string;
   slogan?: string;
   description?: string; // business blurb — meta description + footer blurb (03 §2)
+  siteUrl?: string; // the tenant's public site (email footers link it)
   logoUrl?: string; // full logo / wordmark (CDN URL)
   logoDarkUrl?: string; // dark-surface variant; falls back to logoUrl
   isologoUrl?: string; // square mark — favicon source, header chip
+  faviconUrl?: string; // PWA manifest / favicon source (field-app plan 02)
+  icons?: BrandIcons; // generated from the mark on brand save
   colors?: {
     primary?: BrandColorScale;
     surface?: BrandColorScale;

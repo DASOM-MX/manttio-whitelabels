@@ -1,9 +1,23 @@
-/** Brand DTOs (03-branding.md §2) — read shape mirrors the website's proposal
- *  in `website/src/lib/types.ts` (PR #44) so both consumers reconcile against
- *  the same backend `modules/brand/` contract when it lands. */
+/** Brand DTOs — mirror of the canonical backend contract in
+ *  `backend/src/modules/brand/dtos/brand.dto.ts` (field-app-whitelabeling
+ *  00-master → "Shared brand contract"); `website/src/lib/types.ts` and the
+ *  field app's `data/dtos/brand/` carry the same shape. Never fork it;
+ *  reconcile against the backend when it moves. Color scales are HSL
+ *  components ("H S% L%") at steps 0…1000 by 100 — never hex (rule 2). The
+ *  editor works in hex internally (pickers) and converts at the boundaries
+ *  (`ColorScaleService.toWireScale`/`fromWireScale`). */
 
 export interface BrandColorScale {
-  [step: string]: string; // '50'…'950' (surface also '0') → hex, materialized
+  [step: string]: string; // '0'…'1000' by 100 → "H S% L%" components (rule 2)
+}
+
+/** Backend-generated PWA manifest icon set — materialized CDN URLs
+ *  (regenerated from the mark on every save; field-app plan 02). */
+export interface BrandIcons {
+  any192: string;
+  any512: string;
+  maskable192: string;
+  maskable512: string;
 }
 
 export interface BrandContact {
@@ -30,9 +44,12 @@ export interface Brand {
   name: string;
   slogan?: string;
   description?: string; // business blurb — the public site's meta description
+  siteUrl?: string; // the tenant's public site (email footers link it)
   logoUrl?: string; // full logo / wordmark (CDN URL)
   logoDarkUrl?: string; // dark-surface variant; falls back to logoUrl
   isologoUrl?: string; // square mark — favicon source, PDF header
+  faviconUrl?: string; // PWA manifest / favicon source (field-app plan 02)
+  icons?: BrandIcons; // generated from the mark (faviconKey ?? isologoKey)
   colors?: {
     primary?: BrandColorScale;
     surface?: BrandColorScale;
@@ -43,20 +60,26 @@ export interface Brand {
 }
 
 /** `PUT /brand` — owner-only, direct-apply (03 §8). Images travel as R2 keys
- *  (from `POST /upload/image`); scales travel materialized so consumers never
- *  run palette math. */
+ *  (from `POST /upload/logo` — the brand-asset bucket); scales travel
+ *  materialized as HSL 0…1000 so consumers never run palette math. */
 export interface SaveBrandRequest {
   name: string;
-  slogan?: string;
+  slogan: string;
   description?: string;
+  // no siteUrl: the tenant site is provisioned with the whitelabel package
+  // (manager push) — the in-tenant editor never sends it, the backend keeps
+  // the stored value on saves that omit it.
   logoKey?: string;
   logoDarkKey?: string;
   isologoKey?: string;
+  faviconKey?: string;
   colors: {
     primary: BrandColorScale;
     surface: BrandColorScale;
   };
-  contact?: BrandContact;
+  // Contact info is required brand data (the backend rejects it missing);
+  // social links stay optional — blank ones are omitted, never sent empty.
+  contact: Required<BrandContact>;
   social?: BrandSocial;
   font?: BrandFont;
 }
