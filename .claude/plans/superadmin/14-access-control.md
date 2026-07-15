@@ -3,20 +3,23 @@
 > **Status:** done (doc — implementation tasks live in `02-app-shell.md` and each module's
 > checklists) · **Last updated:** 2026-07-15
 >
-> ⚠️ **Correction (2026-07-15, owner):** axis 1 below is **not a runtime check** — there are
-> **no module flags against signed-in tenant users**; runtime gating is role-only
-> (`hasModule` returns true for every module, unbuilt modules show their stub). Which
-> modules a tenant's build ships is the pending, owner-driven **tenant-modules feature**,
-> applied at **app build time** — `/auth/me` carries no `tenantConfig` (stripped
-> 2026-07-14). The axis-1 module split below stays as the reference for that future
-> feature; do not reintroduce runtime flag gating.
+> ⚠️ **Correction (2026-07-15, owner):** module flags exist at the **organization level**
+> and are **set from the whitelabels admin app** (the manager tool — *not in this repo*).
+> Inside this app there is **no module gating against signed-in tenant users** — nothing
+> in-tenant reads or sets flags; `hasModule` returns true for every module, unbuilt modules
+> show their stub, and `/auth/me` carries no `tenantConfig` (stripped 2026-07-14).
+> **Role-based access per module is mandatory and stays guarded** (route `data.roles` +
+> the central guard). The **module segregation mechanism** — how an organization's flags
+> reach a tenant instance — is deliberately open, to be discussed later; do not build any
+> in-repo flag plumbing until it's decided. The axis-1 module split below stays as the
+> reference for that discussion.
 
 Reference doc, binding for all module agents. Gating is **two-dimensional**; keep the axes
 separate everywhere:
 
-1. **Tenant modules** (decided at *build time* by the pending owner-driven feature — see
-   the correction note above): which modules this tenant's build even contains.
-   `modules: { billing, wms, crm, cms, scheduling }` — users, reports,
+1. **Organization modules** (set at the org level from the whitelabels admin app —
+   segregation mechanism TBD, see the correction note above): which modules this tenant's
+   instance even has. `modules: { billing, wms, crm, cms, scheduling }` — users, reports,
    and clients are core and always on; **equipment rides core clients**,
    **`scheduling` covers calendar (12) + contracts (13)** (tentative flag split — open
    item), and **brand identity rides core** (the `cms` flag gates content editing only —

@@ -2,12 +2,13 @@
  *
  *  Runtime gating is **role-only** (decided 2026-07-15): signed-in tenant
  *  users are never gated out of a module by a flag — unbuilt modules show
- *  their stub page. Which modules a tenant's instance ships is a build-time
- *  concern (the pending, owner-driven tenant-modules feature), not a runtime
- *  check. Route `data`, the nav filter, and in-page `@if`s all consume these
- *  helpers — matrix logic is never duplicated in components. The backend
- *  enforces every call regardless; this is UX + bundle hygiene, not
- *  security.
+ *  their stub page. Module flags live at the organization level, set from
+ *  the whitelabels admin app (not in this repo); how they reach a tenant
+ *  instance (the segregation mechanism) is an open discussion — build no
+ *  flag plumbing here until it's decided. Route `data`, the nav filter, and
+ *  in-page `@if`s all consume these helpers — matrix logic is never
+ *  duplicated in components. The backend enforces every call regardless;
+ *  this is UX + bundle hygiene, not security.
  *
  *  Keeping it centralized is what makes the future SSR flip mechanical
  *  (14 §5).
@@ -37,8 +38,8 @@ export const hasRole = (me: MeResponse | null, roles: readonly Role[]): boolean 
 export const hasModule = (me: MeResponse | null, module: ModuleKey): boolean => {
   // Role-only runtime gating (2026-07-15): every module is on for signed-in
   // users. Kept as the seam guards/nav already consume; `module` stays so
-  // call sites keep declaring intent. Module availability is a build-time
-  // concern of the pending tenant-modules feature — never a runtime flag.
+  // call sites keep declaring intent. Org-level module flags are the
+  // whitelabels admin app's domain — the segregation mechanism is TBD.
   void module;
   return !!me;
 };
