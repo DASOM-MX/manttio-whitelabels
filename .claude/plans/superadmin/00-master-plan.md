@@ -32,6 +32,7 @@ then its own file, and touches no other module's code.
 | 13 | `13-contracts.md` | Maintenance contracts (pólizas) → generate visits into 12 | 07, 12; 11 opt. |
 | 14 | `14-access-control.md` | Roles + tenant-config gating matrix (reference, binding for all modules) | — |
 | 15 | `15-website.md` | Public tenant website: consumes published CMS + brand (reads only — `website/` package work, not superadmin code) | 03, 04 |
+| 16 | `16-semantic-brand-colors.md` | Semantic Tailwind color classes (`primary-*`/`surface-*` replace `sky`/`granite`/`navy`/`cyan`) across frontend + superadmin + website | **everything — deferred closing sweep, runs last** |
 
 Build order **is numeric order** (renumbered 2026-07-05: branding and CMS are separate,
 independent modules — 03/04 — and access-control moved to 14 as pure reference).
@@ -43,6 +44,8 @@ parallel agents). **05, 06, 07** run in parallel as capacity allows. **08** star
 contracts generate visits, so the calendar's entity must exist first. **15** (the
 public website) is consumer-side `website/` work — it can start once 03's brand read
 path and 04's publish flow exist backend-side; it never blocks a superadmin module.
+**16** is the deferred closing sweep (decided 2026-07-15): strictly last, after the whole
+MVP ships — do not start it alongside module work.
 
 ---
 
@@ -98,6 +101,7 @@ Rules for agents:
 | 13 contracts | not-started | — |
 | 14 access-control | done (doc) | — |
 | 15 website | in-progress · PR #44 | CP-2 |
+| 16 semantic-brand-colors | planned (doc) — **deferred, runs last (post-MVP)** | — |
 
 *(Owning agents update their row when they update their file's status header.)*
 
