@@ -20,7 +20,7 @@ import { AppState } from '../../../state/app/app.state';
 import { SetDarkMode } from '../../../state/app/app.actions';
 import { AuthState, MeStatus } from '../../../state/auth/auth.state';
 import { LoadMe, Logout } from '../../../state/auth/auth.actions';
-import { navFor } from '../../access';
+import { navFor } from '../../guards/nav-for.guard';
 import { ForcePasswordDialog } from '../../auth/components/force-password-dialog/force-password-dialog';
 
 @Component({

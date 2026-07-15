@@ -1,5 +1,5 @@
 import type { Role } from '../../../data/dtos/auth';
-import type { ModuleKey } from '../../../access';
+import type { ModuleKey } from '../../../data/types/access';
 
 /** Access matrix (14-access-control.md §2) — roles that may enter each module.
  *  In-page action gating (e.g. admin read-only on branding, office draft-only

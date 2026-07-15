@@ -8,7 +8,7 @@ import { ReportsState } from '../../../../state/reports/reports.state';
 import { LoadReport } from '../../../../state/reports/reports.actions';
 import { AuthState } from '../../../../state/auth/auth.state';
 import { ReportsService } from '../../../services/http/reports.service';
-import { hasRole } from '../../../access';
+import { hasRole } from '../../../guards/has-role.guard';
 import { ReportStatus } from '../../../data/dtos/report';
 import { REPORT_STATUS_LABELS } from '../../../model/constants/report/report-status-labels.const';
 import { REPORT_STATUS_SEVERITIES } from '../../../model/constants/report/report-status-severities.const';

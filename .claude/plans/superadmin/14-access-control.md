@@ -142,7 +142,7 @@ everything reads from it:
   app boot when a token exists; stored in `AuthState`. The shell shows a splash until it
   resolves; no gated UI renders from stale/absent data. (**No `tenantConfig`** — stripped
   2026-07-14; module availability is build-time, see the correction note at the top.)
-- **`access.ts` (single source):** the matrix above as data, plus `hasRole` / `hasModule`
+- **`app/guards/*.guard.ts` (single source — split one guard per file, 2026-07-15):** the matrix above as data, plus `hasRole` / `hasModule`
   helpers. Route `data`, the nav filter, and in-page `@if`s all consume it — matrix logic
   is never duplicated in components.
 - **Routing:** every routed page declares `data: { module: 'billing', roles: [...] }`;

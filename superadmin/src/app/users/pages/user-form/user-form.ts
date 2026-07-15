@@ -33,7 +33,8 @@ import {
   ResetUserPassword,
   UpdateUser,
 } from '../../../../state/users/users.actions';
-import { canManageUser, canResetPassword } from '../../../access';
+import { canManageUser } from '../../../guards/can-manage-user.guard';
+import { canResetPassword } from '../../../guards/can-reset-password.guard';
 import { RoleLabelPipe, RolePillClassPipe } from '../../../pipes/role.pipe';
 import { ROLE_LABELS } from '../../../model/constants/user/role-labels.const';
 import { GRANTABLE_ROLES } from '../../../model/constants/user/grantable-roles.const';
