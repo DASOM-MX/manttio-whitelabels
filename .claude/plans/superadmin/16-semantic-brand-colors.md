@@ -29,9 +29,11 @@ them onto the brand CSS vars. Three problems, worst first:
    table in their head — and it differs per app (frontend anchors `navy`, superadmin `sky`,
    website defines all three).
 3. **Drift already happened** (found 2026-07-15): superadmin's `navy` and `cyan` are *hardcoded
-   manttio hexes* on the old 50–950 steps, not brand aliases — used by
-   `model/constants/user/role-pill-classes.const.ts`, so the users-module role pills are frozen
-   off-brand and ignore tenant theming.
+   manttio hexes* on the old 50–950 steps — used by
+   `model/constants/user/role-pill-classes.const.ts`. Nuance: the role pills being a **static
+   blue ladder is deliberate** (14 §1, QA 2026-07-08 — one ladder, darker = higher rank, not
+   brand-shifting); the drift is that the ladder rides *palette keys* this plan tombstones,
+   keys that mean "brand primary" in the other two apps.
 
 ## Target convention (canonical)
 
@@ -97,9 +99,12 @@ Verified out of scope / safe:
    and opacity suffixes (`dark:hover:bg-sky-500`, `focus-visible:ring-sky-600/30`). Review the
    diff — the sweep must not touch `node_modules`, lockfiles, or plan docs' historical text.
 3. **Hand remaps (not sed-able):**
-   - superadmin `role-pill-classes.const.ts`: old hardcoded 50–950 steps → nearest 0–1000
-     `primary`/`surface` steps (exact steps are an implementation-time design pass — the pills
-     go on-brand for the first time, so eyeball contrast per role in both modes);
+   - superadmin `role-pill-classes.const.ts`: the tombstones kill its `navy`/`cyan` classes, so
+     the pills need a resolution (implementation-time design pass): **(a) stay static** per
+     14 §1's QA decision — move the blue ladder to self-contained literal values (a dedicated
+     non-brand color key or inline styles in the const), or **(b) go on-brand** — map to
+     `primary`/`surface` steps and re-eyeball contrast per role in both modes. Default to (a)
+     unless the owner opts into (b);
    - frontend's single `bg-surface` (old primary-tint alias) → `bg-primary-100`;
    - apply `bg-background` / `text-dark` at each app shell (§ Target 4).
 4. **Docs in the same PR:** update the palette-mapping comments in each `tailwind.config.*`,
@@ -109,15 +114,15 @@ Verified out of scope / safe:
    - build green (`@apply` on a dead class fails loudly — scss stragglers can't hide);
    - `grep -rE '\b(granite|sky|navy|cyan)-[0-9]' <app>/src` → **zero**;
    - headless smoke against the live brand: the rename is **value-neutral** — every rendered
-     color must be pixel-identical, *except* the superadmin role pills which intentionally go
-     on-brand; spot-check dark mode.
+     color must be pixel-identical (role pills included under option (a); only under (b) do
+     they intentionally change); spot-check dark mode.
 
 ## PR map
 
 | PR | Prefix | Contents |
 |---|---|---|
 | PR-1 | `style(frontend)` | config + sweep (~590 instances) + alias application |
-| PR-2 | `style(superadmin)` | config + sweep (~1040) + role-pill on-brand fix + alias application |
+| PR-2 | `style(superadmin)` | config + sweep (~1040) + role-pill resolution (§ Mechanics 3) + alias application |
 | PR-3 | `style(website)` | config + sweep (~120) + aliases added |
 
 Independent, any order, each independently deployable. All three land **after the MVP suite is
@@ -128,5 +133,5 @@ complete** — this plan closes the suite.
 - **Locked (2026-07-15):** rename to semantic names approved · keep all five aliases,
   repointed + normalized + visibly applied · three PRs, one per app · deferred to run as the
   suite's final plan · tombstone (never plain-delete) the legacy names.
-- **Open (implementation-time):** exact role-pill step mapping (design pass, § Mechanics 3) ·
-  re-run the inventory snapshot before starting.
+- **Open (implementation-time):** role pills — static ladder (default, per 14 §1) vs on-brand
+  (§ Mechanics 3) · re-run the inventory snapshot before starting.
