@@ -3,21 +3,47 @@
  *
  * Whitelabel twist (02-app-shell.md §5): the `sky` (primary) and `granite`
  * (surface) scales resolve through CSS variables so the boot-time
- * `GET /brand` fetch (module 03) can re-theme the app at runtime by setting
- * `--brand-primary-*` / `--brand-surface-*` triplets on `:root`. The manttio
- * palette values stay as fallbacks, so with no brand present the app renders
- * exactly like the frontend. `navy`/`cyan` stay static (non-brand accents).
+ * `GET /brand` fetch (module 03) can re-theme the app at runtime — the
+ * `BrandThemeService` sets `--brand-primary-*` / `--brand-surface-*` on
+ * `:root`. Values are HSL components ("H S% L%") at steps 0…1000 by 100
+ * (branding rule 2). Fallbacks are a minimal neutral grayscale for the
+ * no-brand instant only — the real default palette comes from the backend
+ * (rule 3). `navy`/`cyan` stay static (non-brand accents).
  */
 
-/** Build a Tailwind color scale that reads `--brand-<name>-<step>` with an
- *  RGB-triplet fallback, keeping `<alpha-value>` support. */
+const NEUTRAL_L_BY_STEP = {
+  0: 98,
+  100: 96,
+  200: 90,
+  300: 82,
+  400: 70,
+  500: 55,
+  600: 45,
+  700: 36,
+  800: 28,
+  900: 18,
+  1000: 10,
+};
+
+const neutralScale = (hue, saturation) =>
+  Object.fromEntries(
+    Object.entries(NEUTRAL_L_BY_STEP).map(([step, l]) => [step, `${hue} ${saturation}% ${l}%`]),
+  );
+
+/** Build a Tailwind color scale that reads `--brand-<name>-<step>` with a
+ *  neutral HSL-components fallback, keeping `<alpha-value>` support. */
 const brandScale = (name, fallbacks) =>
   Object.fromEntries(
-    Object.entries(fallbacks).map(([step, rgb]) => [
+    Object.entries(fallbacks).map(([step, hsl]) => [
       step,
-      `rgb(var(--brand-${name}-${step}, ${rgb}) / <alpha-value>)`,
+      `hsl(var(--brand-${name}-${step}, ${hsl}) / <alpha-value>)`,
     ]),
   );
+
+// A whisper of blue on primary so interactive chrome still reads as such;
+// surface is pure grayscale (mirrors the backend's neutral default brand).
+const granite = brandScale('surface', neutralScale(0, 0));
+const sky = brandScale('primary', neutralScale(220, 10));
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -28,37 +54,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: 'rgb(var(--brand-surface-50, 246 247 247) / <alpha-value>)', // granite-50
-        surface: 'rgb(var(--brand-primary-100, 221 235 244) / <alpha-value>)', // sky-100
-        primary: 'rgb(var(--brand-primary-600, 63 122 157) / <alpha-value>)', // sky-600
-        secondary: 'rgb(var(--brand-primary-300, 143 188 215) / <alpha-value>)', // sky-300
-        dark: 'rgb(var(--brand-surface-800, 42 50 51) / <alpha-value>)', // granite-800 (texts)
-        granite: brandScale('surface', {
-          50: '246 247 247',
-          100: '228 230 231',
-          200: '201 206 206',
-          300: '166 173 174',
-          400: '121 132 133',
-          500: '76 91 92',
-          600: '65 77 78',
-          700: '53 63 64',
-          800: '42 50 51',
-          900: '30 36 37',
-          950: '19 23 23',
-        }),
-        sky: brandScale('primary', {
-          50: '242 248 251',
-          100: '221 235 244',
-          200: '186 215 232',
-          300: '143 188 215',
-          400: '107 165 197',
-          500: '77 145 182',
-          600: '63 122 157',
-          700: '53 100 129',
-          800: '44 82 105',
-          900: '38 69 88',
-          950: '21 44 59',
-        }),
+        background: granite['0'], // page bg
+        surface: sky['100'],
+        primary: sky['600'],
+        secondary: sky['300'],
+        dark: granite['800'], // texts
+        granite,
+        sky,
         navy: {
           50: '#F1F5F9',
           100: '#E0E7EE',

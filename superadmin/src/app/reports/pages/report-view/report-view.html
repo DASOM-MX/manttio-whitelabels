@@ -6,7 +6,7 @@
   >
     <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
   </a>
-  <h1 class="text-xl font-bold text-granite-950 dark:text-granite-50">Reporte de servicio</h1>
+  <h1 class="text-xl font-bold text-granite-1000 dark:text-granite-0">Reporte de servicio</h1>
   <div class="flex-1"></div>
   @if (report(); as r) {
     <button type="button" class="btn-secondary" (click)="downloadPdf()" [disabled]="downloading()">
@@ -37,34 +37,34 @@
     <dl class="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
       <div>
         <dt class="micro-label">Cliente</dt>
-        <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+        <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
           {{ r.customerName }}
         </dd>
       </div>
       <div>
         <dt class="micro-label">Técnico</dt>
-        <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+        <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
           {{ r.technicianName }}
         </dd>
       </div>
       <div>
         <dt class="micro-label">Fecha de servicio</dt>
         <dd
-          class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+          class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-1000 dark:text-granite-0"
         >
           {{ r.serviceDate }}
         </dd>
       </div>
       <div>
         <dt class="micro-label">Plantilla</dt>
-        <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+        <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
           {{ r.templateName }}
         </dd>
       </div>
       <div>
         <dt class="micro-label">Folio</dt>
         <dd
-          class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+          class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-1000 dark:text-granite-0"
         >
           {{ r.folio || '—' }}
         </dd>
@@ -87,7 +87,7 @@
           @for (answer of section.answers; track answer.questionId) {
             <div class="grid grid-cols-2 gap-3 py-2">
               <dt class="text-sm text-granite-600 dark:text-granite-400">{{ answer.label }}</dt>
-              <dd class="text-sm font-medium text-granite-950 dark:text-granite-50">
+              <dd class="text-sm font-medium text-granite-1000 dark:text-granite-0">
                 {{ answer | answerValue }}
               </dd>
             </div>
@@ -98,7 +98,7 @@
           @for (answer of section.answers; track answer.questionId) {
             <div>
               <dt class="micro-label">{{ answer.label }}</dt>
-              <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+              <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
                 {{ answer | answerValue }}
               </dd>
             </div>

@@ -1,14 +1,17 @@
 import { Injectable } from '@angular/core';
-import { updatePrimaryPalette, updateSurfacePalette } from '@primeuix/themes';
-import { PRIMARY_STEPS } from '../../model/constants/brand/primary-steps.const';
-import { SURFACE_STEPS } from '../../model/constants/brand/surface-steps.const';
+import { BRAND_SCALE_STEPS } from '../../model/constants/brand/scale-steps.const';
 import type { Brand, BrandColorScale } from '../../data/dtos/brand';
 
+const HSL_COMPONENTS_RE = /^\d{1,3}(?:\.\d+)? \d{1,3}(?:\.\d+)?% \d{1,3}(?:\.\d+)?%$/;
+
 /** Brand → runtime theming (03 §4): sets the `--brand-primary-*` /
- *  `--brand-surface-*` RGB triplets the Tailwind palette reads, and updates
- *  the PrimeNG preset palettes in the same step. With no brand (or missing
- *  scales) the variables are cleared so the manttio fallbacks baked into
- *  `tailwind.config.js` and `manttio-preset.ts` take over.
+ *  `--brand-surface-*` CSS variables that the Tailwind palette **and** the
+ *  PrimeNG preset both read (each resolves `hsl(var(--brand-…))`, so no
+ *  runtime preset update is needed). Scale values are HSL components
+ *  ("H S% L%", steps 0…1000 — branding rule 2) set verbatim; anything else
+ *  (hex, rgb) is skipped. With no brand (or missing steps) the variables are
+ *  cleared so the neutral fallbacks baked into `tailwind.config.js` /
+ *  `manttio-preset.ts` take over.
  *
  *  The editor's live preview reuses this same service against draft values
  *  (03 §7); typography never applies to superadmin chrome — Commissioner is
@@ -17,40 +20,22 @@ import type { Brand, BrandColorScale } from '../../data/dtos/brand';
 export class BrandThemeService {
   apply(brand: Brand | null): void {
     const root = document.documentElement;
-    const primary = brand?.colors?.primary;
-    const surface = brand?.colors?.surface;
-
-    this.setScaleVars(root, 'primary', PRIMARY_STEPS, primary);
-    this.setScaleVars(root, 'surface', SURFACE_STEPS, surface);
-
-    // Keep PrimeNG's semantic palettes in lockstep with the Tailwind vars.
-    if (primary && PRIMARY_STEPS.every((s) => primary[s])) {
-      updatePrimaryPalette(Object.fromEntries(PRIMARY_STEPS.map((s) => [s, primary[s]])));
-    }
-    if (surface && PRIMARY_STEPS.every((s) => surface[s])) {
-      updateSurfacePalette(
-        Object.fromEntries(SURFACE_STEPS.filter((s) => surface[s]).map((s) => [s, surface[s]])),
-      );
-    }
+    this.setScaleVars(root, 'primary', brand?.colors?.primary);
+    this.setScaleVars(root, 'surface', brand?.colors?.surface);
   }
 
   private setScaleVars(
     root: HTMLElement,
     prefix: 'primary' | 'surface',
-    steps: readonly string[],
     scale: BrandColorScale | undefined,
   ): void {
-    for (const step of steps) {
-      const triplet = scale?.[step] ? this.hexToTriplet(scale[step]) : null;
-      if (triplet) root.style.setProperty(`--brand-${prefix}-${step}`, triplet);
-      else root.style.removeProperty(`--brand-${prefix}-${step}`);
+    for (const step of BRAND_SCALE_STEPS) {
+      const components = scale?.[step]?.trim();
+      if (components && HSL_COMPONENTS_RE.test(components)) {
+        root.style.setProperty(`--brand-${prefix}-${step}`, components);
+      } else {
+        root.style.removeProperty(`--brand-${prefix}-${step}`);
+      }
     }
-  }
-
-  private hexToTriplet(hex: string): string | null {
-    const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
-    if (!m) return null;
-    const n = parseInt(m[1], 16);
-    return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
   }
 }

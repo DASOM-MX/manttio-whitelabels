@@ -11,7 +11,7 @@
     @apply flex flex-col;
   }
   .p-inputnumber-button {
-    @apply size-6 inline-flex items-center justify-center bg-granite-100 hover:bg-sky-50 border border-granite-200 text-granite-700 transition-colors cursor-pointer
+    @apply size-6 inline-flex items-center justify-center bg-granite-100 hover:bg-sky-0 border border-granite-200 text-granite-700 transition-colors cursor-pointer
            dark:bg-granite-800 dark:hover:bg-granite-700 dark:border-granite-700 dark:text-granite-300;
 
     &:first-child {

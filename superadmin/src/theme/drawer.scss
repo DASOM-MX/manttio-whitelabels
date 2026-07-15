@@ -1,6 +1,6 @@
 /* PrimeNG Drawer (<p-drawer>) — true overlay: shadow allowed. */
 .p-drawer-mask.p-overlay-mask {
-  @apply bg-granite-950/60;
+  @apply bg-granite-1000/60;
 }
 .p-drawer {
   /* Side drawers span the full viewport height (we only use left/right
@@ -13,7 +13,7 @@
          dark:border-granite-800;
 }
 .p-drawer-title {
-  @apply text-base font-bold text-granite-950 dark:text-granite-50;
+  @apply text-base font-bold text-granite-1000 dark:text-granite-0;
 }
 .p-drawer-close-button {
   @apply inline-flex size-9 items-center justify-center rounded-md text-granite-500 transition-colors hover:bg-granite-100 hover:text-granite-900
