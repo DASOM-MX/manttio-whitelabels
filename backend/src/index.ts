@@ -11,6 +11,7 @@ import { reportTemplates } from './modules/report-templates/controllers/report-t
 import { upload } from './modules/upload/controllers/upload.controller';
 import { cms } from './modules/cms/controllers/cms.controller';
 import { publicCms } from './modules/cms/controllers/public-cms.controller';
+import { publicLeads } from './modules/customers/controllers/public-leads.controller';
 import { brand } from './modules/brand/controllers/brand.controller';
 import { fonts } from './modules/brand/controllers/fonts.controller';
 import { jwtMiddleware } from './modules/auth/middleware/jwt.middleware';
@@ -19,7 +20,12 @@ import { managerOr } from './modules/auth/middleware/manager.middleware';
 const app = new Hono<AppBindings>();
 
 app.use('*', logger());
-app.use('*', cors());
+// Reflected origin + credentials (a wildcard "*" is invalid on credentialed
+// requests) so the browser stores/sends the lead-dedup cookie on the
+// cross-origin POST /public/leads. Safe while auth stays header-based (Bearer
+// JWT): the API sets no auth cookies, so credentialed CORS grants nothing
+// ambient. Revisit before ever introducing cookie-based auth.
+app.use('*', cors({ origin: (origin) => origin, credentials: true }));
 
 app.get('/', (c) => c.json({ name: 'manttio-api', status: 'ok' }));
 
@@ -27,6 +33,9 @@ app.route('/auth', auth);
 
 // Public published-only CMS reads for the tenant website (no auth by design).
 app.route('/public/cms', publicCms);
+
+// Public lead intake from the tenant website's contact form — Turnstile-gated.
+app.route('/public/leads', publicLeads);
 
 // Tenant brand identity + font catalog. GET /brand and GET /fonts are public
 // (login screens, website, field-app boot); PUT /brand carries its own guard

@@ -20,6 +20,10 @@ type CustomerRow = {
   phone: string | null;
   email: string | null;
   observation: string | null;
+  status: string;
+  source: string | null;
+  clientType: string | null;
+  statusChangedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -241,6 +245,65 @@ describe('PATCH /customers/:id', () => {
       body: JSON.stringify({ name: 'nope' }),
     });
     expect(res.status).toBe(403);
+  });
+});
+
+describe('customer status/source/clientType writes (utm-params CP-1)', () => {
+  test('admin POST with status/source/clientType persists them', async () => {
+    const { token } = await seedAdminAndLogin();
+    const res = await request('/customers', {
+      method: 'POST',
+      headers: headersWith(token),
+      body: JSON.stringify({
+        name: uniqueName('crm-fields'),
+        status: 'lead',
+        source: 'instagram',
+        clientType: 'business',
+      }),
+    });
+    expect(res.status).toBe(201);
+    const body = await json<{ customer: CustomerRow }>(res);
+    expect(body.customer.status).toBe('lead');
+    expect(body.customer.source).toBe('instagram');
+    expect(body.customer.clientType).toBe('business');
+  });
+
+  test('PATCH status transition persists and stamps statusChangedAt', async () => {
+    const { token } = await seedAdminAndLogin();
+    const customer = await seedCustomer(); // born active, statusChangedAt NULL
+    const res = await request(`/customers/${customer.id}`, {
+      method: 'PATCH',
+      headers: headersWith(token),
+      body: JSON.stringify({ status: 'disabled' }),
+    });
+    expect(res.status).toBe(200);
+    const body = await json<{ customer: CustomerRow }>(res);
+    expect(body.customer.status).toBe('disabled');
+    expect(body.customer.statusChangedAt).not.toBeNull();
+  });
+
+  test('PATCH with an invalid status value → 400', async () => {
+    const { token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const res = await request(`/customers/${customer.id}`, {
+      method: 'PATCH',
+      headers: headersWith(token),
+      body: JSON.stringify({ status: 'archived' }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  // Locks the write-once attribution contract: zod strips the unknown key and
+  // the existing "no fields to update" refine rejects the now-empty payload.
+  test('PATCH with only utmSource → 400 (attribution is write-once)', async () => {
+    const { token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const res = await request(`/customers/${customer.id}`, {
+      method: 'PATCH',
+      headers: headersWith(token),
+      body: JSON.stringify({ utmSource: 'x' }),
+    });
+    expect(res.status).toBe(400);
   });
 });
 
