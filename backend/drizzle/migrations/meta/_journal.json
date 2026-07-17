@@ -134,6 +134,13 @@
       "when": 1784505600000,
       "tag": "0018_equipment_origin",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1784592000000,
+      "tag": "0019_right_strong_guy",
+      "breakpoints": true
     }
   ]
 }

@@ -1,11 +1,12 @@
 import { sql } from 'drizzle-orm';
-import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
-import { CustomerSource, CustomerStatus } from '../enums/customers.enum';
+import { check, index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { CustomerSource, CustomerStatus, type ClientType } from '../enums/customers.enum';
 
 // NOTE: the shared Neon DB already carries `contact_name`, `status`, `source`
 // and `tags` (added out-of-band by the manager/upstream) — this model just
-// catches up so the API reads/writes them. `tags` is a Postgres text[]. No
-// migration is generated from here; the live schema is the source of truth.
+// catches up so the API reads/writes them. `tags` is a Postgres text[].
+// Migration 0019 adds only the columns the live DB lacks (client_type,
+// status_changed_at, attribution) plus the indexes/checks.
 export const customers = pgTable(
   'customers',
   {
@@ -32,6 +33,20 @@ export const customers = pgTable(
     blacklistReason: text('blacklist_reason'),
     nextFollowUpAt: timestamp('next_follow_up_at', { withTimezone: true }),
     timezone: text('timezone').notNull().default('America/Mexico_City'),
+    clientType: text('client_type').$type<ClientType>(),
+    // NULL at birth status; readers coalesce to created_at.
+    statusChangedAt: timestamp('status_changed_at', { withTimezone: true }),
+    // Attribution columns are write-once: set only by the public lead insert,
+    // omitted from every update path (types/validators/service enforce it).
+    utmSource: text('utm_source'),
+    utmMedium: text('utm_medium'),
+    utmCampaign: text('utm_campaign'),
+    utmTerm: text('utm_term'),
+    utmContent: text('utm_content'),
+    gclid: text('gclid'),
+    fbclid: text('fbclid'),
+    referrer: text('referrer'),
+    landingPage: text('landing_page'),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -41,5 +56,29 @@ export const customers = pgTable(
     index('customers_active_idx')
       .on(table.createdAt)
       .where(sql`${table.deletedAt} is null`),
+    index('customers_utm_source_idx')
+      .on(table.utmSource)
+      .where(sql`${table.utmSource} is not null`),
+    index('customers_utm_campaign_idx')
+      .on(table.utmCampaign)
+      .where(sql`${table.utmCampaign} is not null`),
+    index('customers_status_idx')
+      .on(table.status)
+      .where(sql`${table.deletedAt} is null`),
+    index('customers_source_idx')
+      .on(table.source)
+      .where(sql`${table.deletedAt} is null`),
+    index('customers_client_type_idx')
+      .on(table.clientType)
+      .where(sql`${table.deletedAt} is null`),
+    check(
+      'customers_status_check',
+      sql`${table.status} in ('active', 'lead', 'disabled', 'blacklisted')`,
+    ),
+    check(
+      'customers_source_check',
+      sql`${table.source} in ('facebook', 'google', 'referral', 'website', 'phonecall', 'personal_meeting', 'other', 'instagram', 'tiktok', 'whatsapp')`,
+    ),
+    check('customers_client_type_check', sql`${table.clientType} in ('person', 'business')`),
   ],
 );

@@ -63,6 +63,9 @@ export const changeCustomerStatus = async (
 
   const fields: UpdateCustomerFields = {
     status: target,
+    // A legal transition is always an actual change (isLegalTransition rejects
+    // no-ops), so the stamp needs no compare here.
+    statusChangedAt: new Date(),
     // Keep the reason only while blacklisted; clear it on any other target.
     blacklistReason: target === CustomerStatus.Blacklisted ? (reason ?? null) : null,
   };

@@ -1,7 +1,7 @@
 # utm-params 01 — Fullstack implementation (backend + superadmin)
 
-> **Status:** not-started · **Depends on:** — (schema work precedes superadmin plans 07/08)
-> **Owner:** — · **Last updated:** 2026-07-16
+> **Status:** in-progress (CP-1 code done; migration 0016 generated, not yet applied) · **Depends on:** — (schema work precedes superadmin plans 07/08)
+> **Owner:** — · **Last updated:** 2026-07-17
 > **PR:** PR-A `feat(fullstack)` on branch `feature/fullstack-utm-params` · base `main`
 
 ## Context (shared with [02-website-connection](02-website-connection.md))
@@ -19,12 +19,12 @@ Settled decisions (2026-07-15/16):
 
 ## CP-1 — Schema + enums (migration 0016)
 
-- [ ] `customers/enums/customers.enum.ts`: string-valued TS enums `CustomerStatus { Active='active', Lead='lead', Disabled='disabled', Blacklisted='blacklisted' }`, `CustomerSource` (facebook, google, referral, website, phonecall, personal_meeting, other, instagram, tiktok, whatsapp), `ClientType { Person='person', Business='business' }`.
-- [ ] `customers/models/customers.model.ts` — add after `timezone`: `status` text `.$type<CustomerStatus>()` notNull default `'active'`; `source` text `.$type<CustomerSource>()` nullable; `clientType text('client_type')` nullable; `statusChangedAt timestamp('status_changed_at', { withTimezone: true })` nullable, no default (birth status ⇒ NULL; readers coalesce to `created_at` — [03-cms-dashboard](03-cms-dashboard.md) amendment); nine nullable attribution text columns (`utmSource ('utm_source')` … `landingPage ('landing_page')`). Three check constraints in the `users_role_check` style (`customers_status_check`, `customers_source_check`, `customers_client_type_check`) + five partial indexes: `customers_utm_source_idx` / `customers_utm_campaign_idx` (`where … is not null`) and `customers_status_idx` / `customers_source_idx` / `customers_client_type_idx` (`where deleted_at is null` — every list query filters soft-deletes, mirroring `customers_active_idx`; `source` grouped by the 03 dashboard).
-- [ ] `customers/types/customers.types.ts` — extend `UpdateCustomerFields` with `status | source | clientType | statusChangedAt` (the last is service-derived only); **none of the attribution columns** (write-once).
-- [ ] `customers/validators/customers.validator.ts` — optional `status/source/clientType` via `z.nativeEnum` on `createCustomerSchema` (`updateCustomerSchema` inherits via `.partial()`); **no attribution keys and no `statusChangedAt` in either**.
-- [ ] `customers/services/customers.service.ts` — extend `editCustomer`'s explicit field-copy block with `status/source/clientType`; when the incoming `status` differs from the stored row's, stamp `statusChangedAt = new Date()` (needs the current row — fetch-then-update or compare in the update's returning path); never attribution columns.
-- [ ] `pnpm db:generate` → review `drizzle/migrations/0016_*.sql` (13 ADD COLUMN + 3 checks + 5 indexes; NOT NULL-with-default is metadata-only, no rewrite) → `pnpm db:migrate` (live Neon; backward-compatible, but flag before running).
+- [x] `customers/enums/customers.enum.ts`: string-valued TS enums `CustomerStatus { Active='active', Lead='lead', Disabled='disabled', Blacklisted='blacklisted' }`, `CustomerSource` (facebook, google, referral, website, phonecall, personal_meeting, other, instagram, tiktok, whatsapp), `ClientType { Person='person', Business='business' }`.
+- [x] `customers/models/customers.model.ts` — add after `timezone`: `status` text `.$type<CustomerStatus>()` notNull default `'active'`; `source` text `.$type<CustomerSource>()` nullable; `clientType text('client_type')` nullable; `statusChangedAt timestamp('status_changed_at', { withTimezone: true })` nullable, no default (birth status ⇒ NULL; readers coalesce to `created_at` — [03-cms-dashboard](03-cms-dashboard.md) amendment); nine nullable attribution text columns (`utmSource ('utm_source')` … `landingPage ('landing_page')`). Three check constraints in the `users_role_check` style (`customers_status_check`, `customers_source_check`, `customers_client_type_check`) + five partial indexes: `customers_utm_source_idx` / `customers_utm_campaign_idx` (`where … is not null`) and `customers_status_idx` / `customers_source_idx` / `customers_client_type_idx` (`where deleted_at is null` — every list query filters soft-deletes, mirroring `customers_active_idx`; `source` grouped by the 03 dashboard).
+- [x] `customers/types/customers.types.ts` — extend `UpdateCustomerFields` with `status | source | clientType | statusChangedAt` (the last is service-derived only); **none of the attribution columns** (write-once).
+- [x] `customers/validators/customers.validator.ts` — optional `status/source/clientType` via `z.nativeEnum` on `createCustomerSchema` (`updateCustomerSchema` inherits via `.partial()`); **no attribution keys and no `statusChangedAt` in either**.
+- [x] `customers/services/customers.service.ts` — extend `editCustomer`'s explicit field-copy block with `status/source/clientType`; when the incoming `status` differs from the stored row's, stamp `statusChangedAt = new Date()` (needs the current row — fetch-then-update or compare in the update's returning path); never attribution columns.
+- [ ] `pnpm db:generate` → review `drizzle/migrations/0016_*.sql` (13 ADD COLUMN + 3 checks + 5 indexes; NOT NULL-with-default is metadata-only, no rewrite) → `pnpm db:migrate` (live Neon; backward-compatible, but flag before running). _Generated + reviewed as `0016_right_strong_guy.sql`; migrate still pending sign-off._
 
 ## CP-2 — Turnstile module + public lead endpoint + tests
 
