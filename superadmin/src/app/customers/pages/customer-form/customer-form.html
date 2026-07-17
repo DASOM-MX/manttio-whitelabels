@@ -124,22 +124,6 @@
         />
       </div>
     </div>
-
-    @if (isReferral()) {
-      <div class="field-group">
-        <label class="field-label" for="cust-referredby">Referido por</label>
-        <p-select
-          inputId="cust-referredby"
-          formControlName="referredByCustomerId"
-          [options]="referralOptions()"
-          optionLabel="label"
-          optionValue="value"
-          [filter]="true"
-          placeholder="Buscar cliente"
-          appendTo="body"
-        />
-      </div>
-    }
   </section>
 
   <!-- Contacts -->
