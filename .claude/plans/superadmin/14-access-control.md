@@ -1,12 +1,24 @@
 # 14 — Access control (roles + config gating)
 
 > **Status:** done (doc — implementation tasks live in `02-app-shell.md` and each module's
-> checklists) · **Last updated:** 2026-07-05
+> checklists) · **Last updated:** 2026-07-15
+>
+> ⚠️ **Correction (2026-07-15, owner):** module flags exist at the **organization level**
+> and are **set from the whitelabels admin app** (the manager tool — *not in this repo*).
+> Inside this app there is **no module gating against signed-in tenant users** — nothing
+> in-tenant reads or sets flags; `hasModule` returns true for every module, unbuilt modules
+> show their stub, and `/auth/me` carries no `tenantConfig` (stripped 2026-07-14).
+> **Role-based access per module is mandatory and stays guarded** (route `data.roles` +
+> the central guard). The **module segregation mechanism** — how an organization's flags
+> reach a tenant instance — is deliberately open, to be discussed later; do not build any
+> in-repo flag plumbing until it's decided. The axis-1 module split below stays as the
+> reference for that discussion.
 
 Reference doc, binding for all module agents. Gating is **two-dimensional**; keep the axes
 separate everywhere:
 
-1. **Tenant config** (set by *us* via the manager push): which modules this tenant's
+1. **Organization modules** (set at the org level from the whitelabels admin app —
+   segregation mechanism TBD, see the correction note above): which modules this tenant's
    instance even has. `modules: { billing, wms, crm, cms, scheduling }` — users, reports,
    and clients are core and always on; **equipment rides core clients**,
    **`scheduling` covers calendar (12) + contracts (13)** (tentative flag split — open
@@ -126,10 +138,11 @@ d. **Audit immutability (decided 2026-07-05):** movement records are **append-on
 Superadmin ships **CSR** (SSR comes later, §5). The gating input is fetched once and
 everything reads from it:
 
-- **`GET /auth/me` → `{ user, role, tenantConfig }`** — fetched after login and on app
-  boot when a token exists; stored in `AuthState`. The shell shows a splash until it
-  resolves; no gated UI renders from stale/absent data.
-- **`access.ts` (single source):** the matrix above as data, plus `hasRole` / `hasModule`
+- **`GET /auth/me` → `{ user, role, mustChangePassword }`** — fetched after login and on
+  app boot when a token exists; stored in `AuthState`. The shell shows a splash until it
+  resolves; no gated UI renders from stale/absent data. (**No `tenantConfig`** — stripped
+  2026-07-14; module availability is build-time, see the correction note at the top.)
+- **`app/guards/*.guard.ts` (single source — split one guard per file, 2026-07-15):** the matrix above as data, plus `hasRole` / `hasModule`
   helpers. Route `data`, the nav filter, and in-page `@if`s all consume it — matrix logic
   is never duplicated in components.
 - **Routing:** every routed page declares `data: { module: 'billing', roles: [...] }`;

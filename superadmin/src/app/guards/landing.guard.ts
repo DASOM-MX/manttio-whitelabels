@@ -3,7 +3,7 @@ import { inject } from '@angular/core';
 import { Store } from '@ngxs/store';
 import { filter, map, take } from 'rxjs';
 import { AuthState, MeStatus } from '../../state/auth/auth.state';
-import { defaultRouteFor } from '../access';
+import { defaultRouteFor } from './default-route.guard';
 
 /** Resolves the empty path to the role-appropriate landing route (02 §4):
  *  owner/admin/office → /dashboard, technician → /calendar (or /reports when
