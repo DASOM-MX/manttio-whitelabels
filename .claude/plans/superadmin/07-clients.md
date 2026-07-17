@@ -1,7 +1,8 @@
 # 07 — Clients (directory + Mexican invoicing info)
 
-> **Status:** not-started · **Depends on:** 02 (CP-3)
-> **Owner:** — · **Last updated:** 2026-07-05
+> **Status:** done (frontend side — backend customers migration pending)
+> **Depends on:** 02 (CP-3, done)
+> **Owner:** branch `feature/superadmin-customers` (stacked on the 02 shell PR) · **Last updated:** 2026-07-06
 
 The tenant's client directory. This **is** the product's existing `customers` resource
 (master plan §4: UI says "client", code says `customers`), extended with **basic Mexican
@@ -42,9 +43,9 @@ CustomerFiscal {
 ```
 
 - SAT catalogs (`c_RegimenFiscal`, `c_UsoCFDI`): ship as **static constant option lists**
-  in `data/dtos/customers/sat-catalogs.ts` (code + label) — no runtime catalog service in
-  v1. Only the common subset (~10 regimes, ~5 uses); full catalogs when CFDI stamping
-  lands.
+  in `model/constants/customer/sat-*.const.ts` (path updated 2026-07-06 per the new
+  constants rule) — no runtime catalog service in v1. Only the common subset
+  (10 regimes, 5 uses); full catalogs when CFDI stamping lands.
 - Validators (in `src/app/validators/`): `rfcValidator` (moral/física pattern, uppercase),
   `fiscalZipValidator` (5 digits). Fiscal group is **optional as a whole** but
   all-or-nothing required once any fiscal field is filled (cross-field validator).
@@ -92,24 +93,31 @@ CustomerFiscal {
 ## Checkpoints
 
 ### CP-1 — Data model + read path *(gate for 08 and 09)*
-- [ ] DTOs incl. `CustomerFiscal`, `CustomerContact`, tags, referredBy + SAT catalog
-      constants + validators
-- [ ] Service + `CustomersState` (list/detail)
-- [ ] List page with filters (incl. tags) + status/source pills + tag chips
-- [ ] Route + sidebar entry live
+- [x] DTOs incl. `CustomerFiscal`, `CustomerContact`, tags, referredBy + SAT catalog
+      constants (`model/constants/customer/`) + validators (`rfcValidator`,
+      zip pattern, `fiscalGroupValidator`)
+- [x] Service + `CustomersState` (lazy; `knownTags` selector feeds filter +
+      autocomplete until a tags endpoint exists)
+- [x] List page: search/status/source filters + tags multiselect, status pills,
+      source labels, tag chips, RFC column
+- [x] Route + sidebar entry live; `/customers/leads` + `/customers/blacklist`
+      nav children reuse the list with a preset status
 
 ### CP-2 — Write path
-- [ ] Customer form (general + contacts repeater + fiscal sections, cross-field fiscal
-      rule, tags input, conditional referred-by select)
-- [ ] Delete dialog + toasts
-- [ ] Customer view page: 360 header (summary strip with "—" placeholders, quick-contact
-      buttons wired to 08's composer once it lands) + reserved CRM/Bills slots
+- [x] Customer form (General + Contactos repeater + Datos fiscales with the
+      all-or-nothing rule surfaced inline, tags chips input w/ suggestions,
+      conditional searchable referred-by select excluding self)
+- [x] Delete dialog (audit comment) + toasts
+- [x] Customer view: 360 header (status pill, tags, tel/WhatsApp/mailto quick
+      actions, summary strip with "—" placeholders) + reserved CRM/Bills slots
 
 ### CP-3 — Polish
-- [ ] Referral links on view ("referred by" ↔ "referred N clients")
-- [ ] Dark-mode audit; empty/loading/error states
-- [ ] Build green; manual pass: create client without fiscal → add contacts + tags →
-      add fiscal later → RFC validation rejects bad input → filter list by tag → delete
+- [x] Referral links on view ("referred by" ↔ "referred N clients")
+- [x] Dark-mode variants; empty/loading states; dirty-navigation guard on the form
+- [x] Build green; headless pass 24/24 (2026-07-06): list/filters/preset views,
+      fiscal all-or-nothing blocks submit, RFC rejects bad input, tags + contacts +
+      referral in the POST payload, 360 view (pills/quick actions/fiscal/referral
+      links), audit delete
 
 ## Open decisions / asks
 - Upstream `customers` already exists — confirm which fields are net-new columns (status,

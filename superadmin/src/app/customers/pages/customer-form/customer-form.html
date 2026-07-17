@@ -1,0 +1,370 @@
+<div class="flex flex-wrap items-center gap-3">
+  <a
+    routerLink="/customers"
+    class="inline-flex size-10 items-center justify-center rounded-lg text-granite-600 transition-colors hover:bg-granite-100 dark:text-granite-400 dark:hover:bg-granite-800"
+    aria-label="Volver a clientes"
+  >
+    <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
+  </a>
+  <h1 class="text-xl font-bold text-granite-1000 dark:text-granite-0">
+    @if (isEdit) {
+      Editar cliente
+    } @else {
+      Nuevo cliente
+    }
+  </h1>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="submit()" class="mt-5 grid gap-4 xl:grid-cols-2">
+  <!-- General -->
+  <section class="card-section flex flex-col gap-4" aria-labelledby="cust-general-title">
+    <h2 id="cust-general-title" class="section-heading">General</h2>
+
+    <div class="field-group">
+      <label class="field-label" for="cust-name"
+        >Nombre comercial<span aria-hidden="true"> *</span></label
+      >
+      <input
+        id="cust-name"
+        pInputText
+        formControlName="name"
+        maxlength="100"
+        autocomplete="organization"
+      />
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="field-group">
+        <label class="field-label" for="cust-contact">Contacto principal</label>
+        <input
+          id="cust-contact"
+          pInputText
+          formControlName="contactName"
+          maxlength="100"
+          autocomplete="name"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="cust-phone">Teléfono</label>
+        <input
+          id="cust-phone"
+          pInputText
+          type="tel"
+          formControlName="phone"
+          maxlength="20"
+          autocomplete="tel"
+        />
+        @if (form.controls.phone.touched && form.controls.phone.errors?.['phone']) {
+          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+            Ingresa un número de teléfono válido (10 a 15 dígitos).
+          </p>
+        }
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="cust-email">Correo</label>
+        <input
+          id="cust-email"
+          pInputText
+          type="email"
+          formControlName="email"
+          maxlength="254"
+          autocomplete="email"
+        />
+        @if (form.controls.email.touched && form.controls.email.errors?.['email']) {
+          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+            Ingresa un correo válido.
+          </p>
+        }
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="cust-address">Dirección</label>
+        <input
+          id="cust-address"
+          pInputText
+          formControlName="address"
+          maxlength="250"
+          autocomplete="street-address"
+        />
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="cust-tags">Etiquetas</label>
+      <app-tags-input controlId="cust-tags" formControlName="tags" [suggestions]="knownTags()" />
+      <p class="text-sm text-granite-500 dark:text-granite-400">
+        Segmentación libre: escribe y presiona Enter.
+      </p>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="field-group">
+        <label class="field-label" for="cust-status"
+          >Estado<span aria-hidden="true"> *</span></label
+        >
+        <p-select
+          inputId="cust-status"
+          formControlName="status"
+          [options]="statusOptions"
+          optionLabel="label"
+          optionValue="value"
+          appendTo="body"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="cust-source"
+          >Origen<span aria-hidden="true"> *</span></label
+        >
+        <p-select
+          inputId="cust-source"
+          formControlName="source"
+          [options]="sourceOptions"
+          optionLabel="label"
+          optionValue="value"
+          appendTo="body"
+        />
+      </div>
+    </div>
+
+    @if (isReferral()) {
+      <div class="field-group">
+        <label class="field-label" for="cust-referredby">Referido por</label>
+        <p-select
+          inputId="cust-referredby"
+          formControlName="referredByCustomerId"
+          [options]="referralOptions()"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+          placeholder="Buscar cliente"
+          appendTo="body"
+        />
+      </div>
+    }
+  </section>
+
+  <!-- Contacts -->
+  <section class="card-section flex flex-col gap-3" aria-labelledby="cust-contacts-title">
+    <h2 id="cust-contacts-title" class="section-heading">Contactos adicionales</h2>
+    <p class="text-sm text-granite-600 dark:text-granite-400">
+      Gerente de planta, cuentas por pagar, dueño… El contacto principal vive en General.
+    </p>
+
+    <div formArrayName="contacts" class="flex flex-col gap-2">
+      @for (contact of contacts.controls; track contact; let i = $index; let last = $last) {
+        <div
+          class="flex items-start gap-2 rounded-lg border border-granite-200 p-3 dark:border-granite-800"
+          [formGroupName]="i"
+        >
+          <div class="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
+            <div class="field-group">
+              <label class="field-label" [for]="'contact-name-' + i"
+                >Nombre<span aria-hidden="true"> *</span></label
+              >
+              <input [id]="'contact-name-' + i" pInputText formControlName="name" maxlength="100" />
+            </div>
+            <div class="field-group">
+              <label class="field-label" [for]="'contact-role-' + i">Puesto</label>
+              <input [id]="'contact-role-' + i" pInputText formControlName="role" maxlength="100" />
+            </div>
+            <div class="field-group">
+              <label class="field-label" [for]="'contact-phone-' + i">Teléfono</label>
+              <input
+                [id]="'contact-phone-' + i"
+                pInputText
+                type="tel"
+                formControlName="phone"
+                maxlength="20"
+              />
+              @if (contact.controls['phone'].touched && contact.controls['phone'].errors?.['phone']) {
+                <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+                  Ingresa un número de teléfono válido (10 a 15 dígitos).
+                </p>
+              }
+            </div>
+            <div class="field-group">
+              <label class="field-label" [for]="'contact-email-' + i">Correo</label>
+              <input
+                [id]="'contact-email-' + i"
+                pInputText
+                type="email"
+                formControlName="email"
+                maxlength="254"
+              />
+              @if (contact.controls['email'].touched && contact.controls['email'].errors?.['email']) {
+                <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+                  Ingresa un correo válido.
+                </p>
+              }
+            </div>
+          </div>
+          <div class="flex shrink-0 flex-col gap-0.5">
+            <button
+              type="button"
+              class="inline-flex size-8 items-center justify-center rounded-md text-granite-500 transition-colors hover:bg-granite-100 disabled:opacity-30 dark:text-granite-400 dark:hover:bg-granite-800"
+              (click)="moveContact(i, -1)"
+              [disabled]="i === 0"
+              [attr.aria-label]="'Subir contacto ' + (i + 1)"
+            >
+              <svg lucideChevronUp class="size-4" aria-hidden="true"></svg>
+            </button>
+            <button
+              type="button"
+              class="inline-flex size-8 items-center justify-center rounded-md text-granite-500 transition-colors hover:bg-granite-100 disabled:opacity-30 dark:text-granite-400 dark:hover:bg-granite-800"
+              (click)="moveContact(i, 1)"
+              [disabled]="last"
+              [attr.aria-label]="'Bajar contacto ' + (i + 1)"
+            >
+              <svg lucideChevronDown class="size-4" aria-hidden="true"></svg>
+            </button>
+            <button
+              type="button"
+              class="inline-flex size-8 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+              (click)="removeContact(i)"
+              [attr.aria-label]="'Eliminar contacto ' + (i + 1)"
+            >
+              <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
+            </button>
+          </div>
+        </div>
+      } @empty {
+        <p
+          class="rounded-lg border border-dashed border-granite-300 px-4 py-4 text-center text-sm text-granite-500 dark:border-granite-700 dark:text-granite-400"
+        >
+          Sin contactos adicionales.
+        </p>
+      }
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 self-start text-sm font-semibold text-sky-700 transition-colors hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
+        (click)="addContact()"
+      >
+        <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+        Agregar contacto
+      </button>
+    </div>
+  </section>
+
+  <!-- Fiscal -->
+  <section
+    class="card-section flex flex-col gap-4 xl:col-span-2"
+    aria-labelledby="cust-fiscal-title"
+    formGroupName="fiscal"
+  >
+    <h2 id="cust-fiscal-title" class="section-heading">Datos fiscales (CFDI 4.0)</h2>
+    <p class="text-sm text-granite-600 dark:text-granite-400">
+      Opcionales — pero si capturas uno, el bloque completo es obligatorio.
+    </p>
+
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div class="field-group">
+        <label class="field-label" for="fiscal-rfc">RFC</label>
+        <input
+          id="fiscal-rfc"
+          pInputText
+          formControlName="rfc"
+          class="uppercase"
+          maxlength="13"
+          spellcheck="false"
+        />
+        @if (fiscalControls.rfc.touched && fiscalControls.rfc.errors?.['rfc']) {
+          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+            RFC inválido: 12 caracteres (moral) o 13 (física).
+          </p>
+        }
+      </div>
+      <div class="field-group xl:col-span-2">
+        <label class="field-label" for="fiscal-legal">Razón social</label>
+        <input
+          id="fiscal-legal"
+          pInputText
+          formControlName="legalName"
+          class="uppercase"
+          maxlength="150"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="fiscal-regime">Régimen fiscal</label>
+        <p-select
+          inputId="fiscal-regime"
+          formControlName="taxRegimeCode"
+          [options]="SAT_TAX_REGIMES"
+          optionLabel="label"
+          optionValue="code"
+          [showClear]="true"
+          placeholder="Elegir régimen"
+          appendTo="body"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="fiscal-zip">CP fiscal</label>
+        <input
+          id="fiscal-zip"
+          pInputText
+          formControlName="fiscalZip"
+          inputmode="numeric"
+          maxlength="5"
+        />
+        @if (fiscalControls.fiscalZip.touched && fiscalControls.fiscalZip.errors?.['pattern']) {
+          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+            El CP fiscal son 5 dígitos.
+          </p>
+        }
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="fiscal-use">Uso CFDI</label>
+        <p-select
+          inputId="fiscal-use"
+          formControlName="cfdiUseCode"
+          [options]="SAT_CFDI_USES"
+          optionLabel="label"
+          optionValue="code"
+          [showClear]="true"
+          placeholder="Elegir uso"
+          appendTo="body"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="fiscal-email">Correo de facturación</label>
+        <input
+          id="fiscal-email"
+          pInputText
+          type="email"
+          formControlName="billingEmail"
+          maxlength="254"
+        />
+        @if (fiscalControls.billingEmail.touched && fiscalControls.billingEmail.errors?.['email']) {
+          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+            Ingresa un correo válido.
+          </p>
+        }
+      </div>
+    </div>
+
+    @if (fiscalIncomplete) {
+      <p
+        class="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200"
+        role="alert"
+      >
+        El bloque fiscal es todo o nada: completa RFC, razón social, régimen, CP y uso CFDI — o
+        déjalos todos vacíos.
+      </p>
+    }
+  </section>
+
+  <div class="flex justify-end gap-2 xl:col-span-2">
+    <a routerLink="/customers" class="btn-neutral">Cancelar</a>
+    <button type="submit" class="btn-primary" [disabled]="form.invalid || busy()">
+      @if (busy()) {
+        <span
+          class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+          aria-hidden="true"
+        ></span>
+        Guardando…
+      } @else if (isEdit) {
+        Guardar cambios
+      } @else {
+        Crear cliente
+      }
+    </button>
+  </div>
+</form>

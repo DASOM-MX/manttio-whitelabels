@@ -1,0 +1,48 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="max-w-11/12"
+  [style]="{ width: '28rem' }"
+  header="Eliminar cliente"
+>
+  <form [formGroup]="form" (ngSubmit)="confirm()" class="flex flex-col gap-4">
+    <p class="text-sm text-granite-700 dark:text-granite-300">
+      Vas a eliminar a
+      <strong class="text-granite-1000 dark:text-granite-0">{{ target()?.name }}</strong
+      >. Sus reportes e historial se conservan; la eliminación queda auditada.
+    </p>
+
+    <div class="field-group">
+      <label class="field-label" for="customer-delete-comment"
+        >Motivo (auditoría)<span aria-hidden="true"> *</span></label
+      >
+      <textarea
+        id="customer-delete-comment"
+        pTextarea
+        formControlName="comment"
+        rows="2"
+      ></textarea>
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <button type="button" class="btn-neutral" (click)="close()" [disabled]="submitting()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn-danger" [disabled]="!canConfirm()">
+        @if (submitting()) {
+          <span
+            class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+            aria-hidden="true"
+          ></span>
+          Eliminando…
+        } @else {
+          Eliminar cliente
+        }
+      </button>
+    </div>
+  </form>
+</p-dialog>

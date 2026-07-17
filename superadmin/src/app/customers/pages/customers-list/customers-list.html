@@ -1,0 +1,165 @@
+<div class="flex flex-wrap items-start justify-between gap-3">
+  <div>
+    <h1 class="text-xl font-bold text-granite-1000 dark:text-granite-0">{{ title }}</h1>
+    <p class="mt-1 text-sm text-granite-600 dark:text-granite-400">
+      El directorio de clientes de tu negocio.
+    </p>
+  </div>
+  <a routerLink="/customers/new" class="btn-primary">
+    <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+    Nuevo cliente
+  </a>
+</div>
+
+<div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+  <div class="field-group">
+    <label class="field-label" for="customers-search">Buscar</label>
+    <input
+      id="customers-search"
+      pInputText
+      type="search"
+      [formControl]="search"
+      placeholder="Nombre, contacto o RFC"
+    />
+  </div>
+  @if (!presetStatus) {
+    <div class="field-group">
+      <label class="field-label" for="customers-status">Estado</label>
+      <p-select
+        inputId="customers-status"
+        [formControl]="statusFilter"
+        [options]="statusOptions"
+        optionLabel="label"
+        optionValue="value"
+        appendTo="body"
+      />
+    </div>
+  }
+  <div class="field-group">
+    <label class="field-label" for="customers-source">Origen</label>
+    <p-select
+      inputId="customers-source"
+      [formControl]="sourceFilter"
+      [options]="sourceOptions"
+      optionLabel="label"
+      optionValue="value"
+      appendTo="body"
+    />
+  </div>
+  <div class="field-group">
+    <label class="field-label" for="customers-tags">Etiquetas</label>
+    <p-multiselect
+      inputId="customers-tags"
+      [formControl]="tagsFilter"
+      [options]="tagOptions()"
+      optionLabel="label"
+      optionValue="value"
+      placeholder="Todas"
+      appendTo="body"
+      display="chip"
+    />
+  </div>
+</div>
+
+<div class="mt-4">
+  <p-table
+    [value]="customers()"
+    [lazy]="true"
+    (onLazyLoad)="list.onLazyLoad($event)"
+    [paginator]="true"
+    [rows]="list.PAGE_SIZE"
+    [first]="list.first()"
+    [totalRecords]="total()"
+    [loading]="loading()"
+    [rowHover]="true"
+    dataKey="id"
+  >
+    <ng-template #header>
+      <tr>
+        <th scope="col">Cliente</th>
+        <th scope="col">Contacto</th>
+        <th scope="col">Estado</th>
+        <th scope="col">Origen</th>
+        <th scope="col">Etiquetas</th>
+        <th scope="col">RFC</th>
+        <th scope="col">Alta</th>
+        <th scope="col"><span class="sr-only">Acciones</span></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-customer>
+      <!-- Whole row opens the client 360 view (05 §3 QA); the action links stay
+           the keyboard path. -->
+      <tr class="cursor-pointer" (click)="openCustomer(customer)">
+        <td class="font-medium">{{ customer.name }}</td>
+        <td>
+          {{ customer.contactName || '—' }}
+          @if (customer.phone) {
+            <span
+              class="block font-data text-xs tabular-nums text-granite-500 dark:text-granite-400"
+              >{{ customer.phone }}</span
+            >
+          }
+        </td>
+        <td>
+          <p-tag
+            [severity]="customer.status | customerStatusSeverity"
+            [value]="customer.status | customerStatusLabel"
+          />
+        </td>
+        <td>{{ customer.source | customerSourceLabel }}</td>
+        <td>
+          <div class="flex max-w-44 flex-wrap gap-1">
+            @for (tag of customer.tags; track tag) {
+              <span
+                class="rounded-full bg-granite-100 px-2 py-0.5 text-xs font-medium text-granite-700 dark:bg-granite-800 dark:text-granite-300"
+                >{{ tag }}</span
+              >
+            } @empty {
+              <span class="text-granite-400">—</span>
+            }
+          </div>
+        </td>
+        <td class="font-data tabular-nums">{{ customer.fiscal?.rfc || '—' }}</td>
+        <td class="font-data tabular-nums">{{ customer.createdAt | slice: 0 : 10 }}</td>
+        <td class="w-32" (click)="$event.stopPropagation()">
+          <div class="flex justify-end gap-1">
+            <a
+              [routerLink]="['/customers', customer.id]"
+              class="inline-flex size-9 items-center justify-center rounded-md text-granite-600 transition-colors hover:bg-granite-100 hover:text-granite-900 dark:text-granite-400 dark:hover:bg-granite-800 dark:hover:text-granite-100"
+              [attr.aria-label]="'Ver ' + customer.name"
+            >
+              <svg lucideEye class="size-4" aria-hidden="true"></svg>
+            </a>
+            <a
+              [routerLink]="['/customers', customer.id, 'edit']"
+              class="inline-flex size-9 items-center justify-center rounded-md text-granite-600 transition-colors hover:bg-granite-100 hover:text-granite-900 dark:text-granite-400 dark:hover:bg-granite-800 dark:hover:text-granite-100"
+              [attr.aria-label]="'Editar ' + customer.name"
+            >
+              <svg lucidePencil class="size-4" aria-hidden="true"></svg>
+            </a>
+            <button
+              type="button"
+              class="inline-flex size-9 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+              (click)="openDelete(customer)"
+              [attr.aria-label]="'Eliminar ' + customer.name"
+            >
+              <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr class="p-datatable-emptymessage">
+        <td colspan="8">
+          <span class="inline-flex flex-col items-center gap-2">
+            <svg lucideBuilding2 class="size-6 text-granite-400" aria-hidden="true"></svg>
+            Sin clientes con esos filtros.
+          </span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<app-delete-customer-dialog #deleteDialog (deleted)="refresh()" />

@@ -92,7 +92,7 @@ Rules for agents:
 | 04 cms | **done** (frontend side; branch `feature/superadmin-cms`) | CP-3 |
 | 05 users | **done** (frontend side; branch `feature/superadmin-users`) | CP-3 |
 | 06 reports | **done** (frontend side; branch `feature/superadmin-reports`) | CP-5 |
-| 07 clients | not-started | — |
+| 07 clients | **done** (frontend side; branch `feature/superadmin-customers`) | CP-3 |
 | 08 crm | not-started | — |
 | 09 billing | not-started | — |
 | 10 wms | not-started | — |
@@ -250,9 +250,10 @@ agent hitting a checkpoint checks this page for items tagged to it.
       enum confirmed (`created|in-progress|finished|mailed`); folio has no backend
       column yet (backend ask).
 - [ ] 06 CP-2 — resend-email action: in or out for v1.
-- [ ] 07 CP-1 — confirm net-new `customers` columns (status, source, blacklist,
-      follow-up, referral, tags, contacts, fiscal) for the backend migration; trim or
-      extend the `source` enum.
+- [~] 07 CP-1 — net-new `customers` columns implemented frontend-side as proposed
+      (status, source, blacklistReason, nextFollowUpAt, referredByCustomerId, tags,
+      contacts, fiscal); `source` enum shipped as the seven-value list — backend
+      migration still owes confirmation.
 - [ ] 10 (replenishments) — **SheetJS-on-Workers CPU check** with the backend agent;
       validate the import column set (`sku`, `quantity`, `serial`) against a real
       provider list.

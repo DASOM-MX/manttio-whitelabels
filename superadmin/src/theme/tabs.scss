@@ -1,0 +1,42 @@
+/* PrimeNG Tabs — flatten Aura's chrome to the app's hairline card language
+   (01 Design language). Used by the CMS editors and the client 360 view; the
+   parent frames it in a `.card`. We strip the default background, hide the
+   scroll nav buttons (never needed for our small tab sets — they were leaking
+   as stray slivers), tint the active tab + ink bar to the sky primary, and pad
+   the panel to the card's rhythm. Sheet is unlayered, so it wins over Aura. */
+.p-tabs {
+  @apply bg-transparent;
+}
+
+.p-tablist {
+  @apply border-b border-granite-200 dark:border-granite-800;
+}
+
+/* Small, fixed tab sets never overflow — kill the prev/next scroll buttons. */
+.p-tablist-nav-button {
+  @apply hidden;
+}
+
+.p-tablist-tab-list {
+  @apply gap-1 border-0 bg-transparent;
+}
+
+.p-tab {
+  @apply px-4 py-3 text-sm font-medium text-granite-500 transition-colors dark:text-granite-400;
+}
+
+.p-tab:hover {
+  @apply text-granite-800 dark:text-granite-200;
+}
+
+.p-tab.p-tab-active {
+  @apply text-sky-700 dark:text-sky-300;
+}
+
+.p-tablist-active-bar {
+  @apply h-0.5 bg-sky-600 dark:bg-sky-400;
+}
+
+.p-tabpanels {
+  @apply bg-transparent p-4 sm:p-5;
+}
