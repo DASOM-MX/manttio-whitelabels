@@ -5,7 +5,7 @@ import { filter, map, take } from 'rxjs';
 import { AuthState, MeStatus } from '../../state/auth/auth.state';
 import { canAccess } from './can-access.guard';
 import { defaultRouteFor } from './default-route.guard';
-import type { ModuleKey } from '../data/types/access';
+import type { ModuleKey } from '../data/types/access/module-key.type';
 import type { Role } from '../data/dtos/auth';
 
 /** Central `canMatch` guard (14-access-control.md §3): every routed module

@@ -13,7 +13,7 @@ import {
   LucideUsers,
   LucideWarehouse,
 } from '@lucide/angular';
-import type { NavEntry } from '../../../data/types/access';
+import type { NavEntry } from '../../../data/types/access/nav-entry.type';
 
 /** Full nav, owner/admin shape (02 §4); office loses entries via the matrix. */
 export const NAV: NavEntry[] = [

@@ -1,6 +1,6 @@
 import { NAV, TECH_NAV } from '../model/constants/access/nav-entries.const';
 import type { MeResponse } from '../data/dtos/auth';
-import type { NavEntry } from '../data/types/access';
+import type { NavEntry } from '../data/types/access/nav-entry.type';
 import { canAccess } from './can-access.guard';
 
 /** The access matrix applied to the sidebar — a user never sees an entry

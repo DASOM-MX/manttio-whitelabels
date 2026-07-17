@@ -1,6 +1,6 @@
 import { MODULE_ROLES } from '../model/constants/access/module-roles.const';
 import type { MeResponse, Role } from '../data/dtos/auth';
-import type { ModuleKey } from '../data/types/access';
+import type { ModuleKey } from '../data/types/access/module-key.type';
 import { hasModule } from './has-module.guard';
 import { hasRole } from './has-role.guard';
 

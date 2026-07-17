@@ -1,5 +1,5 @@
 import type { MeResponse } from '../data/dtos/auth';
-import type { ModuleKey } from '../data/types/access';
+import type { ModuleKey } from '../data/types/access/module-key.type';
 
 /** Module gate — role-only runtime gating (2026-07-15): every module is on
  *  for signed-in users; unbuilt modules show their stub page. Org-level
