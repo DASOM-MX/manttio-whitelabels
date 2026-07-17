@@ -48,10 +48,6 @@ export interface Customer {
   tags: string[];
   status: CustomerStatus;
   source: CustomerSource;
-  referredByCustomerId?: string;
-  referredByCustomerName?: string;
-  /** How many clients this one referred (renders the referral link). */
-  referredCount?: number;
   blacklistReason?: string;
   nextFollowUpAt?: string;
   fiscal?: CustomerFiscal;
@@ -83,7 +79,6 @@ export interface SaveCustomerRequest {
   tags: string[];
   status: CustomerStatus;
   source: CustomerSource;
-  referredByCustomerId?: string;
   fiscal?: CustomerFiscal;
 }
 

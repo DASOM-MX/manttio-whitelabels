@@ -10,6 +10,7 @@ import {
   LucidePhone,
   LucidePlus,
   LucideMessageCircle,
+  LucideSearchX,
 } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { CustomersState } from '../../../../state/customers/customers.state';
@@ -39,6 +40,7 @@ import { AddContactDialog } from '../../components/add-contact-dialog/add-contac
     LucidePlus,
     LucideMail,
     LucideMessageCircle,
+    LucideSearchX,
     AddContactDialog,
   ],
   templateUrl: './customer-view.html',
@@ -48,6 +50,7 @@ export class CustomerView {
   private route = inject(ActivatedRoute);
 
   protected customer = select(CustomersState.selected);
+  protected loadFailed = select(CustomersState.selectedError);
   protected addContactDialog = viewChild<AddContactDialog>('addContactDialog');
 
   protected openAddContact(): void {

@@ -17,12 +17,20 @@ export interface CustomersStateModel {
   total: number;
   loading: boolean;
   selected: Customer | null;
+  selectedError: boolean;
   query: CustomerListQuery;
 }
 
 @State<CustomersStateModel>({
   name: 'customers',
-  defaults: { items: [], total: 0, loading: false, selected: null, query: {} },
+  defaults: {
+    items: [],
+    total: 0,
+    loading: false,
+    selected: null,
+    selectedError: false,
+    query: {},
+  },
 })
 @Injectable()
 export class CustomersState {
@@ -40,10 +48,13 @@ export class CustomersState {
   @Selector() static selected(s: CustomersStateModel): Customer | null {
     return s.selected;
   }
+  @Selector() static selectedError(s: CustomersStateModel): boolean {
+    return s.selectedError;
+  }
   /** Distinct tag set from the loaded rows — feeds the tags filter and the
    *  form's autocomplete until a dedicated endpoint exists (07 open ask). */
   @Selector() static knownTags(s: CustomersStateModel): string[] {
-    return [...new Set(s.items.flatMap((c) => c.tags))].sort();
+    return [...new Set(s.items.flatMap((c) => c.tags ?? []))].sort();
   }
 
   @Action(LoadCustomers)
@@ -60,8 +71,14 @@ export class CustomersState {
 
   @Action(LoadCustomer)
   loadCustomer(ctx: StateContext<CustomersStateModel>, { id }: LoadCustomer) {
-    ctx.patchState({ selected: null });
-    return this.api.get(id).pipe(tap((customer) => ctx.patchState({ selected: customer })));
+    ctx.patchState({ selected: null, selectedError: false });
+    return this.api.get(id).pipe(
+      tap((customer) => ctx.patchState({ selected: customer })),
+      catchError((err) => {
+        ctx.patchState({ selectedError: true });
+        throw err;
+      }),
+    );
   }
 
   @Action(CreateCustomer)

@@ -2,7 +2,13 @@
 
 > **Status:** done (frontend side — backend customers migration pending)
 > **Depends on:** 02 (CP-3, done)
-> **Owner:** branch `feature/superadmin-customers` (stacked on the 02 shell PR) · **Last updated:** 2026-07-06
+> **Owner:** branch `feature/superadmin-customers` (stacked on the 02 shell PR) · **Last updated:** 2026-07-17
+>
+> **Decided 2026-07-17 — no referral management.** The referred-by linking
+> (`referredByCustomerId`/`referredByCustomerName`/`referredCount`, the conditional
+> "Referido por" select, view links) is dropped; acquisition tracking will come from
+> **UTM params** in a separate branch. `source = 'referral'` stays as a plain label-only
+> option. References to referred-by below are historical.
 
 The tenant's client directory. This **is** the product's existing `customers` resource
 (master plan §4: UI says "client", code says `customers`), extended with **basic Mexican
@@ -24,7 +30,6 @@ Customer {
   status: 'active' | 'lead' | 'disabled' | 'blacklisted',
   source: 'facebook' | 'google' | 'referral' | 'website' | 'phonecall'
         | 'personal_meeting' | 'other',
-  referredByCustomerId?,                 // set when source = 'referral'
   blacklistReason?,                      // required when status = 'blacklisted'
   nextFollowUpAt?,                       // follow-up date (08 §3) — no task system in v1
   // ---- fiscal (CFDI 4.0 basics) ----
@@ -121,7 +126,7 @@ CustomerFiscal {
 
 ## Open decisions / asks
 - Upstream `customers` already exists — confirm which fields are net-new columns (status,
-  source, blacklistReason, nextFollowUpAt, referredByCustomerId, tags, contacts table,
+  source, blacklistReason, nextFollowUpAt, tags, contacts table,
   fiscal block) so the backend plan can migrate.
 - Fiscal data nested object vs flat columns in API responses — mirror backend's choice.
 - `source` enum: user listed facebook/google/phonecall/personal_meeting + "etc" — the list

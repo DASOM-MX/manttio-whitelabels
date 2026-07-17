@@ -1,6 +1,5 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
 import {
   AbstractControl,
   FormArray,
@@ -76,7 +75,6 @@ export class CustomerForm implements HasPendingChanges {
 
   protected selected = select(CustomersState.selected);
   protected knownTags = select(CustomersState.knownTags);
-  private allCustomers = select(CustomersState.items);
 
   protected customerId: string | null = this.route.snapshot.paramMap.get('id');
   protected isEdit = !!this.customerId;
@@ -100,7 +98,6 @@ export class CustomerForm implements HasPendingChanges {
     tags: [[] as string[]],
     status: [CustomerStatus.Active, Validators.required],
     source: [CustomerSource.Other, Validators.required],
-    referredByCustomerId: [''],
     contacts: this.fb.array<FormGroup>([]),
     fiscal: this.fb.nonNullable.group(
       {
@@ -115,21 +112,10 @@ export class CustomerForm implements HasPendingChanges {
     ),
   });
 
-  private sourceValue = toSignal(this.form.controls.source.valueChanges, {
-    initialValue: this.form.controls.source.value,
-  });
-  protected isReferral = computed(() => this.sourceValue() === CustomerSource.Referral);
-
-  /** Searchable "referred by" options — excludes self (07 §3). */
-  protected referralOptions = computed(() =>
-    this.allCustomers()
-      .filter((c) => c.id !== this.customerId)
-      .map((c) => ({ label: c.name, value: c.id })),
-  );
-
   constructor() {
-    // Options pool for referred-by + tag suggestions.
-    this.store.dispatch(new LoadCustomers({ page: 1, limit: 100 }));
+    // Options pool for tag suggestions (knownTags). Generous limit until a
+    // dedicated tags endpoint exists (07 open ask).
+    this.store.dispatch(new LoadCustomers({ page: 1, limit: 1000 }));
     if (this.customerId) this.store.dispatch(new LoadCustomer(this.customerId));
 
     effect(() => {
@@ -210,13 +196,7 @@ export class CustomerForm implements HasPendingChanges {
 
   private buildPayload(): SaveCustomerRequest {
     const raw = this.form.getRawValue();
-    const fiscalFilled = Object.values({
-      rfc: raw.fiscal.rfc,
-      legalName: raw.fiscal.legalName,
-      taxRegimeCode: raw.fiscal.taxRegimeCode,
-      fiscalZip: raw.fiscal.fiscalZip,
-      cfdiUseCode: raw.fiscal.cfdiUseCode,
-    }).some((v) => String(v).trim());
+    const fiscalFilled = Object.values(raw.fiscal).some((v) => String(v).trim());
     return {
       name: raw.name,
       contactName: raw.contactName || undefined,
@@ -226,10 +206,6 @@ export class CustomerForm implements HasPendingChanges {
       tags: raw.tags,
       status: raw.status,
       source: raw.source,
-      referredByCustomerId:
-        raw.source === CustomerSource.Referral && raw.referredByCustomerId
-          ? raw.referredByCustomerId
-          : undefined,
       contacts: raw.contacts as SaveCustomerRequest['contacts'],
       fiscal: fiscalFilled
         ? {
@@ -255,7 +231,6 @@ export class CustomerForm implements HasPendingChanges {
         tags: c.tags ?? [],
         status: c.status,
         source: c.source,
-        referredByCustomerId: c.referredByCustomerId ?? '',
         fiscal: {
           rfc: c.fiscal?.rfc ?? '',
           legalName: c.fiscal?.legalName ?? '',

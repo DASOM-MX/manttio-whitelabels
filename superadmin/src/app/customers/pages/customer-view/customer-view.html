@@ -287,6 +287,14 @@
   <!-- Slot reserved for 09 (Bills): client billing card mounts here. -->
 
   <app-add-contact-dialog #addContactDialog />
+} @else if (loadFailed()) {
+  <div class="mt-10 flex flex-col items-center gap-3" role="alert">
+    <svg lucideSearchX class="size-6 text-granite-400" aria-hidden="true"></svg>
+    <p class="text-sm text-granite-500 dark:text-granite-400">
+      No se pudo cargar el cliente — puede haber sido eliminado.
+    </p>
+    <a routerLink="/customers" class="btn-secondary">Volver a clientes</a>
+  </div>
 } @else {
   <div class="mt-10 flex justify-center">
     <div
