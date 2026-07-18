@@ -30,14 +30,12 @@ export const listEquipmentQuerySchema = z.object({
   status: z.nativeEnum(EquipmentStatus).optional(),
 });
 
-// Retro-link a report to equipment (11 §2). `reportId` is the folio-style text id.
-export const linkReportSchema = z.object({ reportId: z.string().min(1) });
-
 // Soft delete carries an audit comment (reserved for created-by-mistake rows).
+// (Retro-link needs no body — the link is PUT /:id/reports/:reportId, both ids
+// in the path.)
 export const deleteEquipmentSchema = z.object({ deleteComment: z.string().min(1) });
 
 export type CreateEquipmentInput = z.infer<typeof createEquipmentSchema>;
 export type UpdateEquipmentInput = z.infer<typeof updateEquipmentSchema>;
 export type ListEquipmentQuery = z.infer<typeof listEquipmentQuerySchema>;
-export type LinkReportInput = z.infer<typeof linkReportSchema>;
 export type DeleteEquipmentInput = z.infer<typeof deleteEquipmentSchema>;

@@ -44,8 +44,10 @@ export class EquipmentService {
     return this.remote.patch<Equipment>(`/equipment/${id}`, body);
   }
 
+  /** Retro-link (idempotent): the link is identified by its full path, mirroring
+   *  the unlink DELETE — no body. */
   linkReport(id: string, reportId: string): Observable<Equipment> {
-    return this.remote.post<Equipment>(`/equipment/${id}/reports`, { reportId });
+    return this.remote.put<Equipment>(`/equipment/${id}/reports/${reportId}`, {});
   }
 
   unlinkReport(id: string, reportId: string): Observable<Equipment> {
