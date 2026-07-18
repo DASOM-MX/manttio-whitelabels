@@ -1,58 +1,35 @@
 ---
-// Server-rendered (plan 15 §2): brand + published CMS content are fetched per
-// request, so a superadmin publish is live on the next page load — never baked
-// into a static build.
+// Public contact page (utm-params plan 02 CP-2). Server-rendered like index:
+// brand + runtime config resolve per request, so tenant provisioning is live
+// on the next load without a rebuild.
 export const prerender = false;
 
 import '../styles/global.css';
 import Header from '../components/Header.astro';
-import Hero from '../components/Hero.astro';
-import Services from '../components/Services.astro';
-import Clients from '../components/Clients.astro';
-import Location from '../components/Location.astro';
-import Manufacturers from '../components/Manufacturers.astro';
+import ContactForm from '../components/ContactForm.astro';
 import Footer from '../components/Footer.astro';
 import UtmCapture from '../components/UtmCapture.astro';
-import { getSiteData } from '../lib/api';
+import { getSiteData, resolveBaseUrl } from '../lib/api';
+import { resolveRuntimeVar } from '../lib/runtime-env';
 import { buildBrandCss } from '../lib/theme';
 
-const { brand, home, clients, fonts } = await getSiteData();
+const { brand, home, fonts } = await getSiteData();
 const brandCss = buildBrandCss(brand, fonts);
 
+const apiBase = await resolveBaseUrl();
+const siteKey = await resolveRuntimeVar('TURNSTILE_SITE_KEY', 'PUBLIC_TURNSTILE_SITE_KEY');
+const formEnabled = Boolean(apiBase && siteKey);
+
 const requestOrigin = new URL(Astro.request.url).origin;
-// Each tenant serves its own domain, so the request origin is the canonical
-// host when no `site` is configured.
 const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? requestOrigin;
 const canonicalUrl = new URL(Astro.url.pathname, `${siteUrl}/`).toString();
-const pageTitle = `${brand.name} — ${home.services_content.title}`;
-// brand.description is the business blurb (03 §2 — the site's meta
-// description); the hero lede is only a fallback.
+const pageTitle = `${brand.name} — Contacto`;
 const pageDescription = brand.description?.trim() ? brand.description : home.description;
-// Only origin-prefix root-relative paths — CDN URLs and data: URIs pass through.
 const toAbsolute = (path: string) => (path.startsWith('/') ? `${requestOrigin}${path}` : path);
-// Brand uploads win; bundled brand-neutral placeholders keep every tag populated.
 const ogImage = toAbsolute(brand.logoUrl || '/og-default.png');
 const faviconUrl = brand.isologoUrl || '/favicon.svg';
 const faviconType = faviconUrl.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
 const appleTouchUrl = brand.isologoUrl || '/apple-touch-icon.png';
-const socialUrls = Object.values(brand.social ?? {}).filter(
-  (url): url is string => typeof url === 'string' && url.length > 0,
-);
-
-const organizationSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'LocalBusiness',
-  name: brand.name,
-  url: siteUrl,
-  logo: ogImage,
-  image: ogImage,
-  description: pageDescription,
-  ...(brand.contact?.address
-    ? { address: { '@type': 'PostalAddress', streetAddress: brand.contact.address, addressCountry: 'MX' } }
-    : {}),
-  ...(brand.contact?.phone ? { telephone: brand.contact.phone } : {}),
-  ...(socialUrls.length ? { sameAs: socialUrls } : {}),
-};
 ---
 
 <html lang="es">
@@ -85,19 +62,33 @@ const organizationSchema = {
     <meta name="twitter:image" content={ogImage} />
     <meta name="twitter:image:alt" content={brand.name} />
 
-    {socialUrls.map((url) => <link rel="me" href={url} />)}
-
-    <script type="application/ld+json" set:html={JSON.stringify(organizationSchema)} />
+    {
+      formEnabled && (
+        <script
+          is:inline
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+          async
+          defer
+        />
+      )
+    }
     {brandCss && <style is:inline set:html={brandCss}></style>}
   </head>
   <body class="min-h-screen bg-granite-0 text-granite-900 antialiased">
     <Header brand={brand} />
     <main>
-      <Hero brand={brand} home={home} />
-      <Services home={home} />
-      {clients.length > 0 && <Clients brand={brand} home={home} clients={clients} />}
-      <Location brand={brand} home={home} />
-      <Manufacturers home={home} />
+      <section class="bg-granite-1000 pb-14 pt-32 sm:pt-36">
+        <div class="mx-auto max-w-7xl px-6 lg:px-10">
+          <p class="text-sm font-semibold uppercase tracking-caps text-cyan-400">Contacto</p>
+          <h1 class="mt-3 font-heading text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
+            Contáctanos
+          </h1>
+          <p class="mt-4 max-w-2xl text-lg text-white/75">
+            Cuéntanos qué necesitas y un especialista te contacta en menos de 24 horas.
+          </p>
+        </div>
+      </section>
+      <ContactForm apiBase={apiBase} siteKey={siteKey} brand={brand} />
     </main>
     <Footer brand={brand} home={home} />
     <UtmCapture />

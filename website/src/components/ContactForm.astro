@@ -1,0 +1,427 @@
+---
+// Lead-capture form (utm-params plan 02 CP-2): direct browser POST to the
+// backend's /public/leads with the stored first-touch attribution attached.
+// Null apiBase/siteKey → direct-channel fallback (tel/mailto), never a dead
+// form. POSTs with credentials: 'include' so the 201's HttpOnly dedup cookie
+// is stored; both 429 codes get friendly es_MX handling (doc 01 amendment).
+import type { Brand } from '../lib/types';
+
+interface Props {
+  apiBase: string | null;
+  siteKey: string | null;
+  brand: Brand;
+}
+
+const { apiBase, siteKey, brand } = Astro.props;
+
+const phone = brand.contact?.phone?.trim();
+const email = brand.contact?.email?.trim();
+const phoneHref = phone ? `tel:${phone.replace(/[^+\d]/g, '')}` : null;
+const emailHref = email ? `mailto:${email}` : null;
+
+const inputClass =
+  'w-full rounded-md border border-granite-300 bg-white px-4 py-3 text-base text-granite-900 placeholder:text-granite-400 transition focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-200';
+const labelClass = 'mb-1.5 block text-sm font-medium text-granite-800';
+const errorClass = 'mt-1.5 hidden text-sm text-red-600';
+---
+
+<section class="mx-auto max-w-7xl px-6 py-16 lg:px-10 lg:py-20">
+  <div class="mx-auto max-w-2xl">
+    {
+      apiBase && siteKey ? (
+        <div data-contact-form-root>
+          <form
+            data-contact-form
+            data-api-base={apiBase}
+            novalidate
+            class="rounded-xl border border-granite-200 bg-white p-6 shadow-sm sm:p-8"
+          >
+            <div class="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label for="firstName" class={labelClass}>
+                  Nombre <span aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  autocomplete="given-name"
+                  required
+                  maxlength="100"
+                  class={inputClass}
+                />
+                <p data-error-for="firstName" class={errorClass} />
+              </div>
+              <div>
+                <label for="lastName" class={labelClass}>
+                  Apellido <span aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  autocomplete="family-name"
+                  required
+                  maxlength="100"
+                  class={inputClass}
+                />
+                <p data-error-for="lastName" class={errorClass} />
+              </div>
+              <div>
+                <label for="phone" class={labelClass}>
+                  Teléfono
+                </label>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  autocomplete="tel"
+                  maxlength="50"
+                  class={inputClass}
+                />
+                <p data-error-for="phone" class={errorClass} />
+              </div>
+              <div>
+                <label for="email" class={labelClass}>
+                  Correo electrónico
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autocomplete="email"
+                  class={inputClass}
+                />
+                <p class="mt-1.5 text-sm text-granite-500">
+                  Proporciona al menos un correo o teléfono.
+                </p>
+                <p data-error-for="email" class={errorClass} />
+              </div>
+            </div>
+
+            <fieldset class="mt-6">
+              <legend class={labelClass}>
+                Tipo de cliente <span aria-hidden="true">*</span>
+              </legend>
+              <div class="flex gap-6">
+                <label class="inline-flex items-center gap-2 text-base text-granite-900">
+                  <input
+                    type="radio"
+                    name="clientType"
+                    value="person"
+                    checked
+                    class="size-4 border-granite-300 text-cyan-600 focus:ring-cyan-500"
+                  />
+                  Persona
+                </label>
+                <label class="inline-flex items-center gap-2 text-base text-granite-900">
+                  <input
+                    type="radio"
+                    name="clientType"
+                    value="business"
+                    class="size-4 border-granite-300 text-cyan-600 focus:ring-cyan-500"
+                  />
+                  Empresa
+                </label>
+              </div>
+            </fieldset>
+
+            <div data-business-wrap class="mt-5 hidden">
+              <label for="businessName" class={labelClass}>
+                Nombre de la empresa <span aria-hidden="true">*</span>
+              </label>
+              <input
+                id="businessName"
+                name="businessName"
+                type="text"
+                autocomplete="organization"
+                maxlength="200"
+                class={inputClass}
+              />
+              <p data-error-for="businessName" class={errorClass} />
+            </div>
+
+            <div class="mt-5">
+              <label for="comments" class={labelClass}>
+                Comentarios
+              </label>
+              <textarea
+                id="comments"
+                name="comments"
+                rows="4"
+                maxlength="2000"
+                class={inputClass}
+                placeholder="Cuéntanos qué necesitas"
+              />
+            </div>
+
+            <div class="mt-6">
+              <div class="cf-turnstile" data-sitekey={siteKey} />
+              <p data-error-for="turnstile" class={errorClass} />
+            </div>
+
+            <p
+              data-form-error
+              role="alert"
+              aria-live="polite"
+              class="mt-4 hidden rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            />
+
+            <button
+              type="submit"
+              data-submit
+              class="mt-6 inline-flex w-full items-center justify-center rounded-md bg-cyan-500 px-7 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Enviar solicitud
+            </button>
+          </form>
+
+          <div
+            data-success-block
+            class="hidden rounded-xl border border-granite-200 bg-white p-8 text-center shadow-sm"
+          >
+            <p class="font-heading text-2xl font-bold text-granite-900">¡Gracias!</p>
+            <p class="mt-2 text-base text-granite-600">Te contactaremos pronto.</p>
+          </div>
+
+          <div
+            data-already-block
+            class="hidden rounded-xl border border-granite-200 bg-white p-8 text-center shadow-sm"
+          >
+            <p class="font-heading text-2xl font-bold text-granite-900">
+              Hemos recibido tu solicitud
+            </p>
+            <p class="mt-2 text-base text-granite-600">
+              Pronto nos pondremos en contacto contigo
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div class="rounded-xl border border-granite-200 bg-white p-8 text-center shadow-sm">
+          <p class="font-heading text-2xl font-bold text-granite-900">Contáctanos directamente</p>
+          <p class="mt-2 text-base text-granite-600">
+            Escríbenos o llámanos y un especialista te atiende.
+          </p>
+          <div class="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+            {phoneHref && (
+              <a
+                href={phoneHref}
+                class="inline-flex items-center justify-center rounded-md bg-cyan-500 px-6 py-3 text-base font-semibold text-white transition hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2"
+              >
+                {phone}
+              </a>
+            )}
+            {emailHref && (
+              <a
+                href={emailHref}
+                class="inline-flex items-center justify-center rounded-md border border-granite-300 bg-white px-6 py-3 text-base font-semibold text-granite-900 transition hover:bg-granite-0 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2"
+              >
+                {email}
+              </a>
+            )}
+          </div>
+        </div>
+      )
+    }
+  </div>
+</section>
+
+<script>
+  import {
+    collectAttributionParams,
+    sanitizeAttributionValue,
+  } from '../lib/sanitize-attribution';
+
+  interface StoredAttribution {
+    params?: Record<string, unknown>;
+    referrer?: string;
+    landingPage?: string;
+  }
+
+  const form = document.querySelector<HTMLFormElement>('[data-contact-form]');
+  const successBlock = document.querySelector<HTMLElement>('[data-success-block]');
+  const alreadyBlock = document.querySelector<HTMLElement>('[data-already-block]');
+
+  if (form) {
+    const apiBase = form.dataset.apiBase ?? '';
+    const submitButton = form.querySelector<HTMLButtonElement>('[data-submit]');
+    const formError = form.querySelector<HTMLElement>('[data-form-error]');
+    const businessWrap = form.querySelector<HTMLElement>('[data-business-wrap]');
+    const businessInput = form.querySelector<HTMLInputElement>('#businessName');
+
+    const resetTurnstile = () => {
+      (window as { turnstile?: { reset: () => void } }).turnstile?.reset();
+    };
+
+    // Empresa reveal: hidden class + required attr stay in sync.
+    form.querySelectorAll<HTMLInputElement>('input[name="clientType"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        const isBusiness = radio.checked && radio.value === 'business';
+        businessWrap?.classList.toggle('hidden', !isBusiness);
+        if (businessInput) businessInput.required = isBusiness;
+        if (!isBusiness) clearError('businessName');
+      });
+    });
+
+    const setError = (name: string, message: string) => {
+      const slot = form.querySelector<HTMLElement>(`[data-error-for="${name}"]`);
+      if (slot) {
+        slot.textContent = message;
+        slot.classList.remove('hidden');
+      }
+      const input = form.querySelector<HTMLElement>(`[name="${name}"]`);
+      input?.classList.add('border-red-500');
+      input?.setAttribute('aria-invalid', 'true');
+    };
+
+    const clearError = (name: string) => {
+      const slot = form.querySelector<HTMLElement>(`[data-error-for="${name}"]`);
+      if (slot) {
+        slot.textContent = '';
+        slot.classList.add('hidden');
+      }
+      const input = form.querySelector<HTMLElement>(`[name="${name}"]`);
+      input?.classList.remove('border-red-500');
+      input?.removeAttribute('aria-invalid');
+    };
+
+    const clearAllErrors = () => {
+      ['firstName', 'lastName', 'phone', 'email', 'businessName', 'turnstile'].forEach(
+        clearError,
+      );
+      formError?.classList.add('hidden');
+    };
+
+    const showFormError = (message: string) => {
+      if (formError) {
+        formError.textContent = message;
+        formError.classList.remove('hidden');
+      }
+    };
+
+    const showBlock = (block: HTMLElement | null) => {
+      form.classList.add('hidden');
+      block?.classList.remove('hidden');
+      block?.scrollIntoView({ block: 'center' });
+    };
+
+    const readStoredAttribution = (): StoredAttribution | null => {
+      try {
+        const raw = sessionStorage.getItem('lead-attribution');
+        return raw ? (JSON.parse(raw) as StoredAttribution) : null;
+      } catch {
+        return null;
+      }
+    };
+
+    // Stored first-touch attribution, else current-URL params — both re-run
+    // through the sanitizer (sessionStorage is user-writable).
+    const buildAttribution = (): Record<string, string> => {
+      const stored = readStoredAttribution();
+      const out: Record<string, string> = {};
+      if (stored?.params && typeof stored.params === 'object') {
+        for (const [key, value] of Object.entries(stored.params)) {
+          if (typeof value !== 'string') continue;
+          const clean = sanitizeAttributionValue(value);
+          if (clean) out[key] = clean;
+        }
+      } else {
+        Object.assign(out, collectAttributionParams(location.search));
+      }
+      const referrer = stored?.referrer ?? document.referrer;
+      const cleanReferrer =
+        typeof referrer === 'string' && referrer ? sanitizeAttributionValue(referrer, 2048) : null;
+      if (cleanReferrer) out.referrer = cleanReferrer;
+      const landingPage = stored?.landingPage ?? location.pathname;
+      if (typeof landingPage === 'string' && landingPage.startsWith('/')) {
+        out.landingPage = landingPage.slice(0, 2048);
+      }
+      return out;
+    };
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      clearAllErrors();
+
+      const data = new FormData(form);
+      const firstName = String(data.get('firstName') ?? '').trim();
+      const lastName = String(data.get('lastName') ?? '').trim();
+      const phone = String(data.get('phone') ?? '').trim();
+      const email = String(data.get('email') ?? '').trim();
+      const clientType = String(data.get('clientType') ?? 'person');
+      const businessName = String(data.get('businessName') ?? '').trim();
+      const comments = String(data.get('comments') ?? '').trim();
+      const turnstileToken = String(data.get('cf-turnstile-response') ?? '');
+
+      const errors: Array<[string, string]> = [];
+      if (!firstName) errors.push(['firstName', 'Ingresa tu nombre.']);
+      if (!lastName) errors.push(['lastName', 'Ingresa tu apellido.']);
+      if (!email && !phone) errors.push(['email', 'Proporciona al menos un correo o teléfono.']);
+      if (email && !/^\S+@\S+\.\S+$/.test(email))
+        errors.push(['email', 'Ingresa un correo válido.']);
+      if (clientType === 'business' && !businessName)
+        errors.push(['businessName', 'Ingresa el nombre de la empresa.']);
+      if (!turnstileToken) errors.push(['turnstile', 'Completa la verificación de seguridad.']);
+
+      if (errors.length) {
+        errors.forEach(([name, message]) => setError(name, message));
+        const [firstInvalid] = errors[0];
+        form.querySelector<HTMLElement>(`[name="${firstInvalid}"]`)?.focus();
+        return;
+      }
+
+      const payload: Record<string, string> = {
+        firstName,
+        lastName,
+        clientType,
+        turnstileToken,
+        ...(phone ? { phone } : {}),
+        ...(email ? { email } : {}),
+        ...(clientType === 'business' ? { businessName } : {}),
+        ...(comments ? { comments } : {}),
+        ...buildAttribution(),
+      };
+
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Enviando…';
+      }
+
+      try {
+        // credentials: 'include' — the 201 sets the HttpOnly dedup cookie.
+        const res = await fetch(`${apiBase}/public/leads`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload),
+        });
+
+        if (res.status === 201) {
+          showBlock(successBlock);
+          return;
+        }
+
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        if (res.status === 429 && body?.error === 'already_submitted') {
+          showBlock(alreadyBlock);
+          return;
+        }
+        if (res.status === 429 && body?.error === 'rate_limited') {
+          showFormError('Espera un momento e intenta de nuevo.');
+        } else {
+          showFormError('No pudimos enviar tu solicitud. Intenta de nuevo.');
+        }
+        // Turnstile tokens are single-use — without a reset every retry 403s.
+        resetTurnstile();
+      } catch {
+        showFormError('No pudimos enviar tu solicitud. Revisa tu conexión e intenta de nuevo.');
+        resetTurnstile();
+      } finally {
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Enviar solicitud';
+        }
+      }
+    });
+  }
+</script>
