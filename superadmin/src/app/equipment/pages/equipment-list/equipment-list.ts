@@ -20,8 +20,6 @@ import {
 import { EquipmentFormDialog } from '../../components/equipment-form-dialog/equipment-form-dialog';
 import type { EquipmentListQuery, EquipmentStatus } from '../../../data/dtos/equipment';
 
-const PAGE_SIZE = 10;
-
 /** Global equipment registry (11 §4) — a projection; the daily entry point
  *  is the customer view's equipment card. Filters + page persist as GET
  *  query params (?q&customer&status&page) through ListQueryService (05 §3
@@ -54,8 +52,6 @@ export class EquipmentList {
   protected loading = select(EquipmentState.loading);
   private customers = select(CustomersState.items);
 
-  protected readonly PAGE_SIZE = PAGE_SIZE;
-
   protected search = new FormControl('', { nonNullable: true });
   protected customerFilter = new FormControl('', { nonNullable: true });
   protected statusFilter = new FormControl<EquipmentStatus | ''>('', { nonNullable: true });
@@ -77,7 +73,6 @@ export class EquipmentList {
     this.store.dispatch(new LoadCustomers({ page: 1, limit: 100 }));
 
     this.list.init({
-      pageSize: PAGE_SIZE,
       read: (params) => {
         this.search.setValue(params.get('q') ?? '', { emitEvent: false });
         this.customerFilter.setValue(params.get('customer') ?? '', { emitEvent: false });
@@ -101,7 +96,7 @@ export class EquipmentList {
   private query(page: number): EquipmentListQuery {
     return {
       page,
-      limit: PAGE_SIZE,
+      limit: this.list.PAGE_SIZE,
       search: this.search.value || undefined,
       customerId: this.customerFilter.value || undefined,
       status: this.statusFilter.value || undefined,

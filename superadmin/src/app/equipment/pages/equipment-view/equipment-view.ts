@@ -1,5 +1,4 @@
 import { Component, computed, effect, inject, signal, viewChild } from '@angular/core';
-import { SlicePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -29,7 +28,6 @@ import type { EquipmentReportLink } from '../../../data/dtos/equipment';
 @Component({
   selector: 'app-equipment-view',
   imports: [
-    SlicePipe,
     RouterLink,
     ReactiveFormsModule,
     TableModule,
