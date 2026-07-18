@@ -33,64 +33,20 @@
       />
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-2">
-      <div class="field-group">
-        <label class="field-label" for="cust-contact">Contacto principal</label>
-        <input
-          id="cust-contact"
-          pInputText
-          formControlName="contactName"
-          maxlength="100"
-          autocomplete="name"
-        />
-      </div>
-      <div class="field-group">
-        <label class="field-label" for="cust-phone">Teléfono</label>
-        <input
-          id="cust-phone"
-          pInputText
-          type="tel"
-          formControlName="phone"
-          maxlength="20"
-          autocomplete="tel"
-        />
-        @if (form.controls.phone.touched && form.controls.phone.errors?.['phone']) {
-          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
-            Ingresa un número de teléfono válido (10 a 15 dígitos).
-          </p>
-        }
-      </div>
-      <div class="field-group">
-        <label class="field-label" for="cust-email">Correo</label>
-        <input
-          id="cust-email"
-          pInputText
-          type="email"
-          formControlName="email"
-          maxlength="254"
-          autocomplete="email"
-        />
-        @if (form.controls.email.touched && form.controls.email.errors?.['email']) {
-          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
-            Ingresa un correo válido.
-          </p>
-        }
-      </div>
-      <div class="field-group">
-        <label class="field-label" for="cust-address">Dirección</label>
-        <input
-          id="cust-address"
-          pInputText
-          formControlName="address"
-          maxlength="250"
-          autocomplete="street-address"
-        />
-      </div>
+    <div class="field-group">
+      <label class="field-label" for="cust-address">Dirección</label>
+      <input
+        id="cust-address"
+        pInputText
+        formControlName="address"
+        maxlength="250"
+        autocomplete="street-address"
+      />
     </div>
 
     <div class="field-group">
       <label class="field-label" for="cust-tags">Etiquetas</label>
-      <app-tags-input controlId="cust-tags" formControlName="tags" [suggestions]="knownTags()" />
+      <app-tags-input controlId="cust-tags" formControlName="tags" />
       <p class="text-sm text-granite-500 dark:text-granite-400">
         Segmentación libre: escribe y presiona Enter.
       </p>
@@ -124,22 +80,88 @@
         />
       </div>
     </div>
+
+    <div class="field-group">
+      <label class="field-label" for="cust-observation">Comentarios</label>
+      <textarea
+        id="cust-observation"
+        pTextarea
+        formControlName="observation"
+        rows="3"
+        maxlength="1000"
+        class="!h-auto"
+      ></textarea>
+      <p class="text-sm text-granite-500 dark:text-granite-400">
+        Notas internas del cliente (no se muestran al cliente).
+      </p>
+    </div>
   </section>
 
   <!-- Contacts -->
   <section class="card-section flex flex-col gap-3" aria-labelledby="cust-contacts-title">
-    <h2 id="cust-contacts-title" class="section-heading">Contactos adicionales</h2>
+    <h2 id="cust-contacts-title" class="section-heading">
+      Contactos<span aria-hidden="true"> *</span>
+    </h2>
     <p class="text-sm text-granite-600 dark:text-granite-400">
-      Gerente de planta, cuentas por pagar, dueño… El contacto principal vive en General.
+      Al menos uno. Marca el principal — sus datos (teléfono, correo) representan al cliente.
     </p>
 
     <div formArrayName="contacts" class="flex flex-col gap-2">
       @for (contact of contacts.controls; track contact; let i = $index; let last = $last) {
         <div
-          class="flex items-start gap-2 rounded-lg border border-granite-200 p-3 dark:border-granite-800"
+          class="rounded-lg border border-granite-200 p-3 dark:border-granite-800"
           [formGroupName]="i"
         >
-          <div class="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
+          <div class="mb-2 flex items-center justify-between gap-2">
+            @if (contact.get('isDefault')?.value) {
+              <span
+                class="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-1000/40 dark:text-sky-300"
+              >
+                <svg lucideStar class="size-3" aria-hidden="true"></svg>
+                Principal
+              </span>
+            } @else {
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 text-xs font-semibold text-sky-700 transition-colors hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
+                (click)="setDefault(i)"
+              >
+                <svg lucideStar class="size-3" aria-hidden="true"></svg>
+                Marcar como principal
+              </button>
+            }
+            <div class="flex shrink-0 items-center gap-0.5">
+              <button
+                type="button"
+                class="inline-flex size-8 items-center justify-center rounded-md text-granite-500 transition-colors hover:bg-granite-100 disabled:opacity-30 dark:text-granite-400 dark:hover:bg-granite-800"
+                (click)="moveContact(i, -1)"
+                [disabled]="i === 0"
+                [attr.aria-label]="'Subir contacto ' + (i + 1)"
+              >
+                <svg lucideChevronUp class="size-4" aria-hidden="true"></svg>
+              </button>
+              <button
+                type="button"
+                class="inline-flex size-8 items-center justify-center rounded-md text-granite-500 transition-colors hover:bg-granite-100 disabled:opacity-30 dark:text-granite-400 dark:hover:bg-granite-800"
+                (click)="moveContact(i, 1)"
+                [disabled]="last"
+                [attr.aria-label]="'Bajar contacto ' + (i + 1)"
+              >
+                <svg lucideChevronDown class="size-4" aria-hidden="true"></svg>
+              </button>
+              <button
+                type="button"
+                class="inline-flex size-8 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50 disabled:opacity-30 dark:text-red-400 dark:hover:bg-red-950/30"
+                (click)="removeContact(i)"
+                [disabled]="contacts.length === 1"
+                [attr.aria-label]="'Eliminar contacto ' + (i + 1)"
+              >
+                <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid gap-2 sm:grid-cols-2">
             <div class="field-group">
               <label class="field-label" [for]="'contact-name-' + i"
                 >Nombre<span aria-hidden="true"> *</span></label
@@ -181,41 +203,7 @@
               }
             </div>
           </div>
-          <div class="flex shrink-0 flex-col gap-0.5">
-            <button
-              type="button"
-              class="inline-flex size-8 items-center justify-center rounded-md text-granite-500 transition-colors hover:bg-granite-100 disabled:opacity-30 dark:text-granite-400 dark:hover:bg-granite-800"
-              (click)="moveContact(i, -1)"
-              [disabled]="i === 0"
-              [attr.aria-label]="'Subir contacto ' + (i + 1)"
-            >
-              <svg lucideChevronUp class="size-4" aria-hidden="true"></svg>
-            </button>
-            <button
-              type="button"
-              class="inline-flex size-8 items-center justify-center rounded-md text-granite-500 transition-colors hover:bg-granite-100 disabled:opacity-30 dark:text-granite-400 dark:hover:bg-granite-800"
-              (click)="moveContact(i, 1)"
-              [disabled]="last"
-              [attr.aria-label]="'Bajar contacto ' + (i + 1)"
-            >
-              <svg lucideChevronDown class="size-4" aria-hidden="true"></svg>
-            </button>
-            <button
-              type="button"
-              class="inline-flex size-8 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
-              (click)="removeContact(i)"
-              [attr.aria-label]="'Eliminar contacto ' + (i + 1)"
-            >
-              <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
-            </button>
-          </div>
         </div>
-      } @empty {
-        <p
-          class="rounded-lg border border-dashed border-granite-300 px-4 py-4 text-center text-sm text-granite-500 dark:border-granite-700 dark:text-granite-400"
-        >
-          Sin contactos adicionales.
-        </p>
       }
       <button
         type="button"

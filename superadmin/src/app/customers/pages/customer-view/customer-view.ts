@@ -11,10 +11,17 @@ import {
   LucidePlus,
   LucideMessageCircle,
   LucideSearchX,
+  LucideStar,
 } from '@lucide/angular';
+import { MessageService } from 'primeng/api';
 import { select, Store } from '@ngxs/store';
 import { CustomersState } from '../../../../state/customers/customers.state';
-import { LoadCustomer } from '../../../../state/customers/customers.actions';
+import {
+  LoadCustomer,
+  SaveCustomerContacts,
+} from '../../../../state/customers/customers.actions';
+import { errorMessage } from '../../../data/utils';
+import type { CustomerContact } from '../../../data/dtos/customer';
 import {
   CustomerSourceLabelPipe,
   CustomerStatusLabelPipe,
@@ -41,6 +48,7 @@ import { AddContactDialog } from '../../components/add-contact-dialog/add-contac
     LucideMail,
     LucideMessageCircle,
     LucideSearchX,
+    LucideStar,
     AddContactDialog,
   ],
   templateUrl: './customer-view.html',
@@ -48,6 +56,7 @@ import { AddContactDialog } from '../../components/add-contact-dialog/add-contac
 export class CustomerView {
   private store = inject(Store);
   private route = inject(ActivatedRoute);
+  private messages = inject(MessageService);
 
   protected customer = select(CustomersState.selected);
   protected loadFailed = select(CustomersState.selectedError);
@@ -56,6 +65,27 @@ export class CustomerView {
   protected openAddContact(): void {
     const c = this.customer();
     if (c) this.addContactDialog()?.open(c);
+  }
+
+  /** Promote a contact to primary straight from the list (backend replaces the
+   *  contacts wholesale, so we send the full set with the new default). */
+  protected makeDefault(target: CustomerContact): void {
+    const c = this.customer();
+    if (!c || target.isDefault) return;
+    const contacts = c.contacts.map((contact) => ({
+      ...contact,
+      isDefault: contact === target,
+    }));
+    this.store.dispatch(new SaveCustomerContacts(c.id, contacts)).subscribe({
+      next: () =>
+        this.messages.add({ severity: 'success', summary: 'Contacto principal actualizado' }),
+      error: (err) =>
+        this.messages.add({
+          severity: 'error',
+          summary: 'No se pudo actualizar',
+          detail: errorMessage(err, 'Inténtalo de nuevo.'),
+        }),
+    });
   }
 
   /** Quick-action hrefs (07 §2.1) — precomputed, no template calls. */
