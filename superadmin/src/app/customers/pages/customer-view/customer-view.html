@@ -10,7 +10,7 @@
 </div>
 
 @if (customer(); as c) {
-  <!-- 360 header: identity, status, tags, quick contact + edit. -->
+  <!-- 360 header: identity, status, tags, follow-up, quick contact + edit. -->
   <section class="card-section mt-5" aria-labelledby="cust-360-title">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div class="min-w-0">
@@ -31,12 +31,28 @@
             >
           }
         </div>
+        <!-- Follow-up (08 §3): set/cleared inline; saves on change. -->
+        <div class="mt-3 flex items-center gap-2">
+          <label class="micro-label" for="cust-followup">Seguimiento</label>
+          <p-datepicker
+            inputId="cust-followup"
+            [formControl]="followUp"
+            dateFormat="yy-mm-dd"
+            [readonlyInput]="true"
+            [showClear]="true"
+            [showIcon]="true"
+            [iconDisplay]="'input'"
+            placeholder="Sin fecha"
+            appendTo="body"
+          />
+        </div>
       </div>
 
       <div class="flex items-center gap-1.5">
         @if (phoneHref(); as href) {
           <a
             [href]="href"
+            (click)="prefillLog('call')"
             class="inline-flex size-10 items-center justify-center rounded-lg border border-granite-200 text-granite-700 transition-colors hover:bg-granite-100 dark:border-granite-800 dark:text-granite-300 dark:hover:bg-granite-800"
             aria-label="Llamar al cliente"
           >
@@ -48,6 +64,7 @@
             [href]="href"
             target="_blank"
             rel="noopener"
+            (click)="prefillLog('whatsapp')"
             class="inline-flex size-10 items-center justify-center rounded-lg border border-granite-200 text-granite-700 transition-colors hover:bg-granite-100 dark:border-granite-800 dark:text-granite-300 dark:hover:bg-granite-800"
             aria-label="Escribir por WhatsApp"
           >
@@ -70,29 +87,54 @@
         @if (emailHref(); as href) {
           <a
             [href]="href"
+            (click)="prefillLog('email')"
             class="inline-flex size-10 items-center justify-center rounded-lg border border-granite-200 text-granite-700 transition-colors hover:bg-granite-100 dark:border-granite-800 dark:text-granite-300 dark:hover:bg-granite-800"
             aria-label="Enviar correo"
           >
             <svg lucideMail class="size-4" aria-hidden="true"></svg>
           </a>
         }
+        <button type="button" class="btn-secondary" (click)="openStatusDialog()">
+          <svg lucideRefreshCw class="size-4" aria-hidden="true"></svg>
+          Cambiar estado
+        </button>
         <a [routerLink]="['/customers', c.id, 'edit']" class="btn-secondary">
           <svg lucidePencil class="size-4" aria-hidden="true"></svg>
           Editar
         </a>
       </div>
     </div>
+
+    <!-- Blacklist reason banner (08 §1) — only when blacklisted with a reason. -->
+    @if (showBlacklistReason()) {
+      <div
+        class="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900/50 dark:bg-red-950/30"
+        role="alert"
+      >
+        <svg
+          lucideBan
+          class="mt-0.5 size-4 shrink-0 text-red-600 dark:text-red-400"
+          aria-hidden="true"
+        ></svg>
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-red-900 dark:text-red-300">En lista negra</p>
+          <p class="text-sm text-red-800 dark:text-red-300/90">{{ c.blacklistReason }}</p>
+        </div>
+      </div>
+    }
   </section>
 
   <!-- Detail tabs. General leads (the day-to-day view for our users); fiscal
-       data is a billing-time concern, so it gets its own tab. Framed in a card
-       (theme/tabs.scss flattens the tablist + pads the panel to match). -->
+       data is a billing-time concern; the CRM activity timeline (08) is its own
+       tab. Framed in a card (theme/tabs.scss flattens the tablist + pads the
+       panel to match). -->
   <section class="card mt-4">
-    <p-tabs value="general">
+    <p-tabs [value]="activeTab()" (valueChange)="setTab($event)">
       <p-tablist>
         <p-tab value="general">General</p-tab>
         <p-tab value="contactos">Contactos</p-tab>
         <p-tab value="fiscal">Datos fiscales</p-tab>
+        <p-tab value="actividad">Actividad</p-tab>
       </p-tablist>
     <p-tabpanels>
       <p-tabpanel value="general">
@@ -184,7 +226,7 @@
             <dd
               class="mt-0.5 font-data text-sm font-semibold tabular-nums text-granite-1000 dark:text-granite-0"
             >
-              {{ c.nextFollowUpAt || '—' }}
+              {{ (c.nextFollowUpAt | slice: 0 : 10) || '—' }}
             </dd>
           </div>
         </dl>
@@ -310,15 +352,20 @@
           </p>
         }
       </p-tabpanel>
+
+      <p-tabpanel value="actividad">
+        <!-- CRM activity timeline (08 §2): manual touches (calls/visits/…) +
+             system audit entries, newest first. -->
+        <app-customer-timeline #timeline [customerId]="c.id" />
+      </p-tabpanel>
     </p-tabpanels>
     </p-tabs>
   </section>
 
-  <!-- Slot reserved for 08 (CRM): status card + activity timeline mount here.
-       Do not build here — module 08 owns that UI. -->
   <!-- Slot reserved for 09 (Bills): client billing card mounts here. -->
 
   <app-add-contact-dialog #addContactDialog />
+  <app-change-status-dialog #statusDialog (changed)="onStatusChanged()" />
 } @else if (loadFailed()) {
   <div class="mt-10 flex flex-col items-center gap-3" role="alert">
     <svg lucideSearchX class="size-6 text-granite-400" aria-hidden="true"></svg>

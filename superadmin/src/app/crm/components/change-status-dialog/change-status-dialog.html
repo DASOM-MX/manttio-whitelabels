@@ -1,0 +1,78 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="max-w-11/12"
+  [style]="{ width: '28rem' }"
+  header="Cambiar estado del cliente"
+>
+  <form [formGroup]="form" (ngSubmit)="confirm()" class="flex flex-col gap-4">
+    <p class="text-sm text-granite-700 dark:text-granite-300">
+      <strong class="text-granite-950 dark:text-granite-50">{{ target()?.name }}</strong> — el
+      cambio queda registrado en su historial.
+    </p>
+
+    <div class="field-group">
+      <label class="field-label" for="status-target"
+        >Nuevo estado<span aria-hidden="true"> *</span></label
+      >
+      <p-select
+        inputId="status-target"
+        formControlName="status"
+        [options]="options()"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Elegir estado"
+        appendTo="body"
+      />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="status-reason">
+        @if (isBlacklistTarget()) {
+          Motivo de lista negra<span aria-hidden="true"> *</span>
+        } @else {
+          Nota (opcional)
+        }
+      </label>
+      <textarea id="status-reason" pTextarea formControlName="reason" rows="2"></textarea>
+      @if (isBlacklistTarget()) {
+        <p class="text-sm text-granite-500 dark:text-granite-400">
+          Obligatorio: queda guardado como motivo de la lista negra.
+        </p>
+      }
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="status-followup">Próximo seguimiento (opcional)</label>
+      <p-datepicker
+        inputId="status-followup"
+        formControlName="nextFollowUpAt"
+        dateFormat="yy-mm-dd"
+        [readonlyInput]="true"
+        [showClear]="true"
+        appendTo="body"
+      />
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <button type="button" class="btn-neutral" (click)="close()" [disabled]="submitting()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn-primary" [disabled]="!canConfirm()">
+        @if (submitting()) {
+          <span
+            class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+            aria-hidden="true"
+          ></span>
+          Guardando…
+        } @else {
+          Cambiar estado
+        }
+      </button>
+    </div>
+  </form>
+</p-dialog>

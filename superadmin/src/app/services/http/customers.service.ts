@@ -15,6 +15,11 @@ import type {
   CustomerResponse,
   LegacyCustomerRow,
 } from '../../data/dtos/customer-legacy';
+import type {
+  AddInteractionRequest,
+  ChangeStatusRequest,
+  Interaction,
+} from '../../data/dtos/interaction';
 
 @Injectable({ providedIn: 'root' })
 export class CustomersService {
@@ -45,10 +50,33 @@ export class CustomersService {
       .pipe(map((res) => this.unwrap(res)));
   }
 
-  update(id: string, body: SaveCustomerRequest): Observable<Customer> {
+  update(
+    id: string,
+    body: Partial<SaveCustomerRequest> & { nextFollowUpAt?: string | null },
+  ): Observable<Customer> {
     return this.remote
       .patch<CustomerResponse>(`/customers/${id}`, body)
       .pipe(map((res) => this.unwrap(res)));
+  }
+
+  /** Dedicated transition endpoint (08 §4) — backend audits + emits the
+   *  system timeline entry, and returns the updated customer (wrapped, like the
+   *  other customer writes). */
+  changeStatus(id: string, body: ChangeStatusRequest): Observable<Customer> {
+    return this.remote
+      .post<CustomerResponse>(`/customers/${id}/status`, body)
+      .pipe(map((res) => this.unwrap(res)));
+  }
+
+  listInteractions(id: string, page = 1, limit = 10): Observable<PagedResponse<Interaction>> {
+    return this.remote.get<PagedResponse<Interaction>>(`/customers/${id}/interactions`, {
+      page,
+      limit,
+    });
+  }
+
+  addInteraction(id: string, body: AddInteractionRequest): Observable<Interaction> {
+    return this.remote.post<Interaction>(`/customers/${id}/interactions`, body);
   }
 
   remove(id: string, body: DeleteCustomerRequest): Observable<void> {

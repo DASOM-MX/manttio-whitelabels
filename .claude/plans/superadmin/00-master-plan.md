@@ -93,7 +93,7 @@ Rules for agents:
 | 05 users | **done** (frontend side; branch `feature/superadmin-users`) | CP-3 |
 | 06 reports | **done** (frontend side; branch `feature/superadmin-reports`) | CP-5 |
 | 07 clients | **done** (frontend side; branch `feature/superadmin-customers`) | CP-3 |
-| 08 crm | not-started | — |
+| 08 crm | **done** (frontend side; branch `feature/superadmin-crm`) | CP-4 |
 | 09 billing | not-started | — |
 | 10 wms | not-started | — |
 | 11 equipment | not-started | — |
