@@ -134,6 +134,7 @@
         <p-tab value="general">General</p-tab>
         <p-tab value="contactos">Contactos</p-tab>
         <p-tab value="fiscal">Datos fiscales</p-tab>
+        <p-tab value="equipos">Equipos</p-tab>
         <p-tab value="servicios">Servicios</p-tab>
         <p-tab value="actividad">Actividad</p-tab>
       </p-tablist>
@@ -354,6 +355,12 @@
         }
       </p-tabpanel>
 
+      <p-tabpanel value="equipos">
+        <!-- The client's installed units (11): compact list + add. Service
+             history per unit lives on the equipment view. -->
+        <app-customer-equipment-card [customerId]="c.id" />
+      </p-tabpanel>
+
       <p-tabpanel value="servicios">
         <!-- Service history (06): the client's reports as a flat ledger; each
              row links through to the report view. The trail (Actividad) shows
@@ -369,11 +376,6 @@
     </p-tabpanels>
     </p-tabs>
   </section>
-
-  <!-- Equipment slot (11): the client's installed units -->
-  <div class="mt-4">
-    <app-customer-equipment-card [customerId]="customerId" />
-  </div>
 
   <!-- Slot reserved for 09 (Bills): client billing card mounts here. -->
 
