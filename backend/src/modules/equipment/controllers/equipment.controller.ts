@@ -6,6 +6,7 @@ import { requireRole } from '../../auth/middleware/roles.middleware';
 import {
   createEquipmentSchema,
   deleteEquipmentSchema,
+  linkReportSchema,
   listEquipmentQuerySchema,
   updateEquipmentSchema,
 } from '../validators/equipment.validator';
@@ -68,22 +69,28 @@ equipment.delete(
 );
 
 // --- Report linkage (11 §2) — retro-link / unlink ---------------------------
-// The link is identified by its full path (equipment + report); PUT is
-// idempotent ("ensure this report is linked") and symmetric with the DELETE.
+// Bind: PUT is idempotent ("ensure this report is linked"); the equipment id is
+// the path, the report id the body. Unbind carries the report id in the path (a
+// DELETE identifies the resource by URL and takes no body).
 
-equipment.put('/:id/reports/:reportId', requireRole(['owner', 'admin']), async (c) => {
-  const db = createDb(c.env.DATABASE_URL);
-  try {
-    const row = await linkReportToEquipment(db, c.req.param('id'), c.req.param('reportId'));
-    if (!row) return c.json({ error: 'not_found' }, 404);
-    return c.json(row);
-  } catch (err) {
-    if (err instanceof ReportCustomerMismatchError) {
-      return c.json({ error: 'report_customer_mismatch', message: err.message }, 400);
+equipment.put(
+  '/:id/reports',
+  requireRole(['owner', 'admin']),
+  zValidator('json', linkReportSchema),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    try {
+      const row = await linkReportToEquipment(db, c.req.param('id'), c.req.valid('json').reportId);
+      if (!row) return c.json({ error: 'not_found' }, 404);
+      return c.json(row);
+    } catch (err) {
+      if (err instanceof ReportCustomerMismatchError) {
+        return c.json({ error: 'report_customer_mismatch', message: err.message }, 400);
+      }
+      throw err;
     }
-    throw err;
-  }
-});
+  },
+);
 
 equipment.delete('/:id/reports/:reportId', requireRole(['owner', 'admin']), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
