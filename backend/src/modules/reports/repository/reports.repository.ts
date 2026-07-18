@@ -2,8 +2,10 @@ import { and, desc, eq, gte, ilike, isNull, lte, sql } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { ReportStatus } from '../enums/reports.enum';
 import { reportCounters, reportDetails, reports } from '../models/reports.model';
+import { users } from '../../users/models/users.model';
 import { formatReportId } from '../utils/report-id';
 import type {
+  CustomerReportDTO,
   NewReport,
   NewReportDetail,
   ReportDetailRow,
@@ -31,6 +33,40 @@ export const listReports = async (db: Db, filters: ReportFilters = {}) => {
     .from(reports)
     .where(and(...conds))
     .orderBy(desc(reports.createdAt));
+};
+
+/** Compact, technician-named report list for one customer (customer 360
+ *  "Servicios" tab + equipment retro-link picker). Newest first, active only. */
+export const listReportsForCustomer = async (
+  db: Db,
+  customerId: string,
+): Promise<CustomerReportDTO[]> => {
+  const rows = await db
+    .select({
+      id: reports.id,
+      reportType: reports.reportType,
+      workType: reports.workType,
+      status: reports.status,
+      dateArrival: reports.dateArrival,
+      finishedAt: reports.finishedAt,
+      createdAt: reports.createdAt,
+      technicianName: users.name,
+    })
+    .from(reports)
+    .leftJoin(users, eq(users.id, reports.assignedTo))
+    .where(and(eq(reports.clientId, customerId), activeFilter))
+    .orderBy(desc(reports.createdAt));
+
+  return rows.map((r) => ({
+    id: r.id,
+    folio: r.id,
+    // Date-only — the tab and the equipment picker both render a service date.
+    serviceDate: (r.dateArrival ?? r.finishedAt ?? r.createdAt).toISOString().slice(0, 10),
+    reportType: r.reportType,
+    workType: r.workType ?? null,
+    technicianName: r.technicianName ?? null,
+    status: r.status,
+  }));
 };
 
 export const findReportById = async (db: Db, id: string) => {

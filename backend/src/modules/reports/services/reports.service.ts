@@ -4,6 +4,7 @@ import type { Db } from '../../database/client';
 import type { AuthUser, Env } from '../../../env';
 import { reportDetails, reports } from '../models/reports.model';
 import { findCustomerById } from '../../customers/repository/customers.repository';
+import { emitServicePerformed } from '../../customers/repository/interactions.repository';
 import { findUserById } from '../../users/repository/users.repository';
 import {
   appendPictures,
@@ -12,6 +13,7 @@ import {
   findReportById,
   findReportWithDetails,
   listReports,
+  listReportsForCustomer,
   markFinished,
   reassignReport,
   removePictures,
@@ -39,7 +41,7 @@ import { validateReportData } from '../validators/reports.validator';
 import { renderReportPdf } from '../helpers/report-pdf.helpers';
 import { getBrand } from '../../brand/services/brand.service';
 import { dispatchReportEmail } from './report-email.service';
-import type { ReportRow } from '../types/reports.types';
+import type { CustomerReportDTO, ReportRow } from '../types/reports.types';
 import type {
   CreateReportMeta,
   ListReportsQuery,
@@ -51,6 +53,34 @@ import type { SendReportEmailInput } from '../validators/report-email.validator'
 // Uniform JSON result the controller relays verbatim via `c.json(body, status)`.
 export type JsonResult = { status: ContentfulStatusCode; body: unknown };
 type BackgroundScheduler = (task: Promise<unknown>) => void;
+
+/** Compact report list for the customer 360 "Servicios" tab + equipment
+ *  retro-link picker (GET /customers/:id/reports). */
+export const getCustomerReports = async (
+  db: Db,
+  customerId: string,
+): Promise<CustomerReportDTO[]> => listReportsForCustomer(db, customerId);
+
+// The trail body a finished report writes (08 §2). Work type when present reads
+// naturally ("Servicio realizado — Preventivo"), else the generic line.
+const servicePerformedBody = (report: ReportRow): string =>
+  report.workType ? `Servicio realizado — ${report.workType}` : 'Servicio realizado';
+
+/** Emit the "service performed" system trail entry when a report reaches
+ *  `finished` (08 §2). Best-effort: a trail-insert failure must never fail the
+ *  report submission, which is already committed. */
+const recordServicePerformed = async (db: Db, report: ReportRow): Promise<void> => {
+  try {
+    await emitServicePerformed(db, {
+      customerId: report.clientId,
+      reportId: report.id,
+      userId: report.assignedTo,
+      body: servicePerformedBody(report),
+    });
+  } catch (err) {
+    console.error('service-performed trail entry failed:', err);
+  }
+};
 
 // --- R2 helpers (moved verbatim from the old route module) ---
 
@@ -256,6 +286,8 @@ export const submitReport = async (p: SubmitReportParams): Promise<JsonResult> =
         accuracy: meta.signed_accuracy ?? null,
       });
       if (finishResult) {
+        // Trail entry: the report just reached `finished` (08 §2).
+        await recordServicePerformed(db, finishResult.report);
         // Auto-send to the customer's email if present. Best-effort, non-blocking.
         if (client.email) {
           waitUntil(
@@ -400,6 +432,9 @@ export const finishWithSignature = async (
     if (k) await deleteObjects(env.MANTTIO_REPORTS, [k]);
     return { status: 404, body: { error: 'not_found' } };
   }
+
+  // Trail entry: the report just reached `finished` (08 §2).
+  await recordServicePerformed(db, result.report);
 
   // Auto-send to the customer's email if present. Best-effort, non-blocking.
   const customer = await findCustomerById(db, result.report.clientId);

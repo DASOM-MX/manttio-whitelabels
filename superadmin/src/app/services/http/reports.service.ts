@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
 import type { PagedResponse } from '../../data/dtos/paged-response';
 import type {
+  CustomerReport,
   DeleteReportRequest,
   ReportDetail,
   ReportListQuery,
@@ -30,6 +31,12 @@ export class ReportsService {
 
   get(id: string): Observable<ReportDetail> {
     return this.remote.get<ReportDetail>(`/reports/${id}`);
+  }
+
+  /** Client-scoped compact reports (customer 360 "Servicios" tab + equipment
+   *  retro-link picker) — GET /customers/:id/reports, newest first. */
+  byCustomer(customerId: string): Observable<CustomerReport[]> {
+    return this.remote.get<CustomerReport[]>(`/customers/${customerId}/reports`);
   }
 
   pdf(id: string): Observable<Blob> {

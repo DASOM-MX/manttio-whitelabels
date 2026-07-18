@@ -113,6 +113,13 @@
       "when": 1783913251458,
       "tag": "0015_handy_silver_surfer",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1784332800000,
+      "tag": "0016_equipment",
+      "breakpoints": true
     }
   ]
 }

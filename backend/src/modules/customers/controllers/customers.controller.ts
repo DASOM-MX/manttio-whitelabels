@@ -21,6 +21,8 @@ import {
   changeCustomerStatus,
   getInteractions,
 } from '../services/interactions.service';
+import { getCustomerEquipment } from '../../equipment/services/equipment.service';
+import { getCustomerReports } from '../../reports/services/reports.service';
 import {
   BlacklistReasonRequiredError,
   InvalidStatusTransitionError,
@@ -65,6 +67,22 @@ customers.delete('/:id', requireRole(['owner', 'admin']), async (c) => {
   const row = await removeCustomer(db, c.req.param('id'));
   if (!row) return c.json({ error: 'not_found' }, 404);
   return c.json({ id: row.id, deleted: true });
+});
+
+// --- Customer sub-resources (equipment 11, reports 06) ------------------------
+
+// The client's installed units (11 §4) — the daily entry point (the customer
+// card). Reading is open to any authenticated user.
+customers.get('/:id/equipment', async (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  return c.json(await getCustomerEquipment(db, c.req.param('id')));
+});
+
+// The client's service reports (06) — the customer 360 "Servicios" tab and the
+// equipment retro-link picker. Compact, technician-named, newest-first.
+customers.get('/:id/reports', async (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  return c.json(await getCustomerReports(db, c.req.param('id')));
 });
 
 // --- CRM sub-resources (08) ---------------------------------------------------

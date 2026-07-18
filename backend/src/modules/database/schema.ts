@@ -12,6 +12,7 @@ import { customerFiscal } from '../customers/models/customer-fiscal.model';
 import { customerInteractions } from '../customers/models/customer-interactions.model';
 import { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 import { reportEmails } from '../reports/models/report-emails.model';
+import { equipment, equipmentReports } from '../equipment/models/equipment.model';
 
 export { users } from '../users/models/users.model';
 export { customers } from '../customers/models/customers.model';
@@ -20,6 +21,7 @@ export { customerFiscal } from '../customers/models/customer-fiscal.model';
 export { customerInteractions } from '../customers/models/customer-interactions.model';
 export { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 export { reportEmails } from '../reports/models/report-emails.model';
+export { equipment, equipmentReports } from '../equipment/models/equipment.model';
 export { cmsDocuments, cmsClients } from '../cms/models/cms.model';
 export { reportTemplates } from '../report-templates/models/report-templates.model';
 export { brand } from '../brand/models/brand.model';
@@ -35,6 +37,7 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
   contacts: many(customerContacts),
   fiscal: one(customerFiscal),
   interactions: many(customerInteractions),
+  equipment: many(equipment),
 }));
 
 export const customerContactsRelations = relations(customerContacts, ({ one }) => ({
@@ -96,5 +99,24 @@ export const reportEmailsRelations = relations(reportEmails, ({ one }) => ({
   sender: one(users, {
     fields: [reportEmails.sentBy],
     references: [users.id],
+  }),
+}));
+
+export const equipmentRelations = relations(equipment, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [equipment.customerId],
+    references: [customers.id],
+  }),
+  reports: many(equipmentReports),
+}));
+
+export const equipmentReportsRelations = relations(equipmentReports, ({ one }) => ({
+  equipment: one(equipment, {
+    fields: [equipmentReports.equipmentId],
+    references: [equipment.id],
+  }),
+  report: one(reports, {
+    fields: [equipmentReports.reportId],
+    references: [reports.id],
   }),
 }));

@@ -28,3 +28,16 @@ export type SignedLocation = {
   longitude: number;
   accuracy?: number | null;
 };
+
+/** Compact client-scoped report row for the customer 360 "Servicios" tab and
+ *  the equipment retro-link picker (served by GET /customers/:id/reports).
+ *  `folio` === the report id (folio-style). `technicianName` is joined. */
+export interface CustomerReportDTO {
+  id: string;
+  folio: string;
+  serviceDate: string;
+  reportType: string;
+  workType: string | null;
+  technicianName: string | null;
+  status: ReportStatus;
+}

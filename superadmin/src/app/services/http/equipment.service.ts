@@ -56,13 +56,9 @@ export class EquipmentService {
     return this.remote.delete<void>(`/equipment/${id}`, body);
   }
 
-  /** Retro-link candidates: the client's reports (06 owns the full reports
-   *  surface; this is a minimal projection of the same endpoint). */
-  reportOptions(customerId: string): Observable<PagedResponse<EquipmentReportLink>> {
-    return this.remote.get<PagedResponse<EquipmentReportLink>>('/reports', {
-      customerId,
-      page: 1,
-      limit: 50,
-    });
+  /** Retro-link candidates: the client's reports (the same customer-scoped read
+   *  the "Servicios" tab uses — GET /customers/:id/reports, newest first). */
+  reportOptions(customerId: string): Observable<EquipmentReportLink[]> {
+    return this.remote.get<EquipmentReportLink[]>(`/customers/${customerId}/reports`);
   }
 }

@@ -10,6 +10,12 @@ export class LoadReport {
   constructor(public id: string) {}
 }
 
+/** Customer 360 "Servicios" tab — compact client-scoped reports. */
+export class LoadCustomerReports {
+  static readonly type = '[Reports] Load By Customer';
+  constructor(public customerId: string) {}
+}
+
 export class DeleteReport {
   static readonly type = '[Reports] Delete';
   constructor(

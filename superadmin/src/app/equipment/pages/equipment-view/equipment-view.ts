@@ -84,7 +84,7 @@ export class EquipmentView {
     const eq = this.equipment();
     if (!eq) return;
     this.api.reportOptions(eq.customerId).subscribe({
-      next: ({ items }) => {
+      next: (items) => {
         const linked = new Set((eq.reports ?? []).map((r) => r.id));
         this.reportOptions.set(
           items
