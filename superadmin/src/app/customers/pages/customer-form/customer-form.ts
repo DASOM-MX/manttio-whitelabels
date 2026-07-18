@@ -1,7 +1,6 @@
 import { Component, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
-  AbstractControl,
   FormArray,
   FormGroup,
   FormBuilder,
@@ -9,6 +8,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
+import { TextareaModule } from 'primeng/textarea';
 import { SelectModule } from 'primeng/select';
 import { MessageService } from 'primeng/api';
 import {
@@ -16,6 +16,7 @@ import {
   LucideChevronDown,
   LucideChevronUp,
   LucidePlus,
+  LucideStar,
   LucideTrash2,
 } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
@@ -33,6 +34,7 @@ import { SAT_CFDI_USES } from '../../../model/constants/customer/sat-cfdi-uses.c
 import { rfcValidator } from '../../../validators/rfc.validator';
 import { fiscalGroupValidator } from '../../../validators/fiscal-group.validator';
 import { phoneValidator } from '../../../validators/phone.validator';
+import { contactsRequiredValidator } from '../../../validators/contacts-required.validator';
 import { TagsInput } from '../../components/tags-input/tags-input';
 import { errorMessage } from '../../../data/utils';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
@@ -45,6 +47,7 @@ interface ContactSeed {
   role?: string;
   phone?: string;
   email?: string;
+  isDefault?: boolean;
 }
 
 /** Add/edit client (07 §3): General + Contactos (repeater) + Datos fiscales
@@ -56,10 +59,12 @@ interface ContactSeed {
     RouterLink,
     ReactiveFormsModule,
     InputTextModule,
+    TextareaModule,
     SelectModule,
     TagsInput,
     LucideArrowLeft,
     LucidePlus,
+    LucideStar,
     LucideTrash2,
     LucideChevronUp,
     LucideChevronDown,
@@ -91,14 +96,12 @@ export class CustomerForm implements HasPendingChanges {
 
   protected form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
-    contactName: ['', Validators.maxLength(100)],
-    email: ['', [Validators.email, Validators.maxLength(254)]],
-    phone: ['', [phoneValidator, Validators.maxLength(20)]],
     address: ['', Validators.maxLength(250)],
+    observation: ['', Validators.maxLength(1000)],
     tags: [[] as string[]],
     status: [CustomerStatus.Active, Validators.required],
     source: [CustomerSource.Other, Validators.required],
-    contacts: this.fb.array<FormGroup>([]),
+    contacts: this.fb.array<FormGroup>([], contactsRequiredValidator),
     fiscal: this.fb.nonNullable.group(
       {
         rfc: ['', rfcValidator],
@@ -117,6 +120,8 @@ export class CustomerForm implements HasPendingChanges {
     // dedicated tags endpoint exists (07 open ask).
     this.store.dispatch(new LoadCustomers({ page: 1, limit: 1000 }));
     if (this.customerId) this.store.dispatch(new LoadCustomer(this.customerId));
+    // New customers start with one (required) contact — the primary/default.
+    else this.addContact({ isDefault: true });
 
     effect(() => {
       const c = this.selected();
@@ -141,19 +146,35 @@ export class CustomerForm implements HasPendingChanges {
   }
 
   protected addContact(initial?: ContactSeed): void {
+    // The first contact added is the default until the user picks another.
+    const makeDefault = this.contacts.length === 0;
     this.contacts.push(
       this.fb.nonNullable.group({
         name: [initial?.name ?? '', [Validators.required, Validators.maxLength(100)]],
         role: [initial?.role ?? '', Validators.maxLength(100)],
         phone: [initial?.phone ?? '', [phoneValidator, Validators.maxLength(20)]],
         email: [initial?.email ?? '', [Validators.email, Validators.maxLength(254)]],
+        isDefault: [initial?.isDefault ?? makeDefault],
       }),
     );
     if (!initial) this.form.markAsDirty();
   }
 
+  /** Radio semantics: exactly one contact is the default (primary). */
+  protected setDefault(index: number): void {
+    this.contacts.controls.forEach((group, i) =>
+      group.get('isDefault')!.setValue(i === index, { emitEvent: false }),
+    );
+    this.form.markAsDirty();
+  }
+
   protected removeContact(index: number): void {
+    const wasDefault = !!this.contacts.at(index).get('isDefault')!.value;
     this.contacts.removeAt(index);
+    // Never leave the customer without a default — promote the first remaining.
+    if (wasDefault && this.contacts.length) {
+      this.contacts.at(0).get('isDefault')!.setValue(true, { emitEvent: false });
+    }
     this.form.markAsDirty();
   }
 
@@ -199,14 +220,21 @@ export class CustomerForm implements HasPendingChanges {
     const fiscalFilled = Object.values(raw.fiscal).some((v) => String(v).trim());
     return {
       name: raw.name,
-      contactName: raw.contactName || undefined,
-      email: raw.email || undefined,
-      phone: raw.phone || undefined,
       address: raw.address || undefined,
+      observation: raw.observation || undefined,
       tags: raw.tags,
       status: raw.status,
       source: raw.source,
-      contacts: raw.contacts as SaveCustomerRequest['contacts'],
+      contacts: this.contacts.controls.map((group) => {
+        const c = group.getRawValue();
+        return {
+          name: c.name,
+          role: c.role || undefined,
+          phone: c.phone || undefined,
+          email: c.email || undefined,
+          isDefault: c.isDefault,
+        };
+      }),
       fiscal: fiscalFilled
         ? {
             rfc: raw.fiscal.rfc.toUpperCase(),
@@ -224,10 +252,8 @@ export class CustomerForm implements HasPendingChanges {
     this.form.patchValue(
       {
         name: c.name,
-        contactName: c.contactName ?? '',
-        email: c.email ?? '',
-        phone: c.phone ?? '',
         address: c.address ?? '',
+        observation: c.observation ?? '',
         tags: c.tags ?? [],
         status: c.status,
         source: c.source,
@@ -243,7 +269,23 @@ export class CustomerForm implements HasPendingChanges {
       { emitEvent: false },
     );
     this.contacts.clear({ emitEvent: false });
-    for (const contact of c.contacts ?? []) this.addContact(contact);
+    const list = c.contacts ?? [];
+    if (list.length) {
+      for (const contact of list) this.addContact(contact);
+      // Backend returns default-first, but guard against a list with no default.
+      if (!list.some((x) => x.isDefault)) {
+        this.contacts.at(0).get('isDefault')!.setValue(true, { emitEvent: false });
+      }
+    } else {
+      // Legacy customer with no contacts row — seed the required primary from the
+      // denormalized customer-level fields so the edit form isn't blank.
+      this.addContact({
+        name: c.contactName ?? '',
+        phone: c.phone ?? '',
+        email: c.email ?? '',
+        isDefault: true,
+      });
+    }
     this.form.markAsPristine();
   }
 }

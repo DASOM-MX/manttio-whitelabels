@@ -26,6 +26,9 @@ export interface CustomerContact {
   role?: string;
   phone?: string;
   email?: string;
+  /** The primary contact — exactly one per customer. The backend mirrors it to
+   *  the customer's denormalized `contactName`/`phone`/`email`. */
+  isDefault?: boolean;
 }
 
 export interface CustomerFiscal {
@@ -44,6 +47,7 @@ export interface Customer {
   email?: string;
   phone?: string;
   address?: string;
+  observation?: string;
   contacts: CustomerContact[];
   tags: string[];
   status: CustomerStatus;
@@ -71,10 +75,10 @@ export interface CustomerListQuery {
 
 export interface SaveCustomerRequest {
   name: string;
-  contactName?: string;
-  email?: string;
-  phone?: string;
   address?: string;
+  observation?: string;
+  /** At least one; exactly one carries `isDefault`. The backend derives the
+   *  customer's `contactName`/`phone`/`email` from the default contact. */
   contacts: CustomerContact[];
   tags: string[];
   status: CustomerStatus;
