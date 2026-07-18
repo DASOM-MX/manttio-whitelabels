@@ -27,6 +27,10 @@ export const customers = pgTable(
       .default(sql`'{}'::text[]`),
     status: text('status').$type<CustomerStatus>().notNull().default(CustomerStatus.Active),
     source: text('source').$type<CustomerSource>().notNull().default(CustomerSource.Other),
+    // CRM (08): the blacklist reason (set via POST /:id/status) and the single
+    // follow-up date (08 §3). Both already live in the shared DB.
+    blacklistReason: text('blacklist_reason'),
+    nextFollowUpAt: timestamp('next_follow_up_at', { withTimezone: true }),
     timezone: text('timezone').notNull().default('America/Mexico_City'),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

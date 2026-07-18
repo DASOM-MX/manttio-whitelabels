@@ -46,6 +46,10 @@ export const createCustomerSchema = z.object({
 
 export const updateCustomerSchema = createCustomerSchema
   .partial()
+  // Follow-up date (08 §3) travels on the normal PATCH — a date-only string or
+  // null to clear. `status`/`blacklistReason` transitions go through the
+  // dedicated POST /:id/status endpoint (audited), not here.
+  .extend({ nextFollowUpAt: z.string().nullable().optional() })
   .refine((v) => Object.keys(v).length > 0, { message: 'no fields to update' });
 
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;

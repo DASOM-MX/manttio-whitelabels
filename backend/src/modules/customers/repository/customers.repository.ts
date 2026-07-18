@@ -3,6 +3,8 @@ import type { Db } from '../../database/client';
 import { customers } from '../models/customers.model';
 import { customerContacts } from '../models/customer-contacts.model';
 import { customerFiscal } from '../models/customer-fiscal.model';
+import { customerInteractions } from '../models/customer-interactions.model';
+import { InteractionType } from '../enums/interactions.enum';
 import type {
   CustomerRow,
   CustomerWithRelations,
@@ -11,6 +13,7 @@ import type {
   NewFiscal,
   UpdateCustomerFields,
 } from '../types/customers.types';
+import type { SystemAudit } from '../types/interactions.types';
 
 // A query executor: the pooled `Db` or a transaction handle — both expose the
 // same query builder, so read helpers accept either.
@@ -70,11 +73,24 @@ export const findCustomerWithRelations = async (
 export type ContactInput = Omit<NewContact, 'id' | 'customerId' | 'createdAt'>;
 export type FiscalInput = Omit<NewFiscal, 'customerId' | 'createdAt' | 'updatedAt'>;
 
+// Append a backend-generated `system` timeline entry inside the caller's tx, so
+// the audit record commits atomically with the change that caused it (08 §2).
+const insertSystemEntry = (tx: Tx, customerId: string, audit: SystemAudit) =>
+  tx.insert(customerInteractions).values({
+    customerId,
+    type: InteractionType.System,
+    body: audit.body,
+    refKind: audit.refKind ?? null,
+    refId: audit.refId ?? null,
+    userId: audit.userId,
+  });
+
 export const insertCustomerWithRelations = async (
   db: Db,
   values: NewCustomer,
   contacts: ContactInput[],
   fiscal: FiscalInput | null,
+  audit?: SystemAudit,
 ): Promise<CustomerWithRelations> => {
   return db.transaction(async (tx) => {
     const [customer] = await tx.insert(customers).values(values).returning();
@@ -85,6 +101,7 @@ export const insertCustomerWithRelations = async (
     if (fiscal) {
       await tx.insert(customerFiscal).values({ ...fiscal, customerId: customer.id });
     }
+    if (audit) await insertSystemEntry(tx, customer.id, audit);
     const contactsOut = await contactsOf(tx, customer.id);
     const fiscalOut = await fiscalOf(tx, customer.id);
     return { ...customer, contacts: contactsOut, fiscal: fiscalOut };
@@ -97,6 +114,7 @@ export const updateCustomerWithRelations = async (
   fields: UpdateCustomerFields,
   contacts: ContactInput[] | undefined,
   fiscal: FiscalInput | undefined,
+  audit?: SystemAudit,
 ): Promise<CustomerWithRelations | null> => {
   return db.transaction(async (tx) => {
     let customer: CustomerRow | undefined;
@@ -132,6 +150,7 @@ export const updateCustomerWithRelations = async (
           set: { ...fiscal, updatedAt: new Date() },
         });
     }
+    if (audit) await insertSystemEntry(tx, id, audit);
 
     const contactsOut = await contactsOf(tx, id);
     const fiscalOut = await fiscalOf(tx, id);

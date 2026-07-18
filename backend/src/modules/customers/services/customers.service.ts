@@ -82,11 +82,27 @@ const collectScalarUpdates = (input: UpdateCustomerInput): UpdateCustomerFields 
   if (input.tags !== undefined) fields.tags = input.tags;
   if (input.status !== undefined) fields.status = input.status;
   if (input.source !== undefined) fields.source = input.source;
+  if (input.nextFollowUpAt !== undefined)
+    fields.nextFollowUpAt = input.nextFollowUpAt ? new Date(input.nextFollowUpAt) : null;
   if (input.timezone !== undefined) fields.timezone = input.timezone;
   if (input.contactName !== undefined) fields.contactName = input.contactName;
   if (input.phone !== undefined) fields.phone = input.phone;
   if (input.email !== undefined) fields.email = input.email;
   return fields;
+};
+
+/** Human-readable body for the `system` audit entry an edit emits (08 §2). The
+ *  targeted single-field PATCHes (follow-up, contacts) get a specific line; a
+ *  full-form edit gets the generic one. */
+const auditBodyForEdit = (input: UpdateCustomerInput): string => {
+  const keys = Object.keys(input);
+  if (keys.length === 1 && keys[0] === 'contacts') return 'Contactos actualizados';
+  if (keys.length === 1 && keys[0] === 'nextFollowUpAt') {
+    return input.nextFollowUpAt
+      ? `Seguimiento programado: ${input.nextFollowUpAt.slice(0, 10)}`
+      : 'Seguimiento eliminado';
+  }
+  return 'Cliente actualizado';
 };
 
 export const getCustomers = async (db: Db): Promise<CustomerRow[]> => listCustomers(db);
@@ -99,21 +115,29 @@ export const getCustomerById = async (
 export const createCustomer = async (
   db: Db,
   input: CreateCustomerInput,
+  actorId: string,
 ): Promise<CustomerWithRelations> => {
   const contacts = normalizeContacts(input.contacts);
   const values = buildNewCustomer(input, primaryOf(contacts));
-  return insertCustomerWithRelations(db, values, contacts, normalizeFiscal(input.fiscal) ?? null);
+  return insertCustomerWithRelations(db, values, contacts, normalizeFiscal(input.fiscal) ?? null, {
+    userId: actorId,
+    body: 'Cliente creado',
+  });
 };
 
 export const editCustomer = async (
   db: Db,
   id: string,
   input: UpdateCustomerInput,
+  actorId: string,
 ): Promise<CustomerWithRelations | null> => {
   const fields = collectScalarUpdates(input);
   const contacts = input.contacts !== undefined ? normalizeContacts(input.contacts) : undefined;
   if (contacts !== undefined) Object.assign(fields, contactMirror(primaryOf(contacts)));
-  return updateCustomerWithRelations(db, id, fields, contacts, normalizeFiscal(input.fiscal));
+  return updateCustomerWithRelations(db, id, fields, contacts, normalizeFiscal(input.fiscal), {
+    userId: actorId,
+    body: auditBodyForEdit(input),
+  });
 };
 
 export const removeCustomer = async (db: Db, id: string): Promise<{ id: string } | null> =>

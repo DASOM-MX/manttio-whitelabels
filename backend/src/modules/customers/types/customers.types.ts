@@ -19,6 +19,8 @@ export type UpdateCustomerFields = Partial<
     | 'tags'
     | 'status'
     | 'source'
+    | 'blacklistReason'
+    | 'nextFollowUpAt'
     | 'timezone'
   >
 >;

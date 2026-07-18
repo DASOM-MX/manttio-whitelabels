@@ -9,6 +9,7 @@ import { users } from '../users/models/users.model';
 import { customers } from '../customers/models/customers.model';
 import { customerContacts } from '../customers/models/customer-contacts.model';
 import { customerFiscal } from '../customers/models/customer-fiscal.model';
+import { customerInteractions } from '../customers/models/customer-interactions.model';
 import { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 import { reportEmails } from '../reports/models/report-emails.model';
 
@@ -16,6 +17,7 @@ export { users } from '../users/models/users.model';
 export { customers } from '../customers/models/customers.model';
 export { customerContacts } from '../customers/models/customer-contacts.model';
 export { customerFiscal } from '../customers/models/customer-fiscal.model';
+export { customerInteractions } from '../customers/models/customer-interactions.model';
 export { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 export { reportEmails } from '../reports/models/report-emails.model';
 export { cmsDocuments, cmsClients } from '../cms/models/cms.model';
@@ -32,12 +34,24 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
   reports: many(reports),
   contacts: many(customerContacts),
   fiscal: one(customerFiscal),
+  interactions: many(customerInteractions),
 }));
 
 export const customerContactsRelations = relations(customerContacts, ({ one }) => ({
   customer: one(customers, {
     fields: [customerContacts.customerId],
     references: [customers.id],
+  }),
+}));
+
+export const customerInteractionsRelations = relations(customerInteractions, ({ one }) => ({
+  customer: one(customers, {
+    fields: [customerInteractions.customerId],
+    references: [customers.id],
+  }),
+  author: one(users, {
+    fields: [customerInteractions.userId],
+    references: [users.id],
   }),
 }));
 
