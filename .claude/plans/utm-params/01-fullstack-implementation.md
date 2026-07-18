@@ -2,7 +2,8 @@
 
 > **Status:** in-progress (CP-1 code done; migration 0016 generated, not yet applied) · **Depends on:** — (schema work precedes superadmin plans 07/08)
 > **Owner:** — · **Last updated:** 2026-07-17
-> **PR:** PR-A `feat(fullstack)` on branch `feature/fullstack-utm-params` · base `main`
+> **PR:** split per checkpoint 2026-07-17 (supersedes the single PR-A): #69 CP-1 `feature/fullstack-utm-params` (base `main`) ← #70 CP-2 `feature/backend-public-leads-endpoint` ← #71 CP-3 `feature/superadmin-share-links` (stacked; re-check bases before merging)
+> **Workflow order (corrected 2026-07-18 — the original plan context was wrong):** backend + superadmin setup (#69/#70) → **website `/contact-us` form (doc 02)** → links tab (#71) **last** — the share links point at `/contact-us`, so the tab ships only once the page exists. Merge order: #69 → #70 → doc-02 PR → #71.
 
 ## Context (shared with [02-website-connection](02-website-connection.md))
 
