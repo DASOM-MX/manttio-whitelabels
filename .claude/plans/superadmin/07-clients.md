@@ -84,6 +84,9 @@ CustomerFiscal {
   the strip itself ships now). Below: general card (incl. contacts list + "referred by" /
   "referred N clients" links), fiscal card, and reserved sections for **CRM** (07: status
   card + activity timeline) and **Bills** (09). Same placeholder-slot convention as 06.
+  _Placement note (utm-params suite, 2026-07-17):_ the **Comentarios** card
+  (`customers.observation` — public contact-form comments land here) renders **above the
+  client metrics summary strip** in the client details view.
 - `customers/components/delete-customer-dialog/` — shape-3, audit comment.
 
 ## 4. State

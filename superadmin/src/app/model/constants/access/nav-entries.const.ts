@@ -32,6 +32,7 @@ export const NAV: NavEntry[] = [
       { label: 'Todos', route: '/customers', exact: true },
       { label: 'Leads', route: '/customers/leads' },
       { label: 'Lista negra', route: '/customers/blacklist' },
+      { label: 'Enlaces de contacto', route: '/customers/share-links' },
       { label: 'Equipos', route: '/equipment' },
     ],
   },
