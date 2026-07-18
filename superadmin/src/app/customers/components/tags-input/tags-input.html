@@ -22,7 +22,6 @@
     [id]="controlId()"
     type="text"
     class="min-w-24 flex-1 border-0 bg-transparent py-1 text-base text-granite-1000 placeholder:text-granite-400 focus:outline-none focus:ring-0 disabled:cursor-not-allowed dark:text-granite-0"
-    [attr.list]="listId()"
     [disabled]="disabled()"
     placeholder="Agregar etiqueta…"
     autocomplete="off"
@@ -31,9 +30,4 @@
     (change)="onChangeEvent($event)"
     (blur)="onBlur()"
   />
-  <datalist [id]="listId()">
-    @for (opt of available(); track opt) {
-      <option [value]="opt"></option>
-    }
-  </datalist>
 </div>

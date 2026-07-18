@@ -24,7 +24,6 @@ import { CustomersState } from '../../../../state/customers/customers.state';
 import {
   CreateCustomer,
   LoadCustomer,
-  LoadCustomers,
   UpdateCustomer,
 } from '../../../../state/customers/customers.actions';
 import { CUSTOMER_STATUS_LABELS } from '../../../model/constants/customer/customer-status-labels.const';
@@ -79,7 +78,6 @@ export class CustomerForm implements HasPendingChanges {
   private messages = inject(MessageService);
 
   protected selected = select(CustomersState.selected);
-  protected knownTags = select(CustomersState.knownTags);
 
   protected customerId: string | null = this.route.snapshot.paramMap.get('id');
   protected isEdit = !!this.customerId;
@@ -116,9 +114,6 @@ export class CustomerForm implements HasPendingChanges {
   });
 
   constructor() {
-    // Options pool for tag suggestions (knownTags). Generous limit until a
-    // dedicated tags endpoint exists (07 open ask).
-    this.store.dispatch(new LoadCustomers({ page: 1, limit: 1000 }));
     if (this.customerId) this.store.dispatch(new LoadCustomer(this.customerId));
     // New customers start with one (required) contact — the primary/default.
     else this.addContact({ isDefault: true });

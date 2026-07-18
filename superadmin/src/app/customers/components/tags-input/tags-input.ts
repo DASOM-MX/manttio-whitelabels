@@ -1,9 +1,9 @@
-import { Component, computed, forwardRef, input, signal } from '@angular/core';
+import { Component, forwardRef, input, signal } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { LucideX } from '@lucide/angular';
 
-/** Free-text tag chips with datalist suggestions over the tenant's existing
- *  tag set (07 §3). CVA over `string[]`; Enter or coma adds, chips remove. */
+/** Free-text tag chips (07 §3). Plain text input — CVA over `string[]`; Enter
+ *  or coma adds, chips remove. */
 @Component({
   selector: 'app-tags-input',
   imports: [LucideX],
@@ -14,14 +14,10 @@ import { LucideX } from '@lucide/angular';
 })
 export class TagsInput implements ControlValueAccessor {
   controlId = input('tags-input');
-  suggestions = input<string[]>([]);
 
   protected tags = signal<string[]>([]);
   protected draft = signal('');
   protected disabled = signal(false);
-
-  protected listId = computed(() => `${this.controlId()}-list`);
-  protected available = computed(() => this.suggestions().filter((s) => !this.tags().includes(s)));
 
   private onChange: (value: string[]) => void = () => {};
   private onTouched: () => void = () => {};
@@ -53,7 +49,7 @@ export class TagsInput implements ControlValueAccessor {
   }
 
   protected onChangeEvent(event: Event): void {
-    // Fires when a datalist suggestion is picked.
+    // Commit a pending tag when the field loses focus with unsaved text.
     this.commit(event.target as HTMLInputElement);
   }
 
