@@ -44,3 +44,10 @@ upload.post('/image', (c) => handleUpload(c, c.env.MANTTIO_REPORTS, c.env.CDN_BA
 upload.post('/logo', (c) =>
   handleUpload(c, c.env.MANTTIO_LOGOS, c.env.LOGOS_CDN_BASE_URL, 'logos'),
 );
+
+// Equipment photos — land in the dedicated `manttio-equipment` bucket (key
+// prefix `equipment/`) so they keep their own lifecycle apart from report data.
+// The returned URL is stashed client-side and committed into equipment.photos.
+upload.post('/equipment', (c) =>
+  handleUpload(c, c.env.MANTTIO_EQUIPMENT, c.env.EQUIPMENT_CDN_BASE_URL, 'equipment'),
+);
