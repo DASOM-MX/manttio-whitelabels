@@ -64,7 +64,9 @@ from the API (`LoadMovementReasons`) — never hardcode the other eight.
 All shape 3, all `open(prefill?)` (material and/or location pre-set from the calling
 page), all with required `reason-select`, all submitting through `StockState` actions
 with success toast + refresh of the affected views. Serialized/unserialized input
-switches on the selected material's `tracking`.
+switches on the selected material's `tracking`. Material autocompletes hit
+`GET /materials?search` which matches **name/SKU/UPC** (02 §3) — keyboard-wedge
+barcode scanners work in every dialog with no dedicated scan UI.
 
 - **`inbound-dialog/`** — ad-hoc single-material receipts (refund_by_client, repair
   returns…). Material autocomplete → destination (warehouse `<p-select>` → optional

@@ -86,7 +86,8 @@ All `id` columns `uuid` default random; timestamps `timestamptz`. Quantities are
 | Column | Type / constraint |
 |---|---|
 | `id` | pk |
-| `sku` | text null; partial unique `WHERE deleted_at IS NULL` (`409 sku_in_use`) |
+| `sku` | text null; partial unique `WHERE deleted_at IS NULL` (`409 sku_in_use`) — the **internal** code |
+| `upc` | text null (**added 2026-07-19, owner ask**) — the scanned barcode: GTIN digits (UPC-A/EAN-8/EAN-13/GTIN-14), validator `^\d{8,14}$`, stored as text (leading zeros matter); partial unique `WHERE deleted_at IS NULL` (`409 upc_in_use`). Resolves searches and replenishment imports alongside `sku` (02 §3/§6) |
 | `name` | text, not null |
 | `description` | text null |
 | `unit` | text, not null — display unit (`'pza'`, `'m'`, `'kg'`, …). Free text ≥1 char; the UI offers the curated suggestion list (10 §4) but doesn't restrict |

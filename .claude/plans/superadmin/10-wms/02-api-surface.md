@@ -61,10 +61,10 @@ is paged (`page`/`limit`, default 25, max 100) returning `{ items, total }`.
 
 | Endpoint | Roles | Notes |
 |---|---|---|
-| `GET /materials?search&tracking&lowStock&page&limit` | owner/admin/office/technician | Paged; rows carry `totalStock` + `lowStock` (`totalStock < minStock`). Technician read = stock lookup (09) — same endpoint, no special casing |
+| `GET /materials?search&tracking&lowStock&page&limit` | owner/admin/office/technician | Paged; `search` matches **name, sku, and upc** (exact-ish on the codes, ilike on name — a keyboard-wedge barcode scan into any search box resolves the material). Rows carry `totalStock` + `lowStock` (`totalStock < minStock`). Technician read = stock lookup (09) — same endpoint, no special casing |
 | `GET /materials/:id` | owner/admin/office/technician | Detail |
 | `GET /materials/:id/stock` | owner/admin/office/technician | Per-location breakdown `{ warehouse, node?, quantity }[]`; serialized adds the unit list `{ id, serialNumber, warehouse, node?, status }[]` |
-| `POST /materials` | owner/admin | `{ sku?, name, description?, unit, tracking, minStock? }` (`409 sku_in_use`) |
+| `POST /materials` | owner/admin | `{ sku?, upc?, name, description?, unit, tracking, minStock? }` (`409 sku_in_use` / `409 upc_in_use`; upc validated `^\d{8,14}$`) |
 | `PATCH /materials/:id` | owner/admin | `tracking` rejected once movements exist (`409 tracking_immutable`) |
 | `DELETE /materials/:id` | owner/admin | Soft; zero stock everywhere (`409 material_has_stock`) |
 
@@ -100,7 +100,7 @@ node must belong to the warehouse (`400 node_warehouse_mismatch`). Everything ru
 |---|---|---|
 | `GET /replenishments?warehouseId&from&to&page&limit` | owner/admin/office | Paged: folio, warehouse, itemCount, evidenceCount, user, createdAt |
 | `GET /replenishments/:id` | owner/admin/office | Doc + items (joined material name/sku/tracking) + evidence keys + source-file link |
-| `POST /replenishments/parse` | owner/admin/office | Multipart `{ file }` (`.xlsx`/`.csv`/`.txt`, delimiter-sniffed; size cap 1 MB). Stores the file in R2 **first** (evidence trail), then parses → `{ fileKey, fileName, rows: [{ line, sku, materialId?, materialName?, tracking?, quantity?, serial?, error? }] }`. Row errors: `unknown_sku`, `bad_quantity`, `missing_serial`, `duplicate_serial` (in-file), `serial_exists` (in DB), `quantity_on_serialized` (≠1). Template columns: `sku, quantity, serial` — one row per serialized unit |
+| `POST /replenishments/parse` | owner/admin/office | Multipart `{ file }` (`.xlsx`/`.csv`/`.txt`, delimiter-sniffed; size cap 1 MB). Stores the file in R2 **first** (evidence trail), then parses → `{ fileKey, fileName, rows: [{ line, sku, materialId?, materialName?, tracking?, quantity?, serial?, error? }] }`. Row errors: `unknown_sku`, `bad_quantity`, `missing_serial`, `duplicate_serial` (in-file), `serial_exists` (in DB), `quantity_on_serialized` (≠1). Template columns: `sku, quantity, serial` — one row per serialized unit. The `sku` column accepts **SKU or UPC** (added 2026-07-19 — receiving is scanner-driven; resolver tries SKU exact, then UPC exact; `unknown_sku` when neither matches) |
 | `POST /replenishments` | owner/admin/office | `{ warehouseId, fileKey?, fileName?, items: [{ materialId, quantity? \| serials?, storageNodeId? }], evidencePhotos: string[], notes? }` — **server re-validates every item** (the preview is UX, not trust). One transaction: increment `wms_counters` folio → insert doc + items → per item, emit an inbound movement (`reason: replenishment`, `replenishmentId` set) through the same 01 §3 path (serialized: creates units). Append-only: no PATCH/DELETE routes |
 
 SheetJS runs Worker-side for `.xlsx` (files are small stock lists) — **CPU-check at
@@ -126,7 +126,7 @@ replenishment) — **target bucket: dedicated `manttio-wms`** (proposed 2026-07-
 
 `invalid_parent` · `invalid_parent_type` · `duplicate_node_name` · `node_not_empty` ·
 `warehouse_not_empty` · `not_a_technician` · `technician_already_assigned` ·
-`sku_in_use` · `tracking_immutable` · `material_has_stock` · `tracking_mismatch` ·
+`sku_in_use` · `upc_in_use` · `tracking_immutable` · `material_has_stock` · `tracking_mismatch` ·
 `node_warehouse_mismatch` · `invalid_reason_context` · `reason_inactive` ·
 `builtin_locked` · `use_replenishment_flow` · `insufficient_stock` · `serial_exists` ·
 `unit_not_available` · `not_own_van` · `no_assigned_warehouse` · `source_forbidden` ·

@@ -13,8 +13,9 @@ works: every action behind `hasRole`, no staff-only assumptions in data loading)
 ## 1. DTOs (`app/data/dtos/wms/material.dto.ts`, `material-unit.dto.ts`)
 
 ```
-Material { id, sku?, name, description?, unit, tracking: MaterialTracking,
+Material { id, sku?, upc?, name, description?, unit, tracking: MaterialTracking,
            minStock?, totalStock, lowStock: boolean, createdAt }
+           // sku = internal code · upc = scanned barcode (GTIN digits — added 2026-07-19)
 MaterialTracking = 'serialized' | 'unserialized'
 MaterialStock { entries: { warehouse: { id, name }, node?: { id, name },
                            quantity }[],
@@ -37,16 +38,21 @@ caja, jgo, …). Pipes for tracking/status rendering in `app/pipes/`.
 - Lazy `<p-table>` against `GET /materials` via `ListQueryService` — params `search`,
   `tracking`, `lowStock`, `page` (sanitize: `keyIn` whitelist on tracking, boolean
   coerce on lowStock, clamp page).
-- Columns: sku (font-data), name, tracking pill, unit, **total stock** (tabular
-  numerals) with **low-stock pill** when `lowStock` ("Bajo mínimo" — amber), created.
-- Filters row: search input, tracking `<p-select>`, low-stock toggle.
+- Columns: sku (font-data), upc (font-data, hidden `<lg` — codes fold before names),
+  name, tracking pill, unit, **total stock** (tabular numerals) with **low-stock
+  pill** when `lowStock` ("Bajo mínimo" — amber), created.
+- Filters row: search input (matches name/SKU/UPC server-side — a keyboard-wedge
+  **barcode scan into this box resolves the material**; scanners type digits + Enter,
+  so no dedicated scan UI is needed), tracking `<p-select>`, low-stock toggle.
 - Row click → `material-view`; actions (owner/admin): new material (header), edit,
   delete (confirm; `409 material_has_stock` toast). Office/technician: pure table.
 - Empty state + skeleton rows.
 
 ## 3. Dialog — `wms/components/material-form-dialog/`
 
-Shape 3, `open(material?)`. Fields: name (required), sku, description, unit (required —
+Shape 3, `open(material?)`. Fields: name (required), sku, **upc** (optional; digits
+8–14, `inputmode="numeric"`; helper "Código de barras (UPC/EAN) — puedes escanearlo
+aquí"; `409 upc_in_use` → inline field error), description, unit (required —
 free text input with the curated suggestions as a datalist-style autocomplete; never a
 closed select), **tracking** (required; radio pair with helper text explaining
 serialized = pieza por pieza con número de serie), minStock (`<p-inputnumber>`,
@@ -56,8 +62,9 @@ movements exist): on edit it renders as a display row with the pill, not a contr
 
 ## 4. Page — `wms/pages/material-view/` (`/warehouse/materials/:id`)
 
-- **Header card:** name, sku, tracking pill, unit, description, minStock, total stock
-  (big stat, `font-data`), low-stock pill. Owner/admin: edit (dialog), delete.
+- **Header card:** name, sku, upc (font-data), tracking pill, unit, description,
+  minStock, total stock (big stat, `font-data`), low-stock pill. Owner/admin: edit
+  (dialog), delete.
 - **Stock by location** (`GET /materials/:id/stock`): table warehouse → node → quantity;
   warehouse cells link to `warehouse-view`. Serialized: the **units table** instead —
   serial (font-data), location, status pill; filter chips by status; count summary
@@ -79,9 +86,10 @@ Movements/reasons state belongs to 06 (`StockState`) — don't fold it in here
 
 ## 6. Testing
 
-- e2e: list filters round-trip through the URL (reload restores); tracking immutability
-  (edit shows display row); low-stock pill logic; unit suggestions accept free text;
-  role sweep (office sees no mutations).
+- e2e: list filters round-trip through the URL (reload restores); scanner-style search
+  (paste 13 digits + Enter → material found by upc); tracking immutability (edit shows
+  display row); low-stock pill logic; unit suggestions accept free text; role sweep
+  (office sees no mutations).
 - Manual pass: create serialized + unserialized materials → both appear with correct
   pills → minStock triggers the low-stock pill once stock exists (post-06 revisit).
 

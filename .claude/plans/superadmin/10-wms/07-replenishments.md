@@ -31,8 +31,9 @@ ReplenishmentsQuery { warehouseId?, from?, to?, page, limit }
 ```
 
 Row-error labels: `model/constants/wms/parse-row-error-labels.const.ts` (error-clarity
-rule: cause + fix, e.g. `unknown_sku` → "SKU no encontrado — corrige el SKU o crea el
-material"). Rendered via pipe.
+rule: cause + fix, e.g. `unknown_sku` → "SKU o UPC no encontrado — corrige el código o
+crea el material"). Rendered via pipe. The `sku` file column accepts **SKU or UPC**
+(02 §6 — provider lists and scan-built sheets usually carry the barcode).
 
 ## 2. Pages
 
@@ -53,7 +54,8 @@ rules apply — this is a flow, keep back/cancel escape routes + dirty-navigatio
 1. **Destination** — warehouse `<p-select>` (required; subs included).
 2. **File** — upload card (`.xlsx`/`.csv`/`.txt`, 1 MB cap) + **template download
    links** (static assets `superadmin/public/templates/reabastecimiento.csv` + `.xlsx`
-   — columns `sku,quantity,serial`; serialized = one row per unit, quantity 1).
+   — columns `sku,quantity,serial`; the `sku` column takes SKU **or UPC**; serialized =
+   one row per unit, quantity 1).
    On pick → `ParseReplenishmentFile` (`POST /replenishments/parse`) → preview. The
    file is already archived in R2 when the preview renders (evidence trail) —
    re-upload simply replaces the preview + `fileKey`.
