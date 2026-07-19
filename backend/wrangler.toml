@@ -15,11 +15,6 @@ CDN_BASE_URL = "https://cdn.dasom.com"
 # icons). Placeholder until the bucket's public/custom domain exists — set it
 # before provisioning the brand (deploy checklist, plan 02).
 LOGOS_CDN_BASE_URL = "https://logos.dasom.com"
-# Public base of the `manttio-equipment` bucket (equipment photos via
-# POST /upload/equipment). r2.dev public URL for now — replace with the exact
-# https://pub-<hash>.r2.dev from the bucket's Public Development URL. r2.dev is
-# rate-limited / dev-only; swap for a custom domain (equipment.<tenant>) at prod.
-EQUIPMENT_CDN_BASE_URL = "https://36e17e3943b8df66f0ceb51b3880bf55.r2.cloudflarestorage.com/manttio-equipment"
 API_BASE_URL = "http://127.0.0.1:8787"
 RESEND_FROM = "no-reply@dasom.com"
 # FONT_CDN_BASE_URL — CDN fronting the shared `branding-fonts` bucket. Optional:
@@ -45,9 +40,6 @@ bucket_name = "manttio-equipment"
 ENVIRONMENT = "production"
 CDN_BASE_URL = "https://cdn.dasom.com"
 LOGOS_CDN_BASE_URL = "https://logos.dasom.com"
-# r2.dev is dev-only + rate-limited — bind a custom domain (equipment.<tenant>)
-# to the manttio-equipment bucket and set it here before prod traffic.
-EQUIPMENT_CDN_BASE_URL = "https://36e17e3943b8df66f0ceb51b3880bf55.r2.cloudflarestorage.com/manttio-equipment"
 API_BASE_URL = "https://api.dasom.com"
 RESEND_FROM = "no-reply@dasom.com"
 
@@ -63,9 +55,14 @@ bucket_name = "manttio-logos"
 binding = "MANTTIO_EQUIPMENT"
 bucket_name = "manttio-equipment"
 
-# Secrets are set via `wrangler secret put [--env production]` and are NOT declared here:
-#   DATABASE_URL          Neon Postgres connection string
-#   JWT_SECRET            HS256 signing secret for jose
-#   RESEND_API_KEY        Resend API key for outbound report emails
-#   MANAGER_SHARED_TOKEN  shared secret for the whitelabel manager's config
-#                         pushes (X-Manager-Token on PUT /brand + /upload/image)
+# Secrets / per-deploy env are set via `wrangler secret put [--env production]`
+# (and `.dev.vars` locally) and are NOT declared here:
+#   DATABASE_URL            Neon Postgres connection string
+#   JWT_SECRET              HS256 signing secret for jose
+#   RESEND_API_KEY          Resend API key for outbound report emails
+#   MANAGER_SHARED_TOKEN    shared secret for the whitelabel manager's config
+#                           pushes (X-Manager-Token on PUT /brand + /upload/image)
+#   EQUIPMENT_CDN_BASE_URL  public base of the `manttio-equipment` bucket that
+#                           /upload/equipment returns + persists in equipment.photos
+#                           (S3 endpoint / r2.dev / custom domain — kept per-deploy,
+#                           out of committed config)

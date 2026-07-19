@@ -4,3 +4,6 @@
 DATABASE_URL=""
 JWT_SECRET=""
 RESEND_API_KEY=""
+# Public base of the `manttio-equipment` bucket — what /upload/equipment returns
+# and persists in equipment.photos (S3 endpoint / r2.dev / custom domain).
+EQUIPMENT_CDN_BASE_URL=""
