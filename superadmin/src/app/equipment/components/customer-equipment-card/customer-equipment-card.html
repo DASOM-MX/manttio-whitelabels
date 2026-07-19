@@ -1,0 +1,42 @@
+<section aria-label="Equipos">
+  <div class="mb-3 flex justify-end">
+    <button type="button" class="btn-secondary" (click)="openAdd()">
+      <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+      Agregar equipo
+    </button>
+  </div>
+
+  <ul class="divide-y divide-granite-200 dark:divide-granite-800">
+    @for (eq of equipment(); track eq.id) {
+      <li class="flex items-center justify-between gap-3 py-2.5">
+        <div class="min-w-0">
+          <a
+            [routerLink]="['/equipment', eq.id]"
+            class="text-sm font-semibold text-sky-700 hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
+          >
+            {{ eq.name || eq.serialNumber || eq.kind || 'Equipo' }}
+          </a>
+          <p class="text-xs text-granite-500 dark:text-granite-400">
+            {{ eq.kind || '—' }}
+            @if (eq.lastServiceDate) {
+              · último servicio <span class="font-data tabular-nums">{{ eq.lastServiceDate }}</span>
+            }
+          </p>
+        </div>
+        <p-tag
+          [severity]="eq.status | equipmentStatusSeverity"
+          [value]="eq.status | equipmentStatusLabel"
+        />
+      </li>
+    } @empty {
+      <li
+        class="flex flex-col items-center gap-2 py-6 text-center text-sm text-granite-500 dark:text-granite-400"
+      >
+        <svg lucideWrench class="size-5 text-granite-400" aria-hidden="true"></svg>
+        Sin equipos registrados — agrega la primera unidad.
+      </li>
+    }
+  </ul>
+</section>
+
+<app-equipment-form-dialog #formDialog (saved)="refresh()" />

@@ -36,6 +36,8 @@ import {
 import { AddContactDialog } from '../../components/add-contact-dialog/add-contact-dialog';
 import { ChangeStatusDialog } from '../../../crm/components/change-status-dialog/change-status-dialog';
 import { CustomerTimeline } from '../../../crm/components/customer-timeline/customer-timeline';
+import { CustomerEquipmentCard } from '../../../equipment/components/customer-equipment-card/customer-equipment-card';
+import { CustomerReportsCard } from '../../../reports/components/customer-reports-card/customer-reports-card';
 import { errorMessage } from '../../../data/utils';
 
 /** Client detail (07 §3): 360 header + General/Contactos/Fiscal tabs, plus the
@@ -58,6 +60,8 @@ import { errorMessage } from '../../../data/utils';
     ChangeStatusDialog,
     CustomerTimeline,
     AddContactDialog,
+    CustomerEquipmentCard,
+    CustomerReportsCard,
     LucideArrowLeft,
     LucideBan,
     LucidePencil,

@@ -1,0 +1,160 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="max-w-11/12"
+  [style]="{ width: '34rem' }"
+  [header]="editing() ? 'Editar equipo' : 'Registrar equipo'"
+>
+  <form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-4 sm:grid-cols-2">
+    <div class="field-group sm:col-span-2">
+      <label class="field-label" for="eq-customer">Cliente<span aria-hidden="true"> *</span></label>
+      <p-select
+        inputId="eq-customer"
+        formControlName="customerId"
+        [options]="customerOptions()"
+        optionLabel="label"
+        optionValue="value"
+        [filter]="true"
+        placeholder="Elegir cliente"
+        appendTo="body"
+      />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="eq-name">Nombre / etiqueta</label>
+      <input id="eq-name" pInputText formControlName="name" placeholder="Chiller principal" />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="eq-kind">Tipo</label>
+      <input id="eq-kind" pInputText formControlName="kind" placeholder="chiller, minisplit…" />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="eq-brand">Marca</label>
+      <input id="eq-brand" pInputText formControlName="brand" />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="eq-model">Modelo</label>
+      <input id="eq-model" pInputText formControlName="model" />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="eq-serial">Número de serie</label>
+      <input id="eq-serial" pInputText formControlName="serialNumber" spellcheck="false" />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="eq-capacity">Capacidad</label>
+      <input
+        id="eq-capacity"
+        pInputText
+        formControlName="capacity"
+        placeholder="3 TR, 60,000 BTU"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="eq-location">Ubicación en sitio</label>
+      <input id="eq-location" pInputText formControlName="location" placeholder="azotea" />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="eq-installdate">Fecha de instalación</label>
+      <input
+        id="eq-installdate"
+        pInputText
+        formControlName="installDate"
+        placeholder="2026-01-15"
+      />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="eq-origin">Origen</label>
+      <p-select
+        inputId="eq-origin"
+        formControlName="origin"
+        [options]="originOptions"
+        optionLabel="label"
+        optionValue="value"
+        appendTo="body"
+      />
+    </div>
+
+    <div class="field-group sm:col-span-2">
+      <label class="field-label" for="eq-notes">Notas</label>
+      <textarea
+        id="eq-notes"
+        pTextarea
+        formControlName="notes"
+        rows="2"
+        class="!min-h-16"
+      ></textarea>
+    </div>
+
+    <div class="field-group sm:col-span-2">
+      <label class="field-label">Fotos <span class="font-normal text-granite-400">(máx. 3)</span></label>
+      <div class="flex flex-wrap gap-2">
+        @for (photo of photos(); track photo; let i = $index) {
+          <div
+            class="relative size-20 overflow-hidden rounded-lg border border-granite-200 dark:border-granite-800"
+          >
+            <img [src]="photo" alt="Foto del equipo" class="size-full object-cover" />
+            <button
+              type="button"
+              class="absolute right-1 top-1 inline-flex size-6 items-center justify-center rounded-full bg-granite-900/70 text-white transition-colors hover:bg-granite-900"
+              (click)="removePhoto(i)"
+              aria-label="Quitar foto"
+            >
+              <svg lucideX class="size-3.5" aria-hidden="true"></svg>
+            </button>
+          </div>
+        }
+        @if (canAddPhoto()) {
+          <label
+            class="flex size-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-granite-300 text-granite-500 transition-colors hover:border-sky-500 hover:text-sky-700 dark:border-granite-700 dark:hover:border-sky-500"
+          >
+            <svg lucideImagePlus class="size-5" aria-hidden="true"></svg>
+            <span class="text-xs font-medium">Agregar</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              class="hidden"
+              (change)="onPhotoSelected($event)"
+            />
+          </label>
+        } @else if (uploadingPhoto()) {
+          <div
+            class="flex size-20 items-center justify-center rounded-lg border-2 border-dashed border-granite-300 dark:border-granite-700"
+          >
+            <span
+              class="size-5 animate-spin rounded-full border-2 border-granite-300 border-t-sky-600"
+              role="status"
+              aria-label="Subiendo foto"
+            ></span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2 sm:col-span-2">
+      <button
+        type="button"
+        class="btn-neutral"
+        (click)="close()"
+        [disabled]="submitting() || uploadingPhoto()"
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        class="btn-primary"
+        [disabled]="form.invalid || submitting() || uploadingPhoto()"
+      >
+        @if (submitting()) {
+          Guardando…
+        } @else {
+          Guardar
+        }
+      </button>
+    </div>
+  </form>
+</p-dialog>

@@ -1,0 +1,221 @@
+<div class="flex flex-wrap items-center gap-3">
+  <a
+    routerLink="/equipment"
+    class="inline-flex size-10 items-center justify-center rounded-lg text-granite-600 transition-colors hover:bg-granite-100 dark:text-granite-400 dark:hover:bg-granite-800"
+    aria-label="Volver a equipos"
+  >
+    <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
+  </a>
+  <h1 class="text-xl font-bold text-granite-950 dark:text-granite-50">Equipo</h1>
+  @if (equipment(); as eq) {
+    <p-tag
+      [severity]="eq.status | equipmentStatusSeverity"
+      [value]="eq.status | equipmentStatusLabel"
+    />
+    <div class="flex-1"></div>
+    <div class="flex gap-2">
+      <button type="button" class="btn-secondary" (click)="openEdit()">
+        <svg lucidePencil class="size-4" aria-hidden="true"></svg>
+        Editar
+      </button>
+      @if (isRetired()) {
+        <button type="button" class="btn-primary" (click)="toggleStatus()">Reactivar</button>
+      } @else {
+        <button type="button" class="btn-danger" (click)="toggleStatus()">Retirar</button>
+      }
+    </div>
+  }
+</div>
+
+@if (equipment(); as eq) {
+  <div class="mt-5 grid gap-4 xl:grid-cols-2">
+    <section class="card-section" aria-labelledby="eq-detail-title">
+      <h2 id="eq-detail-title" class="micro-label">Ficha</h2>
+
+      @if (eq.photos?.length) {
+        <p-carousel
+          class="mt-3 block"
+          [value]="eq.photos ?? []"
+          [numVisible]="1"
+          [numScroll]="1"
+          [circular]="(eq.photos?.length ?? 0) > 1"
+          [showNavigators]="(eq.photos?.length ?? 0) > 1"
+          [showIndicators]="(eq.photos?.length ?? 0) > 1"
+        >
+          <ng-template let-photo #item>
+            <img
+              [src]="photo"
+              alt="Foto del equipo"
+              class="h-56 w-full rounded-lg object-cover"
+            />
+          </ng-template>
+        </p-carousel>
+      }
+
+      <dl class="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+        <div>
+          <dt class="micro-label">Cliente</dt>
+          <dd class="mt-0.5 text-sm font-medium">
+            <a
+              [routerLink]="['/customers', eq.customerId]"
+              class="text-sky-700 hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
+              >{{ eq.customerName }}</a
+            >
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Etiqueta</dt>
+          <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+            {{ eq.name || '—' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Tipo</dt>
+          <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+            {{ eq.kind || '—' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Marca</dt>
+          <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+            {{ eq.brand || '—' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Modelo</dt>
+          <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+            {{ eq.model || '—' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Serie</dt>
+          <dd
+            class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+          >
+            {{ eq.serialNumber || '—' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Capacidad</dt>
+          <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+            {{ eq.capacity || '—' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Ubicación</dt>
+          <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+            {{ eq.location || '—' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Origen</dt>
+          <dd class="mt-0.5">
+            <p-tag
+              [severity]="eq.origin | equipmentOriginSeverity"
+              [value]="eq.origin | equipmentOriginLabel"
+            />
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Instalación</dt>
+          <dd
+            class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
+          >
+            {{ eq.installDate || '—' }}
+          </dd>
+        </div>
+        @if (eq.materialUnitId) {
+          <div>
+            <dt class="micro-label">Unidad de almacén</dt>
+            <dd class="mt-0.5 text-sm font-medium">
+              <!-- Link target lands with module 10 (WMS) — plain id until then. -->
+              <span class="font-data tabular-nums text-granite-950 dark:text-granite-50">{{
+                eq.materialUnitId
+              }}</span>
+            </dd>
+          </div>
+        }
+      </dl>
+      @if (eq.notes) {
+        <p
+          class="mt-4 rounded-lg bg-granite-50 px-3 py-2 text-sm text-granite-700 dark:bg-granite-900 dark:text-granite-300"
+        >
+          {{ eq.notes }}
+        </p>
+      }
+    </section>
+
+    <!-- Service history: derived from linked reports (11 §2) -->
+    <section class="card-section" aria-labelledby="eq-history-title">
+      <h2 id="eq-history-title" class="micro-label">Historial de servicio</h2>
+
+      <div class="mt-3 flex items-end gap-2">
+        <div class="field-group flex-1">
+          <label class="field-label" for="eq-attach">Vincular reporte del cliente</label>
+          <p-select
+            inputId="eq-attach"
+            [formControl]="linkControl"
+            [options]="reportOptions()"
+            optionLabel="label"
+            optionValue="value"
+            [filter]="true"
+            placeholder="Buscar reporte"
+            appendTo="body"
+          />
+        </div>
+        <button
+          type="button"
+          class="btn-secondary !h-12"
+          (click)="attach()"
+          [disabled]="!linkControl.value || linking()"
+        >
+          <svg lucideLink class="size-4" aria-hidden="true"></svg>
+          Vincular
+        </button>
+      </div>
+
+      <ul class="mt-4 divide-y divide-granite-200 dark:divide-granite-800">
+        @for (report of eq.reports ?? []; track report.id) {
+          <li class="flex items-center justify-between gap-3 py-2.5">
+            <div class="min-w-0">
+              <a
+                [routerLink]="['/reports', report.id]"
+                class="text-sm font-semibold text-sky-700 hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
+              >
+                {{ report.folio || report.id }}
+              </a>
+              <p class="text-xs text-granite-500 dark:text-granite-400">
+                <span class="font-data tabular-nums">{{ report.serviceDate }}</span>
+                @if (report.templateName) {
+                  · {{ report.templateName }}
+                }
+              </p>
+            </div>
+            <button
+              type="button"
+              class="inline-flex size-9 items-center justify-center rounded-md text-granite-500 transition-colors hover:bg-granite-100 hover:text-granite-800 dark:text-granite-400 dark:hover:bg-granite-800 dark:hover:text-granite-200"
+              (click)="detach(report)"
+              [attr.aria-label]="'Desvincular reporte ' + (report.folio || report.id)"
+            >
+              <svg lucideUnlink class="size-4" aria-hidden="true"></svg>
+            </button>
+          </li>
+        } @empty {
+          <li class="py-6 text-center text-sm text-granite-500 dark:text-granite-400">
+            Sin servicios vinculados todavía.
+          </li>
+        }
+      </ul>
+    </section>
+  </div>
+
+  <app-equipment-form-dialog #formDialog (saved)="refresh()" />
+} @else {
+  <div class="mt-10 flex justify-center">
+    <div
+      class="size-8 animate-spin rounded-full border-2 border-granite-200 border-t-sky-600 dark:border-granite-700 dark:border-t-sky-400"
+      role="status"
+      aria-label="Cargando equipo"
+    ></div>
+  </div>
+}

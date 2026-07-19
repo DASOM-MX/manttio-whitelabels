@@ -2,8 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
 import { catchError, tap } from 'rxjs';
 import { ReportsService } from '../../app/services/http/reports.service';
-import { DeleteReport, LoadReport, LoadReports } from './reports.actions';
-import type { ReportDetail, ReportListQuery, ReportSummary } from '../../app/data/dtos/report';
+import { DeleteReport, LoadCustomerReports, LoadReport, LoadReports } from './reports.actions';
+import type {
+  CustomerReport,
+  ReportDetail,
+  ReportListQuery,
+  ReportSummary,
+} from '../../app/data/dtos/report';
 
 export interface ReportsStateModel {
   items: ReportSummary[];
@@ -11,11 +16,22 @@ export interface ReportsStateModel {
   loading: boolean;
   selected: ReportDetail | null;
   query: ReportListQuery;
+  /** Customer 360 "Servicios" tab data. */
+  customerReports: CustomerReport[];
+  customerReportsLoading: boolean;
 }
 
 @State<ReportsStateModel>({
   name: 'reports',
-  defaults: { items: [], total: 0, loading: false, selected: null, query: {} },
+  defaults: {
+    items: [],
+    total: 0,
+    loading: false,
+    selected: null,
+    query: {},
+    customerReports: [],
+    customerReportsLoading: false,
+  },
 })
 @Injectable()
 export class ReportsState {
@@ -32,6 +48,12 @@ export class ReportsState {
   }
   @Selector() static selected(s: ReportsStateModel): ReportDetail | null {
     return s.selected;
+  }
+  @Selector() static customerReports(s: ReportsStateModel): CustomerReport[] {
+    return s.customerReports;
+  }
+  @Selector() static customerReportsLoading(s: ReportsStateModel): boolean {
+    return s.customerReportsLoading;
   }
 
   @Action(LoadReports)
@@ -50,6 +72,21 @@ export class ReportsState {
   loadReport(ctx: StateContext<ReportsStateModel>, { id }: LoadReport) {
     ctx.patchState({ selected: null });
     return this.api.get(id).pipe(tap((report) => ctx.patchState({ selected: report })));
+  }
+
+  @Action(LoadCustomerReports)
+  loadCustomerReports(
+    ctx: StateContext<ReportsStateModel>,
+    { customerId }: LoadCustomerReports,
+  ) {
+    ctx.patchState({ customerReportsLoading: true });
+    return this.api.byCustomer(customerId).pipe(
+      tap((rows) => ctx.patchState({ customerReports: rows, customerReportsLoading: false })),
+      catchError((err) => {
+        ctx.patchState({ customerReportsLoading: false });
+        throw err;
+      }),
+    );
   }
 
   @Action(DeleteReport)
