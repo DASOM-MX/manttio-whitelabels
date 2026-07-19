@@ -185,7 +185,12 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
 - **wms** (10): the largest surface — stock endpoints all require a `reason`;
   self-checkout constraints server-enforced; replenishments with backend file parsing
   (`POST /replenishments/parse`, SheetJS-on-Workers CPU check) + R2 evidence;
-  movements append-only per §2.
+  movements append-only per §2. **Full backend spec now in the expanded suite
+  (2026-07-19): `.claude/plans/superadmin/10-wms/01-data-model.md` (tables, enums,
+  seeds, stock math) + `02-api-surface.md` (endpoint catalog, gates, error codes).**
+  New asks from the suite: dedicated `manttio-wms` R2 bucket + CDN base env for
+  import files/evidence (equipment precedent); `office` role in the JWT middleware is
+  a prerequisite for the wms office gates.
 - **equipment** (11): `equipment` table + `report_equipment` join; retro-link
   endpoints; hook: serialized unit consumed on a report ⇒ offer/auto-create the
   client `Equipment` (`material_unit_id` backlink).

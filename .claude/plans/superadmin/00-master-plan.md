@@ -26,7 +26,7 @@ then its own file, and touches no other module's code.
 | 07 | `07-clients.md` | Clients directory + Mexican invoicing info | 02 |
 | 08 | `08-crm.md` | Light CRM: status, source, blacklist, activity timeline, follow-up date | 07 |
 | 09 | `09-billing.md` | Billing + billing-by-reports | 02, 06, 07 |
-| 10 | `10-wms.md` | Warehouse management: locations, materials, replenishments (file import + evidence), technician stock, report material tracking | 02, 05, 06 |
+| 10 | `10-wms/` (suite — entry `10-wms/00-overview.md`; `10-wms.md` redirects) | Warehouse management: locations, materials, replenishments (file import + evidence), technician stock, report material tracking | 02, 05, 06 |
 | 11 | `11-equipment.md` | Client equipment/asset registry + per-unit service history | 07; hooks 06, 10 |
 | 12 | `12-calendar.md` | Scheduled visits + team calendar (reassign, tech swap, Google Calendar push + overlay) | 02, 05, 07 |
 | 13 | `13-contracts.md` | Maintenance contracts (pólizas) → generate visits into 12 | 07, 12; 11 opt. |
@@ -95,7 +95,7 @@ Rules for agents:
 | 07 clients | **done** (frontend side; branch `feature/superadmin-customers`) | CP-3 |
 | 08 crm | **done** (frontend side; branch `feature/superadmin-crm`) | CP-4 |
 | 09 billing | not-started | — |
-| 10 wms | not-started | — |
+| 10 wms | not-started (plan expanded 2026-07-19 → `10-wms/` suite) | — |
 | 11 equipment | **done** (frontend side; branch `feature/superadmin-equipment`) | CP-3 |
 | 12 calendar | not-started | — |
 | 13 contracts | not-started | — |
