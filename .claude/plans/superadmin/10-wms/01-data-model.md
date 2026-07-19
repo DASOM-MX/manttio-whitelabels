@@ -32,6 +32,14 @@ enum ReasonContext { Inbound = 'inbound', Transfer = 'transfer',
                      ReadjustmentIn = 'readjustment_in',
                      ReadjustmentOut = 'readjustment_out',
                      Consumption = 'consumption' }   // consumption: report_binding only
+enum ReplenishmentImportStatus {                     // added 2026-07-19 (owner ask)
+  Uploaded = 'uploaded',      // file stored, fields detected, awaiting mapping
+  Queued = 'queued',          // mapping submitted, waiting for the processor to claim
+  Processing = 'processing',  // claimed by the processing service, job running
+  Ready = 'ready',            // rows parsed + validated, preview available
+  Failed = 'failed',          // whole-file failure or max attempts (import.error set)
+  Confirmed = 'confirmed',    // replenishment created from this import
+  Discarded = 'discarded' }   // abandoned by the user — kept, never deleted
 ```
 
 `STORAGE_NODE_RANK: Record<StorageNodeType, number>` (`wms/constants/`) —
@@ -161,17 +169,63 @@ unit" is a plain indexed join (`material-view` unit drill-down, equipment hook).
 | `active` | boolean, not null, default true — deactivate instead of delete; **no DELETE path** |
 | `created_at` | — |
 
+### `replenishment_imports` + `replenishment_import_rows` — the batch job (added 2026-07-19, owner ask)
+
+File imports are **asynchronous batch jobs with DB-backed status** — the database row
+is the single source of truth the frontend polls, which is what lets the processor
+move out of the Worker (Queues consumer or an external microservice) later **without
+any contract change** (02 §6):
+
+```
+replenishment_imports {
+  id, status ReplenishmentImportStatus not null default 'uploaded',
+  file_key text not null, file_name text not null,   // staged in R2 at upload (07 §4);
+                                           //   the key is the reference the processor
+                                           //   pulls the file by
+  file_deleted_at timestamptz?,            // set when the binary is PURGED (owner
+                                           //   2026-07-19 — space): by the processor,
+                                           //   once the file is fully processed.
+                                           //   key/name stay as the reference; the
+                                           //   durable content record is rows.raw
+  detected_fields jsonb not null,          // [{ id, header, samples: string[] }] —
+                                           //   sniffed at upload for the field mapper
+  mapping jsonb?,                          // { sku, quantity?, serial? } → field ids,
+                                           //   set when processing starts
+  warehouse_id uuid?,                      // destination, set with the mapping
+  total_rows int?, processed_rows int not null default 0,
+  error_rows int not null default 0,       // progress counters the processor updates
+  error text?,                             // whole-file failure detail (status failed)
+  locked_at timestamptz?, locked_by text?, // processor claim lease (11 §3): claimed via
+                                           //   FOR UPDATE SKIP LOCKED; stale lease
+                                           //   (now - locked_at > timeout) is reclaimable
+  attempts int not null default 0,         // ++ on each claim; > max (3) ⇒ 'failed'
+  user_id not null → users, created_at, updated_at
+}                                          // never deleted — abandoned = 'discarded'
+replenishment_import_rows {                // written by the processor as it walks the file
+  id, import_id not null, line int not null,
+  raw jsonb not null,                      // the mapped source values, for display/debug
+  material_id uuid?,                       // resolved via SKU-then-UPC
+  quantity numeric?, serial text?,
+  error text?                              // ParseRowError code (02 §6), null = clean
+}                                          // UNIQUE (import_id, line) — retries upsert
+                                           //   by that key, never duplicate rows
+
+```
+
 ### `replenishments` + `replenishment_items` + `wms_counters`
 
 ```
 replenishments {
   id, folio integer not null unique,      // per-tenant consecutive, see wms_counters
   warehouse_id not null → warehouses,     // destination
-  source_file_key text?, source_file_name text?,   // archived import file (R2, 07 §4)
+  import_id uuid? → replenishment_imports, // the source import (file + mapping trail);
+                                           //   null only for a fileless manual doc
   evidence_photos text[] not null default '{}',    // R2 keys
   user_id not null → users, notes text?, created_at
 }                                          // no deleted_at — document trail; corrections
-                                           // happen via readjustments, never edits
+                                           // happen via readjustments, never edits.
+                                           // source_file_* moved onto the import row
+                                           //   (2026-07-19) — the view reads the join
 replenishment_items {
   id, replenishment_id not null, material_id not null,
   quantity numeric?,                       // unserialized
@@ -232,6 +286,21 @@ with its current location/status.
   appliesTo → slugged code), label editable, deactivate-only. Inactive reasons disappear
   from selects but keep rendering in history (join by `code`).
 - **Movements/replenishments:** created, never mutated.
+- **Replenishment import:** `uploaded` →(mapping submitted)→ `queued` →(claimed by
+  the processing service, lease taken)→ `processing` → `ready` | `failed`; stale
+  lease → back to claimable, `attempts`++, over max ⇒ `failed`; `ready` →(confirm)→
+  `confirmed`; any pre-confirm state →(user abandons / new upload replaces it)→
+  `discarded`. Only the **processing service** (11) writes `processing →
+  ready/failed` + the progress counters; only the confirm transaction writes
+  `confirmed`. Terminal states: `failed`, `confirmed`, `discarded`.
+  **File retention (owner 2026-07-19 — supersedes the 2026-07-05 keep-forever
+  evidence-file decision):** the staged binary is **transient** — the **processor**
+  deletes it from R2 once the file is fully processed (the `ready` write) and stamps
+  `file_deleted_at`; `failed` imports keep their file for debugging. Files left
+  staged by discarded/abandoned imports are collected by a retention sweep (open —
+  11). DB rows are permanent as always — `rows.raw` + `file_name` + `mapping` are
+  the audit substance. **Evidence photos are unaffected** — they stay in R2
+  permanently.
 
 ## 5. Seed — the 11 built-in reasons (semantics confirmed 2026-07-05)
 

@@ -26,16 +26,21 @@ section anchors.
 | 04 | `04-storage-hierarchy.md` | StorageNode tree inside a warehouse (orig. CP-2) | 03 |
 | 05 | `05-materials-catalog.md` | Material catalog + material view (orig. CP-3) | 03 |
 | 06 | `06-stock-operations.md` | Movements, reasons, inbound/transfer/readjustment dialogs, self-checkout (orig. CP-4) | 04, 05 |
-| 07 | `07-replenishments.md` | Bulk restock documents: file import, preview, evidence, view (orig. CP-5) | 05, 06 |
+| 07 | `07-replenishments.md` | Bulk restock documents: field-mapped async file import (+ status polling), preview, evidence, view (orig. CP-5; pipeline reworked 2026-07-19) | 05, 06, 11 |
 | 08 | `08-report-materials.md` | Report material tracking + staff corrections (orig. CP-6, part) | 06 |
 | 09 | `09-technician-surfaces.md` | "Mi almacén" + "Consulta de stock" + role/polish closing sweep (orig. CP-6, part) | 06, 08 |
 | 10 | `10-state-services-dtos.md` | Frontend plumbing reference: NGXS states, HTTP services, DTOs, constants, pipes | — (reference) |
+| 11 | `11-processing-service.md` | The batch-processing system — **its own project in its own repository** (`../manttio-processor` sibling): DB-as-queue job loop + the replenishment-import handler; this file is the cross-repo contract | 01, 02 |
 
-**Build order:** 01 → 02 backend-side; 03 → 04/05 (parallel) → 06 → 07/08 (parallel) → 09
-frontend-side. 10 is a reference doc kept current by whichever agent touches the plumbing.
-Frontend checkpoints can start against mocked services as soon as 01/02 fix the shapes
-(master plan §2 rule 5); anything server-enforced (self-checkout, append-only,
-type↔reason validation) still needs the backend before its manual pass can close.
+**Build order:** 01 → 02 backend-side, with **11 (the external processing service)
+starting any time after 01/02 fix the import contract** — it's a separate repo on its
+own cadence; 03 → 04/05 (parallel) → 06 → 07/08 (parallel) → 09 frontend-side. 10 is
+a reference doc kept current by whichever agent touches the plumbing. Frontend
+checkpoints can start against mocked services as soon as 01/02 fix the shapes (master
+plan §2 rule 5); anything server-enforced (self-checkout, append-only, type↔reason
+validation) still needs the backend before its manual pass can close, and 07's manual
+pass additionally needs 11 deployed (imports without the service just sit in
+`queued`).
 
 **PR granularity:** one PR per checkpoint, stacked, base `main` (re-check bases before
 merging — GitHub does not auto-retarget). Branch naming
@@ -146,6 +151,10 @@ Target route table for `wms.routes.ts` (order matters — literals before `:id`)
   middleware still validates roles against `['owner','admin','technician']` — the
   **`office` role must land backend-side before WMS office gates work** (backend plan §1,
   ships with the users-module backend work).
+- **Processing service (external repo — 11):** this suite owns the contract; the
+  service repo consumes it. Ops asks before it can deploy: the `manttio-wms` bucket
+  (02 §8) + **R2 S3 credentials (object read + delete — it purges processed source
+  files)**, and the hosting-target decision (11 §5, owner's call).
 
 ## 6. Proposals introduced by this suite (proposed 2026-07-19 — veto here, not per-file)
 
@@ -172,6 +181,20 @@ Each is argued in its owning sub-plan; this is the sign-off index.
     `in_stock → consumed` on save) — `01` §4.
 11. **Storage-node roots may be any node type**; the only hierarchy rule is strictly
     descending type rank parent→child — `01` §2 (confirm with owner).
+12. **Replenishment imports are field-mapped async batch jobs** (owner-directed
+    2026-07-19, so the *direction* is decided — these are the implementation
+    sub-decisions): `replenishment_imports`/`_rows` tables with lease/attempt
+    columns and a `queued → processing → ready/failed` lifecycle (`01` §2),
+    202-then-poll API with the DB row as status truth (`02` §6), 2.5 s
+    `cancelUncompleted` polling with `?import=` resume (`07` §3.1), and the
+    processing system as **its own project in its own repository**
+    (`11` — proposed `manttio-processor`; DB-as-queue via `FOR UPDATE SKIP LOCKED`,
+    per-tenant instance v1, no in-Worker fallback).
+13. **Import source files are transient in R2** (owner 2026-07-19 — supersedes the
+    2026-07-05 keep-forever evidence-file decision): staged at upload as the
+    processor's pull reference, **purged by the processor once fully processed**
+    (`file_deleted_at` stamped); the durable record is the imported rows' `raw` +
+    file name + mapping. Evidence photos stay permanent — `01` §4, `07` §4, `11` §3.
 
 ## 7. Progress board (sub-plan owners update their row + their file header together)
 
@@ -187,6 +210,7 @@ Each is argued in its owning sub-plan; this is the sign-off index.
 | 08 report-materials | not-started | — |
 | 09 technician-surfaces | not-started | — |
 | 10 state-services-dtos | reference doc | — |
+| 11 processing-service | not-started (external repo) | — |
 
 ## 8. Glossary
 
@@ -198,5 +222,11 @@ Each is argued in its owning sub-plan; this is the sign-off index.
   van and source excluding other technicians' warehouses; reason fixed `relocation`.
 - **Replenishment** — a first-class bulk-restock document (folio, source file, evidence
   photos) whose confirmation emits the inbound movements.
+- **Replenishment import** — the field-mapped async batch job behind a replenishment:
+  upload → detected fields → user mapping → `queued` → processed by the external
+  service → `ready` preview → confirmed into the document.
+- **Processing service** — the standalone batch-job runner in its own repository
+  (11): claims `queued` imports straight off Neon (`SKIP LOCKED`), reads files from
+  R2, writes rows + status back; superadmin only ever polls the DB-backed status.
 - **Readjustment** — the only correction instrument; owner/admin, direction + reason +
   notes required.

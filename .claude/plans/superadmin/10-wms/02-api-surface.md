@@ -30,7 +30,10 @@ controllers/  warehouses.controller.ts      → mounted at /warehouses
                                               composes multiple routers per prefix,
                                               mount this one after reports' in index.ts)
 services/     warehouses / materials / stock / movement-reasons / replenishments /
-              report-materials / replenishment-parse (file sniffing + SheetJS)
+              report-materials / replenishment-imports (upload, field detection,
+              enqueue, status reads — the backend NEVER parses full files: the
+              parse+validate batch job belongs to the standalone **processing
+              service**, its own project — `11-processing-service.md`)
 repository/   one per aggregate; movements repo insert+select only (01 CP-2)
 models/ · validators/ · enums/ · constants/ (STORAGE_NODE_RANK, seed reasons,
               import-template columns) · types/ · http-errors/ (typed domain errors →
@@ -98,14 +101,31 @@ node must belong to the warehouse (`400 node_warehouse_mismatch`). Everything ru
 
 | Endpoint | Roles | Notes |
 |---|---|---|
-| `GET /replenishments?warehouseId&from&to&page&limit` | owner/admin/office | Paged: folio, warehouse, itemCount, evidenceCount, user, createdAt |
-| `GET /replenishments/:id` | owner/admin/office | Doc + items (joined material name/sku/tracking) + evidence keys + source-file link |
-| `POST /replenishments/parse` | owner/admin/office | Multipart `{ file }` (`.xlsx`/`.csv`/`.txt`, delimiter-sniffed; size cap 1 MB). Stores the file in R2 **first** (evidence trail), then parses → `{ fileKey, fileName, rows: [{ line, sku, materialId?, materialName?, tracking?, quantity?, serial?, error? }] }`. Row errors: `unknown_sku`, `bad_quantity`, `missing_serial`, `duplicate_serial` (in-file), `serial_exists` (in DB), `quantity_on_serialized` (≠1). Template columns: `sku, quantity, serial` — one row per serialized unit. The `sku` column accepts **SKU or UPC** (added 2026-07-19 — receiving is scanner-driven; resolver tries SKU exact, then UPC exact; `unknown_sku` when neither matches) |
-| `POST /replenishments` | owner/admin/office | `{ warehouseId, fileKey?, fileName?, items: [{ materialId, quantity? \| serials?, storageNodeId? }], evidencePhotos: string[], notes? }` — **server re-validates every item** (the preview is UX, not trust). One transaction: increment `wms_counters` folio → insert doc + items → per item, emit an inbound movement (`reason: replenishment`, `replenishmentId` set) through the same 01 §3 path (serialized: creates units). Append-only: no PATCH/DELETE routes |
+The import flow is **asynchronous with a field mapper** (reworked 2026-07-19, owner
+ask): upload → server detects the file's fields → user maps them to our columns in
+superadmin → mapping submitted → **batch job** parses/validates → frontend **polls the
+DB-backed status** until `ready`. Status truth lives in `replenishment_imports`
+(01 §2) — the polling endpoint is a plain DB read, so the processor can run anywhere.
 
-SheetJS runs Worker-side for `.xlsx` (files are small stock lists) — **CPU-check at
-build time** (master plan §5.2 item); if it blows the limit, fallback is
-csv/txt-only v1 with xlsx converted client-side (decision recorded here when made).
+| Endpoint | Roles | Notes |
+|---|---|---|
+| `GET /replenishments?warehouseId&from&to&page&limit` | owner/admin/office | Paged: folio, warehouse, itemCount, evidenceCount, user, createdAt |
+| `GET /replenishments/:id` | owner/admin/office | Doc + items (joined material name/sku/tracking) + evidence keys + source-file **name** via the `import_id` join (metadata only — the binary is purged post-processing, 01 §4; the import rows' `raw` are the durable record) |
+| `POST /replenishments/imports` | owner/admin/office | Multipart `{ file }` (`.xlsx`/`.csv`/`.txt`, delimiter-sniffed; size cap 1 MB). Stages the file in R2 **first** (the reference the processor pulls it by; transient — purged after processing, 01 §4), then does **lightweight field detection only** (header row + ≤5 sample values per column — cheap even via SheetJS) → creates the import row (`status: uploaded`) → `{ importId, fileName, fields: [{ id, header, samples }] }`. Unreadable file → `400 unparseable_file`, no row created |
+| `POST /replenishments/imports/:id/process` | owner/admin/office | `{ warehouseId, mapping: { sku: fieldId, quantity?: fieldId, serial?: fieldId } }` — `sku` required, plus at least one of `quantity`/`serial` (`400 invalid_mapping`); only from `uploaded` (`409 import_not_pending`). Stores mapping + warehouse, sets **`queued`** → **`202 { status }`**. The **processing service** (11) claims the job, walks the file per the mapping, resolves materials (SKU exact, then UPC exact), upserts `replenishment_import_rows` + progress counters, flips `ready`/`failed`. Row errors: `unknown_sku`, `bad_quantity`, `missing_serial`, `duplicate_serial` (in-file), `serial_exists` (in DB), `quantity_on_serialized` (≠1) |
+| `GET /replenishments/imports/:id` | owner/admin/office | **The polling endpoint** — `{ id, status, fileName, fields, mapping?, progress: { total?, processed, errors }, error?, rows? }`; `rows` included once `ready` (files are small stock lists — no row paging v1). Pure DB read, cheap to poll |
+| `POST /replenishments/imports/:id/discard` | owner/admin/office | Flips any pre-confirm status to `discarded` (rows kept — nothing is ever deleted) |
+| `POST /replenishments` | owner/admin/office | `{ warehouseId, importId?, items: [{ materialId, quantity? \| serials?, storageNodeId? }], evidencePhotos: string[], notes? }` — items come from the (possibly inline-fixed) preview; **server re-validates every item** (the preview is UX, not trust). `importId` must be `ready` (`409 import_not_ready`) and is marked `confirmed` in the same transaction. One transaction: increment `wms_counters` folio → insert doc + items → per item, emit an inbound movement (`reason: replenishment`, `replenishmentId` set) through the same 01 §3 path (serialized: creates units). Append-only: no PATCH/DELETE routes |
+
+**Processing service (owner decision 2026-07-19 — its own project, own repository):**
+the batch job runs in the standalone processing service (`11-processing-service.md`
+— the cross-repo contract file), deployed on its own server from its own repo. The backend's role stops at storing the file,
+detecting fields, and setting `queued`; the service claims jobs straight off the DB
+(SKIP LOCKED lease — 01 §2), reads the file from R2, and writes rows + status back to
+Neon. The contract is **202 + DB-status polling**, so the backend and frontend are
+indifferent to where the service runs. Nothing except the service may write
+`processing → ready/failed`. This also retires the SheetJS-on-Workers CPU concern —
+the Worker never parses more than the header + sample rows.
 
 ## 7. Report materials — `report-materials.controller.ts` (mounted at `/reports`)
 
@@ -119,8 +139,9 @@ csv/txt-only v1 with xlsx converted client-side (decision recorded here when mad
 Evidence photos ride the existing upload module (multi-image, R2 keys committed with the
 replenishment) — **target bucket: dedicated `manttio-wms`** (proposed 2026-07-19, the
 `manttio-equipment` precedent; own CDN base via env/secret like
-`EQUIPMENT_CDN_BASE_URL`). Parse-endpoint source files land in the same bucket under
-`imports/`. Detail + asks: `07-replenishments.md` §4.
+`EQUIPMENT_CDN_BASE_URL`). Import source files land in the same bucket under
+`imports/` — **transient**: purged once processed (01 §4); evidence photos under
+`evidence/` are permanent. Detail + asks: `07-replenishments.md` §4.
 
 ## 9. Error-code index (module-wide)
 
@@ -152,15 +173,20 @@ mapped in the owning controller (400 validation · 403 role/scope · 404 missing
 - [ ] Technician movement scoping test (own van + own reports only)
 
 ### CP-3 — Replenishments + report materials
-- [ ] §6 parse (three formats + all six row errors) + confirm (transaction, folio,
-      movements linked)
+- [ ] §6 import endpoints: upload + field detection (three formats, sample rows,
+      `unparseable_file`), process (mapping validation, `queued` transition, 202),
+      polling read, discard; confirm (transaction, folio, `import_id` link +
+      `confirmed` flip, movements linked). Full-file parse/row-error tests live in
+      the processing service's suite (11 CP-2) — backend tests stop at `queued`
 - [ ] §7 GET/PUT with diff-to-movements; technician + office constraint tests;
       compensation emission test (remove/decrease/increase paths)
 - [ ] Backend plan §3 wms bullet updated to point here (same commit)
 
 ## Open decisions / asks
 - `office` role backend prerequisite (§ header) — sequence with the users-module slice.
-- SheetJS CPU check (§6) — resolve at CP-3 start.
-- Bucket ask (§8) — provision `manttio-wms` + CDN base env before CP-3.
+- ~~SheetJS CPU check~~ — **retired 2026-07-19**: full-file parsing moved to the
+  processing service (11); the Worker only sniffs headers + ≤5 sample rows.
+- Bucket ask (§8) — provision `manttio-wms` + CDN base env before CP-3; the
+  processing service additionally needs **R2 S3-compatible read credentials** (11 §4).
 - Movements list: should office see readjustment notes? (§2.1 gives office full stock +
   movement visibility — spec: yes, visibility ≠ execution.) Confirm.

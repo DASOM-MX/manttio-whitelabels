@@ -17,7 +17,7 @@ it; touching another slice's file means coordinating in its plan first.
 | `WarehousesState` | 03/04 | `tree`, `flat` (selects), `selected`, `nodes` cache (by parent), `locationStock`, `loading` | `LoadWarehouseTree`, `LoadWarehouses`, `LoadWarehouse(id)`, `CreateWarehouse`, `UpdateWarehouse`, `DeleteWarehouse`, `AssignTechnician(id, userId \| null)`, `LoadNodes(wid, parentNodeId?)`, `CreateNode`, `RenameNode`, `DeleteNode`, `LoadLocationStock(wid, nodeId?)` |
 | `MaterialsState` | 05 | `list`, `total`, `selected`, `stock`, `loading` | `LoadMaterials(query)`, `LoadMaterial(id)`, `LoadMaterialStock(id)`, `CreateMaterial`, `UpdateMaterial`, `DeleteMaterial` |
 | `StockState` | 06 | `reasons`, `movements`, `movementsTotal`, `loading` | `LoadMovementReasons`, `CreateMovementReason`, `UpdateMovementReason`, `Inbound`, `Transfer`, `Readjust`, `LoadMovements(query)` |
-| `ReplenishmentsState` | 07 | `list`, `total`, `selected`, `parsePreview`, `loading` | `LoadReplenishments(query)`, `LoadReplenishment(id)`, `ParseReplenishmentFile(file)`, `UpdatePreviewRow(line, patch)`, `CreateReplenishment(payload)` |
+| `ReplenishmentsState` | 07 | `list`, `total`, `selected`, `import` (active job — status/fields/progress/rows), `previewRows`, `loading` | `LoadReplenishments(query)`, `LoadReplenishment(id)`, `UploadImportFile(file)`, `SubmitImportMapping(importId, warehouseId, mapping)`, `PollImport(importId)` (**cancelUncompleted** polling pipeline — 07 §3.1), `StopImportPolling`, `DiscardImport(importId)`, `UpdatePreviewRow(line, patch)`, `CreateReplenishment(payload)` |
 | `ReportMaterialsState` | 08 | `byReport`, `loading`, `saving` | `LoadReportMaterials(reportId)`, `SaveReportMaterials(reportId, payload)` |
 
 - All registered **lazily** via `provideStates` in `wms.routes.ts`;
@@ -46,7 +46,8 @@ human messages).
 
 `warehouse.dto.ts` (03) · `storage-node.dto.ts` (04) · `material.dto.ts` +
 `material-unit.dto.ts` (05) · `movement.dto.ts` + `movement-reason.dto.ts` (06) ·
-`replenishment.dto.ts` (07) · `report-material.dto.ts` (08). Query DTOs live with
+`replenishment.dto.ts` + `replenishment-import.dto.ts` (07) ·
+`report-material.dto.ts` (08). Query DTOs live with
 their resource. Shared refs (`MaterialRef`, `LocationRef`) live in
 `material.dto.ts` / `warehouse.dto.ts` respectively — import concrete files, no
 barrel. String-literal unions mirror the backend enums (overview §3); keep in sync
@@ -64,14 +65,17 @@ with `01-data-model.md` §1.
 | `reason-context-labels.const.ts` | 06 |
 | `special-reason-codes.const.ts` (`report_binding`, `relocation`, `replenishment`) | 06 |
 | `parse-row-error-labels.const.ts` | 07 |
+| `import-status-labels.const.ts` / `import-status-pill-classes.const.ts` | 07 |
+| `import-target-field-labels.const.ts` / `import-auto-map-patterns.const.ts` | 07 |
 
 ## 5. Pipes (`src/app/pipes/` — pure, per-row template mappings)
 
 `storage-node-type-label.pipe.ts` (04) · `material-tracking-label.pipe.ts`,
 `material-unit-status-label.pipe.ts` + `-pill-class.pipe.ts` (05) ·
 `movement-type-label.pipe.ts` + `-pill-class.pipe.ts` (06) ·
-`parse-row-error-label.pipe.ts` (07). Reuse `cast.pipe.ts` for form casts. No method
-calls in templates.
+`parse-row-error-label.pipe.ts`, `import-status-label.pipe.ts` +
+`-pill-class.pipe.ts` (07). Reuse `cast.pipe.ts` for form casts. No method calls in
+templates.
 
 ## 6. Shared components inside `wms/`
 

@@ -190,7 +190,16 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   seeds, stock math) + `02-api-surface.md` (endpoint catalog, gates, error codes).**
   New asks from the suite: dedicated `manttio-wms` R2 bucket + CDN base env for
   import files/evidence (equipment precedent); `office` role in the JWT middleware is
-  a prerequisite for the wms office gates.
+  a prerequisite for the wms office gates. **Import pipeline (2026-07-19):**
+  replenishment imports are field-mapped **async batch jobs** — the Worker only
+  stages the file in R2 + detects fields + sets `queued`; the standalone
+  **processing service** (own repo, proposed `manttio-processor` — cross-repo
+  contract in `.claude/plans/superadmin/10-wms/11-processing-service.md`) claims
+  jobs off Neon (`FOR UPDATE SKIP LOCKED` lease), writes rows/status back, and
+  **purges the staged binary once processed** (`file_deleted_at`; parsed `raw` rows
+  are the durable record); superadmin polls the DB-backed status endpoint. Retires
+  the SheetJS-on-Workers CPU concern. Extra ops ask: R2 S3 credentials (object
+  read + delete) for the service.
 - **equipment** (11): `equipment` table + `report_equipment` join; retro-link
   endpoints; hook: serialized unit consumed on a report ⇒ offer/auto-create the
   client `Equipment` (`material_unit_id` backlink).
