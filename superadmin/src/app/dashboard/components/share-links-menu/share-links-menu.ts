@@ -2,21 +2,37 @@ import { Component, computed, inject } from '@angular/core';
 import { Store } from '@ngxs/store';
 import { from } from 'rxjs';
 import { MessageService } from 'primeng/api';
-import { LucideCopy, LucideDynamicIcon, LucideGlobe } from '@lucide/angular';
+import { PopoverModule } from 'primeng/popover';
+import {
+  LucideChevronDown,
+  LucideCopy,
+  LucideDynamicIcon,
+  LucideGlobe,
+  LucideLink2,
+} from '@lucide/angular';
 import { BrandState } from '../../../../state/brand/brand.state';
 import { SHARE_CHANNELS } from '../../../model/constants/customer/share-channels.const';
 import type { ShareLinkView } from '../../../data/dtos/share-links';
 
-/** Canonical share links per channel (utm-params plan 01 CP-3): the tenant
- *  site's /contact-us plus each channel's UTM query, built from the brand
- *  loaded at boot — no page-local fetch. siteUrl is manager-provisioned; while
- *  it's absent the page shows an actionless empty state. */
+/** "Enlaces de contacto" dropdown in the dashboard header (utm-params plan 01
+ *  CP-3, relocated from Clientes 2026-07-19): the canonical share links per
+ *  channel — the tenant site's /contact-us plus each channel's UTM query,
+ *  built from the brand loaded at boot, no fetch of its own. siteUrl is
+ *  manager-provisioned; while it's absent the dropdown shows an actionless
+ *  empty state. */
 @Component({
-  selector: 'app-share-links',
-  imports: [LucideCopy, LucideDynamicIcon, LucideGlobe],
-  templateUrl: './share-links.html',
+  selector: 'app-share-links-menu',
+  imports: [
+    PopoverModule,
+    LucideChevronDown,
+    LucideCopy,
+    LucideDynamicIcon,
+    LucideGlobe,
+    LucideLink2,
+  ],
+  templateUrl: './share-links-menu.html',
 })
-export class ShareLinks {
+export class ShareLinksMenu {
   private store = inject(Store);
   private messages = inject(MessageService);
 
