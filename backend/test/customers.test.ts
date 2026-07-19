@@ -7,9 +7,10 @@ import {
   uniqueName,
   uniqueRecipientEmail,
 } from './helpers/fixtures';
+import { eq } from 'drizzle-orm';
 import { createDb } from '../src/modules/database/client';
 import { ReportStatus } from '../src/modules/reports/enums/reports.enum';
-import { reportCounters, reports } from '../src/modules/database/schema';
+import { customers, reportCounters, reports } from '../src/modules/database/schema';
 
 type WorkerEnv = { DATABASE_URL: string };
 
@@ -308,7 +309,7 @@ describe('customer status/source/clientType writes (utm-params CP-1)', () => {
 });
 
 describe('DELETE /customers/:id', () => {
-  test('admin can hard-delete a customer with no reports', async () => {
+  test('admin can soft-delete a customer; it disappears from reads but the row survives', async () => {
     const { token } = await seedAdminAndLogin();
     const customer = await seedCustomer();
     const res = await request(`/customers/${customer.id}`, {
@@ -320,13 +321,19 @@ describe('DELETE /customers/:id', () => {
 
     const after = await request(`/customers/${customer.id}`, { headers: authHeader(token) });
     expect(after.status).toBe(404);
+
+    // Soft delete: the row is tombstoned, not gone.
+    const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
+    const [row] = await db.select().from(customers).where(eq(customers.id, customer.id));
+    expect(row?.deletedAt).not.toBeNull();
   });
 
-  test('cannot delete a customer that has reports → 409 in_use', async () => {
+  test('soft-deleting a customer with reports succeeds; reports keep their FK', async () => {
     const { admin, token } = await seedAdminAndLogin();
     const customer = await seedCustomer();
 
-    // Plant a report referencing this customer so the FK restrict trips on DELETE.
+    // Plant a report referencing this customer. Soft delete never touches the
+    // reports FK, so deletion succeeds and the report keeps its clientId.
     // We use a synthetic folio in the year-2099 partition so it cannot collide with
     // anything real and is easy to truncate later.
     const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
@@ -349,9 +356,11 @@ describe('DELETE /customers/:id', () => {
       method: 'DELETE',
       headers: authHeader(token),
     });
-    expect(res.status).toBe(409);
-    const body = await json<{ error: string; message?: string }>(res);
-    expect(body.error).toBe('in_use');
+    expect(res.status).toBe(200);
+    expect(await json(res)).toEqual({ id: customer.id, deleted: true });
+
+    const [report] = await db.select().from(reports).where(eq(reports.id, folio));
+    expect(report?.clientId).toBe(customer.id);
   });
 
   test('deleting an unknown id → 404', async () => {
