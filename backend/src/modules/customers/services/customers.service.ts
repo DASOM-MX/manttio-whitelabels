@@ -1,6 +1,7 @@
 import type { Db } from '../../database/client';
 import {
   deleteCustomer,
+  findCustomerById,
   findCustomerWithRelations,
   insertCustomerWithRelations,
   listCustomers,
@@ -66,6 +67,7 @@ const buildNewCustomer = (
   tags: input.tags,
   status: input.status,
   source: input.source,
+  clientType: input.clientType,
   timezone: input.timezone,
 });
 
@@ -82,6 +84,7 @@ const collectScalarUpdates = (input: UpdateCustomerInput): UpdateCustomerFields 
   if (input.tags !== undefined) fields.tags = input.tags;
   if (input.status !== undefined) fields.status = input.status;
   if (input.source !== undefined) fields.source = input.source;
+  if (input.clientType !== undefined) fields.clientType = input.clientType;
   if (input.nextFollowUpAt !== undefined)
     fields.nextFollowUpAt = input.nextFollowUpAt ? new Date(input.nextFollowUpAt) : null;
   if (input.timezone !== undefined) fields.timezone = input.timezone;
@@ -132,6 +135,14 @@ export const editCustomer = async (
   actorId: string,
 ): Promise<CustomerWithRelations | null> => {
   const fields = collectScalarUpdates(input);
+  if (input.status !== undefined) {
+    // statusChangedAt stamps only on an actual transition, so it keeps meaning
+    // "when the status last changed" even if clients resend the same status.
+    const current = await findCustomerById(db, id);
+    if (current && current.status !== input.status) {
+      fields.statusChangedAt = new Date();
+    }
+  }
   const contacts = input.contacts !== undefined ? normalizeContacts(input.contacts) : undefined;
   if (contacts !== undefined) Object.assign(fields, contactMirror(primaryOf(contacts)));
   return updateCustomerWithRelations(db, id, fields, contacts, normalizeFiscal(input.fiscal), {
