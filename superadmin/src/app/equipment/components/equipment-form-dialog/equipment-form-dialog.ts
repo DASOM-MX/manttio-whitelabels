@@ -47,7 +47,8 @@ export class EquipmentFormDialog {
   /** Set when opened from a customer view — client select locked. */
   protected lockedCustomerId = signal<string | null>(null);
 
-  /** Up to 3 photo URLs (11) — uploaded one at a time to R2 via /upload/image. */
+  /** Up to 3 photo URLs (11) — uploaded one at a time to the `manttio-equipment`
+   *  bucket via /upload/equipment. */
   protected readonly maxPhotos = MAX_PHOTOS;
   protected photos = signal<string[]>([]);
   protected uploadingPhoto = signal(false);
@@ -120,7 +121,7 @@ export class EquipmentFormDialog {
     input.value = ''; // allow re-picking the same file
     if (!file || this.photos().length >= MAX_PHOTOS) return;
     this.uploadingPhoto.set(true);
-    this.uploads.uploadImage(file).subscribe({
+    this.uploads.uploadEquipmentPhoto(file).subscribe({
       next: ({ url }) => {
         this.photos.update((list) => [...list, url].slice(0, MAX_PHOTOS));
         this.uploadingPhoto.set(false);

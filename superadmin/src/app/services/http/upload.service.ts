@@ -20,4 +20,12 @@ export class UploadService {
     fd.set('file', file);
     return this.remote.postForm<UploadImageResponse>('/upload/logo', fd);
   }
+
+  /** Equipment photos — the dedicated `manttio-equipment` bucket; the returned
+   *  URL is committed into equipment.photos on save. */
+  uploadEquipmentPhoto(file: File): Observable<UploadImageResponse> {
+    const fd = new FormData();
+    fd.set('file', file);
+    return this.remote.postForm<UploadImageResponse>('/upload/equipment', fd);
+  }
 }

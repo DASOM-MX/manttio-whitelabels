@@ -13,6 +13,9 @@ export type Env = {
   /** Public base of the `manttio-logos` bucket — brand images (logo/isologo/
    *  favicon uploads via POST /upload/logo) and the generated PWA icon set. */
   LOGOS_CDN_BASE_URL: string;
+  /** Public base of the `manttio-equipment` bucket — equipment photos uploaded
+   *  via POST /upload/equipment; the returned URL is persisted in equipment.photos. */
+  EQUIPMENT_CDN_BASE_URL: string;
   API_BASE_URL: string;
   RESEND_FROM: string;
   /** CDN fronting the shared `branding-fonts` bucket. Optional — until it is
@@ -22,6 +25,8 @@ export type Env = {
   MANTTIO_REPORTS: R2Bucket;
   /** Brand asset bucket (`manttio-logos`) — separate lifecycle from report data. */
   MANTTIO_LOGOS: R2Bucket;
+  /** Equipment photo bucket (`manttio-equipment`) — separate lifecycle from report data. */
+  MANTTIO_EQUIPMENT: R2Bucket;
 };
 
 export type AuthUser = {
