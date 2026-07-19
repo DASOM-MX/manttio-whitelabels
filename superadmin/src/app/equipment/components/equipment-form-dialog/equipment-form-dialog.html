@@ -85,11 +85,65 @@
       ></textarea>
     </div>
 
+    <div class="field-group sm:col-span-2">
+      <label class="field-label">Fotos <span class="font-normal text-granite-400">(máx. 3)</span></label>
+      <div class="flex flex-wrap gap-2">
+        @for (photo of photos(); track photo; let i = $index) {
+          <div
+            class="relative size-20 overflow-hidden rounded-lg border border-granite-200 dark:border-granite-800"
+          >
+            <img [src]="photo" alt="Foto del equipo" class="size-full object-cover" />
+            <button
+              type="button"
+              class="absolute right-1 top-1 inline-flex size-6 items-center justify-center rounded-full bg-granite-900/70 text-white transition-colors hover:bg-granite-900"
+              (click)="removePhoto(i)"
+              aria-label="Quitar foto"
+            >
+              <svg lucideX class="size-3.5" aria-hidden="true"></svg>
+            </button>
+          </div>
+        }
+        @if (canAddPhoto()) {
+          <label
+            class="flex size-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-granite-300 text-granite-500 transition-colors hover:border-sky-500 hover:text-sky-700 dark:border-granite-700 dark:hover:border-sky-500"
+          >
+            <svg lucideImagePlus class="size-5" aria-hidden="true"></svg>
+            <span class="text-xs font-medium">Agregar</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              class="hidden"
+              (change)="onPhotoSelected($event)"
+            />
+          </label>
+        } @else if (uploadingPhoto()) {
+          <div
+            class="flex size-20 items-center justify-center rounded-lg border-2 border-dashed border-granite-300 dark:border-granite-700"
+          >
+            <span
+              class="size-5 animate-spin rounded-full border-2 border-granite-300 border-t-sky-600"
+              role="status"
+              aria-label="Subiendo foto"
+            ></span>
+          </div>
+        }
+      </div>
+    </div>
+
     <div class="flex justify-end gap-2 sm:col-span-2">
-      <button type="button" class="btn-neutral" (click)="close()" [disabled]="submitting()">
+      <button
+        type="button"
+        class="btn-neutral"
+        (click)="close()"
+        [disabled]="submitting() || uploadingPhoto()"
+      >
         Cancelar
       </button>
-      <button type="submit" class="btn-primary" [disabled]="form.invalid || submitting()">
+      <button
+        type="submit"
+        class="btn-primary"
+        [disabled]="form.invalid || submitting() || uploadingPhoto()"
+      >
         @if (submitting()) {
           Guardando…
         } @else {

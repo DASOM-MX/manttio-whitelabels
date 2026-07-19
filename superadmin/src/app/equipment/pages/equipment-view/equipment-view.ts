@@ -4,6 +4,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
+import { CarouselModule } from 'primeng/carousel';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { LucideArrowLeft, LucideLink, LucidePencil, LucideUnlink } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
@@ -33,6 +34,7 @@ import type { EquipmentReportLink } from '../../../data/dtos/equipment';
     TableModule,
     SelectModule,
     TagModule,
+    CarouselModule,
     EquipmentStatusLabelPipe,
     EquipmentStatusSeverityPipe,
     EquipmentFormDialog,

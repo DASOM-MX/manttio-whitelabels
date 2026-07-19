@@ -40,6 +40,12 @@ export const equipment = pgTable(
     materialUnitId: uuid('material_unit_id'),
     status: text('status').$type<EquipmentStatus>().notNull().default(EquipmentStatus.Active),
     notes: text('notes'),
+    // Up to 3 photos of the unit (nameplate / install shot) — R2 CDN URLs, same
+    // convention as report pictures. Capped at 3 in the validator.
+    photos: text('photos')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     // Audit for the rare soft delete (created-by-mistake only).
     deleteComment: text('delete_comment'),
     deletedBy: uuid('deleted_by').references(() => users.id),

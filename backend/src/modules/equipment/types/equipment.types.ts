@@ -19,6 +19,7 @@ export type UpdateEquipmentFields = Partial<
     | 'installedByUs'
     | 'status'
     | 'notes'
+    | 'photos'
   >
 >;
 
@@ -49,6 +50,7 @@ export interface EquipmentDTO {
   materialUnitId?: string;
   status: EquipmentStatus;
   notes?: string;
+  photos: string[];
   lastServiceDate?: string;
   reports?: EquipmentReportLink[];
   createdAt: string;

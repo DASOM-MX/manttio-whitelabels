@@ -15,6 +15,8 @@ export const createEquipmentSchema = z.object({
   installDate: z.string().optional(),
   installedByUs: z.boolean().default(false),
   notes: z.string().optional(),
+  // Up to 3 photos of the unit — R2 CDN URLs.
+  photos: z.array(z.string().url()).max(3).optional(),
 });
 
 // PATCH: any create field plus the retire/reactivate status transition.

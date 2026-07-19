@@ -52,6 +52,7 @@ const toDTO = (
   materialUnitId: opt(row.materialUnitId),
   status: row.status,
   notes: opt(row.notes),
+  photos: row.photos ?? [],
   lastServiceDate: opt(extras.lastServiceDate),
   reports: extras.reports,
   createdAt: row.createdAt.toISOString(),
@@ -86,6 +87,7 @@ const collectUpdate = (input: UpdateEquipmentInput): UpdateEquipmentFields => {
   if (input.installDate !== undefined) f.installDate = input.installDate ?? null;
   if (input.installedByUs !== undefined) f.installedByUs = input.installedByUs;
   if (input.notes !== undefined) f.notes = input.notes ?? null;
+  if (input.photos !== undefined) f.photos = input.photos;
   if (input.status !== undefined) f.status = input.status;
   return f;
 };
@@ -130,6 +132,7 @@ export const createEquipment = async (
     installDate: input.installDate ?? null,
     installedByUs: input.installedByUs,
     notes: input.notes ?? null,
+    photos: input.photos ?? [],
   };
   const row = await insertEquipment(db, values);
   return (await detailDTO(db, row.id)) ?? toDTO(row);

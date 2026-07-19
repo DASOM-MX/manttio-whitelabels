@@ -32,6 +32,8 @@ export interface Equipment {
   materialUnitId?: string;
   status: EquipmentStatus;
   notes?: string;
+  /** Up to 3 photos of the unit — R2 CDN URLs. */
+  photos?: string[];
   lastServiceDate?: string;
   /** Detail only: linked reports, newest first. */
   reports?: EquipmentReportLink[];
@@ -59,6 +61,8 @@ export interface SaveEquipmentRequest {
   installDate?: string;
   installedByUs: boolean;
   notes?: string;
+  /** Up to 3 photos — R2 CDN URLs from POST /upload/image. */
+  photos?: string[];
 }
 
 export interface DeleteEquipmentRequest {

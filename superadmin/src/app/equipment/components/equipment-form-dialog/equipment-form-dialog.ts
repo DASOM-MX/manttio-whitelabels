@@ -6,12 +6,16 @@ import { SelectModule } from 'primeng/select';
 import { CheckboxModule } from 'primeng/checkbox';
 import { TextareaModule } from 'primeng/textarea';
 import { MessageService } from 'primeng/api';
+import { LucideImagePlus, LucideX } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { CreateEquipment, UpdateEquipment } from '../../../../state/equipment/equipment.actions';
 import { CustomersState } from '../../../../state/customers/customers.state';
 import { LoadCustomers } from '../../../../state/customers/customers.actions';
+import { UploadService } from '../../../services/http/upload.service';
 import { errorMessage } from '../../../data/utils';
 import type { Equipment } from '../../../data/dtos/equipment';
+
+const MAX_PHOTOS = 3;
 
 /** Shape-3 create/edit dialog (11 §4) — openable from the global list and
  *  from the customer-view card with the client pre-locked. */
@@ -24,6 +28,8 @@ import type { Equipment } from '../../../data/dtos/equipment';
     SelectModule,
     CheckboxModule,
     TextareaModule,
+    LucideImagePlus,
+    LucideX,
   ],
   templateUrl: './equipment-form-dialog.html',
 })
@@ -34,12 +40,21 @@ export class EquipmentFormDialog {
   private fb = inject(FormBuilder);
   private store = inject(Store);
   private messages = inject(MessageService);
+  private uploads = inject(UploadService);
 
   protected dialogOpen = signal(false);
   protected submitting = signal(false);
   protected editing = signal<Equipment | null>(null);
   /** Set when opened from a customer view — client select locked. */
   protected lockedCustomerId = signal<string | null>(null);
+
+  /** Up to 3 photo URLs (11) — uploaded one at a time to R2 via /upload/image. */
+  protected readonly maxPhotos = MAX_PHOTOS;
+  protected photos = signal<string[]>([]);
+  protected uploadingPhoto = signal(false);
+  protected canAddPhoto = computed(
+    () => this.photos().length < MAX_PHOTOS && !this.uploadingPhoto(),
+  );
 
   private customers = select(CustomersState.items);
 
@@ -84,13 +99,42 @@ export class EquipmentFormDialog {
     });
     if (this.lockedCustomerId()) this.form.controls.customerId.disable({ emitEvent: false });
     else this.form.controls.customerId.enable({ emitEvent: false });
+    this.photos.set(eq?.photos ?? []);
+    this.uploadingPhoto.set(false);
     this.submitting.set(false);
     this.dialogOpen.set(true);
   }
 
   protected close(): void {
-    if (this.submitting()) return;
+    if (this.submitting() || this.uploadingPhoto()) return;
     this.dialogOpen.set(false);
+  }
+
+  /** Upload the picked image to R2 and append its URL (cap MAX_PHOTOS). */
+  protected onPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = ''; // allow re-picking the same file
+    if (!file || this.photos().length >= MAX_PHOTOS) return;
+    this.uploadingPhoto.set(true);
+    this.uploads.uploadImage(file).subscribe({
+      next: ({ url }) => {
+        this.photos.update((list) => [...list, url].slice(0, MAX_PHOTOS));
+        this.uploadingPhoto.set(false);
+      },
+      error: (err) => {
+        this.uploadingPhoto.set(false);
+        this.messages.add({
+          severity: 'error',
+          summary: 'No se pudo subir la foto',
+          detail: errorMessage(err, 'Inténtalo de nuevo.'),
+        });
+      },
+    });
+  }
+
+  protected removePhoto(index: number): void {
+    this.photos.update((list) => list.filter((_, i) => i !== index));
   }
 
   protected submit(): void {
@@ -108,6 +152,7 @@ export class EquipmentFormDialog {
       installDate: raw.installDate || undefined,
       installedByUs: raw.installedByUs,
       notes: raw.notes || undefined,
+      photos: this.photos(),
     };
     const editing = this.editing();
     this.submitting.set(true);
