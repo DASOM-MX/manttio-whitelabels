@@ -48,7 +48,7 @@ const toDTO = (
   capacity: opt(row.capacity),
   location: opt(row.location),
   installDate: opt(row.installDate),
-  installedByUs: row.installedByUs,
+  origin: row.origin,
   materialUnitId: opt(row.materialUnitId),
   status: row.status,
   notes: opt(row.notes),
@@ -85,7 +85,7 @@ const collectUpdate = (input: UpdateEquipmentInput): UpdateEquipmentFields => {
   if (input.capacity !== undefined) f.capacity = input.capacity ?? null;
   if (input.location !== undefined) f.location = input.location ?? null;
   if (input.installDate !== undefined) f.installDate = input.installDate ?? null;
-  if (input.installedByUs !== undefined) f.installedByUs = input.installedByUs;
+  if (input.origin !== undefined) f.origin = input.origin;
   if (input.notes !== undefined) f.notes = input.notes ?? null;
   if (input.photos !== undefined) f.photos = input.photos;
   if (input.status !== undefined) f.status = input.status;
@@ -130,7 +130,7 @@ export const createEquipment = async (
     capacity: input.capacity ?? null,
     location: input.location ?? null,
     installDate: input.installDate ?? null,
-    installedByUs: input.installedByUs,
+    origin: input.origin,
     notes: input.notes ?? null,
     photos: input.photos ?? [],
   };

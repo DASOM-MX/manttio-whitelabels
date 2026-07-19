@@ -4,6 +4,10 @@
 
 export type EquipmentStatus = 'active' | 'retired';
 
+/** How the unit came to be at the client: `externo` = pre-existing unit we only
+ *  service; `venta` = we sold it; `renta` = we rent it to them. */
+export type EquipmentOrigin = 'externo' | 'venta' | 'renta';
+
 /** Minimal linked-report row for the service-history table — deliberately
  *  independent of module 06's DTOs (sibling branch; shapes reconcile at the
  *  backend contract). */
@@ -27,7 +31,7 @@ export interface Equipment {
   capacity?: string; // free text v1
   location?: string; // 'azotea', 'cuarto de máquinas'…
   installDate?: string;
-  installedByUs: boolean;
+  origin: EquipmentOrigin;
   /** WMS hook (10): serialized unit this asset came from. */
   materialUnitId?: string;
   status: EquipmentStatus;
@@ -59,7 +63,7 @@ export interface SaveEquipmentRequest {
   capacity?: string;
   location?: string;
   installDate?: string;
-  installedByUs: boolean;
+  origin: EquipmentOrigin;
   notes?: string;
   /** Up to 3 photos — R2 CDN URLs from POST /upload/image. */
   photos?: string[];

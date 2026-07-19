@@ -76,9 +76,15 @@
           </dd>
         </div>
         <div>
-          <dt class="micro-label">Marca / modelo</dt>
+          <dt class="micro-label">Marca</dt>
           <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
-            {{ eq.brand || '—' }} {{ eq.model }}
+            {{ eq.brand || '—' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Modelo</dt>
+          <dd class="mt-0.5 text-sm font-medium text-granite-950 dark:text-granite-50">
+            {{ eq.model || '—' }}
           </dd>
         </div>
         <div>
@@ -102,17 +108,20 @@
           </dd>
         </div>
         <div>
+          <dt class="micro-label">Origen</dt>
+          <dd class="mt-0.5">
+            <p-tag
+              [severity]="eq.origin | equipmentOriginSeverity"
+              [value]="eq.origin | equipmentOriginLabel"
+            />
+          </dd>
+        </div>
+        <div>
           <dt class="micro-label">Instalación</dt>
           <dd
             class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-950 dark:text-granite-50"
           >
             {{ eq.installDate || '—' }}
-            @if (eq.installedByUs) {
-              <span
-                class="ml-1 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-900 ring-1 ring-sky-300"
-                >instalado por nosotros</span
-              >
-            }
           </dd>
         </div>
         @if (eq.materialUnitId) {

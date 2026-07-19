@@ -3,7 +3,6 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
-import { CheckboxModule } from 'primeng/checkbox';
 import { TextareaModule } from 'primeng/textarea';
 import { MessageService } from 'primeng/api';
 import { LucideImagePlus, LucideX } from '@lucide/angular';
@@ -12,8 +11,9 @@ import { CreateEquipment, UpdateEquipment } from '../../../../state/equipment/eq
 import { CustomersState } from '../../../../state/customers/customers.state';
 import { LoadCustomers } from '../../../../state/customers/customers.actions';
 import { UploadService } from '../../../services/http/upload.service';
+import { EQUIPMENT_ORIGIN_LABELS } from '../../../model/constants/equipment/equipment-origin-labels.const';
 import { errorMessage } from '../../../data/utils';
-import type { Equipment } from '../../../data/dtos/equipment';
+import type { Equipment, EquipmentOrigin } from '../../../data/dtos/equipment';
 
 const MAX_PHOTOS = 3;
 
@@ -26,7 +26,6 @@ const MAX_PHOTOS = 3;
     DialogModule,
     InputTextModule,
     SelectModule,
-    CheckboxModule,
     TextareaModule,
     LucideImagePlus,
     LucideX,
@@ -62,6 +61,10 @@ export class EquipmentFormDialog {
     this.customers().map((c) => ({ label: c.name, value: c.id })),
   );
 
+  protected originOptions = (Object.entries(EQUIPMENT_ORIGIN_LABELS) as [EquipmentOrigin, string][]).map(
+    ([value, label]) => ({ label, value }),
+  );
+
   protected form = this.fb.nonNullable.group({
     customerId: ['', Validators.required],
     name: [''],
@@ -72,7 +75,7 @@ export class EquipmentFormDialog {
     capacity: [''],
     location: [''],
     installDate: [''],
-    installedByUs: [false],
+    origin: ['externo' as EquipmentOrigin, Validators.required],
     notes: [''],
   });
 
@@ -94,7 +97,7 @@ export class EquipmentFormDialog {
       capacity: eq?.capacity ?? '',
       location: eq?.location ?? '',
       installDate: eq?.installDate ?? '',
-      installedByUs: eq?.installedByUs ?? false,
+      origin: eq?.origin ?? 'externo',
       notes: eq?.notes ?? '',
     });
     if (this.lockedCustomerId()) this.form.controls.customerId.disable({ emitEvent: false });
@@ -150,7 +153,7 @@ export class EquipmentFormDialog {
       capacity: raw.capacity || undefined,
       location: raw.location || undefined,
       installDate: raw.installDate || undefined,
-      installedByUs: raw.installedByUs,
+      origin: raw.origin,
       notes: raw.notes || undefined,
       photos: this.photos(),
     };

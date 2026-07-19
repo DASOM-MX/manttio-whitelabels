@@ -20,6 +20,10 @@ import {
   EquipmentStatusLabelPipe,
   EquipmentStatusSeverityPipe,
 } from '../../../pipes/equipment-status.pipe';
+import {
+  EquipmentOriginLabelPipe,
+  EquipmentOriginSeverityPipe,
+} from '../../../pipes/equipment-origin.pipe';
 import { EquipmentFormDialog } from '../../components/equipment-form-dialog/equipment-form-dialog';
 import { errorMessage } from '../../../data/utils';
 import type { EquipmentReportLink } from '../../../data/dtos/equipment';
@@ -37,6 +41,8 @@ import type { EquipmentReportLink } from '../../../data/dtos/equipment';
     CarouselModule,
     EquipmentStatusLabelPipe,
     EquipmentStatusSeverityPipe,
+    EquipmentOriginLabelPipe,
+    EquipmentOriginSeverityPipe,
     EquipmentFormDialog,
     LucideArrowLeft,
     LucidePencil,

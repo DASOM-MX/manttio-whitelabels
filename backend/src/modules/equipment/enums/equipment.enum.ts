@@ -4,3 +4,11 @@ export enum EquipmentStatus {
   Active = 'active',
   Retired = 'retired',
 }
+
+// How the unit came to be at the client (11): `externo` = pre-existing unit we
+// only service; `venta` = we sold it; `renta` = we rent it to them.
+export enum EquipmentOrigin {
+  Externo = 'externo',
+  Venta = 'venta',
+  Renta = 'renta',
+}

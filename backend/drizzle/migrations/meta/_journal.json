@@ -127,6 +127,13 @@
       "when": 1784419200000,
       "tag": "0017_equipment_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1784505600000,
+      "tag": "0018_equipment_origin",
+      "breakpoints": true
     }
   ]
 }

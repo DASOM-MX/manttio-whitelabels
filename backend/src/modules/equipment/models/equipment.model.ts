@@ -1,18 +1,9 @@
 import { sql } from 'drizzle-orm';
-import {
-  boolean,
-  date,
-  index,
-  pgTable,
-  primaryKey,
-  text,
-  timestamp,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { date, index, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { customers } from '../../customers/models/customers.model';
 import { users } from '../../users/models/users.model';
 import { reports } from '../../reports/models/reports.model';
-import { EquipmentStatus } from '../enums/equipment.enum';
+import { EquipmentOrigin, EquipmentStatus } from '../enums/equipment.enum';
 
 // The client's installed units (11 §1). Each belongs to a customer and
 // accumulates a derived service history (linked reports, never stored on the
@@ -34,7 +25,8 @@ export const equipment = pgTable(
     capacity: text('capacity'),
     location: text('location'),
     installDate: date('install_date'),
-    installedByUs: boolean('installed_by_us').notNull().default(false),
+    // How the unit came to be at the client (externo | venta | renta).
+    origin: text('origin').$type<EquipmentOrigin>().notNull().default(EquipmentOrigin.Externo),
     // WMS hook (10): the serialized unit this asset came from. No FK yet — the
     // WMS module isn't modeled; a plain uuid backlink until it lands.
     materialUnitId: uuid('material_unit_id'),

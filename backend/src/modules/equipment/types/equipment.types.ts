@@ -1,5 +1,5 @@
 import type { equipment, equipmentReports } from '../models/equipment.model';
-import type { EquipmentStatus } from '../enums/equipment.enum';
+import type { EquipmentOrigin, EquipmentStatus } from '../enums/equipment.enum';
 
 export type EquipmentRow = typeof equipment.$inferSelect;
 export type NewEquipment = typeof equipment.$inferInsert;
@@ -16,7 +16,7 @@ export type UpdateEquipmentFields = Partial<
     | 'capacity'
     | 'location'
     | 'installDate'
-    | 'installedByUs'
+    | 'origin'
     | 'status'
     | 'notes'
     | 'photos'
@@ -46,7 +46,7 @@ export interface EquipmentDTO {
   capacity?: string;
   location?: string;
   installDate?: string;
-  installedByUs: boolean;
+  origin: EquipmentOrigin;
   materialUnitId?: string;
   status: EquipmentStatus;
   notes?: string;

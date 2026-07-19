@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { EquipmentStatus } from '../enums/equipment.enum';
+import { EquipmentOrigin, EquipmentStatus } from '../enums/equipment.enum';
 
 // Free-text fields are optional; the frontend requires none but `customerId`.
 export const createEquipmentSchema = z.object({
@@ -13,7 +13,7 @@ export const createEquipmentSchema = z.object({
   location: z.string().optional(),
   // `date` column — a plain 'YYYY-MM-DD' string.
   installDate: z.string().optional(),
-  installedByUs: z.boolean().default(false),
+  origin: z.nativeEnum(EquipmentOrigin).default(EquipmentOrigin.Externo),
   notes: z.string().optional(),
   // Up to 3 photos of the unit — R2 CDN URLs.
   photos: z.array(z.string().url()).max(3).optional(),
