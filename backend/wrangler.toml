@@ -17,6 +17,8 @@ CDN_BASE_URL = "https://cdn.dasom.com"
 LOGOS_CDN_BASE_URL = "https://logos.dasom.com"
 API_BASE_URL = "http://127.0.0.1:8787"
 RESEND_FROM = "no-reply@dasom.com"
+# Cloudflare Turnstile server-side verification endpoint (POST /public/leads).
+TURNSTILE_SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 # FONT_CDN_BASE_URL — CDN fronting the shared `branding-fonts` bucket. Optional:
 # until it exists, GET /fonts serves entries without hosted files (the two
 # default families are bundled by every consumer).
@@ -34,6 +36,15 @@ bucket_name = "manttio-logos"
 binding = "MANTTIO_EQUIPMENT"
 bucket_name = "manttio-equipment"
 
+# 1 req/min per IP on POST /public/leads (Workers rate-limiting API). Best-effort
+# per-colo counting — an abuse dial, not a strict quota. Optional binding: the
+# controller fails open when it is absent.
+[[unsafe.bindings]]
+name = "LEADS_RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 1, period = 60 }
+
 # Production deploy: `wrangler deploy --env production`.
 # Wrangler v4 inherits top-level config; only the overrides live here.
 [env.production.vars]
@@ -42,6 +53,7 @@ CDN_BASE_URL = "https://cdn.dasom.com"
 LOGOS_CDN_BASE_URL = "https://logos.dasom.com"
 API_BASE_URL = "https://api.dasom.com"
 RESEND_FROM = "no-reply@dasom.com"
+TURNSTILE_SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
 [[env.production.r2_buckets]]
 binding = "MANTTIO_REPORTS"
@@ -55,6 +67,12 @@ bucket_name = "manttio-logos"
 binding = "MANTTIO_EQUIPMENT"
 bucket_name = "manttio-equipment"
 
+[[env.production.unsafe.bindings]]
+name = "LEADS_RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 1, period = 60 }
+
 # Secrets / per-deploy env are set via `wrangler secret put [--env production]`
 # (and `.dev.vars` locally) and are NOT declared here:
 #   DATABASE_URL            Neon Postgres connection string
@@ -66,3 +84,6 @@ bucket_name = "manttio-equipment"
 #                           /upload/equipment returns + persists in equipment.photos
 #                           (S3 endpoint / r2.dev / custom domain — kept per-deploy,
 #                           out of committed config)
+#   TURNSTILE_SECRET_KEY    Cloudflare Turnstile secret for siteverify on
+#                           POST /public/leads (dev: always-pass test secret,
+#                           see .dev.vars.example)

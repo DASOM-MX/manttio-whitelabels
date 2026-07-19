@@ -7,9 +7,15 @@ export type Env = {
   /** Shared secret the whitelabel manager presents (X-Manager-Token) on its
    *  config-push writes. Unset → the manager path fails closed. */
   MANAGER_SHARED_TOKEN: string;
+  /** Cloudflare Turnstile secret for server-side siteverify on the public
+   *  lead endpoint. Dev uses the always-pass test secret (see .dev.vars.example). */
+  TURNSTILE_SECRET_KEY: string;
 
   ENVIRONMENT: Environment;
   CDN_BASE_URL: string;
+  /** Turnstile siteverify endpoint — a var (not a literal) so a Cloudflare
+   *  URL change is a config edit, not a code change. */
+  TURNSTILE_SITEVERIFY_URL: string;
   /** Public base of the `manttio-logos` bucket — brand images (logo/isologo/
    *  favicon uploads via POST /upload/logo) and the generated PWA icon set. */
   LOGOS_CDN_BASE_URL: string;
@@ -27,6 +33,9 @@ export type Env = {
   MANTTIO_LOGOS: R2Bucket;
   /** Equipment photo bucket (`manttio-equipment`) — separate lifecycle from report data. */
   MANTTIO_EQUIPMENT: R2Bucket;
+  /** 1 req/min per-IP throttle on POST /public/leads (Workers rate-limiting
+   *  binding). Optional: when absent the throttle is skipped (fail-open). */
+  LEADS_RATE_LIMITER?: RateLimit;
 };
 
 export type AuthUser = {
