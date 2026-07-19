@@ -62,7 +62,11 @@ export const findCustomerWithRelations = async (
   db: Db,
   id: string,
 ): Promise<CustomerWithRelations | null> => {
-  const [customer] = await db.select().from(customers).where(eq(customers.id, id)).limit(1);
+  const [customer] = await db
+    .select()
+    .from(customers)
+    .where(and(eq(customers.id, id), isNull(customers.deletedAt)))
+    .limit(1);
   if (!customer) return null;
   const [contacts, fiscal] = await Promise.all([contactsOf(db, id), fiscalOf(db, id)]);
   return { ...customer, contacts, fiscal };
