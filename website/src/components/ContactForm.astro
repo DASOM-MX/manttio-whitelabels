@@ -356,7 +356,7 @@ const errorClass = 'mt-1.5 hidden text-sm text-red-600';
       const errors: Array<[string, string]> = [];
       if (!firstName) errors.push(['firstName', 'Ingresa tu nombre.']);
       if (!lastName) errors.push(['lastName', 'Ingresa tu apellido.']);
-      if (!email && !phone) errors.push(['email', 'Proporciona al menos un correo o teléfono.']);
+      if (!email && !phone) errors.push(['phone', 'Proporciona al menos un correo o teléfono.']);
       if (email && !/^\S+@\S+\.\S+$/.test(email))
         errors.push(['email', 'Ingresa un correo válido.']);
       if (clientType === 'business' && !businessName)
