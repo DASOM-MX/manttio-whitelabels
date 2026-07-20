@@ -63,9 +63,9 @@ merging — GitHub does not auto-retarget). Branch naming
   required, notes required). Same principle as CRM interactions and visit assignments.
 - **Movement reasons are data, not an enum** (tenant-customizable definition entity,
   master plan §4): `MovementReasonDef` with immutable auto-slugged `code`, editable
-  `label`, `active` flag, deactivate-only. The 12 built-ins (incl. `scrap`, added
-  2026-07-20) are backend-seeded and locked; owner/admin add custom reasons from
-  inside the reason select.
+  `label`, `active` flag, deactivate-only. The 13 built-ins (incl. `scrap` +
+  `lot_expired`, added 2026-07-20) are backend-seeded and locked; owner/admin add
+  custom reasons from inside the reason select.
 - **Backend is the sole authority** — every endpoint enforces role + constraint on its
   own; superadmin guards/hiding are UX and bundle hygiene only.
 - **No in-tenant module gating** (correction 2026-07-15, `../14-access-control.md` header):
@@ -221,25 +221,42 @@ Each is argued in its owning sub-plan; this is the sign-off index.
     exception, §2; the record is the promoted doc + items + movements + the import
     header's file name/mapping); never-approved staging is cron-cleaned — `01`
     §2/§4, `02` §6, `11` §4.
-15. **Unprocessable rows** (owner 2026-07-20): serial **and lot** collisions
-    (`duplicate_serial`/`duplicate_lot` repeats, `serial_exists`/`lot_exists`)
-    **don't block approval** — they promote as flagged, movement-less
-    `replenishment_items` (`unprocessable: true` + error code), visible in the
-    document and counted on the list, so owner/admin/office see the duplicate and
-    review records / contact the provider. Fixable errors (`unknown_sku`,
-    `bad_quantity`, `missing_serial`, `missing_lot`, `quantity_on_serialized`)
-    still gate approval; both classes stay PATCH-fixable pre-approval — `01` §2,
-    `02` §6, `07` §2.
+15. **Unprocessable rows** (owner 2026-07-20): **serial** collisions
+    (`duplicate_serial` repeats, `serial_exists`) **don't block approval** — they
+    promote as flagged, movement-less `replenishment_items` (`unprocessable: true`
+    + error code), visible in the document and counted on the list, so
+    owner/admin/office see the duplicate and review records / contact the provider.
+    Fixable errors (`unknown_sku`, `bad_quantity`, `missing_serial`, `missing_lot`,
+    `bad_expiry`, `quantity_on_serialized`) still gate approval; both classes stay
+    PATCH-fixable pre-approval. **Lot collisions are not errors** — re-receipt
+    tops up (item 16) — `01` §2, `02` §6, `07` §2.
 16. **Lot tracking** (owner 2026-07-20 — confirmed a third tracking mode):
     `lot`-tracked materials are batch consumables (nails, rivets, washers)
     technicians draw quantities from. `material_lots` balances keyed
     `(material, lot_number, location)`; movements carry `lot_number`; the import
-    mapper gains a **Lote** target; inbound/transfer/readjust/consumption all take
-    `lotNumber + quantity`. Lot expiry/FEFO and lot re-receipt (`lot_exists` as a
-    top-up rather than unprocessable) are parked open items — `01` §1/§2/§3.
-17. **`scrap` movement reason** (owner 2026-07-20): 12th built-in seed, Merma,
+    mapper gains **Lote** + **Caducidad** targets; inbound/transfer/readjust/
+    consumption all take `lotNumber + quantity`.
+    - **Re-receipt = top-up (enabled 2026-07-20):** a repeat lot number (in-file
+      or in DB) adds to the lot's balance; it is not an error. Lot identity is
+      `(material, lot_number)`.
+    - **Expiry (enabled 2026-07-20, if the field is present):** `expires_at` per
+      lot, display + warning pills; **manual FEFO** via the `lot_expired` reason
+      (item 18) + expiry-sorted lot selects; consuming an expired lot on a report
+      fires a **warn-confirm dialog** (08 §2). *Automatic* FEFO and *hard*-blocking
+      expired consumption are parked — `01` §1/§2/§3, `08` §2.
+17. **`scrap` movement reason** (owner 2026-07-20): built-in seed, Merma,
     `readjustment_out` — scrapped/waste material; serialized units it removes flip
     to `lost` like the other write-off reasons — `01` §5.
+18. **`lot_expired` movement reason** (owner 2026-07-20): built-in seed, Lote
+    vencido, `readjustment_out` — manual write-off of an expired lot (the manual
+    FEFO instrument); 13 seeded built-ins total now — `01` §5.
+19. **One in-flight import at a time** (owner 2026-07-20): a tenant may not start a
+    new replenishment import while one is in a pre-approval state
+    (`uploaded`/`queued`/`processing`/`ready`) — DB-enforced by a partial unique
+    index, `409 import_in_progress`; the register page + list CTA resume the
+    existing one instead of opening a second. ⚠️ Scope spec'd **per tenant** (one
+    global in-flight); if warehouses are restocked concurrently by different staff,
+    a **per-warehouse** scope may be wanted — confirm — `01` §2, `02` §6, `07` §2.
 
 ## 7. Progress board (sub-plan owners update their row + their file header together)
 

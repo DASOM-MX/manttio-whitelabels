@@ -49,10 +49,11 @@ enum ReplenishmentImportStatus {                     // added 2026-07-19 (owner 
 
 `STORAGE_NODE_RANK: Record<StorageNodeType, number>` (`wms/constants/`) —
 `storage_unit: 1, rack: 2, section: 3, storage_box: 4`; hierarchy rule in §2.
-`UNPROCESSABLE_ROW_ERRORS = ['duplicate_serial', 'serial_exists', 'duplicate_lot',
-'lot_exists']` (`wms/constants/`) — the fixable-vs-unprocessable row-error split
-(owner 2026-07-20, serials and lots alike; semantics in 02 §6, shared with the
-frontend mirror constant).
+`UNPROCESSABLE_ROW_ERRORS = ['duplicate_serial', 'serial_exists']` (`wms/constants/`)
+— the fixable-vs-unprocessable row-error split (owner 2026-07-20; **serials only** —
+lot collisions are legitimate top-ups, not errors, since re-receipt was enabled
+2026-07-20: a lot number is a batch label, not a unique physical identity). Semantics
+in 02 §6, shared with the frontend mirror constant.
 
 ## 2. Tables
 
@@ -142,8 +143,16 @@ shop and a van = two rows); the lot's identity is `(material_id, lot_number)`.
 | `lot_number` | text, not null |
 | `warehouse_id` / `storage_node_id` | location (node nullable) |
 | `quantity` | numeric(12,3), not null, `CHECK (quantity >= 0)` |
+| `expires_at` | timestamptz null (**added 2026-07-20, owner — lot expiry**): a property of the lot *number*, captured only when the import/inbound provides it. Denormalized here (a lot split across locations repeats it); the service keeps it consistent — first receipt sets it, top-up keeps it, transfer inherits the source row's value, and a fresh location for an existing `(material, lot_number)` reuses that lot's known expiry. Null = no expiry tracked (the common case) |
 | — | `UNIQUE NULLS NOT DISTINCT (material_id, lot_number, warehouse_id, storage_node_id)` |
 | `created_at` | — no `deleted_at`: a drained lot row keeps its zero balance (history reads naturally; the drained-lot cleanup question is deliberately not asked until real data hoards rows) |
+
+**Lot re-receipt = top-up (enabled 2026-07-20, owner):** receiving a lot number that
+already exists — in the same file or already in stock — is **not an error**; it adds
+to that lot's balance at the destination (the `stock_entries`-style upsert, §3). Lot
+identity is `(material_id, lot_number)`; there is no `lot_exists`/`duplicate_lot`
+error. Accepted trade-off: a typo'd lot number silently merges into the wrong lot —
+same risk profile as any quantity entry, and the movement history records it.
 
 ### `stock_entries` — unserialized balances (materialized)
 
@@ -190,7 +199,7 @@ unit" is a plain indexed join (`material-view` unit drill-down, equipment hook).
 | `id` | pk |
 | `code` | text, not null, unique — **immutable**, auto-slugged from the label server-side (collision → `-2` suffix) |
 | `label` | text, not null — editable on custom reasons only |
-| `built_in` | boolean, not null, default false — the 12 seeds (§5); **fully locked** (no label edits, no deactivation) |
+| `built_in` | boolean, not null, default false — the 13 seeds (§5); **fully locked** (no label edits, no deactivation) |
 | `applies_to` | text[] of `ReasonContext`, not null, ≥1 |
 | `active` | boolean, not null, default true — deactivate instead of delete; **no DELETE path** |
 | `created_at` | — |
@@ -233,7 +242,14 @@ replenishment_imports {
                                            //   prep and an admin can approve later;
                                            //   copied onto the doc at approval
   user_id not null → users, created_at, updated_at
-}                                          // never deleted — abandoned = 'discarded'
+}                                          // never deleted — abandoned = 'discarded'.
+                                           // ONE IN-FLIGHT PER TENANT (owner
+                                           //   2026-07-20): partial unique index
+                                           //   UNIQUE ((true)) WHERE status IN
+                                           //   ('uploaded','queued','processing',
+                                           //   'ready') — DB-enforces a single
+                                           //   pre-approval import; POST maps the
+                                           //   violation to 409 import_in_progress
 replenishment_import_rows {                // the STAGING ("temp") table — owner
                                            //   2026-07-19: parsed data lives here,
                                            //   in the tenant DB, until approval
@@ -242,6 +258,8 @@ replenishment_import_rows {                // the STAGING ("temp") table — own
   material_id uuid?,                       // resolved via SKU-then-UPC
   quantity numeric?, serial text?,
   lot text?,                               // lot-tracked rows: lot number + quantity
+  lot_expires_at timestamptz?,             // parsed from the mapped expiry field
+                                           //   (2026-07-20) when present; else null
   storage_node_id uuid?,                   // optional target node, set by the user
                                            //   during review (never by the processor)
   error text?                              // ParseRowError code (02 §6), null = clean
@@ -280,8 +298,9 @@ replenishment_items {
   quantity numeric?,                       // unserialized
   serials text[]?,                         // serialized (units themselves land in
                                            //   material_units at approval)
-  lot text?,                               // lot-tracked: lot number (+ quantity);
-                                           //   approval upserts material_lots
+  lot text?, lot_expires_at timestamptz?,  // lot-tracked: lot number (+ quantity,
+                                           //   + optional expiry); approval upserts
+                                           //   material_lots (top-up if it exists)
   storage_node_id uuid?,                   // optional target node
   unprocessable boolean not null default false,
   error text?                              // owner 2026-07-20: serial-collision rows
@@ -353,10 +372,15 @@ transaction (the WS driver exists for exactly this — `backend/CLAUDE.md`) that
 2. Inserts the `movements` row (+ `movement_units` rows when serialized).
 3. Applies the delta: unserialized → upsert `stock_entries`; **lot → upsert
    `material_lots`** keyed by lot + location (added 2026-07-20 — same mechanics,
-   one more key column); both use `+` at destination, `−` at source, row lock via
+   one more key column; inbound onto an existing lot **tops up** its balance —
+   re-receipt, above); both use `+` at destination, `−` at source, row lock via
    `SELECT … FOR UPDATE` before decrement, `CHECK (quantity >= 0)` backstopping
-   races → `409 insufficient_stock`. Serialized → update the units'
-   `warehouse_id`/`storage_node_id`/`status`.
+   races → `409 insufficient_stock`. **Lot expiry** rides the upsert: on a
+   destination row the service sets `expires_at` from the movement's expiry when
+   the lot is new, reuses any existing `expires_at` for that `(material,
+   lot_number)` otherwise, and a transfer copies the source lot's `expires_at`
+   onto the destination row (keeps a split lot's expiry consistent). Serialized →
+   update the units' `warehouse_id`/`storage_node_id`/`status`.
 
 Deltas per type: `inbound` +to · `transfer` −from/+to · `consumption` −from ·
 `readjustment` ±per `direction`. Invariant (reconciliation check, testable): for every
@@ -408,7 +432,7 @@ a unit's latest `movement_units` row agrees with its current location/status.
   moved-then-deleted (lifecycle above). **Evidence photos are unaffected** — they
   stay in R2 permanently.
 
-## 5. Seed — the 12 built-in reasons (semantics confirmed 2026-07-05; `scrap` added 2026-07-20)
+## 5. Seed — the 13 built-in reasons (semantics confirmed 2026-07-05; `scrap` + `lot_expired` added 2026-07-20)
 
 Seeded idempotently (insert-if-missing by `code`) at migration/provisioning time,
 `built_in: true`:
@@ -427,6 +451,7 @@ Seeded idempotently (insert-if-missing by `code`) at migration/provisioning time
 | `stock_cleaning` | Depuración de inventario | readjustment_out |
 | `doa` | Dañado de origen (DOA) | readjustment_out |
 | `scrap` | Merma | readjustment_out — **added 2026-07-20 (owner)**: scrapped/waste material (offcuts, unusable remnants); 12th seed |
+| `lot_expired` | Lote vencido | readjustment_out — **added 2026-07-20 (owner)**: manual write-off of an expired lot (manual FEFO — the expiry pill flags it, an admin readjusts it out); 13th seed |
 
 Backend validates `type` ↔ `applies_to` on every movement (readjustments map through
 `readjustment_{direction}`); `400 invalid_reason_context` / `400 reason_inactive`.
@@ -460,14 +485,21 @@ Backend validates `type` ↔ `applies_to` on every movement (readjustments map t
   (editable while virgin) — confirm, then 05 locks the UI accordingly.
 - `unit` free-text vs closed list — spec'd free text + curated suggestions; revisit if
   garbage units show up in real data.
-- **Lot re-receipt** (added 2026-07-20): `lot_exists` currently lands in the
-  unprocessable class like serials (owner direction — duplicates need review).
-  Receiving *more* stock of a legitimately recurring provider lot is plausible;
-  if real usage shows it, relax `lot_exists` to a top-up (inbound onto the
-  existing lot) — owner call, don't relax preemptively.
-- **Lot expiry** (`expires_at` per lot, FEFO picking): not modeled — current lot
-  materials (nails, rivets, washers) don't expire. Design it only when a
-  perishable use-case appears.
+- ~~Lot re-receipt~~ — **enabled 2026-07-20 (owner):** top-up, not an error (above).
+  Remaining sub-question: a top-up whose provided expiry *differs* from the lot's
+  stored expiry — v1 keeps the existing value (a differing expiry usually means a
+  mistyped lot number). Add a `lot_expiry_conflict` warning only if real data shows
+  it happening.
+- ~~Lot expiry~~ — **enabled 2026-07-20 (owner), display-only + manual FEFO:**
+  `expires_at` per lot, captured when the field is present (above). **Manual FEFO**
+  is served by the `lot_expired` readjustment-out reason (§5) — the expiry pill
+  flags a lot, an admin readjusts it out; lot selects sort by soonest expiry as a
+  nudge (06 §3). Consuming an expired lot on a report **warns via a confirm dialog**
+  (08 §2) but is allowed. **Not built in v1** (revisit on demand): *automatic* FEFO
+  enforcement (forcing consumption from the oldest lot) and *hard-blocking*
+  expired-lot consumption (v1 warns, doesn't block). If a lot workload ever
+  gets heavy, normalize expiry into a `(material_id, lot_number)` lot-header table
+  instead of the denormalized column.
 - Whether `report_materials.material_unit_id` unique should be partial (allow re-consume
   after a correction reverted the unit) — spec: **partial, `WHERE` the row is live**; a
   reverted unit must be consumable again. Backend to implement via row deletion on PUT

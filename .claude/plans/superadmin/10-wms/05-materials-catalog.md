@@ -23,7 +23,9 @@ MaterialStock { entries: { warehouse: { id, name }, node?: { id, name },
                            quantity }[],
                 units: MaterialUnit[],           // serialized only
                 lots: { lotNumber, warehouse: { id, name },
-                        node?: { id, name }, quantity }[] }   // lot only
+                        node?: { id, name }, quantity,
+                        expiresAt? }[] }                        // lot only (expiresAt
+                                                              // present if tracked)
 MaterialUnit { id, serialNumber, warehouse: { id, name }, node?: { id, name },
                status: MaterialUnitStatus }
 MaterialUnitStatus = 'in_stock' | 'assigned' | 'consumed' | 'lost'
@@ -74,8 +76,10 @@ movements exist): on edit it renders as a display row with the pill, not a contr
   warehouse cells link to `warehouse-view`. Serialized: the **units table** instead —
   serial (font-data), location, status pill; filter chips by status; count summary
   ("12 en stock · 3 consumidas · 1 perdida"). Lot: the **lots table** instead —
-  lot number (font-data), location, remaining quantity; zero-balance lots fold
-  behind a "Mostrar lotes agotados" toggle.
+  lot number (font-data), location, remaining quantity, **expiry when tracked**
+  (`expiresAt` → date + a "Vencido" / "Por vencer" pill when past / within 30 days —
+  `lot-expiry-pill.pipe.ts`); rows sort by soonest expiry then lot number;
+  zero-balance lots fold behind a "Mostrar lotes agotados" toggle.
 - **Movements history** section below — mounts 06's `movements-table` component
   pre-filtered `materialId` (renders a placeholder marker until 06 lands; leave the
   slot clearly commented, don't build movement UI here).

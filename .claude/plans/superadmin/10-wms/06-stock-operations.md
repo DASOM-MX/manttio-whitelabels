@@ -39,8 +39,8 @@ sky · consumption navy · readjustment amber) +
 **`special-reason-codes.const.ts`** — the only reason codes the UI special-cases:
 `report_binding` (auto-set, never selectable), `relocation` (transfer/self-checkout
 default), `replenishment` (excluded from ad-hoc inbound). The live list always comes
-from the API (`LoadMovementReasons`) — never hardcode the other nine (incl.
-`scrap`, added 2026-07-20).
+from the API (`LoadMovementReasons`) — never hardcode the other ten (incl.
+`scrap` + `lot_expired`, added 2026-07-20).
 
 ## 2. Reason system
 
@@ -88,9 +88,11 @@ barcode scanners work in every dialog with no dedicated scan UI.
   this dialog with destination pre-set to a tech's van (entry point: 03's list row
   action on assigned warehouses). **Technician mode = self-checkout** (§5).
 - **`readjustment-dialog/`** — owner/admin only: direction toggle (Entrada/Salida)
-  which **switches the reason context** (`readjustment_in`/`readjustment_out`),
-  material, location, quantity | unit multiselect | lot select + quantity, reason,
-  **required free-text
+  which **switches the reason context** (`readjustment_in`/`readjustment_out` —
+  `lot_expired` appears among the out reasons for manual FEFO write-offs),
+  material, location, quantity | unit multiselect | **lot select (balance at the
+  location; sorted soonest-expiry-first, each option showing remaining + expiry
+  pill) + quantity**, reason, **required free-text
   notes** (mirrors the delete-dialog audit-comment convention — helper text says the
   note lands permanently in the movement history). Confirm-heavy: submit label
   "Registrar ajuste", no undo (append-only — undo-support rule satisfied by the

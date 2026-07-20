@@ -44,8 +44,16 @@ with 06-reports' owner — one-line mount, slot already marked):
 - **Edit mode** (per role rules): add-row picker — material autocomplete → by
   tracking: quantity input (helper shows available balance at the chosen source) |
   unit select (units `in_stock` at the source) | **lot select (van's lots with
-  balance, remaining shown) + quantity** (2026-07-20 — a technician consumes N
-  washers from a specific lot); **source warehouse select defaults to
+  balance, remaining shown; sorted soonest-expiry-first; expired/expiring lots carry
+  the expiry pill)** + quantity (2026-07-20 — a technician consumes N washers from a
+  specific lot);
+- **Expired-lot consumption warning** (owner 2026-07-20): picking a lot whose
+  `expiresAt` is past opens a **confirm dialog** (shape 2 —
+  `expired-lot-warning-dialog`) — "Este lote venció el <fecha>. ¿Registrar el
+  consumo de todas formas?" Cancel drops the pick; confirm keeps it. **Warns, never
+  blocks** (v1 expiry stance, 01 §5) — a technician may knowingly use an expired
+  lot; the record just reflects reality. Fires per expired-lot pick, in the editor
+  regardless of actor (techs on their own reports, owner/admin on any); **source warehouse select defaults to
   the report technician's van** (from the warehouses list; technician mode: locked to
   own van, rendered as a display row). Row remove (trash icon). **Save dispatches the
   full list** (`PUT` replace-set) — the editor is a small local form array, dirty
@@ -91,8 +99,9 @@ de la serie …") once the hook lands. Record the outcome in both files.
 
 ## 6. Testing
 
-- e2e: technician on own editable report — add unserialized + serialized rows, source
-  locked to van; technician on finished report — read-only; office — read-only;
+- e2e: technician on own editable report — add unserialized + serialized + **lot**
+  rows, source locked to van; **picking an expired lot fires the warning dialog —
+  cancel drops it, confirm keeps it**; technician on finished report — read-only; office — read-only;
   owner on mailed report — editable with correction notice; save payload asserted;
   balance helper reflects source choice.
 - Manual pass (part of original CP-6): tech attaches 2 pza + 1 serial from van → stock
@@ -106,7 +115,9 @@ de la serie …") once the hook lands. Record the outcome in both files.
 ### CP-1 — Editor
 - [ ] DTOs + service + `ReportMaterialsState` (dual-area registration)
 - [ ] Editor component: read view, role-derived modes, add-row picker with tracking
-      switch + balance helper + van defaulting/locking, replace-set save, empty state
+      switch (incl. lot select + qty, expiry-sorted) + balance helper + van
+      defaulting/locking + **expired-lot warning dialog**, replace-set save, empty
+      state
 - [ ] Mounted in report-view's slot (one-line PR to reports area, coordinated)
 
 ### CP-2 — Corrections + polish

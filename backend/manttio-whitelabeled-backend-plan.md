@@ -185,12 +185,12 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
 - **wms** (10): the largest surface — **three tracking modes**
   `serialized | lot | unserialized` (lot added 2026-07-20 for batch consumables —
   `material_lots` balances keyed by lot+location, movements + report-materials +
-  imports all carry `lotNumber + quantity`); stock endpoints all require a `reason`
-  (**12 seeded built-ins incl. `scrap`/Merma, `readjustment_out`, added
-  2026-07-20**); self-checkout constraints server-enforced; replenishments with
-  backend file parsing
-  (`POST /replenishments/parse`, SheetJS-on-Workers CPU check) + R2 evidence;
-  movements append-only per §2. **Full backend spec now in the expanded suite
+  imports all carry `lotNumber + quantity`; **lot re-receipt tops up, optional
+  per-lot `expires_at` with manual-FEFO `lot_expired` reason + consume-expired
+  warning dialog**); stock endpoints all require a `reason` (**13 seeded built-ins
+  incl. `scrap`/Merma + `lot_expired`/Lote vencido, `readjustment_out`, added
+  2026-07-20**); self-checkout constraints server-enforced; replenishments via the
+  async import pipeline (below) + R2 evidence; movements append-only per §2. **Full backend spec now in the expanded suite
   (2026-07-19): `.claude/plans/superadmin/10-wms/01-data-model.md` (tables, enums,
   seeds, stock math) + `02-api-surface.md` (endpoint catalog, gates, error codes).**
   New asks from the suite: dedicated `manttio-wms` R2 bucket + CDN base env for
@@ -206,9 +206,11 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   **purges the staged binary once processed** (`file_deleted_at`; parsed `raw`
   rows are the durable record — uploads are copies, the tenant keeps the
   original); platform retries → DLQ ⇒ `failed`; a daily cron sweeps leftover
-  binaries **and never-approved staging rows**; superadmin listens on an **SSE
-  status stream** (`GET /replenishments/imports/:id/events` — server-side row
-  watcher, closes at the terminal event; one-shot GET for loads). Row fixes +
+  binaries **and never-approved staging rows**; **only one import in flight per
+  tenant** (partial unique index on the pre-approval statuses →
+  `409 import_in_progress`); superadmin listens on an **SSE status stream**
+  (`GET /replenishments/imports/:id/events` — server-side row watcher, closes at
+  the terminal event; one-shot GET for loads). Row fixes +
   evidence/notes prep persist on the staging rows/import (PATCH); **approval —
   owner/admin only (14 §2.1e) — promotes staging into the inventory tables and
   deletes the staged rows (true move — the one sanctioned hard-delete exception:

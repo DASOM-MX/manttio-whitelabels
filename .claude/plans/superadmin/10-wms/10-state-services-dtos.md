@@ -61,6 +61,7 @@ with `01-data-model.md` §1.
 | `material-tracking-labels.const.ts` (Serializado / Por lote / A granel) | 05 |
 | `material-unit-status-labels.const.ts` / `material-unit-status-pill-classes.const.ts` | 05 |
 | `material-unit-suggestions.const.ts` | 05 |
+| `lot-expiry-thresholds.const.ts` (por-vencer window, default 30 days) | 05 |
 | `movement-type-labels.const.ts` / `movement-type-pill-classes.const.ts` | 06 |
 | `reason-context-labels.const.ts` | 06 |
 | `special-reason-codes.const.ts` (`report_binding`, `relocation`, `replenishment`) | 06 |
@@ -73,6 +74,7 @@ with `01-data-model.md` §1.
 
 `storage-node-type-label.pipe.ts` (04) · `material-tracking-label.pipe.ts`,
 `material-unit-status-label.pipe.ts` + `-pill-class.pipe.ts` (05) ·
+`lot-expiry-pill.pipe.ts` (05 — Vencido / Por vencer / null from `expiresAt`) ·
 `movement-type-label.pipe.ts` + `-pill-class.pipe.ts` (06) ·
 `parse-row-error-label.pipe.ts`, `import-status-label.pipe.ts` +
 `-pill-class.pipe.ts` (07). Reuse `cast.pipe.ts` for form casts. No method calls in
@@ -81,8 +83,9 @@ templates.
 ## 6. Shared components inside `wms/`
 
 `reason-select` + `add-reason-dialog` + `movements-table` (06 — consumed by 05/07/09) ·
-the three operation dialogs (06) · `report-materials-editor` (08 — consumed by the
-reports area). Nothing moves to `src/app/shared/components/` unless a **non-wms**
+the three operation dialogs (06) · `report-materials-editor` +
+`expired-lot-warning-dialog` (08 — consumed by the reports area). Nothing moves to
+`src/app/shared/components/` unless a **non-wms**
 second module needs it (master plan §2 rule 4).
 
 ## 7. Guards (`src/app/guards/`, one per file)
