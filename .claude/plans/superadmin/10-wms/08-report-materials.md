@@ -21,10 +21,12 @@ enforces all of it (02 §7) — the UI mirrors.
 
 ```
 ReportMaterial { id, material: MaterialRef,
-                 quantity?,                        // unserialized
+                 quantity?,                        // unserialized + lot
                  unit?: { id, serialNumber },      // serialized
+                 lotNumber?,                        // lot (2026-07-20) — qty from a lot
                  sourceWarehouse: { id, name } }
-SaveReportMaterialsPayload { items: { materialId, quantity? | materialUnitId?,
+SaveReportMaterialsPayload { items: { materialId,
+                                      quantity? | materialUnitId? | (lotNumber + quantity),
                                       sourceWarehouseId }[] }
 ```
 
@@ -41,7 +43,9 @@ with 06-reports' owner — one-line mount, slot already marked):
   of the same unit type is pointless — skip totals, this is a picking list.
 - **Edit mode** (per role rules): add-row picker — material autocomplete → by
   tracking: quantity input (helper shows available balance at the chosen source) |
-  unit select (units `in_stock` at the source); **source warehouse select defaults to
+  unit select (units `in_stock` at the source) | **lot select (van's lots with
+  balance, remaining shown) + quantity** (2026-07-20 — a technician consumes N
+  washers from a specific lot); **source warehouse select defaults to
   the report technician's van** (from the warehouses list; technician mode: locked to
   own van, rendered as a display row). Row remove (trash icon). **Save dispatches the
   full list** (`PUT` replace-set) — the editor is a small local form array, dirty
@@ -58,10 +62,11 @@ with 06-reports' owner — one-line mount, slot already marked):
 reason **`report_binding`** (auto-set — never user-selectable; its seed `appliesTo`
 extended to readjustments for exactly this, proposed 2026-07-19 — 01 §5):
 
-- addition → `consumption` movement (−source; serialized: unit → `consumed`),
-  `reportId` set;
+- addition → `consumption` movement (−source; serialized: unit → `consumed`; lot:
+  −qty from that `lot_number` at source), `reportId` set;
 - removal / quantity decrease → compensating `readjustment` (direction `in`, +back at
-  the recorded source; serialized: unit back to `in_stock`);
+  the recorded source; serialized: unit back to `in_stock`; lot: +qty back onto the
+  lot);
 - quantity increase → additional `consumption` for the delta.
 
 The original consumption movements **stand** — history shows the mistake and the

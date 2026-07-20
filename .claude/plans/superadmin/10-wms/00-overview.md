@@ -63,8 +63,9 @@ merging — GitHub does not auto-retarget). Branch naming
   required, notes required). Same principle as CRM interactions and visit assignments.
 - **Movement reasons are data, not an enum** (tenant-customizable definition entity,
   master plan §4): `MovementReasonDef` with immutable auto-slugged `code`, editable
-  `label`, `active` flag, deactivate-only. The 11 built-ins are backend-seeded and
-  locked; owner/admin add custom reasons from inside the reason select.
+  `label`, `active` flag, deactivate-only. The 12 built-ins (incl. `scrap`, added
+  2026-07-20) are backend-seeded and locked; owner/admin add custom reasons from
+  inside the reason select.
 - **Backend is the sole authority** — every endpoint enforces role + constraint on its
   own; superadmin guards/hiding are UX and bundle hygiene only.
 - **No in-tenant module gating** (correction 2026-07-15, `../14-access-control.md` header):
@@ -220,6 +221,25 @@ Each is argued in its owning sub-plan; this is the sign-off index.
     exception, §2; the record is the promoted doc + items + movements + the import
     header's file name/mapping); never-approved staging is cron-cleaned — `01`
     §2/§4, `02` §6, `11` §4.
+15. **Unprocessable rows** (owner 2026-07-20): serial **and lot** collisions
+    (`duplicate_serial`/`duplicate_lot` repeats, `serial_exists`/`lot_exists`)
+    **don't block approval** — they promote as flagged, movement-less
+    `replenishment_items` (`unprocessable: true` + error code), visible in the
+    document and counted on the list, so owner/admin/office see the duplicate and
+    review records / contact the provider. Fixable errors (`unknown_sku`,
+    `bad_quantity`, `missing_serial`, `missing_lot`, `quantity_on_serialized`)
+    still gate approval; both classes stay PATCH-fixable pre-approval — `01` §2,
+    `02` §6, `07` §2.
+16. **Lot tracking** (owner 2026-07-20 — confirmed a third tracking mode):
+    `lot`-tracked materials are batch consumables (nails, rivets, washers)
+    technicians draw quantities from. `material_lots` balances keyed
+    `(material, lot_number, location)`; movements carry `lot_number`; the import
+    mapper gains a **Lote** target; inbound/transfer/readjust/consumption all take
+    `lotNumber + quantity`. Lot expiry/FEFO and lot re-receipt (`lot_exists` as a
+    top-up rather than unprocessable) are parked open items — `01` §1/§2/§3.
+17. **`scrap` movement reason** (owner 2026-07-20): 12th built-in seed, Merma,
+    `readjustment_out` — scrapped/waste material; serialized units it removes flip
+    to `lost` like the other write-off reasons — `01` §5.
 
 ## 7. Progress board (sub-plan owners update their row + their file header together)
 
@@ -241,6 +261,9 @@ Each is argued in its owning sub-plan; this is the sign-off index.
 
 - **Van / technician warehouse** — a warehouse (usually a sub-warehouse) with
   `assignedTechnicianId` set; one active warehouse per technician.
+- **Tracking modes** — a material is `serialized` (one unit per piece, unique serial),
+  `lot` (batch consumables — nails/rivets/washers; quantity within an identified lot;
+  added 2026-07-20), or `unserialized` (quantity only).
 - **Movement** — one append-only journal row: `inbound` | `transfer` | `consumption` |
   `readjustment` (+ `direction` on readjustments), always with a structured `reason`.
 - **Self-checkout** — a technician-executed transfer with destination locked to their own
@@ -256,5 +279,9 @@ Each is argued in its owning sub-plan; this is the sign-off index.
   `{ importId }`, parses the staged file from R2, writes staging rows + status back
   to Neon, purges the binary; superadmin listens to the DB-backed **SSE status
   stream** (one-shot GET for loads/resume).
+- **Unprocessable item** — a replenishment line whose serial collided (in-file
+  repeat or already in DB): promoted at approval as a visible, flagged item with
+  **zero stock effect** — an awareness artifact for record review / provider
+  follow-up (owner 2026-07-20).
 - **Readjustment** — the only correction instrument; owner/admin, direction + reason +
   notes required.

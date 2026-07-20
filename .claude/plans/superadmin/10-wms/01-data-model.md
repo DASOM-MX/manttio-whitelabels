@@ -22,7 +22,12 @@ WMS DDL is purely additive so this stays safe.
 ```ts
 enum StorageNodeType { StorageUnit = 'storage_unit', Rack = 'rack',
                        Section = 'section', StorageBox = 'storage_box' }
-enum MaterialTracking { Serialized = 'serialized', Unserialized = 'unserialized' }
+enum MaterialTracking { Serialized = 'serialized',   // one row per piece, unique serial
+                        Lot = 'lot',                  // added 2026-07-20 (owner): batch-
+                                                      //   tracked consumables (nails,
+                                                      //   rivets, washers) — identity per
+                                                      //   lot number, quantity within it
+                        Unserialized = 'unserialized' }
 enum MaterialUnitStatus { InStock = 'in_stock', Assigned = 'assigned',
                           Consumed = 'consumed', Lost = 'lost' }
 enum MovementType { Inbound = 'inbound', Transfer = 'transfer',
@@ -44,6 +49,10 @@ enum ReplenishmentImportStatus {                     // added 2026-07-19 (owner 
 
 `STORAGE_NODE_RANK: Record<StorageNodeType, number>` (`wms/constants/`) —
 `storage_unit: 1, rack: 2, section: 3, storage_box: 4`; hierarchy rule in §2.
+`UNPROCESSABLE_ROW_ERRORS = ['duplicate_serial', 'serial_exists', 'duplicate_lot',
+'lot_exists']` (`wms/constants/`) — the fixable-vs-unprocessable row-error split
+(owner 2026-07-20, serials and lots alike; semantics in 02 §6, shared with the
+frontend mirror constant).
 
 ## 2. Tables
 
@@ -120,6 +129,22 @@ unused in v1** (proposed 2026-07-19): consumption flips `in_stock → consumed` 
 on report-material save; a future reserve-on-draft flow can use `assigned` without a
 migration.
 
+### `material_lots` — lot balances per location (added 2026-07-20, owner)
+
+Batch-tracked consumables: technicians consume *quantities* out of identified
+batches. A row is **one lot's balance at one location** (a lot split across the
+shop and a van = two rows); the lot's identity is `(material_id, lot_number)`.
+
+| Column | Type / constraint |
+|---|---|
+| `id` | pk |
+| `material_id` | not null → `materials.id` (a `lot`-tracked material) |
+| `lot_number` | text, not null |
+| `warehouse_id` / `storage_node_id` | location (node nullable) |
+| `quantity` | numeric(12,3), not null, `CHECK (quantity >= 0)` |
+| — | `UNIQUE NULLS NOT DISTINCT (material_id, lot_number, warehouse_id, storage_node_id)` |
+| `created_at` | — no `deleted_at`: a drained lot row keeps its zero balance (history reads naturally; the drained-lot cleanup question is deliberately not asked until real data hoards rows) |
+
 ### `stock_entries` — unserialized balances (materialized)
 
 | Column | Type / constraint |
@@ -139,7 +164,8 @@ migration.
 | `direction` | text `.$type<ReadjustmentDirection>()` null — readjustment only (`CHECK ((type = 'readjustment') = (direction IS NOT NULL))`) |
 | `reason` | text, not null → **FK to `movement_reason_defs.code`** |
 | `material_id` | not null → `materials.id` |
-| `quantity` | numeric null — unserialized movements only; serialized movements use `movement_units` |
+| `quantity` | numeric null — unserialized + lot movements; serialized movements use `movement_units` |
+| `lot_number` | text null — set on lot-tracked movements (which lot the quantity moved in/out of) |
 | `from_warehouse_id` / `from_node_id` | null — set on transfer/consumption/readjustment-out |
 | `to_warehouse_id` / `to_node_id` | null — set on inbound/transfer/readjustment-in |
 | `report_id` | uuid null → `reports.id` — consumption + report-material compensations |
@@ -164,7 +190,7 @@ unit" is a plain indexed join (`material-view` unit drill-down, equipment hook).
 | `id` | pk |
 | `code` | text, not null, unique — **immutable**, auto-slugged from the label server-side (collision → `-2` suffix) |
 | `label` | text, not null — editable on custom reasons only |
-| `built_in` | boolean, not null, default false — the 11 seeds; **fully locked** (no label edits, no deactivation) |
+| `built_in` | boolean, not null, default false — the 12 seeds (§5); **fully locked** (no label edits, no deactivation) |
 | `applies_to` | text[] of `ReasonContext`, not null, ≥1 |
 | `active` | boolean, not null, default true — deactivate instead of delete; **no DELETE path** |
 | `created_at` | — |
@@ -215,6 +241,7 @@ replenishment_import_rows {                // the STAGING ("temp") table — own
   raw jsonb not null,                      // the mapped source values, for display/debug
   material_id uuid?,                       // resolved via SKU-then-UPC
   quantity numeric?, serial text?,
+  lot text?,                               // lot-tracked rows: lot number + quantity
   storage_node_id uuid?,                   // optional target node, set by the user
                                            //   during review (never by the processor)
   error text?                              // ParseRowError code (02 §6), null = clean
@@ -252,8 +279,19 @@ replenishment_items {
   id, replenishment_id not null, material_id not null,
   quantity numeric?,                       // unserialized
   serials text[]?,                         // serialized (units themselves land in
-                                           //   material_units at confirm)
-  storage_node_id uuid?                    // optional target node
+                                           //   material_units at approval)
+  lot text?,                               // lot-tracked: lot number (+ quantity);
+                                           //   approval upserts material_lots
+  storage_node_id uuid?,                   // optional target node
+  unprocessable boolean not null default false,
+  error text?                              // owner 2026-07-20: serial-collision rows
+                                           //   (duplicate_serial / serial_exists)
+                                           //   promote as VISIBLE but UNPROCESSED
+                                           //   items — no movement, no units, no
+                                           //   stock effect — so staff see the
+                                           //   duplicate and review records /
+                                           //   contact the provider. error keeps
+                                           //   the ParseRowError code
 }
 wms_counters { id text pk, value integer not null }   // row 'replenishment_folio';
                                            // proposed 2026-07-19: module-local twin of
@@ -267,10 +305,14 @@ wms_counters { id text pk, value integer not null }   // row 'replenishment_foli
 | `id` | pk |
 | `report_id` | not null → `reports.id` |
 | `material_id` | not null → `materials.id` |
-| `quantity` | numeric null — unserialized |
+| `quantity` | numeric null — unserialized + lot |
+| `lot_number` | text null — lot-tracked consumption: which of the van's lots the quantity came from |
 | `material_unit_id` | uuid null → `material_units.id`; `UNIQUE` where set (a unit is consumed once) |
 | `source_warehouse_id` | not null → `warehouses.id` |
 | `created_at` | — |
+
+Shape per tracking mode (`CHECK` + validator): serialized → `material_unit_id`;
+lot → `quantity` + `lot_number`; unserialized → `quantity` alone.
 
 **This table is current state, not audit** — `PUT /reports/:id/materials` may replace
 rows freely; the audit lives in `movements` (the consumption + compensating
@@ -292,7 +334,8 @@ First key — `wms.last_replenishment_mapping`:
 
 ```
 { headers: string[],                       // the detected header texts at save time
-  mapping: { sku: string, quantity?: string, serial?: string } }   // by HEADER TEXT
+  mapping: { sku: string, quantity?: string,
+             serial?: string, lot?: string } }                     // by HEADER TEXT
 ```
 
 Stored by **header text, not field id** (field ids are per-import): upserted on every
@@ -308,23 +351,26 @@ transaction (the WS driver exists for exactly this — `backend/CLAUDE.md`) that
 1. Validates (role, reason context, tracking mode, self-checkout constraints, source
    balance).
 2. Inserts the `movements` row (+ `movement_units` rows when serialized).
-3. Applies the delta: unserialized → upsert `stock_entries` (`+` at destination, `−` at
-   source; row lock via `SELECT … FOR UPDATE` before decrement; `CHECK (quantity >= 0)`
-   backstops races → `409 insufficient_stock`); serialized → update the units'
+3. Applies the delta: unserialized → upsert `stock_entries`; **lot → upsert
+   `material_lots`** keyed by lot + location (added 2026-07-20 — same mechanics,
+   one more key column); both use `+` at destination, `−` at source, row lock via
+   `SELECT … FOR UPDATE` before decrement, `CHECK (quantity >= 0)` backstopping
+   races → `409 insufficient_stock`. Serialized → update the units'
    `warehouse_id`/`storage_node_id`/`status`.
 
 Deltas per type: `inbound` +to · `transfer` −from/+to · `consumption` −from ·
 `readjustment` ±per `direction`. Invariant (reconciliation check, testable): for every
-`(material, warehouse, node)`, the signed sum of movement quantities equals
-`stock_entries.quantity`; for serialized, a unit's latest `movement_units` row agrees
-with its current location/status.
+`(material, warehouse, node)` — and for lot materials every
+`(material, lot_number, warehouse, node)` — the signed sum of movement quantities
+equals the materialized balance (`stock_entries` / `material_lots`); for serialized,
+a unit's latest `movement_units` row agrees with its current location/status.
 
 ## 4. Lifecycles
 
 - **Serialized unit:** `in_stock` →(consumption on a report)→ `consumed` — a status
   flip, **no virtual "consumed" location** (proposed 2026-07-19); the row keeps its last
   warehouse/node so history reads naturally. `in_stock` →(readjustment-out with
-  `damaged_material`/`stock_cleaning`/`doa`/loss)→ `lost`. Compensating
+  `damaged_material`/`stock_cleaning`/`doa`/`scrap`/loss)→ `lost`. Compensating
   readjustment-in on a correction flips `consumed`/`lost` back to `in_stock` at the
   recorded source (08 §3). `assigned` reserved (§2).
 - **Reasons:** built-ins seeded per §5, locked. Custom: created by owner/admin (label +
@@ -336,9 +382,11 @@ with its current location/status.
   failed/timed-out deliveries redeliver (idempotent handler), retry cap → DLQ ⇒
   `failed`; `ready` = **awaiting
   approval** — staged rows sit in the temp table, editable via row PATCH;
-  →(**approval**)→ `confirmed`: one transaction **promotes the staged rows into the
-  actual inventory tables** — replenishment doc + items + inbound movements + stock
-  (§3) — and freezes the staging rows. Any pre-approval state →(user abandons / new
+  →(**approval**)→ `confirmed`: one transaction **moves the staged rows into the
+  actual inventory tables** — replenishment doc + items; processable rows emit
+  inbound movements + stock (§3), **unprocessable rows (serial collisions — owner
+  2026-07-20) become flagged, movement-less items** — then deletes the staging
+  (below). Any pre-approval state →(user abandons / new
   upload replaces it)→ `discarded`. Only the **queue consumer** (11) writes
   `processing → ready/failed` + the progress counters; only the approval transaction
   writes `confirmed`. Terminal states: `failed`, `confirmed`, `discarded`.
@@ -360,7 +408,7 @@ with its current location/status.
   moved-then-deleted (lifecycle above). **Evidence photos are unaffected** — they
   stay in R2 permanently.
 
-## 5. Seed — the 11 built-in reasons (semantics confirmed 2026-07-05)
+## 5. Seed — the 12 built-in reasons (semantics confirmed 2026-07-05; `scrap` added 2026-07-20)
 
 Seeded idempotently (insert-if-missing by `code`) at migration/provisioning time,
 `built_in: true`:
@@ -378,6 +426,7 @@ Seeded idempotently (insert-if-missing by `code`) at migration/provisioning time
 | `damaged_material` | Material dañado | readjustment_out |
 | `stock_cleaning` | Depuración de inventario | readjustment_out |
 | `doa` | Dañado de origen (DOA) | readjustment_out |
+| `scrap` | Merma | readjustment_out — **added 2026-07-20 (owner)**: scrapped/waste material (offcuts, unusable remnants); 12th seed |
 
 Backend validates `type` ↔ `applies_to` on every movement (readjustments map through
 `readjustment_{direction}`); `400 invalid_reason_context` / `400 reason_inactive`.
@@ -411,6 +460,14 @@ Backend validates `type` ↔ `applies_to` on every movement (readjustments map t
   (editable while virgin) — confirm, then 05 locks the UI accordingly.
 - `unit` free-text vs closed list — spec'd free text + curated suggestions; revisit if
   garbage units show up in real data.
+- **Lot re-receipt** (added 2026-07-20): `lot_exists` currently lands in the
+  unprocessable class like serials (owner direction — duplicates need review).
+  Receiving *more* stock of a legitimately recurring provider lot is plausible;
+  if real usage shows it, relax `lot_exists` to a top-up (inbound onto the
+  existing lot) — owner call, don't relax preemptively.
+- **Lot expiry** (`expires_at` per lot, FEFO picking): not modeled — current lot
+  materials (nails, rivets, washers) don't expire. Design it only when a
+  perishable use-case appears.
 - Whether `report_materials.material_unit_id` unique should be partial (allow re-consume
   after a correction reverted the unit) — spec: **partial, `WHERE` the row is live**; a
   reverted unit must be consumable again. Backend to implement via row deletion on PUT

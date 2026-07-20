@@ -28,12 +28,14 @@ easy path (its headers auto-map exactly).
 
 ```
 ReplenishmentSummary { id, folio, warehouse: { id, name }, itemCount,
+                       unprocessableCount,   // > 0 ⇒ warning marker (owner 2026-07-20)
                        evidenceCount, user: { id, name }, createdAt }
 Replenishment = ReplenishmentSummary + {
   items: { material: MaterialRef, quantity?, serials?: string[],
-           node?: { id, name } }[],
+           node?: { id, name },
+           unprocessable: boolean, error?: ParseRowError }[],  // flagged, stock-less
   evidencePhotos: string[],                  // CDN URLs, materialized server-side
-  sourceFileUrl?, sourceFileName?, notes?
+  sourceFileName?, notes?                    // name only — the binary is purged
 }
 ReplenishmentImport {                       // dto for the async job (added 2026-07-19)
   id, status: ReplenishmentImportStatus, fileName,
@@ -42,13 +44,15 @@ ReplenishmentImport {                       // dto for the async job (added 2026
   rows?: ParseRow[]                         // present once status = 'ready'
 }
 ImportField { id, header, samples: string[] }
-ImportMapping { sku: string, quantity?: string, serial?: string }   // → field ids
+ImportMapping { sku: string, quantity?: string,
+                serial?: string, lot?: string }   // → field ids (lot added 2026-07-20)
 ReplenishmentImportStatus = 'uploaded' | 'queued' | 'processing' | 'ready'
                           | 'failed' | 'confirmed' | 'discarded'
 ParseRow { line, raw, materialId?, materialName?, tracking?,
            quantity?, serial?, error?: ParseRowError }
 ParseRowError = 'unknown_sku' | 'bad_quantity' | 'missing_serial'
               | 'duplicate_serial' | 'serial_exists' | 'quantity_on_serialized'
+              | 'missing_lot' | 'duplicate_lot' | 'lot_exists'   // lot, 2026-07-20
 ReplenishmentsQuery { warehouseId?, from?, to?, page, limit }
 ```
 
@@ -62,8 +66,9 @@ crea el material"). Rendered via pipe. The `sku` file column accepts **SKU or UP
 ### `wms/pages/replenishments-list/` (`/warehouse/replenishments`)
 
 - Lazy `<p-table>` via `ListQueryService` (params `warehouseId`, `from`, `to`, `page`):
-  folio (font-data, `#000123` style), warehouse, item count, evidence count (camera
-  icon + n), registered by, date. Filters: warehouse select, date range.
+  folio (font-data, `#000123` style), warehouse, item count (+ amber warning icon
+  with count when `unprocessableCount > 0`), evidence count (camera icon + n),
+  registered by, date. Filters: warehouse select, date range.
 - Row click → `replenishment-view`. Header action **"Registrar reabastecimiento"** →
   routes to `/warehouse/replenishments/new` (full page — the flow is too big for a
   dialog, decided 2026-07-05). Empty state with the same CTA.
@@ -94,14 +99,16 @@ flow).
    fire-and-forget) and starts a new one.
 3. **Field mapper** (new 2026-07-19) — one row per detected file column: header
    (mono), sample-value chips (up to 5), and a target `<p-select>`: **Ignorar ·
-   SKU / UPC · Cantidad · Serie**. Auto-mapped on arrival, two-tier (**tier 1
+   SKU / UPC · Cantidad · Serie · Lote** (Lote added 2026-07-20). Auto-mapped on
+   arrival, two-tier (**tier 1
    resolved 2026-07-19 — supersedes the "mapping presets" open item**): the upload
    response's `suggestedMapping` — the tenant's **last-used mapping from the
    settings store**, returned when headers match (01 §2 `settings`, 02 §6) — else
    header heuristics (`import-auto-map-patterns.const.ts`:
    `sku|c[oó]digo|clave|upc|ean` → sku · `cant|qty|quantity|pzas?` → quantity ·
-   `serie|serial|s/n` → serial — first match wins, one target per column); user
-   overrides freely. Validation mirrors the
+   `serie|serial|s/n` → serial · `lote|lot|batch` → lot — first match wins, one
+   target per column); user overrides freely. Validation (mirrors backend
+   `invalid_mapping`): SKU/UPC mapped + at least one of Cantidad/Serie/Lote. Validation mirrors the
    backend (`invalid_mapping`): SKU/UPC mapped + at least one of Cantidad/Serie —
    **"Procesar archivo"** stays disabled until valid, then dispatches
    `SubmitImportMapping` → 202.
@@ -113,21 +120,28 @@ flow).
 5. **Preview table** — renders when `ready`, seeded from the **staged rows** (the
    temp table in the tenant DB — 01 §2): line no., mapped source value, resolved
    material (name, tracking pill) or error pill, quantity/serial, optional per-row
-   node select. **Inline fixes persist to staging**: an edit dispatches
+   node select. **Errors render in two classes** (owner 2026-07-20,
+   `unprocessable-row-errors.const.ts`): **fixable** (red pill — blocks approval
+   until fixed) and **"No procesable"** (amber pill — serial duplicada; helper copy
+   "revisa tus registros o contacta a tu proveedor"; does *not* block).
+   **Inline fixes persist to staging**: an edit dispatches
    `UpdatePreviewRow` → `PATCH .../rows/:line` — the server re-resolves
    (SKU-then-UPC) + re-validates and returns the row, so fixes survive reloads and
-   **carry across users** (office fixes, admin approves). Error summary chip row
-   above ("3 filas con errores") anchor-links to the first error (error-summary
-   rule).
+   **carry across users** (office fixes, admin approves); a corrected serial clears
+   the unprocessable flag too. Error summary chip row above splits the classes
+   ("2 por corregir · 1 no procesable") and anchor-links to the first of each
+   (error-summary rule).
 6. **Evidence photos** — attach **after processing, at review time** (owner
    2026-07-19): multi-image uploader (pick → `POST /upload` → R2 keys; thumbnails
    with remove), persisted to the import via `UpdateImportPrep`
    (`PATCH /replenishments/imports/:id`). Delivery photos, invoices, pallets.
 7. **Notes** — textarea, optional; same `UpdateImportPrep` persistence (debounced on
    blur).
-8. **Approval** — summary strip (n items, m units/qty total, destination). Role
-   split: **owner/admin** see **"Aprobar reabastecimiento"** — disabled while any
-   row error remains or no items — dispatching `ApproveReplenishment(importId)`
+8. **Approval** — summary strip (n items, m units/qty total, destination), plus a
+   **warning line when unprocessable rows exist** ("2 filas se registrarán como no
+   procesables — sin efecto en inventario"). Role split: **owner/admin** see
+   **"Aprobar reabastecimiento"** — disabled while any **fixable** row error
+   remains or no processable items — dispatching `ApproveReplenishment(importId)`
    (`POST /replenishments` — the backend promotes the staging table into inventory,
    02 §6) → route to the new `replenishment-view`, toast with folio. **Office**
    sees a status card instead ("Preparado — esperando aprobación de un
@@ -137,7 +151,10 @@ flow).
 ### `wms/pages/replenishment-view/` (`/warehouse/replenishments/:id`)
 
 Read-only, forever: header card (folio, warehouse link, registered by, date, notes) ·
-items table (material, tracking pill, qty | serials chips, node) · **evidence gallery**
+items table (material, tracking pill, qty | serials chips, node; **unprocessable
+items render with the amber "No procesable" pill + error label** — they exist for
+awareness, zero stock effect, helper copy pointing at record review / provider
+follow-up) · **evidence gallery**
 (thumbnail grid → lightbox via `<p-dialog>`, same idiom as report photos) ·
 source-file **name** (file icon + name, metadata only — the binary was purged after
 processing; the imported rows themselves are the durable record) ·
@@ -209,18 +226,23 @@ backend know where files live).
   submit; processing panel ticks progress off the stubbed sequence; `failed` path
   shows the error card; **reload mid-processing resumes the stream from
   `?import=`**;
-  preview renders all six error kinds with labels; inline fix PATCHes the staged row
-  (stubbed) and the returned clean row clears the error; approve stays disabled until
-  clean; evidence add/remove persists via prep PATCH; **role split: admin sees
+  preview renders all six error kinds with labels in their two classes (red fixable
+  vs amber "No procesable"); inline fix PATCHes the staged row (stubbed) and the
+  returned clean row clears either flag; approve stays disabled on fixable errors
+  but **enables with only unprocessable rows present** (warning line shown);
+  evidence add/remove persists via prep PATCH; **role split: admin sees
   "Aprobar", office sees the waiting card and no approve affordance**; pending-
   approval strip routes into `?import=`; approval payload (`{ importId }`) asserted;
   view renders gallery + movements filter link; technician can't route in.
 - **Manual pass (original CP-5, binding — needs the queue consumer live, 11 CP-3),
   run as the two-actor flow:** as **office** — import a 10-row csv with 2 bad rows
-  and non-template headers → map fields → watch queued/processing → fix rows inline
-  → attach 2 photos + notes → waiting card; as **admin** — pending strip → review →
-  approve → stock updated (material view), movements show `replenishment` reason +
-  link back to the folio; xlsx + txt variants; 1 MB+ file rejected cleanly; force a
+  and non-template headers **plus 1 row whose serial already exists in stock** →
+  map fields → watch queued/processing → fix the fixable rows inline (the
+  serial-collision row stays "No procesable") → attach 2 photos + notes → waiting
+  card; as **admin** — pending strip → review (warning line: 1 no procesable) →
+  approve → stock updated for processable items only (material view), the view
+  shows the flagged item with zero stock effect, movements show `replenishment`
+  reason + link back to the folio; xlsx + txt variants; 1 MB+ file rejected cleanly; force a
   mid-job failure (throw in the handler) → Queues redelivery completes it
   idempotently (11 §3).
 

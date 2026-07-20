@@ -69,11 +69,17 @@ On message `{ importId }`:
    files are disposable copies). Purge strictly **after** `ready` commits: a
    crash/timeout between the two redelivers with the file intact. `failed`
    imports keep their file until the retention sweep (§4).
-5. Row-error semantics (`unknown_sku`, `bad_quantity`, `missing_serial`,
-   `duplicate_serial`, `serial_exists`, `quantity_on_serialized`) are the **same
-   modules** the confirm-time revalidation uses (02 §6/§7) — one implementation;
-   the cross-repo "shared law" discipline from the superseded design is no longer
-   needed.
+5. Resolve by tracking mode: serialized → serials · **lot → `lot` + `quantity`**
+   (2026-07-20) · unserialized → quantity. Row-error semantics (`unknown_sku`,
+   `bad_quantity`, `missing_serial`, `missing_lot`, `duplicate_serial`,
+   `duplicate_lot`, `serial_exists`, `lot_exists`, `quantity_on_serialized`) are the
+   **same modules** the confirm-time revalidation uses (02 §6/§7) — one
+   implementation; the cross-repo "shared law" discipline from the superseded design
+   is no longer needed. Duplicate rule (serial **and** lot): **first in-file
+   occurrence clean, repeats get the error**. The handler only stamps codes — the
+   fixable-vs-unprocessable classification (owner 2026-07-20: serial/lot collisions
+   don't block approval, `UNPROCESSABLE_ROW_ERRORS` in `wms/constants/`) is applied
+   downstream by the approval gate + UI, never here.
 
 **Never in this handler:** stock math, movement emission, folio increments — those
 stay in the approval transaction (01 §3). The handler only turns a file into
@@ -111,7 +117,8 @@ a stale failed import is re-uploaded, not recovered.
 - Vitest (workers pool, live-Neon convention, `wms-import-test-` fixtures): call
   the processor service directly for handler coverage — fixture csv/txt/xlsx files
   covering all six row errors, header weirdness (BOM, quoted delimiters, empty
-  trailing columns), and both tracking modes; one integration test through the
+  trailing columns), and all three tracking modes (serialized/lot/unserialized);
+  one integration test through the
   `queue()` export.
 - Reliability: redelivery idempotency (handler runs twice on the same message →
   exactly one row per line, one purge); stale-redelivery ack on terminal imports;

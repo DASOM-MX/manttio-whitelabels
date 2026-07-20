@@ -182,8 +182,13 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   — the template spec is fully decided (06 §5, incl. §5.5 binding/snapshot).
 - **billing** (09): bills + items (`report_id` per item), status flow with
   office-draft / owner-admin-send gating; report on ≤1 non-cancelled bill.
-- **wms** (10): the largest surface — stock endpoints all require a `reason`;
-  self-checkout constraints server-enforced; replenishments with backend file parsing
+- **wms** (10): the largest surface — **three tracking modes**
+  `serialized | lot | unserialized` (lot added 2026-07-20 for batch consumables —
+  `material_lots` balances keyed by lot+location, movements + report-materials +
+  imports all carry `lotNumber + quantity`); stock endpoints all require a `reason`
+  (**12 seeded built-ins incl. `scrap`/Merma, `readjustment_out`, added
+  2026-07-20**); self-checkout constraints server-enforced; replenishments with
+  backend file parsing
   (`POST /replenishments/parse`, SheetJS-on-Workers CPU check) + R2 evidence;
   movements append-only per §2. **Full backend spec now in the expanded suite
   (2026-07-19): `.claude/plans/superadmin/10-wms/01-data-model.md` (tables, enums,

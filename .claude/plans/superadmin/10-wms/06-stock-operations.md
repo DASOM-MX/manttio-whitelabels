@@ -21,6 +21,7 @@ management owner/admin.
 Movement { id, type: MovementType, direction?: 'in' | 'out',
            reason: { code, label }, material: MaterialRef,
            quantity?, units?: { id, serialNumber }[],
+           lotNumber?,                                  // lot-tracked movements (2026-07-20)
            from?: LocationRef, to?: LocationRef,        // { warehouse, node? } names
            reportId?, replenishmentId?, user: { id, name },
            notes?, createdAt }
@@ -38,7 +39,8 @@ sky · consumption navy · readjustment amber) +
 **`special-reason-codes.const.ts`** — the only reason codes the UI special-cases:
 `report_binding` (auto-set, never selectable), `relocation` (transfer/self-checkout
 default), `replenishment` (excluded from ad-hoc inbound). The live list always comes
-from the API (`LoadMovementReasons`) — never hardcode the other eight.
+from the API (`LoadMovementReasons`) — never hardcode the other nine (incl.
+`scrap`, added 2026-07-20).
 
 ## 2. Reason system
 
@@ -63,28 +65,32 @@ from the API (`LoadMovementReasons`) — never hardcode the other eight.
 
 All shape 3, all `open(prefill?)` (material and/or location pre-set from the calling
 page), all with required `reason-select`, all submitting through `StockState` actions
-with success toast + refresh of the affected views. Serialized/unserialized input
-switches on the selected material's `tracking`. Material autocompletes hit
+with success toast + refresh of the affected views. The input mode switches on the
+selected material's `tracking`: unserialized = quantity · serialized = serials/unit
+picks · **lot = lot number + quantity** (2026-07-20). Material autocompletes hit
 `GET /materials?search` which matches **name/SKU/UPC** (02 §3) — keyboard-wedge
 barcode scanners work in every dialog with no dedicated scan UI.
 
 - **`inbound-dialog/`** — ad-hoc single-material receipts (refund_by_client, repair
   returns…). Material autocomplete → destination (warehouse `<p-select>` → optional
   node cascade) → unserialized: quantity; serialized: **textarea of serials, one per
-  line** (dup/existing serial errors surface per line after submit). Reason context
+  line** (dup/existing serial errors surface per line after submit); lot: lot
+  number input + quantity (creates/tops-up the lot at the destination). Reason context
   `inbound`, **`replenishment` excluded** with a hint row linking to
   `/warehouse/replenishments/new` ("¿Reabastecimiento masivo? Regístralo como
   documento") — resolves the original build-time decision (proposed 2026-07-19;
   backend rejects it too, 02 §4).
 - **`transfer-dialog/`** — material → source (warehouse+node, only locations with
   stock of it) → destination (warehouse+node) → quantity (max = source balance,
-  helper text shows it) | unit multiselect (units `in_stock` at source). Reason
+  helper text shows it) | unit multiselect (units `in_stock` at source) | lot
+  `<p-select>` (lots with balance at source, remaining shown) + quantity. Reason
   context `transfer`, **default `relocation`**. The common "cargar camioneta" case is
   this dialog with destination pre-set to a tech's van (entry point: 03's list row
   action on assigned warehouses). **Technician mode = self-checkout** (§5).
 - **`readjustment-dialog/`** — owner/admin only: direction toggle (Entrada/Salida)
   which **switches the reason context** (`readjustment_in`/`readjustment_out`),
-  material, location, quantity | unit multiselect, reason, **required free-text
+  material, location, quantity | unit multiselect | lot select + quantity, reason,
+  **required free-text
   notes** (mirrors the delete-dialog audit-comment convention — helper text says the
   note lands permanently in the movement history). Confirm-heavy: submit label
   "Registrar ajuste", no undo (append-only — undo-support rule satisfied by the
@@ -100,9 +106,10 @@ view via `replenishmentId` filter, 09's my-warehouse):
   the primary content** (my-warehouse history tab — 09); embedded instances keep
   local-only paging (documented ListQueryService exception: one URL owner per page).
 - Columns: date (font-data), type pill (+ direction arrow on readjustments), reason
-  tag (inactive reasons render normally — history never hides), material, qty/serials,
-  from → to (warehouse/node names), user, report/replenishment links (route to 06's
-  report-view / 07's view), notes (truncated, popover full text).
+  tag (inactive reasons render normally — history never hides), material,
+  qty/serials/**lot tag** (font-data), from → to (warehouse/node names), user,
+  report/replenishment links (route to 06's report-view / 07's view), notes
+  (truncated, popover full text).
 - Filterable by type + reason (+ date range where shown). **No row actions of any
   kind.**
 
@@ -128,7 +135,7 @@ operation: refetch the material stock / location stock the calling page shows
 
 - e2e: reason-select filters by context and hides specials; add-reason auto-selects;
   the three dialogs submit correct payloads (assert via `page.route` capture);
-  serialized/unserialized input switch; readjustment requires notes; movements table
+  serialized/lot/unserialized input switch; readjustment requires notes; movements table
   renders all four types + links; **no edit/delete affordance exists** (assert
   absence).
 - Manual pass (original CP-4): inbound 10 pza + 2 serials → transfer to van (preset)
@@ -147,9 +154,10 @@ operation: refetch the material stock / location stock the calling page shows
       with label edit + active toggle, built-ins locked)
 
 ### CP-2 — Operation dialogs
-- [ ] Inbound dialog (both modes, serials textarea, replenishment exclusion + hint)
-- [ ] Transfer dialog (stock-aware source/destination, balance helper, `relocation`
-      default, van preset entry from 03)
+- [ ] Inbound dialog (all three modes incl. lot number + qty, serials textarea,
+      replenishment exclusion + hint)
+- [ ] Transfer dialog (stock-aware source/destination, lot select + qty, balance
+      helper, `relocation` default, van preset entry from 03)
 - [ ] Readjustment dialog (direction-switched context, required notes, owner/admin
       gate); entry buttons on material-view (05 CP-2 stubs) wired live
 

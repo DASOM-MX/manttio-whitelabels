@@ -58,7 +58,7 @@ with `01-data-model.md` §1.
 | File | Owner |
 |---|---|
 | `storage-node-type-labels.const.ts` / `storage-node-type-rank.const.ts` | 04 |
-| `material-tracking-labels.const.ts` | 05 |
+| `material-tracking-labels.const.ts` (Serializado / Por lote / A granel) | 05 |
 | `material-unit-status-labels.const.ts` / `material-unit-status-pill-classes.const.ts` | 05 |
 | `material-unit-suggestions.const.ts` | 05 |
 | `movement-type-labels.const.ts` / `movement-type-pill-classes.const.ts` | 06 |
@@ -66,6 +66,7 @@ with `01-data-model.md` §1.
 | `special-reason-codes.const.ts` (`report_binding`, `relocation`, `replenishment`) | 06 |
 | `parse-row-error-labels.const.ts` | 07 |
 | `import-status-labels.const.ts` / `import-status-pill-classes.const.ts` | 07 |
+| `unprocessable-row-errors.const.ts` (serial-collision codes — mirror of backend `wms/constants/`) | 07 |
 | `import-target-field-labels.const.ts` / `import-auto-map-patterns.const.ts` | 07 |
 
 ## 5. Pipes (`src/app/pipes/` — pure, per-row template mappings)
