@@ -45,6 +45,13 @@ models/ · validators/ · enums/ · constants/ (STORAGE_NODE_RANK, seed reasons,
 All routes sit behind the JWT middleware (no public WMS surface). Every list endpoint
 is paged (`page`/`limit`, default 25, max 100) returning `{ items, total }`.
 
+**New cross-cutting module `modules/settings/`** (added 2026-07-19, owner): a generic
+per-tenant key-value store — `settings` table (01 §2: `id · key · value` jsonb;
+**new settings = new rows, never new columns**), `getSetting(key)`/`setSetting(key,
+value)` service, keys namespaced `<domain>.<name>`. **No controller in v1** — it's
+backend-internal; a settings API lands only when a user-facing setting appears.
+First consumer: `wms.last_replenishment_mapping` (§6).
+
 ## 2. Warehouses + storage nodes — `warehouses.controller.ts`
 
 | Endpoint | Roles | Notes |
@@ -106,11 +113,12 @@ node must belong to the warehouse (`400 node_warehouse_mismatch`). Everything ru
 The import flow is **asynchronous with a field mapper and an approval gate**
 (reworked 2026-07-19, owner ask): upload → server detects the file's fields → user
 maps them to our columns in superadmin → mapping submitted → **batch job**
-parses/validates into the **staging table** → frontend **polls the DB-backed status**
-until `ready` → prep (row fixes, evidence, notes — staged) → **approval promotes
-staging into the inventory tables**. Status truth lives in `replenishment_imports`
-(01 §2) — the polling endpoint is a plain DB read; where processing runs is an
-implementation detail (today: the Worker's own Queues consumer — 11).
+parses/validates into the **staging table** → frontend **listens on the SSE status
+stream** until `ready` → prep (row fixes, evidence, notes — staged) → **approval
+moves staging into the inventory tables** (promote + delete). Status truth lives in
+`replenishment_imports` (01 §2) — the stream is a server-side watcher of that row,
+the one-shot GET a plain read; where processing runs is an implementation detail
+(today: the Worker's own Queues consumer — 11).
 **Prep is owner/admin/office; approval is owner/admin only**
 (`../14-access-control.md` §2.1e — the billing draft-vs-commit split).
 
@@ -118,22 +126,24 @@ implementation detail (today: the Worker's own Queues consumer — 11).
 |---|---|---|
 | `GET /replenishments?warehouseId&from&to&page&limit` | owner/admin/office | Paged: folio, warehouse, itemCount, evidenceCount, user, createdAt |
 | `GET /replenishments/:id` | owner/admin/office | Doc + items (joined material name/sku/tracking) + evidence keys + source-file **name** via the `import_id` join (metadata only — the binary is purged post-processing, 01 §4; the import rows' `raw` are the durable record) |
-| `POST /replenishments/imports` | owner/admin/office | Multipart `{ file }` (`.xlsx`/`.csv`/`.txt`, delimiter-sniffed; size cap 1 MB). Stages the file in R2 **first** (the reference the processor pulls it by; transient — purged after processing, 01 §4), then does **lightweight field detection only** (header row + ≤5 sample values per column — cheap even via SheetJS) → creates the import row (`status: uploaded`) → `{ importId, fileName, fields: [{ id, header, samples }] }`. Unreadable file → `400 unparseable_file`, no row created |
-| `POST /replenishments/imports/:id/process` | owner/admin/office | `{ warehouseId, mapping: { sku: fieldId, quantity?: fieldId, serial?: fieldId } }` — `sku` required, plus at least one of `quantity`/`serial` (`400 invalid_mapping`); only from `uploaded` (`409 import_not_pending`). Stores mapping + warehouse, sets **`queued`**, sends `{ importId }` to the queue binding → **`202 { status }`**. The **queue consumer** (11) walks the file per the mapping, resolves materials (SKU exact, then UPC exact), upserts `replenishment_import_rows` + progress counters, flips `ready`/`failed`. Row errors: `unknown_sku`, `bad_quantity`, `missing_serial`, `duplicate_serial` (in-file), `serial_exists` (in DB), `quantity_on_serialized` (≠1) |
-| `GET /replenishments/imports/:id` | owner/admin/office | **The polling endpoint** — `{ id, status, fileName, fields, mapping?, progress: { total?, processed, errors }, error?, evidencePhotos, notes?, rows? }`; `rows` included once `ready` (files are small stock lists — no row paging v1). Pure DB read, cheap to poll |
+| `POST /replenishments/imports` | owner/admin/office | Multipart `{ file }` (`.xlsx`/`.csv`/`.txt`, delimiter-sniffed; size cap 1 MB). Stages the file in R2 **first** (the reference the consumer pulls it by; transient — purged after processing, 01 §4), then does **lightweight field detection only** (header row + ≤5 sample values per column — cheap even via SheetJS) → creates the import row (`status: uploaded`) → `{ importId, fileName, fields: [{ id, header, samples }], suggestedMapping? }` — `suggestedMapping` (field-id-resolved) is returned when the saved last-mapping's headers match the detected ones (settings key `wms.last_replenishment_mapping` — 01 §2, added 2026-07-19). Unreadable file → `400 unparseable_file`, no row created |
+| `POST /replenishments/imports/:id/process` | owner/admin/office | `{ warehouseId, mapping: { sku: fieldId, quantity?: fieldId, serial?: fieldId } }` — `sku` required, plus at least one of `quantity`/`serial` (`400 invalid_mapping`); only from `uploaded` (`409 import_not_pending`). Stores mapping + warehouse, sets **`queued`**, sends `{ importId }` to the queue binding, and **upserts the settings key `wms.last_replenishment_mapping`** as `{ headers, mapping }` — keyed by **header text**, not field id (ids are per-import), so the next upload with the same headers prefills the mapper → **`202 { status }`**. The **queue consumer** (11) walks the file per the mapping, resolves materials (SKU exact, then UPC exact), upserts `replenishment_import_rows` + progress counters, flips `ready`/`failed`. Row errors: `unknown_sku`, `bad_quantity`, `missing_serial`, `duplicate_serial` (in-file), `serial_exists` (in DB), `quantity_on_serialized` (≠1) |
+| `GET /replenishments/imports/:id` | owner/admin/office | **One-shot status read** (initial load, `?import=` resume, pending strip) — `{ id, status, fileName, fields, mapping?, progress: { total?, processed, errors }, error?, evidencePhotos, notes?, rows? }`; `rows` included once `ready` (files are small stock lists — no row paging v1). Pure DB read |
+| `GET /replenishments/imports/:id/events` | owner/admin/office | **SSE status stream** (owner 2026-07-19 — push over poll): `text/event-stream` via Hono's `streamSSE`. Emits the same payload as the GET on **every status/progress change** — the handler watches the DB row server-side (~2 s re-reads + a 15 s heartbeat comment) — and **closes itself after the terminal event** (no idle connections). Feasibility (confirmed 2026-07-20): Workers stream SSE natively — CPU time is metered, wall-clock while streaming is not, and these streams live seconds by design. Bearer-authed like every route; clients use a fetch-based reader, not `EventSource` (07 §3.1) |
 | `PATCH /replenishments/imports/:id/rows/:line` | owner/admin/office | Inline fix on a **staged row** (`ready` only — `409 import_not_ready`): `{ code?, quantity?, serial?, storageNodeId? }` — server re-resolves (SKU-then-UPC) + re-validates the row and returns it (fixes persist in the temp table, survive reloads/sessions). Frozen once approved |
 | `PATCH /replenishments/imports/:id` | owner/admin/office | Approval-stage prep (`ready` only): `{ evidencePhotos?, notes? }` — staged on the import so office can fully prepare and an admin approves later |
-| `POST /replenishments/imports/:id/discard` | owner/admin/office | Flips any pre-approval status to `discarded` (rows kept — nothing is ever deleted) |
-| `POST /replenishments` | **owner/admin** (approval — office excluded, §2.1e) | `{ importId }` — **the approval: promotes the staging table into the inventory tables.** Import must be `ready` (`409 import_not_ready`) with zero row errors (`409 import_has_errors`). One transaction: increment `wms_counters` folio → insert doc + items **from the staged rows** (evidence/notes copied from the import) → per item, emit an inbound movement (`reason: replenishment`, `replenishmentId` set) through the same 01 §3 path (serialized: creates units) → mark the import `confirmed` (staging frozen). Append-only: no PATCH/DELETE routes on the doc |
+| `POST /replenishments/imports/:id/discard` | owner/admin/office | Flips any pre-approval status to `discarded`; its staged rows + any leftover binary are collected by the daily retention cron (11 §4) |
+| `POST /replenishments` | **owner/admin** (approval — office excluded, §2.1e) | `{ importId }` — **the approval: promotes the staging table into the inventory tables.** Import must be `ready` (`409 import_not_ready`) with zero row errors (`409 import_has_errors`). One transaction: increment `wms_counters` folio → insert doc + items **from the staged rows** (evidence/notes copied from the import) → per item, emit an inbound movement (`reason: replenishment`, `replenishmentId` set) through the same 01 §3 path (serialized: creates units) → **delete the staged rows and mark the import `confirmed`** (true move — owner 2026-07-19, the sanctioned staging exception; the import header row stays as the trail: file name, mapping). Append-only applies to the *doc*: no PATCH/DELETE routes on replenishments |
 
 **Processing (owner decision 2026-07-19 — Cloudflare Queues; supersedes the
 external-service iterations):** the batch job runs in the backend's **own Queues
 consumer** (`11-processing-service.md`), same Worker deploy. The request path never
 parses more than header + sample rows; the consumer (raised `limits.cpu_ms`,
 platform retries + DLQ, native R2/DB bindings) does the full parse and is the only
-writer of `processing → ready/failed`. The contract stays **202 + DB-status
-polling**, so processing could still be extracted to an external service later
-without touching the API or superadmin.
+writer of `processing → ready/failed`. The contract stays **202 + DB-backed status
+(SSE stream / one-shot GET)**, so processing could still be extracted to an
+external service later without touching the API or superadmin — the consumer never
+knows SSE exists.
 
 ## 7. Report materials — `report-materials.controller.ts` (mounted at `/reports`)
 
@@ -185,7 +195,9 @@ mapped in the owning controller (400 validation · 403 role/scope · 404 missing
 ### CP-3 — Replenishments + report materials
 - [ ] §6 import endpoints: upload + field detection (three formats, sample rows,
       `unparseable_file`), process (mapping validation, `queued` transition, 202),
-      polling read, staged-row PATCH (re-resolution) + prep PATCH, discard;
+      one-shot status read + SSE stream (change-emit, heartbeat, terminal close),
+      staged-row PATCH (re-resolution) + prep PATCH, discard; `settings` module +
+      last-mapping upsert/suggest;
       **approval** (owner/admin only — office 403; promotion transaction from
       staging: folio, items, evidence/notes copy, movements, `confirmed` flip,
       `import_has_errors` gate). Full-file parse/row-error tests live in 11 CP-2
@@ -205,3 +217,6 @@ mapped in the owning controller (400 validation · 403 role/scope · 404 missing
   per-tenant queue/DLQ provisioning (11 §1).
 - Movements list: should office see readjustment notes? (§2.1 gives office full stock +
   movement visibility — spec: yes, visibility ≠ execution.) Confirm.
+- SSE watcher granularity: v1 the stream handler re-reads the row every ~2 s;
+  move to Postgres `LISTEN/NOTIFY` only if watcher load ever matters (the queue
+  consumer is unaffected either way).

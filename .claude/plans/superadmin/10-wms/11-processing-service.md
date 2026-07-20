@@ -15,8 +15,8 @@ the only credentials needed.
 
 What survived every iteration (the design invariant): **the contract is the
 database.** The API enqueues by setting `status: queued`; the consumer writes
-staging rows + status back to Neon; superadmin polls the DB-backed status endpoint
-(02 §6). If processing ever outgrows Workers (multi-minute CPU, new heavy job
+staging rows + status back to Neon; superadmin listens to the SSE status stream
+backed by that same row (02 §6 — the consumer never knows SSE exists). If processing ever outgrows Workers (multi-minute CPU, new heavy job
 kinds), it can be re-extracted to an external service **without touching superadmin
 or the API** — that is the payoff of keeping the contract DB-first.
 
@@ -62,8 +62,8 @@ On message `{ importId }`:
    then UPC exact** — validate per tracking mode; **upsert** into
    `replenishment_import_rows` keyed `(import_id, line)` (at-least-once delivery ⇒
    idempotent by construction — never duplicate, never delete); bump
-   `processed_rows`/`error_rows` in batches (~25 rows — what the progress bar
-   polls).
+   `processed_rows`/`error_rows` in batches (~25 rows — what the SSE status
+   stream relays to the progress bar).
 4. Terminal write `ready` (row errors included — the preview handles them), then
    **purge the staged file** + stamp `file_deleted_at` (owner 2026-07-19 — source
    files are disposable copies). Purge strictly **after** `ready` commits: a
@@ -95,11 +95,13 @@ validated staging rows.
 
 ## 4. Retention sweep (Cron Trigger)
 
-A daily cron (`triggers.crons` on the same Worker) deletes the staged binary of any
-non-`confirmed`, non-swept import older than `RETENTION_DAYS` (default 30 —
-leftovers from `discarded`/abandoned/`failed` jobs) and stamps `file_deleted_at`.
-No exemptions — source files are disposable copies (owner 2026-07-19); a stale
-failed import is re-uploaded, not recovered.
+A daily cron (`triggers.crons` on the same Worker) cleans up after imports that
+never reached approval, older than `RETENTION_DAYS` (default 30 — `discarded`/
+abandoned/`failed` jobs): deletes the staged **binary** (stamping
+`file_deleted_at`) **and the staged rows** (owner 2026-07-19 — staging is the
+sanctioned hard-delete exception, 01 §2; `confirmed` imports had their rows
+deleted at approval already). No exemptions — source files are disposable copies;
+a stale failed import is re-uploaded, not recovered.
 
 ## 5. Dev + testing
 

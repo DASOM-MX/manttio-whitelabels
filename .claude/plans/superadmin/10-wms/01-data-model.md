@@ -172,7 +172,8 @@ unit" is a plain indexed join (`material-view` unit drill-down, equipment hook).
 ### `replenishment_imports` + `replenishment_import_rows` — the batch job (added 2026-07-19, owner ask)
 
 File imports are **asynchronous batch jobs with DB-backed status** — the database row
-is the single source of truth the frontend polls. Processing runs in the backend's
+is the single source of truth the frontend listens to (SSE stream + one-shot reads
+— 02 §6). Processing runs in the backend's
 own **Cloudflare Queues consumer** (11 — decided 2026-07-19); the DB-first contract
 is what keeps later extraction to an external service possible **without any
 contract change** (02 §6):
@@ -221,10 +222,13 @@ replenishment_import_rows {                // the STAGING ("temp") table — own
                                            //   by that key, never duplicate rows.
                                            // MUTABLE while status='ready' (inline
                                            //   fixes PATCH here, re-resolved server-
-                                           //   side — 02 §6); frozen at approval.
-                                           // Approval PROMOTES from here into the
-                                           //   inventory tables (§4) — this table is
-                                           //   staging, the promoted doc is the record
+                                           //   side — 02 §6).
+                                           // Approval MOVES the data: promoted into
+                                           //   the inventory tables, then the staged
+                                           //   rows are DELETED in the same tx (owner
+                                           //   2026-07-19 — sanctioned exception to
+                                           //   no-hard-deletes: staging ≠ entity;
+                                           //   the promoted doc is the record)
 
 ```
 
@@ -273,6 +277,29 @@ rows freely; the audit lives in `movements` (the consumption + compensating
 readjustments the diff emits, 08 §3). Exactly one of `quantity`/`material_unit_id` per
 row, matching the material's tracking mode (`CHECK` + validator).
 
+### `settings` — generic key-value store (added 2026-07-19, owner; cross-cutting `modules/settings/`)
+
+| Column | Type / constraint |
+|---|---|
+| `id` | pk |
+| `key` | text, not null, unique — namespaced `<domain>.<name>` |
+| `value` | jsonb, not null |
+| `updated_at` | not null |
+
+A deliberately generic per-tenant store that **scales vertically: new settings = new
+rows, never new columns** (owner 2026-07-19 — more keys will land here later).
+First key — `wms.last_replenishment_mapping`:
+
+```
+{ headers: string[],                       // the detected header texts at save time
+  mapping: { sku: string, quantity?: string, serial?: string } }   // by HEADER TEXT
+```
+
+Stored by **header text, not field id** (field ids are per-import): upserted on every
+successful `/process` (02 §6); the upload/detect endpoint returns a field-id-resolved
+`suggestedMapping` when the incoming headers match — the mapper prefill that saves
+users the re-mapping (07 §2 step 3).
+
 ## 3. Stock math (proposed 2026-07-19 — the load-bearing design decision)
 
 **Balances are materialized; movements are the journal.** Every stock endpoint runs one
@@ -314,20 +341,24 @@ with its current location/status.
   (§3) — and freezes the staging rows. Any pre-approval state →(user abandons / new
   upload replaces it)→ `discarded`. Only the **queue consumer** (11) writes
   `processing → ready/failed` + the progress counters; only the approval transaction
-  writes `confirmed`. Terminal states: `failed`, `confirmed`, `discarded`. Staged
-  rows are **retained after promotion** (they are the only record of the purged
-  file's content — see the retention note below); physical post-promotion cleanup
-  would conflict with the no-hard-deletes rule — owner call, flagged in 00 §6.
+  writes `confirmed`. Terminal states: `failed`, `confirmed`, `discarded`.
+  **Staged rows are deleted in the approval transaction** after promotion (owner
+  2026-07-19 — true move semantics; the deliberate, flagged exception to the
+  no-hard-deletes rule: staging is a temp table, not a user-facing entity. The
+  record is the promoted doc + items + movements, plus the import header row —
+  `file_name` + `mapping` — which is kept). Staging left behind by `discarded`/
+  `failed` imports is cleaned by the daily cron (11 §4).
   **File retention (owner 2026-07-19 — supersedes the 2026-07-05 keep-forever
   evidence-file decision):** uploads are **copies** — the tenant keeps the original
   file outside the system, so the staged binary has **zero archival value** and is
   purely **transient**: the **queue consumer** deletes it from R2 once the file is
   fully processed (the `ready` write) and stamps `file_deleted_at`; `failed` imports
   keep their file only as retry/debug input. Leftover binaries (discarded/abandoned/
-  failed imports) are collected by the daily retention cron (decided — 11 §4). DB rows
-  are permanent as always — `rows.raw` + `file_name` + `mapping` are the in-system
-  audit substance. **Evidence photos are unaffected** — they stay in R2
-  permanently.
+  failed imports) are collected by the daily retention cron (decided — 11 §4).
+  Post-approval, the in-system record is the **promoted doc + items + movements**
+  plus the import header (`file_name`, `mapping`) — staged rows are
+  moved-then-deleted (lifecycle above). **Evidence photos are unaffected** — they
+  stay in R2 permanently.
 
 ## 5. Seed — the 11 built-in reasons (semantics confirmed 2026-07-05)
 

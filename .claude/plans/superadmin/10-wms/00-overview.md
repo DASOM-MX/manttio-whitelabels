@@ -26,7 +26,7 @@ section anchors.
 | 04 | `04-storage-hierarchy.md` | StorageNode tree inside a warehouse (orig. CP-2) | 03 |
 | 05 | `05-materials-catalog.md` | Material catalog + material view (orig. CP-3) | 03 |
 | 06 | `06-stock-operations.md` | Movements, reasons, inbound/transfer/readjustment dialogs, self-checkout (orig. CP-4) | 04, 05 |
-| 07 | `07-replenishments.md` | Bulk restock documents: field-mapped async file import (+ status polling), preview, evidence, view (orig. CP-5; pipeline reworked 2026-07-19) | 05, 06, 11 |
+| 07 | `07-replenishments.md` | Bulk restock documents: field-mapped async file import (+ SSE status stream), staged review, evidence, approval, view (orig. CP-5; pipeline reworked 2026-07-19) | 05, 06, 11 |
 | 08 | `08-report-materials.md` | Report material tracking + staff corrections (orig. CP-6, part) | 06 |
 | 09 | `09-technician-surfaces.md` | "Mi almacén" + "Consulta de stock" + role/polish closing sweep (orig. CP-6, part) | 06, 08 |
 | 10 | `10-state-services-dtos.md` | Frontend plumbing reference: NGXS states, HTTP services, DTOs, constants, pipes | — (reference) |
@@ -74,6 +74,10 @@ merging — GitHub does not auto-retarget). Branch naming
   `wms` config flag" line is superseded.)
 - **Soft deletes** for warehouses and materials; movements/replenishments are never
   deleted at all. Delete dialogs follow the audited delete-dialog convention.
+  **One sanctioned exception (owner 2026-07-19):** the import **staging** table —
+  approval *moves* its rows into inventory and hard-deletes them; the daily cron
+  cleans staging of never-approved imports (01 §2, 11 §4). Staging is a temp
+  workspace, not a user-facing entity — nothing else may cite this as precedent.
 
 ## 3. Conventions deltas since the original file (2026-07-05 → now — binding)
 
@@ -187,8 +191,11 @@ Each is argued in its owning sub-plan; this is the sign-off index.
     sub-decisions): `replenishment_imports`/`_rows` tables with a
     `queued → processing → ready/failed` lifecycle (`01` §2 — `attempts` mirrors
     queue delivery; the lease columns died with the daemon design),
-    202-then-poll API with the DB row as status truth (`02` §6), 2.5 s
-    `cancelUncompleted` polling with `?import=` resume (`07` §3.1), and processing
+    a 202-then-listen API with the DB row as status truth (`02` §6 — **SSE status
+    stream**, owner 2026-07-19: push over poll, server closes at the terminal
+    event; one-shot GET for loads/`?import=` resume — `07` §3.1), a **generic
+    `settings` key-value store** whose first key remembers the last field mapping
+    for mapper prefill (owner 2026-07-19 — `01` §2), and processing
     via the backend's **Cloudflare Queues consumer** (`11` — **decided 2026-07-19**
     after the external-repo microservice / Node daemon / per-tenant-vs-registry
     iterations were judged overcomplicated: platform delivery, retries, DLQ, and
@@ -207,11 +214,12 @@ Each is argued in its owning sub-plan; this is the sign-off index.
     **staging (temp) table in the tenant DB** — mutable row fixes + evidence/notes
     prep all persist there — and only an **owner/admin approval** promotes it into
     the actual inventory tables (doc + items + movements + stock, one transaction);
-    office prepares but never approves (`../14-access-control.md` §2.1e). Staged
-    rows are **retained after promotion** (the only *in-system* record of what the
-    file said — the tenant's original lives outside the system; physical cleanup
-    would contradict the no-hard-deletes rule) — **owner said "move", so confirm
-    retention vs cleanup explicitly** — `01` §2/§4, `02` §6, `07` §2.
+    office prepares but never approves (`../14-access-control.md` §2.1e).
+    **Resolved 2026-07-19 (owner): true move — the staged rows are physically
+    deleted in the approval transaction** (the sanctioned no-hard-deletes
+    exception, §2; the record is the promoted doc + items + movements + the import
+    header's file name/mapping); never-approved staging is cron-cleaned — `01`
+    §2/§4, `02` §6, `11` §4.
 
 ## 7. Progress board (sub-plan owners update their row + their file header together)
 
@@ -242,9 +250,11 @@ Each is argued in its owning sub-plan; this is the sign-off index.
 - **Replenishment import** — the field-mapped async batch job behind a replenishment:
   upload → detected fields → user mapping → `queued` → processed by the queue
   consumer into the **staging (temp) table** → `ready` review (row fixes + evidence +
-  notes, all staged) → **owner/admin approval promotes it into inventory**.
+  notes, all staged) → **owner/admin approval moves it into inventory** (promote,
+  then the staged rows are deleted — the sanctioned exception, §2).
 - **Import consumer** — the backend's Cloudflare Queues consumer (11): receives
   `{ importId }`, parses the staged file from R2, writes staging rows + status back
-  to Neon, purges the binary; superadmin only ever polls the DB-backed status.
+  to Neon, purges the binary; superadmin listens to the DB-backed **SSE status
+  stream** (one-shot GET for loads/resume).
 - **Readjustment** — the only correction instrument; owner/admin, direction + reason +
   notes required.

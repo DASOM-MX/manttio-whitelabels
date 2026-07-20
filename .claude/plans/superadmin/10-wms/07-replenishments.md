@@ -16,8 +16,9 @@ append-only: no edit, no delete — corrections are readjustments (06).
 parse is replaced by a **field-mapped asynchronous batch job** — upload the file →
 the server detects its fields → the user maps them to our columns **in the app** →
 the mapping is submitted and the backend's **Cloudflare Queues consumer**
-(`11-processing-service.md`) parses/validates → the page **polls the DB-backed
-status** (`GET /replenishments/imports/:id` — 02 §6) until the preview is ready.
+(`11-processing-service.md`) parses/validates → the page **listens to the DB-backed
+status over SSE** (`GET /replenishments/imports/:id/events` — 02 §6) until the
+preview is ready.
 Any provider file works now; the downloadable template remains the zero-mapping
 easy path (its headers auto-map exactly).
 
@@ -77,7 +78,8 @@ crea el material"). Rendered via pipe. The `sku` file column accepts **SKU or UP
 A **full page**, one column, progressive disclosure top-to-bottom (multi-step-progress
 rules apply — this is a flow, keep back/cancel escape routes + dirty-navigation guard).
 The active import's id persists as a **`?import=` query param** — reload/back returns
-to the same job and resumes polling (URL-persistence rule applied to a flow).
+to the same job and resumes the status stream (URL-persistence rule applied to a
+flow).
 
 1. **Destination** — warehouse `<p-select>` (required before the mapping submits;
    subs included).
@@ -92,17 +94,21 @@ to the same job and resumes polling (URL-persistence rule applied to a flow).
    fire-and-forget) and starts a new one.
 3. **Field mapper** (new 2026-07-19) — one row per detected file column: header
    (mono), sample-value chips (up to 5), and a target `<p-select>`: **Ignorar ·
-   SKU / UPC · Cantidad · Serie**. Auto-mapped on arrival via header heuristics
-   (`import-auto-map-patterns.const.ts`: `sku|c[oó]digo|clave|upc|ean` → sku ·
-   `cant|qty|quantity|pzas?` → quantity · `serie|serial|s/n` → serial — first match
-   wins, one target per column); user overrides freely. Validation mirrors the
+   SKU / UPC · Cantidad · Serie**. Auto-mapped on arrival, two-tier (**tier 1
+   resolved 2026-07-19 — supersedes the "mapping presets" open item**): the upload
+   response's `suggestedMapping` — the tenant's **last-used mapping from the
+   settings store**, returned when headers match (01 §2 `settings`, 02 §6) — else
+   header heuristics (`import-auto-map-patterns.const.ts`:
+   `sku|c[oó]digo|clave|upc|ean` → sku · `cant|qty|quantity|pzas?` → quantity ·
+   `serie|serial|s/n` → serial — first match wins, one target per column); user
+   overrides freely. Validation mirrors the
    backend (`invalid_mapping`): SKU/UPC mapped + at least one of Cantidad/Serie —
    **"Procesar archivo"** stays disabled until valid, then dispatches
    `SubmitImportMapping` → 202.
 4. **Processing panel** — replaces the mapper while the job runs: status pill
    (En cola / Procesando), `<p-progressbar>` off `progress.processed/total`
    (indeterminate until `total` is known), live counters ("128 / 300 filas · 4
-   errores"), and the **polling loop** (§3.1). `failed` → error card with the
+   errores"), and the **status stream** (§3.1). `failed` → error card with the
    stored `error`, retry = re-upload (escape route). Skeleton, not spinner.
 5. **Preview table** — renders when `ready`, seeded from the **staged rows** (the
    temp table in the tenant DB — 01 §2): line no., mapped source value, resolved
@@ -146,29 +152,33 @@ section right on this page — no separate route needed).
 fields, progress, staged rows, prep), `pendingImports` (the ready-state strip),
 `loading`. Actions: `LoadReplenishments(query)`, `LoadPendingImports`,
 `LoadReplenishment(id)`, `UploadImportFile(file)`,
-`SubmitImportMapping(importId, warehouseId, mapping)`, `PollImport(importId)`,
-`StopImportPolling`, `DiscardImport(importId)`, `UpdatePreviewRow(line, patch)`
+`SubmitImportMapping(importId, warehouseId, mapping)`, `ListenImportStatus(importId)`,
+`StopImportListening`, `DiscardImport(importId)`, `UpdatePreviewRow(line, patch)`
 (server PATCH — staged-row fix, state updated from the response),
 `UpdateImportPrep(importId, { evidencePhotos?, notes? })`,
 `ApproveReplenishment(importId)` (owner/admin — the promotion).
 
-### 3.1 Polling logic (the microservice contract, frontend half)
+### 3.1 Status stream (SSE — owner 2026-07-19, supersedes the polling loop)
 
-The status truth is the **database row** — the page never assumes the processor is
-near the API. `PollImport` is one RxJS pipeline (01-conventions: no `async/await` in
-actions): `timer(0, 2500).pipe(switchMap(() => svc.getImport(id)), tap(patch state),
-takeWhile(s => s.status === 'queued' || s.status === 'processing', true))` — emits
-through the terminal state inclusively, then completes. Rules:
+The status truth stays the **database row**; the page listens on
+`GET /replenishments/imports/:id/events` (02 §6) instead of polling — one HTTP
+connection, events pushed on change, **closed by the server after the terminal
+event** (owner rationale: repeated polling requests invite avoidable errors/load).
 
-- **One poller at a time** — `@Action(PollImport, { cancelUncompleted: true })`;
-  `StopImportPolling` (dispatched on route leave via `DestroyRef`) cancels outright.
-- **Resume from URL:** the register page reads `?import=` on init and dispatches
-  `PollImport` if the stored/loaded status is non-terminal — reload, back-nav, or a
-  shared link all land back on the live progress panel.
-- Interval 2.5 s flat (jobs finish in seconds; no backoff needed at these sizes) —
-  revisit only if the processor ever handles multi-minute jobs.
-- A poll error (network blip) does **not** kill the loop — `catchError` keeps the
-  previous state and lets the next tick retry; only a 404/403 stops with a toast.
+- **Client:** `EventSource` can't send the `Authorization` header, so the service
+  wraps a **fetch-based SSE reader** (fetch + `ReadableStream` line parser, Bearer
+  header, `Accept: text/event-stream`) in an RxJS observable — kept private to
+  `replenishments.service.ts` until a second SSE consumer justifies extracting it.
+- `ListenImportStatus(importId)` is one RxJS pipeline
+  (`@Action(..., { cancelUncompleted: true })` — one listener at a time): initial
+  one-shot `GET .../imports/:id` (render current state instantly) → switch to the
+  stream → `tap` patches state → completes on the terminal event.
+  `StopImportListening` (route leave via `DestroyRef`) cancels outright.
+- **Resume from URL:** unchanged — the register page reads `?import=` on init and
+  dispatches `ListenImportStatus` if the loaded status is non-terminal.
+- **Reconnect:** a dropped stream retries with capped backoff (1 s → 5 s), always
+  restarting from a fresh one-shot GET (payloads are full snapshots, not deltas —
+  no event-id bookkeeping); a 404/403 stops with a toast.
 
 ## 4. Storage (backend ask — proposed 2026-07-19)
 
@@ -191,11 +201,14 @@ backend know where files live).
 
 ## 5. Testing
 
-- e2e (`page.route` stubs — the polling endpoint is stubbed as a **scripted status
-  sequence** `queued → processing(2) → ready`): upload → mapper renders detected
-  fields + samples; auto-map picks the template headers; mapping validation gates the
+- e2e (`page.route` stubs — `/events` fulfilled with a **scripted
+  `text/event-stream` body** `queued → processing(2) → ready`; all events in one
+  response is fine, the reader consumes them in order): upload → mapper renders
+  detected fields + samples; `suggestedMapping` prefill applies when stubbed,
+  heuristics otherwise; mapping validation gates the
   submit; processing panel ticks progress off the stubbed sequence; `failed` path
-  shows the error card; **reload mid-processing resumes polling from `?import=`**;
+  shows the error card; **reload mid-processing resumes the stream from
+  `?import=`**;
   preview renders all six error kinds with labels; inline fix PATCHes the staged row
   (stubbed) and the returned clean row clears the error; approve stays disabled until
   clean; evidence add/remove persists via prep PATCH; **role split: admin sees
@@ -223,11 +236,13 @@ backend know where files live).
 ### CP-2 — Import: upload → mapper → processing
 - [ ] Template assets in `public/templates/` (csv + xlsx, documented columns)
 - [ ] Upload card (formats, cap, archive-on-upload; re-upload discards the prior
-      import); import DTOs + upload/mapping/poll/discard actions
-- [ ] Field mapper: detected columns + sample chips, target selects, auto-map
-      heuristics const, backend-mirrored validation gating "Procesar archivo"
-- [ ] Processing panel + polling loop per §3.1 (cancelUncompleted, route-leave stop,
-      `?import=` resume, failed card, poll-error resilience); dirty-navigation guard
+      import); import DTOs + upload/mapping/listen/discard actions
+- [ ] Field mapper: detected columns + sample chips, target selects, two-tier
+      auto-map (`suggestedMapping` prefill, heuristics fallback), backend-mirrored
+      validation gating "Procesar archivo"
+- [ ] Processing panel + status stream per §3.1 (fetch-SSE reader with Bearer
+      header, cancelUncompleted, route-leave stop, `?import=` resume, reconnect
+      backoff, failed card); dirty-navigation guard
 
 ### CP-3 — Review → approval + view
 - [ ] Preview from staged rows: six error kinds, PATCH-persisted inline fixes
@@ -247,8 +262,9 @@ backend know where files live).
 - Auto-map heuristics (§2 step 3) — validate the patterns against real provider
   lists before CP-2 closes (supersedes the old fixed-template column validation,
   master plan §5.2 item).
-- **Mapping presets:** prefill the mapper from the tenant's last confirmed import
-  when the detected headers match — cheap UX win, v1.1; decide at CP-2.
+- ~~Mapping presets~~ — **resolved 2026-07-19 (owner): the `settings` key-value
+  store** (01 §2) remembers the last-used mapping by header text; upload returns
+  `suggestedMapping` when headers match (§2 step 3 tier 1).
 - **Notifying admins of pending approvals** (beyond the in-list strip): toast/badge
   on login? email? Defer until real office→admin traffic shows the strip isn't
   enough.

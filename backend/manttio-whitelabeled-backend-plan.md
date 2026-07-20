@@ -201,12 +201,18 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   **purges the staged binary once processed** (`file_deleted_at`; parsed `raw`
   rows are the durable record — uploads are copies, the tenant keeps the
   original); platform retries → DLQ ⇒ `failed`; a daily cron sweeps leftover
-  binaries; superadmin polls the DB-backed status endpoint. Row fixes +
+  binaries **and never-approved staging rows**; superadmin listens on an **SSE
+  status stream** (`GET /replenishments/imports/:id/events` — server-side row
+  watcher, closes at the terminal event; one-shot GET for loads). Row fixes +
   evidence/notes prep persist on the staging rows/import (PATCH); **approval —
-  owner/admin only (14 §2.1e) — promotes staging into the inventory tables**
-  (doc + items + movements + stock in one transaction). Retires the
-  SheetJS-on-Workers CPU concern. Ops asks: Workers **paid plan** (Queues) +
-  per-tenant queue/DLQ names (per-deploy values, like the buckets).
+  owner/admin only (14 §2.1e) — promotes staging into the inventory tables and
+  deletes the staged rows (true move — the one sanctioned hard-delete exception:
+  staging is a temp table, not an entity)** (doc + items + movements + stock in
+  one transaction). New cross-cutting **`modules/settings/`**: generic key-value
+  store (`id · key · value` jsonb, rows-not-columns); first key
+  `wms.last_replenishment_mapping` (by header text) powers the mapper prefill.
+  Retires the SheetJS-on-Workers CPU concern. Ops asks: Workers **paid plan**
+  (Queues) + per-tenant queue/DLQ names (per-deploy values, like the buckets).
 - **equipment** (11): `equipment` table + `report_equipment` join; retro-link
   endpoints; hook: serialized unit consumed on a report ⇒ offer/auto-create the
   client `Equipment` (`material_unit_id` backlink).
