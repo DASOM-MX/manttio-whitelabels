@@ -41,6 +41,8 @@ ReplenishmentImport {                       // dto for the async job (added 2026
   id, status: ReplenishmentImportStatus, fileName,
   fields: ImportField[], mapping?: ImportMapping,
   progress: { total?, processed, errors }, error?,
+  submissionSnapshot?,                      // human-readable JSON text of the
+                                            //   submission (file + mapping), 2026-07-20
   rows?: ParseRow[]                         // present once status = 'ready'
 }
 ImportField { id, header, samples: string[] }
@@ -54,6 +56,13 @@ ParseRowError = 'unknown_sku' | 'bad_quantity' | 'missing_serial'
               | 'duplicate_serial' | 'serial_exists' | 'quantity_on_serialized'
               | 'missing_lot' | 'bad_expiry'   // lot: missing_lot + bad_expiry only;
                                                // lot re-receipt is a top-up, not an error
+ImportEvent { type: ImportEventType,                 // whole-lifecycle audit (2026-07-20)
+              actor?: { id, name },                  // null for system events
+              line?, reason?, details,               // details shape per type (01 §2)
+              createdAt }
+ImportEventType = 'created' | 'mapping_submitted' | 'processing_started'
+                | 'processed' | 'processing_failed' | 'row_updated' | 'row_removed'
+                | 'evidence_updated' | 'notes_updated' | 'discarded' | 'approved'
 ReplenishmentsQuery { warehouseId?, from?, to?, page, limit }
 ```
 
@@ -149,11 +158,26 @@ one is approved or discarded.
    re-resolves (SKU-then-UPC) + re-validates and returns the row, so edits survive
    reloads and **carry across users** (office edits, admin approves); a corrected
    serial clears the unprocessable flag too. **Hand-edited rows carry a subtle
-   "editado" marker** so the approver sees which quantities were adjusted from the
-   file; the summary strip (step 8) recomputes live. Quantity stays **> 0** (0 →
-   `bad_quantity`, a fixable error). Error summary chip row above splits the classes
-   ("2 por corregir · 1 no procesable") and anchor-links to the first of each
-   (error-summary rule).
+   "editado" marker** (backed by the audit trail — below) so the approver sees which
+   quantities were adjusted from the file; the summary strip (step 8) recomputes
+   live. Quantity stays **> 0** (0 → `bad_quantity`, a fixable error).
+   **Row removal — owner/admin only** (owner 2026-07-20; office never sees the
+   affordance): a trash action opens `remove-staged-row-dialog` (shape 2, **required
+   reason** — audit-comment convention) → `RemoveStagedRow` → `DELETE .../rows/:line`.
+   For "no llegó nada" without the audit weight, editing to the real received
+   quantity is the office path; outright removal is the admin path and is logged.
+   Error summary chip row above splits the classes ("2 por corregir · 1 no
+   procesable") and anchor-links to the first of each (error-summary rule).
+   **Accountability tooling** (review panel): an expandable **"Historial"** panel
+   renders the whole-lifecycle timeline (`LoadImportAudit` → `GET .../audit`) —
+   start → upload → mapping → processing → each edit/removal → evidence/notes →
+   (later) approval — each entry showing actor (or "Sistema" for consumer events),
+   what happened (before→after on edits, removal reason, `{total, errors}` on
+   processed…), and timestamp, so the approver sees the full provenance before
+   signing off. Alongside it, a **"Ver envío"** toggle shows the
+   `submissionSnapshot` — the human-readable JSON of the original file + applied
+   mapping (read-only `<pre>`, copyable) — the durable record of what was submitted
+   (01 §2).
 6. **Evidence photos** — attach **after processing, at review time** (owner
    2026-07-19): multi-image uploader (pick → `POST /upload` → R2 keys; thumbnails
    with remove), persisted to the import via `UpdateImportPrep`
@@ -195,7 +219,9 @@ fields, progress, staged rows, prep), `pendingImports` (the ready-state strip),
 `SubmitImportMapping(importId, warehouseId, mapping)`, `ListenImportStatus(importId)`,
 `StopImportListening`, `DiscardImport(importId)`, `UpdatePreviewRow(line, patch)`
 (server PATCH — staged-row edit incl. **quantity on any row**, owner 2026-07-20;
-state updated from the response),
+audited; state updated from the response),
+`RemoveStagedRow(line, reason)` (owner/admin — `DELETE .../rows/:line`, audited),
+`LoadImportAudit(importId)` (the whole-lifecycle event log),
 `UpdateImportPrep(importId, { evidencePhotos?, notes? })`,
 `ApproveReplenishment(importId)` (owner/admin — the promotion).
 
@@ -292,8 +318,13 @@ backend know where files live).
 
 ### CP-3 — Review → approval + view
 - [ ] Preview from staged rows: error kinds in two classes, lot rows with expiry +
-      top-up hint, PATCH-persisted inline fixes (server re-resolution reflected),
-      error summary anchors, per-row node select
+      top-up hint, PATCH-persisted edits incl. **quantity on any row** (server
+      re-resolution reflected, "editado" marker), error summary anchors, per-row
+      node select
+- [ ] **Row removal (owner/admin only, office hidden)**: `remove-staged-row-dialog`
+      (required reason) → `RemoveStagedRow`; **"Historial" timeline panel**
+      (`LoadImportAudit`, whole lifecycle, actor/system + details) + **"Ver envío"**
+      submission-snapshot toggle
 - [ ] Evidence uploader + notes persisted via `UpdateImportPrep`; approval step with
       role split (admin approve button + gating, office waiting card, affordance
       hidden not disabled)

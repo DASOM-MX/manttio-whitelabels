@@ -37,6 +37,18 @@ enum ReasonContext { Inbound = 'inbound', Transfer = 'transfer',
                      ReadjustmentIn = 'readjustment_in',
                      ReadjustmentOut = 'readjustment_out',
                      Consumption = 'consumption' }   // consumption: report_binding only
+enum ImportEventType {                       // whole-lifecycle audit (owner 2026-07-20)
+  Created = 'created',                        // register/upload — the "start"
+  MappingSubmitted = 'mapping_submitted',     // /process
+  ProcessingStarted = 'processing_started',   // consumer claimed (system actor)
+  Processed = 'processed',                    // → ready (system)
+  ProcessingFailed = 'processing_failed',     // → failed (system)
+  RowUpdated = 'row_updated',                 // staged-row edit
+  RowRemoved = 'row_removed',                 // staged-row removal (owner/admin)
+  EvidenceUpdated = 'evidence_updated',
+  NotesUpdated = 'notes_updated',
+  Discarded = 'discarded',
+  Approved = 'approved' }                     // admin/owner confirmation → doc created
 enum ReplenishmentImportStatus {                     // added 2026-07-19 (owner ask)
   Uploaded = 'uploaded',      // file stored, fields detected, awaiting mapping
   Queued = 'queued',          // mapping submitted, waiting for the processor to claim
@@ -226,8 +238,17 @@ replenishment_imports {
                                            //   durable content record is rows.raw
   detected_fields jsonb not null,          // [{ id, header, samples: string[] }] —
                                            //   sniffed at upload for the field mapper
-  mapping jsonb?,                          // { sku, quantity?, serial? } → field ids,
-                                           //   set when processing starts
+  mapping jsonb?,                          // { sku, quantity?, serial?, lot?,
+                                           //   expiry? } → field ids, set at /process
+  submission_snapshot text?,               // owner 2026-07-20: the whole submission
+                                           //   as HUMAN-READABLE pretty-printed JSON,
+                                           //   stored as PLAIN TEXT (not jsonb — keeps
+                                           //   exact formatting; a tamper-evident,
+                                           //   exportable audit artifact). Written at
+                                           //   /process: { fileName, warehouse,
+                                           //   detectedFields, mapping, submittedBy,
+                                           //   submittedAt }. Immutable; the header
+                                           //   persists forever so it survives approval
   warehouse_id uuid?,                      // destination, set with the mapping
   total_rows int?, processed_rows int not null default 0,
   error_rows int not null default 0,       // progress counters the processor updates
@@ -265,8 +286,9 @@ replenishment_import_rows {                // the STAGING ("temp") table — own
   error text?                              // ParseRowError code (02 §6), null = clean
 }                                          // UNIQUE (import_id, line) — retries upsert
                                            //   by that key, never duplicate rows.
-                                           // MUTABLE while status='ready' (inline
-                                           //   fixes PATCH here, re-resolved server-
+                                           // MUTABLE while status='ready' (edits +
+                                           //   removals PATCH/DELETE here, each
+                                           //   AUDITED — below; re-resolved server-
                                            //   side — 02 §6).
                                            // Approval MOVES the data: promoted into
                                            //   the inventory tables, then the staged
@@ -274,6 +296,32 @@ replenishment_import_rows {                // the STAGING ("temp") table — own
                                            //   2026-07-19 — sanctioned exception to
                                            //   no-hard-deletes: staging ≠ entity;
                                            //   the promoted doc is the record)
+replenishment_import_events {              // append-only audit of the WHOLE import
+                                           //   lifecycle — start button → admin/owner
+                                           //   confirmation (owner 2026-07-20). NEW
+                                           //   TABLE. Guards against silent quantity
+                                           //   fiddling and makes the process
+                                           //   accountable end-to-end.
+  id, import_id not null → replenishment_imports,   // header persists forever, so
+                                           //   the log outlives the ephemeral staged
+                                           //   rows (survives approval)
+  type ImportEventType not null,           // the 11 lifecycle events above
+  actor_user_id uuid? → users,             // who did it; NULL for system events
+                                           //   (processing_started/processed/failed —
+                                           //   emitted by the queue consumer)
+  line int?,                               // set on row_updated/row_removed (the
+                                           //   staged line — NOT an FK, rows vanish)
+  reason text?,                            // REQUIRED on row_removed (audit comment)
+  details jsonb not null default '{}',     // event-specific: row_updated { field:
+                                           //   {from,to} }; row_removed row snapshot;
+                                           //   mapping_submitted { warehouse, mapping };
+                                           //   processed { total, errors }; failed
+                                           //   { error }; approved { folio,
+                                           //   replenishmentId }
+  created_at
+}                                          // no deleted_at, no UPDATE/DELETE path —
+                                           //   append-only like movements/interactions.
+                                           //   The full timeline of every import.
 
 ```
 

@@ -109,7 +109,8 @@ WMS permissions are **action-level**, not module-level:
 | Materials catalog (SKUs) | ✓ | ✓ | — | — |
 | Movement reasons: add / deactivate (custom; built-ins locked) | ✓ | ✓ | — | — |
 | Inbound (receive deliveries) | ✓ | ✓ | ✓ | — |
-| Replenishments: prepare (upload + field-map, fix staged rows, evidence, notes) | ✓ | ✓ | ✓ | — |
+| Replenishments: prepare (upload + field-map, edit staged rows incl. quantity, evidence, notes) | ✓ | ✓ | ✓ | — |
+| Replenishments: **remove** a staged row (audited, reason required)ᵉ | ✓ | ✓ | — | — |
 | **Replenishments: approve** (promote staged data → inventory)ᵉ | ✓ | ✓ | — | — |
 | Transfer (any → any) | ✓ | ✓ | ✓ | — |
 | **Self-checkout** (→ own van) | n/a | n/a | n/a | ✓ᵃ |
@@ -133,13 +134,17 @@ d. **Audit immutability (decided 2026-07-05):** movement records are **append-on
    (`direction: in|out`, reason + notes required, owner/admin only); staff corrections
    to report materials emit compensating readjustments while the original consumption
    movement stands. Details: `10-wms.md` §1.
-e. **Replenishment approval (decided 2026-07-19, owner):** file imports parse into a
-   **staging table**; nothing touches inventory until an **owner/admin approves**,
-   which promotes the staged data into the inventory tables and emits the inbound
-   movements. Office prepares everything (upload, mapping, row fixes, evidence,
-   notes — all staged) but cannot approve — the same draft-vs-commit split as
-   billing/contracts (§2 note 3). Details: `10-wms/07-replenishments.md` +
-   `10-wms/02-api-surface.md` §6.
+e. **Replenishment prepare / remove / approve (decided 2026-07-19; refined
+   2026-07-20, owner):** file imports parse into a **staging table**; nothing touches
+   inventory until an **owner/admin approves**, which promotes the staged data into
+   the inventory tables and emits the inbound movements. Office **prepares** (upload,
+   mapping, editing staged rows incl. quantities, evidence, notes — all staged) but
+   **cannot remove rows and cannot approve** — the same draft-vs-commit split as
+   billing/contracts (§2 note 3). **Removing a staged row is owner/admin only and
+   audited** (reason required; every staged-row change — edit or removal — is logged
+   append-only to `replenishment_import_row_edits`, owner 2026-07-20: guards against
+   silent quantity fiddling / row removal). Details:
+   `10-wms/07-replenishments.md` + `10-wms/02-api-surface.md` §6.
 
 ## 3. How gating is implemented (CSR v1 — decided 2026-07-05)
 

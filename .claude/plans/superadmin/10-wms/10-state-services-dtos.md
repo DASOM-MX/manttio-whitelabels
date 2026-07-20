@@ -17,7 +17,7 @@ it; touching another slice's file means coordinating in its plan first.
 | `WarehousesState` | 03/04 | `tree`, `flat` (selects), `selected`, `nodes` cache (by parent), `locationStock`, `loading` | `LoadWarehouseTree`, `LoadWarehouses`, `LoadWarehouse(id)`, `CreateWarehouse`, `UpdateWarehouse`, `DeleteWarehouse`, `AssignTechnician(id, userId \| null)`, `LoadNodes(wid, parentNodeId?)`, `CreateNode`, `RenameNode`, `DeleteNode`, `LoadLocationStock(wid, nodeId?)` |
 | `MaterialsState` | 05 | `list`, `total`, `selected`, `stock`, `loading` | `LoadMaterials(query)`, `LoadMaterial(id)`, `LoadMaterialStock(id)`, `CreateMaterial`, `UpdateMaterial`, `DeleteMaterial` |
 | `StockState` | 06 | `reasons`, `movements`, `movementsTotal`, `loading` | `LoadMovementReasons`, `CreateMovementReason`, `UpdateMovementReason`, `Inbound`, `Transfer`, `Readjust`, `LoadMovements(query)` |
-| `ReplenishmentsState` | 07 | `list`, `total`, `selected`, `import` (active job — status/fields/progress/staged rows/prep), `pendingImports`, `loading` | `LoadReplenishments(query)`, `LoadPendingImports`, `LoadReplenishment(id)`, `UploadImportFile(file)`, `SubmitImportMapping(importId, warehouseId, mapping)`, `ListenImportStatus(importId)` (**cancelUncompleted** fetch-SSE pipeline — 07 §3.1), `StopImportListening`, `DiscardImport(importId)`, `UpdatePreviewRow(line, patch)` (staged-row PATCH), `UpdateImportPrep(importId, prep)`, `ApproveReplenishment(importId)` (owner/admin promotion) |
+| `ReplenishmentsState` | 07 | `list`, `total`, `selected`, `import` (active job — status/fields/progress/staged rows/prep/**submissionSnapshot**), `importAudit` (event log), `pendingImports`, `loading` | `LoadReplenishments(query)`, `LoadPendingImports`, `LoadReplenishment(id)`, `UploadImportFile(file)`, `SubmitImportMapping(importId, warehouseId, mapping)`, `ListenImportStatus(importId)` (**cancelUncompleted** fetch-SSE pipeline — 07 §3.1), `StopImportListening`, `DiscardImport(importId)`, `UpdatePreviewRow(line, patch)` (staged-row PATCH, audited), `RemoveStagedRow(line, reason)` (owner/admin, audited), `LoadImportAudit(importId)`, `UpdateImportPrep(importId, prep)`, `ApproveReplenishment(importId)` (owner/admin promotion) |
 | `ReportMaterialsState` | 08 | `byReport`, `loading`, `saving` | `LoadReportMaterials(reportId)`, `SaveReportMaterials(reportId, payload)` |
 
 - All registered **lazily** via `provideStates` in `wms.routes.ts`;
@@ -46,8 +46,9 @@ human messages).
 
 `warehouse.dto.ts` (03) · `storage-node.dto.ts` (04) · `material.dto.ts` +
 `material-unit.dto.ts` (05) · `movement.dto.ts` + `movement-reason.dto.ts` (06) ·
-`replenishment.dto.ts` + `replenishment-import.dto.ts` (07) ·
-`report-material.dto.ts` (08). Query DTOs live with
+`replenishment.dto.ts` + `replenishment-import.dto.ts` (07 — incl. `ImportEvent` +
+`ImportEventType` for the lifecycle audit) · `report-material.dto.ts` (08). Query
+DTOs live with
 their resource. Shared refs (`MaterialRef`, `LocationRef`) live in
 `material.dto.ts` / `warehouse.dto.ts` respectively — import concrete files, no
 barrel. String-literal unions mirror the backend enums (overview §3); keep in sync
@@ -69,6 +70,7 @@ with `01-data-model.md` §1.
 | `import-status-labels.const.ts` / `import-status-pill-classes.const.ts` | 07 |
 | `unprocessable-row-errors.const.ts` (serial-collision codes — mirror of backend `wms/constants/`) | 07 |
 | `import-target-field-labels.const.ts` / `import-auto-map-patterns.const.ts` | 07 |
+| `import-event-type-labels.const.ts` (lifecycle event → Spanish label) | 07 |
 
 ## 5. Pipes (`src/app/pipes/` — pure, per-row template mappings)
 
@@ -83,8 +85,9 @@ templates.
 ## 6. Shared components inside `wms/`
 
 `reason-select` + `add-reason-dialog` + `movements-table` (06 — consumed by 05/07/09) ·
-the three operation dialogs (06) · `report-materials-editor` +
-`expired-lot-warning-dialog` (08 — consumed by the reports area). Nothing moves to
+the three operation dialogs (06) · `remove-staged-row-dialog` (07 — reason-required
+staged-row removal) · `report-materials-editor` + `expired-lot-warning-dialog`
+(08 — consumed by the reports area). Nothing moves to
 `src/app/shared/components/` unless a **non-wms**
 second module needs it (master plan §2 rule 4).
 

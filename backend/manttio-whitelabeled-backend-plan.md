@@ -211,7 +211,14 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   `409 import_in_progress`); superadmin listens on an **SSE status stream**
   (`GET /replenishments/imports/:id/events` — server-side row watcher, closes at
   the terminal event; one-shot GET for loads). Row fixes +
-  evidence/notes prep persist on the staging rows/import (PATCH); **approval —
+  evidence/notes prep persist on the staging rows/import (PATCH). **The whole
+  import lifecycle is audited** (owner 2026-07-20): an append-only
+  `replenishment_import_events` log — `created`→`mapping_submitted`→processing
+  (system)→`row_updated`/`row_removed`→`evidence_updated`/`notes_updated`→
+  `discarded`|`approved` — permanent, survives approval; **staged-row removal is
+  owner/admin only + reason-required** (office edits quantities, can't remove);
+  plus a per-import human-readable plain-text-JSON `submission_snapshot` (file +
+  mapping). Replenishment-scoped, not a generic WMS edit audit. **approval —
   owner/admin only (14 §2.1e) — promotes staging into the inventory tables and
   deletes the staged rows (true move — the one sanctioned hard-delete exception:
   staging is a temp table, not an entity)** (doc + items + movements + stock in

@@ -53,7 +53,9 @@ On message `{ importId }`:
 1. Load the import row. Accept `queued` (first delivery) **or** `processing`
    (redelivery after a failed/timed-out attempt); **ack terminal states silently**
    (stale redelivery after success). Set `processing`,
-   `attempts = message.attempts` (visibility only — Queues owns retry state).
+   `attempts = message.attempts` (visibility only — Queues owns retry state), and
+   emit a **`processing_started`** event (system actor — 01 §2 audit log; skip on
+   redelivery so retries don't spam the timeline).
 2. Fetch the file from R2 by `file_key` (native binding); parse per `mapping` +
    the stored `detected_fields` (SheetJS for xlsx; delimiter-sniffed csv/txt).
    Unreadable ⇒ terminal `failed` + `error`, **ack — no retry** (the file won't
@@ -64,11 +66,13 @@ On message `{ importId }`:
    idempotent by construction — never duplicate, never delete); bump
    `processed_rows`/`error_rows` in batches (~25 rows — what the SSE status
    stream relays to the progress bar).
-4. Terminal write `ready` (row errors included — the preview handles them), then
-   **purge the staged file** + stamp `file_deleted_at` (owner 2026-07-19 — source
-   files are disposable copies). Purge strictly **after** `ready` commits: a
-   crash/timeout between the two redelivers with the file intact. `failed`
-   imports keep their file until the retention sweep (§4).
+4. Terminal write `ready` (row errors included — the preview handles them) +
+   emit **`processed`** (`{ total, errors }`, system actor); a whole-file failure
+   writes `failed` + emits **`processing_failed`** (`{ error }`). Then **purge the
+   staged file** + stamp `file_deleted_at` (owner 2026-07-19 — source files are
+   disposable copies). Purge strictly **after** `ready` commits: a crash/timeout
+   between the two redelivers with the file intact. `failed` imports keep their
+   file until the retention sweep (§4).
 5. Resolve by tracking mode: serialized → serials · **lot → `lot` + `quantity`
    (+ parse the mapped expiry field into `lot_expires_at` when present;
    unparseable → `bad_expiry`)** (2026-07-20) · unserialized → quantity.

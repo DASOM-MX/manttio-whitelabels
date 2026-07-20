@@ -61,6 +61,16 @@ merging — GitHub does not auto-retarget). Branch naming
   UPDATE/DELETE path in backend code, no edit/delete affordance in UI, period. Every
   correction is a new `readjustment` movement (owner/admin, `direction: in|out`, reason
   required, notes required). Same principle as CRM interactions and visit assignments.
+- **The whole replenishment lifecycle is audited** (owner 2026-07-20): every step
+  from the start (upload) to admin/owner confirmation appends to
+  `replenishment_import_events` (permanent, append-only) — `created`,
+  `mapping_submitted`, `processing_started`/`processed`/`processing_failed`
+  (system), `row_updated`/`row_removed`, `evidence_updated`, `notes_updated`,
+  `discarded`, `approved`. Row **removal is owner/admin only** + reason-required;
+  edits are all-preparers. Each submission also stores a human-readable
+  `submission_snapshot` (file + mapping as plain-text JSON). Scoped to
+  **replenishment imports only** — not a generic WMS edit audit (stock changes are
+  already the `movements` journal). `01` §2, `02` §6.
 - **Movement reasons are data, not an enum** (tenant-customizable definition entity,
   master plan §4): `MovementReasonDef` with immutable auto-slugged `code`, editable
   `label`, `active` flag, deactivate-only. The 13 built-ins (incl. `scrap` +
@@ -257,6 +267,17 @@ Each is argued in its owning sub-plan; this is the sign-off index.
     existing one instead of opening a second. ⚠️ Scope spec'd **per tenant** (one
     global in-flight); if warehouses are restocked concurrently by different staff,
     a **per-warehouse** scope may be wanted — confirm — `01` §2, `02` §6, `07` §2.
+20. **Whole-lifecycle replenishment audit** (owner 2026-07-20, new table
+    `replenishment_import_events`): an append-only event log spanning the entire
+    import — `created` (start) → `mapping_submitted` → processing (system) →
+    `row_updated`/`row_removed` → `evidence_updated`/`notes_updated` → `discarded` |
+    `approved` (confirmation). Each mutating endpoint emits its event in-transaction;
+    the log is permanent and **survives approval** (staged rows are gone, the log +
+    `submission_snapshot` stay). Row **removal is owner/admin only, reason-required**
+    (office edits quantities but cannot remove); each submission also freezes a
+    human-readable plain-text-JSON `submission_snapshot` (file + mapping). Read via
+    `GET .../audit`; surfaced as the register "Historial" timeline. Guards against
+    silent quantity fiddling / row removal — `01` §2, `02` §6, `07` §2, `14` §2.1e.
 
 ## 7. Progress board (sub-plan owners update their row + their file header together)
 
