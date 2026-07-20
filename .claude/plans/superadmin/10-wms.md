@@ -23,7 +23,7 @@ in `10-wms/00-overview.md` §6.
 | `10-wms/08-report-materials.md` | Report material tracking + staff corrections |
 | `10-wms/09-technician-surfaces.md` | Mi almacén + Consulta de stock + closing sweep |
 | `10-wms/10-state-services-dtos.md` | Frontend plumbing reference (states/services/DTOs) |
-| `10-wms/11-processing-service.md` | The batch-processing system — own project, own repository (cross-repo contract) |
+| `10-wms/11-processing-service.md` | Import processing — Cloudflare Queues consumer in `backend/` (queue/DLQ wiring, parse handler, retention cron) |
 
 Do not add module content to this file — it exists only so `10-wms` links keep
 resolving.

@@ -1,177 +1,146 @@
-# 10-wms / 11 — Processing service (new project, own repository)
+# 10-wms / 11 — Import processing (Cloudflare Queues consumer)
 
 > **Status:** not-started · **Depends on:** 01 (contract), 02 (enqueue endpoints)
 > **Owner:** — · **Last updated:** 2026-07-19
 
-The **batch-processing system — its own project in its own repository** (owner
-decision 2026-07-19; kept **out of this monorepo** for easier maintenance): a
-standalone service, deployed on its own server, that executes long/heavy jobs the
-Workers backend shouldn't. First (and v1-only) job kind: the **replenishment-import
-parse/validate** (07). The design generalizes: new job kinds = new handlers in this
-service, never new parse logic in the Worker.
+How replenishment-import batch jobs actually run: a **Cloudflare Queues consumer in
+`backend/`** — same repo, same per-tenant Worker deploy as the API (**decided
+2026-07-19, owner — "we were overcomplicating"**). This supersedes the earlier
+iterations of this file (external microservice in its own repo → Node/TS daemon →
+per-tenant instances vs shared connection-string registry): all of that apparatus —
+new repo, new server, credential registry, `SKIP LOCKED` lease/heartbeat machinery,
+hung-job watchdogs — is **deleted**, because the platform provides delivery,
+retries, dead-lettering, and hard timeouts, and the per-tenant Worker already holds
+the only credentials needed.
 
-Because the code lives elsewhere, **this file is the cross-repo contract**: the DB
-shapes (01 §2), the enqueue/status semantics (02 §6), and the row-error law (§3) are
-owned *here*; the service repo seeds its own CLAUDE.md/plan from this file and any
-contract change lands in this suite **first**, then propagates.
-
-**The contract is the database.** The backend enqueues by writing a row (`status:
-queued`); this service claims it, does the work, and writes rows + status back to
-Neon; superadmin polls the same row through the backend (02 §6). Neither side knows
-where the other runs — that indirection is the whole point.
+What survived every iteration (the design invariant): **the contract is the
+database.** The API enqueues by setting `status: queued`; the consumer writes
+staging rows + status back to Neon; superadmin polls the DB-backed status endpoint
+(02 §6). If processing ever outgrows Workers (multi-minute CPU, new heavy job
+kinds), it can be re-extracted to an external service **without touching superadmin
+or the API** — that is the payoff of keeping the contract DB-first.
 
 ---
 
-## 1. Placement + stack
+## 1. Architecture
 
-- **Own repository** (owner decision 2026-07-19 — *not* a monorepo package):
-  proposed `DASOM-MX/manttio-processor`, checked out as a **sibling** of this repo
-  (`../manttio-processor`, same convention as `../manttio`). Own `package.json`,
-  `tsconfig`, `CLAUDE.md` (seeded from this file), own plans/test suite/release
-  cadence. This monorepo's root `CLAUDE.md` gains a one-line pointer in its fork
-  context ("related repos") at CP-3 — nothing else here changes.
-- **Stack:** TypeScript on **Node 22** (plain long-running process — no framework;
-  this is a worker loop, not an HTTP app). Deps: `postgres`/`pg` straight to Neon
-  over TCP (the WS driver is a Workers constraint — not needed here), `@aws-sdk/
-  client-s3` (or plain fetch + SigV4) for **R2's S3-compatible API** (read-only:
-  fetch import files from `manttio-wms`), SheetJS for `.xlsx`, hand-rolled
-  delimiter-sniffed csv/txt parsing (same rules 02 §6 documents).
-- Optional micro HTTP surface: `GET /healthz` only (uptime probe). No inbound app
-  traffic — the service dials out to Neon + R2 exclusively, which keeps its network
-  posture trivial (no auth surface, no CORS, nothing tenant-facing).
-- **Tenancy v1: one deployment per tenant** (env `DATABASE_URL` + R2 creds), matching
-  the per-tenant backend deploy model. A shared multi-tenant processor (connection
-  registry pushed from the whitelabels manager) is a manager-era consolidation —
-  open item, don't pre-build.
+- **Producer:** `POST /replenishments/imports/:id/process` (02 §6) stores the
+  mapping, sets `queued`, and sends `{ importId }` to the queue binding
+  (`env.WMS_IMPORT_QUEUE.send(...)`). The message carries the id only — the file
+  stays in R2, the mapping in the DB (the 128 KB message cap is never in play).
+- **Consumer:** the same Worker exports a `queue()` handler (composition root
+  `src/index.ts`, delegating immediately to
+  `modules/wms/services/import-processor.service.ts`). Wrangler config:
+  `[[queues.producers]]` + `[[queues.consumers]]` — `max_batch_size: 1` (a job is
+  already a batch internally), `max_retries: 3`, dead-letter queue
+  `manttio-wms-imports-dlq`.
+- **Per-tenant for free:** the backend deploys per tenant, so each tenant gets its
+  own queue + consumer + secrets — the tenancy/registry/credential questions from
+  the superseded designs don't exist here. Ops note: queues are account-level, so
+  per-tenant deploys on one account need **per-tenant queue names** (same pattern
+  as the per-tenant buckets — a per-deploy wrangler value).
+- **Requirements:** Workers **paid** plan (Queues); raise the Worker's
+  `limits.cpu_ms` for worst-case parse (≤1 MB stock lists parse in seconds —
+  generous headroom, not a risk; this also formally retires the old
+  SheetJS-on-Workers concern).
+- No new HTTP surface, no S3 credentials (native R2 + DB bindings), no healthz —
+  observability is the Worker's own logs/dashboards.
 
-## 2. Job loop
+## 2. The import handler (`import-processor.service.ts`)
 
-```
-every POLL_INTERVAL_MS (default 2000):
-  claim ← UPDATE replenishment_imports SET status='processing',
-            locked_at=now(), locked_by=$instance, attempts=attempts+1
-          WHERE id = (
-            SELECT id FROM replenishment_imports
-            WHERE status='queued'
-               OR (status='processing' AND locked_at < now() - LEASE_TIMEOUT)
-            ORDER BY created_at
-            LIMIT 1
-            FOR UPDATE SKIP LOCKED)
-          RETURNING *
-  if claim: run handler(claim); else: sleep
-```
+On message `{ importId }`:
 
-- `FOR UPDATE SKIP LOCKED` is the whole queue — no queue infra, no extra tables;
-  multiple instances can run safely.
-- `attempts > MAX_ATTEMPTS (3)` at claim time ⇒ write `failed`
-  (`error: 'max_attempts'`) instead of running.
-- Long jobs heartbeat `locked_at` every 30 s so a live job never looks stale
-  (import jobs finish in seconds; the heartbeat exists for future job kinds).
+1. Load the import row. Accept `queued` (first delivery) **or** `processing`
+   (redelivery after a failed/timed-out attempt); **ack terminal states silently**
+   (stale redelivery after success). Set `processing`,
+   `attempts = message.attempts` (visibility only — Queues owns retry state).
+2. Fetch the file from R2 by `file_key` (native binding); parse per `mapping` +
+   the stored `detected_fields` (SheetJS for xlsx; delimiter-sniffed csv/txt).
+   Unreadable ⇒ terminal `failed` + `error`, **ack — no retry** (the file won't
+   get better).
+3. Set `total_rows`; walk rows: resolve material by mapped code — **SKU exact,
+   then UPC exact** — validate per tracking mode; **upsert** into
+   `replenishment_import_rows` keyed `(import_id, line)` (at-least-once delivery ⇒
+   idempotent by construction — never duplicate, never delete); bump
+   `processed_rows`/`error_rows` in batches (~25 rows — what the progress bar
+   polls).
+4. Terminal write `ready` (row errors included — the preview handles them), then
+   **purge the staged file** + stamp `file_deleted_at` (owner 2026-07-19 — source
+   files are disposable copies). Purge strictly **after** `ready` commits: a
+   crash/timeout between the two redelivers with the file intact. `failed`
+   imports keep their file until the retention sweep (§4).
+5. Row-error semantics (`unknown_sku`, `bad_quantity`, `missing_serial`,
+   `duplicate_serial`, `serial_exists`, `quantity_on_serialized`) are the **same
+   modules** the confirm-time revalidation uses (02 §6/§7) — one implementation;
+   the cross-repo "shared law" discipline from the superseded design is no longer
+   needed.
 
-## 3. The replenishment-import handler
+**Never in this handler:** stock math, movement emission, folio increments — those
+stay in the approval transaction (01 §3). The handler only turns a file into
+validated staging rows.
 
-1. Fetch the file from R2 by `file_key`; parse per `mapping` + the stored
-   `detected_fields` (xlsx via SheetJS, csv/txt delimiter-sniffed). Unreadable at
-   this stage ⇒ `failed` + `error`.
-2. Set `total_rows`; walk rows: resolve material by mapped code — **SKU exact, then
-   UPC exact** — validate per tracking mode; **upsert** into
-   `replenishment_import_rows` keyed `(import_id, line)` (retries after a crash are
-   idempotent — never duplicate, never delete); bump `processed_rows`/`error_rows`
-   in batches (every ~25 rows — that's what the progress bar polls).
-3. Terminal write: `ready` (any row errors included — the preview handles them) and
-   clear the lease. Every terminal/status write is conditional on
-   `locked_by = $instance` (a reclaimed job's zombie can't clobber the retry).
-4. **Purge the staged file** (owner 2026-07-19): after the `ready` write commits,
-   delete the R2 object and stamp `file_deleted_at` — the file is transient; the
-   durable record is the upserted rows' `raw`. Order matters: purge only **after**
-   `ready` is committed, so a crash between the two leaves a re-processable file,
-   never a lost one. `failed` jobs keep their file for debugging.
-5. Row-error semantics are **shared law with 02 §6** (`unknown_sku`, `bad_quantity`,
-   `missing_serial`, `duplicate_serial`, `serial_exists`, `quantity_on_serialized`)
-   — this service is their reference implementation; the backend's confirm-time
-   revalidation must agree.
+## 3. Failure model (platform-owned)
 
-**Never in this service:** stock math, movement emission, folio increments — those
-stay in the backend's confirm transaction (01 §3). This service only turns a file
-into validated rows.
+- **Crash / hung parse / timeout:** the invocation dies (Workers wall-clock + CPU
+  limits are the hard kill — no watchdog to build) and Queues **redelivers**;
+  step 1's idempotency makes retries safe.
+- **Retry cap:** after `max_retries` the message lands in the **DLQ**; a tiny DLQ
+  consumer marks the import `failed` (`error: 'max_attempts'`) — the user sees the
+  failure card and re-uploads.
+- **Poison files never loop:** unreadable files fail terminally on the first
+  attempt (step 2); pathological-but-parseable ones burn ≤ 3 attempts and
+  dead-letter.
+- The `locked_at`/`locked_by` lease columns from the superseded daemon design are
+  **dropped** (01 §2) — Queues is the arbiter of in-flight state.
 
-## 4. Configuration (env)
+## 4. Retention sweep (Cron Trigger)
 
-`DATABASE_URL` (Neon, per tenant) · `R2_ENDPOINT` / `R2_ACCESS_KEY_ID` /
-`R2_SECRET_ACCESS_KEY` / `R2_BUCKET=manttio-wms` (S3-compat token with **object read
-+ delete** — fetch the staged file, purge it after processing; never write) ·
-`POLL_INTERVAL_MS=2000` · `LEASE_TIMEOUT_S=120` · `MAX_ATTEMPTS=3` ·
-`RETENTION_DAYS=30` (leftover staged-binary sweep, §5) ·
-`INSTANCE_ID` (defaults hostname+pid — the `locked_by` value). Secrets handling per
-host convention; never committed (`.env.example` checked in, `.env` ignored —
-matches the repo's env rules).
+A daily cron (`triggers.crons` on the same Worker) deletes the staged binary of any
+non-`confirmed`, non-swept import older than `RETENTION_DAYS` (default 30 —
+leftovers from `discarded`/abandoned/`failed` jobs) and stamps `file_deleted_at`.
+No exemptions — source files are disposable copies (owner 2026-07-19); a stale
+failed import is re-uploaded, not recovered.
 
-## 5. Deployment + operations
+## 5. Dev + testing
 
-- Host: **owner's call** ("another server") — the service is a plain Node process +
-  Docker-friendly; candidate homes: existing VPS (systemd or Docker), Fly/Railway,
-  Cloudflare Containers when it fits. Needs outbound to Neon + R2 only. Record the
-  chosen target here when decided.
-- **Retention sweep (decided 2026-07-19 — source files are disposable copies; the
-  tenant keeps the original):** once a day, delete the staged binary of any
-  non-`confirmed`, non-swept import older than `RETENTION_DAYS` (leftovers from
-  `discarded`/abandoned/`failed` jobs) and stamp `file_deleted_at`. No exemptions —
-  a failed import older than the window is re-uploaded, not recovered.
-- Observability v1: structured stdout logs (claim, per-job summary line with row
-  counts + duration, terminal status, sweep counts), `/healthz`. No metrics stack
-  until a second job kind exists.
-- Local dev: `pnpm dev` in the sibling checkout (`../manttio-processor`) against the
-  shared Neon DB + the dev bucket — run it alongside `wrangler dev` + `ng serve`
-  when exercising the full import flow. There is **no in-Worker fallback**: without
-  the service running, imports simply sit in `queued` (superadmin shows "En cola" —
-  honest and harmless).
-
-## 6. Testing
-
-- Vitest (plain Node pool — no miniflare): handler-level tests against the live Neon
-  DB (repo convention) with `wms-import-test-` fixture imports + a local fixtures
-  dir of csv/txt/xlsx files covering all six row errors, header weirdness (BOM,
-  quoted delimiters, empty trailing columns), and both tracking modes.
-- Reliability tests: claim contention (two instances, one file — SKIP LOCKED yields
-  one winner); kill mid-job → lease expiry → reclaim → idempotent upsert leaves
-  exactly one row per line; attempts cap → `failed`.
+- Local: `wrangler dev` simulates queues + crons locally — the full
+  upload → map → process → preview loop runs with **zero extra processes**
+  (alongside `ng serve`).
+- Vitest (workers pool, live-Neon convention, `wms-import-test-` fixtures): call
+  the processor service directly for handler coverage — fixture csv/txt/xlsx files
+  covering all six row errors, header weirdness (BOM, quoted delimiters, empty
+  trailing columns), and both tracking modes; one integration test through the
+  `queue()` export.
+- Reliability: redelivery idempotency (handler runs twice on the same message →
+  exactly one row per line, one purge); stale-redelivery ack on terminal imports;
+  DLQ path flips `failed`; purge ordering (kill between `ready` and purge →
+  redelivery completes the purge).
 
 ---
 
 ## Checkpoints
 
-### CP-1 — Repo + loop
-- [ ] New repository created + scaffold (tsconfig, lint, scripts, `.env.example`,
-      `CLAUDE.md` seeded from this file with a backlink to this suite)
-- [ ] Job loop per §2 (claim, lease, attempts, heartbeat) against a hand-inserted
-      `queued` import; structured logs
+### CP-1 — Queue wiring
+- [ ] Queue + DLQ provisioned (per-tenant names); wrangler producer/consumer +
+      cron trigger + `limits.cpu_ms` config; `queue()` export delegating to the
+      processor service; enqueue wired into `/process`
+- [ ] Status transitions (`queued → processing → ready/failed`) + DLQ→`failed`
+      path live; stale-redelivery ack verified
 
-### CP-2 — Import handler
-- [ ] §3 handler: R2 fetch, three formats, mapping-driven parse, SKU-then-UPC
-      resolution, idempotent upserts, batched progress, terminal writes guarded by
-      `locked_by`, post-`ready` purge + `file_deleted_at` stamp (crash between
-      write and purge re-purges idempotently on the next sweep/claim)
-- [ ] Retention sweep (§5): daily pass, `RETENTION_DAYS` window, `file_deleted_at`
-      stamping, idempotent on missing objects
-- [ ] Full §6 test suite green (row errors, reliability trio, purge ordering, sweep)
+### CP-2 — Handler
+- [ ] §2 parse/resolve/upsert/progress/purge complete; retention cron (§4)
+- [ ] §5 test suite green (row errors, redelivery idempotency, purge ordering,
+      DLQ, sweep)
 
-### CP-3 — Deployed + integrated
-- [ ] Deployed to the chosen host with read-only R2 creds; `/healthz` monitored
-- [ ] End-to-end with superadmin (07 CP-3 manual pass runs against it, incl. the
-      kill-mid-job retry)
-- [ ] This monorepo updated in one commit: backend plan §3 wms bullet + root
-      `CLAUDE.md` related-repo pointer
+### CP-3 — Integrated
+- [ ] 07's flows run end-to-end against it (the CP-3 two-actor manual pass, incl.
+      kill-mid-job redelivery); backend plan §3 wms bullet updated (same commit)
 
 ## Open decisions / asks
-- Hosting target (§5) — owner decision; everything else here is host-agnostic.
-- Per-tenant instance vs shared multi-tenant processor (§1) — revisit at manager
-  provisioning time.
-- Pickup latency: pure DB polling at 2 s is spec'd v1; add a backend → service ping
-  (webhook/queue) only if that latency ever matters.
-- A generic `processing_jobs` table (kind + payload) — introduce **only when a
-  second job kind lands** (candidates: PDF batch rendering, heavy exports); v1
-  works the domain table directly.
-- R2 token scoping (bucket-level vs `imports/` prefix; read + delete only) — with
-  backend ops when the `manttio-wms` bucket is provisioned (02 §8).
-- ~~Retention sweep~~ — **decided 2026-07-19** (§5): daily, `RETENTION_DAYS`, no
-  exemptions — source files are disposable copies, the tenant keeps the original.
+- Workers **paid plan** confirmation (Queues prerequisite) — ops.
+- Per-tenant queue naming convention (§1) — settle with the deploy tooling when
+  the second tenant lands.
+- DLQ handling: consumer-marks-`failed` is spec'd; decide whether DLQ arrivals
+  also alert (log-based) or the user-visible failure card is enough.
+- Re-extraction trigger: revisit an external processor only if a job kind
+  genuinely exceeds Worker limits — the DB-first contract keeps that door open.

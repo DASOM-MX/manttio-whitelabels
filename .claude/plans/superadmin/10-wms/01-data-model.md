@@ -35,7 +35,7 @@ enum ReasonContext { Inbound = 'inbound', Transfer = 'transfer',
 enum ReplenishmentImportStatus {                     // added 2026-07-19 (owner ask)
   Uploaded = 'uploaded',      // file stored, fields detected, awaiting mapping
   Queued = 'queued',          // mapping submitted, waiting for the processor to claim
-  Processing = 'processing',  // claimed by the processing service, job running
+  Processing = 'processing',  // delivered to the queue consumer, job running
   Ready = 'ready',            // rows parsed + validated, preview available
   Failed = 'failed',          // whole-file failure or max attempts (import.error set)
   Confirmed = 'confirmed',    // replenishment created from this import
@@ -172,9 +172,10 @@ unit" is a plain indexed join (`material-view` unit drill-down, equipment hook).
 ### `replenishment_imports` + `replenishment_import_rows` — the batch job (added 2026-07-19, owner ask)
 
 File imports are **asynchronous batch jobs with DB-backed status** — the database row
-is the single source of truth the frontend polls, which is what lets the processor
-move out of the Worker (Queues consumer or an external microservice) later **without
-any contract change** (02 §6):
+is the single source of truth the frontend polls. Processing runs in the backend's
+own **Cloudflare Queues consumer** (11 — decided 2026-07-19); the DB-first contract
+is what keeps later extraction to an external service possible **without any
+contract change** (02 §6):
 
 ```
 replenishment_imports {
@@ -183,8 +184,8 @@ replenishment_imports {
                                            //   the key is the reference the processor
                                            //   pulls the file by
   file_deleted_at timestamptz?,            // set when the binary is PURGED (owner
-                                           //   2026-07-19 — space): by the processor,
-                                           //   once the file is fully processed.
+                                           //   2026-07-19 — space): by the queue
+                                           //   consumer, once fully processed.
                                            //   key/name stay as the reference; the
                                            //   durable content record is rows.raw
   detected_fields jsonb not null,          // [{ id, header, samples: string[] }] —
@@ -195,10 +196,9 @@ replenishment_imports {
   total_rows int?, processed_rows int not null default 0,
   error_rows int not null default 0,       // progress counters the processor updates
   error text?,                             // whole-file failure detail (status failed)
-  locked_at timestamptz?, locked_by text?, // processor claim lease (11 §3): claimed via
-                                           //   FOR UPDATE SKIP LOCKED; stale lease
-                                           //   (now - locked_at > timeout) is reclaimable
-  attempts int not null default 0,         // ++ on each claim; > max (3) ⇒ 'failed'
+  attempts int not null default 0,         // mirror of the queue message's delivery
+                                           //   attempt — visibility only; Queues owns
+                                           //   retry state, DLQ ⇒ 'failed' (11 §3)
   evidence_photos text[] not null default '{}',
   notes text?,                             // approval-stage PREP (owner 2026-07-19):
                                            //   evidence + notes attach AFTER processing,
@@ -304,14 +304,15 @@ with its current location/status.
   appliesTo → slugged code), label editable, deactivate-only. Inactive reasons disappear
   from selects but keep rendering in history (join by `code`).
 - **Movements/replenishments:** created, never mutated.
-- **Replenishment import:** `uploaded` →(mapping submitted)→ `queued` →(claimed by
-  the processing service, lease taken)→ `processing` → `ready` | `failed`; stale
-  lease → back to claimable, `attempts`++, over max ⇒ `failed`; `ready` = **awaiting
+- **Replenishment import:** `uploaded` →(mapping submitted + queue message sent)→
+  `queued` →(delivered to the queue consumer)→ `processing` → `ready` | `failed`;
+  failed/timed-out deliveries redeliver (idempotent handler), retry cap → DLQ ⇒
+  `failed`; `ready` = **awaiting
   approval** — staged rows sit in the temp table, editable via row PATCH;
   →(**approval**)→ `confirmed`: one transaction **promotes the staged rows into the
   actual inventory tables** — replenishment doc + items + inbound movements + stock
   (§3) — and freezes the staging rows. Any pre-approval state →(user abandons / new
-  upload replaces it)→ `discarded`. Only the **processing service** (11) writes
+  upload replaces it)→ `discarded`. Only the **queue consumer** (11) writes
   `processing → ready/failed` + the progress counters; only the approval transaction
   writes `confirmed`. Terminal states: `failed`, `confirmed`, `discarded`. Staged
   rows are **retained after promotion** (they are the only record of the purged
@@ -320,10 +321,10 @@ with its current location/status.
   **File retention (owner 2026-07-19 — supersedes the 2026-07-05 keep-forever
   evidence-file decision):** uploads are **copies** — the tenant keeps the original
   file outside the system, so the staged binary has **zero archival value** and is
-  purely **transient**: the **processor** deletes it from R2 once the file is fully
-  processed (the `ready` write) and stamps `file_deleted_at`; `failed` imports keep
-  their file only as retry/debug input. Leftover binaries (discarded/abandoned/
-  failed imports) are collected by the retention sweep (decided — 11 §5). DB rows
+  purely **transient**: the **queue consumer** deletes it from R2 once the file is
+  fully processed (the `ready` write) and stamps `file_deleted_at`; `failed` imports
+  keep their file only as retry/debug input. Leftover binaries (discarded/abandoned/
+  failed imports) are collected by the daily retention cron (decided — 11 §4). DB rows
   are permanent as always — `rows.raw` + `file_name` + `mapping` are the in-system
   audit substance. **Evidence photos are unaffected** — they stay in R2
   permanently.

@@ -30,16 +30,16 @@ section anchors.
 | 08 | `08-report-materials.md` | Report material tracking + staff corrections (orig. CP-6, part) | 06 |
 | 09 | `09-technician-surfaces.md` | "Mi almacén" + "Consulta de stock" + role/polish closing sweep (orig. CP-6, part) | 06, 08 |
 | 10 | `10-state-services-dtos.md` | Frontend plumbing reference: NGXS states, HTTP services, DTOs, constants, pipes | — (reference) |
-| 11 | `11-processing-service.md` | The batch-processing system — **its own project in its own repository** (`../manttio-processor` sibling): DB-as-queue job loop + the replenishment-import handler; this file is the cross-repo contract | 01, 02 |
+| 11 | `11-processing-service.md` | Import processing — **Cloudflare Queues consumer in `backend/`** (decided 2026-07-19; supersedes the external-service iterations): queue/DLQ wiring, parse handler, platform retries, retention cron | 01, 02 |
 
-**Build order:** 01 → 02 backend-side, with **11 (the external processing service)
-starting any time after 01/02 fix the import contract** — it's a separate repo on its
-own cadence; 03 → 04/05 (parallel) → 06 → 07/08 (parallel) → 09 frontend-side. 10 is
+**Build order:** 01 → 02 backend-side, with **11 riding the same backend deploy**
+(build it alongside 02 CP-3 — it's a Queues consumer in `backend/`, not a separate
+codebase); 03 → 04/05 (parallel) → 06 → 07/08 (parallel) → 09 frontend-side. 10 is
 a reference doc kept current by whichever agent touches the plumbing. Frontend
 checkpoints can start against mocked services as soon as 01/02 fix the shapes (master
 plan §2 rule 5); anything server-enforced (self-checkout, append-only, type↔reason
 validation) still needs the backend before its manual pass can close, and 07's manual
-pass additionally needs 11 deployed (imports without the service just sit in
+pass additionally needs 11's consumer live (without it, imports just sit honestly in
 `queued`).
 
 **PR granularity:** one PR per checkpoint, stacked, base `main` (re-check bases before
@@ -152,10 +152,10 @@ Target route table for `wms.routes.ts` (order matters — literals before `:id`)
   middleware still validates roles against `['owner','admin','technician']` — the
   **`office` role must land backend-side before WMS office gates work** (backend plan §1,
   ships with the users-module backend work).
-- **Processing service (external repo — 11):** this suite owns the contract; the
-  service repo consumes it. Ops asks before it can deploy: the `manttio-wms` bucket
-  (02 §8) + **R2 S3 credentials (object read + delete — it purges processed source
-  files)**, and the hosting-target decision (11 §5, owner's call).
+- **Import processing (11 — Queues consumer in `backend/`):** ops asks before it
+  runs: Workers **paid plan** (Queues prerequisite), per-tenant queue + DLQ
+  provisioning (naming settled with the deploy tooling), and the `manttio-wms`
+  bucket (02 §8 — native binding, no S3 credentials).
 
 ## 6. Proposals introduced by this suite (proposed 2026-07-19 — veto here, not per-file)
 
@@ -184,20 +184,25 @@ Each is argued in its owning sub-plan; this is the sign-off index.
     descending type rank parent→child — `01` §2 (confirm with owner).
 12. **Replenishment imports are field-mapped async batch jobs** (owner-directed
     2026-07-19, so the *direction* is decided — these are the implementation
-    sub-decisions): `replenishment_imports`/`_rows` tables with lease/attempt
-    columns and a `queued → processing → ready/failed` lifecycle (`01` §2),
+    sub-decisions): `replenishment_imports`/`_rows` tables with a
+    `queued → processing → ready/failed` lifecycle (`01` §2 — `attempts` mirrors
+    queue delivery; the lease columns died with the daemon design),
     202-then-poll API with the DB row as status truth (`02` §6), 2.5 s
-    `cancelUncompleted` polling with `?import=` resume (`07` §3.1), and the
-    processing system as **its own project in its own repository**
-    (`11` — proposed `manttio-processor`; DB-as-queue via `FOR UPDATE SKIP LOCKED`,
-    per-tenant instance v1, no in-Worker fallback).
+    `cancelUncompleted` polling with `?import=` resume (`07` §3.1), and processing
+    via the backend's **Cloudflare Queues consumer** (`11` — **decided 2026-07-19**
+    after the external-repo microservice / Node daemon / per-tenant-vs-registry
+    iterations were judged overcomplicated: platform delivery, retries, DLQ, and
+    hard timeouts; native R2/DB bindings so no credential registry; per-tenant for
+    free via the per-tenant backend deploys. The DB-first contract keeps later
+    extraction to an external service possible without API changes).
 13. **Import source files are transient in R2** (owner 2026-07-19 — supersedes the
     2026-07-05 keep-forever evidence-file decision; reinforced same day: **uploads
     are copies, the tenant keeps the original**, so the binary has zero archival
-    value): staged at upload as the processor's pull reference, **purged by the
-    processor once fully processed** (`file_deleted_at` stamped), leftovers swept
-    daily (`11` §5); the in-system record is the imported rows' `raw` + file name +
-    mapping. Evidence photos stay permanent — `01` §4, `07` §4, `11` §3.
+    value): staged at upload as the consumer's pull reference, **purged by the
+    queue consumer once fully processed** (`file_deleted_at` stamped), leftovers
+    swept by the daily cron (`11` §4); the in-system record is the imported rows'
+    `raw` + file name + mapping. Evidence photos stay permanent — `01` §4, `07` §4,
+    `11` §2.
 14. **Staging-then-approval** (owner 2026-07-19): processed data sits in the
     **staging (temp) table in the tenant DB** — mutable row fixes + evidence/notes
     prep all persist there — and only an **owner/admin approval** promotes it into
@@ -222,7 +227,7 @@ Each is argued in its owning sub-plan; this is the sign-off index.
 | 08 report-materials | not-started | — |
 | 09 technician-surfaces | not-started | — |
 | 10 state-services-dtos | reference doc | — |
-| 11 processing-service | not-started (external repo) | — |
+| 11 processing-service | not-started (Queues consumer in `backend/`) | — |
 
 ## 8. Glossary
 
@@ -235,11 +240,11 @@ Each is argued in its owning sub-plan; this is the sign-off index.
 - **Replenishment** — a first-class bulk-restock document (folio, source file, evidence
   photos) whose confirmation emits the inbound movements.
 - **Replenishment import** — the field-mapped async batch job behind a replenishment:
-  upload → detected fields → user mapping → `queued` → processed by the external
-  service into the **staging (temp) table** → `ready` review (row fixes + evidence +
+  upload → detected fields → user mapping → `queued` → processed by the queue
+  consumer into the **staging (temp) table** → `ready` review (row fixes + evidence +
   notes, all staged) → **owner/admin approval promotes it into inventory**.
-- **Processing service** — the standalone batch-job runner in its own repository
-  (11): claims `queued` imports straight off Neon (`SKIP LOCKED`), reads files from
-  R2, writes rows + status back; superadmin only ever polls the DB-backed status.
+- **Import consumer** — the backend's Cloudflare Queues consumer (11): receives
+  `{ importId }`, parses the staged file from R2, writes staging rows + status back
+  to Neon, purges the binary; superadmin only ever polls the DB-backed status.
 - **Readjustment** — the only correction instrument; owner/admin, direction + reason +
   notes required.

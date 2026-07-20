@@ -191,18 +191,22 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   New asks from the suite: dedicated `manttio-wms` R2 bucket + CDN base env for
   import files/evidence (equipment precedent); `office` role in the JWT middleware is
   a prerequisite for the wms office gates. **Import pipeline (2026-07-19):**
-  replenishment imports are field-mapped **async batch jobs** — the Worker only
-  stages the file in R2 + detects fields + sets `queued`; the standalone
-  **processing service** (own repo, proposed `manttio-processor` — cross-repo
-  contract in `.claude/plans/superadmin/10-wms/11-processing-service.md`) claims
-  jobs off Neon (`FOR UPDATE SKIP LOCKED` lease), writes rows/status back into the
-  **staging (temp) table**, and **purges the staged binary once processed**
-  (`file_deleted_at`; parsed `raw` rows are the durable record); superadmin polls
-  the DB-backed status endpoint. Row fixes + evidence/notes prep persist on the
-  staging rows/import (PATCH); **approval — owner/admin only (14 §2.1e) — promotes
-  staging into the inventory tables** (doc + items + movements + stock in one
-  transaction). Retires the SheetJS-on-Workers CPU concern. Extra ops ask: R2 S3
-  credentials (object read + delete) for the service.
+  replenishment imports are field-mapped **async batch jobs** — the request path
+  only stages the file in R2 + detects fields (header + ≤5 sample rows) + sets
+  `queued` and sends `{ importId }` to a **Cloudflare Queues** binding; the
+  backend's own **queue consumer** (spec:
+  `.claude/plans/superadmin/10-wms/11-processing-service.md` — decided 2026-07-19,
+  supersedes the external-service iterations) parses with a raised
+  `limits.cpu_ms`, writes rows/status into the **staging (temp) table**, and
+  **purges the staged binary once processed** (`file_deleted_at`; parsed `raw`
+  rows are the durable record — uploads are copies, the tenant keeps the
+  original); platform retries → DLQ ⇒ `failed`; a daily cron sweeps leftover
+  binaries; superadmin polls the DB-backed status endpoint. Row fixes +
+  evidence/notes prep persist on the staging rows/import (PATCH); **approval —
+  owner/admin only (14 §2.1e) — promotes staging into the inventory tables**
+  (doc + items + movements + stock in one transaction). Retires the
+  SheetJS-on-Workers CPU concern. Ops asks: Workers **paid plan** (Queues) +
+  per-tenant queue/DLQ names (per-deploy values, like the buckets).
 - **equipment** (11): `equipment` table + `report_equipment` join; retro-link
   endpoints; hook: serialized unit consumed on a report ⇒ offer/auto-create the
   client `Equipment` (`material_unit_id` backlink).

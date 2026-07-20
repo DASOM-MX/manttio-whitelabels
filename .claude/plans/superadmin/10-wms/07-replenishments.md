@@ -1,7 +1,7 @@
 # 10-wms / 07 — Replenishments (frontend)
 
 > **Status:** not-started · **Depends on:** 05, 06 (CP-1); backend 02 CP-3;
-> 11 (processing service — required for the CP-3 manual pass, mockable before)
+> 11 (queue consumer — live for the CP-3 manual pass, mockable before)
 > **Owner:** — · **Last updated:** 2026-07-19
 
 Bulk restocking as a first-class **document** (decided 2026-07-05): import a stock list
@@ -15,7 +15,7 @@ append-only: no edit, no delete — corrections are readjustments (06).
 **Import pipeline reworked 2026-07-19 (owner ask):** the fixed-template synchronous
 parse is replaced by a **field-mapped asynchronous batch job** — upload the file →
 the server detects its fields → the user maps them to our columns **in the app** →
-the mapping is submitted and the standalone **processing service**
+the mapping is submitted and the backend's **Cloudflare Queues consumer**
 (`11-processing-service.md`) parses/validates → the page **polls the DB-backed
 status** (`GET /replenishments/imports/:id` — 02 §6) until the preview is ready.
 Any provider file works now; the downloadable template remains the zero-mapping
@@ -86,7 +86,7 @@ to the same job and resumes polling (URL-persistence rule applied to a flow).
    — columns `sku,quantity,serial`; the `sku` column takes SKU **or UPC**; serialized =
    one row per unit, quantity 1). On pick → `UploadImportFile`
    (`POST /replenishments/imports`) — the file is **staged in R2** immediately (the
-   reference the processing service pulls it by; **transient** — the processor purges
+   reference the queue consumer pulls it by; **transient** — the consumer purges
    the binary once it's fully processed, §4) and the response carries the **detected
    fields**. Re-upload discards the current import (`DiscardImport`,
    fire-and-forget) and starts a new one.
@@ -177,10 +177,10 @@ Dedicated **`manttio-wms` R2 bucket**, CDN-fronted with its own base env (the
 
 - **`imports/<key>` — transient** (owner 2026-07-19): uploads are **copies** — the
   tenant keeps the original file, so there is never a download or recovery need.
-  The staged binary exists only from upload until the processing service finishes
-  with it — the processor purges it after the `ready` write and stamps
-  `file_deleted_at` (01 §4, 11 §3); leftovers from abandoned imports are swept
-  (11 §5). Space stays flat no matter how many imports run.
+  The staged binary exists only from upload until the queue consumer finishes
+  with it — the consumer purges it after the `ready` write and stamps
+  `file_deleted_at` (01 §4, 11 §2); leftovers from abandoned imports are swept by
+  the daily cron (11 §4). Space stays flat no matter how many imports run.
 - **`evidence/<key>` — permanent**: delivery photos, invoices, pallets — the human
   evidence on the confirmed document; never purged.
 
@@ -202,13 +202,14 @@ backend know where files live).
   "Aprobar", office sees the waiting card and no approve affordance**; pending-
   approval strip routes into `?import=`; approval payload (`{ importId }`) asserted;
   view renders gallery + movements filter link; technician can't route in.
-- **Manual pass (original CP-5, binding — needs the processing service running,
-  11 CP-3), run as the two-actor flow:** as **office** — import a 10-row csv with 2
-  bad rows and non-template headers → map fields → watch queued/processing → fix
-  rows inline → attach 2 photos + notes → waiting card; as **admin** — pending strip
-  → review → approve → stock updated (material view), movements show `replenishment`
-  reason + link back to the folio; xlsx + txt variants; 1 MB+ file rejected cleanly;
-  kill the service mid-job → lease expiry retry completes it (11 §3).
+- **Manual pass (original CP-5, binding — needs the queue consumer live, 11 CP-3),
+  run as the two-actor flow:** as **office** — import a 10-row csv with 2 bad rows
+  and non-template headers → map fields → watch queued/processing → fix rows inline
+  → attach 2 photos + notes → waiting card; as **admin** — pending strip → review →
+  approve → stock updated (material view), movements show `replenishment` reason +
+  link back to the folio; xlsx + txt variants; 1 MB+ file rejected cleanly; force a
+  mid-job failure (throw in the handler) → Queues redelivery completes it
+  idempotently (11 §3).
 
 ---
 
@@ -241,7 +242,8 @@ backend know where files live).
 
 ## Open decisions / asks
 - ~~SheetJS-on-Workers CPU check~~ — **retired 2026-07-19**: parsing lives in the
-  processing service (11); the Worker only detects fields.
+  Queues consumer with a raised CPU limit (11); the request path only detects
+  fields.
 - Auto-map heuristics (§2 step 3) — validate the patterns against real provider
   lists before CP-2 closes (supersedes the old fixed-template column validation,
   master plan §5.2 item).
