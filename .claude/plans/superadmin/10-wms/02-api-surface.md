@@ -50,7 +50,11 @@ per-tenant key-value store — `settings` table (01 §2: `id · key · value` js
 **new settings = new rows, never new columns**), `getSetting(key)`/`setSetting(key,
 value)` service, keys namespaced `<domain>.<name>`. **No controller in v1** — it's
 backend-internal; a settings API lands only when a user-facing setting appears.
-First consumer: `wms.last_replenishment_mapping` (§6).
+First consumer: `wms.last_replenishment_mapping` (§6). Second key —
+`notifications.manager_user_id` (owner 2026-07-20): the configured **CMS-manager**
+who receives replenishment approval/failure warnings (01 §2), read via `getSetting`
+by the replenishment notifier (§6, 11 §2); provisioned at tenant setup (no v1
+controller — an in-tenant editor is a later add).
 
 ## 2. Warehouses + storage nodes — `warehouses.controller.ts`
 
@@ -158,6 +162,14 @@ writer of `processing → ready/failed`. The contract stays **202 + DB-backed st
 (SSE stream / one-shot GET)**, so processing could still be extracted to an
 external service later without touching the API or superadmin — the consumer never
 knows SSE exists.
+
+**Approval/failure notification (owner 2026-07-20):** reaching `ready` (awaiting
+approval) or `failed` warns the configured **CMS-manager**
+(`notifications.manager_user_id` — §1, 01 §2): a de-branded **email** from the queue
+consumer (11 §2) via the email module + the superadmin app-shell **banner** (07
+§2/§3). Best-effort — an unconfigured recipient is skipped; no new endpoint (the
+banner reuses `pendingImports`, the email is a consumer side-effect). Resolves the
+deferred "notify admins of pending approvals" item.
 
 ## 7. Report materials — `report-materials.controller.ts` (mounted at `/reports`)
 

@@ -227,11 +227,35 @@ carries its full provenance forever (the `approved` event closes the trail); the
 the confirmed details; supersedes the earlier "review-panel-only, not on the view"
 call.)**
 
+### Approval notifications — banner + warning email (owner 2026-07-20)
+
+Beyond the in-list pending strip (§2), the configured **CMS-manager** is actively
+warned when replenishments await approval — resolving the deferred "notify admins of
+pending approvals" open item. Both channels read the recipient from the same config
+record (`notifications.manager_user_id`, 01 §2):
+
+- **App-shell banner** — `pending-replenishments-banner`, mounted in the superadmin
+  shell so it shows on any page for the configured manager (**falls back to
+  owner/admin when the config record is unset**, so approvals are never missed).
+  Driven by `pendingImports` (`LoadPendingImports` on shell init — cheap, the same
+  read the list strip uses, no new endpoint): "Tienes N reabastecimientos por
+  aprobar", **warning severity** when any carry unprocessable rows, click → the
+  pending list (or straight to the single `?import=`). Dismissible per session,
+  re-appears on new pending imports. Uses the superadmin-design banner idiom — no
+  bespoke styling.
+- **Warning email** — fired **backend-side by the queue consumer** on the `ready`
+  transition (11 §2), so it needs no frontend surface; de-branded (tenant brand
+  config), to the configured manager: warehouse, row/error counts, a prominent
+  **unprocessable-rows warning** when present, and a deep link to the
+  approval-request screen. The same channel carries the `failed` alert. Best-effort;
+  unconfigured recipient ⇒ skipped (banner + strip remain the floor).
+
 ## 3. State + service
 
 `ReplenishmentsState` (`src/state/replenishments/`) + `replenishments.service.ts`:
 `list`, `total`, `selected`, `import` (the active `ReplenishmentImport` — status,
-fields, progress, staged rows, prep), `pendingImports` (the ready-state strip),
+fields, progress, staged rows, prep), `pendingImports` (the ready-state strip **and
+the app-shell approval banner** — one read serves both),
 `loading`. Actions: `LoadReplenishments(query)`, `LoadPendingImports`,
 `LoadReplenishment(id)`, `UploadImportFile(file)`,
 `SubmitImportMapping(importId, warehouseId, mapping)`, `ListenImportStatus(importId)`,
@@ -350,7 +374,12 @@ backend know where files live).
       role split (admin approve button + gating, office waiting card, affordance
       hidden not disabled)
 - [ ] Replenishment view: items, gallery lightbox, source-file name metadata (via
-      import join), `movements-table` expandable filtered by `replenishmentId`
+      import join), `movements-table` expandable filtered by `replenishmentId`,
+      **Historial audit section** (reused timeline via `replenishment.importId`)
+- [ ] **Approval notifications**: `pending-replenishments-banner` in the superadmin
+      shell (configured manager, owner/admin fallback; warning severity on
+      unprocessable; reuses `pendingImports`, no new endpoint). Warning email lands
+      with the queue consumer (11 CP-2), recipient from `notifications.manager_user_id`
 - [ ] Dark mode + skeletons + empty states; e2e specs; **two-actor manual pass above
       recorded here with date**
 
@@ -364,9 +393,11 @@ backend know where files live).
 - ~~Mapping presets~~ — **resolved 2026-07-19 (owner): the `settings` key-value
   store** (01 §2) remembers the last-used mapping by header text; upload returns
   `suggestedMapping` when headers match (§2 step 3 tier 1).
-- **Notifying admins of pending approvals** (beyond the in-list strip): toast/badge
-  on login? email? Defer until real office→admin traffic shows the strip isn't
-  enough.
+- ~~Notifying admins of pending approvals (beyond the in-list strip)~~ —
+  **resolved 2026-07-20 (owner): both** — an app-shell **banner** for the configured
+  CMS-manager + a **warning email** on the `ready` (and `failed`) transition. The
+  recipient is the `notifications.manager_user_id` config record (01 §2); the email
+  is sent by the queue consumer (11 §2), the banner reuses `pendingImports` (§2/§3).
 - Per-row node select in the preview (§2 step 5) — ship v1 or defer? Spec: ship (the
   backend item already carries `storageNodeId`); drop to post-v1 if the preview table
   gets crowded on mobile.

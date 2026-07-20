@@ -73,6 +73,15 @@ On message `{ importId }`:
    disposable copies). Purge strictly **after** `ready` commits: a crash/timeout
    between the two redelivers with the file intact. `failed` imports keep their
    file until the retention sweep (§4).
+   **Then notify the configured CMS-manager** (owner 2026-07-20): resolve
+   `notifications.manager_user_id` (01 §2) and send a **de-branded warning email**
+   via the email module (`modules/email` `sendEmail`; `from`/subject/logo from tenant
+   brand config `/brand`, never a literal — fork de-branding rule) — `ready` →
+   "reabastecimiento listo para aprobar" (warning tone + counts when
+   unprocessable/error rows exist, deep link to the approval-request screen
+   `?import=`), `failed` → the failure alert. **Best-effort, non-blocking:** a send
+   error or an unconfigured recipient is logged and never fails the job or blocks the
+   status write — the superadmin banner + pending strip (07) are the reliable floor.
 5. Resolve by tracking mode: serialized → serials · **lot → `lot` + `quantity`
    (+ parse the mapped expiry field into `lot_expires_at` when present;
    unparseable → `bad_expiry`)** (2026-07-20) · unserialized → quantity.
@@ -143,7 +152,9 @@ a stale failed import is re-uploaded, not recovered.
       path live; stale-redelivery ack verified
 
 ### CP-2 — Handler
-- [ ] §2 parse/resolve/upsert/progress/purge complete; retention cron (§4)
+- [ ] §2 parse/resolve/upsert/progress/purge complete; retention cron (§4);
+      **manager warning email on `ready`/`failed`** (best-effort, de-branded,
+      unconfigured-recipient skip)
 - [ ] §5 test suite green (row errors, redelivery idempotency, purge ordering,
       DLQ, sweep)
 
@@ -155,7 +166,8 @@ a stale failed import is re-uploaded, not recovered.
 - Workers **paid plan** confirmation (Queues prerequisite) — ops.
 - Per-tenant queue naming convention (§1) — settle with the deploy tooling when
   the second tenant lands.
-- DLQ handling: consumer-marks-`failed` is spec'd; decide whether DLQ arrivals
-  also alert (log-based) or the user-visible failure card is enough.
+- ~~DLQ handling: whether DLQ arrivals also alert~~ — **resolved 2026-07-20
+  (owner): the manager warning email (§2 step 4) fires on `failed` / DLQ→`failed`,
+  so the configured CMS-manager is alerted beyond the user-visible failure card.**
 - Re-extraction trigger: revisit an external processor only if a job kind
   genuinely exceeds Worker limits — the DB-first contract keeps that door open.

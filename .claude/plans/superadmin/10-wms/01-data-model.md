@@ -410,6 +410,22 @@ successful `/process` (02 §6); the upload/detect endpoint returns a field-id-re
 `suggestedMapping` when the incoming headers match — the mapper prefill that saves
 users the re-mapping (07 §2 step 3).
 
+**Second key — `notifications.manager_user_id`** (owner 2026-07-20): the configured
+**CMS-manager user** who receives operational warnings — the new config record.
+
+```
+{ userId: string }                         // → users.id; the notification recipient
+```
+
+Cross-cutting, not WMS-specific (replenishment is just its first consumer, the same
+way `wms.last_replenishment_mapping` was the settings table's first key). Set at
+**tenant provisioning by the whitelabel manager** (the owner-provisioning precedent;
+an in-tenant owner settings screen to change it is a later add — asks §00 §5). Read
+backend-side via `getSetting('notifications.manager_user_id')`; **absent ⇒
+notifications skip silently** (logged, never an error) — the in-app pending strip
+(07 §2) is always the floor. Drives the approval banner (07 §2/§3) + the queue
+consumer's warning email (11 §2).
+
 ## 3. Stock math (proposed 2026-07-19 — the load-bearing design decision)
 
 **Balances are materialized; movements are the journal.** Every stock endpoint runs one

@@ -224,8 +224,12 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   staging is a temp table, not an entity)** (doc + items + movements + stock in
   one transaction). New cross-cutting **`modules/settings/`**: generic key-value
   store (`id · key · value` jsonb, rows-not-columns); first key
-  `wms.last_replenishment_mapping` (by header text) powers the mapper prefill.
-  Retires the SheetJS-on-Workers CPU concern. Ops asks: Workers **paid plan**
+  `wms.last_replenishment_mapping` (by header text) powers the mapper prefill,
+  second key `notifications.manager_user_id` names the configured **CMS-manager**
+  who receives **approval/failure warnings** — the queue consumer emails them
+  (de-branded via `/brand`, best-effort, unconfigured-skip) on `ready`/`failed` and
+  superadmin shows an app-shell banner (2026-07-20). Retires the SheetJS-on-Workers
+  CPU concern. Ops asks: Workers **paid plan**
   (Queues) + per-tenant queue/DLQ names (per-deploy values, like the buckets).
 - **equipment** (11): `equipment` table + `report_equipment` join; retro-link
   endpoints; hook: serialized unit consumed on a report ⇒ offer/auto-create the

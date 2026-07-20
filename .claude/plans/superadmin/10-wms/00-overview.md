@@ -71,6 +71,15 @@ merging — GitHub does not auto-retarget). Branch naming
   `submission_snapshot` (file + mapping as plain-text JSON). Scoped to
   **replenishment imports only** — not a generic WMS edit audit (stock changes are
   already the `movements` journal). `01` §2, `02` §6.
+- **Pending-approval + failure notifications** (owner 2026-07-20): a replenishment
+  reaching `ready` (awaiting approval) or `failed` warns the configured
+  **CMS-manager** — an app-shell **banner** in superadmin + a **de-branded warning
+  email** from the queue consumer. The recipient is a **config record**,
+  `notifications.manager_user_id`, in the `settings` store (01 §2; provisioned at
+  tenant setup); **unset ⇒ notifications skip silently**, the in-list pending strip
+  is the floor, and the banner falls back to owner/admin so approvals aren't missed.
+  Resolves the deferred "notify admins of pending approvals" item — `02` §6,
+  `07` §2/§3, `11` §2.
 - **Movement reasons are data, not an enum** (tenant-customizable definition entity,
   master plan §4): `MovementReasonDef` with immutable auto-slugged `code`, editable
   `label`, `active` flag, deactivate-only. The 13 built-ins (incl. `scrap` +
@@ -171,6 +180,11 @@ Target route table for `wms.routes.ts` (order matters — literals before `:id`)
   runs: Workers **paid plan** (Queues prerequisite), per-tenant queue + DLQ
   provisioning (naming settled with the deploy tooling), and the `manttio-wms`
   bucket (02 §8 — native binding, no S3 credentials).
+- **Notification recipient config:** the `notifications.manager_user_id` settings
+  record (the CMS-manager who gets approval/failure warnings — §2) is set at tenant
+  provisioning by the **whitelabel manager** (owner-provisioning precedent); an
+  in-tenant owner settings screen to edit it is a later add. Coordinate the write
+  side — don't build the manager tool here.
 
 ## 6. Proposals introduced by this suite (proposed 2026-07-19 — veto here, not per-file)
 

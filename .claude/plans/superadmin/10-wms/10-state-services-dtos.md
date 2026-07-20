@@ -17,7 +17,7 @@ it; touching another slice's file means coordinating in its plan first.
 | `WarehousesState` | 03/04 | `tree`, `flat` (selects), `selected`, `nodes` cache (by parent), `locationStock`, `loading` | `LoadWarehouseTree`, `LoadWarehouses`, `LoadWarehouse(id)`, `CreateWarehouse`, `UpdateWarehouse`, `DeleteWarehouse`, `AssignTechnician(id, userId \| null)`, `LoadNodes(wid, parentNodeId?)`, `CreateNode`, `RenameNode`, `DeleteNode`, `LoadLocationStock(wid, nodeId?)` |
 | `MaterialsState` | 05 | `list`, `total`, `selected`, `stock`, `loading` | `LoadMaterials(query)`, `LoadMaterial(id)`, `LoadMaterialStock(id)`, `CreateMaterial`, `UpdateMaterial`, `DeleteMaterial` |
 | `StockState` | 06 | `reasons`, `movements`, `movementsTotal`, `loading` | `LoadMovementReasons`, `CreateMovementReason`, `UpdateMovementReason`, `Inbound`, `Transfer`, `Readjust`, `LoadMovements(query)` |
-| `ReplenishmentsState` | 07 | `list`, `total`, `selected`, `import` (active job — status/fields/progress/staged rows/prep/**submissionSnapshot**), `importAudit` (event log), `pendingImports`, `loading` | `LoadReplenishments(query)`, `LoadPendingImports`, `LoadReplenishment(id)`, `UploadImportFile(file)`, `SubmitImportMapping(importId, warehouseId, mapping)`, `ListenImportStatus(importId)` (**cancelUncompleted** fetch-SSE pipeline — 07 §3.1), `StopImportListening`, `DiscardImport(importId)`, `UpdatePreviewRow(line, patch)` (staged-row PATCH, audited), `RemoveStagedRow(line, reason)` (owner/admin, audited), `LoadImportAudit(importId)`, `UpdateImportPrep(importId, prep)`, `ApproveReplenishment(importId)` (owner/admin promotion) |
+| `ReplenishmentsState` | 07 | `list`, `total`, `selected`, `import` (active job — status/fields/progress/staged rows/prep/**submissionSnapshot**), `importAudit` (event log), `pendingImports` (list strip **+ shell approval banner**), `loading` | `LoadReplenishments(query)`, `LoadPendingImports`, `LoadReplenishment(id)`, `UploadImportFile(file)`, `SubmitImportMapping(importId, warehouseId, mapping)`, `ListenImportStatus(importId)` (**cancelUncompleted** fetch-SSE pipeline — 07 §3.1), `StopImportListening`, `DiscardImport(importId)`, `UpdatePreviewRow(line, patch)` (staged-row PATCH, audited), `RemoveStagedRow(line, reason)` (owner/admin, audited), `LoadImportAudit(importId)`, `UpdateImportPrep(importId, prep)`, `ApproveReplenishment(importId)` (owner/admin promotion) |
 | `ReportMaterialsState` | 08 | `byReport`, `loading`, `saving` | `LoadReportMaterials(reportId)`, `SaveReportMaterials(reportId, payload)` |
 
 - All registered **lazily** via `provideStates` in `wms.routes.ts`;
@@ -91,6 +91,9 @@ the three operation dialogs (06) · `remove-staged-row-dialog` (07 — reason-re
 staged-row removal) · `import-audit-timeline` (07 — the whole-lifecycle audit,
 consumed by the register approval-request **Historial tab** *and* the
 `replenishment-view` details; keep it presentational, fed the `ImportEvent[]`) ·
+`pending-replenishments-banner` (07 — the approval banner; lives in `wms/` but is
+**mounted in the superadmin shell**, fed by `ReplenishmentsState.pendingImports`,
+gated to the configured CMS-manager with an owner/admin fallback) ·
 `report-materials-editor` + `expired-lot-warning-dialog`
 (08 — consumed by the reports area). Nothing moves to
 `src/app/shared/components/` unless a **non-wms**
