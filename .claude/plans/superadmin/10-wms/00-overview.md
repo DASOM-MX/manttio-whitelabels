@@ -276,8 +276,60 @@ Each is argued in its owning sub-plan; this is the sign-off index.
     `submission_snapshot` stay). Row **removal is owner/admin only, reason-required**
     (office edits quantities but cannot remove); each submission also freezes a
     human-readable plain-text-JSON `submission_snapshot` (file + mapping). Read via
-    `GET .../audit`; surfaced as the register "Historial" timeline. Guards against
-    silent quantity fiddling / row removal — `01` §2, `02` §6, `07` §2, `14` §2.1e.
+    `GET .../audit`; surfaced as a **"Historial" tab** on the approval-request
+    (register) screen **and** on the confirmed `replenishment-view` details — one
+    reusable timeline component (owner 2026-07-20; supersedes the earlier
+    review-panel-only placement, which kept it off the view). Guards against silent
+    quantity fiddling / row removal — `01` §2, `02` §6, `07` §2, `14` §2.1e.
+
+### Low-cost / high-value batch (proposed 2026-07-20 — awaiting sign-off)
+
+Cheap because the plan already has the bones; grouped by intent. 21–23 are the
+**correctness insurance** I'd land first (each guards a place this system can lose
+money silently); 24–27 are **owner-delight** (≈ one column + one pill each); 28 is
+**dev velocity**. None is built until vetoed-in here.
+
+21. **Idempotency key on stock-mutating endpoints** — client-generated
+    `Idempotency-Key` header on `POST /stock/inbound|transfer|readjust` + a partial
+    unique index `movements(idempotency_key) WHERE idempotency_key IS NOT NULL`; a
+    replay returns the original movement, never a second one. **Why:** technicians
+    run the offline PWA over flaky field links, so a retried self-checkout would
+    otherwise duplicate the movement and silently double a balance. One column + one
+    header + one index — `01` §2 (movements), `02` §4, wires into the offline queue
+    (`frontend/src/offline/`).
+22. **Quantities are integer/`numeric`, never JS float** — a stated stock-math
+    invariant across movements, `stock_entries`, `material_lots`, and staged rows;
+    the mapper coerces and rejects non-integer quantity cells (`bad_quantity`).
+    **Why:** materialized balances compound rounding drift — free to fix today, a
+    data-cleanup job later — `01` §3 stock-math.
+23. **`requires_note` flag on movement reasons, forced for `scrap` + `lot_expired`**
+    — a boolean on `MovementReasonDef` (seeded true for the write-off reasons); the
+    readjust/consumption validators reject a blank note when the chosen reason sets
+    it (`400 note_required`). **Why:** an inventory drop with no explanation is the
+    weak point in the audit posture we just built — `01` §5, `02` §4, `06` §3.
+24. **Reorder-point surfacing** (data model *already* has it) — `minStock` + the
+    computed `lowStock` flag + `?lowStock=` filter already exist (`02` §3); this is
+    **frontend surfacing only**: a "bajo mínimo" pill on the materials list, a filter
+    toggle, and a count badge (later: staff dashboard). No new column — `05`
+    materials-list.
+25. **Barcode scan via native `BarcodeDetector`** — materials already carry `upc`
+    and every search box resolves it (`02` §3); add an optional "escanear"
+    affordance (camera → `BarcodeDetector` → fills the search/lookup field) on the
+    technician stock-lookup and material search. Zero dependency (native on the
+    Android field fleet), graceful fallback to typing — `05`, `09`.
+26. **Import summary counters before approval** — the ready-review summary strip
+    (`07` §2 step 8) gains a computed `{ nuevos · reabastecimientos (top-ups) · no
+    procesables }` breakdown from the staged rows, so the approver signs off on an
+    informed count, not a blind total. One aggregate over staging; strengthens the
+    approval gate — `07` §2, `02` §6 (fold into the preview payload).
+27. **Stock export to Excel/CSV** — the mirror of the import: `GET /materials/export`
+    streaming current balances (material, sku/upc, tracking, per-location qty) as
+    csv/xlsx (owner/admin/office). Reuses the field concepts in reverse; the data
+    already exists — `02` §3/§4, surfaced from the materials list.
+28. **WMS seed/demo fixture** — a dev-only seed (2 warehouses + a node tree + a few
+    materials across all three tracking modes, no live import) so the five frontend
+    sub-plans build against real shapes before 11's consumer is live. Behind the
+    `wms-test-` fixture prefix, never shipped — `01`/`02` testing.
 
 ## 7. Progress board (sub-plan owners update their row + their file header together)
 

@@ -46,8 +46,10 @@ human messages).
 
 `warehouse.dto.ts` (03) · `storage-node.dto.ts` (04) · `material.dto.ts` +
 `material-unit.dto.ts` (05) · `movement.dto.ts` + `movement-reason.dto.ts` (06) ·
-`replenishment.dto.ts` + `replenishment-import.dto.ts` (07 — incl. `ImportEvent` +
-`ImportEventType` for the lifecycle audit) · `report-material.dto.ts` (08). Query
+`replenishment.dto.ts` (07 — `Replenishment` carries **`importId`**, the backlink
+the view uses to load the audit) + `replenishment-import.dto.ts` (07 — incl.
+`ImportEvent` + `ImportEventType` for the lifecycle audit) ·
+`report-material.dto.ts` (08). Query
 DTOs live with
 their resource. Shared refs (`MaterialRef`, `LocationRef`) live in
 `material.dto.ts` / `warehouse.dto.ts` respectively — import concrete files, no
@@ -86,7 +88,10 @@ templates.
 
 `reason-select` + `add-reason-dialog` + `movements-table` (06 — consumed by 05/07/09) ·
 the three operation dialogs (06) · `remove-staged-row-dialog` (07 — reason-required
-staged-row removal) · `report-materials-editor` + `expired-lot-warning-dialog`
+staged-row removal) · `import-audit-timeline` (07 — the whole-lifecycle audit,
+consumed by the register approval-request **Historial tab** *and* the
+`replenishment-view` details; keep it presentational, fed the `ImportEvent[]`) ·
+`report-materials-editor` + `expired-lot-warning-dialog`
 (08 — consumed by the reports area). Nothing moves to
 `src/app/shared/components/` unless a **non-wms**
 second module needs it (master plan §2 rule 4).

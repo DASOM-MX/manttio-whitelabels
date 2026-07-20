@@ -31,6 +31,8 @@ ReplenishmentSummary { id, folio, warehouse: { id, name }, itemCount,
                        unprocessableCount,   // > 0 ⇒ warning marker (owner 2026-07-20)
                        evidenceCount, user: { id, name }, createdAt }
 Replenishment = ReplenishmentSummary + {
+  importId,                                  // backlink → the import: audit + snapshot
+                                             //   (the view loads LoadImportAudit by it)
   items: { material: MaterialRef, quantity?, serials?: string[],
            node?: { id, name },
            unprocessable: boolean, error?: ParseRowError }[],  // flagged, stock-less
@@ -168,16 +170,23 @@ one is approved or discarded.
    quantity is the office path; outright removal is the admin path and is logged.
    Error summary chip row above splits the classes ("2 por corregir · 1 no
    procesable") and anchor-links to the first of each (error-summary rule).
-   **Accountability tooling** (review panel): an expandable **"Historial"** panel
-   renders the whole-lifecycle timeline (`LoadImportAudit` → `GET .../audit`) —
-   start → upload → mapping → processing → each edit/removal → evidence/notes →
-   (later) approval — each entry showing actor (or "Sistema" for consumer events),
-   what happened (before→after on edits, removal reason, `{total, errors}` on
-   processed…), and timestamp, so the approver sees the full provenance before
-   signing off. Alongside it, a **"Ver envío"** toggle shows the
-   `submissionSnapshot` — the human-readable JSON of the original file + applied
-   mapping (read-only `<pre>`, copyable) — the durable record of what was submitted
-   (01 §2).
+   **Accountability — the "Historial" tab** (owner 2026-07-20): once the import is
+   `ready` this page **is** the approval-request screen (owner/admin reach it from
+   the pending strip), so the review surface is organized into **`<p-tabs>`** —
+   **"Revisión"** (the preview table + edits + evidence + notes + approval,
+   steps 5–8) and **"Historial"** (the audit). The audit gets its own tab, not an
+   inline panel (owner directive). The **Historial** tab renders the
+   whole-lifecycle timeline (`LoadImportAudit` → `GET .../audit`) — start → upload →
+   mapping → processing → each edit/removal → evidence/notes → (later) approval —
+   each entry showing actor (or "Sistema" for consumer events), what happened
+   (before→after on edits, removal reason, `{total, errors}` on processed…), and
+   timestamp, so the approver sees the full provenance before signing off. The same
+   tab holds a **"Ver envío"** toggle for the `submissionSnapshot` — the
+   human-readable JSON of the original file + applied mapping (read-only `<pre>`,
+   copyable), the durable record of what was submitted (01 §2). Office sees the
+   identical two-tab layout (its prep lives in Revisión); the approve affordance
+   stays owner/admin (step 8). The **timeline is one reusable component** — the
+   confirmed `replenishment-view` mounts it again (below).
 6. **Evidence photos** — attach **after processing, at review time** (owner
    2026-07-19): multi-image uploader (pick → `POST /upload` → R2 keys; thumbnails
    with remove), persisted to the import via `UpdateImportPrep`
@@ -207,7 +216,16 @@ source-file **name** (file icon + name, metadata only — the binary was purged 
 processing; the imported rows themselves are the durable record) ·
 **"Ver movimientos"** link → the movements view
 pre-filtered by `replenishmentId` (mounts 06's `movements-table` in an expandable
-section right on this page — no separate route needed).
+section right on this page — no separate route needed) ·
+**"Historial" section** — the whole-lifecycle audit timeline, read-only, loaded via
+the doc's linked import (`LoadImportAudit(replenishment.importId)` →
+`GET .../imports/:id/audit`) and rendering the **same reusable timeline component**
+as the approval-request Historial tab (§2 step 5), so the confirmed document
+carries its full provenance forever (the `approved` event closes the trail); the
+`submissionSnapshot` is reachable here too via the same **"Ver envío"** toggle.
+**(owner 2026-07-20 — the audit now shows on _both_ the approval-request screen and
+the confirmed details; supersedes the earlier "review-panel-only, not on the view"
+call.)**
 
 ## 3. State + service
 
@@ -221,7 +239,9 @@ fields, progress, staged rows, prep), `pendingImports` (the ready-state strip),
 (server PATCH — staged-row edit incl. **quantity on any row**, owner 2026-07-20;
 audited; state updated from the response),
 `RemoveStagedRow(line, reason)` (owner/admin — `DELETE .../rows/:line`, audited),
-`LoadImportAudit(importId)` (the whole-lifecycle event log),
+`LoadImportAudit(importId)` (the whole-lifecycle event log — feeds **both** the
+approval-request Historial tab and the confirmed `replenishment-view`; the view
+passes `selected.importId`),
 `UpdateImportPrep(importId, { evidencePhotos?, notes? })`,
 `ApproveReplenishment(importId)` (owner/admin — the promotion).
 
@@ -322,9 +342,10 @@ backend know where files live).
       re-resolution reflected, "editado" marker), error summary anchors, per-row
       node select
 - [ ] **Row removal (owner/admin only, office hidden)**: `remove-staged-row-dialog`
-      (required reason) → `RemoveStagedRow`; **"Historial" timeline panel**
+      (required reason) → `RemoveStagedRow`; **tabbed ready review surface**
+      (`<p-tabs>` Revisión / Historial) with the **Historial tab** timeline
       (`LoadImportAudit`, whole lifecycle, actor/system + details) + **"Ver envío"**
-      submission-snapshot toggle
+      submission-snapshot toggle — timeline built as a **reusable component**
 - [ ] Evidence uploader + notes persisted via `UpdateImportPrep`; approval step with
       role split (admin approve button + gating, office waiting card, affordance
       hidden not disabled)
