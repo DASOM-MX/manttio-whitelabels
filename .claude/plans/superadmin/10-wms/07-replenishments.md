@@ -5,10 +5,12 @@
 > **Owner:** — · **Last updated:** 2026-07-19
 
 Bulk restocking as a first-class **document** (decided 2026-07-05): import a stock list
-from a file, fix rows inline, attach evidence photos, confirm — the backend emits the
-inbound movements (`reason: replenishment`, `replenishmentId` backlink). Owner/admin/
-**office** (this is the office role's headline workflow). Documents are append-only:
-no edit, no delete — corrections are readjustments (06).
+from a file, fix rows, attach evidence photos, and **approve** — approval promotes the
+staged data into inventory and emits the inbound movements (`reason: replenishment`,
+`replenishmentId` backlink). **Prep is owner/admin/office** (this is the office role's
+headline workflow); **approval is owner/admin only** (decided 2026-07-19 —
+`../14-access-control.md` §2.1e, the billing draft-vs-commit split). Documents are
+append-only: no edit, no delete — corrections are readjustments (06).
 
 **Import pipeline reworked 2026-07-19 (owner ask):** the fixed-template synchronous
 parse is replaced by a **field-mapped asynchronous batch job** — upload the file →
@@ -64,6 +66,11 @@ crea el material"). Rendered via pipe. The `sku` file column accepts **SKU or UP
 - Row click → `replenishment-view`. Header action **"Registrar reabastecimiento"** →
   routes to `/warehouse/replenishments/new` (full page — the flow is too big for a
   dialog, decided 2026-07-05). Empty state with the same CTA.
+- **Pending-approval strip** (added 2026-07-19): a compact card row above the table
+  listing imports in `ready` (file name, warehouse, rows/errors, prepared by, age)
+  with **"Revisar y aprobar"** → the register page with `?import=` (owner/admin;
+  office sees its own pending imports with "Continuar preparación"). This is how an
+  admin finds what office prepared.
 
 ### `wms/pages/replenishment-register/` (`/warehouse/replenishments/new`)
 
@@ -97,22 +104,29 @@ to the same job and resumes polling (URL-persistence rule applied to a flow).
    (indeterminate until `total` is known), live counters ("128 / 300 filas · 4
    errores"), and the **polling loop** (§3.1). `failed` → error card with the
    stored `error`, retry = re-upload (escape route). Skeleton, not spinner.
-5. **Preview table** — renders when `ready`, seeded from `rows`: line no., mapped
-   source value, resolved material (name, tracking pill) or error pill,
-   quantity/serial, **inline fixes**: code + quantity + serial cells editable
-   (`pInputText`/`<p-inputnumber>`); an edit re-validates **client-side against
-   loaded materials** for instant feedback and the whole set is re-validated
-   server-side at confirm (02 §6 — the preview is UX, not trust). Error summary chip
-   row above ("3 filas con errores") anchor-links to the first error (error-summary
-   rule). Optional per-row node select (target location within the warehouse).
-6. **Evidence photos** — multi-image uploader (same pattern as report photos: pick →
-   `POST /upload` → keep R2 keys; thumbnails with remove). Delivery photos, invoices,
-   pallets.
-7. **Notes** — textarea, optional.
-8. **Confirm** — summary strip (n items, m units/qty total, destination) + submit
-   **disabled while any row error remains** or no items. `CreateReplenishment`
-   (payload carries `importId` — 02 §6) → success → route to the new
-   `replenishment-view`, toast with folio.
+5. **Preview table** — renders when `ready`, seeded from the **staged rows** (the
+   temp table in the tenant DB — 01 §2): line no., mapped source value, resolved
+   material (name, tracking pill) or error pill, quantity/serial, optional per-row
+   node select. **Inline fixes persist to staging**: an edit dispatches
+   `UpdatePreviewRow` → `PATCH .../rows/:line` — the server re-resolves
+   (SKU-then-UPC) + re-validates and returns the row, so fixes survive reloads and
+   **carry across users** (office fixes, admin approves). Error summary chip row
+   above ("3 filas con errores") anchor-links to the first error (error-summary
+   rule).
+6. **Evidence photos** — attach **after processing, at review time** (owner
+   2026-07-19): multi-image uploader (pick → `POST /upload` → R2 keys; thumbnails
+   with remove), persisted to the import via `UpdateImportPrep`
+   (`PATCH /replenishments/imports/:id`). Delivery photos, invoices, pallets.
+7. **Notes** — textarea, optional; same `UpdateImportPrep` persistence (debounced on
+   blur).
+8. **Approval** — summary strip (n items, m units/qty total, destination). Role
+   split: **owner/admin** see **"Aprobar reabastecimiento"** — disabled while any
+   row error remains or no items — dispatching `ApproveReplenishment(importId)`
+   (`POST /replenishments` — the backend promotes the staging table into inventory,
+   02 §6) → route to the new `replenishment-view`, toast with folio. **Office**
+   sees a status card instead ("Preparado — esperando aprobación de un
+   administrador"): their prep is already fully staged, there is nothing to submit
+   and no approve affordance rendered (hidden, never disabled).
 
 ### `wms/pages/replenishment-view/` (`/warehouse/replenishments/:id`)
 
@@ -129,12 +143,14 @@ section right on this page — no separate route needed).
 
 `ReplenishmentsState` (`src/state/replenishments/`) + `replenishments.service.ts`:
 `list`, `total`, `selected`, `import` (the active `ReplenishmentImport` — status,
-fields, progress, rows), `previewRows` (the editable copy of `import.rows`),
-`loading`. Actions: `LoadReplenishments(query)`, `LoadReplenishment(id)`,
-`UploadImportFile(file)`, `SubmitImportMapping(importId, warehouseId, mapping)`,
-`PollImport(importId)`, `StopImportPolling`, `DiscardImport(importId)`,
-`UpdatePreviewRow(line, patch)` (pure state edit + client-side revalidation),
-`CreateReplenishment(payload)`.
+fields, progress, staged rows, prep), `pendingImports` (the ready-state strip),
+`loading`. Actions: `LoadReplenishments(query)`, `LoadPendingImports`,
+`LoadReplenishment(id)`, `UploadImportFile(file)`,
+`SubmitImportMapping(importId, warehouseId, mapping)`, `PollImport(importId)`,
+`StopImportPolling`, `DiscardImport(importId)`, `UpdatePreviewRow(line, patch)`
+(server PATCH — staged-row fix, state updated from the response),
+`UpdateImportPrep(importId, { evidencePhotos?, notes? })`,
+`ApproveReplenishment(importId)` (owner/admin — the promotion).
 
 ### 3.1 Polling logic (the microservice contract, frontend half)
 
@@ -178,16 +194,19 @@ backend know where files live).
   fields + samples; auto-map picks the template headers; mapping validation gates the
   submit; processing panel ticks progress off the stubbed sequence; `failed` path
   shows the error card; **reload mid-processing resumes polling from `?import=`**;
-  preview renders all six error kinds with labels; inline fix clears an error
-  client-side; confirm stays disabled until clean; evidence add/remove; confirm
-  payload (with `importId`) asserted; view renders gallery + movements filter link;
-  office can do everything here, technician can't route in.
+  preview renders all six error kinds with labels; inline fix PATCHes the staged row
+  (stubbed) and the returned clean row clears the error; approve stays disabled until
+  clean; evidence add/remove persists via prep PATCH; **role split: admin sees
+  "Aprobar", office sees the waiting card and no approve affordance**; pending-
+  approval strip routes into `?import=`; approval payload (`{ importId }`) asserted;
+  view renders gallery + movements filter link; technician can't route in.
 - **Manual pass (original CP-5, binding — needs the processing service running,
-  11 CP-3):** import a 10-row csv with 2 bad rows and non-template headers → map
-  fields → watch queued/processing → fix rows inline → attach 2 photos → confirm →
-  stock updated (material view), movements show `replenishment` reason + link back
-  to the folio; xlsx + txt variants; 1 MB+ file rejected cleanly; kill the service
-  mid-job → lease expiry retry completes it (11 §3).
+  11 CP-3), run as the two-actor flow:** as **office** — import a 10-row csv with 2
+  bad rows and non-template headers → map fields → watch queued/processing → fix
+  rows inline → attach 2 photos + notes → waiting card; as **admin** — pending strip
+  → review → approve → stock updated (material view), movements show `replenishment`
+  reason + link back to the folio; xlsx + txt variants; 1 MB+ file rejected cleanly;
+  kill the service mid-job → lease expiry retry completes it (11 §3).
 
 ---
 
@@ -196,7 +215,7 @@ backend know where files live).
 ### CP-1 — List + state
 - [ ] DTOs + `replenishments.service.ts` + `ReplenishmentsState` (lazy)
 - [ ] Replenishments list with URL-persisted filters, folio format, row-click, CTA
-      empty state; build green
+      empty state; pending-approval strip (role-split CTAs); build green
 
 ### CP-2 — Import: upload → mapper → processing
 - [ ] Template assets in `public/templates/` (csv + xlsx, documented columns)
@@ -207,15 +226,16 @@ backend know where files live).
 - [ ] Processing panel + polling loop per §3.1 (cancelUncompleted, route-leave stop,
       `?import=` resume, failed card, poll-error resilience); dirty-navigation guard
 
-### CP-3 — Preview → confirm + view
-- [ ] Preview seeded from import rows: six error kinds, inline fixes with client-side
-      revalidation, error summary anchors, per-row node select
-- [ ] Evidence uploader (multi-image → R2 keys, thumbnails, remove); notes; confirm
-      gating + `importId` payload
+### CP-3 — Review → approval + view
+- [ ] Preview from staged rows: six error kinds, PATCH-persisted inline fixes
+      (server re-resolution reflected), error summary anchors, per-row node select
+- [ ] Evidence uploader + notes persisted via `UpdateImportPrep`; approval step with
+      role split (admin approve button + gating, office waiting card, affordance
+      hidden not disabled)
 - [ ] Replenishment view: items, gallery lightbox, source-file name metadata (via
       import join), `movements-table` expandable filtered by `replenishmentId`
-- [ ] Dark mode + skeletons + empty states; e2e specs; **manual pass above recorded
-      here with date**
+- [ ] Dark mode + skeletons + empty states; e2e specs; **two-actor manual pass above
+      recorded here with date**
 
 ## Open decisions / asks
 - ~~SheetJS-on-Workers CPU check~~ — **retired 2026-07-19**: parsing lives in the
@@ -225,6 +245,9 @@ backend know where files live).
   master plan §5.2 item).
 - **Mapping presets:** prefill the mapper from the tenant's last confirmed import
   when the detected headers match — cheap UX win, v1.1; decide at CP-2.
+- **Notifying admins of pending approvals** (beyond the in-list strip): toast/badge
+  on login? email? Defer until real office→admin traffic shows the strip isn't
+  enough.
 - Per-row node select in the preview (§2 step 5) — ship v1 or defer? Spec: ship (the
   backend item already carries `storageNodeId`); drop to post-v1 if the preview table
   gets crowded on mobile.

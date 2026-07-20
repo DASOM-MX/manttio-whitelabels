@@ -195,11 +195,14 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   stages the file in R2 + detects fields + sets `queued`; the standalone
   **processing service** (own repo, proposed `manttio-processor` — cross-repo
   contract in `.claude/plans/superadmin/10-wms/11-processing-service.md`) claims
-  jobs off Neon (`FOR UPDATE SKIP LOCKED` lease), writes rows/status back, and
-  **purges the staged binary once processed** (`file_deleted_at`; parsed `raw` rows
-  are the durable record); superadmin polls the DB-backed status endpoint. Retires
-  the SheetJS-on-Workers CPU concern. Extra ops ask: R2 S3 credentials (object
-  read + delete) for the service.
+  jobs off Neon (`FOR UPDATE SKIP LOCKED` lease), writes rows/status back into the
+  **staging (temp) table**, and **purges the staged binary once processed**
+  (`file_deleted_at`; parsed `raw` rows are the durable record); superadmin polls
+  the DB-backed status endpoint. Row fixes + evidence/notes prep persist on the
+  staging rows/import (PATCH); **approval — owner/admin only (14 §2.1e) — promotes
+  staging into the inventory tables** (doc + items + movements + stock in one
+  transaction). Retires the SheetJS-on-Workers CPU concern. Extra ops ask: R2 S3
+  credentials (object read + delete) for the service.
 - **equipment** (11): `equipment` table + `report_equipment` join; retro-link
   endpoints; hook: serialized unit consumed on a report ⇒ offer/auto-create the
   client `Equipment` (`material_unit_id` backlink).

@@ -50,8 +50,9 @@ overview §4).
 - **Route `data` audit:** every wms page declares `{ module: 'wms', roles: [...] }`
   per overview §4; `canMatch` guard order verified (tech `''` before staff `''`).
 - **Office gating audit:** office reaches lists, views, inbound, transfer,
-  replenishments; never sees structure/catalog mutations, readjustment, or the
-  report-materials edit mode. Grep for `hasRole` on every action affordance.
+  replenishment prep; never sees structure/catalog mutations, readjustment,
+  **replenishment approval** (14 §2.1e — waiting card, no approve affordance), or
+  the report-materials edit mode. Grep for `hasRole` on every action affordance.
 - **403-as-normal-flow:** every wms dispatch path toasts + stays on 403 (role can
   change under a live session — 14 §4).
 - **Dark-mode audit** across all nine pages + six dialogs; empty/loading/error states

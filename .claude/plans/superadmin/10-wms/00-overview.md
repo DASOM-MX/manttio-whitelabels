@@ -52,7 +52,8 @@ merging — GitHub does not auto-retarget). Branch naming
 
 - **Roles are action-level, not module-level:** `../14-access-control.md` §2.1 is the
   binding matrix — owner/admin full; **office operational** (inbound, transfers incl. van
-  loading, replenishments; no structure/catalog, no readjustments); **technician** gets
+  loading, replenishment **prep** — approval is owner/admin only, §2.1e added
+  2026-07-19; no structure/catalog, no readjustments); **technician** gets
   My warehouse (own van + consumption history + self-checkout) and Stock lookup (global
   read-only). **Reuse components with locked filters + hidden actions; never fork
   variants** (§2 note 2).
@@ -195,6 +196,15 @@ Each is argued in its owning sub-plan; this is the sign-off index.
     processor's pull reference, **purged by the processor once fully processed**
     (`file_deleted_at` stamped); the durable record is the imported rows' `raw` +
     file name + mapping. Evidence photos stay permanent — `01` §4, `07` §4, `11` §3.
+14. **Staging-then-approval** (owner 2026-07-19): processed data sits in the
+    **staging (temp) table in the tenant DB** — mutable row fixes + evidence/notes
+    prep all persist there — and only an **owner/admin approval** promotes it into
+    the actual inventory tables (doc + items + movements + stock, one transaction);
+    office prepares but never approves (`../14-access-control.md` §2.1e). Staged
+    rows are **retained after promotion** (they're the only record of the purged
+    file's content; physical cleanup would contradict the no-hard-deletes rule) —
+    **owner said "move", so confirm retention vs cleanup explicitly** — `01` §2/§4,
+    `02` §6, `07` §2.
 
 ## 7. Progress board (sub-plan owners update their row + their file header together)
 
@@ -224,7 +234,8 @@ Each is argued in its owning sub-plan; this is the sign-off index.
   photos) whose confirmation emits the inbound movements.
 - **Replenishment import** — the field-mapped async batch job behind a replenishment:
   upload → detected fields → user mapping → `queued` → processed by the external
-  service → `ready` preview → confirmed into the document.
+  service into the **staging (temp) table** → `ready` review (row fixes + evidence +
+  notes, all staged) → **owner/admin approval promotes it into inventory**.
 - **Processing service** — the standalone batch-job runner in its own repository
   (11): claims `queued` imports straight off Neon (`SKIP LOCKED`), reads files from
   R2, writes rows + status back; superadmin only ever polls the DB-backed status.

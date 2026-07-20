@@ -1,7 +1,7 @@
 # 14 — Access control (roles + config gating)
 
 > **Status:** done (doc — implementation tasks live in `02-app-shell.md` and each module's
-> checklists) · **Last updated:** 2026-07-15
+> checklists) · **Last updated:** 2026-07-19 (§2.1: replenishment approval split, note e)
 >
 > ⚠️ **Correction (2026-07-15, owner):** module flags exist at the **organization level**
 > and are **set from the whitelabels admin app** (the manager tool — *not in this repo*).
@@ -109,7 +109,8 @@ WMS permissions are **action-level**, not module-level:
 | Materials catalog (SKUs) | ✓ | ✓ | — | — |
 | Movement reasons: add / deactivate (custom; built-ins locked) | ✓ | ✓ | — | — |
 | Inbound (receive deliveries) | ✓ | ✓ | ✓ | — |
-| Replenishments (register via file import + evidence photos) | ✓ | ✓ | ✓ | — |
+| Replenishments: prepare (upload + field-map, fix staged rows, evidence, notes) | ✓ | ✓ | ✓ | — |
+| **Replenishments: approve** (promote staged data → inventory)ᵉ | ✓ | ✓ | — | — |
 | Transfer (any → any) | ✓ | ✓ | ✓ | — |
 | **Self-checkout** (→ own van) | n/a | n/a | n/a | ✓ᵃ |
 | **Readjustment** (compensating in/out; mark lost/damaged)ᵈ | ✓ | ✓ | — | — |
@@ -132,6 +133,13 @@ d. **Audit immutability (decided 2026-07-05):** movement records are **append-on
    (`direction: in|out`, reason + notes required, owner/admin only); staff corrections
    to report materials emit compensating readjustments while the original consumption
    movement stands. Details: `10-wms.md` §1.
+e. **Replenishment approval (decided 2026-07-19, owner):** file imports parse into a
+   **staging table**; nothing touches inventory until an **owner/admin approves**,
+   which promotes the staged data into the inventory tables and emits the inbound
+   movements. Office prepares everything (upload, mapping, row fixes, evidence,
+   notes — all staged) but cannot approve — the same draft-vs-commit split as
+   billing/contracts (§2 note 3). Details: `10-wms/07-replenishments.md` +
+   `10-wms/02-api-surface.md` §6.
 
 ## 3. How gating is implemented (CSR v1 — decided 2026-07-05)
 

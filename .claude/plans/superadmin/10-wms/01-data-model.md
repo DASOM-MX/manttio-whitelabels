@@ -199,16 +199,32 @@ replenishment_imports {
                                            //   FOR UPDATE SKIP LOCKED; stale lease
                                            //   (now - locked_at > timeout) is reclaimable
   attempts int not null default 0,         // ++ on each claim; > max (3) ⇒ 'failed'
+  evidence_photos text[] not null default '{}',
+  notes text?,                             // approval-stage PREP (owner 2026-07-19):
+                                           //   evidence + notes attach AFTER processing,
+                                           //   staged here (PATCH — 02 §6) so office can
+                                           //   prep and an admin can approve later;
+                                           //   copied onto the doc at approval
   user_id not null → users, created_at, updated_at
 }                                          // never deleted — abandoned = 'discarded'
-replenishment_import_rows {                // written by the processor as it walks the file
+replenishment_import_rows {                // the STAGING ("temp") table — owner
+                                           //   2026-07-19: parsed data lives here,
+                                           //   in the tenant DB, until approval
   id, import_id not null, line int not null,
   raw jsonb not null,                      // the mapped source values, for display/debug
   material_id uuid?,                       // resolved via SKU-then-UPC
   quantity numeric?, serial text?,
+  storage_node_id uuid?,                   // optional target node, set by the user
+                                           //   during review (never by the processor)
   error text?                              // ParseRowError code (02 §6), null = clean
 }                                          // UNIQUE (import_id, line) — retries upsert
-                                           //   by that key, never duplicate rows
+                                           //   by that key, never duplicate rows.
+                                           // MUTABLE while status='ready' (inline
+                                           //   fixes PATCH here, re-resolved server-
+                                           //   side — 02 §6); frozen at approval.
+                                           // Approval PROMOTES from here into the
+                                           //   inventory tables (§4) — this table is
+                                           //   staging, the promoted doc is the record
 
 ```
 
@@ -219,7 +235,9 @@ replenishments {
   id, folio integer not null unique,      // per-tenant consecutive, see wms_counters
   warehouse_id not null → warehouses,     // destination
   import_id uuid? → replenishment_imports, // the source import (file + mapping trail);
-                                           //   null only for a fileless manual doc
+                                           //   v1 always set — every doc is born by
+                                           //   approving an import (nullable reserved
+                                           //   for a future fileless manual path)
   evidence_photos text[] not null default '{}',    // R2 keys
   user_id not null → users, notes text?, created_at
 }                                          // no deleted_at — document trail; corrections
@@ -288,11 +306,17 @@ with its current location/status.
 - **Movements/replenishments:** created, never mutated.
 - **Replenishment import:** `uploaded` →(mapping submitted)→ `queued` →(claimed by
   the processing service, lease taken)→ `processing` → `ready` | `failed`; stale
-  lease → back to claimable, `attempts`++, over max ⇒ `failed`; `ready` →(confirm)→
-  `confirmed`; any pre-confirm state →(user abandons / new upload replaces it)→
-  `discarded`. Only the **processing service** (11) writes `processing →
-  ready/failed` + the progress counters; only the confirm transaction writes
-  `confirmed`. Terminal states: `failed`, `confirmed`, `discarded`.
+  lease → back to claimable, `attempts`++, over max ⇒ `failed`; `ready` = **awaiting
+  approval** — staged rows sit in the temp table, editable via row PATCH;
+  →(**approval**)→ `confirmed`: one transaction **promotes the staged rows into the
+  actual inventory tables** — replenishment doc + items + inbound movements + stock
+  (§3) — and freezes the staging rows. Any pre-approval state →(user abandons / new
+  upload replaces it)→ `discarded`. Only the **processing service** (11) writes
+  `processing → ready/failed` + the progress counters; only the approval transaction
+  writes `confirmed`. Terminal states: `failed`, `confirmed`, `discarded`. Staged
+  rows are **retained after promotion** (they are the only record of the purged
+  file's content — see the retention note below); physical post-promotion cleanup
+  would conflict with the no-hard-deletes rule — owner call, flagged in 00 §6.
   **File retention (owner 2026-07-19 — supersedes the 2026-07-05 keep-forever
   evidence-file decision):** the staged binary is **transient** — the **processor**
   deletes it from R2 once the file is fully processed (the `ready` write) and stamps
