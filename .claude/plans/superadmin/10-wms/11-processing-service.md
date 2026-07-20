@@ -101,6 +101,7 @@ into validated rows.
 `R2_SECRET_ACCESS_KEY` / `R2_BUCKET=manttio-wms` (S3-compat token with **object read
 + delete** — fetch the staged file, purge it after processing; never write) ·
 `POLL_INTERVAL_MS=2000` · `LEASE_TIMEOUT_S=120` · `MAX_ATTEMPTS=3` ·
+`RETENTION_DAYS=30` (leftover staged-binary sweep, §5) ·
 `INSTANCE_ID` (defaults hostname+pid — the `locked_by` value). Secrets handling per
 host convention; never committed (`.env.example` checked in, `.env` ignored —
 matches the repo's env rules).
@@ -111,9 +112,14 @@ matches the repo's env rules).
   Docker-friendly; candidate homes: existing VPS (systemd or Docker), Fly/Railway,
   Cloudflare Containers when it fits. Needs outbound to Neon + R2 only. Record the
   chosen target here when decided.
+- **Retention sweep (decided 2026-07-19 — source files are disposable copies; the
+  tenant keeps the original):** once a day, delete the staged binary of any
+  non-`confirmed`, non-swept import older than `RETENTION_DAYS` (leftovers from
+  `discarded`/abandoned/`failed` jobs) and stamp `file_deleted_at`. No exemptions —
+  a failed import older than the window is re-uploaded, not recovered.
 - Observability v1: structured stdout logs (claim, per-job summary line with row
-  counts + duration, terminal status), `/healthz`. No metrics stack until a second
-  job kind exists.
+  counts + duration, terminal status, sweep counts), `/healthz`. No metrics stack
+  until a second job kind exists.
 - Local dev: `pnpm dev` in the sibling checkout (`../manttio-processor`) against the
   shared Neon DB + the dev bucket — run it alongside `wrangler dev` + `ng serve`
   when exercising the full import flow. There is **no in-Worker fallback**: without
@@ -145,7 +151,9 @@ matches the repo's env rules).
       resolution, idempotent upserts, batched progress, terminal writes guarded by
       `locked_by`, post-`ready` purge + `file_deleted_at` stamp (crash between
       write and purge re-purges idempotently on the next sweep/claim)
-- [ ] Full §6 test suite green (row errors, reliability trio, purge ordering)
+- [ ] Retention sweep (§5): daily pass, `RETENTION_DAYS` window, `file_deleted_at`
+      stamping, idempotent on missing objects
+- [ ] Full §6 test suite green (row errors, reliability trio, purge ordering, sweep)
 
 ### CP-3 — Deployed + integrated
 - [ ] Deployed to the chosen host with read-only R2 creds; `/healthz` monitored
@@ -165,7 +173,5 @@ matches the repo's env rules).
   works the domain table directly.
 - R2 token scoping (bucket-level vs `imports/` prefix; read + delete only) — with
   backend ops when the `manttio-wms` bucket is provisioned (02 §8).
-- **Retention sweep for leftover staged files** (imports that never processed:
-  discarded/abandoned `uploaded`/`failed` rows still holding a binary) — a periodic
-  pass in this service deleting binaries older than N days + stamping
-  `file_deleted_at`; N and whether `failed` files are exempt = owner call.
+- ~~Retention sweep~~ — **decided 2026-07-19** (§5): daily, `RETENTION_DAYS`, no
+  exemptions — source files are disposable copies, the tenant keeps the original.

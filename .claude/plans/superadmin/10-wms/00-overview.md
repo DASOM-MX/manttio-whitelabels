@@ -192,19 +192,21 @@ Each is argued in its owning sub-plan; this is the sign-off index.
     (`11` — proposed `manttio-processor`; DB-as-queue via `FOR UPDATE SKIP LOCKED`,
     per-tenant instance v1, no in-Worker fallback).
 13. **Import source files are transient in R2** (owner 2026-07-19 — supersedes the
-    2026-07-05 keep-forever evidence-file decision): staged at upload as the
-    processor's pull reference, **purged by the processor once fully processed**
-    (`file_deleted_at` stamped); the durable record is the imported rows' `raw` +
-    file name + mapping. Evidence photos stay permanent — `01` §4, `07` §4, `11` §3.
+    2026-07-05 keep-forever evidence-file decision; reinforced same day: **uploads
+    are copies, the tenant keeps the original**, so the binary has zero archival
+    value): staged at upload as the processor's pull reference, **purged by the
+    processor once fully processed** (`file_deleted_at` stamped), leftovers swept
+    daily (`11` §5); the in-system record is the imported rows' `raw` + file name +
+    mapping. Evidence photos stay permanent — `01` §4, `07` §4, `11` §3.
 14. **Staging-then-approval** (owner 2026-07-19): processed data sits in the
     **staging (temp) table in the tenant DB** — mutable row fixes + evidence/notes
     prep all persist there — and only an **owner/admin approval** promotes it into
     the actual inventory tables (doc + items + movements + stock, one transaction);
     office prepares but never approves (`../14-access-control.md` §2.1e). Staged
-    rows are **retained after promotion** (they're the only record of the purged
-    file's content; physical cleanup would contradict the no-hard-deletes rule) —
-    **owner said "move", so confirm retention vs cleanup explicitly** — `01` §2/§4,
-    `02` §6, `07` §2.
+    rows are **retained after promotion** (the only *in-system* record of what the
+    file said — the tenant's original lives outside the system; physical cleanup
+    would contradict the no-hard-deletes rule) — **owner said "move", so confirm
+    retention vs cleanup explicitly** — `01` §2/§4, `02` §6, `07` §2.
 
 ## 7. Progress board (sub-plan owners update their row + their file header together)
 

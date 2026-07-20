@@ -318,12 +318,14 @@ with its current location/status.
   file's content — see the retention note below); physical post-promotion cleanup
   would conflict with the no-hard-deletes rule — owner call, flagged in 00 §6.
   **File retention (owner 2026-07-19 — supersedes the 2026-07-05 keep-forever
-  evidence-file decision):** the staged binary is **transient** — the **processor**
-  deletes it from R2 once the file is fully processed (the `ready` write) and stamps
-  `file_deleted_at`; `failed` imports keep their file for debugging. Files left
-  staged by discarded/abandoned imports are collected by a retention sweep (open —
-  11). DB rows are permanent as always — `rows.raw` + `file_name` + `mapping` are
-  the audit substance. **Evidence photos are unaffected** — they stay in R2
+  evidence-file decision):** uploads are **copies** — the tenant keeps the original
+  file outside the system, so the staged binary has **zero archival value** and is
+  purely **transient**: the **processor** deletes it from R2 once the file is fully
+  processed (the `ready` write) and stamps `file_deleted_at`; `failed` imports keep
+  their file only as retry/debug input. Leftover binaries (discarded/abandoned/
+  failed imports) are collected by the retention sweep (decided — 11 §5). DB rows
+  are permanent as always — `rows.raw` + `file_name` + `mapping` are the in-system
+  audit substance. **Evidence photos are unaffected** — they stay in R2
   permanently.
 
 ## 5. Seed — the 11 built-in reasons (semantics confirmed 2026-07-05)

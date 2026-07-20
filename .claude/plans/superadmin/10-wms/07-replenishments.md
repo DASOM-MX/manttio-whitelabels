@@ -175,10 +175,12 @@ through the terminal state inclusively, then completes. Rules:
 Dedicated **`manttio-wms` R2 bucket**, CDN-fronted with its own base env (the
 `manttio-equipment` precedent), holding two very different lifecycles:
 
-- **`imports/<key>` — transient** (owner 2026-07-19): the staged source file exists
-  only from upload until the processing service finishes with it — the processor
-  purges the binary after the `ready` write and stamps `file_deleted_at` (01 §4,
-  11 §3). Space stays flat no matter how many imports run.
+- **`imports/<key>` — transient** (owner 2026-07-19): uploads are **copies** — the
+  tenant keeps the original file, so there is never a download or recovery need.
+  The staged binary exists only from upload until the processing service finishes
+  with it — the processor purges it after the `ready` write and stamps
+  `file_deleted_at` (01 §4, 11 §3); leftovers from abandoned imports are swept
+  (11 §5). Space stays flat no matter how many imports run.
 - **`evidence/<key>` — permanent**: delivery photos, invoices, pallets — the human
   evidence on the confirmed document; never purged.
 
