@@ -74,14 +74,14 @@ On message `{ importId }`:
    between the two redelivers with the file intact. `failed` imports keep their
    file until the retention sweep (§4).
    **Then notify the configured CMS-manager** (owner 2026-07-20): resolve
-   `notifications.manager_user_id` (01 §2) and send a **de-branded warning email**
-   via the email module (`modules/email` `sendEmail`; `from`/subject/logo from tenant
-   brand config `/brand`, never a literal — fork de-branding rule) — `ready` →
-   "reabastecimiento listo para aprobar" (warning tone + counts when
-   unprocessable/error rows exist, deep link to the approval-request screen
-   `?import=`), `failed` → the failure alert. **Best-effort, non-blocking:** a send
-   error or an unconfigured recipient is logged and never fails the job or blocks the
-   status write — the superadmin banner + pending strip (07) are the reliable floor.
+   `notifications.manager_user_id` (01 §2) and **raise an in-app notification via the
+   notifications module** (owner-built) — `ready` → "reabastecimiento listo para aprobar"
+   (warning tone + counts when unprocessable/error rows exist, deep link to the
+   approval-request screen `?import=`), `failed` → the failure alert. **v1 is in-app only —
+   a de-branded *email* channel is deferred (owner 2026-07-21).** **Best-effort,
+   non-blocking:** a notify error or an unconfigured recipient is logged and never fails the
+   job or blocks the status write — the superadmin banner + pending strip (07) are the
+   reliable floor.
 5. Resolve by tracking mode: serialized → serials · **lot → `lot` + `quantity`
    (+ parse the mapped expiry field into `lot_expires_at` when present;
    unparseable → `bad_expiry`)** (2026-07-20) · unserialized → quantity.
@@ -155,8 +155,8 @@ re-uploaded, not recovered.
 
 ### CP-2 — Handler
 - [ ] §2 parse/resolve/upsert/progress/purge complete; retention cron (§4);
-      **manager warning email on `ready`/`failed`** (best-effort, de-branded,
-      unconfigured-recipient skip)
+      **manager in-app notification on `ready`/`failed`** (best-effort,
+      unconfigured-recipient skip; de-branded email deferred — v1 in-app only)
 - [ ] §5 test suite green (row errors, redelivery idempotency, purge ordering,
       DLQ, sweep)
 
@@ -169,7 +169,7 @@ re-uploaded, not recovered.
 - Per-tenant queue naming convention (§1) — settle with the deploy tooling when
   the second tenant lands.
 - ~~DLQ handling: whether DLQ arrivals also alert~~ — **resolved 2026-07-20
-  (owner): the manager warning email (§2 step 4) fires on `failed` / DLQ→`failed`,
-  so the configured CMS-manager is alerted beyond the user-visible failure card.**
+  (owner): the manager in-app notification (§2 step 4) fires on `failed` / DLQ→`failed`,
+  so the configured CMS-manager is alerted beyond the user-visible failure card (email deferred).**
 - Re-extraction trigger: revisit an external processor only if a job kind
   genuinely exceeds Worker limits — the DB-first contract keeps that door open.

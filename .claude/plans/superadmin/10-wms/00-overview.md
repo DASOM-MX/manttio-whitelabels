@@ -77,8 +77,9 @@ merging — GitHub does not auto-retarget). Branch naming
   already the `movements` journal). `01` §2, `02` §6.
 - **Pending-approval + failure notifications** (owner 2026-07-20): a replenishment
   reaching `ready` (awaiting approval) or `failed` warns the configured
-  **CMS-manager** — an app-shell **banner** in superadmin + a **de-branded warning
-  email** from the queue consumer. The recipient is a **config record**,
+  **CMS-manager** — an app-shell **banner** in superadmin + an **in-app notification**
+  raised via the notifications module. **v1 is in-app only — a warning *email* is deferred
+  (owner 2026-07-21).** The recipient is a **config record**,
   `notifications.manager_user_id`, in the `settings` store (01 §2; provisioned at
   tenant setup); **unset ⇒ notifications skip silently**, the in-list pending strip
   is the floor, and the banner falls back to owner/admin so approvals aren't missed.
@@ -255,12 +256,15 @@ before it is fully buildable.
       `report_binding`; unit → `consumed`); **(b) move to my warehouse** — source→**van
       transfer** to the technician's own child warehouse; **(c) return to source** — release,
       stock stays at source (`assigned → in_stock`).
+    - **Auto-return (owner 2026-07-21) —** a reservation **not consumed or moved** (to the
+      technician's van) within the window is **automatically returned to its source
+      warehouse** (released → `in_stock`), **default 3 days**, set via the
+      `wms.reservation_auto_return_days` settings key; a daily cron sweeps them.
     - **Owners —** the scheduling prompt is a **calendar/visits (12)** [or reports (06)]
-      hook; WMS (`06`/`08`/`09`) owns the hold + the three resolution movements. ⚠️ *Open
-      sub-details: confirm the available-vs-on-hand mechanic; the fallback for a reservation
-      whose visit ends unresolved (auto-return vs stays held); whether lot/unserialized
-      reservations ride a `stock_reservations` row vs `assigned` — settle when 12 lands.*
-      — `01` §2/§4, `06`, `08`, `09`, `12`.
+      hook; WMS (`06`/`08`/`09`) owns the hold + the resolution movements + the auto-return
+      cron. ⚠️ *Open sub-details: confirm the available-vs-on-hand mechanic; whether
+      lot/unserialized reservations ride a `stock_reservations` row vs `assigned` — settle
+      when 12 lands.* — `01` §2/§4, `06`, `08`, `09`, `12`.
 11. **Storage-node roots may be any node type** — **confirmed (owner 2026-07-20): a root is
     simply any node with *no parent*** (any type qualifies); a node *with* a parent is a
     child and must obey the strictly-descending type-rank rule parent→child — `01` §2.

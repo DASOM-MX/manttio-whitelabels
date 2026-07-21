@@ -159,10 +159,13 @@ lot/unserialized amounts; the reserved stock **stays at the source warehouse**, 
 **available** (on-hand unchanged) until the technician closes it. The technician records the
 **"last movement"** (prompted — 09): **consume** on the report (→ `consumed`), **move to
 their child warehouse / van** (source→van transfer), or **return to source** (release →
-`in_stock`). Consumption may still flip `in_stock → consumed` directly on report-material
-save when nothing was pre-reserved. ⚠️ *Open: confirm the available-balance mechanic; the
-unresolved-at-visit-end fallback; whether lot/unserialized reservations need a
-`stock_reservations` row vs riding `assigned` — settle with 12.*
+`in_stock`). A reservation **not consumed or moved** (to the technician's van) within the
+window **auto-returns** to its source (release → `in_stock`) — **default 3 days**,
+`wms.reservation_auto_return_days` (settings key, §2 below) — swept by a daily cron (owner
+2026-07-21). Consumption may still
+flip `in_stock → consumed` directly on report-material save when nothing was pre-reserved.
+⚠️ *Open: confirm the available-balance mechanic; whether lot/unserialized reservations need
+a `stock_reservations` row vs riding `assigned` — settle with 12.*
 
 ### `material_lots` — lot balances per location (added 2026-07-20, owner)
 
@@ -482,7 +485,15 @@ an in-tenant owner settings screen to change it is a later add — asks §00 §5
 backend-side via `getSetting('notifications.manager_user_id')`; **absent ⇒
 notifications skip silently** (logged, never an error) — the in-app pending strip
 (07 §2) is always the floor. Drives the approval banner (07 §2/§3) + the queue
-consumer's warning email (11 §2).
+consumer's in-app notification (11 §2); a de-branded email is deferred (owner 2026-07-21 — v1 in-app only).
+
+**Third key — `wms.reservation_auto_return_days`** (owner 2026-07-21): the window an
+unresolved inventory reservation is held before the daily cron auto-returns it to its
+source warehouse (release → `in_stock`, §4 reservation flow). Default **3**.
+
+```
+{ days: number }                           // default 3 — the reservation auto-return window
+```
 
 ## 3. Stock math (proposed 2026-07-19 — the load-bearing design decision)
 

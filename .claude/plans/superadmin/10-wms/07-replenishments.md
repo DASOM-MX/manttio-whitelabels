@@ -230,7 +230,7 @@ parent warehouses import concurrently).
      adjust the staged rows / evidence / notes **in place** — the same edit
      affordances stay live (`rejected` is editable, 02 §6) — then **"Solicitar
      aprobación de nuevo"** → `ResubmitImport(importId)` (`POST .../resubmit`) → back
-     to `ready`, which **re-notifies the manager** (banner + email, §3 / 11 §2) and
+     to `ready`, which **re-notifies the manager** (banner + in-app, §3 / 11 §2) and
      emits `resubmitted`.
    - **Owner-only · any pre-approval status** — **"Cancelar reabastecimiento"**
      (danger, **owner only** — not admin, not office) opens **`cancel-import-dialog`**
@@ -266,7 +266,7 @@ carries its full provenance forever (the `approved` event closes the trail); the
 the confirmed details; supersedes the earlier "review-panel-only, not on the view"
 call.)**
 
-### Approval notifications — banner + warning email (owner 2026-07-20)
+### Approval notifications — banner + in-app notification (owner 2026-07-20; email deferred 2026-07-21)
 
 Beyond the in-list pending strip (§2), the configured **CMS-manager** is actively
 warned when replenishments await approval — resolving the deferred "notify admins of
@@ -282,12 +282,13 @@ record (`notifications.manager_user_id`, 01 §2):
   pending list (or straight to the single `?import=`). Dismissible per session,
   re-appears on new pending imports. Uses the superadmin-design banner idiom — no
   bespoke styling.
-- **Warning email** — fired **backend-side by the queue consumer** on the `ready`
-  transition (11 §2), so it needs no frontend surface; de-branded (tenant brand
-  config), to the configured manager: warehouse, row/error counts, a prominent
+- **In-app notification** — fired **backend-side by the queue consumer** on the `ready`
+  transition (11 §2) and on `failed`, raised to the configured manager via the
+  **notifications module** (owner-built): warehouse, row/error counts, a prominent
   **unprocessable-rows warning** when present, and a deep link to the
-  approval-request screen. The same channel carries the `failed` alert. Best-effort;
-  unconfigured recipient ⇒ skipped (banner + strip remain the floor).
+  approval-request screen. Best-effort; unconfigured recipient ⇒ skipped (banner + strip
+  remain the floor). **A de-branded *email* channel is deferred (owner 2026-07-21) — v1 is
+  in-app only.**
 
 ## 3. State + service
 
@@ -446,9 +447,10 @@ backend know where files live).
   `suggestedMapping` when headers match (§2 step 3 tier 1).
 - ~~Notifying admins of pending approvals (beyond the in-list strip)~~ —
   **resolved 2026-07-20 (owner): both** — an app-shell **banner** for the configured
-  CMS-manager + a **warning email** on the `ready` (and `failed`) transition. The
-  recipient is the `notifications.manager_user_id` config record (01 §2); the email
-  is sent by the queue consumer (11 §2), the banner reuses `pendingImports` (§2/§3).
+  CMS-manager + an **in-app notification** on the `ready` (and `failed`) transition (a
+  de-branded **email** channel is deferred — owner 2026-07-21, v1 in-app only). The
+  recipient is the `notifications.manager_user_id` config record (01 §2); the in-app
+  notification is raised by the queue consumer (11 §2), the banner reuses `pendingImports` (§2/§3).
 - Per-row node select in the preview (§2 step 5) — ship v1 or defer? Spec: ship (the
   backend item already carries `storageNodeId`); drop to post-v1 if the preview table
   gets crowded on mobile.
