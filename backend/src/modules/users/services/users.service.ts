@@ -50,6 +50,8 @@ export const createUser = async (
   try {
     const row = await insertUser(db, {
       name: input.name,
+      paternalLastName: input.paternalLastName ?? null,
+      maternalLastName: input.maternalLastName ?? null,
       email: input.email,
       passwordHash,
       role: input.role,
@@ -92,6 +94,8 @@ export const editUser = async (
 
   const fields: UpdateUserFields = {};
   if (input.name !== undefined) fields.name = input.name;
+  if (input.paternalLastName !== undefined) fields.paternalLastName = input.paternalLastName;
+  if (input.maternalLastName !== undefined) fields.maternalLastName = input.maternalLastName;
   if (input.email !== undefined) fields.email = input.email;
   if (input.role !== undefined) fields.role = input.role;
   if (input.password !== undefined) fields.passwordHash = await hashPassword(input.password);
