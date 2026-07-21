@@ -67,6 +67,15 @@ auto-loads it — **edit both in the same commit.**
   `lucide-angular`). `size-4` inline, `size-5` nav, stroke-2
   everywhere; never PrimeIcons in our own templates (PrimeNG's internal chevrons are
   the only tolerated appearance), never filled/duotone sets.
+- **Simplicity rules (owner, 2026-07-21):** (1) **no arbitrary Tailwind values in
+  templates** (`h-[235px]`, `h-[calc(...)]`) — standard scale utilities only
+  (`h-56`); a size that must be exact belongs in a stylesheet, not inline brackets.
+  (2) **Tabular/feed data renders as `p-table`** (the customers-list idiom:
+  header/body templates, `rowHover`, whole-row click, `[scrollable]` +
+  `scrollHeight` for internal scroll, `emptymessage`) — never hand-rolled
+  `<ol>`/`<div>` row lists. (3) **Simple fixed sizing beats layout machinery:**
+  fixed card heights + internal scroll, page-scoped CSS only — never shell-layout
+  surgery (flex-chain rewiring, route-data layout flags) for one page's sizing.
 - **Motion system (revised 2026-07-06 — Angular native, not anime.js):** Angular's
   `animate.enter`/`animate.leave` class bindings + `src/animations.scss`, which owns
   the keyframes and tokens as CSS custom properties — `--motion-fast` 150ms (micro
