@@ -242,14 +242,25 @@ before it is fully buildable.
    location for history); no virtual "consumed" location ✅ *ratified (owner 2026-07-20)* — `01` §4.
 9. **Five NGXS states / five HTTP services** split by sub-plan ownership (supersedes the
    original two-state sketch) ✅ *ratified (owner 2026-07-20)* — `10` §1.
-10. **`MaterialUnitStatus.assigned` is ACTIVE — pieces can be reserved** (owner 2026-07-20,
-    supersedes "reserved/unused in v1"): the lifecycle becomes
-    `in_stock → assigned → consumed`, and **unit location is tracked throughout** — a
-    reserved unit carries a live location (where the held piece physically sits), not just a
-    history stamp. ⚠️ Detail owed: what *triggers* a reservation (report prep vs technician
-    pick) and how a stale reservation is *released* (manual vs expiry, and whether `assigned`
-    decrements an "available" balance while leaving on-hand) — to spec in `06`/`08`/`09`;
-    `01` §4.
+10. **`MaterialUnitStatus.assigned` is ACTIVE — inventory can be reserved for a visit**
+    (owner 2026-07-20/21): lifecycle `in_stock → assigned → consumed`, location tracked
+    throughout. **Reservation flow (owner 2026-07-21):**
+    - **Trigger —** at **service/visit scheduling** the scheduler is prompted *"¿Desea
+      reservar inventario para esta visita?"*; if yes, they earmark serialized units
+      (→ `assigned`, `reserved_for` the visit/report) and/or lot/unserialized amounts.
+      Reserved stock **stays at the source warehouse**, decrementing the **available**
+      balance while **on-hand is unchanged**, until the technician resolves it.
+    - **Resolution —** the technician records the **"last movement"** (prompted; the
+      reservation must close via one): **(a) consume** on the report (consumption movement,
+      `report_binding`; unit → `consumed`); **(b) move to my warehouse** — source→**van
+      transfer** to the technician's own child warehouse; **(c) return to source** — release,
+      stock stays at source (`assigned → in_stock`).
+    - **Owners —** the scheduling prompt is a **calendar/visits (12)** [or reports (06)]
+      hook; WMS (`06`/`08`/`09`) owns the hold + the three resolution movements. ⚠️ *Open
+      sub-details: confirm the available-vs-on-hand mechanic; the fallback for a reservation
+      whose visit ends unresolved (auto-return vs stays held); whether lot/unserialized
+      reservations ride a `stock_reservations` row vs `assigned` — settle when 12 lands.*
+      — `01` §2/§4, `06`, `08`, `09`, `12`.
 11. **Storage-node roots may be any node type** — **confirmed (owner 2026-07-20): a root is
     simply any node with *no parent*** (any type qualifies); a node *with* a parent is a
     child and must obey the strictly-descending type-rank rule parent→child — `01` §2.

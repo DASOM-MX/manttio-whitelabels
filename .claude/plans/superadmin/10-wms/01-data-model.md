@@ -150,12 +150,19 @@ from v1).
 | `created_at` | — no `deleted_at`: units are never deleted; `status` is the lifecycle |
 
 Rows are **created by inbound** (ad-hoc or replenishment). `assigned` is **ACTIVE**
-(owner 2026-07-20, was "reserved, unused in v1"): the unit lifecycle is
-`in_stock → assigned → consumed`, and a unit's location is tracked while `assigned`
-(consumption may still flip `in_stock → consumed` directly on report-material save). The
-**reservation flow is TBD** — pending owner answers (what triggers a reservation / how
-it's released (manual vs expiry) / whether `assigned` decrements an "available" balance
-while leaving on-hand); not invented in v1 until answered (§4).
+(owner 2026-07-20/21, was "reserved, unused in v1"): the unit lifecycle is
+`in_stock → assigned → consumed`, and a unit's location is tracked while `assigned`.
+**Reservation flow (owner 2026-07-21):** a reservation is raised at **service/visit
+scheduling** (prompt *"¿Desea reservar inventario para esta visita?"* — a 12/06 hook) and
+earmarks specific serialized units (→ `assigned`, `reserved_for` = the visit/report) and/or
+lot/unserialized amounts; the reserved stock **stays at the source warehouse**, decrementing
+**available** (on-hand unchanged) until the technician closes it. The technician records the
+**"last movement"** (prompted — 09): **consume** on the report (→ `consumed`), **move to
+their child warehouse / van** (source→van transfer), or **return to source** (release →
+`in_stock`). Consumption may still flip `in_stock → consumed` directly on report-material
+save when nothing was pre-reserved. ⚠️ *Open: confirm the available-balance mechanic; the
+unresolved-at-visit-end fallback; whether lot/unserialized reservations need a
+`stock_reservations` row vs riding `assigned` — settle with 12.*
 
 ### `material_lots` — lot balances per location (added 2026-07-20, owner)
 
@@ -516,11 +523,11 @@ read** to avoid float rounding; integers stay the default until then.
   warehouse/node so history reads naturally. `in_stock` →(readjustment-out with
   `damaged_material`/`stock_cleaning`/`doa`/`scrap`/loss)→ `lost`. Compensating
   readjustment-in on a correction flips `consumed`/`lost` back to `in_stock` at the
-  recorded source (08 §3). `assigned` is now **ACTIVE** (owner 2026-07-20): the unit
-  lifecycle is `in_stock → assigned → consumed`, location tracked while `assigned`; the
-  **reservation flow is TBD** — pending owner answers (trigger / release (manual vs
-  expiry) / whether `assigned` decrements an "available" balance vs on-hand), not
-  invented until answered (§2).
+  recorded source (08 §3). `assigned` is now **ACTIVE** (owner 2026-07-20/21): the unit
+  lifecycle is `in_stock → assigned → consumed`, location tracked while `assigned`.
+  **Reservations** are raised at visit scheduling and closed by the technician's "last
+  movement" — **consume** / **move-to-van** / **return-to-source** — full flow in §2
+  (reservation flow).
 - **Reasons:** built-ins seeded per §5, locked. Custom: created by owner/admin (label +
   appliesTo → slugged code), label editable, deactivate-only. Inactive reasons disappear
   from selects but keep rendering in history (join by `code`).
