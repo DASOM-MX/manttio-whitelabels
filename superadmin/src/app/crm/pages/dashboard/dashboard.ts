@@ -1,12 +1,8 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ChartModule } from 'primeng/chart';
-import {
-  LucideActivity,
-  LucideDynamicIcon,
-  LucideTrendingUp,
-  LucideUserPlus,
-} from '@lucide/angular';
+import { TableModule } from 'primeng/table';
+import { LucideDynamicIcon, LucideTrendingUp } from '@lucide/angular';
 import type { ChartData, ChartOptions } from 'chart.js';
 import { select, Store } from '@ngxs/store';
 import { CustomerStatsState } from '../../../../state/customer-stats/customer-stats.state';
@@ -101,10 +97,9 @@ const fmtDelta = (n: number): string => (n > 0 ? `+${n}` : `${n}`);
   imports: [
     RouterLink,
     ChartModule,
-    LucideActivity,
+    TableModule,
     LucideDynamicIcon,
     LucideTrendingUp,
-    LucideUserPlus,
     InteractionTypeIconPipe,
     InteractionTypeLabelPipe,
     RelativeTimePipe,
@@ -113,6 +108,7 @@ const fmtDelta = (n: number): string => (n > 0 ? `+${n}` : `${n}`);
 })
 export class CrmDashboard {
   private readonly store = inject(Store);
+  private readonly router = inject(Router);
 
   protected readonly stats = select(CustomerStatsState.intake);
   private readonly statsLoading = select(CustomerStatsState.intakeLoading);
@@ -198,6 +194,12 @@ export class CrmDashboard {
     this.loadStats();
     this.loadActivity();
     this.loadClients();
+  }
+
+  /** Whole row opens the client 360 view — same interaction as the customers
+   *  list tables. */
+  protected openCustomer(id: string): void {
+    this.router.navigate(['/customers', id]);
   }
 
   protected loadStats(refresh = false): void {

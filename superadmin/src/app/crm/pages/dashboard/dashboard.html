@@ -1,5 +1,6 @@
-<!-- Fixed card heights (owner 2026-07-21): charts at 235px, lists capped at
-     max-h-72 with internal y-scroll, compact !p-4 cards — the stack fits a
+<!-- Fixed card heights (owner 2026-07-21): charts at h-56 (224px, under the
+     235px cap — standard scale only, no arbitrary values), feeds as p-tables
+     with their own scrollHeight, compact !p-4 cards — the stack fits a
      typical desktop viewport without page scroll; smaller windows scroll in
      the shell's main region like every other page. -->
 <div class="flex flex-col gap-3">
@@ -30,7 +31,7 @@
       @for (row of skeletonRows.slice(0, 2); track row) {
         <section class="card-section !p-4">
           <div class="h-3 w-40 rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
-          <div class="mt-4 h-[235px] rounded bg-granite-100 motion-safe:animate-pulse dark:bg-granite-800/60"></div>
+          <div class="mt-4 h-56 rounded bg-granite-100 motion-safe:animate-pulse dark:bg-granite-800/60"></div>
         </section>
       }
     </div>
@@ -114,9 +115,9 @@
         </h2>
         @if (leadsChart(); as data) {
           <!-- Fixed-height wrapper; the host + p-chart's inner div take h-full
-               so chart.js's resize observer sizes the canvas to 235px
+               so chart.js's resize observer sizes the canvas to the wrapper
                (PrimeNG 21 ignores styleClass on p-chart). -->
-          <div class="mt-3 h-[235px]">
+          <div class="mt-3 h-56">
             <p-chart
               type="pie"
               [data]="data"
@@ -135,7 +136,7 @@
           Activos por canal
         </h2>
         @if (activeChart(); as data) {
-          <div class="mt-3 h-[235px]">
+          <div class="mt-3 h-56">
             <p-chart
               type="pie"
               [data]="data"
@@ -179,65 +180,66 @@
           Reintentar
         </button>
       } @else {
-        <ol
-          class="mt-2 flex max-h-72 flex-col divide-y divide-granite-200 overflow-y-auto dark:divide-granite-800"
-        >
-          @for (entry of activityRows(); track entry.id) {
-            <li class="flex items-start gap-3 py-3" [class.opacity-70]="entry.type === 'system'">
-              <span
-                class="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full"
-                [class.bg-sky-100]="entry.type !== 'system'"
-                [class.text-sky-800]="entry.type !== 'system'"
-                [class.dark:bg-sky-950/60]="entry.type !== 'system'"
-                [class.dark:text-sky-300]="entry.type !== 'system'"
-                [class.bg-granite-100]="entry.type === 'system'"
-                [class.text-granite-500]="entry.type === 'system'"
-                [class.dark:bg-granite-800]="entry.type === 'system'"
-                [class.dark:text-granite-400]="entry.type === 'system'"
+        <div class="mt-2">
+          <p-table
+            [value]="activityRows()"
+            [rowHover]="true"
+            [scrollable]="true"
+            scrollHeight="16rem"
+            dataKey="id"
+          >
+            <ng-template #header>
+              <tr>
+                <th scope="col">Cliente</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Registro</th>
+                <th scope="col">Fecha</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-entry>
+              <!-- Whole row opens the client 360 — same interaction as the
+                   customers list tables. -->
+              <tr
+                class="cursor-pointer"
+                [class.opacity-70]="entry.type === 'system'"
+                (click)="openCustomer(entry.customerId)"
               >
-                <svg
-                  lucideIcon
-                  [lucideIcon]="entry.type | interactionTypeIcon"
-                  class="size-4"
-                  aria-hidden="true"
-                ></svg>
-              </span>
-              <div class="min-w-0 flex-1">
-                <p
-                  class="flex flex-wrap items-baseline gap-x-2 text-xs text-granite-500 dark:text-granite-400"
-                >
-                  <a
-                    [routerLink]="['/customers', entry.customerId]"
-                    class="font-semibold text-granite-900 hover:underline dark:text-granite-100"
-                  >
-                    {{ entry.customerName }}
-                  </a>
-                  <span class="font-semibold uppercase tracking-caps">
+                <td class="font-medium">{{ entry.customerName }}</td>
+                <td>
+                  <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+                    <svg
+                      lucideIcon
+                      [lucideIcon]="entry.type | interactionTypeIcon"
+                      class="size-4 shrink-0 text-granite-500 dark:text-granite-400"
+                      aria-hidden="true"
+                    ></svg>
                     {{ entry.type | interactionTypeLabel }}
                   </span>
+                </td>
+                <td class="max-w-56">
+                  <span class="block truncate">{{ entry.body }}</span>
+                </td>
+                <td>
+                  <span class="whitespace-nowrap font-data text-sm tabular-nums">
+                    {{ entry.createdAt | relativeTime }}
+                  </span>
                   @if (entry.userName) {
-                    <span>{{ entry.userName }}</span>
+                    <span class="block text-xs text-granite-500 dark:text-granite-400">
+                      {{ entry.userName }}
+                    </span>
                   }
-                  <span class="font-data tabular-nums">{{ entry.createdAt | relativeTime }}</span>
-                </p>
-                <p class="mt-0.5 truncate text-sm text-granite-800 dark:text-granite-200">
-                  {{ entry.body }}
-                </p>
-              </div>
-            </li>
-          } @empty {
-            <li class="flex flex-col items-center gap-2 py-8 text-center">
-              <svg
-                lucideActivity
-                class="size-5 text-granite-400 dark:text-granite-500"
-                aria-hidden="true"
-              ></svg>
-              <p class="text-sm text-granite-500 dark:text-granite-400">
-                Sin actividad todavía — registra la primera llamada desde un cliente.
-              </p>
-            </li>
-          }
-        </ol>
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr>
+                <td colspan="4" class="py-6 text-center text-granite-500 dark:text-granite-400">
+                  Sin actividad todavía — registra la primera llamada desde un cliente.
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
       }
     </section>
 
@@ -265,48 +267,48 @@
           Reintentar
         </button>
       } @else {
-        <ol
-          class="mt-2 flex max-h-72 flex-col divide-y divide-granite-200 overflow-y-auto dark:divide-granite-800"
-        >
-          @for (row of clientRows(); track row.id) {
-            <li>
-              <a
-                [routerLink]="['/customers', row.id]"
-                class="-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-granite-50 dark:hover:bg-granite-950/60"
-              >
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-granite-900 dark:text-granite-100">
-                    {{ row.title }}
-                  </p>
+        <div class="mt-2">
+          <p-table
+            [value]="clientRows()"
+            [rowHover]="true"
+            [scrollable]="true"
+            scrollHeight="16rem"
+            dataKey="id"
+          >
+            <ng-template #header>
+              <tr>
+                <th scope="col">Cliente</th>
+                <th scope="col">Origen</th>
+                <th scope="col">Alta</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-row>
+              <tr class="cursor-pointer" (click)="openCustomer(row.id)">
+                <td class="font-medium">
+                  {{ row.title }}
                   @if (row.subtitle) {
-                    <p class="truncate text-xs text-granite-500 dark:text-granite-400">
+                    <span class="block text-xs font-normal text-granite-500 dark:text-granite-400">
                       {{ row.subtitle }}
-                    </p>
+                    </span>
                   }
-                </div>
-                <div class="shrink-0 text-right">
-                  <p class="text-xs text-granite-600 dark:text-granite-400">
-                    {{ row.sourceLabel }}
-                  </p>
-                  <p class="font-data text-xs tabular-nums text-granite-500 dark:text-granite-400">
+                </td>
+                <td>{{ row.sourceLabel }}</td>
+                <td>
+                  <span class="whitespace-nowrap font-data text-sm tabular-nums">
                     {{ row.createdAt | relativeTime }}
-                  </p>
-                </div>
-              </a>
-            </li>
-          } @empty {
-            <li class="flex flex-col items-center gap-2 py-8 text-center">
-              <svg
-                lucideUserPlus
-                class="size-5 text-granite-400 dark:text-granite-500"
-                aria-hidden="true"
-              ></svg>
-              <p class="text-sm text-granite-500 dark:text-granite-400">
-                Sin clientes registrados todavía.
-              </p>
-            </li>
-          }
-        </ol>
+                  </span>
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr>
+                <td colspan="3" class="py-6 text-center text-granite-500 dark:text-granite-400">
+                  Sin clientes registrados todavía.
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
       }
     </section>
   </div>
