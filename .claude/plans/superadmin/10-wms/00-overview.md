@@ -265,6 +265,9 @@ before it is fully buildable.
       cron. ⚠️ *Open sub-details: confirm the available-vs-on-hand mechanic; whether
       lot/unserialized reservations ride a `stock_reservations` row vs `assigned` — settle
       when 12 lands.* — `01` §2/§4, `06`, `08`, `09`, `12`.
+    - **Build order (owner 2026-07-21) —** this reservation slice is **gated on 12's visit
+      entity** (reservations are raised at visit scheduling), so **12 is built first**; the
+      rest of WMS (warehouses/materials/stock/replenishments/stocktake) is independent of 12.
 11. **Storage-node roots may be any node type** — **confirmed (owner 2026-07-20): a root is
     simply any node with *no parent*** (any type qualifies); a node *with* a parent is a
     child and must obey the strictly-descending type-rank rule parent→child — `01` §2.

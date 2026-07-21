@@ -41,7 +41,11 @@ branding + headless CMS are the whitelabel selling points** (independent of each
 parallel agents). **05, 06, 07** run in parallel as capacity allows. **08** starts after
 07's data-model checkpoint; **09** after 06 + 07; **10** after 05 + 06. Second wave:
 **11** after 07; **12** after 05 + 07; **13** after 12's CP-1 (visit entity) —
-contracts generate visits, so the calendar's entity must exist first. **15** (the
+contracts generate visits, so the calendar's entity must exist first. **10's inventory
+*reservation* slice (10-wms §6 #10) likewise needs 12's visit entity** — reservations are
+raised at visit scheduling — so **12's visit entity precedes that WMS slice** (owner
+2026-07-21: build 12 first; the rest of WMS — warehouses/materials/stock/replenishments/
+stocktake — is independent of 12). **15** (the
 public website) is consumer-side `website/` work — it can start once 03's brand read
 path and 04's publish flow exist backend-side; it never blocks a superadmin module.
 **16** is the deferred closing sweep (decided 2026-07-15): strictly last, after the whole
