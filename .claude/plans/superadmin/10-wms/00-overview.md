@@ -196,10 +196,21 @@ Target route table for `wms.routes.ts` (order matters — literals before `:id`)
 
 Each is argued in its owning sub-plan; this is the sign-off index.
 
+**Sign-off progress (owner, 2026-07-20):** ratified individually so far — #3, #10, #11, #12,
+#19, #21, #22, #23 (annotated inline). Still open — the rest of #1–20 (to ratify as a set)
+and #24–28. **Two flagged confirms before their detail sections are rewritten:** the #3 ↔ #14
+staging-delete tension, and #19's mechanism substitution.
+
 1. **Stock is materialized** (`stock_entries` / `material_units` updated in the same
    transaction as the movement insert); movements are the immutable journal — `01` §3.
 2. **Serialized movements use a `movement_units` join table**, not an id array — `01` §2.
 3. **Storage nodes soft-delete** (movement history references them forever) — `01` §2.
+   **Accepted (owner 2026-07-20) and raised to a module-wide rule: NO hard deletes anywhere
+   in WMS *except* transient R2 file copies** (the import binaries, item 13). ⚠️ This
+   collides with #14 ("true-move: staged rows are *physically deleted* on approval") and the
+   owner-cancel truncate — **pending owner confirm that staged rows also become soft-deletes**
+   (only the R2 binary is hard-purged). If confirmed, #14, #19's cancel path, and `11` §4
+   retention flip from physical-delete/truncate to soft-delete + `deleted_at` filtering.
 4. **Ad-hoc inbound rejects the `replenishment` reason** (`400 use_replenishment_flow`);
    the dialog excludes it and hints to the register page — resolves the original
    build-time decision — `06` §3.
@@ -213,10 +224,17 @@ Each is argued in its owning sub-plan; this is the sign-off index.
    location for history); no virtual "consumed" location — `01` §4.
 9. **Five NGXS states / five HTTP services** split by sub-plan ownership (supersedes the
    original two-state sketch) — `10` §1.
-10. **`MaterialUnitStatus.assigned` is reserved, unused in v1** (straight
-    `in_stock → consumed` on save) — `01` §4.
-11. **Storage-node roots may be any node type**; the only hierarchy rule is strictly
-    descending type rank parent→child — `01` §2 (confirm with owner).
+10. **`MaterialUnitStatus.assigned` is ACTIVE — pieces can be reserved** (owner 2026-07-20,
+    supersedes "reserved/unused in v1"): the lifecycle becomes
+    `in_stock → assigned → consumed`, and **unit location is tracked throughout** — a
+    reserved unit carries a live location (where the held piece physically sits), not just a
+    history stamp. ⚠️ Detail owed: what *triggers* a reservation (report prep vs technician
+    pick) and how a stale reservation is *released* (manual vs expiry, and whether `assigned`
+    decrements an "available" balance while leaving on-hand) — to spec in `06`/`08`/`09`;
+    `01` §4.
+11. **Storage-node roots may be any node type** — **confirmed (owner 2026-07-20): a root is
+    simply any node with *no parent*** (any type qualifies); a node *with* a parent is a
+    child and must obey the strictly-descending type-rank rule parent→child — `01` §2.
 12. **Replenishment imports are field-mapped async batch jobs** (owner-directed
     2026-07-19, so the *direction* is decided — these are the implementation
     sub-decisions): `replenishment_imports`/`_rows` tables with a
@@ -224,9 +242,14 @@ Each is argued in its owning sub-plan; this is the sign-off index.
     queue delivery; the lease columns died with the daemon design),
     a 202-then-listen API with the DB row as status truth (`02` §6 — **SSE status
     stream**, owner 2026-07-19: push over poll, server closes at the terminal
-    event; one-shot GET for loads/`?import=` resume — `07` §3.1), a **generic
-    `settings` key-value store** whose first key remembers the last field mapping
-    for mapper prefill (owner 2026-07-19 — `01` §2), and processing
+    event; one-shot GET for loads/`?import=` resume — `07` §3.1), a **configuration store**
+    whose first key remembers the last field mapping for mapper prefill (owner 2026-07-19 —
+    `01` §2; **owner 2026-07-20: back tenant config with a Cloudflare Durable Object, not a
+    Postgres `settings` KV table** — rapid reads/updates + strong consistency, aligns with
+    the existing `TenantCacheDO`; accessor becomes a DO binding, not `getSetting`. ⚠️
+    Trade-off flagged: the two current keys are *low-frequency* reads, so a table would also
+    suffice — confirm the DO is worth the extra moving parts, or reserve it for when hot
+    per-request config lands), and processing
     via the backend's **Cloudflare Queues consumer** (`11` — **decided 2026-07-19**
     after the external-repo microservice / Node daemon / per-tenant-vs-registry
     iterations were judged overcomplicated: platform delivery, retries, DLQ, and
@@ -280,13 +303,19 @@ Each is argued in its owning sub-plan; this is the sign-off index.
 18. **`lot_expired` movement reason** (owner 2026-07-20): built-in seed, Lote
     vencido, `readjustment_out` — manual write-off of an expired lot (the manual
     FEFO instrument); 13 seeded built-ins total now — `01` §5.
-19. **One in-flight import at a time** (owner 2026-07-20): a tenant may not start a
-    new replenishment import while one is in a pre-approval state
-    (`uploaded`/`queued`/`processing`/`ready`) — DB-enforced by a partial unique
-    index, `409 import_in_progress`; the register page + list CTA resume the
-    existing one instead of opening a second. ⚠️ Scope spec'd **per tenant** (one
-    global in-flight); if warehouses are restocked concurrently by different staff,
-    a **per-warehouse** scope may be wanted — confirm — `01` §2, `02` §6, `07` §2.
+19. **One in-flight import per PARENT WAREHOUSE** (owner 2026-07-20 — was per-tenant): a new
+    replenishment import can't start while another **for the same parent warehouse** is
+    pre-approval (`uploaded`/`queued`/`processing`/`ready`); *different* parent warehouses
+    import concurrently. **Mechanism (my correction to the "dynamic temp tables" idea):**
+    *not* runtime-created temp tables — Postgres `TEMP TABLE`s are session/connection-scoped
+    and won't survive the multi-request async import lifecycle under the pooled WS driver, so
+    they can't back a workflow that spans upload → async process → review → approve. Instead
+    keep the **one shared staging table** with the in-flight **partial unique index keyed on
+    `parent_warehouse_id`** (sub-warehouses/vans share their parent's slot) and scope all
+    staging queries by parent warehouse — same outcome (one in-flight per parent warehouse,
+    concurrent across warehouses), no runtime DDL. `409 import_in_progress`; register page +
+    list CTA resume the existing one. ⚠️ Confirm the mechanism substitution — `01` §2,
+    `02` §6, `07` §2.
 20. **Whole-lifecycle replenishment audit** (owner 2026-07-20, new table
     `replenishment_import_events`): an append-only event log spanning the entire
     import — `created` (start) → `mapping_submitted` → processing (system) →
@@ -303,14 +332,15 @@ Each is argued in its owning sub-plan; this is the sign-off index.
     review-panel-only placement, which kept it off the view). Guards against silent
     quantity fiddling / row removal — `01` §2, `02` §6, `07` §2, `14` §2.1e.
 
-### Low-cost / high-value batch (proposed 2026-07-20 — awaiting sign-off)
+### Low-cost / high-value batch (proposed 2026-07-20 — 21–23 signed off, 24–28 awaiting sign-off)
 
 Cheap because the plan already has the bones; grouped by intent. 21–23 are the
 **correctness insurance** I'd land first (each guards a place this system can lose
 money silently); 24–27 are **owner-delight** (≈ one column + one pill each); 28 is
 **dev velocity**. None is built until vetoed-in here.
 
-21. **Idempotency key on stock-mutating endpoints** — client-generated
+21. **Idempotency key on stock-mutating endpoints** ✅ *accepted (owner 2026-07-20)* —
+    client-generated
     `Idempotency-Key` header on `POST /stock/inbound|transfer|readjust` + a partial
     unique index `movements(idempotency_key) WHERE idempotency_key IS NOT NULL`; a
     replay returns the original movement, never a second one. **Why:** technicians
@@ -318,12 +348,16 @@ money silently); 24–27 are **owner-delight** (≈ one column + one pill each);
     otherwise duplicate the movement and silently double a balance. One column + one
     header + one index — `01` §2 (movements), `02` §4, wires into the offline queue
     (`frontend/src/offline/`).
-22. **Quantities are integer/`numeric`, never JS float** — a stated stock-math
+22. **Quantities are integer/`numeric`, never JS float** ✅ *accepted (owner 2026-07-20, with
+    a future path)* — a stated stock-math
     invariant across movements, `stock_entries`, `material_lots`, and staged rows;
     the mapper coerces and rejects non-integer quantity cells (`bad_quantity`).
     **Why:** materialized balances compound rounding drift — free to fix today, a
     data-cleanup job later — `01` §3 stock-math.
-23. **`requires_note` flag on movement reasons, forced for `scrap` + `lot_expired`**
+    **Future precision (owner 2026-07-20):** when unit-bearing quantities are introduced
+    (cm/m/ml/L/gal/inch…), store *those* quantities **as plain text and parse on read** to
+    avoid float rounding — integers stay the default until a tenant needs the finer units.
+23. **`requires_note` flag on movement reasons, forced for `scrap` + `lot_expired`** ✅ *accepted (owner 2026-07-20)*
     — a boolean on `MovementReasonDef` (seeded true for the write-off reasons); the
     readjust/consumption validators reject a blank note when the chosen reason sets
     it (`400 note_required`). **Why:** an inventory drop with no explanation is the
