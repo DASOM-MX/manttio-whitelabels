@@ -21,9 +21,24 @@ engine, no preference center in v1.
 
 ## 0. Scope & decisions (2026-07-20)
 
-- **Two channels, v1:** `in_app` (the persisted row + SSE push — always on) and `email`
-  (opt-in per call, de-branded, best-effort). SMS/WhatsApp/push are later channels behind
-  the same `notify()` seam.
+- **Email channel deferred (owner, 2026-07-20 — supersedes "two channels, v1" below).**
+  v1 ships **`in_app` only**: the persisted row + SSE push. No email compose/dispatch,
+  no `channels` input on `notify()`, no `email_status`/`email_error` columns, no
+  `NotificationChannel`/`EmailDeliveryStatus` enums yet. Email gets wired from its own
+  `notification-email.service.ts` once the needed HTML templates exist; the columns land
+  as additive DDL with that change. §2.1 step 2, §2.3, and the email tests in §5 are
+  deferred with it (the §4 WMS contract keeps `channels` as the *future* shape).
+- ~~**Two channels, v1:**~~ *(superseded above)* `in_app` (the persisted row + SSE push —
+  always on) and `email` (opt-in per call, de-branded, best-effort). SMS/WhatsApp/push
+  are later channels behind the same `notify()` seam.
+- **Owner-authored explicit send (owner, 2026-07-20 — amends "creation is server-internal
+  only" below and the "No `POST /notifications`" line in §2.2).** `POST /notifications`
+  exists and is **`requireRole(['owner'])`**: the tenant principal can author a
+  notification (direct `recipientUserId` or `role` broadcast, `title`/`body`/`data`),
+  which the controller stamps with the new **`announcement`** type — API callers never
+  mint system types; those stay reserved for in-code `notify()` callers. Reads, mark-read
+  and the CP-2 SSE stream remain **ungated** (any authenticated user, self-scoped) —
+  every other notification is still triggered from inside the code.
 - **Addressed by user *or* role.** A notification targets a specific `users.id`, **or** a
   **role** (the baseline `owner`/`admin`/`office`/`technician`) used as a fallback when no
   `recipientUserId` is given. A role send **fans out at creation** — `notify()` resolves the
@@ -112,7 +127,15 @@ export enum EmailDeliveryStatus { Skipped = 'skipped', Sent = 'sent', Failed = '
 
 `NotificationType` is **open by design** — new callers append members (a calendar
 visit-reminder, a contract-expiry warning) without touching this module's logic; only the
-frontend label/icon maps grow (§3.3). `NotificationChannel` (`in_app` \| `email`) is an
+frontend label/icon maps grow (§3.3).
+
+> **2026-07-20 (owner):** extended beyond the WMS trio with `announcement` (the owner
+> explicit send, §0) and the core-product events `report_created`, `report_finalized`,
+> `client_registered_from_website`, `client_registered_from_superadmin`,
+> `client_blacklisted`, `client_updated`, `client_archived`,
+> `client_interaction_registered` (migration `0021`). Types land **ahead of their
+> triggers** — each emitting call site is wired in its own module's flow
+> (reports/customers/leads services), with recipient policy decided there. `NotificationChannel` (`in_app` \| `email`) is an
 input enum on `notify()`, not a column. **Role addressing reuses the existing users-module
 role enum** (`owner`/`admin`/`office`/`technician`) — not redefined here; `audience_role` is
 typed against it.

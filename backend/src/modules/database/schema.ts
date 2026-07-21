@@ -13,6 +13,7 @@ import { customerInteractions } from '../customers/models/customer-interactions.
 import { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 import { reportEmails } from '../reports/models/report-emails.model';
 import { equipment, equipmentReports } from '../equipment/models/equipment.model';
+import { notifications } from '../notifications/models/notifications.model';
 
 export { users } from '../users/models/users.model';
 export { customers } from '../customers/models/customers.model';
@@ -25,11 +26,20 @@ export { equipment, equipmentReports } from '../equipment/models/equipment.model
 export { cmsDocuments, cmsClients } from '../cms/models/cms.model';
 export { reportTemplates } from '../report-templates/models/report-templates.model';
 export { brand } from '../brand/models/brand.model';
+export { notifications } from '../notifications/models/notifications.model';
 
 export const usersRelations = relations(users, ({ many }) => ({
   reportsCreated: many(reports, { relationName: 'reports_created_by' }),
   reportsAssigned: many(reports, { relationName: 'reports_assigned_to' }),
   emailsSent: many(reportEmails),
+  notifications: many(notifications),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  recipient: one(users, {
+    fields: [notifications.recipientUserId],
+    references: [users.id],
+  }),
 }));
 
 export const customersRelations = relations(customers, ({ one, many }) => ({
