@@ -448,8 +448,11 @@ money silently); 24–27 are **owner-delight** (≈ one column + one pill each);
     - **Lands in —** `01` (the two tables + `stock_count` reason + `count_session_id` on
       movements + the settings key), `02` (session endpoints: open / enter-counts / apply /
       cancel), `06` (the count-session UI + blind/informed count + discrepancy → apply flow),
-      `14`/`09` (roles: office count, owner/admin apply). **Awaiting propagation into the
-      sub-plans.**
+      `14`/`09` (roles: office count, owner/admin apply). **Propagated into the sub-plans
+      (owner 2026-07-21): 01 (tables + enum + `count_session_id` + `stock_count` reason),
+      02 §4 (endpoints + error codes), 06 §8 (UI + flow + CP-4), 10 (StockState +
+      DTO/const/pipe), 14 §2.1 (roles). Serialized-count handling stays the one open
+      refinement.**
 
 ## 7. Progress board (sub-plan owners update their row + their file header together)
 

@@ -132,9 +132,12 @@ three (02 §4) — the UI locking is UX, not security. Entry point + page contex
 
 `StockState` (`src/state/stock/`) + `stock.service.ts`: `reasons` (loaded once on wms
 route activation, refreshed on create/patch), `movements`, `movementsTotal`,
-`loading`. Actions: `LoadMovementReasons`, `CreateMovementReason`,
+`loading`, plus **`countSessions`/`countSession`** for the stocktake (§8). Actions:
+`LoadMovementReasons`, `CreateMovementReason`,
 `UpdateMovementReason(id, { label?, active? })`, `Inbound(payload)`,
-`Transfer(payload)`, `Readjust(payload)`, `LoadMovements(query)`. After each
+`Transfer(payload)`, `Readjust(payload)`, `LoadMovements(query)`, plus the stocktake
+set (§8, owner 2026-07-21): `OpenStockCount(payload)`, `LoadStockCount(id)`,
+`SaveCountLines(id, lines)`, `ApplyStockCount(id)`, `CancelStockCount(id)`. After each
 operation: refetch the material stock / location stock the calling page shows
 (dispatch the owning state's load action — don't duplicate stock math client-side).
 
@@ -148,6 +151,49 @@ operation: refetch the material stock / location stock the calling page shows
 - Manual pass (original CP-4): inbound 10 pza + 2 serials → transfer to van (preset)
   → readjust-out 1 damaged (unit flips lost) → history shows 4 movements with
   reasons, material view balances agree.
+
+## 8. Physical-count reconciliation (stocktake) — owner 2026-07-21, §6 #29
+
+The systematic counterpart to the one-off `readjustment-dialog`: reconcile a whole
+warehouse against its real physical count inside a **count *session*** — a time window
+`open → applied | cancelled`. **Reuses the `readjustment` primitive**: apply emits one
+reconciling `readjustment` in/out per non-zero delta, so the **audit stays in
+`movements`** (no new movement type). Sessions are **append-only — a re-count is a new
+session, never an edit**. Backend: tables `stock_count_sessions` + `stock_count_lines`
+(01 §2), endpoints open / enter-counts / apply / cancel (02 §4), the built-in
+`stock_count` reason + `count_session_id` movement backlink.
+
+**Page — `wms/pages/stock-count/`** (sessions list + session view). List shows a status
+pill (`open` amber · `applied` emerald · `cancelled` granite), warehouse/node scope,
+opened-by/at + applied-by/at, URL-persisted filters (the ListQueryService URL owner for
+this page), plus **"Nuevo conteo"** (owner/admin/office) opening:
+
+- **`open-count-dialog/`** — shape 3, owner/admin/office. Warehouse `<p-select>` →
+  optional node-scope cascade, optional notes. Submit dispatches `OpenStockCount`; the
+  server **snapshots `system_qty` per `(material, location, lot?)` line** and returns the
+  session `open` (with its `blind` snapshot from `wms.stock_count_blind`). Route to the
+  session view.
+
+**Session view (`open`) — count-entry table.** One row per material/location/lot line
+(material, location warehouse/node names, lot tag where lot-tracked — font-data), each
+with a **`counted_qty`** number input. `system_qty` is **server-withheld and hidden in
+the UI when the session is blind** (`wms.stock_count_blind`, 01 §2 — default `true`,
+owner-configurable); informed sessions render it as a read-only display column. Save =
+`SaveCountLines(id, lines)` (owner/admin/office), incremental, **no apply**. Serialized
+lines follow the found-unit reconciliation (00 §6 #29 — ⚠️ to refine); v1 leads with
+quantity/lot.
+
+**Discrepancy review + apply — owner/admin only.** With counts entered, the applier sees
+the **discrepancy view**: `system_qty` (revealed here even for blind sessions) vs
+`counted_qty` → **`delta`** with over/short cues (over emerald ↑ · short amber ↓,
+zero-delta rows muted). **Aplicar** (`ApplyStockCount(id)`, `hasRole` owner/admin — hidden
+for office, mirroring `readjustment-dialog`) commits one transaction emitting a
+`readjustment` in/out per non-zero delta under the `stock_count` reason, each backlinked
+by `count_session_id`; session → `applied`, then **refetch the affected material/location
+stock** (owning state's load action — no client-side stock math, §6). **Cancelar**
+(`CancelStockCount(id)`, owner/admin) discards → `cancelled`, emits nothing. Confirm-heavy,
+**no undo** (append-only — a correction is a new session). **Technicians: no visibility**
+(like `readjustment`).
 
 ---
 
@@ -171,6 +217,14 @@ operation: refetch the material stock / location stock the calling page shows
 ### CP-3 — Movements history
 - [ ] `movements-table` (base-filter input, type/reason filters, links, zero actions)
       mounted on material-view; build green; e2e + manual pass
+
+### CP-4 — Physical-count reconciliation (stocktake) — owner 2026-07-21, §6 #29
+- [ ] `stock-count` sessions list + `open-count-dialog` (warehouse + optional node scope;
+      `OpenStockCount` snapshots `system_qty` lines); session-view count-entry table
+      (blind hides `system_qty`, `SaveCountLines` incremental save)
+- [ ] Discrepancy review + `ApplyStockCount` (owner/admin only → `stock_count`
+      readjustments per delta, `count_session_id` backlink) / `CancelStockCount`; refetch
+      affected stock; e2e (blind withholding, apply emits deltas, no technician visibility)
 
 ## Open decisions / asks
 - Reason admin placement (§2 — inside add-reason-dialog vs a dedicated settings page):

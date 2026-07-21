@@ -1,7 +1,7 @@
 # 14 — Access control (roles + config gating)
 
 > **Status:** done (doc — implementation tasks live in `02-app-shell.md` and each module's
-> checklists) · **Last updated:** 2026-07-20 (§2.1: replenishment reject/resubmit + owner-only cancel, note e; ad-hoc replenishment inbound owner/admin-only, note f)
+> checklists) · **Last updated:** 2026-07-21 (§2.1: physical-count reconciliation / stocktake — office counts, owner/admin apply; matrix rows + note g, owner 2026-07-21. Prior 2026-07-20: replenishment reject/resubmit + owner-only cancel note e; ad-hoc replenishment inbound owner/admin-only note f)
 >
 > ⚠️ **Correction (2026-07-15, owner):** module flags exist at the **organization level**
 > and are **set from the whitelabels admin app** (the manager tool — *not in this repo*).
@@ -119,6 +119,8 @@ WMS permissions are **action-level**, not module-level:
 | Transfer (any → any) | ✓ | ✓ | ✓ | — |
 | **Self-checkout** (→ own van) | n/a | n/a | n/a | ✓ᵃ |
 | **Readjustment** (compensating in/out; mark lost/damaged)ᵈ | ✓ | ✓ | — | — |
+| Physical-count session (stocktake): open + enter/save counts (owner 2026-07-21)ᵍ | ✓ | ✓ | ✓ | — |
+| Physical-count session: **apply** (commit reconciling readjustments) / **cancel** (owner/admin only) (owner 2026-07-21)ᵍ | ✓ | ✓ | — | — |
 | Consumption on reports | edit any | edit any | view | **own reports, from own van**ᵇ |
 | Stock + movements visibility | all | all | all | own van in full; global stock **read-only lookup**ᶜ |
 
@@ -161,6 +163,16 @@ f. **Ad-hoc replenishment inbound (owner 2026-07-20 — supersedes "ad-hoc inbou
    reason, distinct from import-originated replenishments); the **bulk** replenishment path
    stays the audited import/register flow (note e). Detail:
    `10-wms/06-stock-operations.md` §3, `10-wms/02-api-surface.md` §4.
+g. **Physical-count reconciliation / stocktake (owner 2026-07-21):** a count **session is a
+   time window** (`open → applied`); **apply** emits one reconciling `readjustment` in/out
+   per non-zero delta — it **reuses the existing readjustment primitive** (note d, under a
+   new built-in `stock_count` reason), so the movement audit trail stays intact.
+   **Office counts, owner/admin apply** — the same prep→commit split as replenishment (note
+   e) and billing/contracts (§2 note 3): office (+ owner/admin) **open a session and
+   enter/save counts**; **only owner/admin apply** (commit the reconciling readjustments) or
+   **cancel** a session. Technicians have **no visibility** into reconciliation (same
+   exclusion as readjustment — note d / §2.1c). Details: `10-wms/00-overview.md` §6 #29,
+   `10-wms/02-api-surface.md` §4, `10-wms/06-stock-operations.md`.
 
 ## 3. How gating is implemented (CSR v1 — decided 2026-07-05)
 

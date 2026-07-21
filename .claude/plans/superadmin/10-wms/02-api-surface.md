@@ -110,6 +110,31 @@ node must belong to the warehouse (`400 node_warehouse_mismatch`). Everything ru
 
 **No `PATCH`/`DELETE` route exists under `/stock` or `/movements` — do not add one.**
 
+### Physical-count reconciliation — `stock.controller.ts` (owner 2026-07-21, §6 #29)
+
+Stocktake modeled as a **count session = time window** (01 §2: `stock_count_sessions` +
+`stock_count_lines`; status enum `open`|`applied`|`cancelled`). Applying a session emits
+reconciling **`readjustment` movements** (reuses the existing primitive — the movement
+audit trail stays intact) under the new built-in `stock_count` reason, each backlinked by
+`count_session_id`. **Office counts, owner/admin applies** (`../14-access-control.md`
+§2.1 — the same prep→approve split as replenishments; technicians excluded). **Blind is
+server-enforced:** while a session is `open` and `blind=true`, `system_qty` is **withheld**
+from the count-entry reads (revealed on the discrepancy/apply view and after apply);
+`blind` is snapshotted from the `wms.stock_count_blind` setting (01 §2, default `true`,
+read via `getSetting`) at open — flipping the setting later never changes an open session.
+
+| Endpoint | Roles | Notes |
+|---|---|---|
+| `POST /stock/counts` | owner/admin/office | Open a session: `{ warehouseId, nodeId?, materialFilter? }` → snapshots `system_qty` per `(material, node, lot)` into `stock_count_lines`, sets `blind` from `wms.stock_count_blind`, `status: open` (+ `opened_by`/`opened_at`). Returns the session + lines (**`system_qty` withheld when `blind`**). Unknown warehouse/node → `400 invalid_parent` / `400 node_warehouse_mismatch` |
+| `GET /stock/counts?warehouseId&status&page&limit` | owner/admin/office | Paged, newest first: session header (warehouse, node scope, status, blind, actors) + line/discrepancy counts |
+| `GET /stock/counts/:id` | owner/admin/office | Session + lines (`404 count_not_found`); **`system_qty` withheld while `open`+`blind`** — revealed to the applier on the discrepancy view / after apply |
+| `PUT /stock/counts/:id/lines` | owner/admin/office | Enter/update counted quantities: `{ lines: [{ lineId \| (materialId, nodeId?, lotNumber?), countedQty }] }`; only while `open` (`409 count_not_open`). Upserts by line key, re-derives `delta`, returns the updated lines (still blind-withheld) |
+| `POST /stock/counts/:id/apply` | **owner/admin only** | One transaction: per **non-zero delta** emit a `readjustment` — **in** if `counted>system`, **out** if `counted<system` — reason `stock_count`, `count_session_id` set, through the 01 §3 path; serialized **out flips the missing units to `lost`**; sets `status: applied` (+ `applied_by`/`applied_at`). `409 count_not_open` if not `open`; `409 count_empty` when no counts were entered |
+| `POST /stock/counts/:id/cancel` | owner/admin | `status: cancelled` (+ actor), **no adjustments emitted**; `open` only (`409 count_not_open`) |
+
+**Append-only:** a re-count is a **new session**; no `PATCH`/`DELETE` on `/stock/counts`,
+and an `applied`/`cancelled` session is terminal (its lines stay as the count record).
+
 ## 5. Movement reasons — `movement-reasons.controller.ts`
 
 | Endpoint | Roles | Notes |
@@ -211,7 +236,8 @@ and evidence now live in dedicated buckets.) Detail + asks: `07-replenishments.m
 `unit_not_available` · `not_own_van` · `no_assigned_warehouse` · `source_forbidden` ·
 `not_own_report` · `report_not_editable` · `unparseable_file` · `invalid_mapping` ·
 `import_not_pending` · `import_not_ready` · `import_not_rejected` · `import_not_cancellable` · `import_has_errors` · `import_in_progress` ·
-`missing_lot` · `bad_expiry` — each a typed error in `wms/http-errors/`,
+`missing_lot` · `bad_expiry` ·
+`count_not_found` · `count_not_open` · `count_empty` (owner 2026-07-21, §6 #29) — each a typed error in `wms/http-errors/`,
 mapped in the owning controller (400 validation · 403 role/scope · 404 missing ·
 409 conflict).
 

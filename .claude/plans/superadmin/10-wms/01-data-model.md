@@ -33,6 +33,9 @@ enum MaterialUnitStatus { InStock = 'in_stock', Assigned = 'assigned',
 enum MovementType { Inbound = 'inbound', Transfer = 'transfer',
                     Consumption = 'consumption', Readjustment = 'readjustment' }
 enum ReadjustmentDirection { In = 'in', Out = 'out' }
+enum StockCountStatus { Open = 'open',              // added 2026-07-21 (owner, §6 #29):
+                        Applied = 'applied',        //   physical-count reconciliation
+                        Cancelled = 'cancelled' }   //   session window; REUSES readjustment
 enum ReasonContext { Inbound = 'inbound', Transfer = 'transfer',
                      ReadjustmentIn = 'readjustment_in',
                      ReadjustmentOut = 'readjustment_out',
@@ -216,6 +219,7 @@ same risk profile as any quantity entry, and the movement history records it.
 | `to_warehouse_id` / `to_node_id` | null — set on inbound/transfer/readjustment-in |
 | `report_id` | uuid null → `reports.id` — consumption + report-material compensations |
 | `replenishment_id` | uuid null → `replenishments.id` |
+| `count_session_id` | uuid null → `stock_count_sessions.id` — **added 2026-07-21 (owner, §6 #29)**: set on the `readjustment` movements a count-apply emits; null otherwise |
 | `user_id` | not null → `users.id` — who executed it |
 | `notes` | text null — **required (validator-level) when `type = 'readjustment'`** |
 | `created_at` | not null |
@@ -236,7 +240,7 @@ unit" is a plain indexed join (`material-view` unit drill-down, equipment hook).
 | `id` | pk |
 | `code` | text, not null, unique — **immutable**, auto-slugged from the label server-side (collision → `-2` suffix) |
 | `label` | text, not null — editable on custom reasons only |
-| `built_in` | boolean, not null, default false — the 13 seeds (§5); **fully locked** (no label edits, no deactivation) |
+| `built_in` | boolean, not null, default false — the 14 seeds (§5); **fully locked** (no label edits, no deactivation) |
 | `applies_to` | text[] of `ReasonContext`, not null, ≥1 |
 | `active` | boolean, not null, default true — deactivate instead of delete; **no DELETE path** |
 | `created_at` | — |
@@ -443,6 +447,45 @@ rows freely; the audit lives in `movements` (the consumption + compensating
 readjustments the diff emits, 08 §3). Exactly one of `quantity`/`material_unit_id` per
 row, matching the material's tracking mode (`CHECK` + validator).
 
+### `stock_count_sessions` + `stock_count_lines` — physical-count reconciliation (added 2026-07-21, owner, §6 #29)
+
+A count **session is a time window** within which reconciling `readjustment` movements
+(ins/outs) are performed — it **REUSES the existing `readjustment` movement type + the
+locked `stock_count` reason** (§5), it adds **no new movement type**. **Append-only:** no
+`deleted_at`, no edits after `applied`/`cancelled`; a re-count is a **new session**.
+
+```
+stock_count_sessions {                     // the reconciliation WINDOW
+  id, warehouse_id not null → warehouses,  // the counted scope
+  storage_node_id uuid?,                   // optional sub-scope (a single node)
+  status text .$type<StockCountStatus>() not null default 'open',   // CHECK IN
+                                           //   ('open','applied','cancelled')
+  blind boolean not null,                  // SNAPSHOT of wms.stock_count_blind (§2) at
+                                           //   OPEN — the session keeps the mode it was
+                                           //   opened under even if the setting changes
+  opened_by not null → users, opened_at timestamptz not null default now,
+  applied_by uuid? → users, applied_at timestamptz?,   // set when the reconciling
+                                           //   readjustments are emitted (status → applied)
+  cancelled_at timestamptz?,               // set on cancel (status → cancelled); no apply
+  notes text?
+}                                          // no deleted_at; immutable post apply/cancel —
+                                           //   a re-count is a NEW session
+stock_count_lines {
+  id, count_session_id not null → stock_count_sessions,
+  material_id not null → materials,
+  storage_node_id uuid?,                   // the counted location
+  lot_number text?,                        // lot-tracked lines
+  system_qty numeric(12,3) not null,       // SNAPSHOTTED at open — the on-hand balance then
+  counted_qty numeric(12,3)?,              // null until the counter enters it
+                                           // delta = counted_qty − system_qty (DERIVED,
+                                           //   not stored; drives the emitted readjustment
+                                           //   direction on apply — +in / −out)
+}                                          // UNIQUE (count_session_id, material_id,
+                                           //   storage_node_id, lot_number). Quantities are
+                                           //   whole integers in v1 (#22) — the numeric
+                                           //   columns hold whole values.
+```
+
 ### settings — generic key-value store (DB source of truth; DO used only as a read cache — owner 2026-07-21)
 
 | Column | Type / constraint |
@@ -590,7 +633,7 @@ read** to avoid float rounding; integers stay the default until then.
   moved-then-deleted (lifecycle above). **Evidence photos are unaffected** — they
   stay in the permanent `manttio-wms-evidence` bucket.
 
-## 5. Seed — the 13 built-in reasons (semantics confirmed 2026-07-05; `scrap` + `lot_expired` added 2026-07-20)
+## 5. Seed — the 14 built-in reasons (semantics confirmed 2026-07-05; `scrap` + `lot_expired` added 2026-07-20; `stock_count` added 2026-07-21)
 
 Seeded idempotently (insert-if-missing by `code`) at migration/provisioning time,
 `built_in: true`:
@@ -610,6 +653,7 @@ Seeded idempotently (insert-if-missing by `code`) at migration/provisioning time
 | `doa` | Dañado de origen (DOA) | readjustment_out |
 | `scrap` | Merma | readjustment_out — **added 2026-07-20 (owner)**: scrapped/waste material (offcuts, unusable remnants); 12th seed |
 | `lot_expired` | Lote vencido | readjustment_out — **added 2026-07-20 (owner)**: manual write-off of an expired lot (manual FEFO — the expiry pill flags it, an admin readjusts it out); 13th seed |
+| `stock_count` | Conteo físico | readjustment_in, readjustment_out — **added 2026-07-21 (owner, §6 #29)**: physical-count reconciliation, usable **both directions** (in/out); seeded + **locked**, **never user-selectable** outside the count-apply flow; 14th seed |
 
 Backend validates `type` ↔ `applies_to` on every movement (readjustments map through
 `readjustment_{direction}`); `400 invalid_reason_context` / `400 reason_inactive`.

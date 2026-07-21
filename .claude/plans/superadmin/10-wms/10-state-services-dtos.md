@@ -16,7 +16,7 @@ it; touching another slice's file means coordinating in its plan first.
 |---|---|---|---|
 | `WarehousesState` | 03/04 | `tree`, `flat` (selects), `selected`, `nodes` cache (by parent), `locationStock`, `loading` | `LoadWarehouseTree`, `LoadWarehouses`, `LoadWarehouse(id)`, `CreateWarehouse`, `UpdateWarehouse`, `DeleteWarehouse`, `AssignTechnician(id, userId \| null)`, `LoadNodes(wid, parentNodeId?)`, `CreateNode`, `RenameNode`, `DeleteNode`, `LoadLocationStock(wid, nodeId?)` |
 | `MaterialsState` | 05 | `list`, `total`, `selected`, `stock`, `loading` | `LoadMaterials(query)`, `LoadMaterial(id)`, `LoadMaterialStock(id)`, `CreateMaterial`, `UpdateMaterial`, `DeleteMaterial` |
-| `StockState` | 06 | `reasons`, `movements`, `movementsTotal`, `loading` | `LoadMovementReasons`, `CreateMovementReason`, `UpdateMovementReason`, `Inbound`, `Transfer`, `Readjust`, `LoadMovements(query)` |
+| `StockState` | 06 | `reasons`, `movements`, `movementsTotal`, `stockCount` (active count session + its lines — owner 2026-07-21, §6 #29), `loading` | `LoadMovementReasons`, `CreateMovementReason`, `UpdateMovementReason`, `Inbound`, `Transfer`, `Readjust`, `LoadMovements(query)`, `OpenStockCount`, `LoadStockCount`, `SaveCountLines`, `ApplyStockCount`, `CancelStockCount` (physical-count reconciliation — owner 2026-07-21, §6 #29) |
 | `ReplenishmentsState` | 07 | `list`, `total`, `selected`, `import` (active job — status/fields/progress/staged rows/prep/**submissionSnapshot**), `importAudit` (event log), `pendingImports` (list strip **+ shell approval banner**), `loading` | `LoadReplenishments(query)`, `LoadPendingImports`, `LoadReplenishment(id)`, `UploadImportFile(warehouseId, file)`, `SubmitImportMapping(importId, mapping)`, `ListenImportStatus(importId)` (**cancelUncompleted** fetch-SSE pipeline — 07 §3.1), `StopImportListening`, `DiscardImport(importId)`, `UpdatePreviewRow(line, patch)` (staged-row PATCH, audited), `RemoveStagedRow(line, reason)` (owner/admin, audited), `LoadImportAudit(importId)`, `UpdateImportPrep(importId, prep)`, `RejectImport(importId, comment)` (owner/admin), `ResubmitImport(importId)` (owner/admin/office), `CancelImport(importId, reason)` (**owner only**), `ApproveReplenishment(importId)` (owner/admin promotion) |
 | `ReportMaterialsState` | 08 | `byReport`, `loading`, `saving` | `LoadReportMaterials(reportId)`, `SaveReportMaterials(reportId, payload)` |
 
@@ -34,7 +34,7 @@ it; touching another slice's file means coordinating in its plan first.
 |---|---|---|
 | `warehouses.service.ts` | 03/04 | `/warehouses` + nodes + tree + stock + assign (02 §2) |
 | `materials.service.ts` | 05 | `/materials` (02 §3) |
-| `stock.service.ts` | 06 | `/stock/*`, `/movements`, `/movement-reasons` (02 §4/§5) |
+| `stock.service.ts` | 06 | `/stock/*` (incl. `/stock/counts*` — count sessions, owner 2026-07-21, §6 #29), `/movements`, `/movement-reasons` (02 §4/§5) |
 | `replenishments.service.ts` | 07 | `/replenishments` incl. multipart parse (02 §6) |
 | `report-materials.service.ts` | 08 | `/reports/:id/materials` (02 §7) |
 
@@ -45,7 +45,9 @@ human messages).
 ## 3. DTO files (`src/app/data/dtos/wms/` — one resource per file)
 
 `warehouse.dto.ts` (03) · `storage-node.dto.ts` (04) · `material.dto.ts` +
-`material-unit.dto.ts` (05) · `movement.dto.ts` + `movement-reason.dto.ts` (06) ·
+`material-unit.dto.ts` (05) · `movement.dto.ts` + `movement-reason.dto.ts` +
+`stock-count.dto.ts` (06 — `StockCountSession` + `StockCountLine`; string-literal-union
+`status` mirroring `StockCountStatus`; owner 2026-07-21, §6 #29) ·
 `replenishment.dto.ts` (07 — `Replenishment` carries **`importId`**, the backlink
 the view uses to load the audit) + `replenishment-import.dto.ts` (07 — incl.
 `ImportEvent` + `ImportEventType` for the lifecycle audit) ·
@@ -68,6 +70,7 @@ with `01-data-model.md` §1.
 | `movement-type-labels.const.ts` / `movement-type-pill-classes.const.ts` | 06 |
 | `reason-context-labels.const.ts` | 06 |
 | `special-reason-codes.const.ts` (`report_binding`, `relocation`, `replenishment`) | 06 |
+| `stock-count-status-labels.const.ts` (`open`/`applied`/`cancelled` → Spanish; owner 2026-07-21, §6 #29) | 06 |
 | `parse-row-error-labels.const.ts` | 07 |
 | `import-status-labels.const.ts` / `import-status-pill-classes.const.ts` (incl. `rejected` → "Cambios solicitados", `stale` → "Descartado", `cancelled` → "Cancelado") | 07 |
 | `unprocessable-row-errors.const.ts` (serial-collision codes — mirror of backend `wms/constants/`) | 07 |
@@ -79,7 +82,8 @@ with `01-data-model.md` §1.
 `storage-node-type-label.pipe.ts` (04) · `material-tracking-label.pipe.ts`,
 `material-unit-status-label.pipe.ts` + `-pill-class.pipe.ts` (05) ·
 `lot-expiry-pill.pipe.ts` (05 — Vencido / Por vencer / null from `expiresAt`) ·
-`movement-type-label.pipe.ts` + `-pill-class.pipe.ts` (06) ·
+`movement-type-label.pipe.ts` + `-pill-class.pipe.ts` +
+`stock-count-status-label.pipe.ts` (06 — owner 2026-07-21, §6 #29) ·
 `parse-row-error-label.pipe.ts`, `import-status-label.pipe.ts` +
 `-pill-class.pipe.ts` (07). Reuse `cast.pipe.ts` for form casts. No method calls in
 templates.
