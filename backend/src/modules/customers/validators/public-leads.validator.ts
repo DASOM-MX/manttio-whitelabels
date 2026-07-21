@@ -18,10 +18,21 @@ export const createLeadSchema = z
     firstName: z.string().min(1).max(100),
     lastName: z.string().min(1).max(100),
     email: z.string().email().optional(),
-    phone: z.string().min(1).max(50).optional(),
+    phone: z
+      .string()
+      .max(50)
+      .regex(/^\+?[\d\s().-]+$/)
+      .refine(
+        (v) => {
+          const digits = v.replace(/\D/g, '').length;
+          return digits >= 7 && digits <= 15;
+        },
+        { message: 'phone must contain 7-15 digits' },
+      )
+      .optional(),
     clientType: z.nativeEnum(ClientType),
     businessName: z.string().min(1).max(200).optional(),
-    comments: z.string().max(2000).optional(),
+    comments: z.string().max(250).optional(),
     turnstileToken: z.string().min(1),
     utmSource: attributionField,
     utmMedium: attributionField,

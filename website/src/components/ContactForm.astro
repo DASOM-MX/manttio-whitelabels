@@ -76,7 +76,8 @@ const errorClass = 'mt-1.5 hidden text-sm text-red-600';
                   name="phone"
                   type="tel"
                   autocomplete="tel"
-                  maxlength="50"
+                  inputmode="numeric"
+                  maxlength="10"
                   class={inputClass}
                 />
                 <p data-error-for="phone" class={errorClass} />
@@ -149,10 +150,11 @@ const errorClass = 'mt-1.5 hidden text-sm text-red-600';
                 id="comments"
                 name="comments"
                 rows="4"
-                maxlength="2000"
+                maxlength="250"
                 class={inputClass}
                 placeholder="Cuéntanos qué necesitas"
               />
+              <p data-error-for="comments" class={errorClass} />
             </div>
 
             <div class="mt-6">
@@ -253,6 +255,10 @@ const errorClass = 'mt-1.5 hidden text-sm text-red-600';
       (window as { turnstile?: { reset: () => void } }).turnstile?.reset();
     };
 
+    const isValidEmail = (value: string) => /^\S+@\S+\.\S+$/.test(value);
+    // National es-MX number: exactly 10 digits, no prefix/separators.
+    const isValidPhone = (value: string) => /^\d{10}$/.test(value);
+
     // Empresa reveal: hidden class + required attr stay in sync.
     form.querySelectorAll<HTMLInputElement>('input[name="clientType"]').forEach((radio) => {
       radio.addEventListener('change', () => {
@@ -286,11 +292,32 @@ const errorClass = 'mt-1.5 hidden text-sm text-red-600';
     };
 
     const clearAllErrors = () => {
-      ['firstName', 'lastName', 'phone', 'email', 'businessName', 'turnstile'].forEach(
+      ['firstName', 'lastName', 'phone', 'email', 'businessName', 'comments', 'turnstile'].forEach(
         clearError,
       );
       formError?.classList.add('hidden');
     };
+
+    // Format feedback on blur (finished input), not per keystroke; the
+    // at-least-one rule stays submit-only.
+    const phoneInput = form.querySelector<HTMLInputElement>('#phone');
+    // Digits only while typing; maxlength caps at 10.
+    phoneInput?.addEventListener('input', () => {
+      const digits = phoneInput.value.replace(/\D/g, '').slice(0, 10);
+      if (phoneInput.value !== digits) phoneInput.value = digits;
+    });
+    phoneInput?.addEventListener('blur', () => {
+      const value = phoneInput.value.trim();
+      if (value && !isValidPhone(value))
+        setError('phone', 'Ingresa un teléfono de 10 dígitos.');
+      else clearError('phone');
+    });
+    const emailInput = form.querySelector<HTMLInputElement>('#email');
+    emailInput?.addEventListener('blur', () => {
+      const value = emailInput.value.trim();
+      if (value && !isValidEmail(value)) setError('email', 'Ingresa un correo válido.');
+      else clearError('email');
+    });
 
     const showFormError = (message: string) => {
       if (formError) {
@@ -357,8 +384,11 @@ const errorClass = 'mt-1.5 hidden text-sm text-red-600';
       if (!firstName) errors.push(['firstName', 'Ingresa tu nombre.']);
       if (!lastName) errors.push(['lastName', 'Ingresa tu apellido.']);
       if (!email && !phone) errors.push(['phone', 'Proporciona al menos un correo o teléfono.']);
-      if (email && !/^\S+@\S+\.\S+$/.test(email))
-        errors.push(['email', 'Ingresa un correo válido.']);
+      if (phone && !isValidPhone(phone))
+        errors.push(['phone', 'Ingresa un teléfono de 10 dígitos.']);
+      if (email && !isValidEmail(email)) errors.push(['email', 'Ingresa un correo válido.']);
+      if (comments.length > 250)
+        errors.push(['comments', 'Los comentarios no pueden exceder 250 caracteres.']);
       if (clientType === 'business' && !businessName)
         errors.push(['businessName', 'Ingresa el nombre de la empresa.']);
       if (!turnstileToken) errors.push(['turnstile', 'Completa la verificación de seguridad.']);
