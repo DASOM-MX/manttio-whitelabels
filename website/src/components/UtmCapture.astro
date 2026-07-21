@@ -1,0 +1,35 @@
+---
+// Markup-less first-touch attribution capture (utm-params plan 02 CP-1):
+// stores the landing UTM params once per tab — never overwritten by later
+// in-site navigation — for the contact form to attach on submit. sessionStorage
+// disabled/full → silently skipped; the form falls back to current-URL params.
+---
+
+<script>
+  import {
+    collectAttributionParams,
+    sanitizeAttributionValue,
+  } from '../lib/sanitize-attribution';
+
+  const STORAGE_KEY = 'lead-attribution';
+
+  try {
+    const hasUtmSource = new URLSearchParams(location.search).has('utm_source');
+    if (hasUtmSource && !sessionStorage.getItem(STORAGE_KEY)) {
+      const referrer = document.referrer
+        ? sanitizeAttributionValue(document.referrer, 2048)
+        : null;
+      sessionStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          params: collectAttributionParams(location.search),
+          ...(referrer ? { referrer } : {}),
+          landingPage: location.pathname,
+          ts: Date.now(),
+        }),
+      );
+    }
+  } catch {
+    // Storage unavailable — fine, attribution falls back to the form's URL.
+  }
+</script>
