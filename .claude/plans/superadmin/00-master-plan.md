@@ -33,6 +33,7 @@ then its own file, and touches no other module's code.
 | 14 | `14-access-control.md` | Roles + tenant-config gating matrix (reference, binding for all modules) | — |
 | 15 | `15-website.md` | Public tenant website: consumes published CMS + brand (reads only — `website/` package work, not superadmin code) | 03, 04 |
 | 16 | `16-semantic-brand-colors.md` | Semantic Tailwind color classes (`primary-*`/`surface-*` replace `sky`/`granite`/`navy`/`cyan`) across frontend + superadmin + website | **everything — deferred closing sweep, runs last** |
+| 17 | `17-dashboard.md` | Dashboard: KPI strip + acquisition-funnel/ops cards (supersedes the 02 shell-owned stub) | 02, 06, 07, 08; 09/10/12/13 add cards later |
 
 Build order **is numeric order** (renumbered 2026-07-05: branding and CMS are separate,
 independent modules — 03/04 — and access-control moved to 14 as pure reference).
@@ -45,7 +46,9 @@ contracts generate visits, so the calendar's entity must exist first. **15** (th
 public website) is consumer-side `website/` work — it can start once 03's brand read
 path and 04's publish flow exist backend-side; it never blocks a superadmin module.
 **16** is the deferred closing sweep (decided 2026-07-15): strictly last, after the whole
-MVP ships — do not start it alongside module work.
+MVP ships — do not start it alongside module work. **17** (dashboard — carved out of the
+02 shell stub 2026-07-20) runs any time after 07/08; despite the number it precedes 16,
+which stays strictly last.
 
 ---
 
@@ -102,6 +105,7 @@ Rules for agents:
 | 14 access-control | done (doc) | — |
 | 15 website | in-progress · PR #44 | CP-2 |
 | 16 semantic-brand-colors | planned (doc) — **deferred, runs last (post-MVP)** | — |
+| 17 dashboard | planned (doc) | — |
 
 *(Owning agents update their row when they update their file's status header.)*
 
@@ -268,7 +272,8 @@ agent hitting a checkpoint checks this page for items tagged to it.
 - [ ] 07 — fiscal block nested vs flat in responses; 360 summary strip via
       `GET /customers/:id/summary` vs detail fields; tags `text[]` vs normalized table.
 - [ ] 08 — status transition endpoint vs plain PATCH; which system-event emitters ship
-      v1; source-stats endpoint for the dashboard card v1 or later.
+      v1; ~~source-stats endpoint for the dashboard card v1 or later~~ — **resolved
+      2026-07-20: folded into 17's `GET /dashboard/summary`, no standalone endpoint**.
 - [ ] 09 — overdue derived vs stored; folio format (per-tenant consecutive).
 - [ ] 10 — tracking-mode immutability after first movement; serialized consumption:
       `consumed` status vs virtual location; nesting depth (one sub-level enough?);

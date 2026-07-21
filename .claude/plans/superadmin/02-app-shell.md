@@ -91,13 +91,16 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
   **Stock lookup**.
 - Routes are **lazy per feature** (`loadChildren` per module folder) so module agents ship
   independently; every route declares `data: { module, roles }`.
-- **Dashboard — the shell owns it (decided 2026-07-05).** No separate module/plan: the
+- **Dashboard — the shell owns it (decided 2026-07-05; superseded 2026-07-20 →
+  `17-dashboard.md`).** ~~No separate module/plan~~: the
   shell ships `dashboard/pages/dashboard/` as the **default landing route** for
   owner/admin/office — a stub with a quiet empty state and **card-slot regions** that
   other modules fill from their own plans (08: lead-source counts card; 12: today's
   visits card; future cards register the same way). Roles: owner/admin/office;
   technicians never see it — their default landing route is **Calendar**. Matrix row
-  in `14-access-control.md` §2.
+  in `14-access-control.md` §2. **Superseded 2026-07-20:** the dashboard graduated to
+  its own module — `17-dashboard.md` owns the grid + v1 cards; this bullet's
+  landing-route and roles decisions stay binding.
 - `access.ts` (shared): the matrix as data + `hasRole`/`hasModule` helpers — the one place
   gating logic lives (route data, nav filter, and `@if`s all consume it). This is the file
   that makes the future SSR move cheap.

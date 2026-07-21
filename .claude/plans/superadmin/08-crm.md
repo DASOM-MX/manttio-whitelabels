@@ -133,6 +133,8 @@ sidebar root.
   ("no activity yet — log the first call").
 - Source analytics (counts per source) on the Dashboard stub — a small card,
   `GET /customers/stats/sources` *(open decision; skip if endpoint slips)*.
+  **Resolved 2026-07-20:** ships as 17's "Origen de leads" card; data folded into
+  `GET /dashboard/summary` (17 §4) — the standalone endpoint is never built.
 
 Implementation detail: these list pages **reuse 07's table component/state** with locked
 filters — if that requires extracting the table into
@@ -191,7 +193,9 @@ as ask), don't fork the table.
   revisit only if typo pain is real.
 - Which system-event emitters beyond status changes land in v1 (report created, bill
   sent) — depends on backend hooks; timeline renders whatever arrives.
-- Source stats endpoint for the dashboard card: v1 or later?
+- ~~Source stats endpoint for the dashboard card: v1 or later?~~ — **resolved
+  2026-07-20: v1, folded into 17's `GET /dashboard/summary`** (17 §4); no standalone
+  endpoint.
 - Which CRM projections the tenant-cache DO holds in v1 (§4.1) — backend call, with the
   invalidation hooks.
 - Ask to 07: customers-table extraction for filtered reuse.

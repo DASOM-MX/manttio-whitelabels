@@ -89,7 +89,15 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   interaction). `interactions` endpoints: paged GET, POST **rejecting
   `type: 'system'`** (system entries are backend-emitted only). Optional
   summary figures (last service / totals) for the client 360 header.
-- **branding** (03 — **build first among modules**: whitelabel selling point,
+- **dashboard** (17 — added 2026-07-20): `modules/dashboard/` — one authed
+  aggregate read, `GET /dashboard/summary` (owner/admin/office; technicians 403).
+  Serves KPI counts (open leads, overdue follow-ups, active clients, reports this
+  month) + card data: lead counts per source (30d), top UTM campaigns (30d),
+  follow-ups due, latest tenant-wide interactions, report status counts (month).
+  Owns no tables — aggregate queries over customers/interactions/reports (all
+  reads filter `deleted_at is null`; the existing status/source/utm partial
+  indexes carry them). **Subsumes 08's `GET /customers/stats/sources`** — never
+  built standalone. Neon-direct v1; natural `TenantCacheDO` projection later (§5).
   prioritized 2026-07-05): own module (`modules/brand/`), **separate and independent
   from cms** (decided 2026-07-05). The tenant brand object (supersedes
   brand-as-manager-push): name/slogan, `logo`/`logo_dark`/`isologo` R2 keys, contact +
@@ -339,6 +347,8 @@ Pattern:
       **done 2026-07-07** (`modules/cms/`, migration `0009`, `test/cms.test.ts`;
       owner-role + `cms`-flag gating pend the Auth & config items above)
 - [ ] customers CRM extensions + contacts + interactions + status transition
+- [ ] **dashboard** (17): `modules/dashboard/` — `GET /dashboard/summary`
+      aggregate (subsumes 08 source stats; Neon-direct v1, DO candidate §5)
 - [ ] billing · wms (incl. replenishments parse + R2 evidence) · equipment ·
       visits/assignments · contracts (activate → visit generation)
 
