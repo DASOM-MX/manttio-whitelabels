@@ -1,10 +1,10 @@
 import type { Db } from '../../database/client';
-import { CustomerSource, CustomerStatus } from '../enums/customers.enum';
+import { CustomerSource } from '../enums/customers.enum';
 import { countIntakeBySource } from '../repository/customer-stats.repository';
 import type {
-  IntakeCountRow,
   IntakeSourceRow,
   IntakeStatsResponse,
+  IntakeTotals,
 } from '../types/customer-stats.types';
 
 // Month boundaries are tenant-agnostic UTC for v1 (utm-params 03: coarse but
@@ -32,50 +32,36 @@ const buildRanges = (month?: string) => {
   };
 };
 
-const tally = (rows: IntakeCountRow[]) => {
-  const bySource = new Map<CustomerSource, { leads: number; active: number }>();
-  for (const row of rows) {
-    const source = row.source ?? CustomerSource.Other;
-    const entry = bySource.get(source) ?? { leads: 0, active: 0 };
-    if (row.status === CustomerStatus.Lead) entry.leads += row.count;
-    else entry.active += row.count;
-    bySource.set(source, entry);
-  }
-  return bySource;
-};
-
 /** Leads/actives per acquisition channel: the requested month (MTD when it's
- *  the current one) vs the full previous month. Snapshot semantics — a row
+ *  the current one) vs the full previous month, from ONE grouped query
+ *  (FILTER buckets — perf revision 2026-07-21). Snapshot semantics — a row
  *  counts in the period its *current* status took effect (utm-params 03). */
 export const getIntakeStats = async (db: Db, month?: string): Promise<IntakeStatsResponse> => {
   const { period, previous } = buildRanges(month);
-  const [current, prev] = await Promise.all([
-    countIntakeBySource(db, period.from, period.to),
-    countIntakeBySource(db, previous.from, previous.to),
-  ]);
-  const currentBySource = tally(current);
-  const prevBySource = tally(prev);
+  const raw = await countIntakeBySource(db, period, previous);
 
-  const sources = new Set<CustomerSource>([...currentBySource.keys(), ...prevBySource.keys()]);
-  const rows: IntakeSourceRow[] = [...sources]
-    .map((source) => {
-      const cur = currentBySource.get(source) ?? { leads: 0, active: 0 };
-      const before = prevBySource.get(source) ?? { leads: 0, active: 0 };
-      return {
-        source,
-        leads: cur.leads,
-        active: cur.active,
-        prevLeads: before.leads,
-        prevActive: before.active,
-      };
-    })
+  // Merge NULL-source legacy rows into `other`; drop all-zero rows (none
+  // exist while the windows stay contiguous — defensive for future filters).
+  const bySource = new Map<CustomerSource, IntakeSourceRow>();
+  for (const row of raw) {
+    const source = row.source ?? CustomerSource.Other;
+    const entry =
+      bySource.get(source) ?? { source, leads: 0, active: 0, prevLeads: 0, prevActive: 0 };
+    entry.leads += row.leads;
+    entry.active += row.active;
+    entry.prevLeads += row.prevLeads;
+    entry.prevActive += row.prevActive;
+    bySource.set(source, entry);
+  }
+  const rows: IntakeSourceRow[] = [...bySource.values()]
+    .filter((r) => r.leads + r.active + r.prevLeads + r.prevActive > 0)
     .sort(
       (a, b) =>
         b.leads + b.active - (a.leads + a.active) ||
         b.prevLeads + b.prevActive - (a.prevLeads + a.prevActive),
     );
 
-  const totals = rows.reduce(
+  const totals = rows.reduce<IntakeTotals>(
     (acc, r) => ({
       leads: acc.leads + r.leads,
       active: acc.active + r.active,
