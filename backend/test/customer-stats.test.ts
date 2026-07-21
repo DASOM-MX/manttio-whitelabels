@@ -241,3 +241,42 @@ describe('GET /customers/interactions/recent', () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe('GET /customers/recent', () => {
+  test('returns the newest clients with display fields', async () => {
+    const { token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+
+    const res = await request('/customers/recent?limit=50', { headers: authHeader(token) });
+    expect(res.status).toBe(200);
+    const body = await json<{
+      items: { id: string; name: string; source: string; createdAt: string }[];
+    }>(res);
+    const mine = body.items.find((i) => i.id === customer.id);
+    expect(mine).toBeDefined();
+    expect(mine?.name).toBe(customer.name);
+
+    const times = body.items.map((i) => new Date(i.createdAt).getTime());
+    expect([...times].sort((a, b) => b - a)).toEqual(times);
+  });
+
+  test('soft-deleted clients are excluded', async () => {
+    const { token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const del = await request(`/customers/${customer.id}`, {
+      method: 'DELETE',
+      headers: authHeader(token),
+    });
+    expect(del.status).toBe(200);
+
+    const res = await request('/customers/recent?limit=50', { headers: authHeader(token) });
+    const body = await json<{ items: { id: string }[] }>(res);
+    expect(body.items.some((i) => i.id === customer.id)).toBe(false);
+  });
+
+  test('technician is rejected (owner/admin gate)', async () => {
+    const { token } = await seedTechnicianAndLogin();
+    const res = await request('/customers/recent', { headers: authHeader(token) });
+    expect(res.status).toBe(403);
+  });
+});

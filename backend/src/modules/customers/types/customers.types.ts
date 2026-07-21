@@ -39,3 +39,11 @@ export interface CustomerWithRelations extends CustomerRow {
   contacts: ContactRow[];
   fiscal: FiscalRow | null;
 }
+
+/** Row for the Panel's recent-clients card (utm-params 03 amendment): display
+ *  fields only, newest first. `name` is the commercial/display name; for
+ *  business rows `contactName` carries the person who registered. */
+export type RecentCustomerRow = Pick<
+  CustomerRow,
+  'id' | 'name' | 'contactName' | 'clientType' | 'source' | 'createdAt'
+>;

@@ -25,7 +25,11 @@ only (same gate as the intake stats). Backend: `GET /customers/interactions/rece
 excludes soft-deleted customers' timelines (append-only storage untouched); declared
 beside the stats route in the customers controller. Superadmin: an "Actividad
 reciente" list on the Panel alongside the charts, reusing the timeline row idiom
-(type icon, relative time, author), each row linking to its customer view. Work items
+(type icon, relative time, author), each row linking to its customer view. Second
+directive (same day): a **recent clients** list right beside the activity feed —
+name, business name, registration date, source; each row links to the client's
+details. Backend: `GET /customers/recent` (`?limit`, default 8, max 50), display
+fields only, newest first, soft-deleted excluded, same owner/admin gate. Work items
 appended to CP-1/CP-2 below.
 
 ## Amendments to doc 01 CP-1 (recorded here, executed there)
@@ -41,6 +45,7 @@ appended to CP-1/CP-2 below.
   `{ period: { from, to }, previous: { from, to }, totals: { leads, active, prevLeads, prevActive }, rows: [{ source, leads, active, prevLeads, prevActive }] }` — one row per enum member that has any count, ordered by `leads + active` desc.
 - [x] `customers/controllers/customers.controller.ts` — `GET /stats/intake` with `requireRole(['owner', 'admin'])` (matches the CMS module gate), `zValidator('query', …)`. **Route must be declared before `GET /:id`** or "stats" is captured as an id.
 - [x] Amendment (2026-07-20): `GET /customers/interactions/recent` — `recentInteractionsQuerySchema` (limit 1–50, default 10), `listRecentInteractions` (users + customers joins, `isNull(customers.deletedAt)`), `getRecentInteractions`, owner/admin route; `RecentInteractionDTO` carries `customerName`.
+- [x] Amendment (2026-07-20): `GET /customers/recent` — `recentCustomersQuerySchema` (limit 1–50, default 8), `listRecentCustomers`/`getRecentCustomers` returning `RecentCustomerRow` (id, name, contactName, clientType, source, createdAt), owner/admin route before `GET /:id`.
 - [~] Tests: written in `test/customer-stats.test.ts` (delta-based assertions over fixed 2020-05/04 fixture months so reruns/parallel data never skew; covers bucketing, coalesce conversion, soft-delete exclusion, ordering, period boundaries, MTD default, role gates, bad month, and the recent feed incl. soft-deleted-customer exclusion) — **not yet run: live-Neon suite pends user sign-off**. NULL-source → `other` stays service-side only: the live column is NOT NULL with default, so the case can't be seeded.
 - [x] `pnpm typecheck` green.
 
@@ -57,6 +62,7 @@ appended to CP-1/CP-2 below.
   - Two grouped-bar charts (`p-chart type="bar"`): **Leads por canal** and **Activos por canal** — x = source (es_MX labels from a `model/constants/customer/source-labels.const.ts`, one constant per file), two series: current period vs previous month. Colors from brand theme tokens via the existing theme services (`app/services/theme/`), dark-mode aware (re-read CSS vars on theme change); axis/gridline styling per the dataviz pass.
   - Skeletons while loading; empty state when both periods are all-zero ("Aún no hay datos de captación — comparte tus enlaces de contacto", linking to `/customers/share-links`).
 - [ ] "Actividad reciente" list (amendment 2026-07-20): recent-feed fetch beside `getIntake` in the same http service, timeline-row idiom reuse (type icon, relative time, author), rows link to the customer view; skeleton + empty state.
+- [ ] "Clientes recientes" list (amendment 2026-07-20) right next to the activity feed: name + contact/business line + source label + relative registration date, each row links to `/customers/:id`; skeleton + empty state.
 - [ ] `model/constants/access/nav-entries.const.ts` — CMS group children: prepend `{ label: 'Panel', route: '/cms/dashboard' }` before Home/Clientes.
 - [ ] Build green (`ng build`); no screenshots unless asked.
 

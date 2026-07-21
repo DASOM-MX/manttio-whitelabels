@@ -3,7 +3,11 @@ import { zValidator } from '@hono/zod-validator';
 import type { AppBindings } from '../../../env';
 import { createDb } from '../../database/client';
 import { requireRole } from '../../auth/middleware/roles.middleware';
-import { createCustomerSchema, updateCustomerSchema } from '../validators/customers.validator';
+import {
+  createCustomerSchema,
+  recentCustomersQuerySchema,
+  updateCustomerSchema,
+} from '../validators/customers.validator';
 import { intakeStatsQuerySchema } from '../validators/customer-stats.validator';
 import {
   addInteractionSchema,
@@ -16,6 +20,7 @@ import {
   editCustomer,
   getCustomerById,
   getCustomers,
+  getRecentCustomers,
   removeCustomer,
 } from '../services/customers.service';
 import {
@@ -51,6 +56,19 @@ customers.get(
   async (c) => {
     const db = createDb(c.env.DATABASE_URL);
     return c.json(await getIntakeStats(db, c.req.valid('query').month));
+  },
+);
+
+// Latest registered clients (utm-params 03 amendment 2026-07-20): the Panel's
+// recent-clients card. Owner/admin; newest first. Also before GET /:id.
+customers.get(
+  '/recent',
+  requireRole(['owner', 'admin']),
+  zValidator('query', recentCustomersQuerySchema),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    const { limit } = c.req.valid('query');
+    return c.json({ items: await getRecentCustomers(db, limit) });
   },
 );
 

@@ -55,5 +55,11 @@ export const updateCustomerSchema = createCustomerSchema
   .extend({ nextFollowUpAt: z.string().nullable().optional() })
   .refine((v) => Object.keys(v).length > 0, { message: 'no fields to update' });
 
+// Recent-clients card read (utm-params 03 amendment 2026-07-20).
+export const recentCustomersQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).default(8),
+});
+
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
 export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;
+export type RecentCustomersQuery = z.infer<typeof recentCustomersQuerySchema>;
