@@ -27,7 +27,7 @@ or the API** — that is the payoff of keeping the contract DB-first.
 - **Producer:** `POST /replenishments/imports/:id/process` (02 §6) stores the
   mapping, sets `queued`, and sends `{ importId }` to the queue binding
   (`env.WMS_IMPORT_QUEUE.send(...)`). The message carries the id only — the file
-  stays in R2, the mapping in the DB (the 128 KB message cap is never in play).
+  stays in R2 (the `manttio-wms-sheets` bucket, owner 2026-07-20), the mapping in the DB (the 128 KB message cap is never in play).
 - **Consumer:** the same Worker exports a `queue()` handler (composition root
   `src/index.ts`, delegating immediately to
   `modules/wms/services/import-processor.service.ts`). Wrangler config:
@@ -56,7 +56,7 @@ On message `{ importId }`:
    `attempts = message.attempts` (visibility only — Queues owns retry state), and
    emit a **`processing_started`** event (system actor — 01 §2 audit log; skip on
    redelivery so retries don't spam the timeline).
-2. Fetch the file from R2 by `file_key` (native binding); parse per `mapping` +
+2. Fetch the file from R2 (`manttio-wms-sheets`) by `file_key` (native binding); parse per `mapping` +
    the stored `detected_fields` (SheetJS for xlsx; delimiter-sniffed csv/txt).
    Unreadable ⇒ terminal `failed` + `error`, **ack — no retry** (the file won't
    get better).
@@ -118,7 +118,7 @@ validated staging rows.
 
 A daily cron (`triggers.crons` on the same Worker) cleans up after imports that
 never reached approval, older than `RETENTION_DAYS` (default 30 — `stale`/
-abandoned/`failed` jobs): deletes the staged **binary** (stamping
+abandoned/`failed` jobs): deletes the staged **binary** from `manttio-wms-sheets` (stamping
 `file_deleted_at`) **and the staged rows** (owner 2026-07-19 — staging is the
 sanctioned hard-delete exception, 01 §2; `confirmed` imports had their rows
 deleted at approval already, **owner-`cancelled` imports truncate theirs in the

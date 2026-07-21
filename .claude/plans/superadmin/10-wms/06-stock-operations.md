@@ -38,7 +38,8 @@ Consumo / Ajuste) + `movement-type-pill-classes.const.ts` (inbound emerald · tr
 sky · consumption navy · readjustment amber) +
 **`special-reason-codes.const.ts`** — the only reason codes the UI special-cases:
 `report_binding` (auto-set, never selectable), `relocation` (transfer/self-checkout
-default), `replenishment` (excluded from ad-hoc inbound). The live list always comes
+default), `replenishment` (ad-hoc inbound: admin-only, hidden for office/technician —
+owner 2026-07-20). The live list always comes
 from the API (`LoadMovementReasons`) — never hardcode the other ten (incl.
 `scrap` + `lot_expired`, added 2026-07-20).
 
@@ -47,7 +48,8 @@ from the API (`LoadMovementReasons`) — never hardcode the other ten (incl.
 - **`wms/components/reason-select/`** — reusable **CVA** wrapping `<p-select>`:
   `context = input.required<ReasonContext>()`; options = active reasons whose
   `appliesTo` includes the context, minus `special-reason-codes` exclusions
-  (computed over `StockState.reasons`). **Footer template hosts "Agregar motivo"**
+  (computed over `StockState.reasons`; **exception: `replenishment` in the `inbound`
+  context is offered to admins only** — owner 2026-07-20, §3). **Footer template hosts "Agregar motivo"**
   (owner/admin via `hasRole` — hidden otherwise) opening `add-reason-dialog`.
   Used by **all three dialogs — never a raw `<p-select>` for reasons anywhere.**
 - **`wms/components/add-reason-dialog/`** — shape 3, opened from the footer: label
@@ -76,10 +78,13 @@ barcode scanners work in every dialog with no dedicated scan UI.
   node cascade) → unserialized: quantity; serialized: **textarea of serials, one per
   line** (dup/existing serial errors surface per line after submit); lot: lot
   number input + quantity (creates/tops-up the lot at the destination). Reason context
-  `inbound`, **`replenishment` excluded** with a hint row linking to
+  `inbound`; **`replenishment` is admin-only here** (owner 2026-07-20, supersedes the
+  original blanket exclusion): an **admin** may pick it for an occasional ad-hoc
+  replenishment — each stands as its **own trail entry** in the append-only journal —
+  while **office/technician never see it** (hidden in the select; the endpoint returns
+  `use_replenishment_flow` if forced). A hint row still links to
   `/warehouse/replenishments/new` ("¿Reabastecimiento masivo? Regístralo como
-  documento") — resolves the original build-time decision (proposed 2026-07-19;
-  backend rejects it too, 02 §4).
+  documento") — the **bulk path stays the audited import flow** (02 §4).
 - **`transfer-dialog/`** — material → source (warehouse+node, only locations with
   stock of it) → destination (warehouse+node) → quantity (max = source balance,
   helper text shows it) | unit multiselect (units `in_stock` at source) | lot
@@ -157,7 +162,7 @@ operation: refetch the material stock / location stock the calling page shows
 
 ### CP-2 — Operation dialogs
 - [ ] Inbound dialog (all three modes incl. lot number + qty, serials textarea,
-      replenishment exclusion + hint)
+      `replenishment` admin-only + bulk hint — owner 2026-07-20)
 - [ ] Transfer dialog (stock-aware source/destination, lot select + qty, balance
       helper, `relocation` default, van preset entry from 03)
 - [ ] Readjustment dialog (direction-switched context, required notes, owner/admin

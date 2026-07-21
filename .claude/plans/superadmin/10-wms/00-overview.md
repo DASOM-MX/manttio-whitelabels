@@ -184,8 +184,8 @@ Target route table for `wms.routes.ts` (order matters — literals before `:id`)
   ships with the users-module backend work).
 - **Import processing (11 — Queues consumer in `backend/`):** ops asks before it
   runs: Workers **paid plan** (Queues prerequisite), per-tenant queue + DLQ
-  provisioning (naming settled with the deploy tooling), and the `manttio-wms`
-  bucket (02 §8 — native binding, no S3 credentials).
+  provisioning (naming settled with the deploy tooling), and the two WMS buckets
+  `manttio-wms-sheets` + `manttio-wms-evidence` (02 §8 — native bindings, no S3 credentials).
 - **Notification recipient config:** the `notifications.manager_user_id` settings
   record (the CMS-manager who gets approval/failure warnings — §2) is set at tenant
   provisioning by the **whitelabel manager** (owner-provisioning precedent); an
@@ -200,8 +200,9 @@ Each is argued in its owning sub-plan; this is the sign-off index.
 annotated inline). **Modified during sign-off:** #4 (ad-hoc replenishment inbound now
 allowed, admin-only, own trail — was a hard reject); #6/#13 (two buckets —
 `manttio-wms-sheets` transient + `manttio-wms-evidence` permanent); #10 (`assigned`
-activated — reservation + live location tracking); #12 (config → Cloudflare Durable Object,
-not a `settings` KV table); #19 (in-flight scope → per **parent warehouse** via a
+activated — reservation + live location tracking); #12 (config stays in the Postgres
+`settings` table — DB is source of truth — with a Durable Object as a read cache only);
+#19 (in-flight scope → per **parent warehouse** via a
 `parent_warehouse_id` partial-unique index, not runtime temp tables). **#3 ↔ #14 resolved:**
 staged rows are ephemeral, true-move kept. **Now owed — a detail-propagation pass** folding
 the modified items (#4, #6/#13, #10, #12, #19, #22) into their sub-plans (01/02/06/07/11);
@@ -259,14 +260,12 @@ before it is fully buildable.
     queue delivery; the lease columns died with the daemon design),
     a 202-then-listen API with the DB row as status truth (`02` §6 — **SSE status
     stream**, owner 2026-07-19: push over poll, server closes at the terminal
-    event; one-shot GET for loads/`?import=` resume — `07` §3.1), a **configuration store**
-    whose first key remembers the last field mapping for mapper prefill (owner 2026-07-19 —
-    `01` §2; **owner 2026-07-20: back tenant config with a Cloudflare Durable Object, not a
-    Postgres `settings` KV table** — rapid reads/updates + strong consistency, aligns with
-    the existing `TenantCacheDO`; accessor becomes a DO binding, not `getSetting`. ⚠️
-    Trade-off flagged: the two current keys are *low-frequency* reads, so a table would also
-    suffice — confirm the DO is worth the extra moving parts, or reserve it for when hot
-    per-request config lands), and processing
+    event; one-shot GET for loads/`?import=` resume — `07` §3.1), a **generic `settings`
+    key-value store** whose first key remembers the last field mapping for mapper prefill
+    (owner 2026-07-19 — `01` §2; **owner 2026-07-21: config stays in the Postgres `settings`
+    table — the DB is the source of truth — with a Durable Object used _only_ as a read
+    cache** in front of it (write-through + invalidate on `setSetting`, the existing
+    `TenantCacheDO` pattern); accessors stay `getSetting`/`setSetting`), and processing
     via the backend's **Cloudflare Queues consumer** (`11` — **decided 2026-07-19**
     after the external-repo microservice / Node daemon / per-tenant-vs-registry
     iterations were judged overcomplicated: platform delivery, retries, DLQ, and

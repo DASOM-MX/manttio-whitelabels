@@ -87,11 +87,13 @@ crea el material"). Rendered via pipe. The `sku` file column accepts **SKU or UP
 - Row click → `replenishment-view`. Header action **"Registrar reabastecimiento"** →
   routes to `/warehouse/replenishments/new` (full page — the flow is too big for a
   dialog, decided 2026-07-05). Empty state with the same CTA.
-- **One in-flight import at a time** (owner 2026-07-20): when a pre-approval import
-  exists, the "Registrar" button instead reads **"Continuar reabastecimiento"** and
+- **One in-flight import per parent warehouse** (owner 2026-07-20, was per-tenant):
+  when a pre-approval import exists **for the destination's parent warehouse**, the
+  "Registrar" button instead reads **"Continuar reabastecimiento"** and
   routes to it (`?import=`) — the pending-approval strip already surfaces it. The
   register page enforces the same on load (below), and the backend is the authority
-  (`409 import_in_progress`, 02 §6).
+  (`409 import_in_progress`, keyed on `parent_warehouse_id` — sub-warehouses/vans
+  share their parent's slot; 02 §6).
 - **Pending-approval strip** (added 2026-07-19): a compact card row above the table
   listing imports in `ready` (file name, warehouse, rows/errors, prepared by, age)
   with **"Revisar y aprobar"** → the register page with `?import=` (owner/admin;
@@ -109,10 +111,13 @@ A **full page**, one column, progressive disclosure top-to-bottom (multi-step-pr
 rules apply — this is a flow, keep back/cancel escape routes + dirty-navigation guard).
 The active import's id persists as a **`?import=` query param** — reload/back returns
 to the same job and resumes the status stream (URL-persistence rule applied to a
-flow). **On load without `?import=`, the page first checks for an existing pre-approval
-import** (one-in-flight rule, 02 §6): if one exists it redirects to it (`?import=`)
-rather than showing a fresh upload — a fresh import can only start once the current
-one is approved, cancelled, or gone stale.
+flow). **On load without `?import=`, once a destination is chosen the page checks for
+an existing pre-approval import for that destination's parent warehouse** (one-in-flight
+rule — now **per parent warehouse**, owner 2026-07-20, was per-tenant; 02 §6): if one
+exists it redirects to it (`?import=`) rather than showing a fresh upload — a fresh
+import for that parent warehouse can only start once the current one is approved,
+cancelled, or gone stale (sub-warehouses/vans share their parent's slot; different
+parent warehouses import concurrently).
 
 1. **Destination** — warehouse `<p-select>` (required before the mapping submits;
    subs included).
@@ -332,20 +337,21 @@ event** (owner rationale: repeated polling requests invite avoidable errors/load
 
 ## 4. Storage (backend ask — proposed 2026-07-19)
 
-Dedicated **`manttio-wms` R2 bucket**, CDN-fronted with its own base env (the
-`manttio-equipment` precedent), holding two very different lifecycles:
+**Two dedicated R2 buckets** (owner 2026-07-20 — split from the single `manttio-wms`
+bucket), each CDN-fronted with its own base env (the `manttio-equipment` precedent),
+for two very different lifecycles:
 
-- **`imports/<key>` — transient** (owner 2026-07-19): uploads are **copies** — the
-  tenant keeps the original file, so there is never a download or recovery need.
-  The staged binary exists only from upload until the queue consumer finishes
-  with it — the consumer purges it after the `ready` write and stamps
+- **`manttio-wms-sheets`, `imports/<key>` — transient** (owner 2026-07-19): uploads
+  are **copies** — the tenant keeps the original file, so there is never a download
+  or recovery need. The staged binary exists only from upload until the queue consumer
+  finishes with it — the consumer purges it after the `ready` write and stamps
   `file_deleted_at` (01 §4, 11 §2); leftovers from abandoned imports are swept by
   the daily cron (11 §4). Space stays flat no matter how many imports run.
-- **`evidence/<key>` — permanent**: delivery photos, invoices, pallets — the human
-  evidence on the confirmed document; never purged.
+- **`manttio-wms-evidence`, `evidence/<key>` — permanent**: delivery photos, invoices,
+  pallets — the human evidence on the confirmed document; never purged.
 
-Upload path: extend the existing upload module with the wms target (02 §8). Until the
-bucket exists, dev can point at the reports bucket behind the same service seam —
+Upload path: extend the existing upload module with the wms targets (02 §8). Until the
+buckets exist, dev can point at the reports bucket behind the same service seam —
 **don't let the seam leak into components** (only `replenishments.service.ts` +
 backend know where files live).
 

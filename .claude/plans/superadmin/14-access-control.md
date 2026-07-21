@@ -1,7 +1,7 @@
 # 14 — Access control (roles + config gating)
 
 > **Status:** done (doc — implementation tasks live in `02-app-shell.md` and each module's
-> checklists) · **Last updated:** 2026-07-20 (§2.1: replenishment reject/resubmit + owner-only cancel, note e)
+> checklists) · **Last updated:** 2026-07-20 (§2.1: replenishment reject/resubmit + owner-only cancel, note e; ad-hoc replenishment inbound owner/admin-only, note f)
 >
 > ⚠️ **Correction (2026-07-15, owner):** module flags exist at the **organization level**
 > and are **set from the whitelabels admin app** (the manager tool — *not in this repo*).
@@ -109,6 +109,7 @@ WMS permissions are **action-level**, not module-level:
 | Materials catalog (SKUs) | ✓ | ✓ | — | — |
 | Movement reasons: add / deactivate (custom; built-ins locked) | ✓ | ✓ | — | — |
 | Inbound (receive deliveries) | ✓ | ✓ | ✓ | — |
+| Ad-hoc inbound using the `replenishment` reason (owner 2026-07-20)ᶠ | ✓ | ✓ | — | — |
 | Replenishments: prepare (upload + field-map, edit staged rows incl. quantity, evidence, notes) | ✓ | ✓ | ✓ | — |
 | Replenishments: **remove** a staged row (audited, reason required)ᵉ | ✓ | ✓ | — | — |
 | Replenishments: **reject** (send back to office w/ comment)ᵉ | ✓ | ✓ | — | — |
@@ -151,6 +152,15 @@ e. **Replenishment prepare / remove / approve (decided 2026-07-19; refined
    re-request approval — re-notifying the manager; **full cancel** (truncate staging +
    close the record, reason required) is **owner-only** — not admin, not office.
    Details: `10-wms/07-replenishments.md` + `10-wms/02-api-surface.md` §6.
+f. **Ad-hoc replenishment inbound (owner 2026-07-20 — supersedes "ad-hoc inbound rejects
+   the `replenishment` reason for everyone"):** office keeps full inbound (row above), but
+   the `replenishment` **reason** in the quick/ad-hoc inbound dialog is **owner/admin
+   only** — office and technician can't pick it (hidden in UI; the endpoint's
+   `use_replenishment_flow` flag gates non-admins, `403` if forced). Each such ad-hoc
+   replenishment inbound stands as its **own append-only movement-journal entry** (actor +
+   reason, distinct from import-originated replenishments); the **bulk** replenishment path
+   stays the audited import/register flow (note e). Detail:
+   `10-wms/06-stock-operations.md` §3, `10-wms/02-api-surface.md` §4.
 
 ## 3. How gating is implemented (CSR v1 — decided 2026-07-05)
 
@@ -211,3 +221,6 @@ Deliberately deferred (2026-07-05). When we flip, the changes are confined to th
   equipment really ride core clients? Confirm with the manager push schema.
 - Technician swaps without approval (note 4) — add an office-approval step only if
   abused (`12-calendar.md` open decisions).
+- Reservation-flow roles for reserved material units — `MaterialUnitStatus.assigned` is
+  now active (`in_stock → assigned → consumed`, owner 2026-07-20); who may reserve/release
+  a piece is **TBD, pending owner spec** (`10-wms/00-overview.md` §6 #10).

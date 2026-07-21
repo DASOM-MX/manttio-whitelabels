@@ -193,8 +193,10 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   async import pipeline (below) + R2 evidence; movements append-only per §2. **Full backend spec now in the expanded suite
   (2026-07-19): `.claude/plans/superadmin/10-wms/01-data-model.md` (tables, enums,
   seeds, stock math) + `02-api-surface.md` (endpoint catalog, gates, error codes).**
-  New asks from the suite: dedicated `manttio-wms` R2 bucket + CDN base env for
-  import files/evidence (equipment precedent); `office` role in the JWT middleware is
+  New asks from the suite: two dedicated WMS R2 buckets (owner 2026-07-20) —
+  `manttio-wms-sheets` (transient import spreadsheets, purged after processing) +
+  `manttio-wms-evidence` (permanent evidence photos) — each with its own CDN base env
+  (equipment precedent); `office` role in the JWT middleware is
   a prerequisite for the wms office gates. **Import pipeline (2026-07-19):**
   replenishment imports are field-mapped **async batch jobs** — the request path
   only stages the file in R2 + detects fields (header + ≤5 sample rows) + sets
@@ -207,7 +209,8 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   rows are the durable record — uploads are copies, the tenant keeps the
   original); platform retries → DLQ ⇒ `failed`; a daily cron sweeps leftover
   binaries **and never-approved staging rows**; **only one import in flight per
-  tenant** (partial unique index on the pre-approval statuses →
+  parent warehouse** (owner 2026-07-20 — a `parent_warehouse_id` partial unique
+  index on the pre-approval statuses →
   `409 import_in_progress`); superadmin listens on an **SSE status stream**
   (`GET /replenishments/imports/:id/events` — server-side row watcher, closes at
   the terminal event; one-shot GET for loads). Row fixes +
@@ -226,10 +229,12 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   owner/admin only (14 §2.1e) — promotes staging into the inventory tables and
   deletes the staged rows (true move — the one sanctioned hard-delete exception:
   staging is a temp table, not an entity)** (doc + items + movements + stock in
-  one transaction). New cross-cutting **`modules/settings/`**: generic key-value
-  store (`id · key · value` jsonb, rows-not-columns); first key
-  `wms.last_replenishment_mapping` (by header text) powers the mapper prefill,
-  second key `notifications.manager_user_id` names the configured **CMS-manager**
+  one transaction). Config store: the cross-cutting Postgres **`settings` key-value table**
+  (`getSetting`/`setSetting`; **the DB is the source of truth**), fronted by a per-tenant
+  **Durable Object read-cache** (owner 2026-07-21 — rapid reads, write-through +
+  invalidate on `setSetting`; the existing `TenantCacheDO` §5 pattern, **not** a
+  replacement for the table); keys — first `wms.last_replenishment_mapping` (by header
+  text) powers the mapper prefill, second `notifications.manager_user_id` names the configured **CMS-manager**
   who receives **approval/failure warnings** — the queue consumer emails them
   (de-branded via `/brand`, best-effort, unconfigured-skip) on `ready`/`failed` and
   superadmin shows an app-shell banner (2026-07-20). Retires the SheetJS-on-Workers

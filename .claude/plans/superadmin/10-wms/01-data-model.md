@@ -77,8 +77,11 @@ in 02 §6, shared with the frontend mirror constant.
 
 ## 2. Tables
 
-All `id` columns `uuid` default random; timestamps `timestamptz`. Quantities are
-`numeric(12,3)` — units like `m`/`kg` are fractional; `pza` just uses whole values.
+All `id` columns `uuid` default random; timestamps `timestamptz`. Quantities live in
+`numeric(12,3)` columns but are **whole integers in v1** (owner 2026-07-20, #22 — never a
+JS float; the mapper rejects non-integer cells with `bad_quantity`); fractional
+unit-bearing quantities (m/ml/L/gal/inch…) are **deferred** to the text-storage path (§3),
+not v1. ⚠️ *Confirm: this drops the earlier fractional-`m`/`kg` support from v1.*
 
 ### `warehouses`
 
@@ -145,10 +148,13 @@ All `id` columns `uuid` default random; timestamps `timestamptz`. Quantities are
 | `status` | text `.$type<MaterialUnitStatus>()`, not null, default `in_stock` |
 | `created_at` | — no `deleted_at`: units are never deleted; `status` is the lifecycle |
 
-Rows are **created by inbound** (ad-hoc or replenishment). `assigned` is **reserved,
-unused in v1** (proposed 2026-07-19): consumption flips `in_stock → consumed` directly
-on report-material save; a future reserve-on-draft flow can use `assigned` without a
-migration.
+Rows are **created by inbound** (ad-hoc or replenishment). `assigned` is **ACTIVE**
+(owner 2026-07-20, was "reserved, unused in v1"): the unit lifecycle is
+`in_stock → assigned → consumed`, and a unit's location is tracked while `assigned`
+(consumption may still flip `in_stock → consumed` directly on report-material save). The
+**reservation flow is TBD** — pending owner answers (what triggers a reservation / how
+it's released (manual vs expiry) / whether `assigned` decrements an "available" balance
+while leaving on-hand); not invented in v1 until answered (§4).
 
 ### `material_lots` — lot balances per location (added 2026-07-20, owner)
 
@@ -239,9 +245,10 @@ replenishment_imports {
   file_key text not null, file_name text not null,   // staged in R2 at upload (07 §4);
                                            //   the key is the reference the processor
                                            //   pulls the file by
-  file_deleted_at timestamptz?,            // set when the binary is PURGED (owner
-                                           //   2026-07-19 — space): by the queue
-                                           //   consumer, once fully processed.
+  file_deleted_at timestamptz?,            // set when the binary is PURGED from the
+                                           //   transient `manttio-wms-sheets` bucket
+                                           //   (owner 2026-07-19 — space): by the
+                                           //   queue consumer, once fully processed.
                                            //   key/name stay as the reference; the
                                            //   durable content record is rows.raw
   detected_fields jsonb not null,          // [{ id, header, samples: string[] }] —
@@ -258,6 +265,10 @@ replenishment_imports {
                                            //   submittedAt }. Immutable; the header
                                            //   persists forever so it survives approval
   warehouse_id uuid?,                      // destination, set with the mapping
+  parent_warehouse_id uuid?,               // the destination's PARENT warehouse (itself
+                                           //   when it has no parent), resolved + set
+                                           //   with the mapping — the key the
+                                           //   one-in-flight index scopes on (below)
   total_rows int?, processed_rows int not null default 0,
   error_rows int not null default 0,       // progress counters the processor updates
   error text?,                             // whole-file failure detail (status failed)
@@ -273,14 +284,23 @@ replenishment_imports {
   user_id not null → users, created_at, updated_at
 }                                          // never deleted — abandoned = 'stale',
                                            //   owner-cancelled = 'cancelled'.
-                                           // ONE IN-FLIGHT PER TENANT (owner
-                                           //   2026-07-20): partial unique index
-                                           //   UNIQUE ((true)) WHERE status IN
-                                           //   ('uploaded','queued','processing',
-                                           //   'ready','rejected') — DB-enforces a
-                                           //   single pre-approval import (rejected
-                                           //   is still in-flight); POST maps the
-                                           //   violation to 409 import_in_progress
+                                           // ONE IN-FLIGHT PER PARENT WAREHOUSE
+                                           //   (owner 2026-07-20, was per-tenant):
+                                           //   partial unique index
+                                           //   UNIQUE (parent_warehouse_id) WHERE
+                                           //   status IN ('uploaded','queued',
+                                           //   'processing','ready','rejected') —
+                                           //   sub-warehouses/vans share their
+                                           //   parent's slot; DB-enforces one
+                                           //   pre-approval import per parent
+                                           //   warehouse (rejected is still
+                                           //   in-flight); POST maps the violation
+                                           //   to 409 import_in_progress. NOT
+                                           //   dynamically-created temp tables
+                                           //   (Postgres TEMP tables are session/
+                                           //   connection-scoped, can't span the
+                                           //   async import lifecycle under the
+                                           //   pooled WS driver)
 replenishment_import_rows {                // the STAGING ("temp") table — owner
                                            //   2026-07-19: parsed data lives here,
                                            //   in the tenant DB, until approval
@@ -305,9 +325,12 @@ replenishment_import_rows {                // the STAGING ("temp") table — own
                                            // Approval MOVES the data: promoted into
                                            //   the inventory tables, then the staged
                                            //   rows are DELETED in the same tx (owner
-                                           //   2026-07-19 — sanctioned exception to
-                                           //   no-hard-deletes: staging ≠ entity;
-                                           //   the promoted doc is the record).
+                                           //   2026-07-19 — the no-hard-deletes
+                                           //   exception is EPHEMERAL PIPELINE
+                                           //   ARTIFACTS only (owner 2026-07-20): the
+                                           //   R2 source sheets + these staging scratch
+                                           //   rows; staging ≠ entity, the promoted doc
+                                           //   is the record).
                                            // Owner CANCEL (2026-07-20) TRUNCATES these
                                            //   rows immediately + closes the record
                                            //   ('cancelled'); the required-reason
@@ -408,7 +431,7 @@ rows freely; the audit lives in `movements` (the consumption + compensating
 readjustments the diff emits, 08 §3). Exactly one of `quantity`/`material_unit_id` per
 row, matching the material's tracking mode (`CHECK` + validator).
 
-### `settings` — generic key-value store (added 2026-07-19, owner; cross-cutting `modules/settings/`)
+### settings — generic key-value store (DB source of truth; DO used only as a read cache — owner 2026-07-21)
 
 | Column | Type / constraint |
 |---|---|
@@ -418,8 +441,12 @@ row, matching the material's tracking mode (`CHECK` + validator).
 | `updated_at` | not null |
 
 A deliberately generic per-tenant store that **scales vertically: new settings = new
-rows, never new columns** (owner 2026-07-19 — more keys will land here later).
-First key — `wms.last_replenishment_mapping`:
+rows, never new columns** (owner 2026-07-19 — more keys will land here later). **The
+Postgres table is the source of truth; a per-tenant Durable Object fronts it as a read
+cache** (owner 2026-07-21 — reads hit the DO for low latency, `setSetting` writes through
+to the table then invalidates/refreshes the cache, a cold DO loads from the table; the
+existing `TenantCacheDO` DB-backed-cache pattern — **not** a replacement for the table).
+Accessors stay `getSetting`/`setSetting`. First key — `wms.last_replenishment_mapping`:
 
 ```
 { headers: string[],                       // the detected header texts at save time
@@ -475,6 +502,11 @@ Deltas per type: `inbound` +to · `transfer` −from/+to · `consumption` −fro
 equals the materialized balance (`stock_entries` / `material_lots`); for serialized,
 a unit's latest `movement_units` row agrees with its current location/status.
 
+**Quantity scale (owner 2026-07-20):** stored quantities are **integer values** held in
+the `numeric` columns — integers are the v1 default. **Future:** when unit-bearing
+quantities (cm/m/ml/L/gal/inch…) are introduced, store *those* as **plain text parsed on
+read** to avoid float rounding; integers stay the default until then.
+
 ## 4. Lifecycles
 
 - **Serialized unit:** `in_stock` →(consumption on a report)→ `consumed` — a status
@@ -482,7 +514,11 @@ a unit's latest `movement_units` row agrees with its current location/status.
   warehouse/node so history reads naturally. `in_stock` →(readjustment-out with
   `damaged_material`/`stock_cleaning`/`doa`/`scrap`/loss)→ `lost`. Compensating
   readjustment-in on a correction flips `consumed`/`lost` back to `in_stock` at the
-  recorded source (08 §3). `assigned` reserved (§2).
+  recorded source (08 §3). `assigned` is now **ACTIVE** (owner 2026-07-20): the unit
+  lifecycle is `in_stock → assigned → consumed`, location tracked while `assigned`; the
+  **reservation flow is TBD** — pending owner answers (trigger / release (manual vs
+  expiry) / whether `assigned` decrements an "available" balance vs on-hand), not
+  invented until answered (§2).
 - **Reasons:** built-ins seeded per §5, locked. Custom: created by owner/admin (label +
   appliesTo → slugged code), label editable, deactivate-only. Inactive reasons disappear
   from selects but keep rendering in history (join by `code`).
@@ -505,8 +541,9 @@ a unit's latest `movement_units` row agrees with its current location/status.
   progress counters; only the approval transaction writes `confirmed`. Terminal
   states: `failed`, `confirmed`, `stale`, `cancelled`.
   **Staged rows are deleted in the approval transaction** after promotion (owner
-  2026-07-19 — true move semantics; the deliberate, flagged exception to the
-  no-hard-deletes rule: staging is a temp table, not a user-facing entity. The
+  2026-07-19 — true move semantics; the module-wide no-hard-deletes exception is
+  **ephemeral pipeline artifacts only** — the R2 source sheets + these staging scratch
+  rows (owner 2026-07-20): staging is a scratch table, not a user-facing entity. The
   record is the promoted doc + items + movements, plus the import header row —
   `file_name` + `mapping` — which is kept). Staging left behind by `stale`/
   `failed` imports is cleaned by the daily cron (11 §4); owner-`cancelled` imports
@@ -514,15 +551,16 @@ a unit's latest `movement_units` row agrees with its current location/status.
   **File retention (owner 2026-07-19 — supersedes the 2026-07-05 keep-forever
   evidence-file decision):** uploads are **copies** — the tenant keeps the original
   file outside the system, so the staged binary has **zero archival value** and is
-  purely **transient**: the **queue consumer** deletes it from R2 once the file is
-  fully processed (the `ready` write) and stamps `file_deleted_at`; `failed` imports
+  purely **transient**: the **queue consumer** deletes it from the transient
+  `manttio-wms-sheets` bucket once the file is fully processed (the `ready` write) and
+  stamps `file_deleted_at`; `failed` imports
   keep their file only as retry/debug input. Leftover binaries (stale/abandoned/
   failed imports) are collected by the daily retention cron (decided — 11 §4);
   owner-`cancelled` imports purge their binary in the cancel transaction.
   Post-approval, the in-system record is the **promoted doc + items + movements**
   plus the import header (`file_name`, `mapping`) — staged rows are
   moved-then-deleted (lifecycle above). **Evidence photos are unaffected** — they
-  stay in R2 permanently.
+  stay in the permanent `manttio-wms-evidence` bucket.
 
 ## 5. Seed — the 13 built-in reasons (semantics confirmed 2026-07-05; `scrap` + `lot_expired` added 2026-07-20)
 
@@ -531,7 +569,7 @@ Seeded idempotently (insert-if-missing by `code`) at migration/provisioning time
 
 | code | label (es) | applies_to |
 |---|---|---|
-| `replenishment` | Reabastecimiento | inbound |
+| `replenishment` | Reabastecimiento | inbound — ad-hoc inbound may select it **admin-only** (owner 2026-07-20); office/technician stay excluded → `use_replenishment_flow` (02/06/14) |
 | `refund_by_client` | Devolución de cliente | inbound, readjustment_in |
 | `repair` | Reparación | readjustment_out, readjustment_in |
 | `relocation` | Reubicación | transfer |
