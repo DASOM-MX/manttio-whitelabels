@@ -4,7 +4,7 @@
 > **Owner:** worktree `fullstack-cms-dashboard` · **Last updated:** 2026-07-20
 > **PR:** PR-C `feat(fullstack)` on branch `feature/fullstack-cms-dashboard` (after PR-A merges) · base `main`
 
-A marketing-performance dashboard for the tenant: how many clients each acquisition channel is bringing in, split into leads and actives, this month vs last month. It lives as a tab in the **CMS submenu** of the superadmin main nav (the CMS group owns the public-site surfaces; this is the site's performance view).
+A marketing-performance dashboard for the tenant: how many clients each acquisition channel is bringing in, split into leads and actives, this month vs last month. ~~It lives as a tab in the **CMS submenu** of the superadmin main nav (the CMS group owns the public-site surfaces; this is the site's performance view).~~ **Superseded 2026-07-20 (owner): it lives under the Clientes (CRM) group** — nav child "Panel" first in the group, route `/customers/dashboard`, page component `crm/pages/dashboard/`. The Panel's reads are owner/admin-only while the Clientes group admits office, so `NavChild` grew an optional `roles` gate (filtered in `navFor`) and the route carries its own `accessGuard` data — office neither sees nor reaches it. The CMS submenu keeps only Home/Clientes.
 
 ## Settled decisions (2026-07-16)
 
@@ -66,6 +66,7 @@ appended to CP-1/CP-2 below.
 - [x] `model/constants/access/nav-entries.const.ts` — CMS group children: prepend `{ label: 'Panel', route: '/cms/dashboard' }` before Home/Clientes.
 - [x] Build green (`ng build`); no screenshots unless asked.
 - [x] Enum parity fix ridden along (2026-07-20): superadmin `CustomerSource` + `CUSTOMER_SOURCE_LABELS` extended to the backend's 10 values (verified against the enum + `customers_source_check`); the customer form picks from the new `MANUAL_CUSTOMER_SOURCES` (7) so share-link-only channels are never hand-picked, while the list filter offers all 10.
+- [x] Relocation (owner, 2026-07-20 — see the superseded intro): page moved `cms/pages/dashboard/` → `crm/pages/dashboard/` (`CrmDashboard`), route `/cms/dashboard` → `/customers/dashboard` (child-level `accessGuard`, roles owner/admin), `CustomerStatsState` provided on the customers route, nav child moved CMS → Clientes (first, role-gated via the new `NavChild.roles` + `navFor` child filter).
 
 ## Verification
 

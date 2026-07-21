@@ -23,7 +23,7 @@ import type {
   PanelPeriodLabels,
   PanelTotalsVM,
   RecentClientVM,
-} from '../../../data/types/cms/panel.types';
+} from '../../../data/types/crm/panel.types';
 
 /** Effective palette color: the runtime brand CSS var when set, else the
  *  neutral fallback baked into tailwind.config.js (same "H S% L%" scheme). */
@@ -76,12 +76,12 @@ const buildPeriodLabels = (stats: IntakeStats): PanelPeriodLabels => {
 
 const fmtDelta = (n: number): string => (n > 0 ? `+${n}` : `${n}`);
 
-/** CMS › Panel (utm-params 03): the tenant's marketing-performance view —
+/** Clientes › Panel (utm-params 03, relocated to the CRM group 2026-07-20):
  *  leads/actives per acquisition channel (current period vs full previous
  *  month) plus the latest activity and newest clients (owner/admin reads).
  *  Data lives in `CustomerStatsState` so revisits render from cache. */
 @Component({
-  selector: 'app-cms-dashboard',
+  selector: 'app-crm-dashboard',
   imports: [
     RouterLink,
     ChartModule,
@@ -95,7 +95,7 @@ const fmtDelta = (n: number): string => (n > 0 ? `+${n}` : `${n}`);
   ],
   templateUrl: './dashboard.html',
 })
-export class CmsDashboard {
+export class CrmDashboard {
   private readonly store = inject(Store);
 
   protected readonly stats = select(CustomerStatsState.intake);
