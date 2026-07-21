@@ -180,7 +180,7 @@ with a **`counted_qty`** number input. `system_qty` is **server-withheld and hid
 the UI when the session is blind** (`wms.stock_count_blind`, 01 §2 — default `true`,
 owner-configurable); informed sessions render it as a read-only display column. Save =
 `SaveCountLines(id, lines)` (owner/admin/office), incremental, **no apply**. Serialized
-lines follow the found-unit reconciliation (00 §6 #29 — ⚠️ to refine); v1 leads with
+lines follow the found-unit reconciliation (00 §6 #29 — confirmed owner 2026-07-21); v1 leads with
 quantity/lot.
 
 **Discrepancy review + apply — owner/admin only.** With counts entered, the applier sees

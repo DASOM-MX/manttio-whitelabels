@@ -444,15 +444,16 @@ money silently); 24–27 are **owner-delight** (≈ one column + one pill each);
       settings key (default `true`); owners decide.
     - **Serialized —** the count reconciles the *found* unit set: units the system holds but
       not found → `readjustment`-out to `lost` (`stock_count` reason); unexpected found units
-      are flagged (can't auto-add without a serial). ⚠️ *serialized-count handling to refine.*
+      are flagged (can't auto-add without a serial). **Confirmed (owner 2026-07-21): this
+      found-set workaround is the v1 approach.**
     - **Lands in —** `01` (the two tables + `stock_count` reason + `count_session_id` on
       movements + the settings key), `02` (session endpoints: open / enter-counts / apply /
       cancel), `06` (the count-session UI + blind/informed count + discrepancy → apply flow),
       `14`/`09` (roles: office count, owner/admin apply). **Propagated into the sub-plans
       (owner 2026-07-21): 01 (tables + enum + `count_session_id` + `stock_count` reason),
       02 §4 (endpoints + error codes), 06 §8 (UI + flow + CP-4), 10 (StockState +
-      DTO/const/pipe), 14 §2.1 (roles). Serialized-count handling stays the one open
-      refinement.**
+      DTO/const/pipe), 14 §2.1 (roles). Serialized-count handling: the found-set workaround
+      is confirmed (owner 2026-07-21).**
 
 ## 7. Progress board (sub-plan owners update their row + their file header together)
 
