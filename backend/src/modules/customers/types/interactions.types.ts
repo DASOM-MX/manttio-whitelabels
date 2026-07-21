@@ -18,6 +18,12 @@ export interface InteractionDTO {
   createdAt: Date;
 }
 
+/** Feed row for the tenant-wide latest-activity read (utm-params 03): the
+ *  timeline DTO plus the customer it belongs to, for linking out. */
+export interface RecentInteractionDTO extends InteractionDTO {
+  customerName: string;
+}
+
 /** A backend-generated `system` entry appended in the same transaction as the
  *  change that caused it (customer create/edit, status change). */
 export interface SystemAudit {

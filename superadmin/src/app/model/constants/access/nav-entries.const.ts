@@ -29,6 +29,9 @@ export const NAV: NavEntry[] = [
     route: '/customers',
     module: 'customers',
     children: [
+      // CRM dashboard (utm-params 03) — same gate as the Clientes module
+      // (owner/admin/office; office admitted 2026-07-20).
+      { label: 'Dashboard', route: '/customers/dashboard' },
       { label: 'Todos', route: '/customers', exact: true },
       { label: 'Leads', route: '/customers/leads' },
       { label: 'Lista negra', route: '/customers/blacklist' },

@@ -1,9 +1,15 @@
-import { desc, eq, sql } from 'drizzle-orm';
+import { desc, eq, isNull, sql } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { customerInteractions } from '../models/customer-interactions.model';
+import { customers } from '../models/customers.model';
 import { users } from '../../users/models/users.model';
 import { InteractionRefKind, InteractionType } from '../enums/interactions.enum';
-import type { InteractionDTO, InteractionRow, NewInteraction } from '../types/interactions.types';
+import type {
+  InteractionDTO,
+  InteractionRow,
+  NewInteraction,
+  RecentInteractionDTO,
+} from '../types/interactions.types';
 
 // Row shape after the users left-join (author name folded in).
 type RowWithAuthor = InteractionRow & { userName: string | null };
@@ -53,6 +59,24 @@ export const listInteractions = async (
     .where(eq(customerInteractions.customerId, customerId));
 
   return { items: rows.map(toDTO), total: countRows[0]?.count ?? 0 };
+};
+
+/** Tenant-wide latest activity across all customers (utm-params 03): newest
+ *  first. Timelines of soft-deleted customers stay stored but leave the feed
+ *  with their customer. */
+export const listRecentInteractions = async (
+  db: Db,
+  limit: number,
+): Promise<RecentInteractionDTO[]> => {
+  const rows = await db
+    .select({ ...authoredColumns, customerName: customers.name })
+    .from(customerInteractions)
+    .leftJoin(users, eq(customerInteractions.userId, users.id))
+    .innerJoin(customers, eq(customerInteractions.customerId, customers.id))
+    .where(isNull(customers.deletedAt))
+    .orderBy(desc(customerInteractions.createdAt))
+    .limit(limit);
+  return rows.map((row) => ({ ...toDTO(row), customerName: row.customerName }));
 };
 
 /** Append a backend-generated `system` entry that a report reaching `finished`

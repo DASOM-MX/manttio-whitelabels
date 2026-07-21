@@ -3,24 +3,33 @@ import { zValidator } from '@hono/zod-validator';
 import type { AppBindings } from '../../../env';
 import { createDb } from '../../database/client';
 import { requireRole } from '../../auth/middleware/roles.middleware';
-import { createCustomerSchema, updateCustomerSchema } from '../validators/customers.validator';
+import {
+  createCustomerSchema,
+  recentCustomersQuerySchema,
+  updateCustomerSchema,
+} from '../validators/customers.validator';
+import { intakeStatsQuerySchema } from '../validators/customer-stats.validator';
 import {
   addInteractionSchema,
   changeStatusSchema,
   listInteractionsQuerySchema,
+  recentInteractionsQuerySchema,
 } from '../validators/interactions.validator';
 import {
   createCustomer,
   editCustomer,
   getCustomerById,
   getCustomers,
+  getRecentCustomers,
   removeCustomer,
 } from '../services/customers.service';
 import {
   addInteraction,
   changeCustomerStatus,
   getInteractions,
+  getRecentInteractions,
 } from '../services/interactions.service';
+import { getIntakeStats } from '../services/customer-stats.service';
 import { getCustomerEquipment } from '../../equipment/services/equipment.service';
 import { getCustomerReports } from '../../reports/services/reports.service';
 import {
@@ -35,6 +44,46 @@ customers.get('/', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   return c.json({ customers: await getCustomers(db) });
 });
+
+// Intake stats for the CRM dashboard (utm-params 03): leads/actives per
+// source, requested month (MTD when current) vs the full previous month.
+// Declared before GET /:id so "stats" is never captured as an id. Office
+// admitted 2026-07-20 — the gate matches the Clientes module set.
+customers.get(
+  '/stats/intake',
+  requireRole(['owner', 'admin', 'office']),
+  zValidator('query', intakeStatsQuerySchema),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    return c.json(await getIntakeStats(db, c.req.valid('query').month));
+  },
+);
+
+// Latest registered clients (utm-params 03 amendment 2026-07-20): the
+// dashboard's recent-clients card. Newest first; also before GET /:id.
+customers.get(
+  '/recent',
+  requireRole(['owner', 'admin', 'office']),
+  zValidator('query', recentCustomersQuerySchema),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    const { limit } = c.req.valid('query');
+    return c.json({ items: await getRecentCustomers(db, limit) });
+  },
+);
+
+// Tenant-wide latest activity across clients (utm-params 03 amendment
+// 2026-07-20). Technicians keep only the per-customer read below.
+customers.get(
+  '/interactions/recent',
+  requireRole(['owner', 'admin', 'office']),
+  zValidator('query', recentInteractionsQuerySchema),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    const { limit } = c.req.valid('query');
+    return c.json({ items: await getRecentInteractions(db, limit) });
+  },
+);
 
 customers.get('/:id', async (c) => {
   const db = createDb(c.env.DATABASE_URL);

@@ -19,6 +19,11 @@ export const listInteractionsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(10),
 });
 
+// Tenant-wide latest-activity feed (utm-params 03, amendment 2026-07-20).
+export const recentInteractionsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+});
+
 // Dedicated status transition (08 §4): the service enforces the legal
 // transition + the blacklist-reason rule. `nextFollowUpAt` is an optional
 // date-only string (or null to clear).
@@ -30,4 +35,5 @@ export const changeStatusSchema = z.object({
 
 export type AddInteractionInput = z.infer<typeof addInteractionSchema>;
 export type ListInteractionsQuery = z.infer<typeof listInteractionsQuerySchema>;
+export type RecentInteractionsQuery = z.infer<typeof recentInteractionsQuerySchema>;
 export type ChangeStatusInput = z.infer<typeof changeStatusSchema>;

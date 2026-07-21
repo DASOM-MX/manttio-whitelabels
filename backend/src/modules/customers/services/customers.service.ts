@@ -5,6 +5,7 @@ import {
   findCustomerWithRelations,
   insertCustomerWithRelations,
   listCustomers,
+  listRecentCustomers,
   updateCustomerWithRelations,
   type ContactInput,
   type FiscalInput,
@@ -13,6 +14,7 @@ import type {
   CustomerRow,
   CustomerWithRelations,
   NewCustomer,
+  RecentCustomerRow,
   UpdateCustomerFields,
 } from '../types/customers.types';
 import type { CreateCustomerInput, UpdateCustomerInput } from '../validators/customers.validator';
@@ -109,6 +111,12 @@ const auditBodyForEdit = (input: UpdateCustomerInput): string => {
 };
 
 export const getCustomers = async (db: Db): Promise<CustomerRow[]> => listCustomers(db);
+
+/** Latest registered clients (utm-params 03 amendment — the Panel card). */
+export const getRecentCustomers = async (
+  db: Db,
+  limit: number,
+): Promise<RecentCustomerRow[]> => listRecentCustomers(db, limit);
 
 export const getCustomerById = async (
   db: Db,

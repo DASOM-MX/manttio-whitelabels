@@ -1,6 +1,10 @@
 import type { Db } from '../../database/client';
 import { findCustomerById, updateCustomerWithRelations } from '../repository/customers.repository';
-import { insertInteraction, listInteractions } from '../repository/interactions.repository';
+import {
+  insertInteraction,
+  listInteractions,
+  listRecentInteractions,
+} from '../repository/interactions.repository';
 import { isLegalTransition } from '../utils/customer-status';
 import { CUSTOMER_STATUS_LABELS } from '../constants/customer-status';
 import { InteractionRefKind } from '../enums/interactions.enum';
@@ -10,7 +14,7 @@ import {
   InvalidStatusTransitionError,
 } from '../http-errors/status-change.error';
 import type { CustomerWithRelations, UpdateCustomerFields } from '../types/customers.types';
-import type { InteractionDTO } from '../types/interactions.types';
+import type { InteractionDTO, RecentInteractionDTO } from '../types/interactions.types';
 import type { AddInteractionInput, ChangeStatusInput } from '../validators/interactions.validator';
 
 export const getInteractions = async (
@@ -20,6 +24,12 @@ export const getInteractions = async (
   limit: number,
 ): Promise<{ items: InteractionDTO[]; total: number }> =>
   listInteractions(db, customerId, page, limit);
+
+/** Tenant-wide latest activity (utm-params 03 — owner/admin dashboard feed). */
+export const getRecentInteractions = async (
+  db: Db,
+  limit: number,
+): Promise<RecentInteractionDTO[]> => listRecentInteractions(db, limit);
 
 /** Log a manual touch (08 §2). Returns null when the customer is missing/deleted
  *  so the controller can 404 instead of orphaning a row. */

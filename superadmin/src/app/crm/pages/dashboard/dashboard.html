@@ -1,0 +1,315 @@
+<!-- Fixed card heights (owner 2026-07-21): charts at h-56 (224px, under the
+     235px cap — standard scale only, no arbitrary values), feeds as p-tables
+     with their own scrollHeight, compact !p-4 cards — the stack fits a
+     typical desktop viewport without page scroll; smaller windows scroll in
+     the shell's main region like every other page. -->
+<div class="flex flex-col gap-3">
+  <div>
+    <h1 class="text-xl font-bold text-granite-1000 dark:text-granite-0">Dashboard</h1>
+    @if (periodLabels(); as labels) {
+      <p class="mt-1 text-sm text-granite-600 dark:text-granite-400">
+        Captación por canal — {{ labels.current }} contra {{ labels.previous }}.
+      </p>
+    } @else {
+      <p class="mt-1 text-sm text-granite-600 dark:text-granite-400">
+        Captación y actividad de tus clientes.
+      </p>
+    }
+  </div>
+
+  <!-- Intake region: totals strip + the two channel-mix pies -->
+  @if (statsPending()) {
+    <div class="grid gap-4 sm:grid-cols-2" aria-hidden="true">
+      @for (row of skeletonRows.slice(0, 2); track row) {
+        <section class="card-section">
+          <div class="h-3 w-24 rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
+          <div class="mt-3 h-7 w-16 rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
+        </section>
+      }
+    </div>
+    <div class="grid gap-4 lg:grid-cols-2" aria-hidden="true">
+      @for (row of skeletonRows.slice(0, 2); track row) {
+        <section class="card-section !p-4">
+          <div class="h-3 w-40 rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
+          <div class="mt-4 h-56 rounded bg-granite-100 motion-safe:animate-pulse dark:bg-granite-800/60"></div>
+        </section>
+      }
+    </div>
+  } @else if (statsError()) {
+    <section class="card-section">
+      <p class="text-sm text-granite-600 dark:text-granite-400">
+        No se pudieron cargar las métricas de captación.
+      </p>
+      <button type="button" class="btn-secondary mt-3" (click)="loadStats(true)">Reintentar</button>
+    </section>
+  } @else if (intakeEmpty()) {
+    <section class="card-section" aria-labelledby="intake-empty-title">
+      <div class="flex flex-col items-center gap-3 py-8 text-center">
+        <span
+          class="inline-flex size-12 items-center justify-center rounded-full bg-granite-100 text-granite-500 dark:bg-granite-800 dark:text-granite-400"
+        >
+          <svg lucideTrendingUp class="size-6" aria-hidden="true"></svg>
+        </span>
+        <div>
+          <h2
+            id="intake-empty-title"
+            class="text-base font-semibold text-granite-900 dark:text-granite-100"
+          >
+            Aún no hay datos de captación
+          </h2>
+          <p class="mx-auto mt-1 max-w-sm text-sm text-granite-600 dark:text-granite-400">
+            Comparte tus enlaces de contacto para empezar a medir tus canales.
+          </p>
+        </div>
+        <a routerLink="/dashboard" class="btn-secondary">Ir a los enlaces para compartir</a>
+      </div>
+    </section>
+  } @else {
+    @if (totals(); as t) {
+      <div class="anim-stagger grid gap-4 sm:grid-cols-2">
+        <section
+          class="card-section flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 !p-4"
+          aria-labelledby="panel-kpi-leads"
+        >
+          <h2 id="panel-kpi-leads" class="micro-label uppercase tracking-caps">Leads</h2>
+          <p class="flex items-baseline gap-2">
+            <span
+              class="font-data text-2xl font-semibold tabular-nums text-granite-1000 dark:text-granite-0"
+            >
+              {{ t.leads }}
+            </span>
+            @if (periodLabels(); as labels) {
+              <span class="font-data text-xs tabular-nums text-granite-500 dark:text-granite-400">
+                {{ t.leadsDelta }} contra {{ labels.previous }}
+              </span>
+            }
+          </p>
+        </section>
+        <section
+          class="card-section flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 !p-4"
+          aria-labelledby="panel-kpi-active"
+        >
+          <h2 id="panel-kpi-active" class="micro-label uppercase tracking-caps">
+            Clientes activos
+          </h2>
+          <p class="flex items-baseline gap-2">
+            <span
+              class="font-data text-2xl font-semibold tabular-nums text-granite-1000 dark:text-granite-0"
+            >
+              {{ t.active }}
+            </span>
+            @if (periodLabels(); as labels) {
+              <span class="font-data text-xs tabular-nums text-granite-500 dark:text-granite-400">
+                {{ t.activeDelta }} contra {{ labels.previous }}
+              </span>
+            }
+          </p>
+        </section>
+      </div>
+    }
+
+    <div class="anim-stagger grid gap-4 lg:grid-cols-2">
+      <section class="card-section !p-4" aria-labelledby="panel-leads-chart">
+        <h2 id="panel-leads-chart" class="micro-label uppercase tracking-caps">
+          Leads por canal
+        </h2>
+        @if (leadsChart(); as data) {
+          <!-- Fixed-height wrapper; the host + p-chart's inner div take h-full
+               so chart.js's resize observer sizes the canvas to the wrapper
+               (PrimeNG 21 ignores styleClass on p-chart). -->
+          <div class="mt-3 h-56">
+            <p-chart
+              type="pie"
+              [data]="data"
+              [options]="chartOptions()"
+              class="block h-full [&>div]:h-full"
+            />
+          </div>
+        } @else {
+          <p class="mt-4 text-sm text-granite-500 dark:text-granite-400">
+            Sin leads en el periodo.
+          </p>
+        }
+      </section>
+      <section class="card-section !p-4" aria-labelledby="panel-active-chart">
+        <h2 id="panel-active-chart" class="micro-label uppercase tracking-caps">
+          Activos por canal
+        </h2>
+        @if (activeChart(); as data) {
+          <div class="mt-3 h-56">
+            <p-chart
+              type="pie"
+              [data]="data"
+              [options]="chartOptions()"
+              class="block h-full [&>div]:h-full"
+            />
+          </div>
+        } @else {
+          <p class="mt-4 text-sm text-granite-500 dark:text-granite-400">
+            Sin activos en el periodo.
+          </p>
+        }
+      </section>
+    </div>
+  }
+
+  <!-- Amendment 2026-07-20: latest activity + newest clients, side by side;
+       both lists scroll inside their cards. -->
+  <div class="anim-stagger grid gap-4 lg:grid-cols-2">
+    <section class="card-section !p-4" aria-labelledby="panel-activity-title">
+      <h2 id="panel-activity-title" class="micro-label uppercase tracking-caps">
+        Actividad reciente
+      </h2>
+      @if (activityPending()) {
+        <div class="mt-2 divide-y divide-granite-200 dark:divide-granite-800" aria-hidden="true">
+          @for (row of skeletonRows; track row) {
+            <div class="flex items-center gap-3 py-3">
+              <div class="size-8 shrink-0 rounded-full bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
+              <div class="min-w-0 flex-1">
+                <div class="h-3 w-40 rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
+                <div class="mt-1.5 h-3 w-56 max-w-full rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else if (activityError()) {
+        <p class="mt-3 text-sm text-granite-600 dark:text-granite-400">
+          No se pudo cargar la actividad.
+        </p>
+        <button type="button" class="btn-secondary mt-3" (click)="loadActivity(true)">
+          Reintentar
+        </button>
+      } @else {
+        <div class="mt-2">
+          <p-table
+            [value]="activityRows()"
+            [rowHover]="true"
+            [scrollable]="true"
+            scrollHeight="16rem"
+            dataKey="id"
+          >
+            <ng-template #header>
+              <tr>
+                <th scope="col">Cliente</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Registro</th>
+                <th scope="col">Fecha</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-entry>
+              <!-- Whole row opens the client 360 — same interaction as the
+                   customers list tables. -->
+              <tr
+                class="cursor-pointer"
+                [class.opacity-70]="entry.type === 'system'"
+                (click)="openCustomer(entry.customerId)"
+              >
+                <td class="font-medium">{{ entry.customerName }}</td>
+                <td>
+                  <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+                    <svg
+                      lucideIcon
+                      [lucideIcon]="entry.type | interactionTypeIcon"
+                      class="size-4 shrink-0 text-granite-500 dark:text-granite-400"
+                      aria-hidden="true"
+                    ></svg>
+                    {{ entry.type | interactionTypeLabel }}
+                  </span>
+                </td>
+                <td class="max-w-56">
+                  <span class="block truncate">{{ entry.body }}</span>
+                </td>
+                <td>
+                  <span class="whitespace-nowrap font-data text-sm tabular-nums">
+                    {{ entry.createdAt | relativeTime }}
+                  </span>
+                  @if (entry.userName) {
+                    <span class="block text-xs text-granite-500 dark:text-granite-400">
+                      {{ entry.userName }}
+                    </span>
+                  }
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr>
+                <td colspan="4" class="py-6 text-center text-granite-500 dark:text-granite-400">
+                  Sin actividad todavía — registra la primera llamada desde un cliente.
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      }
+    </section>
+
+    <section class="card-section !p-4" aria-labelledby="panel-clients-title">
+      <h2 id="panel-clients-title" class="micro-label uppercase tracking-caps">
+        Clientes recientes
+      </h2>
+      @if (clientsPending()) {
+        <div class="mt-2 divide-y divide-granite-200 dark:divide-granite-800" aria-hidden="true">
+          @for (row of skeletonRows; track row) {
+            <div class="flex items-center justify-between gap-3 py-3">
+              <div class="min-w-0 flex-1">
+                <div class="h-3 w-44 rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
+                <div class="mt-1.5 h-3 w-28 rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
+              </div>
+              <div class="h-3 w-16 shrink-0 rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
+            </div>
+          }
+        </div>
+      } @else if (clientsError()) {
+        <p class="mt-3 text-sm text-granite-600 dark:text-granite-400">
+          No se pudieron cargar los clientes recientes.
+        </p>
+        <button type="button" class="btn-secondary mt-3" (click)="loadClients(true)">
+          Reintentar
+        </button>
+      } @else {
+        <div class="mt-2">
+          <p-table
+            [value]="clientRows()"
+            [rowHover]="true"
+            [scrollable]="true"
+            scrollHeight="16rem"
+            dataKey="id"
+          >
+            <ng-template #header>
+              <tr>
+                <th scope="col">Cliente</th>
+                <th scope="col">Origen</th>
+                <th scope="col">Alta</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-row>
+              <tr class="cursor-pointer" (click)="openCustomer(row.id)">
+                <td class="font-medium">
+                  {{ row.title }}
+                  @if (row.subtitle) {
+                    <span class="block text-xs font-normal text-granite-500 dark:text-granite-400">
+                      {{ row.subtitle }}
+                    </span>
+                  }
+                </td>
+                <td>{{ row.sourceLabel }}</td>
+                <td>
+                  <span class="whitespace-nowrap font-data text-sm tabular-nums">
+                    {{ row.createdAt | relativeTime }}
+                  </span>
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr>
+                <td colspan="3" class="py-6 text-center text-granite-500 dark:text-granite-400">
+                  Sin clientes registrados todavía.
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      }
+    </section>
+  </div>
+</div>
