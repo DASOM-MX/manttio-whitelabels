@@ -21,9 +21,16 @@ engine, no preference center in v1.
 
 ## 0. Scope & decisions (2026-07-20)
 
-- **Two channels, v1:** `in_app` (the persisted row + SSE push — always on) and `email`
-  (opt-in per call, de-branded, best-effort). SMS/WhatsApp/push are later channels behind
-  the same `notify()` seam.
+- **Email channel deferred (owner, 2026-07-20 — supersedes "two channels, v1" below).**
+  v1 ships **`in_app` only**: the persisted row + SSE push. No email compose/dispatch,
+  no `channels` input on `notify()`, no `email_status`/`email_error` columns, no
+  `NotificationChannel`/`EmailDeliveryStatus` enums yet. Email gets wired from its own
+  `notification-email.service.ts` once the needed HTML templates exist; the columns land
+  as additive DDL with that change. §2.1 step 2, §2.3, and the email tests in §5 are
+  deferred with it (the §4 WMS contract keeps `channels` as the *future* shape).
+- ~~**Two channels, v1:**~~ *(superseded above)* `in_app` (the persisted row + SSE push —
+  always on) and `email` (opt-in per call, de-branded, best-effort). SMS/WhatsApp/push
+  are later channels behind the same `notify()` seam.
 - **Addressed by user *or* role.** A notification targets a specific `users.id`, **or** a
   **role** (the baseline `owner`/`admin`/`office`/`technician`) used as a fallback when no
   `recipientUserId` is given. A role send **fans out at creation** — `notify()` resolves the

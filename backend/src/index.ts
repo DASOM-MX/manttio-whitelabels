@@ -10,6 +10,7 @@ import { equipment } from './modules/equipment/controllers/equipment.controller'
 import { reportTemplates } from './modules/report-templates/controllers/report-templates.controller';
 import { upload } from './modules/upload/controllers/upload.controller';
 import { cms } from './modules/cms/controllers/cms.controller';
+import { notifications } from './modules/notifications/controllers/notifications.controller';
 import { publicCms } from './modules/cms/controllers/public-cms.controller';
 import { publicLeads } from './modules/customers/controllers/public-leads.controller';
 import { brand } from './modules/brand/controllers/brand.controller';
@@ -54,6 +55,7 @@ app.use('/equipment/*', jwtMiddleware);
 app.use('/report-templates/*', jwtMiddleware);
 app.use('/upload/*', managerOr(jwtMiddleware));
 app.use('/cms/*', jwtMiddleware);
+app.use('/notifications/*', jwtMiddleware);
 
 app.route('/users', users);
 app.route('/customers', customers);
@@ -62,6 +64,7 @@ app.route('/equipment', equipment);
 app.route('/report-templates', reportTemplates);
 app.route('/upload', upload);
 app.route('/cms', cms);
+app.route('/notifications', notifications);
 
 app.onError((err, c) => {
   if (err instanceof SyntaxError || /JSON/i.test(err.message)) {

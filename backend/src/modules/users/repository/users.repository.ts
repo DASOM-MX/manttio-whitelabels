@@ -1,6 +1,7 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { users } from '../models/users.model';
+import type { Role } from '../enums/users.enum';
 import type { NewUser, UpdateUserFields, UserRow } from '../types/users.types';
 
 const activeFilter = isNull(users.deletedAt);
@@ -25,6 +26,16 @@ export const findUserById = async (db: Db, id: string) => {
 
 export const listUsers = async (db: Db) => {
   return db.select().from(users).where(activeFilter).orderBy(desc(users.createdAt));
+};
+
+/** Active users holding any of the given roles — the notifications module's
+ *  role-broadcast resolution (notifications plan §2.1). */
+export const listActiveUsersByRoles = async (db: Db, roles: Role[]) => {
+  if (roles.length === 0) return [];
+  return db
+    .select()
+    .from(users)
+    .where(and(inArray(users.role, roles), activeFilter));
 };
 
 export const insertUser = async (db: Db, input: NewUser): Promise<UserRow> => {
