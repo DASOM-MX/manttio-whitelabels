@@ -198,19 +198,23 @@ Each is argued in its owning sub-plan; this is the sign-off index.
 
 **Sign-off progress (owner, 2026-07-20):** ratified individually so far — #3, #10, #11, #12,
 #19, #21, #22, #23 (annotated inline). Still open — the rest of #1–20 (to ratify as a set)
-and #24–28. **Two flagged confirms before their detail sections are rewritten:** the #3 ↔ #14
-staging-delete tension, and #19's mechanism substitution.
+and #24–28. **#3 ↔ #14 resolved (owner): staged rows stay ephemeral, true-move kept.** #19's
+mechanism substitution recorded (parent-warehouse-scoped index, not runtime temp tables) —
+flag if unwanted. **Detail-section propagation of #10/#11/#12/#19/#22 into 01/02/07/11 is
+owed** (a follow-up pass; #10 also needs the reservation-flow answers first).
 
 1. **Stock is materialized** (`stock_entries` / `material_units` updated in the same
    transaction as the movement insert); movements are the immutable journal — `01` §3.
 2. **Serialized movements use a `movement_units` join table**, not an id array — `01` §2.
 3. **Storage nodes soft-delete** (movement history references them forever) — `01` §2.
    **Accepted (owner 2026-07-20) and raised to a module-wide rule: NO hard deletes anywhere
-   in WMS *except* transient R2 file copies** (the import binaries, item 13). ⚠️ This
-   collides with #14 ("true-move: staged rows are *physically deleted* on approval") and the
-   owner-cancel truncate — **pending owner confirm that staged rows also become soft-deletes**
-   (only the R2 binary is hard-purged). If confirmed, #14, #19's cancel path, and `11` §4
-   retention flip from physical-delete/truncate to soft-delete + `deleted_at` filtering.
+   in WMS *except ephemeral pipeline artifacts*** — the transient R2 file copies (item 13)
+   **and the staging scratch rows** (`replenishment_import_rows`). **Resolved 2026-07-20
+   (owner): staged rows are the same ephemeral class as the file copies**, so #14's true-move
+   (physical delete on approval), the owner-cancel truncate, and the `11` §4 stale-sweep all
+   **stand** — the permanent record is the promoted doc + items + movements + the append-only
+   event log + `submission_snapshot`. Every *domain entity* (warehouses, nodes, materials,
+   reasons, movements, import headers, events) is soft-delete-only.
 4. **Ad-hoc inbound rejects the `replenishment` reason** (`400 use_replenishment_flow`);
    the dialog excludes it and hints to the register page — resolves the original
    build-time decision — `06` §3.
