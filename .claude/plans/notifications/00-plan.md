@@ -135,7 +135,18 @@ frontend label/icon maps grow (§3.3).
 > `client_blacklisted`, `client_updated`, `client_archived`,
 > `client_interaction_registered` (migration `0021`). Types land **ahead of their
 > triggers** — each emitting call site is wired in its own module's flow
-> (reports/customers/leads services), with recipient policy decided there. `NotificationChannel` (`in_app` \| `email`) is an
+> (reports/customers/leads services), with recipient policy decided there.
+>
+> **2026-07-21 (owner): triggers wired.** All eight events broadcast to role
+> **`owner`** with the acting user **excluded** — `notify()` gained the optional
+> `excludeUserId` (resolves the actor-self-notification open decision below). The
+> superadmin registration/update bodies **name the acting user** (owner ask).
+> Sites: `reports.service` (`report_created` / `report_finalized` — a
+> signed-at-creation report emits only `finalized`), `customers.service`
+> (registered-from-superadmin / updated / archived), `interactions.service`
+> (interaction / blacklisted — ordinary status moves stay timeline-only),
+> `leads.service` (registered-from-website, no actor). All via `notifyBestEffort`
+> — a notification failure never breaks the flow that caused it. `NotificationChannel` (`in_app` \| `email`) is an
 input enum on `notify()`, not a column. **Role addressing reuses the existing users-module
 role enum** (`owner`/`admin`/`office`/`technician`) — not redefined here; `audience_role` is
 typed against it.
@@ -452,10 +463,10 @@ re-syncs from the one-shot GET.
 - **Cron prerequisite** — introduces the first Worker cron. No Queues/paid-plan dependency
   for notifications retention specifically (unlike WMS's Queues-coupled sweep). Confirm the
   `scheduled()` handler wiring is acceptable to land here first.
-- **Actor self-notification** — a role broadcast currently reaches *every* user of the role,
-  including the one whose action triggered it (e.g. an owner who resubmits, in a
-  `[owner, admin]` fan-out). If that proves noisy, add an optional `excludeUserId` to
-  `notify()` (skip the actor) — not built v1; the caller has the actor id if needed.
+- ~~**Actor self-notification**~~ — **resolved 2026-07-21:** `notify()` carries an optional
+  `excludeUserId` and every core-product trigger passes the acting user, so nobody is
+  notified of their own action. (Original concern: a role broadcast reached every user of
+  the role, including the one whose action triggered it.)
 - **Single-role assumption** — the design assumes each user has exactly one role (the
   baseline model). If multi-role users ever land, `audience_role` (a single role) and the
   dedup logic get revisited; flagged, not a v1 concern.

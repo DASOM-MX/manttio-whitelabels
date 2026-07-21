@@ -13,6 +13,8 @@ import {
   BlacklistReasonRequiredError,
   InvalidStatusTransitionError,
 } from '../http-errors/status-change.error';
+import { notifyBestEffort } from '../../notifications/services/notifications.service';
+import { NotificationType } from '../../notifications/enums/notifications.enum';
 import type { CustomerWithRelations, UpdateCustomerFields } from '../types/customers.types';
 import type { InteractionDTO, RecentInteractionDTO } from '../types/interactions.types';
 import type { AddInteractionInput, ChangeStatusInput } from '../validators/interactions.validator';
@@ -41,12 +43,25 @@ export const addInteraction = async (
 ): Promise<InteractionDTO | null> => {
   const customer = await findCustomerById(db, customerId);
   if (!customer || customer.deletedAt) return null;
-  return insertInteraction(db, {
+  const entry = await insertInteraction(db, {
     customerId,
     type: input.type,
     body: input.body.trim(),
     userId: actorId,
   });
+  // Owner awareness feed: owner broadcast, the acting user excluded. The
+  // interaction author is already resolved on the DTO.
+  await notifyBestEffort(db, {
+    role: 'owner',
+    excludeUserId: actorId,
+    type: NotificationType.ClientInteractionRegistered,
+    title: 'Interacción registrada',
+    body: entry.userName
+      ? `${entry.userName} registró una interacción con ${customer.name}.`
+      : `Se registró una interacción con ${customer.name}.`,
+    data: { customerId },
+  });
+  return entry;
 };
 
 /** Dedicated status transition (08 §1/§4): validates the legal transition and
@@ -87,10 +102,23 @@ export const changeCustomerStatus = async (
     `Estado: ${CUSTOMER_STATUS_LABELS[current.status]} → ${CUSTOMER_STATUS_LABELS[target]}` +
     (reason ? ` · ${reason}` : '');
 
-  return updateCustomerWithRelations(db, id, fields, undefined, undefined, {
+  const updated = await updateCustomerWithRelations(db, id, fields, undefined, undefined, {
     userId: actorId,
     body,
     refKind: InteractionRefKind.StatusChange,
     refId: id,
   });
+  // Only the blacklist transition is a notified event (plan §1 type set) —
+  // ordinary status moves stay timeline-only.
+  if (updated && target === CustomerStatus.Blacklisted) {
+    await notifyBestEffort(db, {
+      role: 'owner',
+      excludeUserId: actorId,
+      type: NotificationType.ClientBlacklisted,
+      title: 'Cliente en lista negra',
+      body: `${updated.name} fue puesto en lista negra · ${reason}`,
+      data: { customerId: id },
+    });
+  }
+  return updated;
 };

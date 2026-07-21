@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import type { AppBindings } from '../../../env';
 import { createDb } from '../../database/client';
@@ -32,6 +33,19 @@ import {
 } from '../services/reports.service';
 
 export const reports = new Hono<AppBindings>();
+
+/** waitUntil that degrades to a floating promise when the runtime provides no
+ *  ExecutionContext (direct `app.request`, e.g. the Vitest pool) — every task
+ *  scheduled through it is best-effort by design. */
+const scheduleBackground =
+  (c: Context<AppBindings>) =>
+  (task: Promise<unknown>): void => {
+    try {
+      c.executionCtx.waitUntil(task);
+    } catch {
+      task.catch((err) => console.error('background task failed:', err));
+    }
+  };
 
 // Token-bearer download (§9). JWT middleware skips `/reports/download/*`. The recipient's
 // email contains a link to this route; we render the PDF on-demand and stream it back.
@@ -100,7 +114,7 @@ reports.post('/', async (c) => {
   const { status, body } = await submitReport({
     db,
     env: c.env,
-    waitUntil: (task) => c.executionCtx.waitUntil(task),
+    waitUntil: scheduleBackground(c),
     user: me,
     meta,
     data,
@@ -150,7 +164,7 @@ reports.put('/:id/signature', async (c) => {
   const { status, body } = await finishWithSignature({
     db,
     env: c.env,
-    waitUntil: (task) => c.executionCtx.waitUntil(task),
+    waitUntil: scheduleBackground(c),
     user: me,
     report: gate.report,
     signed,

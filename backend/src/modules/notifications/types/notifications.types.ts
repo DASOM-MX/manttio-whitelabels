@@ -14,6 +14,10 @@ export type NewNotification = typeof notifications.$inferInsert;
 export type NotifyInput = {
   recipientUserId?: string;
   role?: Role | Role[];
+  /** The acting user, when the event is their own doing — dropped from the
+   *  resolved recipients so nobody is notified of their own action (plan
+   *  "actor self-notification", resolved 2026-07-21). */
+  excludeUserId?: string;
   type: NotificationType;
   title: string;
   body: string;

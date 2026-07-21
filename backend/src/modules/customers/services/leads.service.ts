@@ -2,6 +2,8 @@ import type { Db } from '../../database/client';
 import { ClientType, CustomerSource, CustomerStatus } from '../enums/customers.enum';
 import { CUSTOMER_SOURCE_LABELS } from '../constants/customer-source';
 import { insertCustomerWithRelations } from '../repository/customers.repository';
+import { notifyBestEffort } from '../../notifications/services/notifications.service';
+import { NotificationType } from '../../notifications/enums/notifications.enum';
 import type { CustomerWithRelations } from '../types/customers.types';
 import type { CreateLeadInput } from '../validators/public-leads.validator';
 
@@ -44,7 +46,7 @@ export const createLead = async (
   // like every other create path.
   const name = isBusiness ? String(input.businessName) : contactName;
 
-  return insertCustomerWithRelations(
+  const customer = await insertCustomerWithRelations(
     db,
     {
       name,
@@ -79,4 +81,13 @@ export const createLead = async (
     // (public endpoint), which is exactly what a null userId means (08 §2).
     { userId: null, body: leadAuditBody(input, source) },
   );
+  // Owner awareness feed — no actor to exclude on the public path.
+  await notifyBestEffort(db, {
+    role: 'owner',
+    type: NotificationType.ClientRegisteredFromWebsite,
+    title: 'Nuevo cliente desde el sitio web',
+    body: `${name} llegó por el formulario de contacto.`,
+    data: { customerId: customer.id },
+  });
+  return customer;
 };

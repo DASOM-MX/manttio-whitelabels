@@ -113,7 +113,7 @@ customers.patch(
 
 customers.delete('/:id', requireRole(['owner', 'admin']), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  const row = await removeCustomer(db, c.req.param('id'));
+  const row = await removeCustomer(db, c.req.param('id'), c.get('user').id);
   if (!row) return c.json({ error: 'not_found' }, 404);
   return c.json({ id: row.id, deleted: true });
 });
