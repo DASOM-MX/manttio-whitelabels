@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import type { AppBindings } from '../../../env';
@@ -13,6 +14,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
   notify,
+  streamNotificationEvents,
 } from '../services/notifications.service';
 import { NotificationType } from '../enums/notifications.enum';
 import { NotificationNotFoundError } from '../http-errors/notification-not-found.error';
@@ -39,6 +41,17 @@ notifications.get('/', zValidator('query', listNotificationsQuerySchema), async 
     status,
   });
   return c.json({ items, total, unreadCount, page, limit });
+});
+
+// Live delivery (plan §2.2): session-length per-user SSE — stays open until
+// the client disconnects (no terminal event, unlike the WMS import stream).
+// Bearer-authed by the mounted JWT middleware like every sibling route; the
+// frontend consumes it with the fetch-based reader (EventSource can't set
+// the Authorization header).
+notifications.get('/stream', (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  const userId = c.get('user').id;
+  return streamSSE(c, (stream) => streamNotificationEvents(db, userId, stream));
 });
 
 // Owner-authored explicit send — the only client-facing create. The type is

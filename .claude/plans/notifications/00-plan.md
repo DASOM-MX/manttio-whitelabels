@@ -246,8 +246,8 @@ primary button to `data.link`). No per-type email templates in v1.
   `export default { fetch: app.fetch, scheduled }` — `scheduled()` dispatches by cron/DO
   time to `notifications-retention.service.ts`, which runs
   `DELETE FROM notifications WHERE created_at < now() - interval '8 months'`
-  (`RETENTION_MONTHS` env, default 8). Batched delete if counts ever grow; logs the row
-  count swept.
+  (`NOTIFICATIONS_RETENTION_MONTHS` env — scoped name, as built; optional, default 8).
+  Batched delete if counts ever grow; logs the row count swept.
 - This is the **hard-delete exception** reconciled in §0 — transient records, no audit
   trail touched.
 - **Sequencing note:** whichever of {this module, WMS} ships first introduces the
@@ -398,21 +398,23 @@ re-syncs from the one-shot GET.
 
 ## Checkpoints
 
-### CP-1 — Backend core
-- [ ] `notifications` table + indexes (additive DDL applied to live Neon; migration SQL
+### CP-1 — Backend core  *(done 2026-07-20, PR #79)*
+- [x] `notifications` table + indexes (additive DDL applied to live Neon; migration SQL
       generated for the record; relation + re-export in `database/schema.ts`); enums.
-- [ ] `notify()` service (user-or-role resolution + fan-out, §2.1; insert + best-effort
-      de-branded email compose per recipient, §2.1/§2.3);
+- [x] `notify()` service (user-or-role resolution + fan-out, §2.1; ~~insert + best-effort
+      de-branded email compose per recipient, §2.1/§2.3~~ *email deferred per §0*);
       `GET /notifications` (+`unreadCount`), `POST /:id/read`, `POST /read-all` — all
-      self-scoped; `notification_not_found` typed error.
-- [ ] §5 backend tests green (insert, email best-effort/de-brand, read scoping).
+      self-scoped; `notification_not_found` typed error. Plus the owner `announcement`
+      `POST /` (§0) and the core-product type set (§1), both added 2026-07-20.
+- [x] §5 backend tests green (insert, read scoping; email cases deferred per §0).
 
-### CP-2 — SSE + retention
-- [ ] `GET /notifications/stream` (`streamSSE`, per-user, `~2 s` re-read + `15 s`
+### CP-2 — SSE + retention  *(done 2026-07-20, stacked on PR #79)*
+- [x] `GET /notifications/stream` (`streamSSE`, per-user, `~2 s` re-read + `15 s`
       heartbeat, session-length, Bearer-authed).
-- [ ] Retention cron: `wrangler.toml` `triggers.crons` + the `export default { fetch,
+- [x] Retention cron: `wrangler.toml` `triggers.crons` + the `export default { fetch,
       scheduled }` switch + `notifications-retention.service.ts` (8-month `DELETE`).
-- [ ] §5 SSE + retention tests green; `wrangler dev` runs the stream + cron locally.
+- [x] §5 SSE + retention tests green (run inside workerd via the Vitest workers pool;
+      wrangler config validated with a dry-run build).
 
 ### CP-3 — Frontend surface
 - [ ] Extract `sseStream<T>` shared reader (§3.1); `NotificationsState` + service.
