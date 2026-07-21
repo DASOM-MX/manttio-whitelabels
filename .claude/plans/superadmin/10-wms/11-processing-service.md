@@ -117,12 +117,14 @@ validated staging rows.
 ## 4. Retention sweep (Cron Trigger)
 
 A daily cron (`triggers.crons` on the same Worker) cleans up after imports that
-never reached approval, older than `RETENTION_DAYS` (default 30 — `discarded`/
+never reached approval, older than `RETENTION_DAYS` (default 30 — `stale`/
 abandoned/`failed` jobs): deletes the staged **binary** (stamping
 `file_deleted_at`) **and the staged rows** (owner 2026-07-19 — staging is the
 sanctioned hard-delete exception, 01 §2; `confirmed` imports had their rows
-deleted at approval already). No exemptions — source files are disposable copies;
-a stale failed import is re-uploaded, not recovered.
+deleted at approval already, **owner-`cancelled` imports truncate theirs in the
+cancel transaction** — 02 §6, so the cron only finds `stale`/`failed` leftovers).
+No exemptions — source files are disposable copies; a stale failed import is
+re-uploaded, not recovered.
 
 ## 5. Dev + testing
 

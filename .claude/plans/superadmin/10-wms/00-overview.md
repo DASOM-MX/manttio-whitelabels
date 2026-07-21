@@ -66,8 +66,12 @@ merging — GitHub does not auto-retarget). Branch naming
   `replenishment_import_events` (permanent, append-only) — `created`,
   `mapping_submitted`, `processing_started`/`processed`/`processing_failed`
   (system), `row_updated`/`row_removed`, `evidence_updated`, `notes_updated`,
-  `discarded`, `approved`. Row **removal is owner/admin only** + reason-required;
-  edits are all-preparers. Each submission also stores a human-readable
+  `rejected`/`resubmitted` (the reject→adjust→re-request cycle, owner 2026-07-20),
+  `stale`, `cancelled` (owner-only full cancel, owner 2026-07-20), `approved`.
+  **Governance tiers, each logged:** office preps/edits/resubmits; **row removal is
+  owner/admin + reason-required**; **rejection is owner/admin + comment-required**
+  (sends it back to office); **full cancel is owner-only + reason-required**
+  (truncates staging, closes the record). Each submission also stores a human-readable
   `submission_snapshot` (file + mapping as plain-text JSON). Scoped to
   **replenishment imports only** — not a generic WMS edit audit (stock changes are
   already the `movements` journal). `01` §2, `02` §6.
@@ -95,9 +99,11 @@ merging — GitHub does not auto-retarget). Branch naming
 - **Soft deletes** for warehouses and materials; movements/replenishments are never
   deleted at all. Delete dialogs follow the audited delete-dialog convention.
   **One sanctioned exception (owner 2026-07-19):** the import **staging** table —
-  approval *moves* its rows into inventory and hard-deletes them; the daily cron
-  cleans staging of never-approved imports (01 §2, 11 §4). Staging is a temp
-  workspace, not a user-facing entity — nothing else may cite this as precedent.
+  approval *moves* its rows into inventory and hard-deletes them; **owner-only cancel
+  truncates them (required reason, logged as a `cancelled` event, owner 2026-07-20)**;
+  the daily cron cleans staging of never-approved (`stale`/`failed`) imports (01 §2,
+  11 §4). Staging is a temp workspace, not a user-facing entity — nothing else may
+  cite this as precedent.
 
 ## 3. Conventions deltas since the original file (2026-07-05 → now — binding)
 
@@ -284,8 +290,9 @@ Each is argued in its owning sub-plan; this is the sign-off index.
 20. **Whole-lifecycle replenishment audit** (owner 2026-07-20, new table
     `replenishment_import_events`): an append-only event log spanning the entire
     import — `created` (start) → `mapping_submitted` → processing (system) →
-    `row_updated`/`row_removed` → `evidence_updated`/`notes_updated` → `discarded` |
-    `approved` (confirmation). Each mutating endpoint emits its event in-transaction;
+    `row_updated`/`row_removed` → `evidence_updated`/`notes_updated` →
+    `rejected`/`resubmitted` → `stale` | `cancelled` | `approved` (confirmation).
+    Each mutating endpoint emits its event in-transaction;
     the log is permanent and **survives approval** (staged rows are gone, the log +
     `submission_snapshot` stay). Row **removal is owner/admin only, reason-required**
     (office edits quantities but cannot remove); each submission also freezes a
@@ -378,7 +385,11 @@ money silently); 24–27 are **owner-delight** (≈ one column + one pill each);
   upload → detected fields → user mapping → `queued` → processed by the queue
   consumer into the **staging (temp) table** → `ready` review (row fixes + evidence +
   notes, all staged) → **owner/admin approval moves it into inventory** (promote,
-  then the staged rows are deleted — the sanctioned exception, §2).
+  then the staged rows are deleted — the sanctioned exception, §2). From `ready`,
+  owner/admin may instead **reject** it back to office with a comment (office adjusts
+  + **resubmits** → `ready`); an **owner** may **cancel** it outright (truncate
+  staging + close the record, reason required → `cancelled`); an abandoned/superseded
+  import goes **`stale`** (cron-swept). Every branch is logged (item 20).
 - **Import consumer** — the backend's Cloudflare Queues consumer (11): receives
   `{ importId }`, parses the staged file from R2, writes staging rows + status back
   to Neon, purges the binary; superadmin listens to the DB-backed **SSE status

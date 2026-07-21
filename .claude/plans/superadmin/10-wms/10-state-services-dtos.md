@@ -17,7 +17,7 @@ it; touching another slice's file means coordinating in its plan first.
 | `WarehousesState` | 03/04 | `tree`, `flat` (selects), `selected`, `nodes` cache (by parent), `locationStock`, `loading` | `LoadWarehouseTree`, `LoadWarehouses`, `LoadWarehouse(id)`, `CreateWarehouse`, `UpdateWarehouse`, `DeleteWarehouse`, `AssignTechnician(id, userId \| null)`, `LoadNodes(wid, parentNodeId?)`, `CreateNode`, `RenameNode`, `DeleteNode`, `LoadLocationStock(wid, nodeId?)` |
 | `MaterialsState` | 05 | `list`, `total`, `selected`, `stock`, `loading` | `LoadMaterials(query)`, `LoadMaterial(id)`, `LoadMaterialStock(id)`, `CreateMaterial`, `UpdateMaterial`, `DeleteMaterial` |
 | `StockState` | 06 | `reasons`, `movements`, `movementsTotal`, `loading` | `LoadMovementReasons`, `CreateMovementReason`, `UpdateMovementReason`, `Inbound`, `Transfer`, `Readjust`, `LoadMovements(query)` |
-| `ReplenishmentsState` | 07 | `list`, `total`, `selected`, `import` (active job — status/fields/progress/staged rows/prep/**submissionSnapshot**), `importAudit` (event log), `pendingImports` (list strip **+ shell approval banner**), `loading` | `LoadReplenishments(query)`, `LoadPendingImports`, `LoadReplenishment(id)`, `UploadImportFile(file)`, `SubmitImportMapping(importId, warehouseId, mapping)`, `ListenImportStatus(importId)` (**cancelUncompleted** fetch-SSE pipeline — 07 §3.1), `StopImportListening`, `DiscardImport(importId)`, `UpdatePreviewRow(line, patch)` (staged-row PATCH, audited), `RemoveStagedRow(line, reason)` (owner/admin, audited), `LoadImportAudit(importId)`, `UpdateImportPrep(importId, prep)`, `ApproveReplenishment(importId)` (owner/admin promotion) |
+| `ReplenishmentsState` | 07 | `list`, `total`, `selected`, `import` (active job — status/fields/progress/staged rows/prep/**submissionSnapshot**), `importAudit` (event log), `pendingImports` (list strip **+ shell approval banner**), `loading` | `LoadReplenishments(query)`, `LoadPendingImports`, `LoadReplenishment(id)`, `UploadImportFile(file)`, `SubmitImportMapping(importId, warehouseId, mapping)`, `ListenImportStatus(importId)` (**cancelUncompleted** fetch-SSE pipeline — 07 §3.1), `StopImportListening`, `DiscardImport(importId)`, `UpdatePreviewRow(line, patch)` (staged-row PATCH, audited), `RemoveStagedRow(line, reason)` (owner/admin, audited), `LoadImportAudit(importId)`, `UpdateImportPrep(importId, prep)`, `RejectImport(importId, comment)` (owner/admin), `ResubmitImport(importId)` (owner/admin/office), `CancelImport(importId, reason)` (**owner only**), `ApproveReplenishment(importId)` (owner/admin promotion) |
 | `ReportMaterialsState` | 08 | `byReport`, `loading`, `saving` | `LoadReportMaterials(reportId)`, `SaveReportMaterials(reportId, payload)` |
 
 - All registered **lazily** via `provideStates` in `wms.routes.ts`;
@@ -69,10 +69,10 @@ with `01-data-model.md` §1.
 | `reason-context-labels.const.ts` | 06 |
 | `special-reason-codes.const.ts` (`report_binding`, `relocation`, `replenishment`) | 06 |
 | `parse-row-error-labels.const.ts` | 07 |
-| `import-status-labels.const.ts` / `import-status-pill-classes.const.ts` | 07 |
+| `import-status-labels.const.ts` / `import-status-pill-classes.const.ts` (incl. `rejected` → "Cambios solicitados", `stale` → "Descartado", `cancelled` → "Cancelado") | 07 |
 | `unprocessable-row-errors.const.ts` (serial-collision codes — mirror of backend `wms/constants/`) | 07 |
 | `import-target-field-labels.const.ts` / `import-auto-map-patterns.const.ts` | 07 |
-| `import-event-type-labels.const.ts` (lifecycle event → Spanish label) | 07 |
+| `import-event-type-labels.const.ts` (lifecycle event → Spanish label; 14 events incl. `rejected`/`resubmitted`/`stale`/`cancelled`) | 07 |
 
 ## 5. Pipes (`src/app/pipes/` — pure, per-row template mappings)
 
@@ -88,7 +88,9 @@ templates.
 
 `reason-select` + `add-reason-dialog` + `movements-table` (06 — consumed by 05/07/09) ·
 the three operation dialogs (06) · `remove-staged-row-dialog` (07 — reason-required
-staged-row removal) · `import-audit-timeline` (07 — the whole-lifecycle audit,
+staged-row removal) · `reject-import-dialog` (07 — owner/admin, **required comment**,
+sends the import back to office) · `cancel-import-dialog` (07 — **owner only**,
+**required reason**, full cancel → `cancelled`) · `import-audit-timeline` (07 — the whole-lifecycle audit,
 consumed by the register approval-request **Historial tab** *and* the
 `replenishment-view` details; keep it presentational, fed the `ImportEvent[]`) ·
 `pending-replenishments-banner` (07 — the approval banner; lives in `wms/` but is

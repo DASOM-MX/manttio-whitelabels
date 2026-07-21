@@ -47,16 +47,24 @@ enum ImportEventType {                       // whole-lifecycle audit (owner 202
   RowRemoved = 'row_removed',                 // staged-row removal (owner/admin)
   EvidenceUpdated = 'evidence_updated',
   NotesUpdated = 'notes_updated',
-  Discarded = 'discarded',
+  Rejected = 'rejected',                      // owner/admin sent back with a comment (2026-07-20)
+  Resubmitted = 'resubmitted',                // office re-requested approval after adjusting
+  Stale = 'stale',                            // benign abandon / superseded (was 'discarded')
+  Cancelled = 'cancelled',                    // owner-only full cancel — reason required (2026-07-20)
   Approved = 'approved' }                     // admin/owner confirmation → doc created
 enum ReplenishmentImportStatus {                     // added 2026-07-19 (owner ask)
   Uploaded = 'uploaded',      // file stored, fields detected, awaiting mapping
   Queued = 'queued',          // mapping submitted, waiting for the processor to claim
   Processing = 'processing',  // delivered to the queue consumer, job running
-  Ready = 'ready',            // rows parsed + validated, preview available
+  Ready = 'ready',            // rows parsed + validated, preview available — awaiting approval
+  Rejected = 'rejected',      // owner/admin sent it back with a comment (2026-07-20) —
+                              //   office adjusts, then resubmit → ready. NON-terminal,
+                              //   still in-flight (staging intact); NOT stale/cancelled
   Failed = 'failed',          // whole-file failure or max attempts (import.error set)
   Confirmed = 'confirmed',    // replenishment created from this import
-  Discarded = 'discarded' }   // abandoned by the user — kept, never deleted
+  Stale = 'stale',            // benign abandon / superseded (was 'discarded'); cron-swept
+  Cancelled = 'cancelled' }   // owner-only full cancel (2026-07-20): staging truncated
+                              //   + record closed, required reason; terminal
 ```
 
 `STORAGE_NODE_RANK: Record<StorageNodeType, number>` (`wms/constants/`) —
@@ -263,13 +271,15 @@ replenishment_imports {
                                            //   prep and an admin can approve later;
                                            //   copied onto the doc at approval
   user_id not null → users, created_at, updated_at
-}                                          // never deleted — abandoned = 'discarded'.
+}                                          // never deleted — abandoned = 'stale',
+                                           //   owner-cancelled = 'cancelled'.
                                            // ONE IN-FLIGHT PER TENANT (owner
                                            //   2026-07-20): partial unique index
                                            //   UNIQUE ((true)) WHERE status IN
                                            //   ('uploaded','queued','processing',
-                                           //   'ready') — DB-enforces a single
-                                           //   pre-approval import; POST maps the
+                                           //   'ready','rejected') — DB-enforces a
+                                           //   single pre-approval import (rejected
+                                           //   is still in-flight); POST maps the
                                            //   violation to 409 import_in_progress
 replenishment_import_rows {                // the STAGING ("temp") table — owner
                                            //   2026-07-19: parsed data lives here,
@@ -286,16 +296,23 @@ replenishment_import_rows {                // the STAGING ("temp") table — own
   error text?                              // ParseRowError code (02 §6), null = clean
 }                                          // UNIQUE (import_id, line) — retries upsert
                                            //   by that key, never duplicate rows.
-                                           // MUTABLE while status='ready' (edits +
-                                           //   removals PATCH/DELETE here, each
-                                           //   AUDITED — below; re-resolved server-
-                                           //   side — 02 §6).
+                                           // MUTABLE while status IN ('ready',
+                                           //   'rejected') (edits + removals
+                                           //   PATCH/DELETE here, each AUDITED —
+                                           //   below; re-resolved server-side —
+                                           //   02 §6). 'rejected' = admin returned it;
+                                           //   office adjusts then resubmits → 'ready'.
                                            // Approval MOVES the data: promoted into
                                            //   the inventory tables, then the staged
                                            //   rows are DELETED in the same tx (owner
                                            //   2026-07-19 — sanctioned exception to
                                            //   no-hard-deletes: staging ≠ entity;
-                                           //   the promoted doc is the record)
+                                           //   the promoted doc is the record).
+                                           // Owner CANCEL (2026-07-20) TRUNCATES these
+                                           //   rows immediately + closes the record
+                                           //   ('cancelled'); the required-reason
+                                           //   'cancelled' event is the surviving trail
+                                           //   (same sanctioned staging exception)
 replenishment_import_events {              // append-only audit of the WHOLE import
                                            //   lifecycle — start button → admin/owner
                                            //   confirmation (owner 2026-07-20). NEW
@@ -305,19 +322,24 @@ replenishment_import_events {              // append-only audit of the WHOLE imp
   id, import_id not null → replenishment_imports,   // header persists forever, so
                                            //   the log outlives the ephemeral staged
                                            //   rows (survives approval)
-  type ImportEventType not null,           // the 11 lifecycle events above
+  type ImportEventType not null,           // the 14 lifecycle events above
   actor_user_id uuid? → users,             // who did it; NULL for system events
                                            //   (processing_started/processed/failed —
                                            //   emitted by the queue consumer)
   line int?,                               // set on row_updated/row_removed (the
                                            //   staged line — NOT an FK, rows vanish)
-  reason text?,                            // REQUIRED on row_removed (audit comment)
+  reason text?,                            // REQUIRED on row_removed (audit comment),
+                                           //   on rejected (the admin's feedback shown
+                                           //   to office to adjust), and on cancelled
+                                           //   (the owner's reason for the full cancel)
   details jsonb not null default '{}',     // event-specific: row_updated { field:
                                            //   {from,to} }; row_removed row snapshot;
                                            //   mapping_submitted { warehouse, mapping };
                                            //   processed { total, errors }; failed
                                            //   { error }; approved { folio,
-                                           //   replenishmentId }
+                                           //   replenishmentId }; rejected's + cancelled's
+                                           //   comment rides `reason` (details {});
+                                           //   resubmitted {}
   created_at
 }                                          // no deleted_at, no UPDATE/DELETE path —
                                            //   append-only like movements/interactions.
@@ -469,28 +491,34 @@ a unit's latest `movement_units` row agrees with its current location/status.
   `queued` →(delivered to the queue consumer)→ `processing` → `ready` | `failed`;
   failed/timed-out deliveries redeliver (idempotent handler), retry cap → DLQ ⇒
   `failed`; `ready` = **awaiting
-  approval** — staged rows sit in the temp table, editable via row PATCH;
-  →(**approval**)→ `confirmed`: one transaction **moves the staged rows into the
-  actual inventory tables** — replenishment doc + items; processable rows emit
-  inbound movements + stock (§3), **unprocessable rows (serial collisions — owner
-  2026-07-20) become flagged, movement-less items** — then deletes the staging
-  (below). Any pre-approval state →(user abandons / new
-  upload replaces it)→ `discarded`. Only the **queue consumer** (11) writes
-  `processing → ready/failed` + the progress counters; only the approval transaction
-  writes `confirmed`. Terminal states: `failed`, `confirmed`, `discarded`.
+  approval** — staged rows sit in the temp table, editable via row PATCH.
+  From `ready`, owner/admin either **approve** or **reject with a comment** (owner
+  2026-07-20) → `rejected`: office adjusts the staged rows then **resubmit** → back
+  to `ready` (both logged, re-notifies the manager). →(**approval**)→ `confirmed`:
+  one transaction **moves the staged rows into the actual inventory tables** —
+  replenishment doc + items; processable rows emit inbound movements + stock (§3),
+  **unprocessable rows (serial collisions — owner 2026-07-20) become flagged,
+  movement-less items** — then deletes the staging (below). Any pre-approval state
+  →(user abandons / new upload replaces it)→ `stale`, or →(**owner** cancels with a
+  required reason — 2026-07-20)→ `cancelled` (staging truncated immediately, record
+  closed). Only the **queue consumer** (11) writes `processing → ready/failed` + the
+  progress counters; only the approval transaction writes `confirmed`. Terminal
+  states: `failed`, `confirmed`, `stale`, `cancelled`.
   **Staged rows are deleted in the approval transaction** after promotion (owner
   2026-07-19 — true move semantics; the deliberate, flagged exception to the
   no-hard-deletes rule: staging is a temp table, not a user-facing entity. The
   record is the promoted doc + items + movements, plus the import header row —
-  `file_name` + `mapping` — which is kept). Staging left behind by `discarded`/
-  `failed` imports is cleaned by the daily cron (11 §4).
+  `file_name` + `mapping` — which is kept). Staging left behind by `stale`/
+  `failed` imports is cleaned by the daily cron (11 §4); owner-`cancelled` imports
+  truncate their staging immediately, so the cron finds nothing to sweep for them.
   **File retention (owner 2026-07-19 — supersedes the 2026-07-05 keep-forever
   evidence-file decision):** uploads are **copies** — the tenant keeps the original
   file outside the system, so the staged binary has **zero archival value** and is
   purely **transient**: the **queue consumer** deletes it from R2 once the file is
   fully processed (the `ready` write) and stamps `file_deleted_at`; `failed` imports
-  keep their file only as retry/debug input. Leftover binaries (discarded/abandoned/
-  failed imports) are collected by the daily retention cron (decided — 11 §4).
+  keep their file only as retry/debug input. Leftover binaries (stale/abandoned/
+  failed imports) are collected by the daily retention cron (decided — 11 §4);
+  owner-`cancelled` imports purge their binary in the cancel transaction.
   Post-approval, the in-system record is the **promoted doc + items + movements**
   plus the import header (`file_name`, `mapping`) — staged rows are
   moved-then-deleted (lifecycle above). **Evidence photos are unaffected** — they

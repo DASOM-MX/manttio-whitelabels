@@ -1,7 +1,7 @@
 # 14 — Access control (roles + config gating)
 
 > **Status:** done (doc — implementation tasks live in `02-app-shell.md` and each module's
-> checklists) · **Last updated:** 2026-07-19 (§2.1: replenishment approval split, note e)
+> checklists) · **Last updated:** 2026-07-20 (§2.1: replenishment reject/resubmit + owner-only cancel, note e)
 >
 > ⚠️ **Correction (2026-07-15, owner):** module flags exist at the **organization level**
 > and are **set from the whitelabels admin app** (the manager tool — *not in this repo*).
@@ -111,7 +111,10 @@ WMS permissions are **action-level**, not module-level:
 | Inbound (receive deliveries) | ✓ | ✓ | ✓ | — |
 | Replenishments: prepare (upload + field-map, edit staged rows incl. quantity, evidence, notes) | ✓ | ✓ | ✓ | — |
 | Replenishments: **remove** a staged row (audited, reason required)ᵉ | ✓ | ✓ | — | — |
+| Replenishments: **reject** (send back to office w/ comment)ᵉ | ✓ | ✓ | — | — |
+| Replenishments: **resubmit** (re-request approval after adjusting)ᵉ | ✓ | ✓ | ✓ | — |
 | **Replenishments: approve** (promote staged data → inventory)ᵉ | ✓ | ✓ | — | — |
+| **Replenishments: cancel** (full — truncate staging + close, reason)ᵉ | ✓ | — | — | — |
 | Transfer (any → any) | ✓ | ✓ | ✓ | — |
 | **Self-checkout** (→ own van) | n/a | n/a | n/a | ✓ᵃ |
 | **Readjustment** (compensating in/out; mark lost/damaged)ᵈ | ✓ | ✓ | — | — |
@@ -139,12 +142,15 @@ e. **Replenishment prepare / remove / approve (decided 2026-07-19; refined
    inventory until an **owner/admin approves**, which promotes the staged data into
    the inventory tables and emits the inbound movements. Office **prepares** (upload,
    mapping, editing staged rows incl. quantities, evidence, notes — all staged) but
-   **cannot remove rows and cannot approve** — the same draft-vs-commit split as
-   billing/contracts (§2 note 3). **Removing a staged row is owner/admin only and
-   audited** (reason required; every staged-row change — edit or removal — is logged
-   append-only to `replenishment_import_row_edits`, owner 2026-07-20: guards against
-   silent quantity fiddling / row removal). Details:
-   `10-wms/07-replenishments.md` + `10-wms/02-api-surface.md` §6.
+   **cannot remove rows, cannot reject, cannot approve, cannot cancel** — the same
+   draft-vs-commit split as billing/contracts (§2 note 3). The governance tiers are
+   all **logged append-only to `replenishment_import_events`** (owner 2026-07-20 —
+   guards against silent quantity fiddling / row removal): **removing a staged row**
+   is owner/admin + reason-required; **rejecting** (owner/admin + comment-required)
+   sends the import back to office, which **adjusts and resubmits** (any prep role) to
+   re-request approval — re-notifying the manager; **full cancel** (truncate staging +
+   close the record, reason required) is **owner-only** — not admin, not office.
+   Details: `10-wms/07-replenishments.md` + `10-wms/02-api-surface.md` §6.
 
 ## 3. How gating is implemented (CSR v1 — decided 2026-07-05)
 

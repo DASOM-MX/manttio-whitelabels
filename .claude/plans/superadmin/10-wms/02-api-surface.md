@@ -134,7 +134,9 @@ the one-shot GET a plain read; where processing runs is an implementation detail
 appends one `replenishment_import_events` row (01 §2) — `created` (upload/start),
 `mapping_submitted`, `processing_started`/`processed`/`processing_failed` (system,
 queue consumer), `row_updated`/`row_removed`, `evidence_updated`, `notes_updated`,
-`discarded`, `approved` (confirmation → doc). Each endpoint below that mutates an
+**`rejected`/`resubmitted`** (the reject→adjust→re-request cycle, owner 2026-07-20),
+`stale`, **`cancelled`** (owner-only full cancel, owner 2026-07-20), `approved`
+(confirmation → doc). Each endpoint below that mutates an
 import emits its event in the same transaction; the log is append-only and permanent
 (survives approval), read via `GET .../audit`.
 
@@ -144,13 +146,16 @@ import emits its event in the same transaction; the log is append-only and perma
 | `GET /replenishments/:id` | owner/admin/office | Doc + **`importId`** (backlink so the details page loads the audit via `GET .../imports/:id/audit` — owner 2026-07-20) + items (joined material name/sku/tracking; items carry `unprocessable` + `error`) + evidence keys + source-file **name** via the `import_id` join (metadata only — the binary is purged post-processing, 01 §4) |
 | `POST /replenishments/imports` | owner/admin/office | Multipart `{ file }` (`.xlsx`/`.csv`/`.txt`, delimiter-sniffed; size cap 1 MB). Stages the file in R2 **first** (the reference the consumer pulls it by; transient — purged after processing, 01 §4), then does **lightweight field detection only** (header row + ≤5 sample values per column — cheap even via SheetJS) → creates the import row (`status: uploaded`) → `{ importId, fileName, fields: [{ id, header, samples }], suggestedMapping? }` — `suggestedMapping` (field-id-resolved) is returned when the saved last-mapping's headers match the detected ones (settings key `wms.last_replenishment_mapping` — 01 §2, added 2026-07-19). Unreadable file → `400 unparseable_file`, no row created. Emits `created`. **One in-flight import at a time** (owner 2026-07-20): rejects `409 import_in_progress` when the tenant already has an import in a pre-approval state (`uploaded`/`queued`/`processing`/`ready`) — the client resumes that one (07 §2) instead of opening a second |
 | `POST /replenishments/imports/:id/process` | owner/admin/office | `{ warehouseId, mapping: { sku: fieldId, quantity?: fieldId, serial?: fieldId, lot?: fieldId, expiry?: fieldId } }` — `sku` required, plus at least one of `quantity`/`serial`/`lot` (`400 invalid_mapping`); `expiry` optional and only meaningful with `lot`; only from `uploaded` (`409 import_not_pending`). Stores mapping + warehouse, sets **`queued`**, sends `{ importId }` to the queue binding, **upserts the settings key `wms.last_replenishment_mapping`** as `{ headers, mapping }` — keyed by **header text**, not field id (ids are per-import), so the next upload with the same headers prefills the mapper — and **writes `submission_snapshot`**: the whole submission (file name, warehouse, detected fields, mapping, submitter, timestamp) as **human-readable pretty-printed JSON stored as plain text** (owner 2026-07-20 — a durable, exportable audit of what was submitted and how it was mapped; survives approval on the permanent header) — and emits `mapping_submitted` → **`202 { status }`**. The **queue consumer** (11) walks the file per the mapping, resolves materials (SKU exact, then UPC exact), upserts `replenishment_import_rows` + progress counters, flips `ready`/`failed`. Row errors, two classes (owner 2026-07-20): **fixable** — `unknown_sku`, `bad_quantity`, `missing_serial`, `missing_lot` (lot-tracked row without a lot value), `bad_expiry` (unparseable value in the mapped expiry field), `quantity_on_serialized` (≠1) — gate approval until PATCHed clean; **unprocessable** — `duplicate_serial` (in-file: first occurrence processes, repeats flagged) and `serial_exists` (already in DB) — do NOT gate approval, they promote as flagged unprocessed items (see the approval row). **Lot collisions are NOT errors** (re-receipt enabled 2026-07-20): a repeat lot number, in-file or in DB, tops up that lot; in-file repeats aggregate their quantities. Both error classes stay PATCH-fixable pre-approval |
-| `GET /replenishments/imports/:id` | owner/admin/office | **One-shot status read** (initial load, `?import=` resume, pending strip) — `{ id, status, fileName, fields, mapping?, submissionSnapshot?, progress: { total?, processed, errors }, error?, evidencePhotos, notes?, rows? }`; `rows` + `submissionSnapshot` present once processed. Pure DB read |
+| `GET /replenishments/imports/:id` | owner/admin/office | **One-shot status read** (initial load, `?import=` resume, pending strip) — `{ id, status, fileName, fields, mapping?, submissionSnapshot?, progress: { total?, processed, errors }, error?, rejectionComment?, evidencePhotos, notes?, rows? }`; `rows` + `submissionSnapshot` present once processed; **`rejectionComment` present when `status = 'rejected'`** (derived — the latest `rejected` event's comment, so office sees the feedback without loading the full audit). Pure DB read |
 | `GET /replenishments/imports/:id/events` | owner/admin/office | **SSE status stream** (owner 2026-07-19 — push over poll): `text/event-stream` via Hono's `streamSSE`. Emits the same payload as the GET on **every status/progress change** — the handler watches the DB row server-side (~2 s re-reads + a 15 s heartbeat comment) — and **closes itself after the terminal event** (no idle connections). Feasibility (confirmed 2026-07-20): Workers stream SSE natively — CPU time is metered, wall-clock while streaming is not, and these streams live seconds by design. Bearer-authed like every route; clients use a fetch-based reader, not `EventSource` (07 §3.1) |
-| `PATCH /replenishments/imports/:id/rows/:line` | owner/admin/office | Edit a **staged row** (`ready` only — `409 import_not_ready`): `{ code?, quantity?, serial?, lot?, expiresAt?, storageNodeId? }` — editable on **any** row, not just errored ones (owner 2026-07-20): the **quantity** correction ("arrived 95, not 100") is a first-class edit, independent of parse errors. Server re-resolves (SKU-then-UPC) + re-validates and returns the row; **emits a `row_updated` event** (per-field before/after, actor) — 01 §2. Edits persist, survive reloads, carry across users. Frozen once approved |
-| `DELETE /replenishments/imports/:id/rows/:line` | **owner/admin only** (office 403 — owner 2026-07-20: removal invites mismanagement, restrict it) | Remove a staged row (`ready` only) — body `{ reason }` **required** (audit comment). Emits a `row_removed` event (row snapshot + `reason` + actor) **then** deletes the staged row. The line is gone; the event is permanent |
+| `PATCH /replenishments/imports/:id/rows/:line` | owner/admin/office | Edit a **staged row** (`ready`/`rejected` only — `409 import_not_ready`): `{ code?, quantity?, serial?, lot?, expiresAt?, storageNodeId? }` — editable on **any** row, not just errored ones (owner 2026-07-20): the **quantity** correction ("arrived 95, not 100") is a first-class edit, independent of parse errors. **`rejected` is editable too** so office can act on the admin's feedback before resubmitting. Server re-resolves (SKU-then-UPC) + re-validates and returns the row; **emits a `row_updated` event** (per-field before/after, actor) — 01 §2. Edits persist, survive reloads, carry across users. Frozen once approved |
+| `DELETE /replenishments/imports/:id/rows/:line` | **owner/admin only** (office 403 — owner 2026-07-20: removal invites mismanagement, restrict it) | Remove a staged row (`ready`/`rejected` only) — body `{ reason }` **required** (audit comment). Emits a `row_removed` event (row snapshot + `reason` + actor) **then** deletes the staged row. The line is gone; the event is permanent |
 | `GET /replenishments/imports/:id/audit` | owner/admin/office | **The whole-lifecycle event log** (owner 2026-07-20) — paged, newest first: `{ type, actor?: { id, name }, line?, reason?, details, createdAt }` across every event from `created` (start) to `approved` (confirmation). Read-only; feeds **both** the approval-request "Historial" tab **and** the confirmed replenishment-view details — one reusable timeline (07 §2). *(distinct from `/events`, the SSE status stream)* |
-| `PATCH /replenishments/imports/:id` | owner/admin/office | Approval-stage prep (`ready` only): `{ evidencePhotos?, notes? }` — staged on the import so office can fully prepare and an admin approves later. Emits `evidence_updated` / `notes_updated` per changed field |
-| `POST /replenishments/imports/:id/discard` | owner/admin/office | Flips any pre-approval status to `discarded` (emits `discarded`); its staged rows + any leftover binary are collected by the daily retention cron (11 §4) |
+| `PATCH /replenishments/imports/:id` | owner/admin/office | Approval-stage prep (`ready`/`rejected` only): `{ evidencePhotos?, notes? }` — staged on the import so office can fully prepare and an admin approves later. Emits `evidence_updated` / `notes_updated` per changed field |
+| `POST /replenishments/imports/:id/reject` | **owner/admin only** (approval decision — office 403, §2.1e) | **Send a `ready` import back to office with feedback** (owner 2026-07-20): body `{ comment }` **required** (`400` if blank); `ready` only (`409 import_not_ready`). Sets status **`rejected`**, emits a **`rejected`** event (the comment in `reason` + actor). Staging rows are untouched — office adjusts them, then resubmits. In-app-notifies office (07 §2) |
+| `POST /replenishments/imports/:id/resubmit` | owner/admin/office | **Re-request approval** after adjusting a `rejected` import (owner 2026-07-20): `rejected` only (`409 import_not_rejected`); no body. Sets status back to **`ready`**, emits a **`resubmitted`** event (actor), and **re-fires the manager approval notification** (entering `ready` → banner + email, §6 notification / 11 §2). Office's headline follow-up to a rejection |
+| `POST /replenishments/imports/:id/discard` | owner/admin/office | Flips any pre-approval status (incl. `rejected`) to **`stale`** — the benign abandon (emits `stale`); its staged rows + any leftover binary are swept by the daily retention cron (11 §4). Used by re-upload to supersede the prior import. *No reason, cron-cleaned, any prep role — distinct from cancel* |
+| `POST /replenishments/imports/:id/cancel` | **owner only** (not admin/office — owner 2026-07-20) | **Full cancel** of a pre-approval import: body `{ reason }` **required** (`400` if blank); valid from any pre-approval status (`409 import_not_cancellable` on a terminal one). One transaction — **truncates the staging rows**, purges any leftover binary, sets status **`cancelled`** (record closed), emits a **`cancelled`** event (reason + actor). Immediate + reasoned + owner-gated, unlike discard. A **confirmed** replenishment can't be cancelled (permanent doc — correct via readjustment) |
 | `POST /replenishments` | **owner/admin** (approval — office excluded, §2.1e) | `{ importId }` — **the approval: promotes the staging table into the inventory tables.** Import must be `ready` (`409 import_not_ready`) with zero **fixable** row errors (`409 import_has_errors` — unprocessable rows don't block, owner 2026-07-20). One transaction: increment `wms_counters` folio → insert doc + items from **all** staged rows — serial-collision rows become **`unprocessable: true` items carrying their error code: recorded and visible in the document, but no movement, no units, no stock effect** (awareness for record review / provider follow-up) → per processable item, emit an inbound movement (`reason: replenishment`, `replenishmentId` set) through the same 01 §3 path (serialized: creates units) → **delete the staged rows and mark the import `confirmed`** (true move — owner 2026-07-19, the sanctioned staging exception; the import header row stays as the trail: file name, mapping, submission snapshot, event log) → **emit `approved`** (`{ folio, replenishmentId }`). Append-only applies to the *doc*: no PATCH/DELETE routes on replenishments |
 
 **Processing (owner decision 2026-07-19 — Cloudflare Queues; supersedes the
@@ -163,13 +168,17 @@ writer of `processing → ready/failed`. The contract stays **202 + DB-backed st
 external service later without touching the API or superadmin — the consumer never
 knows SSE exists.
 
-**Approval/failure notification (owner 2026-07-20):** reaching `ready` (awaiting
-approval) or `failed` warns the configured **CMS-manager**
-(`notifications.manager_user_id` — §1, 01 §2): a de-branded **email** from the queue
-consumer (11 §2) via the email module + the superadmin app-shell **banner** (07
-§2/§3). Best-effort — an unconfigured recipient is skipped; no new endpoint (the
-banner reuses `pendingImports`, the email is a consumer side-effect). Resolves the
-deferred "notify admins of pending approvals" item.
+**Approval/failure notification (owner 2026-07-20):** **entering `ready`** — from
+processing OR a **resubmit after rejection** — (awaiting approval), or `failed`,
+warns the configured **CMS-manager** (`notifications.manager_user_id` — §1, 01 §2):
+a de-branded **email** + the superadmin app-shell **banner** (07 §2/§3). The notifier
+is one helper, fired wherever a row enters `ready` (the queue consumer on processed,
+the `resubmit` endpoint on re-request — 11 §2), so it is a request-path call there,
+not only a consumer side-effect. **Rejection notifies the other direction:** office
+is told its import was returned — in-app (the list flags `rejected` as "cambios
+solicitados" and routes to adjust, 07 §2); an office email is a deferred symmetric
+option. Best-effort — an unconfigured recipient is skipped; the banner reuses
+`pendingImports`. Resolves the deferred "notify admins of pending approvals" item.
 
 ## 7. Report materials — `report-materials.controller.ts` (mounted at `/reports`)
 
@@ -196,7 +205,7 @@ replenishment) — **target bucket: dedicated `manttio-wms`** (proposed 2026-07-
 `builtin_locked` · `use_replenishment_flow` · `insufficient_stock` · `serial_exists` ·
 `unit_not_available` · `not_own_van` · `no_assigned_warehouse` · `source_forbidden` ·
 `not_own_report` · `report_not_editable` · `unparseable_file` · `invalid_mapping` ·
-`import_not_pending` · `import_not_ready` · `import_has_errors` · `import_in_progress` ·
+`import_not_pending` · `import_not_ready` · `import_not_rejected` · `import_not_cancellable` · `import_has_errors` · `import_in_progress` ·
 `missing_lot` · `bad_expiry` — each a typed error in `wms/http-errors/`,
 mapped in the owning controller (400 validation · 403 role/scope · 404 missing ·
 409 conflict).
@@ -223,7 +232,11 @@ mapped in the owning controller (400 validation · 403 role/scope · 404 missing
       `unparseable_file`), process (mapping validation, `queued` transition, 202),
       one-shot status read + SSE stream (change-emit, heartbeat, terminal close),
       staged-row PATCH (re-resolution) + **row DELETE (owner/admin only, reason
-      required)** + prep PATCH, discard; **`GET .../audit`**; `settings` module +
+      required)** + prep PATCH, discard; **reject (owner/admin, comment required →
+      `rejected`) + resubmit (→ `ready`, re-notifies) with `ready`/`rejected`
+      editable-state gates + owner-only cancel (required reason → `cancelled`, staging
+      truncated + binary purged, `import_not_cancellable` guard)**; **`GET .../audit`**;
+      `settings` module +
       last-mapping upsert/suggest;
       **approval** (owner/admin only — office 403; promotion transaction from
       staging: folio, items, evidence/notes copy, movements, `confirmed` flip,

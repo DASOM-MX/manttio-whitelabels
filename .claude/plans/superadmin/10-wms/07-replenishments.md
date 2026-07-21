@@ -43,6 +43,8 @@ ReplenishmentImport {                       // dto for the async job (added 2026
   id, status: ReplenishmentImportStatus, fileName,
   fields: ImportField[], mapping?: ImportMapping,
   progress: { total?, processed, errors }, error?,
+  rejectionComment?,                        // present when status = 'rejected' — the
+                                            //   admin's feedback (latest reject event), 2026-07-20
   submissionSnapshot?,                      // human-readable JSON text of the
                                             //   submission (file + mapping), 2026-07-20
   rows?: ParseRow[]                         // present once status = 'ready'
@@ -51,7 +53,7 @@ ImportField { id, header, samples: string[] }
 ImportMapping { sku: string, quantity?: string, serial?: string,
                 lot?: string, expiry?: string }   // → field ids (lot + expiry 2026-07-20)
 ReplenishmentImportStatus = 'uploaded' | 'queued' | 'processing' | 'ready'
-                          | 'failed' | 'confirmed' | 'discarded'
+                          | 'rejected' | 'failed' | 'confirmed' | 'stale' | 'cancelled'
 ParseRow { line, raw, materialId?, materialName?, tracking?,
            quantity?, serial?, lot?, lotExpiresAt?, error?: ParseRowError }
 ParseRowError = 'unknown_sku' | 'bad_quantity' | 'missing_serial'
@@ -64,7 +66,8 @@ ImportEvent { type: ImportEventType,                 // whole-lifecycle audit (2
               createdAt }
 ImportEventType = 'created' | 'mapping_submitted' | 'processing_started'
                 | 'processed' | 'processing_failed' | 'row_updated' | 'row_removed'
-                | 'evidence_updated' | 'notes_updated' | 'discarded' | 'approved'
+                | 'evidence_updated' | 'notes_updated' | 'rejected' | 'resubmitted'
+                | 'stale' | 'cancelled' | 'approved'
 ReplenishmentsQuery { warehouseId?, from?, to?, page, limit }
 ```
 
@@ -93,7 +96,12 @@ crea el material"). Rendered via pipe. The `sku` file column accepts **SKU or UP
   listing imports in `ready` (file name, warehouse, rows/errors, prepared by, age)
   with **"Revisar y aprobar"** → the register page with `?import=` (owner/admin;
   office sees its own pending imports with "Continuar preparación"). This is how an
-  admin finds what office prepared.
+  admin finds what office prepared. **Rejected imports surface here too** (owner
+  2026-07-20): an import in `rejected` shows to office (and owner/admin) with a
+  **"cambios solicitados"** pill + a feedback preview and **"Ajustar y reenviar"** →
+  the register page `?import=` — office's entry point to the adjustment loop. (The
+  manager app-shell banner, §3, counts `ready` only — a rejected import is back with
+  office, not awaiting approval.)
 
 ### `wms/pages/replenishment-register/` (`/warehouse/replenishments/new`)
 
@@ -104,7 +112,7 @@ to the same job and resumes the status stream (URL-persistence rule applied to a
 flow). **On load without `?import=`, the page first checks for an existing pre-approval
 import** (one-in-flight rule, 02 §6): if one exists it redirects to it (`?import=`)
 rather than showing a fresh upload — a fresh import can only start once the current
-one is approved or discarded.
+one is approved, cancelled, or gone stale.
 
 1. **Destination** — warehouse `<p-select>` (required before the mapping submits;
    subs included).
@@ -193,16 +201,40 @@ one is approved or discarded.
    (`PATCH /replenishments/imports/:id`). Delivery photos, invoices, pallets.
 7. **Notes** — textarea, optional; same `UpdateImportPrep` persistence (debounced on
    blur).
-8. **Approval** — summary strip (n items, m units/qty total, destination), plus a
-   **warning line when unprocessable rows exist** ("2 filas se registrarán como no
-   procesables — sin efecto en inventario"). Role split: **owner/admin** see
-   **"Aprobar reabastecimiento"** — disabled while any **fixable** row error
-   remains or no processable items — dispatching `ApproveReplenishment(importId)`
-   (`POST /replenishments` — the backend promotes the staging table into inventory,
-   02 §6) → route to the new `replenishment-view`, toast with folio. **Office**
-   sees a status card instead ("Preparado — esperando aprobación de un
-   administrador"): their prep is already fully staged, there is nothing to submit
-   and no approve affordance rendered (hidden, never disabled).
+8. **Approval / rejection** — the "Revisión" tab's action row: summary strip (n
+   items, m units/qty total, destination), plus a **warning line when unprocessable
+   rows exist** ("2 filas se registrarán como no procesables — sin efecto en
+   inventario"). It is **status-driven** (owner 2026-07-20 — the reject→adjust→
+   re-request loop):
+   - **`ready` · owner/admin** — **"Aprobar reabastecimiento"** (disabled while any
+     **fixable** row error remains or no processable items) → `ApproveReplenishment`
+     (`POST /replenishments`, promotes staging → inventory, 02 §6) → route to the new
+     `replenishment-view`, toast with folio. Beside it, **"Rechazar"** (secondary,
+     danger-tone) opens **`reject-import-dialog`** (shape 2, **required comment** —
+     the feedback for office) → `RejectImport(importId, comment)` (`POST .../reject`)
+     → status `rejected`; the comment is written to the audit trail (`rejected`
+     event) and shown back to office (below).
+   - **`ready` · office** — a status card ("Preparado — esperando aprobación de un
+     administrador"): fully staged, nothing to submit, **no approve/reject affordance
+     rendered** (hidden, never disabled).
+   - **`rejected` · everyone** — a prominent **feedback panel** at the top of the
+     Revisión tab: "Un administrador solicitó cambios: «{rejectionComment}»"
+     (warning tone; the comment from the import DTO — 02 §6). Office (and owner/admin)
+     adjust the staged rows / evidence / notes **in place** — the same edit
+     affordances stay live (`rejected` is editable, 02 §6) — then **"Solicitar
+     aprobación de nuevo"** → `ResubmitImport(importId)` (`POST .../resubmit`) → back
+     to `ready`, which **re-notifies the manager** (banner + email, §3 / 11 §2) and
+     emits `resubmitted`.
+   - **Owner-only · any pre-approval status** — **"Cancelar reabastecimiento"**
+     (danger, **owner only** — not admin, not office) opens **`cancel-import-dialog`**
+     (**required reason**) → `CancelImport(importId, reason)` (`POST .../cancel`) →
+     terminal **`cancelled`**: the staging rows are **truncated** and the import
+     record **closed** in one transaction; the reason lands in the audit trail as a
+     `cancelled` event (the permanent record survives the truncate). Distinct from
+     **discard** (the benign abandon / re-upload file-swap, any prep role,
+     cron-cleaned) — cancel is the owner's authoritative kill: immediate + reasoned.
+     A **confirmed** replenishment can't be cancelled — it's a permanent document;
+     correct it with a readjustment (06).
 
 ### `wms/pages/replenishment-view/` (`/warehouse/replenishments/:id`)
 
@@ -267,6 +299,13 @@ audited; state updated from the response),
 approval-request Historial tab and the confirmed `replenishment-view`; the view
 passes `selected.importId`),
 `UpdateImportPrep(importId, { evidencePhotos?, notes? })`,
+`RejectImport(importId, comment)` (owner/admin — `POST .../reject`, required comment,
+`ready` → `rejected`, audited),
+`ResubmitImport(importId)` (owner/admin/office — `POST .../resubmit`, `rejected` →
+`ready`, re-notifies the manager, audited),
+`CancelImport(importId, reason)` (**owner only** — `POST .../cancel`, required reason,
+any pre-approval status → `cancelled`; truncates staging + closes the record,
+audited),
 `ApproveReplenishment(importId)` (owner/admin — the promotion).
 
 ### 3.1 Status stream (SSE — owner 2026-07-19, supersedes the polling loop)
@@ -372,7 +411,11 @@ backend know where files live).
       submission-snapshot toggle — timeline built as a **reusable component**
 - [ ] Evidence uploader + notes persisted via `UpdateImportPrep`; approval step with
       role split (admin approve button + gating, office waiting card, affordance
-      hidden not disabled)
+      hidden not disabled); **reject → `reject-import-dialog` (required comment) →
+      `RejectImport`; `rejected` feedback panel + adjust-in-place + "Solicitar
+      aprobación de nuevo" → `ResubmitImport`; `rejected` pill + list "Ajustar y
+      reenviar" CTA; owner-only "Cancelar" → `cancel-import-dialog` (required reason)
+      → `CancelImport` (terminal `cancelled`, staging truncated)**
 - [ ] Replenishment view: items, gallery lightbox, source-file name metadata (via
       import join), `movements-table` expandable filtered by `replenishmentId`,
       **Historial audit section** (reused timeline via `replenishment.importId`)

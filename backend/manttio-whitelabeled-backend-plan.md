@@ -215,10 +215,14 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   import lifecycle is audited** (owner 2026-07-20): an append-only
   `replenishment_import_events` log — `created`→`mapping_submitted`→processing
   (system)→`row_updated`/`row_removed`→`evidence_updated`/`notes_updated`→
-  `discarded`|`approved` — permanent, survives approval; **staged-row removal is
-  owner/admin only + reason-required** (office edits quantities, can't remove);
-  plus a per-import human-readable plain-text-JSON `submission_snapshot` (file +
-  mapping). Replenishment-scoped, not a generic WMS edit audit. **approval —
+  `rejected`/`resubmitted`→`stale`|`cancelled`|`approved` — permanent, survives
+  approval; **governance tiers, each logged: staged-row removal is owner/admin +
+  reason-required** (office edits quantities, can't remove); **reject is owner/admin
+  + comment-required** (→ office adjusts + resubmits → re-notifies the manager);
+  **full cancel is owner-only + reason-required** (truncates staging, closes the
+  record → `cancelled`); plus a per-import human-readable plain-text-JSON
+  `submission_snapshot` (file + mapping). Replenishment-scoped, not a generic WMS
+  edit audit. **approval —
   owner/admin only (14 §2.1e) — promotes staging into the inventory tables and
   deletes the staged rows (true move — the one sanctioned hard-delete exception:
   staging is a temp table, not an entity)** (doc + items + movements + stock in
