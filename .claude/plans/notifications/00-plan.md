@@ -24,14 +24,22 @@ engine, no preference center in v1.
 - **Two channels, v1:** `in_app` (the persisted row + SSE push — always on) and `email`
   (opt-in per call, de-branded, best-effort). SMS/WhatsApp/push are later channels behind
   the same `notify()` seam.
-- **Per-user, single recipient.** A notification targets one `users.id`. "Notify all
-  admins" is the caller's loop, not a broadcast primitive (fan-out/broadcast deferred —
-  §7). Backend is per-tenant deployed, so there is **no `tenant_id`** column (matches
-  `users`/`customers`).
-- **The module does not own recipient selection.** Callers pass `recipientUserId`. WMS
-  resolves it from `getSetting('notifications.manager_user_id')` (that `settings` key +
-  the `settings` module stay a WMS/ops concern — `10-wms/01-data-model.md` §2); an unset
-  recipient means the caller simply doesn't call `notify()` (WMS already logs-and-skips).
+- **Addressed by user *or* role.** A notification targets a specific `users.id`, **or** a
+  **role** (the baseline `owner`/`admin`/`office`/`technician`) used as a fallback when no
+  `recipientUserId` is given. A role send **fans out at creation** — `notify()` resolves the
+  active users of that role and inserts **one row per user** (each with a concrete
+  `recipient_user_id`), so read-state, the badge, SSE scoping, mark-read, and retention all
+  stay per-user and unchanged; each recipient dismisses their own copy independently. (The
+  alternative — one shared role-addressed row + a per-user read-state join table — was
+  rejected: it breaks the clean per-user read model for no real gain at this scale.) Users
+  have a single role here, so a broadcast is a handful of rows. Backend is per-tenant
+  deployed, so there is **no `tenant_id`** column (matches `users`/`customers`).
+- **The module doesn't own recipient *policy*.** Callers pass a `recipientUserId` **or** a
+  `role`; the module resolves a role to its active users but never decides *who should
+  care*. WMS resolves the direct recipient from `getSetting('notifications.manager_user_id')`
+  (that key + the `settings` module stay a WMS/ops concern — `10-wms/01-data-model.md` §2)
+  and now **falls back to a role broadcast** (`owner`/`admin`) when the key is unset (§4) —
+  the email/bell equivalent of the banner's owner/admin fallback — instead of skipping.
 - **SSE for consistency (owner).** Live delivery reuses the WMS SSE shape
   (`text/event-stream` via Hono `streamSSE`, Bearer-authed, `~2 s` DB re-read + `15 s`
   heartbeat) — **but the notifications stream is session-length, not self-closing** (WMS's
@@ -39,14 +47,21 @@ engine, no preference center in v1.
   The frontend reuses the same **fetch-based SSE reader** (not `EventSource` — can't set
   `Authorization`). This is the **second SSE consumer**, which per `10-wms/07` §3.1 is the
   trigger to **extract the reader into a shared util** (§3.1).
-- **Retention = a sanctioned hard delete (owner-directed).** Notifications are **transient
-  delivery records, not an audit trail and not a user-facing domain resource** — the
-  permanent record of the underlying event lives in the originating module's own
-  append-only log (e.g. WMS `replenishment_import_events`). The daily 8-month purge is
-  therefore a **hard `DELETE`**, the same sanctioned exception class as the WMS staging
-  retention sweep (`10-wms/11` §4), and it **never touches any audit trail**. This is the
-  one place the module departs from the repo's no-hard-deletes default, and it does so by
-  explicit owner instruction; called out here so it isn't mistaken for drift.
+- **Retention = a sanctioned hard delete (owner-directed).** The fork rule (`CLAUDE.md`,
+  2026-07-19) makes soft delete the *only* removal mechanism **for every domain entity** —
+  no hard-DELETE, no wipe scripts, no destructive migrations. That rule exists to protect
+  **strong entities with dependents** (a deleted customer must not orphan its reports' FKs).
+  A notification is the opposite: a **leaf / weak entity** — **nothing FKs to it**, no
+  dependents to cascade or orphan (owner, 2026-07-20: "not strong entities with dependent
+  entities"). It is a **transient delivery copy**, not an audit trail and not a user-facing
+  resource — the permanent record of the underlying event lives in the originating module's
+  own append-only log (e.g. WMS `replenishment_import_events`). So removing an old
+  notification breaks **no referential integrity**, and the daily 8-month purge is a plain
+  **hard `DELETE`** (a soft flag would never bound table growth, which is the whole point of
+  "clear records older than 8 months") — the same sanctioned exception class as the WMS
+  staging retention sweep (`10-wms/11` §4), touching **no audit trail**. The one deliberate,
+  owner-directed departure from the no-hard-deletes default; called out so it reads as
+  intentional, not drift.
 - **Creation is server-internal only.** No client-facing "create notification" endpoint —
   domain modules call the service in-process. Clients only *read*, *mark read*, and
   *stream*.
@@ -64,7 +79,8 @@ convention (`customers/enums/customers.enum.ts`).
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `uuid` pk `defaultRandom()` | |
-| `recipient_user_id` | `uuid` not null | → `users.id` (FK; relation in the `database/schema.ts` barrel, not the model file) |
+| `recipient_user_id` | `uuid` not null | → `users.id` (FK; relation in the `database/schema.ts` barrel, not the model file). **Always concrete** — role sends fan out to one row per user (§2.1) |
+| `audience_role` | `text` `.$type<Role>()` nullable | provenance: the role broadcast that produced this row; `null` when addressed directly by `recipientUserId`. **Non-functional** — grouping/debugging + an optional "para administradores" tag (§3.3) |
 | `type` | `text` `.$type<NotificationType>()` not null | drives the frontend icon/label/deep-link; `CHECK` in the enum's value set |
 | `title` | `text` not null | short, already-localized (Spanish) — the module does no i18n |
 | `body` | `text` not null | one/two lines |
@@ -97,7 +113,9 @@ export enum EmailDeliveryStatus { Skipped = 'skipped', Sent = 'sent', Failed = '
 `NotificationType` is **open by design** — new callers append members (a calendar
 visit-reminder, a contract-expiry warning) without touching this module's logic; only the
 frontend label/icon maps grow (§3.3). `NotificationChannel` (`in_app` \| `email`) is an
-input enum on `notify()`, not a column.
+input enum on `notify()`, not a column. **Role addressing reuses the existing users-module
+role enum** (`owner`/`admin`/`office`/`technician`) — not redefined here; `audience_role` is
+typed against it.
 
 ### Migration
 
@@ -130,24 +148,32 @@ notifications/
 
 ```ts
 notify(db, env, {
-  recipientUserId: string,
+  recipientUserId?: string,           // direct addressing — takes precedence
+  role?: Role | Role[],               // role broadcast — used when recipientUserId is absent
   type: NotificationType,
   title: string,
   body: string,
   data?: Record<string, unknown>,
   channels?: NotificationChannel[],   // default ['in_app']
-}): Promise<Notification>
+}): Promise<Notification[]>           // one per resolved recipient (a 1-element array for a direct send)
 ```
 
-1. Insert the row (`status='unread'`, `email_status` = `null` unless `email` requested).
-2. If `channels` includes `email`: resolve the recipient's email (`users`), compose a
-   **de-branded** message (§2.3) and `sendEmail(...)`. **Best-effort, non-blocking** —
-   wrap in try/catch: on success stamp `email_status='sent'`; on a send error
-   `'failed'` + `email_error`; on a missing recipient email / neutral config `'skipped'`.
-   A failure here **never** throws out of `notify()` and never rolls back the in-app row
-   (the persisted row + SSE are the reliable floor — mirrors the WMS "best-effort email"
-   rule, `10-wms/11` §2).
-3. The insert alone makes it live: the SSE stream (§2.2) re-reads the recipient's rows and
+0. **Resolve recipients.** `recipientUserId` present → `[that user]` (any `role` is ignored,
+   per "if no recipientUserId is set"). Else `role` present → all **active**
+   (non-soft-deleted) users holding any of those role(s), deduped; each row's
+   `audience_role` = that user's role. **Neither** given → programmer error (throw — never a
+   client-triggered path). **Empty resolution** (a role with no active users) → no rows,
+   log-and-skip (best-effort, same class as an unconfigured recipient — never an error).
+1. **Per resolved recipient**, insert a row (`status='unread'`; `email_status` = `null`
+   unless `email` requested).
+2. If `channels` includes `email`, **per row**: resolve that recipient's email (`users`),
+   compose a **de-branded** message (§2.3) and `sendEmail(...)`. **Best-effort,
+   non-blocking** — wrap in try/catch: on success stamp `email_status='sent'`; on a send
+   error `'failed'` + `email_error`; on a missing recipient email / neutral config
+   `'skipped'`. A failure here **never** throws out of `notify()` and never rolls back the
+   in-app row (the persisted row + SSE are the reliable floor — mirrors the WMS "best-effort
+   email" rule, `10-wms/11` §2). A role fan-out ⇒ one independent email per recipient.
+3. The insert alone makes each live: the SSE stream (§2.2) re-reads that recipient's rows and
    pushes it. No in-process pub/sub needed (Workers isolates don't share memory across the
    fleet) — **the DB row is the truth**, exactly as WMS treats import status.
 
@@ -271,7 +297,9 @@ pipes (`src/app/pipes/`, pure — no method calls in templates):
 
 DTO: `src/app/data/dtos/notifications/notification.dto.ts` — `Notification` with
 **string-literal-union** `type`/`status` mirroring the backend enums (kept in sync with §1),
-`data`, `createdAt`, `readAt?`. Query DTO beside it. No barrel — import concrete files.
+`data`, `createdAt`, `readAt?`, and `audienceRole?` (so the panel can show a subtle "para
+administradores"-style tag on role-broadcast rows — optional, cosmetic). Query DTO beside
+it. No barrel — import concrete files.
 
 ### 3.4 Access
 
@@ -290,17 +318,22 @@ call `sendEmail` directly, and rejection is in-app-only (`10-wms/02` §6, `10-wm
 here as the contract; the actual WMS-doc/code edits happen **on the WMS branch/PR**, not in
 this PR (keeps this PR atomic; cross-refs listed in the PR body):
 
-- **Ready / failed → the manager.** Where WMS enters `ready` (queue consumer on processed;
-  `resubmit` endpoint on re-request) or `failed`: resolve
-  `getSetting('notifications.manager_user_id')` → if set,
-  `notify({ recipientUserId, type: ReplenishmentReady|ReplenishmentFailed, title, body,
+- **Ready / failed → the manager (or owner/admin as fallback).** Where WMS enters `ready`
+  (queue consumer on processed; `resubmit` endpoint on re-request) or `failed`:
+  `const mgr = getSetting('notifications.manager_user_id')` then
+  `notify({ recipientUserId: mgr, role: mgr ? undefined : [Role.Owner, Role.Admin],
+  type: ReplenishmentReady|ReplenishmentFailed, title, body,
   data: { importId, warehouseId, counts, link: '.../approval?import=' },
   channels: ['in_app','email'] })`. The de-branded warning email WMS specified is now the
-  module's `email` channel; the bell is the module's `in_app` channel.
+  module's `email` channel; the bell is the `in_app` channel. **The role fallback carries the
+  email + bell to owner/admin when the manager isn't configured** — the backend equivalent of
+  the banner's owner/admin fallback (`10-wms/07` §2), so an unset config no longer means the
+  only signal is the in-app banner.
 - **Rejected → office.** The owner/admin reject path:
-  `notify({ recipientUserId: <office/uploader>, type: ReplenishmentRejected,
-  channels: ['in_app'] })`. The deferred **"office rejection email"** (`10-wms/02` §6)
-  becomes trivially adding `'email'` to `channels` — no new plumbing.
+  `notify({ recipientUserId: <uploader>, type: ReplenishmentRejected,
+  channels: ['in_app'] })` — or `role: Role.Office` to reach the whole office team rather
+  than only the uploader (WMS's call). The deferred **"office rejection email"**
+  (`10-wms/02` §6) becomes trivially adding `'email'` to `channels` — no new plumbing.
 - **The WMS pending-approval banner stays WMS-owned.** It's an *actionable count* off
   `pendingImports`, a different surface from the *notification history* bell — the two
   coexist. (Folding the banner into a pinned notification is a later option, §7.)
@@ -317,6 +350,11 @@ channel for free; the "notify admins of pending approvals" item is fully served.
 Vitest against live Neon (house convention), `notif-test-` fixture prefix:
 
 - `notify()` inserts an `unread` row; `channels:['in_app']` leaves `email_status` null.
+- **Role broadcast**: `notify({ role: 'admin' })` inserts one `unread` row per active admin,
+  each with `audience_role='admin'`; **soft-deleted users excluded**; multi-role
+  (`[owner, admin]`) **deduped**; `recipientUserId` present **wins** over `role` (one row,
+  `audience_role` null); a role with **no active users** → zero rows, no error; the `email`
+  channel fans out **one best-effort email per recipient**; `neither given` → throws.
 - Email best-effort: `email` channel with a stubbed transport → `sent`; forced transport
   error → `failed` + `email_error`, **and the in-app row still commits** (no throw/rollback);
   recipient without an email → `skipped`. De-branding: neutral brand → bare `RESEND_FROM`,
@@ -340,7 +378,8 @@ re-syncs from the one-shot GET.
 ### CP-1 — Backend core
 - [ ] `notifications` table + indexes (additive DDL applied to live Neon; migration SQL
       generated for the record; relation + re-export in `database/schema.ts`); enums.
-- [ ] `notify()` service (insert + best-effort de-branded email compose, §2.1/§2.3);
+- [ ] `notify()` service (user-or-role resolution + fan-out, §2.1; insert + best-effort
+      de-branded email compose per recipient, §2.1/§2.3);
       `GET /notifications` (+`unreadCount`), `POST /:id/read`, `POST /read-all` — all
       self-scoped; `notification_not_found` typed error.
 - [ ] §5 backend tests green (insert, email best-effort/de-brand, read scoping).
@@ -381,7 +420,14 @@ re-syncs from the one-shot GET.
 - **Cron prerequisite** — introduces the first Worker cron. No Queues/paid-plan dependency
   for notifications retention specifically (unlike WMS's Queues-coupled sweep). Confirm the
   `scheduled()` handler wiring is acceptable to land here first.
+- **Actor self-notification** — a role broadcast currently reaches *every* user of the role,
+  including the one whose action triggered it (e.g. an owner who resubmits, in a
+  `[owner, admin]` fan-out). If that proves noisy, add an optional `excludeUserId` to
+  `notify()` (skip the actor) — not built v1; the caller has the actor id if needed.
+- **Single-role assumption** — the design assumes each user has exactly one role (the
+  baseline model). If multi-role users ever land, `audience_role` (a single role) and the
+  dedup logic get revisited; flagged, not a v1 concern.
 - **Deferred (revisit on demand):** a full `/notifications` history page (v1 = panel only);
-  broadcast / multi-recipient fan-out; a per-user preference center (mute types/channels);
-  `archived` status; additional channels (push/WhatsApp) behind the same `notify()` seam;
-  folding the WMS approval **banner** into a pinned notification.
+  a per-user preference center (mute types/channels); `archived` status; additional channels
+  (push/WhatsApp) behind the same `notify()` seam; folding the WMS approval **banner** into a
+  pinned notification.
