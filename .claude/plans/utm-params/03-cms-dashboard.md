@@ -1,6 +1,6 @@
 # utm-params 03 — CMS dashboard (intake metrics per source)
 
-> **Status:** in-progress (CP-1 + CP-2 code done, build green · backend tests written, not yet run — live-Neon suite pends sign-off · verification pass pending) · **Depends on:** [01-fullstack-implementation](01-fullstack-implementation.md) (CP-1 columns incl. the `status_changed_at` amendment; data flows once 02 ships) — **both shipped as of 2026-07-20**
+> **Status:** done (CP-1 + CP-2 · build green · backend suite 11/11 green vs live Neon 2026-07-21 · PR #80 pending review) · **Depends on:** [01-fullstack-implementation](01-fullstack-implementation.md) (CP-1 columns incl. the `status_changed_at` amendment; data flows once 02 ships) — **both shipped as of 2026-07-20**
 > **Owner:** worktree `fullstack-cms-dashboard` · **Last updated:** 2026-07-20
 > **PR:** PR-C `feat(fullstack)` on branch `feature/fullstack-cms-dashboard` (after PR-A merges) · base `main`
 
@@ -47,7 +47,7 @@ appended to CP-1/CP-2 below.
 - [x] Amendment (2026-07-20): `GET /customers/interactions/recent` — `recentInteractionsQuerySchema` (limit 1–50, default 10), `listRecentInteractions` (users + customers joins, `isNull(customers.deletedAt)`), `getRecentInteractions`, owner/admin route; `RecentInteractionDTO` carries `customerName`.
 - [x] Amendment (2026-07-20): `GET /customers/recent` — `recentCustomersQuerySchema` (limit 1–50, default 8), `listRecentCustomers`/`getRecentCustomers` returning `RecentCustomerRow` (id, name, contactName, clientType, source, createdAt), owner/admin route before `GET /:id`.
 - [x] Office admitted (owner, 2026-07-20): all three dashboard reads gate `requireRole(['owner', 'admin', 'office'])`; `seedOffice`/`seedOfficeAndLogin` fixtures + an office-200 test added (technician stays 403).
-- [~] Tests: written in `test/customer-stats.test.ts` (delta-based assertions over fixed 2020-05/04 fixture months so reruns/parallel data never skew; covers bucketing, coalesce conversion, soft-delete exclusion, ordering, period boundaries, MTD default, role gates, bad month, and the recent feed incl. soft-deleted-customer exclusion) — **not yet run: live-Neon suite pends user sign-off**. NULL-source → `other` stays service-side only: the live column is NOT NULL with default, so the case can't be seeded.
+- [x] Tests: `test/customer-stats.test.ts` (delta-based assertions over fixed 2020-05/04 fixture months so reruns/parallel data never skew; covers bucketing, coalesce conversion, soft-delete exclusion, ordering, period boundaries, MTD default, role gates incl. office-200/technician-403, bad month, and both recent feeds incl. soft-deleted-customer exclusion) — **run 2026-07-21 with owner sign-off: 11/11 green vs live Neon** (post-teardown "Network connection lost" noise from the WS pool is expected suite-wide; assertions unaffected). NULL-source → `other` stays service-side only: the live column is NOT NULL with default, so the case can't be seeded.
 - [x] `pnpm typecheck` green.
 
 ## CP-2 — Superadmin: CMS › Panel page
