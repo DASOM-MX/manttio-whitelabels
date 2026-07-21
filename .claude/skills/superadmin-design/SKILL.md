@@ -42,6 +42,16 @@ from decoration.
    pills — never through gradient decoration. The only tolerated gradient is a
    **subtle single-hue area fill under chart lines** (data-viz, like the reference),
    nothing else.
+6. **No arbitrary Tailwind values in templates** (`h-[235px]`, `h-[calc(...)]`) —
+   standard scale utilities only (`h-56`); a size that must be exact belongs in a
+   stylesheet, not inline brackets (owner, 2026-07-21).
+7. **Tabular/feed data renders as `p-table`** (the customers-list idiom: header/body
+   templates, `rowHover`, whole-row click, `[scrollable]` + `scrollHeight` for
+   internal scroll, `emptymessage`) — never hand-rolled `<ol>`/`<div>` row lists
+   (owner, 2026-07-21).
+8. **Simple fixed sizing beats layout machinery.** Fixed card heights + internal
+   scroll, page-scoped CSS only — never shell-layout surgery (flex-chain rewiring,
+   route-data layout flags) for one page's sizing (owner, 2026-07-21).
 
 ## Density — low-to-mid whitespace
 

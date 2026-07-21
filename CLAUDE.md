@@ -74,4 +74,7 @@ Backend is **module-first (NestJS-like)**: `src/` holds only `env.ts`, `index.ts
 
 - API conventions, auth, validation, R2, email/PDF, testing — `backend/CLAUDE.md`.
 - Angular/NGXS/PrimeNG/Tailwind/dark-mode/dialog patterns — `frontend/CLAUDE.md`.
+- Superadmin quick rules + pointers to its canonical conventions
+  (`.claude/plans/superadmin/01-conventions.md` + the `superadmin-design` skill) —
+  `superadmin/CLAUDE.md`.
 - Marketing-site styling/brand voice — `website/CLAUDE.md`.
