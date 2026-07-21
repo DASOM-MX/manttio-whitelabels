@@ -211,7 +211,7 @@ yields `404 notification_not_found`, never another user's data).
 
 | Endpoint | Notes |
 |---|---|
-| `GET /notifications` | Paged (`page`/`limit`, default 25, max 100) `{ items, total, unreadCount }`, newest first; `?status=unread` filter. The one-shot read the bell opens with and the SSE reconnect re-syncs from. |
+| `GET /notifications` | Paged (`page`/`limit`, default 20 — owner revision 2026-07-21, was 25 — max 100) `{ items, total, unreadCount }`, newest first; `?status=unread` filter. The one-shot read the bell opens with and the SSE reconnect re-syncs from. |
 | `GET /notifications/stream` | **SSE** (`text/event-stream`, `streamSSE`). Session-length: on connect, emits current `unread-count`; then every `~2 s` re-reads rows created after the connection's start cursor and emits a `notification` event per new row (full object, so the bell prepends without a refetch) + an `unread-count` event when the count changes; `15 s` heartbeat comment; **stays open until the client disconnects** (no terminal close). |
 | `POST /notifications/:id/read` | Mark one read (own only → `404` otherwise); idempotent; stamps `read_at`. |
 | `POST /notifications/read-all` | Mark all the user's `unread` → `read`. |

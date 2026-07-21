@@ -3,10 +3,11 @@ import { NotificationStatus } from '../enums/notifications.enum';
 import { ROLES } from '../../users/enums/users.enum';
 
 // Paged, newest-first list (plan §2.2). `?status=unread` narrows to the badge's
-// backlog; omitted = full history.
+// backlog; omitted = full history. Page size 20 (owner, 2026-07-21 — the bell
+// loads with the server default).
 export const listNotificationsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(25),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
   status: z.nativeEnum(NotificationStatus).optional(),
 });
 

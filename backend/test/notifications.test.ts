@@ -215,6 +215,11 @@ describe('GET /notifications', () => {
     expect(pagedBody.items).toHaveLength(2);
     expect(pagedBody.total).toBe(3);
     expect(pagedBody.limit).toBe(2);
+
+    // The bell loads with the server default: 20 per page (owner, 2026-07-21).
+    const defaultRes = await request('/notifications', { headers: authHeader(token) });
+    const defaultBody = await json<ListBody>(defaultRes);
+    expect(defaultBody.limit).toBe(20);
   });
 });
 
