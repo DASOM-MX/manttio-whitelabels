@@ -4,7 +4,7 @@
 > **Owner:** worktree `fullstack-cms-dashboard` · **Last updated:** 2026-07-20
 > **PR:** PR-C `feat(fullstack)` on branch `feature/fullstack-cms-dashboard` (after PR-A merges) · base `main`
 
-A marketing-performance dashboard for the tenant: how many clients each acquisition channel is bringing in, split into leads and actives, this month vs last month. ~~It lives as a tab in the **CMS submenu** of the superadmin main nav (the CMS group owns the public-site surfaces; this is the site's performance view).~~ **Superseded 2026-07-20 (owner): it lives under the Clientes (CRM) group** — nav child "Panel" first in the group, route `/customers/dashboard`, page component `crm/pages/dashboard/`. The Panel's reads are owner/admin-only while the Clientes group admits office, so `NavChild` grew an optional `roles` gate (filtered in `navFor`) and the route carries its own `accessGuard` data — office neither sees nor reaches it. The CMS submenu keeps only Home/Clientes.
+A marketing-performance dashboard for the tenant: how many clients each acquisition channel is bringing in, split into leads and actives, this month vs last month. ~~It lives as a tab in the **CMS submenu** of the superadmin main nav (the CMS group owns the public-site surfaces; this is the site's performance view).~~ **Superseded 2026-07-20 (owner): it lives under the Clientes (CRM) group** — nav child "Panel" first in the group, route `/customers/dashboard`, page component `crm/pages/dashboard/`. Nav child label renamed **"Panel" → "Dashboard"** (owner, same day). **Office admitted 2026-07-20 (owner):** the dashboard uses the Clientes module gate as-is (owner/admin/office; technicians excluded) — the interim child-level role gate built during the relocation was reverted the same day. The CMS submenu keeps only Home/Clientes.
 
 ## Settled decisions (2026-07-16)
 
@@ -15,7 +15,7 @@ A marketing-performance dashboard for the tenant: how many clients each acquisit
   - `leads` = count of rows with current `status = 'lead'` whose `coalesce(status_changed_at, created_at)` falls in the period — new leads still open.
   - `active` = count of rows with current `status = 'active'` whose `coalesce(status_changed_at, created_at)` falls in the period — conversions plus born-active rows.
   - Soft-deleted rows excluded everywhere (`deleted_at is null`).
-- **Rendering: charts via `chart.js` + PrimeNG `p-chart`** (new dependency, accepted). Brand-token colors, dark-mode aware.
+- **Rendering: charts via `chart.js` + PrimeNG `p-chart`** (new dependency, accepted). Brand-token colors, dark-mode aware. **Revised 2026-07-20 (owner): pie charts, not grouped bars** — each pie shows the current-period channel mix (zero channels dropped), sliced through a single-hue primary-scale ramp with a right-side legend; the previous-month comparison lives in the KPI deltas, not the charts.
 
 ## Amendment 2026-07-20 — latest-activity feed (owner directive)
 
@@ -46,6 +46,7 @@ appended to CP-1/CP-2 below.
 - [x] `customers/controllers/customers.controller.ts` — `GET /stats/intake` with `requireRole(['owner', 'admin'])` (matches the CMS module gate), `zValidator('query', …)`. **Route must be declared before `GET /:id`** or "stats" is captured as an id.
 - [x] Amendment (2026-07-20): `GET /customers/interactions/recent` — `recentInteractionsQuerySchema` (limit 1–50, default 10), `listRecentInteractions` (users + customers joins, `isNull(customers.deletedAt)`), `getRecentInteractions`, owner/admin route; `RecentInteractionDTO` carries `customerName`.
 - [x] Amendment (2026-07-20): `GET /customers/recent` — `recentCustomersQuerySchema` (limit 1–50, default 8), `listRecentCustomers`/`getRecentCustomers` returning `RecentCustomerRow` (id, name, contactName, clientType, source, createdAt), owner/admin route before `GET /:id`.
+- [x] Office admitted (owner, 2026-07-20): all three dashboard reads gate `requireRole(['owner', 'admin', 'office'])`; `seedOffice`/`seedOfficeAndLogin` fixtures + an office-200 test added (technician stays 403).
 - [~] Tests: written in `test/customer-stats.test.ts` (delta-based assertions over fixed 2020-05/04 fixture months so reruns/parallel data never skew; covers bucketing, coalesce conversion, soft-delete exclusion, ordering, period boundaries, MTD default, role gates, bad month, and the recent feed incl. soft-deleted-customer exclusion) — **not yet run: live-Neon suite pends user sign-off**. NULL-source → `other` stays service-side only: the live column is NOT NULL with default, so the case can't be seeded.
 - [x] `pnpm typecheck` green.
 
@@ -66,7 +67,8 @@ appended to CP-1/CP-2 below.
 - [x] `model/constants/access/nav-entries.const.ts` — CMS group children: prepend `{ label: 'Panel', route: '/cms/dashboard' }` before Home/Clientes.
 - [x] Build green (`ng build`); no screenshots unless asked.
 - [x] Enum parity fix ridden along (2026-07-20): superadmin `CustomerSource` + `CUSTOMER_SOURCE_LABELS` extended to the backend's 10 values (verified against the enum + `customers_source_check`); the customer form picks from the new `MANUAL_CUSTOMER_SOURCES` (7) so share-link-only channels are never hand-picked, while the list filter offers all 10.
-- [x] Relocation (owner, 2026-07-20 — see the superseded intro): page moved `cms/pages/dashboard/` → `crm/pages/dashboard/` (`CrmDashboard`), route `/cms/dashboard` → `/customers/dashboard` (child-level `accessGuard`, roles owner/admin), `CustomerStatsState` provided on the customers route, nav child moved CMS → Clientes (first, role-gated via the new `NavChild.roles` + `navFor` child filter).
+- [x] Relocation (owner, 2026-07-20 — see the superseded intro): page moved `cms/pages/dashboard/` → `crm/pages/dashboard/` (`CrmDashboard`), route `/cms/dashboard` → `/customers/dashboard`, `CustomerStatsState` provided on the customers route, nav child moved CMS → Clientes (first). *The interim child-level role gate (`NavChild.roles` + `navFor` filter + route `accessGuard` data) was reverted the same day when office was admitted — the module gate covers it.*
+- [x] UI revision (owner, 2026-07-20): pies replace the grouped bars (see the revised rendering decision); page renamed **"Dashboard"** (h1, nav child, route title); viewport-fit on `lg` via dvh-relative sizing (charts `30dvh`, lists capped `32dvh` — the shell wraps pages in an auto-height container, so percentage chains can't reach the viewport); activity + recent-clients lists scroll on y inside their cards at every breakpoint (`max-h-96` below `lg`); KPI tiles compacted to single-row figures.
 
 ## Verification
 

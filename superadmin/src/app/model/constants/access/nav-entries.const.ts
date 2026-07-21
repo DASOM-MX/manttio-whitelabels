@@ -29,9 +29,9 @@ export const NAV: NavEntry[] = [
     route: '/customers',
     module: 'customers',
     children: [
-      // CRM Panel (utm-params 03): owner/admin-only inside the office-visible
-      // Clientes group — narrower child gate, mirrored on the route data.
-      { label: 'Panel', route: '/customers/dashboard', roles: ['owner', 'admin'] },
+      // CRM dashboard (utm-params 03) — same gate as the Clientes module
+      // (owner/admin/office; office admitted 2026-07-20).
+      { label: 'Dashboard', route: '/customers/dashboard' },
       { label: 'Todos', route: '/customers', exact: true },
       { label: 'Leads', route: '/customers/leads' },
       { label: 'Lista negra', route: '/customers/blacklist' },

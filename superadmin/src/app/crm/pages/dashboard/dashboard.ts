@@ -32,29 +32,42 @@ const hslVar = (name: string, fallback: string): string => {
   return `hsl(${value || fallback})`;
 };
 
-const chartSeriesColors = (dark: boolean) => ({
-  current: hslVar('--brand-primary-600', '220 10% 45%'),
-  previous: dark
-    ? hslVar('--brand-surface-700', '0 0% 36%')
-    : hslVar('--brand-surface-300', '0 0% 82%'),
-});
+// tailwind.config.js neutralScale lightness per step — the no-brand fallback.
+const PRIMARY_FALLBACK_L: Record<number, number> = {
+  0: 98,
+  100: 96,
+  200: 90,
+  300: 82,
+  400: 70,
+  500: 55,
+  600: 45,
+  700: 36,
+  800: 28,
+  900: 18,
+  1000: 10,
+};
 
-const buildChartOptions = (dark: boolean): ChartOptions<'bar'> => {
-  const grid = dark ? hslVar('--brand-surface-800', '0 0% 28%') : hslVar('--brand-surface-200', '0 0% 90%');
-  const ticks = dark ? hslVar('--brand-surface-400', '0 0% 70%') : hslVar('--brand-surface-600', '0 0% 45%');
+const primaryStep = (step: number): string =>
+  hslVar(`--brand-primary-${step}`, `220 10% ${PRIMARY_FALLBACK_L[step]}%`);
+
+/** Single-hue slice ramp (01: color arrives through the palette scales —
+ *  distinct primary steps, cycled; never a multi-hue chart palette). */
+const SLICE_STEPS = [600, 300, 800, 400, 900, 200, 700, 500, 1000, 100];
+
+const sliceColors = (count: number): string[] =>
+  Array.from({ length: count }, (_, i) => primaryStep(SLICE_STEPS[i % SLICE_STEPS.length]));
+
+const buildPieOptions = (dark: boolean): ChartOptions<'pie'> => {
+  const legend = dark ? hslVar('--brand-surface-400', '0 0% 70%') : hslVar('--brand-surface-600', '0 0% 45%');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   return {
     maintainAspectRatio: false,
     animation: reduced ? false : { duration: 300, easing: 'easeOutCubic' },
     plugins: {
       legend: {
-        position: 'bottom',
-        labels: { color: ticks, usePointStyle: true, boxWidth: 8, boxHeight: 8 },
+        position: 'right',
+        labels: { color: legend, usePointStyle: true, boxWidth: 8, boxHeight: 8 },
       },
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { color: ticks } },
-      y: { beginAtZero: true, grid: { color: grid }, ticks: { color: ticks, precision: 0 } },
     },
   };
 };
@@ -77,9 +90,12 @@ const buildPeriodLabels = (stats: IntakeStats): PanelPeriodLabels => {
 const fmtDelta = (n: number): string => (n > 0 ? `+${n}` : `${n}`);
 
 /** Clientes › Panel (utm-params 03, relocated to the CRM group 2026-07-20):
- *  leads/actives per acquisition channel (current period vs full previous
- *  month) plus the latest activity and newest clients (owner/admin reads).
- *  Data lives in `CustomerStatsState` so revisits render from cache. */
+ *  current-period channel mix as pies (previous-month comparison lives in the
+ *  KPI deltas — owner 2026-07-20, supersedes grouped bars) plus the latest
+ *  activity and newest clients. The page fits the viewport height on `lg`
+ *  (owner directive): charts and lists split the remaining space, lists
+ *  scroll inside their cards. Data lives in `CustomerStatsState` so revisits
+ *  render from cache. */
 @Component({
   selector: 'app-crm-dashboard',
   imports: [
@@ -155,11 +171,11 @@ export class CrmDashboard {
     return t.leads + t.active + t.prevLeads + t.prevActive === 0;
   });
 
-  protected readonly chartOptions = computed<ChartOptions<'bar'>>(() =>
-    buildChartOptions(this.dark()),
+  protected readonly chartOptions = computed<ChartOptions<'pie'>>(() =>
+    buildPieOptions(this.dark()),
   );
-  protected readonly leadsChart = computed(() => this.buildChart('leads', 'prevLeads'));
-  protected readonly activeChart = computed(() => this.buildChart('active', 'prevActive'));
+  protected readonly leadsChart = computed(() => this.buildPie('leads'));
+  protected readonly activeChart = computed(() => this.buildPie('active'));
 
   protected readonly clientRows = computed<RecentClientVM[]>(() =>
     (this.recentClients() ?? []).map((c) => ({
@@ -205,28 +221,22 @@ export class CrmDashboard {
     });
   }
 
-  private buildChart(
-    currentKey: 'leads' | 'active',
-    prevKey: 'prevLeads' | 'prevActive',
-  ): ChartData<'bar', number[], string> | null {
+  /** Current-period channel mix. Zero channels are dropped — invisible
+   *  slices would only clutter the legend. */
+  private buildPie(key: 'leads' | 'active'): ChartData<'pie', number[], string> | null {
     const stats = this.stats();
-    const labels = this.periodLabels();
-    if (!stats || !labels || !stats.rows.length) return null;
-    const colors = chartSeriesColors(this.dark());
+    if (!stats) return null;
+    const rows = stats.rows.filter((r) => r[key] > 0);
+    if (!rows.length) return null;
+    const border = this.dark() ? hslVar('--brand-surface-900', '0 0% 18%') : '#ffffff';
     return {
-      labels: stats.rows.map((r) => CUSTOMER_SOURCE_LABELS[r.source] ?? r.source),
+      labels: rows.map((r) => CUSTOMER_SOURCE_LABELS[r.source] ?? r.source),
       datasets: [
         {
-          label: labels.current,
-          data: stats.rows.map((r) => r[currentKey]),
-          backgroundColor: colors.current,
-          borderRadius: 3,
-        },
-        {
-          label: labels.previous,
-          data: stats.rows.map((r) => r[prevKey]),
-          backgroundColor: colors.previous,
-          borderRadius: 3,
+          data: rows.map((r) => r[key]),
+          backgroundColor: sliceColors(rows.length),
+          borderColor: border,
+          borderWidth: 2,
         },
       ],
     };

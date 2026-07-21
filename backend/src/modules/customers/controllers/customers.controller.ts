@@ -45,13 +45,13 @@ customers.get('/', async (c) => {
   return c.json({ customers: await getCustomers(db) });
 });
 
-// Intake stats for the CMS Panel (utm-params 03): leads/actives per source,
-// requested month (MTD when current) vs the full previous month. Declared
-// before GET /:id so "stats" is never captured as an id; gated owner/admin to
-// match the CMS module.
+// Intake stats for the CRM dashboard (utm-params 03): leads/actives per
+// source, requested month (MTD when current) vs the full previous month.
+// Declared before GET /:id so "stats" is never captured as an id. Office
+// admitted 2026-07-20 — the gate matches the Clientes module set.
 customers.get(
   '/stats/intake',
-  requireRole(['owner', 'admin']),
+  requireRole(['owner', 'admin', 'office']),
   zValidator('query', intakeStatsQuerySchema),
   async (c) => {
     const db = createDb(c.env.DATABASE_URL);
@@ -59,11 +59,11 @@ customers.get(
   },
 );
 
-// Latest registered clients (utm-params 03 amendment 2026-07-20): the Panel's
-// recent-clients card. Owner/admin; newest first. Also before GET /:id.
+// Latest registered clients (utm-params 03 amendment 2026-07-20): the
+// dashboard's recent-clients card. Newest first; also before GET /:id.
 customers.get(
   '/recent',
-  requireRole(['owner', 'admin']),
+  requireRole(['owner', 'admin', 'office']),
   zValidator('query', recentCustomersQuerySchema),
   async (c) => {
     const db = createDb(c.env.DATABASE_URL);
@@ -73,10 +73,10 @@ customers.get(
 );
 
 // Tenant-wide latest activity across clients (utm-params 03 amendment
-// 2026-07-20). Owner/admin only — technicians keep the per-customer read below.
+// 2026-07-20). Technicians keep only the per-customer read below.
 customers.get(
   '/interactions/recent',
-  requireRole(['owner', 'admin']),
+  requireRole(['owner', 'admin', 'office']),
   zValidator('query', recentInteractionsQuerySchema),
   async (c) => {
     const db = createDb(c.env.DATABASE_URL);

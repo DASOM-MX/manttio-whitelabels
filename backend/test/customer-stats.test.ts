@@ -3,6 +3,7 @@ import { authHeader, env, json, jsonHeaders, request } from './helpers/request';
 import {
   seedAdminAndLogin,
   seedCustomer,
+  seedOfficeAndLogin,
   seedTechnicianAndLogin,
   uniqueName,
   uniqueRecipientEmail,
@@ -179,6 +180,16 @@ describe('GET /customers/stats/intake', () => {
       headers: authHeader(token),
     });
     expect(res.status).toBe(400);
+  });
+
+  test('office reads all three dashboard endpoints (admitted 2026-07-20)', async () => {
+    const { token } = await seedOfficeAndLogin();
+    const stats = await request('/customers/stats/intake', { headers: authHeader(token) });
+    expect(stats.status).toBe(200);
+    const feed = await request('/customers/interactions/recent', { headers: authHeader(token) });
+    expect(feed.status).toBe(200);
+    const recent = await request('/customers/recent', { headers: authHeader(token) });
+    expect(recent.status).toBe(200);
   });
 });
 
