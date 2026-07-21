@@ -495,6 +495,14 @@ source warehouse (release → `in_stock`, §4 reservation flow). Default **3**.
 { days: number }                           // default 3 — the reservation auto-return window
 ```
 
+**Fourth key — `wms.stock_count_blind`** (owner 2026-07-21): whether a physical-count
+reconciliation session hides the system quantity from the counter (blind count). Default
+**`true`**; owner-configurable (00 §6 #29, `06`).
+
+```
+{ blind: boolean }                         // default true — blind physical count
+```
+
 ## 3. Stock math (proposed 2026-07-19 — the load-bearing design decision)
 
 **Balances are materialized; movements are the journal.** Every stock endpoint runs one

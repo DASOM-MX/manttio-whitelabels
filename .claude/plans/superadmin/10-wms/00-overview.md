@@ -420,6 +420,37 @@ money silently); 24–27 are **owner-delight** (≈ one column + one pill each);
     sub-plans build against real shapes before 11's consumer is live. Behind the
     `wms-test-` fixture prefix, never shipped — `01`/`02` testing.
 
+### Stock reconciliation — physical-count sessions (proposed 2026-07-21 — owner-requested)
+
+29. **Physical-count reconciliation (stocktake)** — the systematic way to keep system stock
+    consistent with the real physical count; owners/admins won't reconcile a warehouse one
+    `readjust` dialog at a time. **Model (owner 2026-07-21): a count *session* record is a
+    time window** (`open → applied`) within which the reconciling **adjustment movements
+    (`readjustment` ins/outs)** are performed — it reuses the existing readjustment
+    primitive, so the movement audit trail stays intact.
+    - **Tables —** `stock_count_sessions` (the window: `warehouse_id` + optional node scope,
+      `status` `open`|`applied`|`cancelled`, `blind` snapshot, `opened_by`/`opened_at`,
+      `applied_by`/`applied_at`, `notes`) + `stock_count_lines` (per `(material, location,
+      lot?)`: `system_qty` snapshotted at open, `counted_qty`, derived `delta`). Movements
+      emitted on apply carry a `count_session_id` backlink.
+    - **Roles — office counts, owner/admin applies** (owner 2026-07-21; the replenishment
+      prep→approve split): office (+ owner/admin) open a session and enter physical counts;
+      **only owner/admin review the discrepancies and *apply*** — one transaction emits a
+      `readjustment` in/out per non-zero delta under a **new built-in `stock_count` reason**,
+      bringing system stock to the count. Sessions are append-only (a re-count is a new
+      session).
+    - **Blind vs informed — configurable, blind by default** (owner 2026-07-21): whether the
+      counter sees `system_qty` while entering is set by a new **`wms.stock_count_blind`**
+      settings key (default `true`); owners decide.
+    - **Serialized —** the count reconciles the *found* unit set: units the system holds but
+      not found → `readjustment`-out to `lost` (`stock_count` reason); unexpected found units
+      are flagged (can't auto-add without a serial). ⚠️ *serialized-count handling to refine.*
+    - **Lands in —** `01` (the two tables + `stock_count` reason + `count_session_id` on
+      movements + the settings key), `02` (session endpoints: open / enter-counts / apply /
+      cancel), `06` (the count-session UI + blind/informed count + discrepancy → apply flow),
+      `14`/`09` (roles: office count, owner/admin apply). **Awaiting propagation into the
+      sub-plans.**
+
 ## 7. Progress board (sub-plan owners update their row + their file header together)
 
 | Sub-plan | Status | Checkpoint |
