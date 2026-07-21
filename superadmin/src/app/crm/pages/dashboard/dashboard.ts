@@ -89,13 +89,13 @@ const buildPeriodLabels = (stats: IntakeStats): PanelPeriodLabels => {
 
 const fmtDelta = (n: number): string => (n > 0 ? `+${n}` : `${n}`);
 
-/** Clientes › Panel (utm-params 03, relocated to the CRM group 2026-07-20):
- *  current-period channel mix as pies (previous-month comparison lives in the
- *  KPI deltas — owner 2026-07-20, supersedes grouped bars) plus the latest
- *  activity and newest clients. The page fits the viewport height on `lg`
- *  (owner directive): charts and lists split the remaining space, lists
- *  scroll inside their cards. Data lives in `CustomerStatsState` so revisits
- *  render from cache. */
+/** Clientes › Dashboard (utm-params 03, relocated to the CRM group
+ *  2026-07-20): current-period channel mix as pies (previous-month comparison
+ *  lives in the KPI deltas — owner 2026-07-20, supersedes grouped bars) plus
+ *  the latest activity and newest clients. Fixed card heights (owner
+ *  2026-07-21): charts capped at 325px, lists capped at max-h-96 with
+ *  internal y-scroll. Data lives in `CustomerStatsState` so revisits render
+ *  from cache. */
 @Component({
   selector: 'app-crm-dashboard',
   imports: [

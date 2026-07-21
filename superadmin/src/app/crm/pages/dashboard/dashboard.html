@@ -1,9 +1,9 @@
-<!-- Viewport-fit on lg (owner 2026-07-20): the shell wraps pages in an
-     auto-height container, so charts and lists take dvh-relative heights —
-     together with the fixed header/KPI rows the page fills one screen, and
-     both lists scroll inside their cards at every breakpoint. -->
-<div class="flex flex-col gap-4">
-  <div class="shrink-0">
+<!-- Fixed card heights (owner 2026-07-21): charts at 235px, lists capped at
+     max-h-72 with internal y-scroll, compact !p-4 cards — the stack fits a
+     typical desktop viewport without page scroll; smaller windows scroll in
+     the shell's main region like every other page. -->
+<div class="flex flex-col gap-3">
+  <div>
     <h1 class="text-xl font-bold text-granite-1000 dark:text-granite-0">Dashboard</h1>
     @if (periodLabels(); as labels) {
       <p class="mt-1 text-sm text-granite-600 dark:text-granite-400">
@@ -18,7 +18,7 @@
 
   <!-- Intake region: totals strip + the two channel-mix pies -->
   @if (statsPending()) {
-    <div class="grid shrink-0 gap-4 sm:grid-cols-2" aria-hidden="true">
+    <div class="grid gap-4 sm:grid-cols-2" aria-hidden="true">
       @for (row of skeletonRows.slice(0, 2); track row) {
         <section class="card-section">
           <div class="h-3 w-24 rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
@@ -28,21 +28,21 @@
     </div>
     <div class="grid gap-4 lg:grid-cols-2" aria-hidden="true">
       @for (row of skeletonRows.slice(0, 2); track row) {
-        <section class="card-section">
+        <section class="card-section !p-4">
           <div class="h-3 w-40 rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
-          <div class="mt-4 h-56 rounded bg-granite-100 motion-safe:animate-pulse dark:bg-granite-800/60 lg:h-[30dvh]"></div>
+          <div class="mt-4 h-[235px] rounded bg-granite-100 motion-safe:animate-pulse dark:bg-granite-800/60"></div>
         </section>
       }
     </div>
   } @else if (statsError()) {
-    <section class="card-section shrink-0">
+    <section class="card-section">
       <p class="text-sm text-granite-600 dark:text-granite-400">
         No se pudieron cargar las métricas de captación.
       </p>
       <button type="button" class="btn-secondary mt-3" (click)="loadStats(true)">Reintentar</button>
     </section>
   } @else if (intakeEmpty()) {
-    <section class="card-section shrink-0" aria-labelledby="intake-empty-title">
+    <section class="card-section" aria-labelledby="intake-empty-title">
       <div class="flex flex-col items-center gap-3 py-8 text-center">
         <span
           class="inline-flex size-12 items-center justify-center rounded-full bg-granite-100 text-granite-500 dark:bg-granite-800 dark:text-granite-400"
@@ -65,7 +65,7 @@
     </section>
   } @else {
     @if (totals(); as t) {
-      <div class="anim-stagger grid shrink-0 gap-4 sm:grid-cols-2">
+      <div class="anim-stagger grid gap-4 sm:grid-cols-2">
         <section
           class="card-section flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 !p-4"
           aria-labelledby="panel-kpi-leads"
@@ -108,17 +108,20 @@
     }
 
     <div class="anim-stagger grid gap-4 lg:grid-cols-2">
-      <section class="card-section" aria-labelledby="panel-leads-chart">
+      <section class="card-section !p-4" aria-labelledby="panel-leads-chart">
         <h2 id="panel-leads-chart" class="micro-label uppercase tracking-caps">
           Leads por canal
         </h2>
         @if (leadsChart(); as data) {
-          <div class="mt-3 h-64 lg:h-[30dvh] lg:min-h-52">
+          <!-- Fixed-height wrapper; the host + p-chart's inner div take h-full
+               so chart.js's resize observer sizes the canvas to 235px
+               (PrimeNG 21 ignores styleClass on p-chart). -->
+          <div class="mt-3 h-[235px]">
             <p-chart
               type="pie"
               [data]="data"
               [options]="chartOptions()"
-              styleClass="h-full w-full"
+              class="block h-full [&>div]:h-full"
             />
           </div>
         } @else {
@@ -127,17 +130,17 @@
           </p>
         }
       </section>
-      <section class="card-section" aria-labelledby="panel-active-chart">
+      <section class="card-section !p-4" aria-labelledby="panel-active-chart">
         <h2 id="panel-active-chart" class="micro-label uppercase tracking-caps">
           Activos por canal
         </h2>
         @if (activeChart(); as data) {
-          <div class="mt-3 h-64 lg:h-[30dvh] lg:min-h-52">
+          <div class="mt-3 h-[235px]">
             <p-chart
               type="pie"
               [data]="data"
               [options]="chartOptions()"
-              styleClass="h-full w-full"
+              class="block h-full [&>div]:h-full"
             />
           </div>
         } @else {
@@ -150,9 +153,9 @@
   }
 
   <!-- Amendment 2026-07-20: latest activity + newest clients, side by side;
-       both lists scroll inside their cards (capped height below lg). -->
+       both lists scroll inside their cards. -->
   <div class="anim-stagger grid gap-4 lg:grid-cols-2">
-    <section class="card-section" aria-labelledby="panel-activity-title">
+    <section class="card-section !p-4" aria-labelledby="panel-activity-title">
       <h2 id="panel-activity-title" class="micro-label uppercase tracking-caps">
         Actividad reciente
       </h2>
@@ -177,7 +180,7 @@
         </button>
       } @else {
         <ol
-          class="mt-2 flex max-h-96 flex-col divide-y divide-granite-200 overflow-y-auto dark:divide-granite-800 lg:max-h-[32dvh]"
+          class="mt-2 flex max-h-72 flex-col divide-y divide-granite-200 overflow-y-auto dark:divide-granite-800"
         >
           @for (entry of activityRows(); track entry.id) {
             <li class="flex items-start gap-3 py-3" [class.opacity-70]="entry.type === 'system'">
@@ -238,7 +241,7 @@
       }
     </section>
 
-    <section class="card-section" aria-labelledby="panel-clients-title">
+    <section class="card-section !p-4" aria-labelledby="panel-clients-title">
       <h2 id="panel-clients-title" class="micro-label uppercase tracking-caps">
         Clientes recientes
       </h2>
@@ -263,7 +266,7 @@
         </button>
       } @else {
         <ol
-          class="mt-2 flex max-h-96 flex-col divide-y divide-granite-200 overflow-y-auto dark:divide-granite-800 lg:max-h-[32dvh]"
+          class="mt-2 flex max-h-72 flex-col divide-y divide-granite-200 overflow-y-auto dark:divide-granite-800"
         >
           @for (row of clientRows(); track row.id) {
             <li>
