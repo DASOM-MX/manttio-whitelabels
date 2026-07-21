@@ -331,8 +331,10 @@ before it is fully buildable.
     `parent_warehouse_id`** (sub-warehouses/vans share their parent's slot) and scope all
     staging queries by parent warehouse — same outcome (one in-flight per parent warehouse,
     concurrent across warehouses), no runtime DDL. `409 import_in_progress`; register page +
-    list CTA resume the existing one. ⚠️ Confirm the mechanism substitution — `01` §2,
-    `02` §6, `07` §2.
+    list CTA resume the existing one. **Mechanism confirmed (owner 2026-07-21):** the
+    `parent_warehouse_id` index (not temp tables), and the flow is **warehouse-first** — the
+    destination is chosen before upload, so the import is warehouse-bound from creation and
+    the guard binds at **upload** (no warehouse-less drafts) — `01` §2, `02` §6, `07` §2.
 20. **Whole-lifecycle replenishment audit** ✅ *ratified* (owner 2026-07-20, new table
     `replenishment_import_events`): an append-only event log spanning the entire
     import — `created` (start) → `mapping_submitted` → processing (system) →

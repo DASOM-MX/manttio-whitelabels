@@ -119,13 +119,15 @@ import for that parent warehouse can only start once the current one is approved
 cancelled, or gone stale (sub-warehouses/vans share their parent's slot; different
 parent warehouses import concurrently).
 
-1. **Destination** — warehouse `<p-select>` (required before the mapping submits;
-   subs included).
+1. **Destination** — warehouse `<p-select>` (**required before upload** — warehouse-first,
+   owner 2026-07-21; subs included).
 2. **File** — upload card (`.xlsx`/`.csv`/`.txt`, 1 MB cap) + **template download
    links** (static assets `superadmin/public/templates/reabastecimiento.csv` + `.xlsx`
    — columns `sku,quantity,serial`; the `sku` column takes SKU **or UPC**; serialized =
-   one row per unit, quantity 1). On pick → `UploadImportFile`
-   (`POST /replenishments/imports`) — the file is **staged in R2** immediately (the
+   one row per unit, quantity 1). On pick → `UploadImportFile(warehouseId, file)`
+   (`POST /replenishments/imports` with the chosen destination — the import is
+   warehouse-bound and the **one-in-flight guard fires here**, §2 / 02 §6) — the file is
+   **staged in R2** immediately (the
    reference the queue consumer pulls it by; **transient** — the consumer purges
    the binary once it's fully processed, §4) and the response carries the **detected
    fields**. Re-upload discards the current import (`DiscardImport`,
@@ -294,8 +296,8 @@ record (`notifications.manager_user_id`, 01 §2):
 fields, progress, staged rows, prep), `pendingImports` (the ready-state strip **and
 the app-shell approval banner** — one read serves both),
 `loading`. Actions: `LoadReplenishments(query)`, `LoadPendingImports`,
-`LoadReplenishment(id)`, `UploadImportFile(file)`,
-`SubmitImportMapping(importId, warehouseId, mapping)`, `ListenImportStatus(importId)`,
+`LoadReplenishment(id)`, `UploadImportFile(warehouseId, file)`,
+`SubmitImportMapping(importId, mapping)`, `ListenImportStatus(importId)`,
 `StopImportListening`, `DiscardImport(importId)`, `UpdatePreviewRow(line, patch)`
 (server PATCH — staged-row edit incl. **quantity on any row**, owner 2026-07-20;
 audited; state updated from the response),

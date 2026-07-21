@@ -81,7 +81,8 @@ All `id` columns `uuid` default random; timestamps `timestamptz`. Quantities liv
 `numeric(12,3)` columns but are **whole integers in v1** (owner 2026-07-20, #22 — never a
 JS float; the mapper rejects non-integer cells with `bad_quantity`); fractional
 unit-bearing quantities (m/ml/L/gal/inch…) are **deferred** to the text-storage path (§3),
-not v1. ⚠️ *Confirm: this drops the earlier fractional-`m`/`kg` support from v1.*
+not v1 (owner 2026-07-21 — confirmed: the earlier fractional-`m`/`kg` support is dropped
+from v1).
 
 ### `warehouses`
 
@@ -264,10 +265,11 @@ replenishment_imports {
                                            //   detectedFields, mapping, submittedBy,
                                            //   submittedAt }. Immutable; the header
                                            //   persists forever so it survives approval
-  warehouse_id uuid?,                      // destination, set with the mapping
-  parent_warehouse_id uuid?,               // the destination's PARENT warehouse (itself
+  warehouse_id uuid not null,              // destination, set at UPLOAD (warehouse-first,
+                                           //   owner 2026-07-21 — bound from creation)
+  parent_warehouse_id uuid not null,       // the destination's PARENT warehouse (itself
                                            //   when it has no parent), resolved + set
-                                           //   with the mapping — the key the
+                                           //   at upload — the key the
                                            //   one-in-flight index scopes on (below)
   total_rows int?, processed_rows int not null default 0,
   error_rows int not null default 0,       // progress counters the processor updates
