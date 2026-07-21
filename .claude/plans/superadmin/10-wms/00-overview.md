@@ -196,16 +196,22 @@ Target route table for `wms.routes.ts` (order matters — literals before `:id`)
 
 Each is argued in its owning sub-plan; this is the sign-off index.
 
-**Sign-off progress (owner, 2026-07-20):** ratified individually so far — #3, #10, #11, #12,
-#19, #21, #22, #23 (annotated inline). Still open — the rest of #1–20 (to ratify as a set)
-and #24–28. **#3 ↔ #14 resolved (owner): staged rows stay ephemeral, true-move kept.** #19's
-mechanism substitution recorded (parent-warehouse-scoped index, not runtime temp tables) —
-flag if unwanted. **Detail-section propagation of #10/#11/#12/#19/#22 into 01/02/07/11 is
-owed** (a follow-up pass; #10 also needs the reservation-flow answers first).
+**Sign-off status — ✅ LEDGER CLOSED (owner, 2026-07-20): all of #1–28 ratified** (each
+annotated inline). **Modified during sign-off:** #4 (ad-hoc replenishment inbound now
+allowed, admin-only, own trail — was a hard reject); #6/#13 (two buckets —
+`manttio-wms-sheets` transient + `manttio-wms-evidence` permanent); #10 (`assigned`
+activated — reservation + live location tracking); #12 (config → Cloudflare Durable Object,
+not a `settings` KV table); #19 (in-flight scope → per **parent warehouse** via a
+`parent_warehouse_id` partial-unique index, not runtime temp tables). **#3 ↔ #14 resolved:**
+staged rows are ephemeral, true-move kept. **Now owed — a detail-propagation pass** folding
+the modified items (#4, #6/#13, #10, #12, #19, #22) into their sub-plans (01/02/06/07/11);
+**#10 still needs the reservation-flow answers** (trigger / release / available-vs-on-hand)
+before it is fully buildable.
 
-1. **Stock is materialized** (`stock_entries` / `material_units` updated in the same
-   transaction as the movement insert); movements are the immutable journal — `01` §3.
-2. **Serialized movements use a `movement_units` join table**, not an id array — `01` §2.
+1. **Stock is materialized** ✅ *ratified (owner 2026-07-20)* (`stock_entries` /
+   `material_units` updated in the same transaction as the movement insert); movements are
+   the immutable journal — `01` §3.
+2. **Serialized movements use a `movement_units` join table**, not an id array ✅ *ratified (owner 2026-07-20)* — `01` §2.
 3. **Storage nodes soft-delete** (movement history references them forever) — `01` §2.
    **Accepted (owner 2026-07-20) and raised to a module-wide rule: NO hard deletes anywhere
    in WMS *except ephemeral pipeline artifacts*** — the transient R2 file copies (item 13)
@@ -215,19 +221,26 @@ owed** (a follow-up pass; #10 also needs the reservation-flow answers first).
    **stand** — the permanent record is the promoted doc + items + movements + the append-only
    event log + `submission_snapshot`. Every *domain entity* (warehouses, nodes, materials,
    reasons, movements, import headers, events) is soft-delete-only.
-4. **Ad-hoc inbound rejects the `replenishment` reason** (`400 use_replenishment_flow`);
-   the dialog excludes it and hints to the register page — resolves the original
-   build-time decision — `06` §3.
-5. **Compensating report-material movements carry reason `report_binding`** (its
+4. **Ad-hoc inbound MAY use `replenishment`, admin-only** (owner 2026-07-20, supersedes the
+   original "reject with `400 use_replenishment_flow`"): occasional ad-hoc replenishment
+   inbounds happen, so an **admin** (not office/technician) can pick the `replenishment`
+   reason in the quick inbound dialog; each such movement stands as its **own trail entry**
+   in the append-only journal (actor + reason, distinct from import-originated
+   replenishments). The dialog hides it for non-admins (`403` if forced); the bulk path
+   remains the audited import flow — `06` §3, `02` §4.
+5. **Compensating report-material movements carry reason `report_binding`** ✅ *ratified (owner 2026-07-20)* (its
    `appliesTo` seed extended to readjustments; still never user-selectable) — `08` §3.
-6. **Dedicated `manttio-wms` R2 bucket** for replenishment source files + evidence photos
-   (mirrors the `manttio-equipment` precedent) — `07` §4.
+6. **Dedicated WMS R2 buckets** ✅ *ratified (owner 2026-07-20; two-bucket split per #13)* —
+   **`manttio-wms-sheets`** for the transient replenishment source sheets (xlsx/csv/txt) +
+   **`manttio-wms-evidence`** for the permanent evidence photos (opposite lifecycles →
+   separate buckets; mirrors the `manttio-equipment` precedent, each with its own CDN base)
+   — `07` §4, `02` §8.
 7. **Replenishment folio via a `wms_counters` row**, transaction-incremented (same
-   pattern as `report_counters`, kept module-local) — `01` §2.
+   pattern as `report_counters`, kept module-local) ✅ *ratified (owner 2026-07-20)* — `01` §2.
 8. **Serialized consumption = unit `status` flip to `consumed`** (unit keeps its last
-   location for history); no virtual "consumed" location — `01` §4.
+   location for history); no virtual "consumed" location ✅ *ratified (owner 2026-07-20)* — `01` §4.
 9. **Five NGXS states / five HTTP services** split by sub-plan ownership (supersedes the
-   original two-state sketch) — `10` §1.
+   original two-state sketch) ✅ *ratified (owner 2026-07-20)* — `10` §1.
 10. **`MaterialUnitStatus.assigned` is ACTIVE — pieces can be reserved** (owner 2026-07-20,
     supersedes "reserved/unused in v1"): the lifecycle becomes
     `in_stock → assigned → consumed`, and **unit location is tracked throughout** — a
@@ -260,15 +273,16 @@ owed** (a follow-up pass; #10 also needs the reservation-flow answers first).
     hard timeouts; native R2/DB bindings so no credential registry; per-tenant for
     free via the per-tenant backend deploys. The DB-first contract keeps later
     extraction to an external service possible without API changes).
-13. **Import source files are transient in R2** (owner 2026-07-19 — supersedes the
-    2026-07-05 keep-forever evidence-file decision; reinforced same day: **uploads
-    are copies, the tenant keeps the original**, so the binary has zero archival
-    value): staged at upload as the consumer's pull reference, **purged by the
-    queue consumer once fully processed** (`file_deleted_at` stamped), leftovers
-    swept by the daily cron (`11` §4); the in-system record is the imported rows'
-    `raw` + file name + mapping. Evidence photos stay permanent — `01` §4, `07` §4,
+13. **Import source files are transient in R2** ✅ *ratified (owner 2026-07-20)* (owner
+    2026-07-19 — supersedes the 2026-07-05 keep-forever evidence-file decision; reinforced
+    same day: **uploads are copies, the tenant keeps the original**, so the binary has zero
+    archival value): staged in the **`manttio-wms-sheets`** bucket at upload as the consumer's pull
+    reference, **purged by the queue consumer once fully processed** (`file_deleted_at`
+    stamped), leftovers swept by the daily cron (`11` §4); the in-system record is the
+    imported rows' `raw` + file name + mapping. **Evidence photos stay permanent in the
+    dedicated `manttio-wms-evidence` bucket** (owner 2026-07-20, #6) — `01` §4, `07` §4,
     `11` §2.
-14. **Staging-then-approval** (owner 2026-07-19): processed data sits in the
+14. **Staging-then-approval** ✅ *ratified (owner 2026-07-20)* (owner 2026-07-19): processed data sits in the
     **staging (temp) table in the tenant DB** — mutable row fixes + evidence/notes
     prep all persist there — and only an **owner/admin approval** promotes it into
     the actual inventory tables (doc + items + movements + stock, one transaction);
@@ -278,7 +292,7 @@ owed** (a follow-up pass; #10 also needs the reservation-flow answers first).
     exception, §2; the record is the promoted doc + items + movements + the import
     header's file name/mapping); never-approved staging is cron-cleaned — `01`
     §2/§4, `02` §6, `11` §4.
-15. **Unprocessable rows** (owner 2026-07-20): **serial** collisions
+15. **Unprocessable rows** ✅ *ratified* (owner 2026-07-20): **serial** collisions
     (`duplicate_serial` repeats, `serial_exists`) **don't block approval** — they
     promote as flagged, movement-less `replenishment_items` (`unprocessable: true`
     + error code), visible in the document and counted on the list, so
@@ -287,7 +301,7 @@ owed** (a follow-up pass; #10 also needs the reservation-flow answers first).
     `bad_expiry`, `quantity_on_serialized`) still gate approval; both classes stay
     PATCH-fixable pre-approval. **Lot collisions are not errors** — re-receipt
     tops up (item 16) — `01` §2, `02` §6, `07` §2.
-16. **Lot tracking** (owner 2026-07-20 — confirmed a third tracking mode):
+16. **Lot tracking** ✅ *ratified* (owner 2026-07-20 — confirmed a third tracking mode):
     `lot`-tracked materials are batch consumables (nails, rivets, washers)
     technicians draw quantities from. `material_lots` balances keyed
     `(material, lot_number, location)`; movements carry `lot_number`; the import
@@ -301,10 +315,10 @@ owed** (a follow-up pass; #10 also needs the reservation-flow answers first).
       (item 18) + expiry-sorted lot selects; consuming an expired lot on a report
       fires a **warn-confirm dialog** (08 §2). *Automatic* FEFO and *hard*-blocking
       expired consumption are parked — `01` §1/§2/§3, `08` §2.
-17. **`scrap` movement reason** (owner 2026-07-20): built-in seed, Merma,
+17. **`scrap` movement reason** ✅ *ratified* (owner 2026-07-20): built-in seed, Merma,
     `readjustment_out` — scrapped/waste material; serialized units it removes flip
     to `lost` like the other write-off reasons — `01` §5.
-18. **`lot_expired` movement reason** (owner 2026-07-20): built-in seed, Lote
+18. **`lot_expired` movement reason** ✅ *ratified* (owner 2026-07-20): built-in seed, Lote
     vencido, `readjustment_out` — manual write-off of an expired lot (the manual
     FEFO instrument); 13 seeded built-ins total now — `01` §5.
 19. **One in-flight import per PARENT WAREHOUSE** (owner 2026-07-20 — was per-tenant): a new
@@ -320,7 +334,7 @@ owed** (a follow-up pass; #10 also needs the reservation-flow answers first).
     concurrent across warehouses), no runtime DDL. `409 import_in_progress`; register page +
     list CTA resume the existing one. ⚠️ Confirm the mechanism substitution — `01` §2,
     `02` §6, `07` §2.
-20. **Whole-lifecycle replenishment audit** (owner 2026-07-20, new table
+20. **Whole-lifecycle replenishment audit** ✅ *ratified* (owner 2026-07-20, new table
     `replenishment_import_events`): an append-only event log spanning the entire
     import — `created` (start) → `mapping_submitted` → processing (system) →
     `row_updated`/`row_removed` → `evidence_updated`/`notes_updated` →
@@ -336,7 +350,7 @@ owed** (a follow-up pass; #10 also needs the reservation-flow answers first).
     review-panel-only placement, which kept it off the view). Guards against silent
     quantity fiddling / row removal — `01` §2, `02` §6, `07` §2, `14` §2.1e.
 
-### Low-cost / high-value batch (proposed 2026-07-20 — 21–23 signed off, 24–28 awaiting sign-off)
+### Low-cost / high-value batch (proposed 2026-07-20 — ✅ all signed off, owner 2026-07-20)
 
 Cheap because the plan already has the bones; grouped by intent. 21–23 are the
 **correctness insurance** I'd land first (each guards a place this system can lose
@@ -366,26 +380,26 @@ money silently); 24–27 are **owner-delight** (≈ one column + one pill each);
     readjust/consumption validators reject a blank note when the chosen reason sets
     it (`400 note_required`). **Why:** an inventory drop with no explanation is the
     weak point in the audit posture we just built — `01` §5, `02` §4, `06` §3.
-24. **Reorder-point surfacing** (data model *already* has it) — `minStock` + the
+24. **Reorder-point surfacing** ✅ *ratified (owner 2026-07-20)* (data model *already* has it) — `minStock` + the
     computed `lowStock` flag + `?lowStock=` filter already exist (`02` §3); this is
     **frontend surfacing only**: a "bajo mínimo" pill on the materials list, a filter
     toggle, and a count badge (later: staff dashboard). No new column — `05`
     materials-list.
-25. **Barcode scan via native `BarcodeDetector`** — materials already carry `upc`
+25. **Barcode scan via native `BarcodeDetector`** ✅ *ratified (owner 2026-07-20)* — materials already carry `upc`
     and every search box resolves it (`02` §3); add an optional "escanear"
     affordance (camera → `BarcodeDetector` → fills the search/lookup field) on the
     technician stock-lookup and material search. Zero dependency (native on the
     Android field fleet), graceful fallback to typing — `05`, `09`.
-26. **Import summary counters before approval** — the ready-review summary strip
+26. **Import summary counters before approval** ✅ *ratified (owner 2026-07-20)* — the ready-review summary strip
     (`07` §2 step 8) gains a computed `{ nuevos · reabastecimientos (top-ups) · no
     procesables }` breakdown from the staged rows, so the approver signs off on an
     informed count, not a blind total. One aggregate over staging; strengthens the
     approval gate — `07` §2, `02` §6 (fold into the preview payload).
-27. **Stock export to Excel/CSV** — the mirror of the import: `GET /materials/export`
+27. **Stock export to Excel/CSV** ✅ *ratified (owner 2026-07-20)* — the mirror of the import: `GET /materials/export`
     streaming current balances (material, sku/upc, tracking, per-location qty) as
     csv/xlsx (owner/admin/office). Reuses the field concepts in reverse; the data
     already exists — `02` §3/§4, surfaced from the materials list.
-28. **WMS seed/demo fixture** — a dev-only seed (2 warehouses + a node tree + a few
+28. **WMS seed/demo fixture** ✅ *ratified (owner 2026-07-20)* — a dev-only seed (2 warehouses + a node tree + a few
     materials across all three tracking modes, no live import) so the five frontend
     sub-plans build against real shapes before 11's consumer is live. Behind the
     `wms-test-` fixture prefix, never shipped — `01`/`02` testing.
