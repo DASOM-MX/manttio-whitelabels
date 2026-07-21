@@ -73,8 +73,7 @@ export const customers = pgTable(
       .where(sql`${table.deletedAt} is null`),
     // Intake-stats range scans (utm-params 03, perf revision 2026-07-21): the
     // dashboard filters on coalesce(status_changed_at, created_at) over live
-    // lead/active rows. NOT yet in the live DB (owner declined out-of-band
-    // DDL) — declared here so it rides the next migration the owner applies.
+    // lead/active rows — applied to the live DB out-of-band 2026-07-21.
     index('customers_intake_effective_idx')
       .on(sql`(coalesce(${table.statusChangedAt}, ${table.createdAt}))`)
       .where(sql`${table.deletedAt} is null and ${table.status} in ('lead', 'active')`),
