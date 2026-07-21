@@ -1,0 +1,247 @@
+<h1 class="text-xl font-bold text-granite-1000 dark:text-granite-0">Panel</h1>
+@if (periodLabels(); as labels) {
+  <p class="mt-1 text-sm text-granite-600 dark:text-granite-400">
+    Captación por canal — {{ labels.current }} contra {{ labels.previous }}.
+  </p>
+} @else {
+  <p class="mt-1 text-sm text-granite-600 dark:text-granite-400">
+    Rendimiento del sitio: captación por canal.
+  </p>
+}
+
+<!-- Intake region: totals strip + the two grouped-bar charts -->
+@if (statsPending()) {
+  <div class="anim-stagger mt-5 grid gap-4 lg:grid-cols-2" aria-hidden="true">
+    @for (row of skeletonRows.slice(0, 2); track row) {
+      <section class="card-section">
+        <div class="h-3 w-40 rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
+        <div class="mt-4 h-64 rounded bg-granite-100 motion-safe:animate-pulse dark:bg-granite-800/60"></div>
+      </section>
+    }
+  </div>
+} @else if (statsError()) {
+  <section class="card-section mt-5">
+    <p class="text-sm text-granite-600 dark:text-granite-400">
+      No se pudieron cargar las métricas de captación.
+    </p>
+    <button type="button" class="btn-secondary mt-3" (click)="loadStats(true)">Reintentar</button>
+  </section>
+} @else if (intakeEmpty()) {
+  <section class="card-section mt-5" aria-labelledby="intake-empty-title">
+    <div class="flex flex-col items-center gap-3 py-10 text-center">
+      <span
+        class="inline-flex size-12 items-center justify-center rounded-full bg-granite-100 text-granite-500 dark:bg-granite-800 dark:text-granite-400"
+      >
+        <svg lucideTrendingUp class="size-6" aria-hidden="true"></svg>
+      </span>
+      <div>
+        <h2
+          id="intake-empty-title"
+          class="text-base font-semibold text-granite-900 dark:text-granite-100"
+        >
+          Aún no hay datos de captación
+        </h2>
+        <p class="mx-auto mt-1 max-w-sm text-sm text-granite-600 dark:text-granite-400">
+          Comparte tus enlaces de contacto para empezar a medir tus canales.
+        </p>
+      </div>
+      <a routerLink="/dashboard" class="btn-secondary">Ir a los enlaces para compartir</a>
+    </div>
+  </section>
+} @else {
+  @if (totals(); as t) {
+    <div class="anim-stagger mt-5 grid gap-4 sm:grid-cols-2">
+      <section class="card-section" aria-labelledby="panel-kpi-leads">
+        <h2 id="panel-kpi-leads" class="micro-label uppercase tracking-caps">Leads</h2>
+        <p class="font-data mt-2 text-3xl font-semibold tabular-nums text-granite-1000 dark:text-granite-0">
+          {{ t.leads }}
+        </p>
+        @if (periodLabels(); as labels) {
+          <p class="font-data mt-1 text-xs tabular-nums text-granite-500 dark:text-granite-400">
+            {{ t.leadsDelta }} contra {{ labels.previous }}
+          </p>
+        }
+      </section>
+      <section class="card-section" aria-labelledby="panel-kpi-active">
+        <h2 id="panel-kpi-active" class="micro-label uppercase tracking-caps">Clientes activos</h2>
+        <p class="font-data mt-2 text-3xl font-semibold tabular-nums text-granite-1000 dark:text-granite-0">
+          {{ t.active }}
+        </p>
+        @if (periodLabels(); as labels) {
+          <p class="font-data mt-1 text-xs tabular-nums text-granite-500 dark:text-granite-400">
+            {{ t.activeDelta }} contra {{ labels.previous }}
+          </p>
+        }
+      </section>
+    </div>
+  }
+
+  <div class="anim-stagger mt-4 grid gap-4 lg:grid-cols-2">
+    <section class="card-section" aria-labelledby="panel-leads-chart">
+      <h2 id="panel-leads-chart" class="micro-label uppercase tracking-caps">Leads por canal</h2>
+      @if (leadsChart(); as data) {
+        <div class="mt-3 h-64">
+          <p-chart type="bar" [data]="data" [options]="chartOptions()" />
+        </div>
+      }
+    </section>
+    <section class="card-section" aria-labelledby="panel-active-chart">
+      <h2 id="panel-active-chart" class="micro-label uppercase tracking-caps">
+        Activos por canal
+      </h2>
+      @if (activeChart(); as data) {
+        <div class="mt-3 h-64">
+          <p-chart type="bar" [data]="data" [options]="chartOptions()" />
+        </div>
+      }
+    </section>
+  </div>
+}
+
+<!-- Amendment 2026-07-20: latest activity + newest clients, side by side -->
+<div class="anim-stagger mt-4 grid gap-4 lg:grid-cols-2">
+  <section class="card-section" aria-labelledby="panel-activity-title">
+    <h2 id="panel-activity-title" class="micro-label uppercase tracking-caps">
+      Actividad reciente
+    </h2>
+    @if (activityPending()) {
+      <div class="mt-2 divide-y divide-granite-200 dark:divide-granite-800" aria-hidden="true">
+        @for (row of skeletonRows; track row) {
+          <div class="flex items-center gap-3 py-3">
+            <div class="size-8 shrink-0 rounded-full bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
+            <div class="min-w-0 flex-1">
+              <div class="h-3 w-40 rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
+              <div class="mt-1.5 h-3 w-56 max-w-full rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (activityError()) {
+      <p class="mt-3 text-sm text-granite-600 dark:text-granite-400">
+        No se pudo cargar la actividad.
+      </p>
+      <button type="button" class="btn-secondary mt-3" (click)="loadActivity(true)">Reintentar</button>
+    } @else {
+      <ol class="mt-2 flex flex-col divide-y divide-granite-200 dark:divide-granite-800">
+        @for (entry of activityRows(); track entry.id) {
+          <li class="flex items-start gap-3 py-3" [class.opacity-70]="entry.type === 'system'">
+            <span
+              class="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full"
+              [class.bg-sky-100]="entry.type !== 'system'"
+              [class.text-sky-800]="entry.type !== 'system'"
+              [class.dark:bg-sky-950/60]="entry.type !== 'system'"
+              [class.dark:text-sky-300]="entry.type !== 'system'"
+              [class.bg-granite-100]="entry.type === 'system'"
+              [class.text-granite-500]="entry.type === 'system'"
+              [class.dark:bg-granite-800]="entry.type === 'system'"
+              [class.dark:text-granite-400]="entry.type === 'system'"
+            >
+              <svg
+                lucideIcon
+                [lucideIcon]="entry.type | interactionTypeIcon"
+                class="size-4"
+                aria-hidden="true"
+              ></svg>
+            </span>
+            <div class="min-w-0 flex-1">
+              <p
+                class="flex flex-wrap items-baseline gap-x-2 text-xs text-granite-500 dark:text-granite-400"
+              >
+                <a
+                  [routerLink]="['/customers', entry.customerId]"
+                  class="font-semibold text-granite-900 hover:underline dark:text-granite-100"
+                >
+                  {{ entry.customerName }}
+                </a>
+                <span class="font-semibold uppercase tracking-caps">
+                  {{ entry.type | interactionTypeLabel }}
+                </span>
+                @if (entry.userName) {
+                  <span>{{ entry.userName }}</span>
+                }
+                <span class="font-data tabular-nums">{{ entry.createdAt | relativeTime }}</span>
+              </p>
+              <p class="mt-0.5 truncate text-sm text-granite-800 dark:text-granite-200">
+                {{ entry.body }}
+              </p>
+            </div>
+          </li>
+        } @empty {
+          <li class="flex flex-col items-center gap-2 py-8 text-center">
+            <svg
+              lucideActivity
+              class="size-5 text-granite-400 dark:text-granite-500"
+              aria-hidden="true"
+            ></svg>
+            <p class="text-sm text-granite-500 dark:text-granite-400">
+              Sin actividad todavía — registra la primera llamada desde un cliente.
+            </p>
+          </li>
+        }
+      </ol>
+    }
+  </section>
+
+  <section class="card-section" aria-labelledby="panel-clients-title">
+    <h2 id="panel-clients-title" class="micro-label uppercase tracking-caps">
+      Clientes recientes
+    </h2>
+    @if (clientsPending()) {
+      <div class="mt-2 divide-y divide-granite-200 dark:divide-granite-800" aria-hidden="true">
+        @for (row of skeletonRows; track row) {
+          <div class="flex items-center justify-between gap-3 py-3">
+            <div class="min-w-0 flex-1">
+              <div class="h-3 w-44 rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
+              <div class="mt-1.5 h-3 w-28 rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
+            </div>
+            <div class="h-3 w-16 shrink-0 rounded bg-granite-200 motion-safe:animate-pulse dark:bg-granite-800"></div>
+          </div>
+        }
+      </div>
+    } @else if (clientsError()) {
+      <p class="mt-3 text-sm text-granite-600 dark:text-granite-400">
+        No se pudieron cargar los clientes recientes.
+      </p>
+      <button type="button" class="btn-secondary mt-3" (click)="loadClients(true)">Reintentar</button>
+    } @else {
+      <ol class="mt-2 flex flex-col divide-y divide-granite-200 dark:divide-granite-800">
+        @for (row of clientRows(); track row.id) {
+          <li>
+            <a
+              [routerLink]="['/customers', row.id]"
+              class="-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-granite-50 dark:hover:bg-granite-950/60"
+            >
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium text-granite-900 dark:text-granite-100">
+                  {{ row.title }}
+                </p>
+                @if (row.subtitle) {
+                  <p class="truncate text-xs text-granite-500 dark:text-granite-400">
+                    {{ row.subtitle }}
+                  </p>
+                }
+              </div>
+              <div class="shrink-0 text-right">
+                <p class="text-xs text-granite-600 dark:text-granite-400">{{ row.sourceLabel }}</p>
+                <p class="font-data text-xs tabular-nums text-granite-500 dark:text-granite-400">
+                  {{ row.createdAt | relativeTime }}
+                </p>
+              </div>
+            </a>
+          </li>
+        } @empty {
+          <li class="flex flex-col items-center gap-2 py-8 text-center">
+            <svg
+              lucideUserPlus
+              class="size-5 text-granite-400 dark:text-granite-500"
+              aria-hidden="true"
+            ></svg>
+            <p class="text-sm text-granite-500 dark:text-granite-400">
+              Sin clientes registrados todavía.
+            </p>
+          </li>
+        }
+      </ol>
+    }
+  </section>
+</div>

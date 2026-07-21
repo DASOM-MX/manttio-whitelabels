@@ -28,6 +28,7 @@ import {
 } from '../../../../state/customers/customers.actions';
 import { CUSTOMER_STATUS_LABELS } from '../../../model/constants/customer/customer-status-labels.const';
 import { CUSTOMER_SOURCE_LABELS } from '../../../model/constants/customer/customer-source-labels.const';
+import { MANUAL_CUSTOMER_SOURCES } from '../../../model/constants/customer/manual-customer-sources.const';
 import { SAT_TAX_REGIMES } from '../../../model/constants/customer/sat-tax-regimes.const';
 import { SAT_CFDI_USES } from '../../../model/constants/customer/sat-cfdi-uses.const';
 import { rfcValidator } from '../../../validators/rfc.validator';
@@ -86,9 +87,10 @@ export class CustomerForm implements HasPendingChanges {
   protected statusOptions = (
     Object.entries(CUSTOMER_STATUS_LABELS) as [CustomerStatus, string][]
   ).map(([value, label]) => ({ label, value }));
-  protected sourceOptions = (
-    Object.entries(CUSTOMER_SOURCE_LABELS) as [CustomerSource, string][]
-  ).map(([value, label]) => ({ label, value }));
+  protected sourceOptions = MANUAL_CUSTOMER_SOURCES.map((value) => ({
+    label: CUSTOMER_SOURCE_LABELS[value],
+    value,
+  }));
   protected readonly SAT_TAX_REGIMES = SAT_TAX_REGIMES;
   protected readonly SAT_CFDI_USES = SAT_CFDI_USES;
 

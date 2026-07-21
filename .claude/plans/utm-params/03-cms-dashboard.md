@@ -1,6 +1,6 @@
 # utm-params 03 — CMS dashboard (intake metrics per source)
 
-> **Status:** in-progress (CP-1 code done · tests written, not yet run — live-Neon suite pends sign-off) · **Depends on:** [01-fullstack-implementation](01-fullstack-implementation.md) (CP-1 columns incl. the `status_changed_at` amendment; data flows once 02 ships) — **both shipped as of 2026-07-20**
+> **Status:** in-progress (CP-1 + CP-2 code done, build green · backend tests written, not yet run — live-Neon suite pends sign-off · verification pass pending) · **Depends on:** [01-fullstack-implementation](01-fullstack-implementation.md) (CP-1 columns incl. the `status_changed_at` amendment; data flows once 02 ships) — **both shipped as of 2026-07-20**
 > **Owner:** worktree `fullstack-cms-dashboard` · **Last updated:** 2026-07-20
 > **PR:** PR-C `feat(fullstack)` on branch `feature/fullstack-cms-dashboard` (after PR-A merges) · base `main`
 
@@ -53,18 +53,19 @@ appended to CP-1/CP-2 below.
 
 **Load the `superadmin-design` skill and the `dataviz` skill before building this page** (chart form, palette, and dashboard layout rules).
 
-- [ ] `npm i chart.js` + PrimeNG `ChartModule` (`p-chart`) — confirm the PrimeNG 21 peer range; charts render client-side only, fine under zoneless.
-- [ ] `data/dtos/customer-stats.ts` — response DTOs mirroring the endpoint shape (types out of component bodies).
-- [ ] `app/services/http/customer-stats.service.ts` — `getIntake(month?)`; single-fetch page data, held in component signals (no NGXS state — nothing cross-page here).
-- [ ] `cms/pages/dashboard/` — route `/cms/dashboard` in `cms.routes.ts` (no `pendingChangesGuard`; read-only page). Layout:
+- [x] `npm i chart.js` + PrimeNG `ChartModule` (`p-chart`) — confirm the PrimeNG 21 peer range; charts render client-side only, fine under zoneless.
+- [x] `data/dtos/customer-stats.ts` — response DTOs mirroring the endpoint shape (types out of component bodies; page view-models in `data/types/cms/panel.types.ts`).
+- [x] `app/services/http/customer-stats.service.ts` — `getIntake(month?)` + the two feed reads. ~~single-fetch page data, held in component signals (no NGXS state — nothing cross-page here)~~ — **superseded 2026-07-20 (owner):** cached in `CustomerStatsState` (`state/customer-stats/`, lazy-provided on the cms route) so revisits render from state without refetching; actions carry `refresh` for retries / future filter changes / boot prefetch.
+- [x] `cms/pages/dashboard/` — route `/cms/dashboard` in `cms.routes.ts` (no `pendingChangesGuard`; read-only page). Layout:
   - Header: h1 "Panel" + lede naming both period labels explicitly ("1–16 jul vs junio") so the MTD-vs-full-month comparison is honest.
   - Totals strip: leads and actives for the period with delta vs last month (plain figures, not a chart-junk duplicate).
   - Two grouped-bar charts (`p-chart type="bar"`): **Leads por canal** and **Activos por canal** — x = source (es_MX labels from a `model/constants/customer/source-labels.const.ts`, one constant per file), two series: current period vs previous month. Colors from brand theme tokens via the existing theme services (`app/services/theme/`), dark-mode aware (re-read CSS vars on theme change); axis/gridline styling per the dataviz pass.
-  - Skeletons while loading; empty state when both periods are all-zero ("Aún no hay datos de captación — comparte tus enlaces de contacto", linking to `/customers/share-links`).
-- [ ] "Actividad reciente" list (amendment 2026-07-20): recent-feed fetch beside `getIntake` in the same http service, timeline-row idiom reuse (type icon, relative time, author), rows link to the customer view; skeleton + empty state.
-- [ ] "Clientes recientes" list (amendment 2026-07-20) right next to the activity feed: name + contact/business line + source label + relative registration date, each row links to `/customers/:id`; skeleton + empty state.
-- [ ] `model/constants/access/nav-entries.const.ts` — CMS group children: prepend `{ label: 'Panel', route: '/cms/dashboard' }` before Home/Clientes.
-- [ ] Build green (`ng build`); no screenshots unless asked.
+  - Skeletons while loading; empty state when both periods are all-zero ("Aún no hay datos de captación — comparte tus enlaces de contacto", linking to `/customers/share-links`). *Built 2026-07-20 with the link pointed at `/dashboard` instead — CP-3 shipped share links as the main-dashboard header menu; no `/customers/share-links` page exists.*
+- [x] "Actividad reciente" list (amendment 2026-07-20): recent-feed fetch beside `getIntake` in the same http service, timeline-row idiom reuse (type icon, relative time, author), rows link to the customer view; skeleton + empty state. **Limit 20 (owner, 2026-07-20).**
+- [x] "Clientes recientes" list (amendment 2026-07-20) right next to the activity feed: name + contact/business line + source label + relative registration date, each row links to `/customers/:id`; skeleton + empty state (limit 8).
+- [x] `model/constants/access/nav-entries.const.ts` — CMS group children: prepend `{ label: 'Panel', route: '/cms/dashboard' }` before Home/Clientes.
+- [x] Build green (`ng build`); no screenshots unless asked.
+- [x] Enum parity fix ridden along (2026-07-20): superadmin `CustomerSource` + `CUSTOMER_SOURCE_LABELS` extended to the backend's 10 values (verified against the enum + `customers_source_check`); the customer form picks from the new `MANUAL_CUSTOMER_SOURCES` (7) so share-link-only channels are never hand-picked, while the list filter offers all 10.
 
 ## Verification
 
