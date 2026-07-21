@@ -49,7 +49,7 @@ export const notifications = pgTable(
     index('notifications_created_idx').on(table.createdAt),
     check(
       'notifications_type_check',
-      sql`${table.type} in ('replenishment_ready', 'replenishment_failed', 'replenishment_rejected')`,
+      sql`${table.type} in ('replenishment_ready', 'replenishment_failed', 'replenishment_rejected', 'announcement', 'report_created', 'report_finalized', 'client_registered_from_website', 'client_registered_from_superadmin', 'client_blacklisted', 'client_updated', 'client_archived', 'client_interaction_registered')`,
     ),
     check('notifications_status_check', sql`${table.status} in ('unread', 'read')`),
     check(

@@ -1,7 +1,15 @@
 import { afterAll, describe, expect, test } from 'vitest';
-import { eq, inArray } from 'drizzle-orm';
-import { authHeader, env, json, request } from './helpers/request';
-import { seedAdmin, seedAdminAndLogin, seedOwner, seedTechnicianAndLogin } from './helpers/fixtures';
+import { eq, like } from 'drizzle-orm';
+import { authHeader, env, json, jsonHeaders, request } from './helpers/request';
+import {
+  loginAs,
+  seedAdmin,
+  seedAdminAndLogin,
+  seedOwner,
+  seedOwnerAndLogin,
+  seedTechnician,
+  seedTechnicianAndLogin,
+} from './helpers/fixtures';
 import { createDb } from '../src/modules/database/client';
 import { notifications, users } from '../src/modules/database/schema';
 import { notify } from '../src/modules/notifications/services/notifications.service';
@@ -18,21 +26,15 @@ const db = () => (client ??= createDb((env as unknown as WorkerEnv).DATABASE_URL
 const tag = () => Math.random().toString(36).slice(2, 10);
 const testTitle = (scope: string) => `notif-test-${scope}-${tag()}`;
 
-// Every row this suite creates. Role broadcasts resolve against the LIVE
-// users table, so they also address real (non-fixture) admins/owners — those
-// copies must not linger. Notifications are the sanctioned hard-delete leaf
-// (plan §0: transient delivery copies, nothing FKs to them, the retention
-// sweep hard-deletes them anyway), so cleanup deletes by id — the same
-// exception class, no audit trail touched.
-const createdIds: string[] = [];
-const track = (rows: NotificationRow[]) => {
-  createdIds.push(...rows.map((r) => r.id));
-  return rows;
-};
-
+// Every title this suite writes is `notif-test-` prefixed, and role
+// broadcasts resolve against the LIVE users table — they also address real
+// (non-fixture) users, and the POST endpoint only returns a count, so
+// cleanup sweeps by title prefix rather than tracking ids. Notifications
+// are the sanctioned hard-delete leaf (plan §0: transient delivery copies,
+// nothing FKs to them, the retention sweep hard-deletes them anyway), so
+// this is the same exception class — no audit trail touched.
 afterAll(async () => {
-  if (createdIds.length === 0) return;
-  await db().delete(notifications).where(inArray(notifications.id, createdIds));
+  await db().delete(notifications).where(like(notifications.title, 'notif-test-%'));
 });
 
 type ListBody = {
@@ -47,15 +49,13 @@ describe('notify()', () => {
   test('direct send inserts one unread row for the recipient', async () => {
     const admin = await seedAdmin();
     const title = testTitle('direct');
-    const rows = track(
-      await notify(db(), {
-        recipientUserId: admin.id,
-        type: NotificationType.ReplenishmentReady,
-        title,
-        body: 'cuerpo de prueba',
-        data: { importId: 'imp-1', link: '/wms/approval?import=imp-1' },
-      }),
-    );
+    const rows = await notify(db(), {
+      recipientUserId: admin.id,
+      type: NotificationType.ReplenishmentReady,
+      title,
+      body: 'cuerpo de prueba',
+      data: { importId: 'imp-1', link: '/wms/approval?import=imp-1' },
+    });
 
     expect(rows).toHaveLength(1);
     expect(rows[0]!.recipientUserId).toBe(admin.id);
@@ -103,14 +103,12 @@ describe('notify()', () => {
     const adminGone = await seedAdmin();
     await db().update(users).set({ deletedAt: new Date() }).where(eq(users.id, adminGone.id));
 
-    const rows = track(
-      await notify(db(), {
-        role: 'admin',
-        type: NotificationType.ReplenishmentFailed,
-        title: testTitle('broadcast'),
-        body: 'x',
-      }),
-    );
+    const rows = await notify(db(), {
+      role: 'admin',
+      type: NotificationType.ReplenishmentFailed,
+      title: testTitle('broadcast'),
+      body: 'x',
+    });
 
     const forA = rows.filter((r) => r.recipientUserId === adminA.id);
     const forB = rows.filter((r) => r.recipientUserId === adminB.id);
@@ -122,29 +120,25 @@ describe('notify()', () => {
 
   test('multi-role broadcast dedupes (single-role users match at most once)', async () => {
     const owner = await seedOwner();
-    const rows = track(
-      await notify(db(), {
-        role: ['owner', 'admin'],
-        type: NotificationType.ReplenishmentReady,
-        title: testTitle('multirole'),
-        body: 'x',
-      }),
-    );
+    const rows = await notify(db(), {
+      role: ['owner', 'admin'],
+      type: NotificationType.ReplenishmentReady,
+      title: testTitle('multirole'),
+      body: 'x',
+    });
     expect(rows.filter((r) => r.recipientUserId === owner.id)).toHaveLength(1);
     expect(rows.find((r) => r.recipientUserId === owner.id)!.audienceRole).toBe('owner');
   });
 
   test('recipientUserId wins over role — one row, no audience_role', async () => {
     const admin = await seedAdmin();
-    const rows = track(
-      await notify(db(), {
-        recipientUserId: admin.id,
-        role: ['owner', 'admin'],
-        type: NotificationType.ReplenishmentRejected,
-        title: testTitle('direct-wins'),
-        body: 'x',
-      }),
-    );
+    const rows = await notify(db(), {
+      recipientUserId: admin.id,
+      role: ['owner', 'admin'],
+      type: NotificationType.ReplenishmentRejected,
+      title: testTitle('direct-wins'),
+      body: 'x',
+    });
     expect(rows).toHaveLength(1);
     expect(rows[0]!.recipientUserId).toBe(admin.id);
     expect(rows[0]!.audienceRole).toBeNull();
@@ -162,14 +156,12 @@ describe('GET /notifications', () => {
     const t1 = testTitle('list-1');
     const t2 = testTitle('list-2');
     for (const title of [t1, t2]) {
-      track(
-        await notify(db(), {
-          recipientUserId: admin.id,
-          type: NotificationType.ReplenishmentReady,
-          title,
-          body: 'x',
-        }),
-      );
+      await notify(db(), {
+        recipientUserId: admin.id,
+        type: NotificationType.ReplenishmentReady,
+        title,
+        body: 'x',
+      });
     }
 
     const res = await request('/notifications', { headers: authHeader(token) });
@@ -194,14 +186,12 @@ describe('GET /notifications', () => {
     const rows: NotificationRow[] = [];
     for (let i = 0; i < 3; i++) {
       rows.push(
-        ...track(
-          await notify(db(), {
-            recipientUserId: admin.id,
-            type: NotificationType.ReplenishmentReady,
-            title: testTitle(`page-${i}`),
-            body: 'x',
-          }),
-        ),
+        ...(await notify(db(), {
+          recipientUserId: admin.id,
+          type: NotificationType.ReplenishmentReady,
+          title: testTitle(`page-${i}`),
+          body: 'x',
+        })),
       );
     }
     const readRes = await request(`/notifications/${rows[0]!.id}/read`, {
@@ -230,14 +220,12 @@ describe('GET /notifications', () => {
 describe('POST /notifications/:id/read', () => {
   test('marks own row read, stamps read_at once, and is idempotent', async () => {
     const { admin, token } = await seedAdminAndLogin();
-    const [row] = track(
-      await notify(db(), {
-        recipientUserId: admin.id,
-        type: NotificationType.ReplenishmentReady,
-        title: testTitle('read'),
-        body: 'x',
-      }),
-    );
+    const [row] = await notify(db(), {
+      recipientUserId: admin.id,
+      type: NotificationType.ReplenishmentReady,
+      title: testTitle('read'),
+      body: 'x',
+    });
 
     const first = await request(`/notifications/${row!.id}/read`, {
       method: 'POST',
@@ -260,14 +248,12 @@ describe('POST /notifications/:id/read', () => {
   test('a foreign or malformed id is 404 notification_not_found', async () => {
     const { admin } = await seedAdminAndLogin();
     const { token: otherToken } = await seedTechnicianAndLogin();
-    const [row] = track(
-      await notify(db(), {
-        recipientUserId: admin.id,
-        type: NotificationType.ReplenishmentReady,
-        title: testTitle('foreign'),
-        body: 'x',
-      }),
-    );
+    const [row] = await notify(db(), {
+      recipientUserId: admin.id,
+      type: NotificationType.ReplenishmentReady,
+      title: testTitle('foreign'),
+      body: 'x',
+    });
 
     const foreign = await request(`/notifications/${row!.id}/read`, {
       method: 'POST',
@@ -300,24 +286,20 @@ describe('POST /notifications/read-all', () => {
     const adminRows: NotificationRow[] = [];
     for (let i = 0; i < 3; i++) {
       adminRows.push(
-        ...track(
-          await notify(db(), {
-            recipientUserId: admin.id,
-            type: NotificationType.ReplenishmentReady,
-            title: testTitle(`readall-${i}`),
-            body: 'x',
-          }),
-        ),
+        ...(await notify(db(), {
+          recipientUserId: admin.id,
+          type: NotificationType.ReplenishmentReady,
+          title: testTitle(`readall-${i}`),
+          body: 'x',
+        })),
       );
     }
-    track(
-      await notify(db(), {
-        recipientUserId: tech.id,
-        type: NotificationType.ReplenishmentRejected,
-        title: testTitle('readall-tech'),
-        body: 'x',
-      }),
-    );
+    await notify(db(), {
+      recipientUserId: tech.id,
+      type: NotificationType.ReplenishmentRejected,
+      title: testTitle('readall-tech'),
+      body: 'x',
+    });
     // One of the admin's rows is already read — read-all only counts unread.
     await request(`/notifications/${adminRows[0]!.id}/read`, {
       method: 'POST',
@@ -341,5 +323,110 @@ describe('POST /notifications/read-all', () => {
       await request('/notifications', { headers: authHeader(techToken) }),
     );
     expect(techBody.unreadCount).toBe(1);
+  });
+});
+
+// Last describe on purpose: its role broadcast pollutes fixture recipients
+// seeded earlier, which have all finished asserting by the time it runs.
+describe('POST /notifications', () => {
+  test('is owner-only', async () => {
+    const payload = JSON.stringify({
+      recipientUserId: crypto.randomUUID(),
+      title: testTitle('gate'),
+      body: 'x',
+    });
+
+    const anon = await request('/notifications', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: payload,
+    });
+    expect(anon.status).toBe(401);
+
+    const { token: adminToken } = await seedAdminAndLogin();
+    const asAdmin = await request('/notifications', {
+      method: 'POST',
+      headers: jsonHeaders(adminToken),
+      body: payload,
+    });
+    expect(asAdmin.status).toBe(403);
+
+    const { token: techToken } = await seedTechnicianAndLogin();
+    const asTech = await request('/notifications', {
+      method: 'POST',
+      headers: jsonHeaders(techToken),
+      body: payload,
+    });
+    expect(asTech.status).toBe(403);
+  });
+
+  test('owner sends a direct announcement — type stamped server-side', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const recipient = await seedAdmin();
+    const title = testTitle('announce');
+
+    const res = await request('/notifications', {
+      method: 'POST',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({
+        recipientUserId: recipient.id,
+        title,
+        body: 'aviso del propietario',
+        data: { link: '/dashboard' },
+      }),
+    });
+    expect(res.status).toBe(201);
+    expect(await json(res)).toEqual({ created: 1 });
+
+    const recipientToken = await loginAs(recipient);
+    const listBody = await json<ListBody>(
+      await request('/notifications', { headers: authHeader(recipientToken) }),
+    );
+    expect(listBody.total).toBe(1);
+    expect(listBody.items[0]!.type).toBe('announcement');
+    expect(listBody.items[0]!.title).toBe(title);
+    expect(listBody.items[0]!.data).toEqual({ link: '/dashboard' });
+  });
+
+  test('owner broadcasts an announcement to a role', async () => {
+    const { token } = await seedOwnerAndLogin();
+    // Guarantee the role resolves at least one active user.
+    await seedTechnician();
+
+    const res = await request('/notifications', {
+      method: 'POST',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({
+        role: 'technician',
+        title: testTitle('role-announce'),
+        body: 'x',
+      }),
+    });
+    expect(res.status).toBe(201);
+    const body = await json<{ created: number }>(res);
+    expect(body.created).toBeGreaterThan(0);
+  });
+
+  test('missing addressing is 400; an unknown direct recipient is 404', async () => {
+    const { token } = await seedOwnerAndLogin();
+
+    const neither = await request('/notifications', {
+      method: 'POST',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ title: testTitle('bad'), body: 'x' }),
+    });
+    expect(neither.status).toBe(400);
+
+    const ghost = await request('/notifications', {
+      method: 'POST',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({
+        recipientUserId: crypto.randomUUID(),
+        title: testTitle('ghost-post'),
+        body: 'x',
+      }),
+    });
+    expect(ghost.status).toBe(404);
+    expect(await json(ghost)).toEqual({ error: 'recipient_not_found' });
   });
 });
