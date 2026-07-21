@@ -4,10 +4,12 @@ import type { AppBindings } from '../../../env';
 import { createDb } from '../../database/client';
 import { requireRole } from '../../auth/middleware/roles.middleware';
 import { createCustomerSchema, updateCustomerSchema } from '../validators/customers.validator';
+import { intakeStatsQuerySchema } from '../validators/customer-stats.validator';
 import {
   addInteractionSchema,
   changeStatusSchema,
   listInteractionsQuerySchema,
+  recentInteractionsQuerySchema,
 } from '../validators/interactions.validator';
 import {
   createCustomer,
@@ -20,7 +22,9 @@ import {
   addInteraction,
   changeCustomerStatus,
   getInteractions,
+  getRecentInteractions,
 } from '../services/interactions.service';
+import { getIntakeStats } from '../services/customer-stats.service';
 import { getCustomerEquipment } from '../../equipment/services/equipment.service';
 import { getCustomerReports } from '../../reports/services/reports.service';
 import {
@@ -35,6 +39,33 @@ customers.get('/', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   return c.json({ customers: await getCustomers(db) });
 });
+
+// Intake stats for the CMS Panel (utm-params 03): leads/actives per source,
+// requested month (MTD when current) vs the full previous month. Declared
+// before GET /:id so "stats" is never captured as an id; gated owner/admin to
+// match the CMS module.
+customers.get(
+  '/stats/intake',
+  requireRole(['owner', 'admin']),
+  zValidator('query', intakeStatsQuerySchema),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    return c.json(await getIntakeStats(db, c.req.valid('query').month));
+  },
+);
+
+// Tenant-wide latest activity across clients (utm-params 03 amendment
+// 2026-07-20). Owner/admin only — technicians keep the per-customer read below.
+customers.get(
+  '/interactions/recent',
+  requireRole(['owner', 'admin']),
+  zValidator('query', recentInteractionsQuerySchema),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    const { limit } = c.req.valid('query');
+    return c.json({ items: await getRecentInteractions(db, limit) });
+  },
+);
 
 customers.get('/:id', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
