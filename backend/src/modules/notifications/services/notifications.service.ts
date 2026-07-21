@@ -4,14 +4,22 @@
 // users but never decides *who should care* — recipient policy stays with
 // the caller.
 
+import type { SSEStreamingApi } from 'hono/streaming';
 import type { Db } from '../../database/client';
 import { findUserById, listActiveUsersByRoles } from '../../users/repository/users.repository';
 import {
+  countUnread,
   insertNotifications,
+  listCreatedAfter,
   listNotifications,
   markAllRead,
   markRead,
+  streamCursorStart,
 } from '../repository/notifications.repository';
+import {
+  NOTIFICATIONS_STREAM_HEARTBEAT_MS,
+  NOTIFICATIONS_STREAM_POLL_MS,
+} from '../constants/stream-timing';
 import { NotificationNotFoundError } from '../http-errors/notification-not-found.error';
 import type { ListNotificationsQuery } from '../validators/notifications.validator';
 import type { NotificationRow, NotificationView, NotifyInput } from '../types/notifications.types';
@@ -77,3 +85,44 @@ export const markNotificationRead = async (
 };
 
 export const markAllNotificationsRead = (db: Db, userId: string) => markAllRead(db, userId);
+
+/** The session-length SSE loop (plan §2.2). On connect: the current
+ *  unread-count. Then every ~2 s: re-read rows created after the cursor and
+ *  emit a `notification` event per new row (the full view, so the bell
+ *  prepends without a refetch) plus an `unread-count` event when the count
+ *  changed; a comment heartbeat every 15 s. No terminal event — a user's
+ *  feed has no end; the loop runs until the client disconnects. The DB row
+ *  is the truth (no in-process pub/sub — isolates don't share memory). */
+export const streamNotificationEvents = async (
+  db: Db,
+  userId: string,
+  stream: SSEStreamingApi,
+): Promise<void> => {
+  let cursor = await streamCursorStart(db);
+  let lastCount = await countUnread(db, userId);
+  await stream.writeSSE({ event: 'unread-count', data: String(lastCount) });
+
+  let lastHeartbeat = Date.now();
+  while (!stream.aborted) {
+    await stream.sleep(NOTIFICATIONS_STREAM_POLL_MS);
+    if (stream.aborted) break;
+
+    const fresh = await listCreatedAfter(db, userId, cursor);
+    for (const view of fresh) {
+      if (view.createdAt > cursor) cursor = view.createdAt;
+      await stream.writeSSE({ event: 'notification', data: JSON.stringify(view) });
+    }
+
+    const count = await countUnread(db, userId);
+    if (count !== lastCount) {
+      lastCount = count;
+      await stream.writeSSE({ event: 'unread-count', data: String(count) });
+    }
+
+    if (Date.now() - lastHeartbeat >= NOTIFICATIONS_STREAM_HEARTBEAT_MS) {
+      lastHeartbeat = Date.now();
+      // SSE comment line — keeps proxies from idling the connection out.
+      await stream.write(': heartbeat\n\n');
+    }
+  }
+};

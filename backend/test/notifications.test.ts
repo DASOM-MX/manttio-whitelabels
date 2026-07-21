@@ -13,6 +13,7 @@ import {
 import { createDb } from '../src/modules/database/client';
 import { notifications, users } from '../src/modules/database/schema';
 import { notify } from '../src/modules/notifications/services/notifications.service';
+import { sweepExpiredNotifications } from '../src/modules/notifications/services/notifications-retention.service';
 import { NotificationType } from '../src/modules/notifications/enums/notifications.enum';
 import type { NotificationRow, NotificationView } from '../src/modules/notifications/types/notifications.types';
 
@@ -214,6 +215,11 @@ describe('GET /notifications', () => {
     expect(pagedBody.items).toHaveLength(2);
     expect(pagedBody.total).toBe(3);
     expect(pagedBody.limit).toBe(2);
+
+    // The bell loads with the server default: 20 per page (owner, 2026-07-21).
+    const defaultRes = await request('/notifications', { headers: authHeader(token) });
+    const defaultBody = await json<ListBody>(defaultRes);
+    expect(defaultBody.limit).toBe(20);
   });
 });
 
@@ -323,6 +329,109 @@ describe('POST /notifications/read-all', () => {
       await request('/notifications', { headers: authHeader(techToken) }),
     );
     expect(techBody.unreadCount).toBe(1);
+  });
+});
+
+describe('GET /notifications/stream', () => {
+  test(
+    'pushes new rows live with unread-count + heartbeat, and stays open on an idle feed',
+    async () => {
+      const { admin, token } = await seedAdminAndLogin();
+      const res = await request('/notifications/stream', { headers: authHeader(token) });
+      expect(res.status).toBe(200);
+      expect(res.headers.get('content-type')).toContain('text/event-stream');
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      const readUntil = async (marker: string, timeoutMs: number) => {
+        const deadline = Date.now() + timeoutMs;
+        while (!buffer.includes(marker) && Date.now() < deadline) {
+          const result = await Promise.race([
+            reader.read(),
+            new Promise<'timeout'>((resolve) =>
+              setTimeout(() => resolve('timeout'), Math.max(1, deadline - Date.now())),
+            ),
+          ]);
+          if (result === 'timeout' || result.done) break;
+          buffer += decoder.decode(result.value, { stream: true });
+        }
+        return buffer.includes(marker);
+      };
+
+      // On connect: the current unread count (0 — fresh fixture user).
+      expect(await readUntil('event: unread-count', 5_000)).toBe(true);
+      expect(buffer).toContain('data: 0');
+
+      // A row inserted mid-stream arrives as a `notification` event within a
+      // poll tick, followed by the bumped count.
+      const title = testTitle('sse');
+      await notify(db(), {
+        recipientUserId: admin.id,
+        type: NotificationType.ReplenishmentReady,
+        title,
+        body: 'x',
+      });
+      expect(await readUntil(title, 10_000)).toBe(true);
+      expect(buffer).toContain('event: notification');
+      expect(await readUntil('data: 1', 5_000)).toBe(true);
+
+      // The 15 s comment heartbeat shows up on the now-idle feed…
+      expect(await readUntil(': heartbeat', 20_000)).toBe(true);
+      // …and the stream is still open (no terminal close) — a read after the
+      // heartbeat must wait, not report done.
+      const idleProbe = await Promise.race([
+        reader.read(),
+        new Promise<'pending'>((resolve) => setTimeout(() => resolve('pending'), 1_000)),
+      ]);
+      expect(idleProbe === 'pending' || !(idleProbe as { done: boolean }).done).toBe(true);
+
+      // Client disconnect: cancel the body — the server loop ends on abort.
+      await reader.cancel();
+    },
+    60_000,
+  );
+});
+
+describe('retention sweep', () => {
+  test('hard-deletes rows past the window, keeps newer ones', async () => {
+    const admin = await seedAdmin();
+    const oldDate = new Date();
+    oldDate.setUTCMonth(oldDate.getUTCMonth() - 9);
+
+    const oldTitle = testTitle('retention-old');
+    const freshTitle = testTitle('retention-fresh');
+    // Planted directly: created_at is DB-stamped in real flows, so notify()
+    // can't produce a 9-month-old row.
+    await db()
+      .insert(notifications)
+      .values({
+        recipientUserId: admin.id,
+        type: NotificationType.ReplenishmentReady,
+        title: oldTitle,
+        body: 'x',
+        createdAt: oldDate,
+      });
+    await notify(db(), {
+      recipientUserId: admin.id,
+      type: NotificationType.ReplenishmentReady,
+      title: freshTitle,
+      body: 'x',
+    });
+
+    const swept = await sweepExpiredNotifications(
+      db(),
+      (env as unknown as Parameters<typeof sweepExpiredNotifications>[1]),
+    );
+    expect(swept).toBeGreaterThanOrEqual(1);
+
+    const remaining = await db()
+      .select({ title: notifications.title })
+      .from(notifications)
+      .where(eq(notifications.recipientUserId, admin.id));
+    const titles = remaining.map((r) => r.title);
+    expect(titles).toContain(freshTitle);
+    expect(titles).not.toContain(oldTitle);
   });
 });
 

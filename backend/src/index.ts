@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import type { AppBindings } from './env';
+import type { AppBindings, Env } from './env';
+import { createDb } from './modules/database/client';
+import { sweepExpiredNotifications } from './modules/notifications/services/notifications-retention.service';
 import { auth } from './modules/auth/controllers/auth.controller';
 import { users } from './modules/users/controllers/users.controller';
 import { customers } from './modules/customers/controllers/customers.controller';
@@ -76,4 +78,15 @@ app.onError((err, c) => {
 
 app.notFound((c) => c.json({ error: 'not_found' }, 404));
 
-export default app;
+// The Worker's first cron (notifications plan §2.4): the daily notifications
+// retention sweep. When a second cron lands (WMS staging retention, 10-wms/11
+// §4), it adds its entry to wrangler.toml `triggers.crons` and a dispatch
+// branch on `controller.cron` here.
+const scheduled = (controller: ScheduledController, env: Env, ctx: ExecutionContext): void => {
+  ctx.waitUntil(sweepExpiredNotifications(createDb(env.DATABASE_URL), env));
+};
+
+// Named export for the test harness (`app.request`); the default export is
+// the module-worker handler surface wrangler deploys.
+export { app };
+export default { fetch: app.fetch, scheduled };

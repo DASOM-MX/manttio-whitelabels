@@ -27,6 +27,9 @@ export type Env = {
   /** CDN fronting the shared `branding-fonts` bucket. Optional — until it is
    *  configured, /fonts entries ship without files (defaults are bundled). */
   FONT_CDN_BASE_URL?: string;
+  /** Months the daily cron keeps notification rows (plan §2.4). Optional —
+   *  unset/invalid falls back to 8. */
+  NOTIFICATIONS_RETENTION_MONTHS?: string;
 
   MANTTIO_REPORTS: R2Bucket;
   /** Brand asset bucket (`manttio-logos`) — separate lifecycle from report data. */

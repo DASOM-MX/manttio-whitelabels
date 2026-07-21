@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import UPNG from 'upng-js';
-import app from '../src/index';
+import { app } from '../src/index';
 import { authHeader, env, json, jsonHeaders, request } from './helpers/request';
 import { seedAdminAndLogin, seedOwnerAndLogin } from './helpers/fixtures';
 import { createDb } from '../src/modules/database/client';

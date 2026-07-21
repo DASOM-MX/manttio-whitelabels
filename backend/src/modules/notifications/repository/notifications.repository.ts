@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, lt, sql } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { notifications } from '../models/notifications.model';
 import { NotificationStatus } from '../enums/notifications.enum';
@@ -75,6 +75,43 @@ export const listNotifications = async (
     total: countRows[0]?.count ?? 0,
     unreadCount: await countUnread(db, recipientUserId),
   };
+};
+
+/** The stream's start cursor — DB time, not worker time (the two clocks can
+ *  skew, and created_at is stamped by the DB). */
+export const streamCursorStart = async (db: Db): Promise<Date> => {
+  // db.execute bypasses drizzle's column mapping — the driver may hand the
+  // timestamp back as a string, so coerce before it meets a PgTimestamp param.
+  const result = await db.execute<{ now: Date | string }>(sql`select now() as now`);
+  const row = result.rows[0];
+  if (!row) throw new Error('streamCursorStart returned no row');
+  return row.now instanceof Date ? row.now : new Date(row.now);
+};
+
+/** Rows for one recipient created strictly after the cursor, oldest first —
+ *  the SSE poll's re-read (plan §2.2). */
+export const listCreatedAfter = async (
+  db: Db,
+  recipientUserId: string,
+  after: Date,
+): Promise<NotificationView[]> => {
+  const rows = await db
+    .select()
+    .from(notifications)
+    .where(and(eq(notifications.recipientUserId, recipientUserId), gt(notifications.createdAt, after)))
+    .orderBy(asc(notifications.createdAt));
+  return rows.map(toView);
+};
+
+/** The retention sweep (plan §2.4) — the sanctioned hard delete: transient
+ *  per-user delivery copies, nothing FKs to them, no audit trail touched.
+ *  Returns how many rows were swept. */
+export const deleteOlderThanMonths = async (db: Db, months: number): Promise<number> => {
+  const rows = await db
+    .delete(notifications)
+    .where(lt(notifications.createdAt, sql`now() - make_interval(months => ${months})`))
+    .returning({ id: notifications.id });
+  return rows.length;
 };
 
 /** Mark one row read. Idempotent: an already-read row matches and keeps its

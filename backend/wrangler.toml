@@ -23,6 +23,15 @@ TURNSTILE_SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/sitev
 # until it exists, GET /fonts serves entries without hosted files (the two
 # default families are bundled by every consumer).
 # FONT_CDN_BASE_URL = "https://<branding-fonts-cdn>"
+# NOTIFICATIONS_RETENTION_MONTHS — months the daily sweep keeps notification
+# rows (optional; code defaults to 8). Declare here AND in
+# [env.production.vars] if a tenant ever needs a different window.
+
+# Daily notifications retention sweep (notifications plan §2.4) — hard-deletes
+# notification rows older than the retention window via scheduled() in
+# src/index.ts. `triggers` is a wrangler-inheritable key: production reuses it.
+[triggers]
+crons = ["0 4 * * *"]
 
 [[r2_buckets]]
 binding = "MANTTIO_REPORTS"
