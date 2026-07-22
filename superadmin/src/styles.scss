@@ -77,14 +77,15 @@
     // Height is fixed (not `min-h-*`) so `<p-select>`, `<p-datepicker>`,
     // `<input pInputText>`, and `<p-inputnumber>` all render at the exact
     // same height when laid out side-by-side. Slimmed 2026-07-22 (owner:
-    // "inputs are too chunky"): 40px desk baseline with a crisp 1px outline
-    // in the tenant's dark primary (owner 2026-07-22, branded borders —
-    // mirrors the preset's formField tokens) —
+    // "inputs are too chunky"): 40px desk baseline with a soft branded 1px
+    // outline that strengthens on approach — primary-600/40 rest, solid 600
+    // hover, 700 + halo focus (owner 2026-07-22, softened same day from the
+    // solid dark-primary rest; mirrors the preset's formField tokens) —
     // `h-11` below `sm` keeps the 44px mobile touch target, and mobile
     // stays 16px text (iOS auto-zoom) while desktop compacts to `text-sm`.
     // Textareas opt out via `!h-auto`; compact controls opt down to `!h-9`.
-    @apply w-full h-11 sm:h-10 px-3.5 py-2 bg-white border border-primary-700 rounded-control text-base sm:text-sm text-surface-1000 font-data tabular-nums transition-colors duration-150 enabled:hover:border-primary-800 focus:outline-none focus:border-primary-700 focus:ring-4 focus:ring-primary-700/20 disabled:bg-surface-0 disabled:text-surface-400 disabled:border-surface-300
-           dark:bg-surface-900 dark:border-primary-500 dark:enabled:hover:border-primary-400 dark:text-surface-0 dark:focus:border-primary-400 dark:focus:ring-primary-400/25 dark:disabled:bg-surface-800 dark:disabled:text-surface-500 dark:disabled:border-surface-700;
+    @apply w-full h-11 sm:h-10 px-3.5 py-2 bg-white border border-primary-600/40 rounded-control text-base sm:text-sm text-surface-1000 font-data tabular-nums transition-colors duration-150 enabled:hover:border-primary-600 focus:outline-none focus:border-primary-700 focus:ring-4 focus:ring-primary-700/20 disabled:bg-surface-0 disabled:text-surface-400 disabled:border-surface-300
+           dark:bg-surface-900 dark:border-primary-400/40 dark:enabled:hover:border-primary-400 dark:text-surface-0 dark:focus:border-primary-400 dark:focus:ring-primary-400/25 dark:disabled:bg-surface-800 dark:disabled:text-surface-500 dark:disabled:border-surface-700;
   }
   .field-input--error {
     @apply border-red-500 focus:border-red-500 focus:ring-red-500/15 dark:border-red-400 dark:focus:border-red-400 dark:focus:ring-red-400/25;

@@ -79,15 +79,16 @@ export const ManttioPreset = definePreset(Aura, {
           hoverColor: '{primary.700}',
           activeColor: '{primary.800}',
         },
-        // Branded input outline (owner 2026-07-22 — supersedes the neutral
-        // surface-gray of the same day): the crisp 1px outline is drawn in
-        // the tenant's DARK primary — primary-700 rest, 800 hover; focus
-        // keeps the same border and signals via the halo ring. `.field-input`
-        // mirrors these so raw inputs and PrimeNG controls read identically
-        // side-by-side.
+        // Soft branded outline (owner 2026-07-22, third revision that day:
+        // neutral surface-gray → solid primary-700 → this, after the solid
+        // read too loud on stacked forms): the 1px outline strengthens as you
+        // approach — primary-600/40 tint at rest, solid 600 on hover, 700 +
+        // halo on focus. Alpha can't reference a token, hence raw hsl(var())
+        // (fallback = the neutral ladder). `.field-input` mirrors these so
+        // raw inputs and PrimeNG controls read identically side-by-side.
         formField: {
-          borderColor: '{primary.700}',
-          hoverBorderColor: '{primary.800}',
+          borderColor: 'hsl(var(--brand-primary-600, 220 10% 45%) / 0.4)',
+          hoverBorderColor: '{primary.600}',
           focusBorderColor: '{primary.700}',
         },
       },
@@ -99,12 +100,13 @@ export const ManttioPreset = definePreset(Aura, {
           hoverColor: '{primary.500}',
           activeColor: '{primary.400}',
         },
-        // Dark-mode analog of the branded outline: a dark primary vanishes
-        // on the surface-900 field, so the border rides the LIGHT end of the
-        // primary scale instead — still the tenant's hue.
+        // Dark-mode analog of the soft branded outline: a dark primary
+        // vanishes on the surface-900 field, so the ladder rides the LIGHT
+        // end of the primary scale — 400/40 tint at rest, solid 400 on
+        // hover/focus (+ halo on focus). Still the tenant's hue.
         formField: {
           background: '{surface.900}',
-          borderColor: '{primary.500}',
+          borderColor: 'hsl(var(--brand-primary-400, 220 10% 70%) / 0.4)',
           hoverBorderColor: '{primary.400}',
           focusBorderColor: '{primary.400}',
         },
