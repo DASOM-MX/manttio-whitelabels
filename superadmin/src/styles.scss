@@ -12,7 +12,16 @@
 @import '@fontsource/atkinson-hyperlegible/400.css';
 @import '@fontsource/atkinson-hyperlegible/700.css';
 
-@tailwind base;
+/* CSS layer order (plan 17 CP-2 follow-up): Tailwind's preflight reset is
+   unlayered by default, which silently beat Aura's `primeng` layer and
+   stripped component borders (inputs rendered borderless — the old override
+   sheets papered over this). Preflight now sits in `tailwind-base` BELOW
+   `primeng`; components/utilities and the surviving sheets stay unlayered,
+   so they still win over Aura without `!important`. */
+@layer tailwind-base, primeng;
+@layer tailwind-base {
+  @tailwind base;
+}
 @tailwind components;
 @tailwind utilities;
 
@@ -66,8 +75,8 @@
     // `h-11` below `sm` keeps the 44px mobile touch target, and mobile
     // stays 16px text (iOS auto-zoom) while desktop compacts to `text-sm`.
     // Textareas opt out via `!h-auto`; compact controls opt down to `!h-9`.
-    @apply w-full h-11 sm:h-10 px-3.5 py-2 bg-white border border-surface-300 rounded-control text-base sm:text-sm text-surface-1000 font-data tabular-nums transition-colors duration-150 enabled:hover:border-surface-400 focus:outline-none focus:border-primary-700 focus:ring-4 focus:ring-primary-700/20 disabled:bg-surface-0 disabled:text-surface-400
-           dark:bg-surface-900 dark:border-surface-700 dark:enabled:hover:border-surface-600 dark:text-surface-0 dark:focus:border-primary-400 dark:focus:ring-primary-400/25 dark:disabled:bg-surface-800 dark:disabled:text-surface-500;
+    @apply w-full h-11 sm:h-10 px-3.5 py-2 bg-white border border-surface-700 rounded-control text-base sm:text-sm text-surface-1000 font-data tabular-nums transition-colors duration-150 enabled:hover:border-surface-800 focus:outline-none focus:border-primary-700 focus:ring-4 focus:ring-primary-700/20 disabled:bg-surface-0 disabled:text-surface-400 disabled:border-surface-300
+           dark:bg-surface-900 dark:border-surface-500 dark:enabled:hover:border-surface-400 dark:text-surface-0 dark:focus:border-primary-400 dark:focus:ring-primary-400/25 dark:disabled:bg-surface-800 dark:disabled:text-surface-500 dark:disabled:border-surface-700;
   }
   .field-input--error {
     @apply border-red-500 focus:border-red-500 focus:ring-red-500/15 dark:border-red-400 dark:focus:border-red-400 dark:focus:ring-red-400/25;

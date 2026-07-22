@@ -79,13 +79,13 @@ export const ManttioPreset = definePreset(Aura, {
           hoverColor: '{primary.700}',
           activeColor: '{primary.800}',
         },
-        // Crisp field definition (owner 2026-07-22 — the surface-200 hairline
-        // read as borderless on white cards): surface-300 rest, 400 hover,
-        // primary focus. `.field-input` mirrors these so raw inputs and
-        // PrimeNG controls read identically side-by-side.
+        // Diamond input style (owner 2026-07-22, reference screenshot): a
+        // crisp DARK outline — surface-700 rest, 800 hover, primary focus.
+        // `.field-input` mirrors these so raw inputs and PrimeNG controls
+        // read identically side-by-side.
         formField: {
-          borderColor: '{surface.300}',
-          hoverBorderColor: '{surface.400}',
+          borderColor: '{surface.700}',
+          hoverBorderColor: '{surface.800}',
           focusBorderColor: '{primary.700}',
         },
       },
@@ -97,10 +97,12 @@ export const ManttioPreset = definePreset(Aura, {
           hoverColor: '{primary.500}',
           activeColor: '{primary.400}',
         },
+        // Dark-mode analog of the crisp outline: a clearly visible light-gray
+        // border on the surface-900 field.
         formField: {
           background: '{surface.900}',
-          borderColor: '{surface.700}',
-          hoverBorderColor: '{surface.600}',
+          borderColor: '{surface.500}',
+          hoverBorderColor: '{surface.400}',
           focusBorderColor: '{primary.400}',
         },
       },
