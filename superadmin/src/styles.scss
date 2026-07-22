@@ -72,7 +72,8 @@
     // read as actions, not inputs, and the old py-2.5 made them balloon.
     // Blob buttons (owner, 2026-07-21): actions are smooth pills
     // (rounded-full, px-5 so text clears the curve); icon-only buttons are
-    // full circles. Actions only — inputs keep rounded-lg, nav rounded-md.
+    // full circles; the shell nav rides the same pill language. Inputs keep
+    // rounded-lg, cards rounded-xl.
     @apply inline-flex items-center justify-center gap-2 min-h-10 px-5 py-2 rounded-full text-base font-semibold transition-colors duration-150 focus:outline-none focus-visible:ring-4 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
@@ -166,11 +167,13 @@
   /* Sidebar nav items — idle/hover chrome lives here, not as template
      utilities, so hover can't outrank the solid `.nav-active` state in the
      cascade. */
+  /* Nav rides the blob language too (owner, 2026-07-21): pills, px-4 so
+     content clears the curve. */
   .nav-item {
-    @apply relative flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-surface-700 transition-colors dark:text-surface-300;
+    @apply relative flex h-10 w-full items-center gap-3 rounded-full px-4 text-sm font-medium text-surface-700 transition-colors dark:text-surface-300;
   }
   .nav-child {
-    @apply relative flex h-9 items-center rounded-md px-3 text-sm text-surface-600 transition-colors dark:text-surface-400;
+    @apply relative flex h-9 items-center rounded-full px-4 text-sm text-surface-600 transition-colors dark:text-surface-400;
   }
   .nav-item:not(.nav-active):not(.nav-group-active):hover,
   .nav-child:not(.nav-active):hover {

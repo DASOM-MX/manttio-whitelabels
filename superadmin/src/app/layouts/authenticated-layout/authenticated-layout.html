@@ -95,7 +95,7 @@
 
         <button
           type="button"
-          class="flex h-10 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-surface-800 transition-colors hover:bg-surface-100 dark:text-surface-200 dark:hover:bg-surface-800"
+          class="flex h-10 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-surface-800 transition-colors hover:bg-surface-100 dark:text-surface-200 dark:hover:bg-surface-800"
           (click)="userMenu.toggle($event)"
           aria-haspopup="true"
         >
@@ -186,7 +186,7 @@
               ></svg>
             </button>
             @if (entry.expanded) {
-              <ul class="mt-0.5 flex flex-col gap-0.5 pl-11" animate.enter="anim-fade-enter">
+              <ul class="mt-0.5 flex flex-col gap-0.5 pl-12" animate.enter="anim-fade-enter">
                 @for (child of entry.children; track child.route) {
                   <li>
                     <a

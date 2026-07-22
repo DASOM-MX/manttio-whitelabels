@@ -82,7 +82,9 @@ from decoration.
 - **Blob buttons** (owner, 2026-07-21): actions are smooth pills — the `.btn` family
   is `rounded-full` (`px-5`), icon-only buttons are full circles; PrimeNG buttons,
   paginator pages, and close buttons follow via `.btn` inheritance + theme sheets.
-  Actions only: inputs stay `rounded-lg`, nav items `rounded-md`, cards `rounded-xl`.
+  The shell nav rides the same pill language (`.nav-item`/`.nav-child`
+  `rounded-full px-4`; extended 2026-07-22). Boundary: inputs stay `rounded-lg`,
+  cards `rounded-xl`.
 
 ## Strong visual cues
 

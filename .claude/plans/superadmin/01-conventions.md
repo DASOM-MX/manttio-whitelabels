@@ -56,8 +56,9 @@ auto-loads it — **edit both in the same commit.**
   `.btn` family is a pill (`rounded-full`, `px-5` so text clears the curve) and
   icon-only buttons are full circles (`rounded-full`); PrimeNG buttons, paginator
   pages, and dialog/drawer/toast close buttons follow via `.btn` inheritance + the
-  theme sheets. **Actions only:** inputs (`.field-input`, icon-picker trigger) keep
-  `rounded-lg`, nav items `rounded-md`, cards `rounded-xl`.
+  theme sheets. The shell nav rides the same pill language (`.nav-item`/`.nav-child`
+  `rounded-full px-4`; extended 2026-07-22). **Boundary:** inputs (`.field-input`,
+  icon-picker trigger) keep `rounded-lg`, cards `rounded-xl`.
 - **Strong cues:** status pills wherever state exists (never color alone); active nav =
   solid brand-primary block + light neutral shadow (`.nav-active`, steps mirror
   `.btn-primary`; owner redesign 2026-07-21 — supersedes the 2px accent-bar + tint
