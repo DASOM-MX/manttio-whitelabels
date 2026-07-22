@@ -63,16 +63,11 @@
     }
 
     <div class="flex min-w-0 flex-1 flex-col">
-      <!-- Topbar: a flat card-tone strip (shadow removed, owner 2026-07-22) —
-           the surface change against the tinted canvas separates it from
-           content and nav. -->
-      <!-- Slim strip (owner 2026-07-22: "taking more space than needed" —
-           supersedes the CP-2 h-16): bell + user pill only; the theme
-           switcher lives in the user popover. Gutters stay aligned with the
-           content column. -->
-      <header
-        class="shell-topbar relative z-10 flex h-14 shrink-0 items-center gap-2 px-4 sm:px-6"
-      >
+      <!-- Topbar: a slim surfaceless strip (owner 2026-07-22 — h-16→h-14,
+           then shadow and white bg removed the same day): the bell + user
+           pill float directly on the canvas; the theme switcher lives in
+           the user popover. Gutters stay aligned with the content column. -->
+      <header class="relative z-10 flex h-14 shrink-0 items-center gap-2 px-4 sm:px-6">
         <button
           type="button"
           class="inline-flex size-10 items-center justify-center rounded-full text-surface-700 hover:bg-surface-100 lg:hidden dark:text-surface-300 dark:hover:bg-surface-800"

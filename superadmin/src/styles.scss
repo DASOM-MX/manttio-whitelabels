@@ -222,18 +222,14 @@
   /* Shell chrome (owner 2026-07-22, Diamond turn v2 — reference screenshot):
      the sidebar is the tenant's DARK brand panel — `primary-1000` in both
      modes with a rounded right edge and a hairline `primary-800/50` outline —
-     floating over the canvas; the topbar is a FLAT white card-tone strip (no
-     shadow — owner 2026-07-22). Neutral black alpha shadows only — never a
-     colored glow. */
+     floating over the canvas. The topbar has NO surface of its own (owner
+     2026-07-22, two steps the same day: shadow removed, then the white bg) —
+     the bell + user pill float directly on the canvas; content scrolls in a
+     separate region below, so nothing ever passes under it. Neutral black
+     alpha shadows only — never a colored glow. */
   .shell-sidebar {
     @apply bg-primary-1000 border border-l-0 border-primary-800/50 rounded-r-card;
     box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.12);
-  }
-  /* Flat since the slim-topbar turn (owner 2026-07-22: "remove the shadow…
-     make it look flat") — the white/surface-900 tone change against the
-     tinted canvas is the only separation. */
-  .shell-topbar {
-    @apply bg-white dark:bg-surface-900;
   }
   .app-dark .shell-sidebar {
     box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.5);
