@@ -10,6 +10,9 @@ import {
   type ContactInput,
   type FiscalInput,
 } from '../repository/customers.repository';
+import { notifyBestEffort } from '../../notifications/services/notifications.service';
+import { NotificationType } from '../../notifications/enums/notifications.enum';
+import { findUserById } from '../../users/repository/users.repository';
 import type {
   CustomerRow,
   CustomerWithRelations,
@@ -130,10 +133,30 @@ export const createCustomer = async (
 ): Promise<CustomerWithRelations> => {
   const contacts = normalizeContacts(input.contacts);
   const values = buildNewCustomer(input, primaryOf(contacts));
-  return insertCustomerWithRelations(db, values, contacts, normalizeFiscal(input.fiscal) ?? null, {
-    userId: actorId,
-    body: 'Cliente creado',
+  const customer = await insertCustomerWithRelations(
+    db,
+    values,
+    contacts,
+    normalizeFiscal(input.fiscal) ?? null,
+    {
+      userId: actorId,
+      body: 'Cliente creado',
+    },
+  );
+  // Owner awareness feed (notifications plan §1 note): owner broadcast, the
+  // acting user excluded; the body names who did it (owner ask, 2026-07-21).
+  const actor = await findUserById(db, actorId);
+  await notifyBestEffort(db, {
+    role: 'owner',
+    excludeUserId: actorId,
+    type: NotificationType.ClientRegisteredFromSuperadmin,
+    title: 'Cliente registrado',
+    body: actor
+      ? `${customer.name} fue dado de alta por ${actor.name}.`
+      : `${customer.name} fue dado de alta.`,
+    data: { customerId: customer.id },
   });
+  return customer;
 };
 
 export const editCustomer = async (
@@ -153,11 +176,51 @@ export const editCustomer = async (
   }
   const contacts = input.contacts !== undefined ? normalizeContacts(input.contacts) : undefined;
   if (contacts !== undefined) Object.assign(fields, contactMirror(primaryOf(contacts)));
-  return updateCustomerWithRelations(db, id, fields, contacts, normalizeFiscal(input.fiscal), {
-    userId: actorId,
-    body: auditBodyForEdit(input),
-  });
+  const updated = await updateCustomerWithRelations(
+    db,
+    id,
+    fields,
+    contacts,
+    normalizeFiscal(input.fiscal),
+    {
+      userId: actorId,
+      body: auditBodyForEdit(input),
+    },
+  );
+  if (updated) {
+    const actor = await findUserById(db, actorId);
+    await notifyBestEffort(db, {
+      role: 'owner',
+      excludeUserId: actorId,
+      type: NotificationType.ClientUpdated,
+      title: 'Cliente actualizado',
+      body: actor
+        ? `${actor.name} actualizó los datos de ${updated.name}.`
+        : `Se actualizaron los datos de ${updated.name}.`,
+      data: { customerId: updated.id },
+    });
+  }
+  return updated;
 };
 
-export const removeCustomer = async (db: Db, id: string): Promise<{ id: string } | null> =>
-  deleteCustomer(db, id);
+export const removeCustomer = async (
+  db: Db,
+  id: string,
+  actorId: string,
+): Promise<{ id: string } | null> => {
+  // The name outlives the soft delete, but read it up front so the notice
+  // never depends on tombstone-filtered reads.
+  const current = await findCustomerById(db, id);
+  const removed = await deleteCustomer(db, id);
+  if (removed) {
+    await notifyBestEffort(db, {
+      role: 'owner',
+      excludeUserId: actorId,
+      type: NotificationType.ClientArchived,
+      title: 'Cliente archivado',
+      body: `${current?.name ?? 'Un cliente'} fue archivado.`,
+      data: { customerId: id },
+    });
+  }
+  return removed;
+};

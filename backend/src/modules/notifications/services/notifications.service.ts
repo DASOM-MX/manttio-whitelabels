@@ -56,6 +56,13 @@ export const notify = async (db: Db, input: NotifyInput): Promise<NotificationRo
     }
   }
 
+  // The actor never hears about their own action; resolving to nobody after
+  // the drop is the same best-effort skip as an empty role.
+  if (input.excludeUserId) {
+    recipients = recipients.filter((r) => r.id !== input.excludeUserId);
+    if (recipients.length === 0) return [];
+  }
+
   return insertNotifications(
     db,
     recipients.map((recipient) => ({
@@ -68,6 +75,17 @@ export const notify = async (db: Db, input: NotifyInput): Promise<NotificationRo
       data: input.data ?? {},
     })),
   );
+};
+
+/** For fire-and-forget domain triggers (report/customer lifecycle events): a
+ *  notification failure must never break the flow that caused it — same
+ *  best-effort class as the auto-email on report finish. */
+export const notifyBestEffort = async (db: Db, input: NotifyInput): Promise<void> => {
+  try {
+    await notify(db, input);
+  } catch (err) {
+    console.error('notify failed (best-effort):', err);
+  }
 };
 
 export const getNotifications = (db: Db, userId: string, query: ListNotificationsQuery) =>

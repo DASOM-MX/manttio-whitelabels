@@ -40,6 +40,8 @@ import { ReportStatus } from '../enums/reports.enum';
 import { validateReportData } from '../validators/reports.validator';
 import { renderReportPdf } from '../helpers/report-pdf.helpers';
 import { getBrand } from '../../brand/services/brand.service';
+import { notifyBestEffort } from '../../notifications/services/notifications.service';
+import { NotificationType } from '../../notifications/enums/notifications.enum';
 import { dispatchReportEmail } from './report-email.service';
 import type { CustomerReportDTO, ReportRow } from '../types/reports.types';
 import type {
@@ -81,6 +83,27 @@ const recordServicePerformed = async (db: Db, report: ReportRow): Promise<void> 
     console.error('service-performed trail entry failed:', err);
   }
 };
+
+/** Owner awareness feed for the report lifecycle (notifications plan §1 note):
+ *  owner broadcast, the acting user excluded, deep link via data.reportId. */
+const notifyReportEvent = (
+  db: Db,
+  type: NotificationType.ReportCreated | NotificationType.ReportFinalized,
+  report: ReportRow,
+  customerName: string | null,
+  actorId: string,
+): Promise<void> =>
+  notifyBestEffort(db, {
+    role: 'owner',
+    excludeUserId: actorId,
+    type,
+    title: type === NotificationType.ReportCreated ? 'Reporte creado' : 'Reporte finalizado',
+    body:
+      type === NotificationType.ReportCreated
+        ? `Reporte ${report.id}${customerName ? ` para ${customerName}` : ''}.`
+        : `Reporte ${report.id}${customerName ? ` de ${customerName}` : ''} fue finalizado.`,
+    data: { reportId: report.id, customerId: report.clientId },
+  });
 
 // --- R2 helpers (moved verbatim from the old route module) ---
 
@@ -288,6 +311,14 @@ export const submitReport = async (p: SubmitReportParams): Promise<JsonResult> =
       if (finishResult) {
         // Trail entry: the report just reached `finished` (08 §2).
         await recordServicePerformed(db, finishResult.report);
+        // Signed-at-creation goes straight to `finished` — one notice, not two.
+        await notifyReportEvent(
+          db,
+          NotificationType.ReportFinalized,
+          finishResult.report,
+          client.name,
+          user.id,
+        );
         // Auto-send to the customer's email if present. Best-effort, non-blocking.
         if (client.email) {
           waitUntil(
@@ -305,6 +336,7 @@ export const submitReport = async (p: SubmitReportParams): Promise<JsonResult> =
         return { status: 201, body: finishResult };
       }
     }
+    await notifyReportEvent(db, NotificationType.ReportCreated, result.report, client.name, user.id);
     return { status: 201, body: result };
   } catch (err) {
     await cleanupR2(env.MANTTIO_REPORTS, env.CDN_BASE_URL, pictureUrls, signatureUrl);
@@ -438,6 +470,13 @@ export const finishWithSignature = async (
 
   // Auto-send to the customer's email if present. Best-effort, non-blocking.
   const customer = await findCustomerById(db, result.report.clientId);
+  await notifyReportEvent(
+    db,
+    NotificationType.ReportFinalized,
+    result.report,
+    customer?.name ?? null,
+    user.id,
+  );
   if (customer?.email) {
     waitUntil(
       dispatchReportEmail({
