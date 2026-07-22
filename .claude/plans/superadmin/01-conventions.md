@@ -79,7 +79,9 @@ auto-loads it — **edit both in the same commit.**
   borders-not-shadows):** cards are white `rounded-card` surfaces floating on the tinted
   page background with a soft neutral shadow (`.card`/`.card-section` → `shadow-card`);
   hairline borders retire to *internal* dividers and nested grouping. The shell keeps
-  its 2026-07-21 chrome shadows (`.shell-sidebar`/`.shell-topbar`). Shadows are always
+  its 2026-07-21 sidebar shadow (`.shell-sidebar`); the topbar went FLAT — no
+  shadow, the tone change is the separation (owner 2026-07-22, slim-topbar
+  turn). Shadows are always
   **neutral black alpha** — colored glows stay banned (AI-slop rule). **Depth needs
   contrast:** superadmin's `background` alias repoints to `surface-100` (one step
   under the card whites; owner 2026-07-22) — a deliberate superadmin-only divergence

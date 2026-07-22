@@ -106,7 +106,8 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   below) floating on the tinted page bg with the soft neutral `shadow-card` (`.card`/`.card-section` carry it; `dark:bg-surface-900` with a
   deepened `.app-dark` shadow). **No hairline borders on card edges** — hairlines
   retire to *internal* dividers. The shell chrome keeps its 2026-07-21 shadows
-  (`.shell-sidebar`/`.shell-topbar`). **Depth needs contrast:** the `background` alias
+  (`.shell-sidebar` — the topbar is FLAT since 2026-07-22, tone change only).
+  **Depth needs contrast:** the `background` alias
   sits at `surface-100` in superadmin (one step under card whites, owner 2026-07-22) —
   keep page-level surfaces on `bg-background`, never on `bg-white`.
 - **Entity rows lead with an initials avatar**: `size-9 rounded-full bg-primary-100
