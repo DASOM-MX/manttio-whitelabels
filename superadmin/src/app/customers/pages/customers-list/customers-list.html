@@ -94,7 +94,16 @@
       <!-- Whole row opens the client 360 view (05 §3 QA); the action links stay
            the keyboard path. -->
       <tr class="cursor-pointer" (click)="openCustomer(customer)">
-        <td class="font-medium">{{ customer.name }}</td>
+        <td>
+          <span class="flex items-center gap-3">
+            <span
+              class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-800 dark:bg-primary-1000/60 dark:text-primary-300"
+              aria-hidden="true"
+              >{{ customer.name | initials }}</span
+            >
+            <span class="font-medium">{{ customer.name }}</span>
+          </span>
+        </td>
         <td>
           {{ customer.contactName || '—' }}
           @if (customer.phone) {

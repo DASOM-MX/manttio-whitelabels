@@ -53,7 +53,13 @@ auto-loads it — **edit both in the same commit.**
   page background with a soft neutral shadow (`.card`/`.card-section` → `shadow-card`);
   hairline borders retire to *internal* dividers and nested grouping. The shell keeps
   its 2026-07-21 chrome shadows (`.shell-sidebar`/`.shell-topbar`). Shadows are always
-  **neutral black alpha** — colored glows stay banned (AI-slop rule).
+  **neutral black alpha** — colored glows stay banned (AI-slop rule). **Depth needs
+  contrast:** superadmin's `background` alias repoints to `surface-100` (one step
+  under the card whites; owner 2026-07-22) — a deliberate superadmin-only divergence
+  from plan 16's shared `surface-0` value, or the elevation never reads.
+- **Entity rows lead with an initials avatar** (`size-9 rounded-full bg-primary-100
+  text-primary-800` + the `initials` pipe, dark `primary-1000/60`/`primary-300`) —
+  the reference's row identity, brand-tinted (canon: customers-list Cliente column).
 - **Accent step (owner, 2026-07-22):** `primary-400` is the *decorative* accent — icon
   chips (`.icon-chip`/`.icon-chip--soft`), single-hue chart area fills, progress bars,
   highlight numbers (the reference's teal, brand-mapped). Interactive solids (buttons,

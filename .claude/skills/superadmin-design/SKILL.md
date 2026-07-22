@@ -80,7 +80,12 @@ status cues, and restrained motion — never decoration.
   neutral `shadow-card` (`.card`/`.card-section` carry it; `dark:bg-surface-900` with a
   deepened `.app-dark` shadow). **No hairline borders on card edges** — hairlines
   retire to *internal* dividers. The shell chrome keeps its 2026-07-21 shadows
-  (`.shell-sidebar`/`.shell-topbar`).
+  (`.shell-sidebar`/`.shell-topbar`). **Depth needs contrast:** the `background` alias
+  sits at `surface-100` in superadmin (one step under card whites, owner 2026-07-22) —
+  keep page-level surfaces on `bg-background`, never on `bg-white`.
+- **Entity rows lead with an initials avatar**: `size-9 rounded-full bg-primary-100
+  text-primary-800` (dark `primary-1000/60`/`primary-300`) + the shared `initials`
+  pipe — canon: customers-list Cliente column.
 - Shadows are always **neutral black alpha** — a colored/glowing shadow is still
   banned AI-slop.
 - Nested grouping inside a card = background shift (`bg-surface-100 dark:bg-surface-800/40`)

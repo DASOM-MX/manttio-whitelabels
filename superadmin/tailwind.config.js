@@ -60,7 +60,11 @@ module.exports = {
         // identical across frontend / superadmin / website.
         primary: { ...primary, DEFAULT: primary['600'] }, // brand anchor (buttons, links, focus)
         surface: { ...surface, DEFAULT: surface['100'] }, // card/panel tint
-        background: surface['0'], // page bg
+        // Page bg sits one step under the card whites so the soft-UI
+        // elevation actually reads (owner 2026-07-22) — a deliberate
+        // superadmin-only divergence from the shared surface-0 value
+        // (plan 16 §Target 3 note).
+        background: surface['100'],
         secondary: primary['300'], // soft/secondary accent
         dark: surface['800'], // body text
 
@@ -102,7 +106,7 @@ module.exports = {
       // neutral black alpha only — never colored. Dark mode deepens it via
       // the .app-dark overrides in styles.scss.
       boxShadow: {
-        card: '0 4px 16px -4px rgb(0 0 0 / 0.07), 0 2px 6px -2px rgb(0 0 0 / 0.05)',
+        card: '0 6px 20px -6px rgb(0 0 0 / 0.1), 0 2px 8px -2px rgb(0 0 0 / 0.06)',
       },
 
       // Used to cap PrimeNG dialogs on narrow viewports so the chrome

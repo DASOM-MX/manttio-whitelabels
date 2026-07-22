@@ -139,5 +139,9 @@ complete** — this plan closes the suite.
 - **Locked (2026-07-15):** rename to semantic names approved · keep all five aliases,
   repointed + normalized + visibly applied · three PRs, one per app · deferred to run as the
   suite's final plan · tombstone (never plain-delete) the legacy names.
+- **Amended (2026-07-22, owner — soft-UI pass):** superadmin's `background` alias repoints
+  to **`surface-100`** (page bg one step under the card whites so the soft-elevation depth
+  reads) — a deliberate superadmin-only divergence from the shared `surface-0` value in
+  §Target 3; frontend/website keep `surface-0` when their legs run.
 - **Open (implementation-time):** role pills — static ladder (default, per 14 §1) vs on-brand
   (§ Mechanics 3) · re-run the inventory snapshot before starting.
