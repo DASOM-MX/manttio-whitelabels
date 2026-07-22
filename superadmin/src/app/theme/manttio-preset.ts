@@ -79,13 +79,15 @@ export const ManttioPreset = definePreset(Aura, {
           hoverColor: '{primary.700}',
           activeColor: '{primary.800}',
         },
-        // Diamond input style (owner 2026-07-22, reference screenshot): a
-        // crisp DARK outline — surface-700 rest, 800 hover, primary focus.
-        // `.field-input` mirrors these so raw inputs and PrimeNG controls
-        // read identically side-by-side.
+        // Branded input outline (owner 2026-07-22 — supersedes the neutral
+        // surface-gray of the same day): the crisp 1px outline is drawn in
+        // the tenant's DARK primary — primary-700 rest, 800 hover; focus
+        // keeps the same border and signals via the halo ring. `.field-input`
+        // mirrors these so raw inputs and PrimeNG controls read identically
+        // side-by-side.
         formField: {
-          borderColor: '{surface.700}',
-          hoverBorderColor: '{surface.800}',
+          borderColor: '{primary.700}',
+          hoverBorderColor: '{primary.800}',
           focusBorderColor: '{primary.700}',
         },
       },
@@ -97,12 +99,13 @@ export const ManttioPreset = definePreset(Aura, {
           hoverColor: '{primary.500}',
           activeColor: '{primary.400}',
         },
-        // Dark-mode analog of the crisp outline: a clearly visible light-gray
-        // border on the surface-900 field.
+        // Dark-mode analog of the branded outline: a dark primary vanishes
+        // on the surface-900 field, so the border rides the LIGHT end of the
+        // primary scale instead — still the tenant's hue.
         formField: {
           background: '{surface.900}',
-          borderColor: '{surface.500}',
-          hoverBorderColor: '{surface.400}',
+          borderColor: '{primary.500}',
+          hoverBorderColor: '{primary.400}',
           focusBorderColor: '{primary.400}',
         },
       },

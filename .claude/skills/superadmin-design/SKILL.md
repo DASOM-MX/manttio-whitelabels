@@ -71,11 +71,13 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
 ## Density — low-to-mid whitespace
 
 - Baseline control height is **40px desk / 44px touch: `.field-input` = `h-11 sm:h-10`**
-  with a **crisp 1px dark outline** (`surface-700` rest / `800` hover, dark mode
-  `500`/`400` — owner 2026-07-22, Diamond input reference; supersedes the pale
-  hairline, which superseded the 48px `h-12`/`border-2` chrome; still a deliberate
-  deviation from the frontend's `h-14`). The preset's `formField` border tokens carry
-  the same values for PrimeNG controls. Text 16px below `sm`, `text-sm` from `sm` up.
+  with a **crisp 1px branded outline** in the tenant's dark primary (`primary-700`
+  rest / `800` hover; dark mode `primary-500`/`400` — a dark primary vanishes on the
+  `surface-900` field, so the border rides the light end of the scale. Owner
+  2026-07-22, branded borders; supersedes the same-day neutral `surface-700` Diamond
+  outline, which superseded the pale hairline, which superseded the 48px
+  `h-12`/`border-2` chrome; still a deliberate deviation from the frontend's `h-14`).
+  The preset's `formField` border tokens carry the same values for PrimeNG controls. Text 16px below `sm`, `text-sm` from `sm` up.
   Compact contexts (paginator rows-per-page, dropdown filter inputs) opt down to
   `!h-9`.
 - Cards: `p-6` (plan 17 breathable rhythm — supersedes the soft-UI turn's `p-5`).

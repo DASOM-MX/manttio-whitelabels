@@ -234,11 +234,13 @@ Binding for every component; the skill carries the same list with implementation
   These globals are **ported from `frontend/src/styles.scss`** in shell CP-2 — keep them
   byte-compatible where possible so fixes can flow between apps.
 - `.field-input` is **fixed at 40px desk / 44px touch (`h-11 sm:h-10`) with a crisp
-  1px dark outline** (`surface-700` rest / `800` hover, dark mode `500`/`400` —
-  owner 2026-07-22, Diamond input reference; supersedes the pale hairline, which
-  superseded the 48px `h-12`/`border-2` chrome. The preset's `formField` border
-  tokens carry the same values for PrimeNG controls) — still a deliberate deviation
-  from the frontend's
+  1px BRANDED outline** in the tenant's dark primary (`primary-700` rest / `800`
+  hover; dark mode rides the light end of the primary scale — `primary-500`/`400` —
+  because a dark primary vanishes on the `surface-900` field. Owner 2026-07-22,
+  branded borders; supersedes the same-day neutral `surface-700` Diamond outline,
+  which superseded the pale hairline, which superseded the 48px `h-12`/`border-2`
+  chrome. The preset's `formField` border tokens carry the same values for PrimeNG
+  controls) — still a deliberate deviation from the frontend's
   56px/`h-14` (the field app is glove-friendly mobile capture; the superadmin is a
   desk console). Text is 16px below `sm` (iOS auto-zoom) and `text-sm` from `sm` up.
   Every control snaps to that one baseline: `.field-input` carries it for raw
