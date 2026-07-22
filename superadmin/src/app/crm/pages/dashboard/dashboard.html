@@ -323,7 +323,14 @@
                 </span>
               </td>
               <td class="max-w-64">
-                <span class="block truncate">{{ entry.body }}</span>
+                <!-- The cell truncates; hover serves the full record. -->
+                <span
+                  class="block truncate"
+                  [pTooltip]="entry.body"
+                  tooltipPosition="top"
+                >
+                  {{ entry.body }}
+                </span>
               </td>
               <td>
                 <span class="whitespace-nowrap font-data text-sm tabular-nums">

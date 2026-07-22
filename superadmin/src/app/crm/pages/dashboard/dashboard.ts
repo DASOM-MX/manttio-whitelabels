@@ -3,6 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { ChartModule } from 'primeng/chart';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 import {
   LucideCalendarClock,
   LucideDynamicIcon,
@@ -193,6 +194,7 @@ const conversionRate = (active: number, leads: number): number | null => {
     ChartModule,
     TableModule,
     TagModule,
+    TooltipModule,
     PageHeader,
     LucideDynamicIcon,
     LucideShare2,
