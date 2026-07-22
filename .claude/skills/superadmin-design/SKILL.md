@@ -79,6 +79,10 @@ from decoration.
   0…1000 by 100 (no `-50`/`-950`; plan 16 tombstoned `sky`/`granite`/`navy`/`cyan` —
   those classes emit no CSS). Sole literal-hex island: the static role-pill ladder
   (`.role-pill--*` in `styles.scss`).
+- **Blob buttons** (owner, 2026-07-21): actions are smooth pills — the `.btn` family
+  is `rounded-full` (`px-5`), icon-only buttons are full circles; PrimeNG buttons,
+  paginator pages, and close buttons follow via `.btn` inheritance + theme sheets.
+  Actions only: inputs stay `rounded-lg`, nav items `rounded-md`, cards `rounded-xl`.
 
 ## Strong visual cues
 

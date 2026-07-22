@@ -70,7 +70,10 @@
   .btn {
     // Buttons sit a step shorter than the h-12 field baseline (40px) — they
     // read as actions, not inputs, and the old py-2.5 made them balloon.
-    @apply inline-flex items-center justify-center gap-2 min-h-10 px-4 py-2 rounded-lg text-base font-semibold transition-colors duration-150 focus:outline-none focus-visible:ring-4 disabled:opacity-50 disabled:cursor-not-allowed;
+    // Blob buttons (owner, 2026-07-21): actions are smooth pills
+    // (rounded-full, px-5 so text clears the curve); icon-only buttons are
+    // full circles. Actions only — inputs keep rounded-lg, nav rounded-md.
+    @apply inline-flex items-center justify-center gap-2 min-h-10 px-5 py-2 rounded-full text-base font-semibold transition-colors duration-150 focus:outline-none focus-visible:ring-4 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
     @apply btn bg-primary-700 text-white enabled:hover:bg-primary-800 enabled:active:bg-primary-900 focus-visible:ring-primary-700/30 dark:bg-primary-600 dark:enabled:hover:bg-primary-500 dark:enabled:active:bg-primary-400 dark:focus-visible:ring-primary-400/30;

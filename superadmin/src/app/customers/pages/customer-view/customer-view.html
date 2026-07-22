@@ -1,7 +1,7 @@
 <div class="flex flex-wrap items-center gap-3">
   <a
     routerLink="/customers"
-    class="inline-flex size-10 items-center justify-center rounded-lg text-surface-600 transition-colors hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
+    class="inline-flex size-10 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
     aria-label="Volver a clientes"
   >
     <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
@@ -53,7 +53,7 @@
           <a
             [href]="href"
             (click)="prefillLog('call')"
-            class="inline-flex size-10 items-center justify-center rounded-lg border border-surface-200 text-surface-700 transition-colors hover:bg-surface-100 dark:border-surface-800 dark:text-surface-300 dark:hover:bg-surface-800"
+            class="inline-flex size-10 items-center justify-center rounded-full border border-surface-200 text-surface-700 transition-colors hover:bg-surface-100 dark:border-surface-800 dark:text-surface-300 dark:hover:bg-surface-800"
             aria-label="Llamar al cliente"
           >
             <svg lucidePhone class="size-4" aria-hidden="true"></svg>
@@ -65,7 +65,7 @@
             target="_blank"
             rel="noopener"
             (click)="prefillLog('whatsapp')"
-            class="inline-flex size-10 items-center justify-center rounded-lg border border-surface-200 text-surface-700 transition-colors hover:bg-surface-100 dark:border-surface-800 dark:text-surface-300 dark:hover:bg-surface-800"
+            class="inline-flex size-10 items-center justify-center rounded-full border border-surface-200 text-surface-700 transition-colors hover:bg-surface-100 dark:border-surface-800 dark:text-surface-300 dark:hover:bg-surface-800"
             aria-label="Escribir por WhatsApp"
           >
             <svg viewBox="0 0 24 24" fill="currentColor" class="size-4" aria-hidden="true">
@@ -78,7 +78,7 @@
         @if (smsHref(); as href) {
           <a
             [href]="href"
-            class="inline-flex size-10 items-center justify-center rounded-lg border border-surface-200 text-surface-700 transition-colors hover:bg-surface-100 dark:border-surface-800 dark:text-surface-300 dark:hover:bg-surface-800"
+            class="inline-flex size-10 items-center justify-center rounded-full border border-surface-200 text-surface-700 transition-colors hover:bg-surface-100 dark:border-surface-800 dark:text-surface-300 dark:hover:bg-surface-800"
             aria-label="Enviar mensaje de texto"
           >
             <svg lucideMessageCircle class="size-4" aria-hidden="true"></svg>
@@ -88,7 +88,7 @@
           <a
             [href]="href"
             (click)="prefillLog('email')"
-            class="inline-flex size-10 items-center justify-center rounded-lg border border-surface-200 text-surface-700 transition-colors hover:bg-surface-100 dark:border-surface-800 dark:text-surface-300 dark:hover:bg-surface-800"
+            class="inline-flex size-10 items-center justify-center rounded-full border border-surface-200 text-surface-700 transition-colors hover:bg-surface-100 dark:border-surface-800 dark:text-surface-300 dark:hover:bg-surface-800"
             aria-label="Enviar correo"
           >
             <svg lucideMail class="size-4" aria-hidden="true"></svg>
@@ -281,7 +281,7 @@
                   @if (!contact.isDefault) {
                     <button
                       type="button"
-                      class="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-surface-400 transition-colors hover:bg-primary-0 hover:text-primary-700 dark:hover:bg-primary-1000/40 dark:hover:text-primary-300"
+                      class="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-surface-400 transition-colors hover:bg-primary-0 hover:text-primary-700 dark:hover:bg-primary-1000/40 dark:hover:text-primary-300"
                       (click)="makeDefault(contact)"
                       [attr.aria-label]="'Marcar a ' + contact.name + ' como contacto principal'"
                       [attr.title]="'Marcar como principal'"

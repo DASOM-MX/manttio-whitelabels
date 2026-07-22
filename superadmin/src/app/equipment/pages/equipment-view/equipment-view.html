@@ -1,7 +1,7 @@
 <div class="flex flex-wrap items-center gap-3">
   <a
     routerLink="/equipment"
-    class="inline-flex size-10 items-center justify-center rounded-lg text-surface-600 transition-colors hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
+    class="inline-flex size-10 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
     aria-label="Volver a equipos"
   >
     <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
@@ -193,7 +193,7 @@
             </div>
             <button
               type="button"
-              class="inline-flex size-9 items-center justify-center rounded-md text-surface-500 transition-colors hover:bg-surface-100 hover:text-surface-800 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-200"
+              class="inline-flex size-9 items-center justify-center rounded-full text-surface-500 transition-colors hover:bg-surface-100 hover:text-surface-800 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-200"
               (click)="detach(report)"
               [attr.aria-label]="'Desvincular reporte ' + (report.folio || report.id)"
             >

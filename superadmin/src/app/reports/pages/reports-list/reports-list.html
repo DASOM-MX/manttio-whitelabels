@@ -106,7 +106,7 @@
           <div class="flex justify-end gap-1">
             <a
               [routerLink]="['/reports', report.id]"
-              class="inline-flex size-9 items-center justify-center rounded-md text-surface-600 transition-colors hover:bg-surface-100 hover:text-surface-900 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100"
+              class="inline-flex size-9 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 hover:text-surface-900 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100"
               [attr.aria-label]="'Ver reporte de ' + report.customerName"
             >
               <svg lucideEye class="size-4" aria-hidden="true"></svg>
@@ -114,7 +114,7 @@
             @if (!isTechnician()) {
               <button
                 type="button"
-                class="inline-flex size-9 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                class="inline-flex size-9 items-center justify-center rounded-full text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
                 (click)="openDelete(report)"
                 [attr.aria-label]="'Eliminar reporte de ' + report.customerName"
               >

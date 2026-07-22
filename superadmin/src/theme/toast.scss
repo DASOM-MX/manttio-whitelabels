@@ -22,7 +22,7 @@
   @apply text-sm text-surface-700 dark:text-surface-300;
 }
 .p-toast-close-button {
-  @apply inline-flex items-center justify-center size-7 rounded-md text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 hover:text-surface-900 dark:hover:text-surface-100 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-700/30;
+  @apply inline-flex items-center justify-center size-7 rounded-full text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 hover:text-surface-900 dark:hover:text-surface-100 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-700/30;
 }
 .p-toast-close-icon {
   @apply size-3.5;

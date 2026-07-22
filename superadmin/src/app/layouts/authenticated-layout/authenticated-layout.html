@@ -69,7 +69,7 @@
       <header class="shell-topbar relative z-10 flex h-14 shrink-0 items-center gap-2 px-4">
         <button
           type="button"
-          class="inline-flex size-10 items-center justify-center rounded-lg text-surface-700 hover:bg-surface-100 lg:hidden dark:text-surface-300 dark:hover:bg-surface-800"
+          class="inline-flex size-10 items-center justify-center rounded-full text-surface-700 hover:bg-surface-100 lg:hidden dark:text-surface-300 dark:hover:bg-surface-800"
           (click)="drawerOpen.set(true)"
           aria-label="Abrir menú"
         >
@@ -82,7 +82,7 @@
 
         <button
           type="button"
-          class="inline-flex size-10 items-center justify-center rounded-lg text-surface-700 transition-colors hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800"
+          class="inline-flex size-10 items-center justify-center rounded-full text-surface-700 transition-colors hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800"
           (click)="toggleDark()"
           [attr.aria-label]="darkMode() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
         >
@@ -151,7 +151,7 @@
     <div class="flex-1"></div>
     <button
       type="button"
-      class="inline-flex size-9 items-center justify-center rounded-lg text-surface-600 hover:bg-surface-100 lg:hidden dark:text-surface-400 dark:hover:bg-surface-800"
+      class="inline-flex size-9 items-center justify-center rounded-full text-surface-600 hover:bg-surface-100 lg:hidden dark:text-surface-400 dark:hover:bg-surface-800"
       (click)="drawerOpen.set(false)"
       aria-label="Cerrar menú"
     >

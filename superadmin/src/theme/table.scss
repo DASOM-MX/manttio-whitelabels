@@ -84,7 +84,7 @@
 .p-paginator-next,
 .p-paginator-first,
 .p-paginator-last {
-  @apply size-9 inline-flex items-center justify-center rounded-lg text-sm font-semibold font-data tabular-nums text-surface-800 hover:bg-primary-0 cursor-pointer transition-colors
+  @apply size-9 inline-flex items-center justify-center rounded-full text-sm font-semibold font-data tabular-nums text-surface-800 hover:bg-primary-0 cursor-pointer transition-colors
          dark:text-surface-200 dark:hover:bg-surface-800;
 
   &.p-paginator-page-selected {
