@@ -21,6 +21,7 @@ import { AppState } from '../state/app/app.state';
 import { AuthState } from '../state/auth/auth.state';
 import { LoadMe } from '../state/auth/auth.actions';
 import { BrandState } from '../state/brand/brand.state';
+import { NotificationsState } from '../state/notifications/notifications.state';
 import { LoadBrand } from '../state/brand/brand.actions';
 
 export const appConfig: ApplicationConfig = {
@@ -47,7 +48,9 @@ export const appConfig: ApplicationConfig = {
     ConfirmationService,
     MessageService,
     provideStore(
-      [AppState, AuthState, BrandState],
+      // NotificationsState is root-registered (not route-lazy): the bell lives
+      // in the shell topbar, so its feed exists on every page.
+      [AppState, AuthState, BrandState, NotificationsState],
       // Only the token persists — `me` (role) is refetched on
       // every boot so gated UI never renders from stale data (14 §3).
       withNgxsStoragePlugin({ keys: ['auth.token', 'app'] }),

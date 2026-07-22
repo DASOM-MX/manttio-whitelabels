@@ -416,12 +416,19 @@ re-syncs from the one-shot GET.
 - [x] §5 SSE + retention tests green (run inside workerd via the Vitest workers pool;
       wrangler config validated with a dry-run build).
 
-### CP-3 — Frontend surface
-- [ ] Extract `sseStream<T>` shared reader (§3.1); `NotificationsState` + service.
-- [ ] Notification-center bell + panel in the app-shell (badge, list, mark-read,
+### CP-3 — Frontend surface  *(done 2026-07-21, stacked on CP-2)*
+- [x] ~~Extract~~ Create `sseStream<T>` shared reader (§3.1 — WMS isn't built yet, so
+      there was nothing to extract; WMS consumes `src/app/services/sse.ts` when it
+      lands); `NotificationsState` + service. Reconnect covers clean server close
+      (`repeat`) as well as errors (`retry`), both capped-backoff + GET re-sync.
+- [x] Notification-center bell + panel in the app-shell (badge, list, mark-read,
       mark-all, deep-link nav); constants/pipes/DTO per house rules (one-per-file, no
-      barrels, no template method calls).
-- [ ] Frontend e2e green (§5).
+      barrels, no template method calls). **No type→label map** (owner, 2026-07-20):
+      the display text is the server-authored `title`/`body`; the type drives only
+      icon + deep link.
+- [x] Frontend e2e green (§5) — badge/stream/mark-read/read-all/empty-state;
+      `playwright.config.ts` gained `SUPERADMIN_E2E_PORT` so a worktree runs its own
+      server without touching the main checkout's :4200.
 
 ### CP-4 — WMS wiring (realized on the WMS branch when both exist)
 - [ ] WMS `ready`/`failed`/`rejected` paths call `notify()` (§4); WMS's direct `sendEmail`

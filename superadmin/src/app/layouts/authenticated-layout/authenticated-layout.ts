@@ -22,6 +22,7 @@ import { AuthState, MeStatus } from '../../../state/auth/auth.state';
 import { LoadMe, Logout } from '../../../state/auth/auth.actions';
 import { navFor } from '../../guards/nav-for.guard';
 import { ForcePasswordDialog } from '../../auth/components/force-password-dialog/force-password-dialog';
+import { NotificationCenter } from '../../shared/components/notification-center/notification-center';
 
 @Component({
   selector: 'app-authenticated-layout',
@@ -39,6 +40,7 @@ import { ForcePasswordDialog } from '../../auth/components/force-password-dialog
     LucideUserRound,
     LucideRefreshCw,
     ForcePasswordDialog,
+    NotificationCenter,
   ],
   templateUrl: './authenticated-layout.html',
 })
