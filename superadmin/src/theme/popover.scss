@@ -5,8 +5,15 @@
    surfaces. Opaque-enough alphas keep content readable where
    backdrop-filter is unsupported. */
 .p-popover {
-  @apply rounded-xl border shadow-xl bg-white/85 backdrop-blur-md border-surface-200/80
+  @apply rounded-xl border shadow-xl bg-white/85 border-surface-200/80
          dark:bg-surface-900/85 dark:border-surface-700/70;
+  /* NOT `@apply backdrop-blur-md`: the utility compiles to a var() chain
+     whose universal `--tw-backdrop-*` defaults are only emitted when a
+     backdrop class appears in scanned templates — from a stylesheet the
+     vars stay unresolved, the declaration goes invalid, and the blur
+     silently no-ops. Declare the filter directly (autoprefixer adds
+     -webkit-). */
+  backdrop-filter: blur(12px);
 
   /* Aura ships a caret/arrow on the popover via ::before + ::after. Our
      design is a clean panel without a pointer, so collapse them. */
