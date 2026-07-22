@@ -6,7 +6,7 @@ import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { CarouselModule } from 'primeng/carousel';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { LucideArrowLeft, LucideLink, LucidePencil, LucideUnlink } from '@lucide/angular';
+import { LucideLink, LucidePencil, LucideUnlink } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { EquipmentState } from '../../../../state/equipment/equipment.state';
 import {
@@ -25,6 +25,7 @@ import {
   EquipmentOriginSeverityPipe,
 } from '../../../pipes/equipment-origin.pipe';
 import { EquipmentFormDialog } from '../../components/equipment-form-dialog/equipment-form-dialog';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { errorMessage } from '../../../data/utils';
 import type { EquipmentReportLink } from '../../../data/dtos/equipment';
 
@@ -44,7 +45,7 @@ import type { EquipmentReportLink } from '../../../data/dtos/equipment';
     EquipmentOriginLabelPipe,
     EquipmentOriginSeverityPipe,
     EquipmentFormDialog,
-    LucideArrowLeft,
+    PageHeader,
     LucidePencil,
     LucideLink,
     LucideUnlink,

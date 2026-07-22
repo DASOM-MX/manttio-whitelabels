@@ -19,6 +19,7 @@ import {
 } from '../../../pipes/equipment-status.pipe';
 import { EquipmentFormDialog } from '../../components/equipment-form-dialog/equipment-form-dialog';
 import { FiltersPopover } from '../../../shared/components/filters-popover/filters-popover';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { EquipmentListQuery, EquipmentStatus } from '../../../data/dtos/equipment';
 
 /** Global equipment registry (11 §4) — a projection; the daily entry point
@@ -38,6 +39,7 @@ import type { EquipmentListQuery, EquipmentStatus } from '../../../data/dtos/equ
     EquipmentStatusSeverityPipe,
     EquipmentFormDialog,
     FiltersPopover,
+    PageHeader,
     LucidePlus,
     LucideEye,
     LucideWrench,

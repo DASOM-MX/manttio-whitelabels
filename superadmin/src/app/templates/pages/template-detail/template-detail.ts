@@ -9,7 +9,7 @@ import {
   type ElementRef,
 } from '@angular/core';
 import { SlicePipe } from '@angular/common';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
   AbstractControl,
@@ -25,7 +25,6 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { TagModule } from 'primeng/tag';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import {
-  LucideArrowLeft,
   LucideChevronDown,
   LucideChevronRight,
   LucideChevronUp,
@@ -52,6 +51,7 @@ import { InSetPipe } from '../../../pipes/collection.pipe';
 import { HasOptionsPipe } from '../../../pipes/question-datatype.pipe';
 import { ColumnsGridPipe } from '../../../pipes/report-answer.pipe';
 import { errorMessage } from '../../../data/utils';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
 import { QuestionDatatype, TemplateStatus } from '../../../data/dtos/report-template';
 import type {
@@ -99,7 +99,6 @@ interface SectionFormValue {
 @Component({
   selector: 'app-template-detail',
   imports: [
-    RouterLink,
     ReactiveFormsModule,
     InputTextModule,
     SelectModule,
@@ -111,7 +110,7 @@ interface SectionFormValue {
     ColumnsGridPipe,
     DisableTemplateDialog,
     InSetPipe,
-    LucideArrowLeft,
+    PageHeader,
     LucidePlus,
     LucideTrash2,
     LucideChevronUp,

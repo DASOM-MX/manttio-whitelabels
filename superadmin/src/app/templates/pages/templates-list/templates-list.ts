@@ -8,6 +8,7 @@ import { select, Store } from '@ngxs/store';
 import { ReportTemplatesState } from '../../../../state/report-templates/report-templates.state';
 import { LoadTemplates } from '../../../../state/report-templates/report-templates.actions';
 import { ListQueryService } from '../../../services/table/list-query.service';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import {
   QuestionCountPipe,
   TemplateStatusLabelPipe,
@@ -25,6 +26,7 @@ import type { ReportTemplate } from '../../../data/dtos/report-template';
     RouterLink,
     TableModule,
     TagModule,
+    PageHeader,
     TemplateStatusLabelPipe,
     TemplateStatusSeverityPipe,
     QuestionCountPipe,

@@ -1,19 +1,8 @@
-<div class="flex flex-wrap items-center gap-3">
-  <a
-    routerLink="/customers"
-    class="inline-flex size-10 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
-    aria-label="Volver a clientes"
-  >
-    <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
-  </a>
-  <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">
-    @if (isEdit) {
-      Editar cliente
-    } @else {
-      Nuevo cliente
-    }
-  </h1>
-</div>
+<app-page-header
+  [title]="isEdit ? 'Editar cliente' : 'Nuevo cliente'"
+  backLink="/customers"
+  backLabel="Volver a clientes"
+/>
 
 <form [formGroup]="form" (ngSubmit)="submit()" class="mt-5 grid gap-4 xl:grid-cols-2">
   <!-- General -->

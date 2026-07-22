@@ -1,13 +1,4 @@
-<div class="flex flex-wrap items-center gap-3">
-  <a
-    routerLink="/reports"
-    class="inline-flex size-10 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
-    aria-label="Volver a reportes"
-  >
-    <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
-  </a>
-  <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">Reporte de servicio</h1>
-  <div class="flex-1"></div>
+<app-page-header title="Reporte de servicio" backLink="/reports" backLabel="Volver a reportes">
   @if (report(); as r) {
     <button type="button" class="btn-secondary" (click)="downloadPdf()" [disabled]="downloading()">
       <svg lucideDownload class="size-4" aria-hidden="true"></svg>
@@ -28,7 +19,7 @@
       </button>
     }
   }
-</div>
+</app-page-header>
 
 @if (report(); as r) {
   <!-- Header card: system-owned heading (client/tech/date/template/status) -->

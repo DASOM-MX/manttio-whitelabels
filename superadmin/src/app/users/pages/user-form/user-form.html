@@ -1,24 +1,9 @@
-<div class="flex flex-wrap items-center gap-3">
-  <a
-    routerLink="/users"
-    class="inline-flex size-10 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
-    aria-label="Volver a usuarios"
-  >
-    <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
-  </a>
-  <div>
-    <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">
-      @if (isEdit()) {
-        {{ fullName() }}
-      } @else {
-        Nuevo usuario
-      }
-    </h1>
-    @if (isEdit() && selected(); as user) {
-      <p class="mt-0.5 text-sm text-surface-600 dark:text-surface-400">{{ user.email }}</p>
-    }
-  </div>
-</div>
+<app-page-header
+  [title]="isEdit() ? fullName() : 'Nuevo usuario'"
+  [description]="isEdit() ? selected()?.email : undefined"
+  backLink="/users"
+  backLabel="Volver a usuarios"
+/>
 
 @if (readOnly()) {
   <p

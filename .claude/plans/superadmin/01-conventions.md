@@ -54,9 +54,20 @@ auto-loads it — **edit both in the same commit.**
   goes in a token whenever Aura exposes one. See the PrimeNG section for the
   surviving-sheet rules.
 - **Density (breathable — plan 17, supersedes the soft-UI turn's `p-5`):** cards
-  `p-6`; section gaps `gap-5`/`gap-6`; tables stay compact (`py-2.5` cells, 13–14px
+  `p-6`; section gaps `gap-5`/`gap-6`; page gutters `px-4 sm:px-6 md:px-8` with
+  `py-6` (shell-owned, CP-2); tables stay compact (`py-2.5` cells, 13–14px
   text). Airy chrome, dense data — the air lives at the page level, never inside
   the data.
+- **Page-header pattern (plan 17 §5, CP-2):** every routed page opens with the
+  shared `shared/components/page-header` (`app-page-header`) — the page's single
+  `h1` (`text-2xl font-semibold tracking-tight`), optional muted description,
+  optional `backLink`/`backLabel` (detail/form pages), a `meta` slot for status
+  tags beside the title, and the default slot for right-aligned actions (the
+  filters-popover trigger stays left of the primary action). The component owns
+  the `mb-6` under-header rhythm — pages never hand-roll an `<h1>` row.
+  Title-only by default: no breadcrumbs (the two-level nav already locates you;
+  owner may opt in later). Dynamic titles/descriptions bind computeds or signal
+  ternaries, never method calls.
 - **Soft elevation (owner, 2026-07-22 — Purity-style soft-UI reference; supersedes
   borders-not-shadows):** cards are white `rounded-2xl` surfaces floating on the tinted
   page background with a soft neutral shadow (`.card`/`.card-section` → `shadow-card`);

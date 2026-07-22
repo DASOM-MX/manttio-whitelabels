@@ -1,8 +1,13 @@
 # 17 — Executive refresh: clean, breathable UI on stock PrimeNG ("soft-executive")
 
-> **Status:** in-progress — **CP-1 done 2026-07-22** (branch
+> **Status:** in-progress — **CP-1 done 2026-07-22** (PR #89, branch
 > `feature/superadmin-executive-refresh-cp1`, stacked on #88; built in the
-> `executive-refresh-cp1` worktree for fast rollback), CP-2 next. Runs before modules
+> `executive-refresh-cp1` worktree for fast rollback) · **CP-2 done 2026-07-22**
+> (branch `feature/superadmin-executive-refresh-cp2`, stacked on CP-1: shared
+> `page-header` component swept across all 17 routed pages, shell gutters
+> `px-4 sm:px-6 md:px-8` + `py-6`, topbar/sidebar strips to `h-16`; nav item
+> spacing untouched — owner-hand-tuned 2026-07-21 values are canon; breadcrumbs
+> stayed off pending owner eyeball), CP-3 next. Runs before modules
 > 09/10/12/13 start (deliberate mid-suite insertion so the remaining modules are
 > authored in the refreshed language, not restyled later).
 > **Owner:** planning session 2026-07-22 · **Last updated:** 2026-07-22

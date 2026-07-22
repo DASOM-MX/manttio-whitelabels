@@ -1,18 +1,14 @@
-<div class="flex flex-wrap items-start justify-between gap-3">
-  <div>
-    <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">Plantillas</h1>
-    <p class="mt-1 text-sm text-surface-600 dark:text-surface-400">
-      Los formatos de reporte que tus técnicos llenan en campo. Solo las plantillas activas llegan a
-      la aplicación.
-    </p>
-  </div>
+<app-page-header
+  title="Plantillas"
+  description="Los formatos de reporte que tus técnicos llenan en campo. Solo las plantillas activas llegan a la aplicación."
+>
   <a routerLink="/templates/new" class="btn-primary">
     <svg lucidePlus class="size-4" aria-hidden="true"></svg>
     Nueva plantilla
   </a>
-</div>
+</app-page-header>
 
-<div class="mt-5">
+<div>
   <p-table
     [value]="templates()"
     [lazy]="true"

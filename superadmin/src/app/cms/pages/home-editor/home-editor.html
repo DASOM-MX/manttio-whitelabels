@@ -1,12 +1,7 @@
-<div class="flex flex-wrap items-start justify-between gap-3">
-  <div>
-    <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">CMS — Home</h1>
-    <p class="mt-1 text-sm text-surface-600 dark:text-surface-400">
-      El contenido de la página de inicio de tu sitio. Guardas un borrador; publicar lo hace
-      visible.
-    </p>
-  </div>
-  <div class="flex flex-wrap items-center gap-3">
+<app-page-header
+  title="CMS — Home"
+  description="El contenido de la página de inicio de tu sitio. Guardas un borrador; publicar lo hace visible."
+>
     <app-publish-bar [unpublished]="unpublished()" [busy]="busy()" (publish)="publish()" />
     <button
       type="button"
@@ -16,10 +11,9 @@
     >
       Guardar borrador
     </button>
-  </div>
-</div>
+</app-page-header>
 
-<form [formGroup]="form" class="mt-5 flex flex-col gap-4" (ngSubmit)="save()">
+<form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="save()">
   <!-- Hero + Services as tabs; both panels stay mounted so the reactive form
        keeps every control registered (validation spans inactive tabs). -->
   <p-tabs value="portada">

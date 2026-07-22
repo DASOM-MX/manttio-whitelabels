@@ -18,6 +18,7 @@ import { UploadService } from '../../../services/http/upload.service';
 import { PublishBar } from '../../components/publish-bar/publish-bar';
 import { RichText } from '../../components/rich-text/rich-text';
 import { errorMessage } from '../../../data/utils';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
 import type { CmsClient } from '../../../data/dtos/cms';
 
@@ -37,6 +38,7 @@ import type { CmsClient } from '../../../data/dtos/cms';
     LucidePencil,
     LucideTrash2,
     LucideImageUp,
+    PageHeader,
   ],
   templateUrl: './clients-editor.html',
 })

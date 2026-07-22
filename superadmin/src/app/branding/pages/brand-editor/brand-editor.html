@@ -1,10 +1,7 @@
-<div class="flex flex-wrap items-start justify-between gap-3">
-  <div>
-    <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">Marca</h1>
-    <p class="mt-1 text-sm text-surface-600 dark:text-surface-400">
-      La identidad que viste tu sitio, tus aplicaciones y tus PDF.
-    </p>
-  </div>
+<app-page-header
+  title="Marca"
+  description="La identidad que viste tu sitio, tus aplicaciones y tus PDF."
+>
   @if (!readOnly()) {
     <div class="flex gap-2">
       @if (previewing()) {
@@ -28,7 +25,7 @@
       </button>
     </div>
   }
-</div>
+</app-page-header>
 
 @if (readOnly()) {
   <p

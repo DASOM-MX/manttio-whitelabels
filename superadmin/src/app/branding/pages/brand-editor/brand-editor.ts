@@ -26,6 +26,7 @@ import { FONT_PREVIEW_SIZES } from '../../../model/constants/brand/font-preview-
 import { BRAND_SCALE_STEPS } from '../../../model/constants/brand/scale-steps.const';
 import { ScaleEditor } from '../../components/scale-editor/scale-editor';
 import { ApplyBrandDialog } from '../../components/apply-brand-dialog/apply-brand-dialog';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { Brand, FontCatalogEntry, SaveBrandRequest } from '../../../data/dtos/brand';
 
 type ImageSlot = 'logo' | 'logoDark' | 'isologo' | 'favicon';
@@ -48,6 +49,7 @@ interface ImageState {
     SelectModule,
     ScaleEditor,
     ApplyBrandDialog,
+    PageHeader,
     LucideEye,
     LucideImageUp,
     LucideTriangleAlert,

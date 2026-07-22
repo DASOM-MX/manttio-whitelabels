@@ -28,6 +28,7 @@ import {
 } from '../../../pipes/customer-status.pipe';
 import { DeleteCustomerDialog } from '../../components/delete-customer-dialog/delete-customer-dialog';
 import { FiltersPopover } from '../../../shared/components/filters-popover/filters-popover';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { InitialsPipe } from '../../../pipes/initials.pipe';
 import { ChangeStatusDialog } from '../../../crm/components/change-status-dialog/change-status-dialog';
 import { IsOverduePipe } from '../../../pipes/interaction.pipe';
@@ -59,6 +60,7 @@ import type { Customer, CustomerListQuery, CustomerSource } from '../../../data/
     DeleteCustomerDialog,
     ChangeStatusDialog,
     FiltersPopover,
+    PageHeader,
     InitialsPipe,
     LucidePlus,
     LucideEye,

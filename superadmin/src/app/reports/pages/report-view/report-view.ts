@@ -1,8 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { TagModule } from 'primeng/tag';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { LucideArrowLeft, LucideDownload, LucideMail } from '@lucide/angular';
+import { LucideDownload, LucideMail } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { ReportsState } from '../../../../state/reports/reports.state';
 import { LoadReport } from '../../../../state/reports/reports.actions';
@@ -13,6 +13,7 @@ import { ReportStatus } from '../../../data/dtos/report';
 import { REPORT_STATUS_LABELS } from '../../../model/constants/report/report-status-labels.const';
 import { REPORT_STATUS_SEVERITIES } from '../../../model/constants/report/report-status-severities.const';
 import { AnswerValuePipe, ColumnsGridPipe } from '../../../pipes/report-answer.pipe';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { errorMessage } from '../../../data/utils';
 
 /** Read-only report detail (06 §3): template-shaped body rendered FROM THE
@@ -21,11 +22,10 @@ import { errorMessage } from '../../../data/utils';
 @Component({
   selector: 'app-report-view',
   imports: [
-    RouterLink,
     TagModule,
     AnswerValuePipe,
     ColumnsGridPipe,
-    LucideArrowLeft,
+    PageHeader,
     LucideDownload,
     LucideMail,
   ],

@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { LucideInbox } from '@lucide/angular';
 import { ShareLinksMenu } from '../../components/share-links-menu/share-links-menu';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 
 /** Shell-owned dashboard stub (02 §4): default landing route for
  *  owner/admin/office. Card-slot regions below are filled by other modules
@@ -9,7 +10,7 @@ import { ShareLinksMenu } from '../../components/share-links-menu/share-links-me
  *  dropdown (utm-params CP-3). */
 @Component({
   selector: 'app-dashboard',
-  imports: [LucideInbox, ShareLinksMenu],
+  imports: [LucideInbox, PageHeader, ShareLinksMenu],
   templateUrl: './dashboard.html',
 })
 export class Dashboard {}

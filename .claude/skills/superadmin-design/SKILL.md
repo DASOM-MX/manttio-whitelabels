@@ -76,7 +76,9 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   `sm`, `text-sm` from `sm` up. Compact contexts (paginator rows-per-page, dropdown
   filter inputs) opt down to `!h-9`.
 - Cards: `p-6` (plan 17 breathable rhythm — supersedes the soft-UI turn's `p-5`).
-  Section gaps `gap-5`/`gap-6`. Page gutters `px-4 md:px-6`. Airy chrome, dense data.
+  Section gaps `gap-5`/`gap-6`. Page gutters `px-4 sm:px-6 md:px-8` + `py-6`
+  (shell-owned, CP-2); topbar and sidebar header strips sit at `h-16`.
+  Airy chrome, dense data.
 - Tables are compact: `py-2.5` cells, 13–14px cell text, header row as a
   micro-label (see cues below).
 - Prefer one dense, well-grouped screen over two airy ones — but never sacrifice the
@@ -116,6 +118,12 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
 
 ## Strong visual cues
 
+- **Page header** (plan 17 §5, CP-2): every routed page opens with the shared
+  `app-page-header` (`shared/components/page-header`) — single `h1`
+  (`text-2xl font-semibold tracking-tight`), optional muted description, optional
+  `backLink`, `meta` slot for title-adjacent status tags, default slot for
+  right-aligned actions; it owns the `mb-6` rhythm. Never hand-roll an `<h1>` row.
+  Title-only — no breadcrumbs unless the owner opts in.
 - **Status pills** everywhere state exists (CRM status, billing, stock, visit status) —
   vibrant in both modes per the dark-mode rules; pill + label, never color alone.
 - **Active nav**: elevated white pill (`.nav-active` on the destination link,

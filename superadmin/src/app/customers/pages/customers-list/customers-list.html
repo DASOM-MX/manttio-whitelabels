@@ -1,11 +1,4 @@
-<div class="flex flex-wrap items-start justify-between gap-3">
-  <div>
-    <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">{{ title }}</h1>
-    <p class="mt-1 text-sm text-surface-600 dark:text-surface-400">
-      El directorio de clientes de tu negocio.
-    </p>
-  </div>
-  <div class="flex flex-wrap items-center gap-2">
+<app-page-header [title]="title" description="El directorio de clientes de tu negocio.">
     <app-filters-popover [params]="filterParams">
       <div class="field-group">
         <label class="field-label" for="customers-search">Buscar</label>
@@ -56,10 +49,9 @@
       <svg lucidePlus class="size-4" aria-hidden="true"></svg>
       Nuevo cliente
     </a>
-  </div>
-</div>
+</app-page-header>
 
-<div class="mt-4">
+<div>
   <p-table
     [value]="customers()"
     [lazy]="true"

@@ -66,7 +66,11 @@
       <!-- Topbar: its own card-tone strip, separated from the content by a
            soft shadow and from the nav by the surface change — the two
            chrome strips no longer read as one bar. -->
-      <header class="shell-topbar relative z-10 flex h-14 shrink-0 items-center gap-2 px-4">
+      <!-- h-16 + gutters aligned with the content column (plan 17 CP-2
+           executive rhythm). -->
+      <header
+        class="shell-topbar relative z-10 flex h-16 shrink-0 items-center gap-2 px-4 sm:px-6"
+      >
         <button
           type="button"
           class="inline-flex size-10 items-center justify-center rounded-full text-surface-700 hover:bg-surface-100 lg:hidden dark:text-surface-300 dark:hover:bg-surface-800"
@@ -133,8 +137,9 @@
       <!-- Single scroll region -->
       <main #scrollContainer id="main-content" class="flex-1 overflow-y-auto" tabindex="-1">
         <!-- Full-width main (owner 2026-07-21): no max-w cap — the content
-             container claims every pixel the chrome leaves free. -->
-        <div #pageContainer class="anim-page-enter w-full px-4 py-5 sm:px-6">
+             container claims every pixel the chrome leaves free. Gutters at
+             the plan 17 breathable rhythm (CP-2). -->
+        <div #pageContainer class="anim-page-enter w-full px-4 py-6 sm:px-6 md:px-8">
           <router-outlet />
         </div>
       </main>
@@ -145,7 +150,8 @@
 }
 
 <ng-template #sidebarContent>
-  <div class="flex h-14 shrink-0 items-center gap-2 px-4">
+  <!-- h-16 to stay level with the topbar strip (plan 17 CP-2). -->
+  <div class="flex h-16 shrink-0 items-center gap-2 px-4">
     <p class="text-lg font-bold tracking-tight text-surface-1000 dark:text-surface-0">manttio</p>
     <p class="micro-label mt-0.5">Admin</p>
     <div class="flex-1"></div>

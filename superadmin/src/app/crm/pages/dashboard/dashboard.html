@@ -3,19 +3,9 @@
      with their own scrollHeight, compact !p-4 cards — the stack fits a
      typical desktop viewport without page scroll; smaller windows scroll in
      the shell's main region like every other page. -->
+<app-page-header title="Dashboard" [description]="headerDescription()" />
+
 <div class="flex flex-col gap-3">
-  <div>
-    <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">Dashboard</h1>
-    @if (periodLabels(); as labels) {
-      <p class="mt-1 text-sm text-surface-600 dark:text-surface-400">
-        Captación por canal — {{ labels.current }} contra {{ labels.previous }}.
-      </p>
-    } @else {
-      <p class="mt-1 text-sm text-surface-600 dark:text-surface-400">
-        Captación y actividad de tus clientes.
-      </p>
-    }
-  </div>
 
   <!-- Intake region: totals strip + the two channel-mix pies -->
   @if (statsPending()) {
