@@ -87,6 +87,13 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
   solid brand-primary block + light neutral shadow (`.nav-active`, `.nav-group-active`
   tint for parents); the main container is full-width. Canon lives in 01 → Design
   language + the `superadmin-design` skill.
+- **Nav regroup (owner, 2026-07-22 — supersedes the flat list below):** three groups —
+  **Negocio** (Marca / Usuarios / Reportes / Plantillas) · **CRM** (Dashboard / Clientes /
+  Equipos / Contratos / Lista negra / Archivados) · **CMS** (Home / Clientes). Children
+  carry per-module gates (`NavChild.module`) since groups now mix modules; a group whose
+  children all filter out hides itself. "Archivados" = the `Disabled` status preset
+  (`/customers/archived`). Panel, Calendario, Facturación, Almacén, and the Leads preset
+  left the owner nav (routes stay reachable by URL); **technician nav unchanged**.
 - Sidebar renders **only the entries `(tenantConfig, role)` allow** — matrix in
   `14-access-control.md` §2. Full nav (owner/admin): **Dashboard** · **Calendar** ·
   **Users** · **Reports** · **Plantillas** (`/templates` — report-template builder,

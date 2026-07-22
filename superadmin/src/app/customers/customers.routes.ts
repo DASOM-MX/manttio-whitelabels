@@ -29,6 +29,13 @@ export default [
         component: CustomersList,
         data: { title: 'Lista negra', presetStatus: CustomerStatus.Blacklisted },
       },
+      // Nav's "Archivados" (regroup 2026-07-22): the Disabled preset — no
+      // archived status exists, and soft-deleted rows are audit-only.
+      {
+        path: 'archived',
+        component: CustomersList,
+        data: { title: 'Archivados', presetStatus: CustomerStatus.Disabled },
+      },
       // CRM dashboard (utm-params 03, relocated 2026-07-20): read-only, no
       // pendingChangesGuard; same owner/admin/office gate as the module
       // (office admitted 2026-07-20).
