@@ -24,9 +24,11 @@ from decoration.
    filled/duotone sets, never inline SVG one-offs when a Lucide glyph exists.
    Defaults: `size-4` inline with text, `size-5` in nav/buttons-only contexts,
    stroke-width 2 everywhere (don't vary it per icon).
-3. **Typeface is Commissioner** (variable, self-hosted `@fontsource-variable/commissioner`).
+3. **Typeface is Quicksand** (variable wght 300–700, self-hosted
+   `@fontsource-variable/quicksand`; owner 2026-07-22 — supersedes Commissioner).
    400 body · 500 labels/buttons · 600–700 headings. Numeric table/money cells use the
-   `font-data` stack with `tnum`.
+   `font-data` stack with `tnum` (Atkinson Hyperlegible head — unchanged).
+   Self-hosted only — never `fonts.googleapis.com`.
 4. **Motion = Angular's native `animate.enter`/`animate.leave` + `src/animations.scss`**
    (revised 2026-07-06; supersedes the original anime.js mandate). Keyframes and
    tokens live in `animations.scss` only — no anime.js, no deprecated

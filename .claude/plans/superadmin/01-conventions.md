@@ -9,10 +9,11 @@ before writing any component.
 
 ---
 
-## Typography (decided 2026-07-05)
+## Typography (decided 2026-07-05 · typeface revised 2026-07-22)
 
-- **Superadmin's typeface is Commissioner** (variable, weight axis only — expressive
-  flare/volume axes stay at defaults). This is a **deliberate deviation from frontend
+- **Superadmin's typeface is Quicksand** (variable, wght 300–700; owner 2026-07-22 —
+  supersedes Commissioner: its rounded geometry pairs with the blob design language).
+  This is a **deliberate deviation from frontend
   parity**: the superadmin is *our* product chrome, constant across tenants, and its
   own voice tells tenants who they're working with. Tenant-facing surfaces
   (`website/` + `frontend/` field app) are **brand-font-driven** instead:
@@ -20,17 +21,19 @@ before writing any component.
   (`03-branding.md` §2.1), defaulting to the business-identity pair **Work Sans
   (body) + Rubik (headings)** — the field app migrates off Inter to the brand-font
   CSS vars (recorded as a fork `frontend/` task, not superadmin work).
-- **Self-hosted, never CDN:** `@fontsource-variable/commissioner` — one woff2,
-  preloaded in `index.html`. No `fonts.googleapis.com` import (offline, CSP, no FOUT).
+- **Self-hosted, never CDN:** `@fontsource-variable/quicksand` — one woff2.
+  No `fonts.googleapis.com` import (offline, CSP, no FOUT) — paste-in embed
+  snippets get translated to the fontsource equivalent.
 - Stacks in `tailwind.config.js`:
-  `sans: ['"Commissioner Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif']`,
+  `sans: ['"Quicksand Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif']`,
   plus a `data` stack for numeric table/money columns. Weights: **400 body ·
   500 labels/buttons · 600–700 headings**.
 - **Tabular numerals:** data cells set `font-feature-settings: 'tnum'`.
-  **Resolved at CP-2 (2026-07-06): Commissioner's tnum is a no-op** (digit widths
-  measured unequal with the feature on), so `font-data` heads with **Atkinson
-  Hyperlegible** (the frontend's existing numeric stack — tnum verified: all digit
-  groups measure identically) with Commissioner everywhere else.
+  **Resolved at CP-2 (2026-07-06): the product voice's tnum can't be trusted**
+  (Commissioner's was a no-op — digit widths measured unequal with the feature on),
+  so `font-data` heads with **Atkinson Hyperlegible** (the frontend's existing
+  numeric stack — tnum verified: all digit groups measure identically) with the
+  product voice everywhere else. Unchanged under Quicksand.
 - PrimeNG inherits the body font — no per-component font overrides.
 
 ## Design language — solid & tight (decided 2026-07-05)

@@ -77,16 +77,16 @@ module.exports = {
       },
 
       fontFamily: {
-        // Commissioner is the superadmin's own voice (01-conventions Typography) —
-        // constant across tenants, a deliberate deviation from frontend parity.
-        sans: ['"Commissioner Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        // Numeric/data stack. Commissioner's `tnum` proved a no-op (measured
-        // 2026-07-06: digit widths differ with the feature on), so per the 01
-        // fallback decision the head is Atkinson Hyperlegible — the
-        // frontend's existing numeric stack.
+        // Quicksand is the superadmin's own voice (01-conventions Typography;
+        // owner 2026-07-22, supersedes Commissioner) — constant across
+        // tenants, a deliberate deviation from frontend parity.
+        sans: ['"Quicksand Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Numeric/data stack: Atkinson Hyperlegible heads it (verified
+        // tabular digits — 01 Typography fallback, 2026-07-06); the product
+        // voice only backs it up for non-digit glyphs.
         data: [
           '"Atkinson Hyperlegible"',
-          '"Commissioner Variable"',
+          '"Quicksand Variable"',
           'ui-sans-serif',
           'system-ui',
           'sans-serif',
