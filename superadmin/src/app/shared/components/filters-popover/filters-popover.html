@@ -1,0 +1,31 @@
+<button type="button" class="btn-neutral" (click)="popover.toggle($event)" aria-haspopup="dialog">
+  <svg lucideFilter class="size-4" aria-hidden="true"></svg>
+  Filtros
+  @if (activeCount() > 0) {
+    <span
+      class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-100 px-1.5 font-data text-xs font-bold text-primary-800 dark:bg-primary-1000/60 dark:text-primary-300"
+    >
+      {{ activeCount() }}
+    </span>
+  }
+</button>
+
+<p-popover #popover appendTo="body">
+  <div class="w-80 max-w-11/12 p-4">
+    <div class="flex items-center justify-between pb-3">
+      <p class="section-heading !pb-0">Filtros</p>
+      @if (activeCount() > 0) {
+        <button
+          type="button"
+          class="text-sm font-semibold text-primary-700 transition-colors hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+          (click)="clear()"
+        >
+          Limpiar
+        </button>
+      }
+    </div>
+    <div class="flex flex-col gap-4">
+      <ng-content />
+    </div>
+  </div>
+</p-popover>

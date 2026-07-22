@@ -5,59 +5,57 @@
       El directorio de clientes de tu negocio.
     </p>
   </div>
-  <a routerLink="/customers/new" class="btn-primary">
-    <svg lucidePlus class="size-4" aria-hidden="true"></svg>
-    Nuevo cliente
-  </a>
-</div>
-
-<div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-  <div class="field-group">
-    <label class="field-label" for="customers-search">Buscar</label>
-    <input
-      id="customers-search"
-      pInputText
-      type="search"
-      [formControl]="search"
-      placeholder="Nombre, contacto o RFC"
-    />
-  </div>
-  @if (!presetStatus) {
-    <div class="field-group">
-      <label class="field-label" for="customers-status">Estado</label>
-      <p-select
-        inputId="customers-status"
-        [formControl]="statusFilter"
-        [options]="statusOptions"
-        optionLabel="label"
-        optionValue="value"
-        appendTo="body"
-      />
-    </div>
-  }
-  <div class="field-group">
-    <label class="field-label" for="customers-source">Origen</label>
-    <p-select
-      inputId="customers-source"
-      [formControl]="sourceFilter"
-      [options]="sourceOptions"
-      optionLabel="label"
-      optionValue="value"
-      appendTo="body"
-    />
-  </div>
-  <div class="field-group">
-    <label class="field-label" for="customers-tags">Etiquetas</label>
-    <p-multiselect
-      inputId="customers-tags"
-      [formControl]="tagsFilter"
-      [options]="tagOptions()"
-      optionLabel="label"
-      optionValue="value"
-      placeholder="Todas"
-      appendTo="body"
-      display="chip"
-    />
+  <div class="flex flex-wrap items-center gap-2">
+    <app-filters-popover [params]="filterParams">
+      <div class="field-group">
+        <label class="field-label" for="customers-search">Buscar</label>
+        <input
+          id="customers-search"
+          pInputText
+          type="search"
+          [formControl]="search"
+          placeholder="Nombre, contacto o RFC"
+        />
+      </div>
+      @if (!presetStatus) {
+        <div class="field-group">
+          <label class="field-label" for="customers-status">Estado</label>
+          <p-select
+            inputId="customers-status"
+            [formControl]="statusFilter"
+            [options]="statusOptions"
+            optionLabel="label"
+            optionValue="value"
+          />
+        </div>
+      }
+      <div class="field-group">
+        <label class="field-label" for="customers-source">Origen</label>
+        <p-select
+          inputId="customers-source"
+          [formControl]="sourceFilter"
+          [options]="sourceOptions"
+          optionLabel="label"
+          optionValue="value"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="customers-tags">Etiquetas</label>
+        <p-multiselect
+          inputId="customers-tags"
+          [formControl]="tagsFilter"
+          [options]="tagOptions()"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Todas"
+          display="chip"
+        />
+      </div>
+    </app-filters-popover>
+    <a routerLink="/customers/new" class="btn-primary">
+      <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+      Nuevo cliente
+    </a>
   </div>
 </div>
 

@@ -41,7 +41,10 @@ status cues, and restrained motion — never decoration.
    clients should never suspect "AI-generated product." Banned outright: glowing /
    colored drop shadows (`shadow-*` with color, `box-shadow` halos), neon gradients,
    purple→cyan / pink→blue gradient washes, gradient text, glassmorphism
-   (backdrop-blur + translucent glow), animated gradient backgrounds, and decorative
+   (backdrop-blur + translucent glow — owner exception 2026-07-22: **popovers only**
+   may carry a subtle liquid-glass treatment: translucent surface + backdrop blur,
+   neutral shadow, no glow/gradient tint; in-page surfaces never),
+   animated gradient backgrounds, and decorative
    "sparkle/magic" iconography. Color arrives through the palette scales and status
    pills — never through gradient decoration. The only tolerated gradient is a
    **subtle single-hue area fill under chart lines** (data-viz, like the reference),
@@ -107,6 +110,11 @@ status cues, and restrained motion — never decoration.
 - **Stat cards** (reference idiom): micro-label + `font-data` value + signed delta
   (`text-emerald-600`/`text-red-600`) with an `.icon-chip` on the trailing edge;
   timelines pair small accent icons with micro-label timestamps.
+- **List filters live in a popover** (owner 2026-07-22, Chakra-style): the shared
+  `shared/components/filters-popover` trigger (filter icon + active-count badge) sits
+  left of the page's primary action; pass the page's URL param names as `[params]`
+  (count + Limpiar derive from the URL). Controls projected inside must not use
+  `appendTo="body"` — their overlay must live inside the popover DOM.
 - **Micro-labels** for card/section/table headers (`.micro-label`:
   `text-2xs font-medium text-surface-500 dark:text-surface-400`) — authored
   title/sentence case, never `uppercase` (QA 2026-07-07: uppercase is reserved for
@@ -309,7 +317,8 @@ durations in components:
 
 - [ ] No emojis; all icons Lucide outlined, stroke-2, standard sizes
 - [ ] No AI-slop: zero glow shadows, neon/duotone gradients, gradient text, or
-      glassmorphism anywhere in the diff
+      glassmorphism anywhere in the diff (sole sanctioned exception: the popover
+      chrome's subtle liquid-glass, owned by `theme/popover.scss`)
 - [ ] A11y pass: contrast ≥4.5:1, visible focus ring, `aria-label` on icon-only
       buttons, real `<label for>`s, heading order, keyboard-only walkthrough works
 - [ ] Responsive pass: no page-level horizontal scroll at 375px, inputs ≥16px on

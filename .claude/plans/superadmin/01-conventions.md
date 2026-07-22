@@ -83,7 +83,10 @@ auto-loads it — **edit both in the same commit.**
   iconography.
 - **No AI-slop aesthetics (added 2026-07-05):** banned outright — glowing/colored
   drop shadows, neon gradients, purple→cyan / pink→blue washes, gradient text,
-  glassmorphism (backdrop-blur + glow), animated gradient backgrounds, sparkle/magic
+  glassmorphism (backdrop-blur + glow; **owner exception 2026-07-22: popovers only**
+  may carry a *subtle* liquid-glass treatment — translucent surface + backdrop blur,
+  neutral shadow, no glow or gradient tint; in-page surfaces never),
+  animated gradient backgrounds, sparkle/magic
   iconography. This is a professional environment; clients must never read the
   product as AI-generated. Color arrives through palette scales and status pills.
   Sole tolerated gradient: a subtle single-hue area fill under chart lines.
@@ -246,6 +249,15 @@ Binding for every component; the skill carries the same list with implementation
   everything else — garbage never reaches state or the API), typed query building, and
   the dispatch. Never hand-roll filter/pagination wiring in a component. Canon consumer:
   `users/pages/users-list/users-list.ts` (05 §3).
+- **Filters live in a popover (owner, 2026-07-22 — Chakra-style):** list pages render
+  their filter fields inside the shared
+  `shared/components/filters-popover` component — a `Filtros` trigger (filter icon +
+  active-count badge) sitting **left of the page's primary action** — instead of an
+  always-open grid; the table claims the reclaimed space. Pass the page's URL param
+  names as `[params]` (the active count and Limpiar both derive from the URL — the
+  single load path stays intact). Overlay-bearing controls projected inside must
+  **not** use `appendTo="body"` (their overlay has to live inside the popover DOM or
+  the outside-click dismiss swallows it).
 
 ## PrimeNG
 
