@@ -323,9 +323,16 @@ Binding for every component; the skill carries the same list with implementation
   nav-button kill) — plus the two house visual cues (`tag.scss` status pills,
   `popover.scss` liquid glass). Every surviving sheet opens with why it exists;
   hold new ones to the same bar.
-- `theme.options.cssLayer: { name: 'primeng' }` puts Aura in a named layer so the
-  **surviving sheets in `src/theme/*.scss` win** without `!important` — no PrimeNG
-  overrides in component styles or templates.
+- `theme.options.cssLayer: { name: 'primeng', order: 'tailwind-base, primeng' }`
+  puts Aura in a named layer so the **surviving sheets in `src/theme/*.scss` win**
+  without `!important` — no PrimeNG overrides in component styles or templates.
+  The `order` string is load-bearing (2026-07-22): PrimeNG injects it as the
+  first `<style>` in `<head>`, before `styles.css`, so IT establishes the layer
+  order — Tailwind's preflight (wrapped in `tailwind-base` in `styles.scss`)
+  must be named first or its `border-width: 0` reset silently strips every Aura
+  component border (the pre-plan-17 override sheets had been masking exactly
+  this). Keep the `@layer tailwind-base, primeng;` statement in `styles.scss`
+  declaring the same order.
 - Reach for PrimeNG before hand-rolling overlays/feedback: **`<p-dialog>`** for modals,
   **`<p-confirmDialog>`** + `ConfirmationService` for confirms, **`<p-popover>`** for
   popover menus (outside-click/ESC/positioning solved), **`<p-toast>`** + `MessageService`

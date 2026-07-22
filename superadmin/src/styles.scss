@@ -17,7 +17,13 @@
    stripped component borders (inputs rendered borderless — the old override
    sheets papered over this). Preflight now sits in `tailwind-base` BELOW
    `primeng`; components/utilities and the surviving sheets stay unlayered,
-   so they still win over Aura without `!important`. */
+   so they still win over Aura without `!important`.
+
+   NOTE: the statement below is NOT what establishes the order at runtime —
+   PrimeNG injects its `cssLayer.order` string (app.config.ts) as the first
+   <style> in <head>, before this file loads, and first occurrence wins.
+   Both must declare `tailwind-base, primeng`; this one is kept in sync so
+   the file reads truthfully on its own. */
 @layer tailwind-base, primeng;
 @layer tailwind-base {
   @tailwind base;
