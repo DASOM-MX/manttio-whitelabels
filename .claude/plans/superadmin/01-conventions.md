@@ -11,8 +11,9 @@ before writing any component.
 
 ## Typography (decided 2026-07-05 · typeface revised 2026-07-22)
 
-- **Superadmin's typeface is Quicksand** (variable, wght 300–700; owner 2026-07-22 —
-  supersedes Commissioner: its rounded geometry pairs with the blob design language).
+- **Superadmin's typeface is Nunito Sans** (variable; owner 2026-07-22 — supersedes
+  Quicksand, which superseded Commissioner the same day: rounded terminals keep the
+  blob-language warmth with better body-text legibility).
   This is a **deliberate deviation from frontend
   parity**: the superadmin is *our* product chrome, constant across tenants, and its
   own voice tells tenants who they're working with. Tenant-facing surfaces
@@ -21,11 +22,11 @@ before writing any component.
   (`03-branding.md` §2.1), defaulting to the business-identity pair **Work Sans
   (body) + Rubik (headings)** — the field app migrates off Inter to the brand-font
   CSS vars (recorded as a fork `frontend/` task, not superadmin work).
-- **Self-hosted, never CDN:** `@fontsource-variable/quicksand` — one woff2.
+- **Self-hosted, never CDN:** `@fontsource-variable/nunito-sans` — one woff2.
   No `fonts.googleapis.com` import (offline, CSP, no FOUT) — paste-in embed
   snippets get translated to the fontsource equivalent.
 - Stacks in `tailwind.config.js`:
-  `sans: ['"Quicksand Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif']`,
+  `sans: ['"Nunito Sans Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif']`,
   plus a `data` stack for numeric table/money columns. Weights: **400 body ·
   500 labels/buttons · 600–700 headings**.
 - **Tabular numerals:** data cells set `font-feature-settings: 'tnum'`.
@@ -33,7 +34,7 @@ before writing any component.
   (Commissioner's was a no-op — digit widths measured unequal with the feature on),
   so `font-data` heads with **Atkinson Hyperlegible** (the frontend's existing
   numeric stack — tnum verified: all digit groups measure identically) with the
-  product voice everywhere else. Unchanged under Quicksand.
+  product voice everywhere else. Unchanged under Nunito Sans.
 - PrimeNG inherits the body font — no per-component font overrides.
 
 ## Design language — solid & tight (decided 2026-07-05)

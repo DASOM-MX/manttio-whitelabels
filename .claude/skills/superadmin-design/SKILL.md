@@ -24,8 +24,9 @@ from decoration.
    filled/duotone sets, never inline SVG one-offs when a Lucide glyph exists.
    Defaults: `size-4` inline with text, `size-5` in nav/buttons-only contexts,
    stroke-width 2 everywhere (don't vary it per icon).
-3. **Typeface is Quicksand** (variable wght 300–700, self-hosted
-   `@fontsource-variable/quicksand`; owner 2026-07-22 — supersedes Commissioner).
+3. **Typeface is Nunito Sans** (variable, self-hosted
+   `@fontsource-variable/nunito-sans`; owner 2026-07-22 — supersedes
+   Quicksand/Commissioner).
    400 body · 500 labels/buttons · 600–700 headings. Numeric table/money cells use the
    `font-data` stack with `tnum` (Atkinson Hyperlegible head — unchanged).
    Self-hosted only — never `fonts.googleapis.com`.

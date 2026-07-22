@@ -1,14 +1,15 @@
 /* Superadmin global styles — ported from `frontend/src/styles.scss` at the
    compact "solid & tight" scale (01-conventions Design language). Deliberate
-   deviations from frontend: Quicksand (not Inter), `.field-input` h-12
+   deviations from frontend: Nunito Sans (not Inter), `.field-input` h-12
    (not h-14), borders-not-shadows card chrome, lucide icons (no PrimeIcons). */
 
-/* Self-hosted fonts — no CDN, ever (offline, CSP, no FOUT). Quicksand
-   Variable is the product voice (owner 2026-07-22 — supersedes Commissioner;
-   its rounded geometry matches the blob design language); Atkinson
-   Hyperlegible backs the numeric `font-data` stack (geometric sans digits
-   aren't reliably tabular — 01 Typography fallback). */
-@import '@fontsource-variable/quicksand';
+/* Self-hosted fonts — no CDN, ever (offline, CSP, no FOUT). Nunito Sans
+   Variable is the product voice (owner 2026-07-22 — supersedes Quicksand,
+   which superseded Commissioner the same day; rounded terminals keep the
+   blob-language warmth with better body-text legibility); Atkinson
+   Hyperlegible backs the numeric `font-data` stack (01 Typography
+   fallback). */
+@import '@fontsource-variable/nunito-sans';
 @import '@fontsource/atkinson-hyperlegible/400.css';
 @import '@fontsource/atkinson-hyperlegible/700.css';
 

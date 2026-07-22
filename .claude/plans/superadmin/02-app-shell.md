@@ -114,7 +114,7 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
 ## 5. Theming port (from `frontend/`)
 
 Copy, don't reinvent — keep byte-parity where possible. (Deliberate exceptions, all in
-01: **typography** — Quicksand (owner 2026-07-22; Commissioner before that), not Inter; **control density** — `.field-input`
+01: **typography** — Nunito Sans (owner 2026-07-22; Quicksand/Commissioner before that), not Inter; **control density** — `.field-input`
 `h-12`, not `h-14`; **icons** — lucide-angular outlined, not PrimeIcons; plus the
 borders-not-shadows surface chrome from the Design language.)
 

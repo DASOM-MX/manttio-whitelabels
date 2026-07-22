@@ -77,16 +77,16 @@ module.exports = {
       },
 
       fontFamily: {
-        // Quicksand is the superadmin's own voice (01-conventions Typography;
-        // owner 2026-07-22, supersedes Commissioner) — constant across
+        // Nunito Sans is the superadmin's own voice (01-conventions Typography;
+        // owner 2026-07-22, supersedes Quicksand/Commissioner) — constant across
         // tenants, a deliberate deviation from frontend parity.
-        sans: ['"Quicksand Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['"Nunito Sans Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         // Numeric/data stack: Atkinson Hyperlegible heads it (verified
         // tabular digits — 01 Typography fallback, 2026-07-06); the product
         // voice only backs it up for non-digit glyphs.
         data: [
           '"Atkinson Hyperlegible"',
-          '"Quicksand Variable"',
+          '"Nunito Sans Variable"',
           'ui-sans-serif',
           'system-ui',
           'sans-serif',
