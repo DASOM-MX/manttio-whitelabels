@@ -53,7 +53,7 @@
         aria-hidden="true"
       ></div>
       <aside
-        class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-11/12 flex-col bg-background shadow-xl lg:hidden dark:bg-surface-1000"
+        class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-11/12 flex-col bg-white shadow-xl lg:hidden dark:bg-surface-900"
         animate.enter="anim-drawer-enter"
         animate.leave="anim-drawer-leave"
         aria-label="Navegación principal"
@@ -166,7 +166,7 @@
   </div>
 
   <nav class="flex-1 overflow-y-auto px-3 py-3" aria-label="Módulos">
-    <ul class="flex flex-col gap-2.5">
+    <ul class="flex flex-col gap-1">
       @for (entry of navView(); track entry.label) {
         <li>
           @if (entry.children) {
@@ -177,14 +177,12 @@
               (click)="toggleGroup(entry.label)"
               [attr.aria-expanded]="entry.expanded"
             >
-              <span class="nav-chip">
-                <svg
-                  lucideIcon
-                  [lucideIcon]="entry.icon"
-                  class="size-5"
-                  aria-hidden="true"
-                ></svg>
-              </span>
+              <svg
+                lucideIcon
+                [lucideIcon]="entry.icon"
+                class="nav-icon"
+                aria-hidden="true"
+              ></svg>
               <span class="flex-1 text-left">{{ entry.label }}</span>
               <svg
                 lucideChevronDown
@@ -194,7 +192,7 @@
               ></svg>
             </button>
             @if (entry.expanded) {
-              <ul class="pt-2.5 flex flex-col gap-2.5 pl-6" animate.enter="anim-fade-enter">
+              <ul class="pt-1 flex flex-col gap-0.5" animate.enter="anim-fade-enter">
                 @for (child of entry.children; track child.route) {
                   <li>
                     <a
@@ -216,14 +214,12 @@
               routerLinkActive="nav-active"
               [routerLinkActiveOptions]="{ exact: entry.exact ?? false }"
             >
-              <span class="nav-chip">
-                <svg
-                  lucideIcon
-                  [lucideIcon]="entry.icon"
-                  class="size-5"
-                  aria-hidden="true"
-                ></svg>
-              </span>
+              <svg
+                lucideIcon
+                [lucideIcon]="entry.icon"
+                class="nav-icon"
+                aria-hidden="true"
+              ></svg>
               {{ entry.label }}
             </a>
           }

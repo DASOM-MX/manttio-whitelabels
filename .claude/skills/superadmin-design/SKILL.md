@@ -112,8 +112,8 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   is `rounded-full` (`px-5`), icon-only buttons are full circles; paginator pages
   follow via `table.scss`, and any future `<p-button>` via the preset's button
   `borderRadius` token (plan 17 — the old button sheet is retired).
-  The shell nav rides the same pill language (`.nav-item`/`.nav-child`
-  `rounded-full`; extended 2026-07-22). Boundary: inputs stay `rounded-lg`,
+  The shell nav left the pill language with the Diamond turn (owner 2026-07-22) —
+  nav rows are flat `rounded-lg`. Boundary: inputs stay `rounded-lg`,
   cards `rounded-2xl`, icon chips `rounded-xl`.
 
 ## Strong visual cues
@@ -126,11 +126,11 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   Title-only — no breadcrumbs unless the owner opts in.
 - **Status pills** everywhere state exists (CRM status, billing, stock, visit status) —
   vibrant in both modes per the dark-mode rules; pill + label, never color alone.
-- **Active nav**: elevated white pill (`.nav-active` on the destination link,
-  `.nav-group-active` on its group — both `shadow-card`) with the group's `.nav-chip`
-  flipped to filled `primary-400` (owner 2026-07-22, Purity reference — supersedes the
-  solid-primary block). Idle items sit flat with a soft white chip carrying the accent
-  glyph.
+- **Active nav**: Diamond-style flat rows (owner 2026-07-22, Diamond turn —
+  supersedes the elevated-pill/chip nav): white sidebar chrome, plain outlined
+  `.nav-icon`s, active child = primary-tinted `rounded-lg` row (`.nav-active`),
+  group on the active trail = primary text/icon (`.nav-group-active`), hover =
+  surface tint, no shadows anywhere in the nav.
 - **Stat cards** (reference idiom): micro-label + `font-data` value + signed delta
   (`text-emerald-600`/`text-red-600`) with an `.icon-chip` on the trailing edge;
   timelines pair small accent icons with micro-label timestamps.

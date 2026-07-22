@@ -170,14 +170,12 @@
     @apply border-t border-surface-200 pt-2 dark:border-surface-800;
   }
 
-  /* Shell chrome (owner redesign 2026-07-21): the sidebar and topbar are the
-     sanctioned shadow exception to borders-not-shadows. The nav shares the
-     page background (alike brand tones, no hairline) and a smooth neutral
-     shadow separates it from the content; the topbar keeps the card tone so
-     the two strips read as distinct surfaces. Neutral black alpha only —
-     never a colored glow. */
+  /* Shell chrome (owner 2026-07-22, Diamond turn — supersedes the 2026-07-21
+     blended nav): sidebar and topbar are both white card-tone chrome forming
+     one L over the tinted canvas, each casting a smooth neutral shadow on the
+     content. Neutral black alpha only — never a colored glow. */
   .shell-sidebar {
-    @apply bg-background dark:bg-surface-1000;
+    @apply bg-white dark:bg-surface-900;
     box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.08);
   }
   .shell-topbar {
@@ -191,49 +189,34 @@
     box-shadow: 0 2px 10px -2px rgb(0 0 0 / 0.45);
   }
 
-  /* Sidebar nav items — idle/hover chrome lives here, not as template
-     utilities, so hover can't outrank the solid `.nav-active` state in the
+  /* Sidebar nav — Diamond-style flat rows (owner 2026-07-22, supersedes the
+     elevated-pill/blob nav and its icon chips): plain rounded-lg rows on the
+     white sidebar chrome, plain outlined icons, hover = surface tint, active
+     child = primary-tinted row, group on the active trail = primary
+     text/icon. No shadows anywhere in the nav. Idle/hover chrome lives here,
+     not as template utilities, so hover can't outrank `.nav-active` in the
      cascade. */
-  /* Nav rides the blob language too (owner, 2026-07-21): pills, px-4 so
-     content clears the curve. */
   .nav-item {
-    @apply relative flex h-11 w-full items-center gap-3 rounded-full px-3 text-sm font-medium text-surface-700 transition-colors dark:text-surface-300;
+    @apply relative flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-surface-700 transition-colors dark:text-surface-300;
   }
   .nav-child {
-    @apply relative flex h-9 items-center rounded-full px-4 text-sm text-surface-600 transition-colors dark:text-surface-400 border-primary-0 border bg-primary-0 dark:border-surface-800 dark:bg-surface-900/60;
+    @apply relative flex h-9 items-center rounded-lg pl-11 pr-3 text-sm text-surface-600 transition-colors dark:text-surface-400;
   }
-  .nav-item:not(.nav-active):not(.nav-group-active):hover,
+  .nav-item:hover,
   .nav-child:not(.nav-active):hover {
     @apply bg-surface-100 dark:bg-surface-800;
   }
-
-  /* Nav icon chip (Purity reference): idle = soft white chip with the
-     brand-accent glyph; the group whose child is active flips it filled. */
-  .nav-chip {
-    @apply inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-white text-primary-400 shadow-sm transition-colors dark:bg-surface-900 dark:text-primary-300;
+  .nav-icon {
+    @apply size-5 shrink-0 text-surface-500 transition-colors dark:text-surface-400;
   }
-  .nav-group-active .nav-chip,
-  .nav-active .nav-chip {
-    @apply bg-primary-400 text-white dark:bg-primary-400 dark:text-white shadow-none;
-  }
-
-  /* Active trail (owner 2026-07-22, Purity-style — supersedes the solid
-     primary block): the group holding the active route and the active child
-     link render as elevated white pills on the blended sidebar; the filled
-     chip carries the accent. */
   .nav-group-active {
-    @apply bg-white text-surface-900 shadow-card dark:bg-surface-900 dark:text-surface-0;
+    @apply text-primary-700 dark:text-primary-300;
   }
-  .nav-group-active:hover {
-    @apply bg-white dark:bg-surface-900;
+  .nav-group-active .nav-icon,
+  .nav-active .nav-icon {
+    @apply text-primary-600 dark:text-primary-400;
   }
   .nav-active {
-    @apply bg-white text-surface-900 font-semibold shadow-card border-transparent dark:bg-surface-800 dark:text-surface-0;
-  }
-  .app-dark .nav-group-active,
-  .app-dark .nav-active {
-    box-shadow:
-      0 4px 16px -4px rgb(0 0 0 / 0.5),
-      0 2px 6px -2px rgb(0 0 0 / 0.4);
+    @apply bg-primary-0 font-semibold text-primary-800 dark:bg-primary-1000/40 dark:text-primary-300;
   }
 }

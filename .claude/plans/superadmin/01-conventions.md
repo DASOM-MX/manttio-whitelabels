@@ -93,15 +93,16 @@ auto-loads it — **edit both in the same commit.**
   icon-only buttons are full circles (`rounded-full`); paginator pages follow via
   `table.scss`, and any future `<p-button>` via the preset's button `borderRadius`
   token (plan 17 — the old button sheet is retired; dialog/drawer/toast close
-  buttons render stock). The shell nav rides the same pill language
-  (`.nav-item`/`.nav-child` `rounded-full`; extended 2026-07-22). **Boundary:**
+  buttons render stock). The shell nav left the pill language with the Diamond turn
+  (owner 2026-07-22) — nav rows are flat `rounded-lg`. **Boundary:**
   inputs (`.field-input`, icon-picker trigger) keep `rounded-lg`, cards
   `rounded-2xl`, icon chips `rounded-xl`.
 - **Strong cues:** status pills wherever state exists (never color alone); active nav =
-  **elevated white pill** (`.nav-active`/`.nav-group-active` + `shadow-card`) with the
-  group's icon chip flipped to filled `primary-400` (`.nav-chip`; owner 2026-07-22,
-  Purity reference — supersedes the solid-primary block, which superseded the accent
-  bar); micro-labels (`text-2xs font-medium`) for
+  **Diamond-style flat rows** (owner 2026-07-22, Diamond turn — supersedes the
+  elevated-pill/chip nav, which superseded the solid-primary block): white sidebar
+  chrome, plain outlined `.nav-icon`s, active child = primary-tinted `rounded-lg` row
+  (`.nav-active`), group on the active trail = primary text/icon
+  (`.nav-group-active`), no nav shadows; micro-labels (`text-2xs font-medium`) for
   card/section/table headers — **title/sentence case, never uppercase** (QA 2026-07-07:
   uppercase is reserved for warnings or explicit requests; headings/labels render in
   their authored case);
