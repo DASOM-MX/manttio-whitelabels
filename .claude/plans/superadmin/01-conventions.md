@@ -98,11 +98,14 @@ auto-loads it — **edit both in the same commit.**
   inputs (`.field-input`, icon-picker trigger) keep `rounded-lg`, cards
   `rounded-2xl`, icon chips `rounded-xl`.
 - **Strong cues:** status pills wherever state exists (never color alone); active nav =
-  **Diamond-style flat rows** (owner 2026-07-22, Diamond turn — supersedes the
-  elevated-pill/chip nav, which superseded the solid-primary block): white sidebar
-  chrome, plain outlined `.nav-icon`s, active child = primary-tinted `rounded-lg` row
-  (`.nav-active`), group on the active trail = primary text/icon
-  (`.nav-group-active`), no nav shadows; micro-labels (`text-2xs font-medium`) for
+  **Diamond-style flat rows on the dark brand panel** (owner 2026-07-22, Diamond turn
+  v2 per reference screenshot — supersedes the elevated-pill/chip nav, which
+  superseded the solid-primary block): the sidebar is `primary-1000` in **both
+  modes** with a rounded right edge and hairline `primary-800/50` outline;
+  light-on-dark `rounded-lg` rows (`primary-100`/`200` text, `primary-300`
+  `.nav-icon`s), hover `white/10`, active child = solid `primary-600` row with white
+  text (`.nav-active`), active-trail group = white text/icon (`.nav-group-active`),
+  no shadows inside the nav; micro-labels (`text-2xs font-medium`) for
   card/section/table headers — **title/sentence case, never uppercase** (QA 2026-07-07:
   uppercase is reserved for warnings or explicit requests; headings/labels render in
   their authored case);

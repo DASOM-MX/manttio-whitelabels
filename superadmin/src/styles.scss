@@ -170,13 +170,14 @@
     @apply border-t border-surface-200 pt-2 dark:border-surface-800;
   }
 
-  /* Shell chrome (owner 2026-07-22, Diamond turn — supersedes the 2026-07-21
-     blended nav): sidebar and topbar are both white card-tone chrome forming
-     one L over the tinted canvas, each casting a smooth neutral shadow on the
-     content. Neutral black alpha only — never a colored glow. */
+  /* Shell chrome (owner 2026-07-22, Diamond turn v2 — reference screenshot):
+     the sidebar is the tenant's DARK brand panel — `primary-1000` in both
+     modes with a rounded right edge and a hairline `primary-800/50` outline —
+     floating over the canvas; the topbar stays white card-tone. Neutral black
+     alpha shadows only — never a colored glow. */
   .shell-sidebar {
-    @apply bg-white dark:bg-surface-900;
-    box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.08);
+    @apply bg-primary-1000 border border-l-0 border-primary-800/50 rounded-r-2xl;
+    box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.12);
   }
   .shell-topbar {
     @apply bg-white dark:bg-surface-900;
@@ -189,34 +190,36 @@
     box-shadow: 0 2px 10px -2px rgb(0 0 0 / 0.45);
   }
 
-  /* Sidebar nav — Diamond-style flat rows (owner 2026-07-22, supersedes the
-     elevated-pill/blob nav and its icon chips): plain rounded-lg rows on the
-     white sidebar chrome, plain outlined icons, hover = surface tint, active
-     child = primary-tinted row, group on the active trail = primary
-     text/icon. No shadows anywhere in the nav. Idle/hover chrome lives here,
-     not as template utilities, so hover can't outrank `.nav-active` in the
+  /* Sidebar nav — Diamond-style flat rows on the dark brand panel (owner
+     2026-07-22, Diamond turn v2; supersedes the elevated-pill/blob nav and
+     its icon chips): light-on-dark rounded-lg rows, plain outlined icons,
+     hover = white/10, active child = solid primary-600 row (interactive-solid
+     step, white text clears 4.5:1), active trail = white text/icon. The
+     panel is `primary-1000` in BOTH modes, so no dark: variants here. No
+     shadows anywhere in the nav. Idle/hover chrome lives here, not as
+     template utilities, so hover can't outrank `.nav-active` in the
      cascade. */
   .nav-item {
-    @apply relative flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-surface-700 transition-colors dark:text-surface-300;
+    @apply relative flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-primary-100 transition-colors;
   }
   .nav-child {
-    @apply relative flex h-9 items-center rounded-lg pl-11 pr-3 text-sm text-surface-600 transition-colors dark:text-surface-400;
+    @apply relative flex h-9 items-center rounded-lg pl-11 pr-3 text-sm text-primary-200 transition-colors;
   }
   .nav-item:hover,
   .nav-child:not(.nav-active):hover {
-    @apply bg-surface-100 dark:bg-surface-800;
+    @apply bg-white/10;
   }
   .nav-icon {
-    @apply size-5 shrink-0 text-surface-500 transition-colors dark:text-surface-400;
+    @apply size-5 shrink-0 text-primary-300 transition-colors;
   }
   .nav-group-active {
-    @apply text-primary-700 dark:text-primary-300;
+    @apply text-white;
   }
   .nav-group-active .nav-icon,
   .nav-active .nav-icon {
-    @apply text-primary-600 dark:text-primary-400;
+    @apply text-white;
   }
   .nav-active {
-    @apply bg-primary-0 font-semibold text-primary-800 dark:bg-primary-1000/40 dark:text-primary-300;
+    @apply bg-primary-600 font-semibold text-white;
   }
 }

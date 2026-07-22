@@ -6,10 +6,11 @@
 > (branch `feature/superadmin-executive-refresh-cp2`, stacked on CP-1: shared
 > `page-header` component swept across all 17 routed pages, shell gutters
 > `px-4 sm:px-6 md:px-8` + `py-6`, topbar/sidebar strips to `h-16`; nav restyled
-> **Diamond-flat** on owner direction the same day — white sidebar chrome, plain
-> outlined icons, flat `rounded-lg` rows, primary-tinted active row (supersedes
-> the pill nav, its icon chips, and the 2026-07-21 hand-tuned pill spacing);
-> breadcrumbs stayed off pending owner eyeball), CP-3 next. Runs before modules
+> **Diamond-flat** on owner direction the same day, then to the reference's
+> **dark brand panel** (sidebar `primary-1000` both modes, rounded right edge +
+> `primary-800/50` hairline, light-on-dark rows, solid `primary-600` active row —
+> supersedes the pill nav, its icon chips, and the 2026-07-21 hand-tuned pill
+> spacing); breadcrumbs stayed off pending owner eyeball), CP-3 next. Runs before modules
 > 09/10/12/13 start (deliberate mid-suite insertion so the remaining modules are
 > authored in the refreshed language, not restyled later).
 > **Owner:** planning session 2026-07-22 · **Last updated:** 2026-07-22

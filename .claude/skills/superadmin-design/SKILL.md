@@ -126,11 +126,14 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   Title-only — no breadcrumbs unless the owner opts in.
 - **Status pills** everywhere state exists (CRM status, billing, stock, visit status) —
   vibrant in both modes per the dark-mode rules; pill + label, never color alone.
-- **Active nav**: Diamond-style flat rows (owner 2026-07-22, Diamond turn —
-  supersedes the elevated-pill/chip nav): white sidebar chrome, plain outlined
-  `.nav-icon`s, active child = primary-tinted `rounded-lg` row (`.nav-active`),
-  group on the active trail = primary text/icon (`.nav-group-active`), hover =
-  surface tint, no shadows anywhere in the nav.
+- **Active nav**: Diamond-style flat rows on the dark brand panel (owner
+  2026-07-22, Diamond turn v2 per reference screenshot — supersedes the
+  elevated-pill/chip nav): the sidebar is `primary-1000` in **both modes** with a
+  rounded right edge + hairline `primary-800/50` outline; light-on-dark
+  `rounded-lg` rows (`primary-100`/`200` text, `primary-300` `.nav-icon`s), hover
+  `white/10`, active child = solid `primary-600` row with white text
+  (`.nav-active`), active-trail group = white text/icon (`.nav-group-active`).
+  No shadows inside the nav.
 - **Stat cards** (reference idiom): micro-label + `font-data` value + signed delta
   (`text-emerald-600`/`text-red-600`) with an `.icon-chip` on the trailing edge;
   timelines pair small accent icons with micro-label timestamps.
