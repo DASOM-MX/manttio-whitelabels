@@ -55,10 +55,18 @@ export const ManttioPreset = definePreset(Aura, {
   semantic: {
     primary: brandScale('primary', 220, 10),
     // Inputs sit on the house rounded-lg + px-3.5. Responsive heights/text
-    // stay in `src/theme/forms.scss` — no token is breakpoint-aware.
+    // stay in `src/theme/forms.scss` — no token is breakpoint-aware. Focus
+    // adds a soft 4px halo (the `.field-input` ring language) on top of the
+    // primary border — raw hsl(var()) because tokens can't alpha-reference.
     formField: {
       paddingX: '0.875rem',
       borderRadius: '{border.radius.lg}',
+      focusRing: {
+        width: '4px',
+        style: 'solid',
+        color: 'hsl(var(--brand-primary-600, 220 10% 45%) / 0.22)',
+        offset: '0',
+      },
     },
     colorScheme: {
       light: {
@@ -71,11 +79,13 @@ export const ManttioPreset = definePreset(Aura, {
           hoverColor: '{primary.700}',
           activeColor: '{primary.800}',
         },
-        // Field chrome converges on `.field-input`'s constants so raw inputs
-        // and PrimeNG controls read identically side-by-side.
+        // Crisp field definition (owner 2026-07-22 — the surface-200 hairline
+        // read as borderless on white cards): surface-300 rest, 400 hover,
+        // primary focus. `.field-input` mirrors these so raw inputs and
+        // PrimeNG controls read identically side-by-side.
         formField: {
-          borderColor: '{surface.200}',
-          hoverBorderColor: '{surface.300}',
+          borderColor: '{surface.300}',
+          hoverBorderColor: '{surface.400}',
           focusBorderColor: '{primary.700}',
         },
       },
@@ -90,6 +100,7 @@ export const ManttioPreset = definePreset(Aura, {
         formField: {
           background: '{surface.900}',
           borderColor: '{surface.700}',
+          hoverBorderColor: '{surface.600}',
           focusBorderColor: '{primary.400}',
         },
       },
