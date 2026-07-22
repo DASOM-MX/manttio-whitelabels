@@ -1,8 +1,13 @@
-import { and, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { customers } from '../models/customers.model';
 import { CustomerStatus } from '../enums/customers.enum';
-import type { IntakePeriod, IntakeSourceCounts } from '../types/customer-stats.types';
+import type {
+  FollowUpRow,
+  IntakePeriod,
+  IntakeSourceCounts,
+  TrendPoint,
+} from '../types/customer-stats.types';
 
 // "When the current status took effect": rows still holding their birth status
 // carry NULL status_changed_at, so readers coalesce to created_at (utm-params 03).
@@ -44,4 +49,74 @@ export const countIntakeBySource = async (
       ),
     )
     .groupBy(customers.source);
+};
+
+// Bucket key in UTC — the intake windows are UTC month boundaries, so the
+// trend must truncate in the same zone or edge rows drift a month.
+const monthKey = sql<string>`to_char(${effectiveAt} at time zone 'utc', 'YYYY-MM')`;
+
+/** Monthly lead/active buckets over [from, to) for the dashboard trend chart
+ *  (CRM dashboard redesign 2026-07-22): one grouped scan on the same
+ *  `customers_intake_effective_idx` range predicate as the intake stats.
+ *  Empty months are absent — the service zero-fills the series. */
+export const countMonthlyIntake = async (
+  db: Db,
+  from: Date,
+  to: Date,
+): Promise<TrendPoint[]> => {
+  return db
+    .select({
+      month: monthKey,
+      leads: sql<number>`(count(*) filter (where ${customers.status} = ${CustomerStatus.Lead}))::int`,
+      active: sql<number>`(count(*) filter (where ${customers.status} = ${CustomerStatus.Active}))::int`,
+    })
+    .from(customers)
+    .where(
+      and(
+        isNull(customers.deletedAt),
+        inArray(customers.status, [CustomerStatus.Lead, CustomerStatus.Active]),
+        inWindow({ from, to }),
+      ),
+    )
+    .groupBy(monthKey)
+    .orderBy(monthKey);
+};
+
+// Agenda scope: live customers with a scheduled follow-up. Blacklisted rows
+// keep their (stale) date but never nag from the dashboard.
+const followUpScope = and(
+  isNull(customers.deletedAt),
+  isNotNull(customers.nextFollowUpAt),
+  ne(customers.status, CustomerStatus.Blacklisted),
+);
+
+/** Soonest/most-overdue first — the dashboard agenda card (2026-07-22). */
+export const listFollowUps = async (db: Db, limit: number): Promise<FollowUpRow[]> => {
+  const rows = await db
+    .select({
+      id: customers.id,
+      name: customers.name,
+      status: customers.status,
+      nextFollowUpAt: customers.nextFollowUpAt,
+    })
+    .from(customers)
+    .where(followUpScope)
+    .orderBy(asc(customers.nextFollowUpAt))
+    .limit(limit);
+  // The isNotNull predicate guarantees the date — narrow it for the DTO.
+  return rows.map((row) => ({ ...row, nextFollowUpAt: row.nextFollowUpAt as Date }));
+};
+
+/** Whole-scope aggregates for the follow-ups KPI (not just the page). */
+export const countFollowUps = async (
+  db: Db,
+): Promise<{ overdue: number; scheduled: number }> => {
+  const [row] = await db
+    .select({
+      overdue: sql<number>`(count(*) filter (where ${customers.nextFollowUpAt} < now()))::int`,
+      scheduled: sql<number>`count(*)::int`,
+    })
+    .from(customers)
+    .where(followUpScope);
+  return row ?? { overdue: 0, scheduled: 0 };
 };

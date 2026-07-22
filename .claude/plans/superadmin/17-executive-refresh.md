@@ -29,6 +29,15 @@
 > stands. Chrome icon-circles (topbar) stay round. Runs before modules
 > 09/10/12/13 start (deliberate mid-suite insertion so the remaining modules are
 > authored in the refreshed language, not restyled later).
+> **CRM dashboard pulled forward from CP-5 (owner 2026-07-22, "one of our main
+> selling points"):** the "CRM cockpit" redesign shipped as its own stacked
+> fullstack branch `feature/fullstack-crm-dashboard-refresh` (on CP-3) — KPI strip
+> (incl. new Conversión + Seguimientos vencidos), six-month trend line with the
+> sanctioned `primary-400` area fill, follow-up agenda, channel-mix bars replacing
+> the two pies, activity full-width with Autor; two new backend reads
+> (`/customers/stats/trend`, `/customers/follow-ups`). Full spec + supersession
+> trail in utm-params 03; CP-5's dashboard leg is therefore done early — its
+> remaining scope is client 360 + detail views + the app-wide sweep.
 > **Owner:** planning session 2026-07-22 · **Last updated:** 2026-07-22
 > **CP-1 disposition confirmations (2026-07-22):** 13 sheets deleted (the 8 form
 > sheets + `button`/`dialog`/`drawer`/`toast`; `tabs` slimmed to integration-only) —

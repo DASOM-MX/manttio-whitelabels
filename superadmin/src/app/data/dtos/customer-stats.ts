@@ -1,4 +1,4 @@
-import type { CustomerSource } from './customer';
+import type { CustomerSource, CustomerStatus } from './customer';
 import type { Interaction } from './interaction';
 
 /** Response shapes of the Panel reads (utm-params 03): `GET
@@ -52,4 +52,34 @@ export interface RecentCustomer {
 
 export interface RecentItemsResponse<T> {
   items: T[];
+}
+
+/** `GET /customers/stats/trend` (dashboard redesign 2026-07-22) — zero-filled
+ *  monthly series ending at the current (MTD) month; `month` is the UTC
+ *  'YYYY-MM' bucket key. Same snapshot semantics as the intake stats. */
+export interface TrendPoint {
+  month: string;
+  leads: number;
+  active: number;
+}
+
+export interface IntakeTrend {
+  months: TrendPoint[];
+}
+
+/** `GET /customers/follow-ups` — one agenda row: a live customer with a
+ *  scheduled follow-up, soonest/most-overdue first. */
+export interface FollowUpCustomer {
+  id: string;
+  name: string;
+  status: CustomerStatus;
+  nextFollowUpAt: string;
+}
+
+/** Counts aggregate the whole scope, not just the returned page — the
+ *  dashboard KPI needs the true totals. */
+export interface FollowUpsResponse {
+  items: FollowUpCustomer[];
+  overdueCount: number;
+  scheduledCount: number;
 }

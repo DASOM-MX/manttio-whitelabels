@@ -1,4 +1,4 @@
-import type { CustomerSource } from '../enums/customers.enum';
+import type { CustomerSource, CustomerStatus } from '../enums/customers.enum';
 
 /** One grouped row from the single-scan intake query: all four buckets per
  *  source (FILTER aggregates — perf revision 2026-07-21). `source` is typed
@@ -39,4 +39,37 @@ export interface IntakeStatsResponse {
   previous: IntakePeriod;
   totals: IntakeTotals;
   rows: IntakeSourceRow[];
+}
+
+/** One month bucket of the intake trend — `month` is the UTC 'YYYY-MM' key.
+ *  Same snapshot semantics as the intake stats: a customer counts in the
+ *  month its *current* status took effect. */
+export interface TrendPoint {
+  month: string;
+  leads: number;
+  active: number;
+}
+
+/** Response of GET /customers/stats/trend (CRM dashboard redesign
+ *  2026-07-22): a continuous, zero-filled monthly series ending at the
+ *  current month. */
+export interface IntakeTrendResponse {
+  months: TrendPoint[];
+}
+
+/** One agenda row of GET /customers/follow-ups: a live (non-blacklisted)
+ *  customer with a scheduled follow-up, soonest/most-overdue first. */
+export interface FollowUpRow {
+  id: string;
+  name: string;
+  status: CustomerStatus;
+  nextFollowUpAt: Date;
+}
+
+/** Response of GET /customers/follow-ups. Counts aggregate the whole scope,
+ *  not just the returned page — the dashboard KPI needs the true totals. */
+export interface FollowUpsResponse {
+  items: FollowUpRow[];
+  overdueCount: number;
+  scheduledCount: number;
 }
