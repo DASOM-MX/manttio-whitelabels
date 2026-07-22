@@ -7,6 +7,7 @@ import {
 } from '../repository/interactions.repository';
 import { isLegalTransition } from '../utils/customer-status';
 import { CUSTOMER_STATUS_LABELS } from '../constants/customer-status';
+import { INTERACTION_MEDIUM_PHRASES } from '../constants/interaction-mediums';
 import { InteractionRefKind } from '../enums/interactions.enum';
 import { CustomerStatus } from '../enums/customers.enum';
 import {
@@ -50,15 +51,17 @@ export const addInteraction = async (
     userId: actorId,
   });
   // Owner awareness feed: owner broadcast, the acting user excluded. The
-  // interaction author is already resolved on the DTO.
+  // interaction author is already resolved on the DTO; the body names the
+  // medium the touch came through (owner ask, 2026-07-21).
+  const medium = INTERACTION_MEDIUM_PHRASES[input.type];
   await notifyBestEffort(db, {
     role: 'owner',
     excludeUserId: actorId,
     type: NotificationType.ClientInteractionRegistered,
     title: 'Interacción registrada',
     body: entry.userName
-      ? `${entry.userName} registró una interacción con ${customer.name}.`
-      : `Se registró una interacción con ${customer.name}.`,
+      ? `${entry.userName} registró ${medium} ${customer.name}.`
+      : `Se registró ${medium} ${customer.name}.`,
     data: { customerId },
   });
   return entry;

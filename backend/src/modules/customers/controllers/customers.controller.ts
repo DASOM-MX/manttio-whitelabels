@@ -146,10 +146,11 @@ customers.get('/:id/interactions', zValidator('query', listInteractionsQuerySche
 });
 
 // Log a manual touch (call/whatsapp/email/visit/note). `system` is rejected by
-// the schema. The author is the authenticated user.
+// the schema. The author is the authenticated user; office staff log touches
+// as part of their day job (owner, 2026-07-21 — was owner/admin).
 customers.post(
   '/:id/interactions',
-  requireRole(['owner', 'admin']),
+  requireRole(['owner', 'admin', 'office']),
   zValidator('json', addInteractionSchema),
   async (c) => {
     const db = createDb(c.env.DATABASE_URL);

@@ -146,7 +146,15 @@ frontend label/icon maps grow (§3.3).
 > (registered-from-superadmin / updated / archived), `interactions.service`
 > (interaction / blacklisted — ordinary status moves stay timeline-only),
 > `leads.service` (registered-from-website, no actor). All via `notifyBestEffort`
-> — a notification failure never breaks the flow that caused it. `NotificationChannel` (`in_app` \| `email`) is an
+> — a notification failure never breaks the flow that caused it.
+>
+> **2026-07-21 (owner, e2e review):** the `client_interaction_registered` body
+> names the **medium** the touch came through ("registró **una llamada con** X" —
+> phrase map in `customers/constants/interaction-mediums.ts`), and the composer
+> gate `POST /customers/:id/interactions` admits **`office`** (was owner/admin —
+> logging touches is office staff's day job).
+>
+> `NotificationChannel` (`in_app` \| `email`) is an
 input enum on `notify()`, not a column. **Role addressing reuses the existing users-module
 role enum** (`owner`/`admin`/`office`/`technician`) — not redefined here; `audience_role` is
 typed against it.

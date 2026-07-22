@@ -5,6 +5,7 @@ import {
   seedAdmin,
   seedAdminAndLogin,
   seedCustomer,
+  seedOfficeAndLogin,
   seedOwner,
   seedOwnerAndLogin,
   uniqueName,
@@ -113,10 +114,12 @@ describe('customer lifecycle triggers', () => {
       expect(updated[0]!.body).toContain(customerName);
       expect(await rowsFor(actor.id, NotificationType.ClientUpdated)).toHaveLength(0);
 
-      // Manual interaction.
+      // Manual interaction — logged by an office user (on the composer gate
+      // since 2026-07-21); the body names the actor and the medium.
+      const { token: officeToken } = await seedOfficeAndLogin();
       const interactionRes = await request(`/customers/${customer.id}/interactions`, {
         method: 'POST',
-        headers: jsonHeaders(token),
+        headers: jsonHeaders(officeToken),
         body: JSON.stringify({ type: 'call', body: 'llamada de seguimiento' }),
       });
       expect(interactionRes.status).toBe(201);
@@ -126,6 +129,8 @@ describe('customer lifecycle triggers', () => {
       );
       expect(interacted).toHaveLength(1);
       expect(interacted[0]!.body).toContain(customerName);
+      expect(interacted[0]!.body).toContain('test office');
+      expect(interacted[0]!.body).toContain('una llamada con');
 
       // Blacklist via the dedicated transition.
       const statusRes = await request(`/customers/${customer.id}/status`, {
