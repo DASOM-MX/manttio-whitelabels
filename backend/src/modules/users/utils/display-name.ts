@@ -1,7 +1,8 @@
-import type { UserRow } from '../types/users.types';
-
-/** "Nombre ApellidoPaterno ApellidoMaterno" — tolerates legacy rows whose
- *  surnames predate the split (their full name lives in `name`). */
-export const displayName = (
-  u: Pick<UserRow, 'name' | 'paternalLastName' | 'maternalLastName'>,
-): string => [u.name, u.paternalLastName, u.maternalLastName].filter(Boolean).join(' ');
+/** "Nombre ApellidoPaterno ApellidoMaterno" — composes whatever parts exist:
+ *  legacy rows whose surnames predate the split (their full name lives in
+ *  `name`) and left-joined author columns that are all null ('' out). */
+export const displayName = (u: {
+  name: string | null;
+  paternalLastName: string | null;
+  maternalLastName: string | null;
+}): string => [u.name, u.paternalLastName, u.maternalLastName].filter(Boolean).join(' ');

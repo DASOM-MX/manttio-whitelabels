@@ -27,13 +27,12 @@ const toDTO = (row: RowWithAuthor): InteractionDTO => ({
   body: row.body,
   ref: row.refKind && row.refId ? { kind: row.refKind, id: row.refId } : undefined,
   userId: row.userId,
-  userName: row.userName
-    ? displayName({
-        name: row.userName,
-        paternalLastName: row.userPaternalLastName,
-        maternalLastName: row.userMaternalLastName,
-      })
-    : undefined,
+  userName:
+    displayName({
+      name: row.userName,
+      paternalLastName: row.userPaternalLastName,
+      maternalLastName: row.userMaternalLastName,
+    }) || undefined,
   createdAt: row.createdAt,
 });
 
