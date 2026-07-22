@@ -28,7 +28,11 @@ before writing any component.
 - Stacks in `tailwind.config.js`:
   `sans: ['"Figtree Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif']`,
   plus a `data` stack for numeric table/money columns. Weights: **400 body ·
-  500 labels/buttons · 600–700 headings**.
+  500 labels/buttons/headings** (owner 2026-07-22, "too bold — cleaner look":
+  headings dropped from 600–700 to 500 — size + tracking carry hierarchy, and
+  solid fills carry active states with no weight bump. 600+ is reserved for the
+  wordmark and rare emphasis, e.g. the tiny sort-order badge; never routine
+  chrome).
 - **Tabular numerals:** data cells set `font-feature-settings: 'tnum'`.
   **Resolved at CP-2 (2026-07-06): the product voice's tnum can't be trusted**
   (Commissioner's was a no-op — digit widths measured unequal with the feature on),
@@ -100,6 +104,11 @@ auto-loads it — **edit both in the same commit.**
   **Boundary (tokenized 2026-07-22, § Styling):** inputs/buttons/nav
   `rounded-control`, cards/dialogs `rounded-card`, icon chips + popovers
   `rounded-chip`, status/role pills + chrome icon-circles `rounded-full`.
+- **Condensed button copy (owner 2026-07-22: "Guardar y aplicar is just too
+  long"):** action labels are the bare verb wherever context disambiguates —
+  "Guardar", not "Guardar cambios"/"Guardar borrador"/"Guardar y aplicar"
+  (draft-vs-publish stays clear because "Publicar" sits alongside). Qualify
+  only when two same-verb actions share a view.
 - **Strong cues:** status pills wherever state exists (never color alone); active nav =
   **Diamond-style flat rows on the dark brand panel** (owner 2026-07-22, Diamond turn
   v2 per reference screenshot — supersedes the elevated-pill/chip nav, which

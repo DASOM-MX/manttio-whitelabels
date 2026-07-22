@@ -30,7 +30,10 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
 3. **Typeface is Figtree** (variable, self-hosted
    `@fontsource-variable/figtree`; owner 2026-07-22, plan 17 — supersedes
    Nunito Sans/Quicksand/Commissioner).
-   400 body · 500 labels/buttons · 600–700 headings. Numeric table/money cells use the
+   400 body · 500 labels/buttons/headings (owner 2026-07-22 "cleaner look":
+   headings dropped from 600–700 — size + tracking carry hierarchy, solid fills
+   carry active states; 600+ only for the wordmark and rare emphasis).
+   Numeric table/money cells use the
    `font-data` stack with `tnum` (Atkinson Hyperlegible head — unchanged).
    Self-hosted only — never `fonts.googleapis.com`.
 4. **Motion = Angular's native `animate.enter`/`animate.leave` + `src/animations.scss`**
@@ -122,7 +125,10 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   `.btn` family carries it, paginator pages follow via `table.scss`, and any
   future `<p-button>` via the preset's button `borderRadius: {border.radius.lg}`
   token. Ghost icon-only buttons in chrome (topbar bell/theme/menu, avatars)
-  stay circles — chrome, not actions. Nav rows are flat `rounded-control`
+  stay circles — chrome, not actions. **Button copy is the bare verb** where
+  context disambiguates — "Guardar", never "Guardar cambios"/"Guardar y
+  aplicar" (owner 2026-07-22); qualify only when two same-verb actions share a
+  view. Nav rows are flat `rounded-control`
   (Diamond turn, owner 2026-07-22). Boundary (tokenized 2026-07-22 in
   `tailwind.config.js`): inputs/buttons/nav `rounded-control` (0.5rem),
   cards/dialogs/table shells `rounded-card` (1rem, sidebar edge

@@ -13,7 +13,7 @@
         (click)="save()"
         [disabled]="form.invalid || busy()"
       >
-        Guardar borrador
+        Guardar
       </button>
       @if (!isNew) {
         <button type="button" class="btn-secondary" (click)="activate()" [disabled]="busy()">

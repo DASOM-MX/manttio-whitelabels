@@ -67,8 +67,11 @@
 @layer components {
   /* Labels/headings render in the authored title/sentence case — uppercase is
      reserved for warnings or explicit requests (QA 2026-07-07). */
+  /* Weight ladder (owner 2026-07-22, "too bold — cleaner look"): 400 body ·
+     500 labels/buttons/headings — 600+ is reserved for the wordmark and rare
+     emphasis, never routine chrome. */
   .field-label {
-    @apply block text-sm font-semibold text-surface-800 dark:text-surface-200;
+    @apply block text-sm font-medium text-surface-800 dark:text-surface-200;
   }
   .field-group {
     @apply flex flex-col gap-2;
@@ -97,7 +100,7 @@
     // look clean" — supersedes the 2026-07-21 pill buttons): rounded-control
     // rectangles matching the input radius, stock-Aura px-4. Ghost icon-only
     // buttons (topbar bell/theme/menu) stay circles — chrome, not actions.
-    @apply inline-flex items-center justify-center gap-2 min-h-10 px-4 py-2 rounded-control text-base font-semibold transition-colors duration-150 focus:outline-none focus-visible:ring-4 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 min-h-10 px-4 py-2 rounded-control text-base font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-4 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
     @apply btn bg-primary-700 text-white enabled:hover:bg-primary-800 enabled:active:bg-primary-900 focus-visible:ring-primary-700/30 dark:bg-primary-600 dark:enabled:hover:bg-primary-500 dark:enabled:active:bg-primary-400 dark:focus-visible:ring-primary-400/30;
@@ -157,7 +160,7 @@
      navy/cyan steps, inlined when plan 16 tombstoned those palette keys — so
      roles read identically on every tenant. */
   .role-pill {
-    @apply inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold leading-none;
+    @apply inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium leading-none;
   }
   .role-pill--owner {
     background-color: #1b2937;
@@ -180,7 +183,7 @@
      extra breathing room below. Our owners skew older; the heading has to
      read at a glance. Whitespace comes from padding, not leading. */
   .section-heading {
-    @apply pb-3 text-sm font-semibold leading-none text-surface-800 dark:text-surface-200;
+    @apply pb-3 text-sm font-medium leading-none text-surface-800 dark:text-surface-200;
   }
 
   /* Divider between multi-field repeater rows (rows carry no border). */
@@ -238,6 +241,7 @@
     @apply text-white;
   }
   .nav-active {
-    @apply bg-primary-600 font-semibold text-white;
+    // No weight bump — the solid row carries the active cue (weight ladder).
+    @apply bg-primary-600 text-white;
   }
 }
