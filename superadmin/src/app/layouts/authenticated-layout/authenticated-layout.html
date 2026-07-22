@@ -33,9 +33,11 @@
   </div>
 } @else {
   <div class="flex h-dvh bg-background dark:bg-surface-1000">
-    <!-- Desktop sidebar -->
+    <!-- Desktop sidebar: shares the page background — a smooth neutral shadow
+         (not a hairline) separates it from the content column (owner
+         redesign 2026-07-21). z-20 so it casts over the z-10 topbar. -->
     <aside
-      class="hidden w-64 shrink-0 flex-col border-r border-surface-200 bg-white lg:flex dark:border-surface-800 dark:bg-surface-900"
+      class="shell-sidebar relative z-20 hidden w-64 shrink-0 flex-col lg:flex"
       aria-label="Navegación principal"
     >
       <ng-container *ngTemplateOutlet="sidebarContent"></ng-container>
@@ -51,7 +53,7 @@
         aria-hidden="true"
       ></div>
       <aside
-        class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-11/12 flex-col border-r border-surface-200 bg-white shadow-xl lg:hidden dark:border-surface-800 dark:bg-surface-900"
+        class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-11/12 flex-col bg-background shadow-xl lg:hidden dark:bg-surface-1000"
         animate.enter="anim-drawer-enter"
         animate.leave="anim-drawer-leave"
         aria-label="Navegación principal"
@@ -61,10 +63,10 @@
     }
 
     <div class="flex min-w-0 flex-1 flex-col">
-      <!-- Topbar -->
-      <header
-        class="flex h-14 shrink-0 items-center gap-2 border-b border-surface-200 bg-white px-4 dark:border-surface-800 dark:bg-surface-900"
-      >
+      <!-- Topbar: its own card-tone strip, separated from the content by a
+           soft shadow and from the nav by the surface change — the two
+           chrome strips no longer read as one bar. -->
+      <header class="shell-topbar relative z-10 flex h-14 shrink-0 items-center gap-2 px-4">
         <button
           type="button"
           class="inline-flex size-10 items-center justify-center rounded-lg text-surface-700 hover:bg-surface-100 lg:hidden dark:text-surface-300 dark:hover:bg-surface-800"
@@ -130,7 +132,9 @@
 
       <!-- Single scroll region -->
       <main #scrollContainer id="main-content" class="flex-1 overflow-y-auto" tabindex="-1">
-        <div #pageContainer class="anim-page-enter mx-auto w-full max-w-7xl px-4 py-5 sm:px-6">
+        <!-- Full-width main (owner 2026-07-21): no max-w cap — the content
+             container claims every pixel the chrome leaves free. -->
+        <div #pageContainer class="anim-page-enter w-full px-4 py-5 sm:px-6">
           <router-outlet />
         </div>
       </main>
@@ -141,9 +145,7 @@
 }
 
 <ng-template #sidebarContent>
-  <div
-    class="flex h-14 shrink-0 items-center gap-2 border-b border-surface-200 px-4 dark:border-surface-800"
-  >
+  <div class="flex h-14 shrink-0 items-center gap-2 px-4">
     <p class="text-lg font-bold tracking-tight text-surface-1000 dark:text-surface-0">manttio</p>
     <p class="micro-label mt-0.5">Admin</p>
     <div class="flex-1"></div>
@@ -164,8 +166,8 @@
           @if (entry.children) {
             <button
               type="button"
-              class="relative flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-surface-700 transition-colors hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800"
-              [class.nav-active]="entry.groupActive"
+              class="nav-item"
+              [class.nav-group-active]="entry.groupActive"
               (click)="toggleGroup(entry.label)"
               [attr.aria-expanded]="entry.expanded"
             >
@@ -188,7 +190,7 @@
                 @for (child of entry.children; track child.route) {
                   <li>
                     <a
-                      class="nav-child relative flex h-9 items-center rounded-md px-3 text-sm text-surface-600 transition-colors hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
+                      class="nav-child"
                       [routerLink]="child.route"
                       routerLinkActive="nav-active"
                       [routerLinkActiveOptions]="{ exact: child.exact ?? false }"
@@ -201,7 +203,7 @@
             }
           } @else {
             <a
-              class="relative flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-surface-700 transition-colors hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800"
+              class="nav-item"
               [routerLink]="entry.route"
               routerLinkActive="nav-active"
               [routerLinkActiveOptions]="{ exact: entry.exact ?? false }"

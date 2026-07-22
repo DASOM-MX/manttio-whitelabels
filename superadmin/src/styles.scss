@@ -139,17 +139,59 @@
     @apply border-t border-surface-200 pt-2 dark:border-surface-800;
   }
 
-  /* Active sidebar entry: tinted bg + 2px primary accent bar — on the right
-     edge for top-level items, on the left edge for child items. */
-  .nav-active {
+  /* Shell chrome (owner redesign 2026-07-21): the sidebar and topbar are the
+     sanctioned shadow exception to borders-not-shadows. The nav shares the
+     page background (alike brand tones, no hairline) and a smooth neutral
+     shadow separates it from the content; the topbar keeps the card tone so
+     the two strips read as distinct surfaces. Neutral black alpha only —
+     never a colored glow. */
+  .shell-sidebar {
+    @apply bg-background dark:bg-surface-1000;
+    box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.08);
+  }
+  .shell-topbar {
+    @apply bg-white dark:bg-surface-900;
+    box-shadow: 0 2px 10px -2px rgb(0 0 0 / 0.06);
+  }
+  .app-dark .shell-sidebar {
+    box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.5);
+  }
+  .app-dark .shell-topbar {
+    box-shadow: 0 2px 10px -2px rgb(0 0 0 / 0.45);
+  }
+
+  /* Sidebar nav items — idle/hover chrome lives here, not as template
+     utilities, so hover can't outrank the solid `.nav-active` state in the
+     cascade. */
+  .nav-item {
+    @apply relative flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-surface-700 transition-colors dark:text-surface-300;
+  }
+  .nav-child {
+    @apply relative flex h-9 items-center rounded-md px-3 text-sm text-surface-600 transition-colors dark:text-surface-400;
+  }
+  .nav-item:not(.nav-active):not(.nav-group-active):hover,
+  .nav-child:not(.nav-active):hover {
+    @apply bg-surface-100 dark:bg-surface-800;
+  }
+
+  /* Group parent whose child route is active: soft primary tint — the solid
+     block below is reserved for the destination link itself. */
+  .nav-group-active {
     @apply bg-primary-0 text-primary-800 dark:bg-primary-1000/40 dark:text-primary-300;
   }
-  .nav-active:not(.nav-child)::after {
-    content: '';
-    @apply absolute right-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-primary-600 dark:bg-primary-400;
+  .nav-group-active:hover {
+    @apply bg-primary-100 dark:bg-primary-1000/60;
   }
-  .nav-child.nav-active::before {
-    content: '';
-    @apply absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-primary-600 dark:bg-primary-400;
+
+  /* Active nav entry (owner redesign 2026-07-21 — supersedes the accent-bar
+     + tint idiom): plain solid brand primary with a light neutral shadow for
+     emphasis. Steps mirror `.btn-primary` so the tenant contrast guarantees
+     carry over. */
+  .nav-active {
+    @apply bg-primary-700 text-white dark:bg-primary-600 dark:text-white;
+    box-shadow: 0 1px 4px 0 rgb(0 0 0 / 0.2);
+  }
+  .app-dark .nav-active {
+    box-shadow: 0 1px 4px 0 rgb(0 0 0 / 0.5);
   }
 }

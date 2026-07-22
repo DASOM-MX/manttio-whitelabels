@@ -69,7 +69,10 @@ from decoration.
 
 - Cards/panels: `1px` hairline borders (`border-surface-200 dark:border-surface-800`),
   flat backgrounds (`bg-white dark:bg-surface-900`). **No drop shadows on in-page
-  surfaces.** Shadows are reserved for true overlays (dialogs, popovers, drawers).
+  surfaces.** Shadows are reserved for true overlays (dialogs, popovers, drawers) —
+  plus one chrome exception (owner, 2026-07-21): the shell's sidebar + topbar separate
+  via smooth neutral shadows (`.shell-sidebar`/`.shell-topbar`), the sidebar sharing
+  the page background so the nav blends with content. Neutral black alpha only.
 - Nested grouping inside a card = background shift (`bg-surface-100 dark:bg-surface-800/40`)
   or a hairline divider — not another shadowed box.
 - The palette is the two semantic brand scales only — `primary-*` / `surface-*`, steps
@@ -81,7 +84,10 @@ from decoration.
 
 - **Status pills** everywhere state exists (CRM status, billing, stock, visit status) —
   vibrant in both modes per the dark-mode rules; pill + label, never color alone.
-- **Active nav**: 2px left accent bar in primary + tinted background — instantly locatable.
+- **Active nav**: solid brand-primary block + light neutral shadow (`.nav-active`,
+  steps mirror `.btn-primary`; owner redesign 2026-07-21 — supersedes the accent-bar +
+  tint idiom). Group parents with an active child take the soft `.nav-group-active`
+  tint — the solid block marks the destination link only.
 - **Micro-labels** for card/section/table headers (`.micro-label`:
   `text-2xs font-medium text-surface-500 dark:text-surface-400`) — authored
   title/sentence case, never `uppercase` (QA 2026-07-07: uppercase is reserved for
@@ -264,8 +270,9 @@ durations in components:
   arbitrary pixel values; Material Design).
 - **touch-density** — Component spacing comfortable for touch: not cramped, no
   mis-taps — the `h-12` baseline keeps 48px targets even at desk density.
-- **container-width** — Consistent max-width on desktop (`max-w-6xl`/`7xl` per page
-  type; pick once in the shell, reuse).
+- **container-width** — the main container is **full-width** (owner, 2026-07-21 —
+  supersedes the `max-w-7xl` cap): only the shell's `px-4 sm:px-6` gutters remain;
+  prose blocks still self-limit line length.
 - **z-index-management** — Layered scale: `0 / 10 / 20 / 40` for in-page layers; PrimeNG
   overlays own the 1000+ range — never compete with them.
 - **fixed-element-offset** — Fixed topbar/sidebar reserve safe padding for underlying

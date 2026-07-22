@@ -47,9 +47,16 @@ auto-loads it — **edit both in the same commit.**
 - **Borders, not shadows:** in-page surfaces use 1px hairlines
   (`border-surface-200 dark:border-surface-800`) on flat backgrounds; shadows are
   reserved for true overlays (dialogs, popovers, drawers). Nested grouping = background
-  shift or divider, never another shadowed box.
+  shift or divider, never another shadowed box. **Chrome exception (owner, 2026-07-21):**
+  the app shell's sidebar + topbar separate via smooth *neutral* shadows instead of
+  hairlines (`.shell-sidebar`/`.shell-topbar`) — the sidebar shares the page background
+  so the nav blends with the content, the topbar keeps the card tone so the two strips
+  read as distinct surfaces. Neutral black alpha only; colored glows stay banned.
 - **Strong cues:** status pills wherever state exists (never color alone); active nav =
-  2px primary left-accent bar + tinted bg; micro-labels (`text-2xs font-medium`) for
+  solid brand-primary block + light neutral shadow (`.nav-active`, steps mirror
+  `.btn-primary`; owner redesign 2026-07-21 — supersedes the 2px accent-bar + tint
+  idiom; group parents with an active child carry the soft tint via
+  `.nav-group-active`); micro-labels (`text-2xs font-medium`) for
   card/section/table headers — **title/sentence case, never uppercase** (QA 2026-07-07:
   uppercase is reserved for warnings or explicit requests; headings/labels render in
   their authored case);
@@ -126,8 +133,10 @@ Binding for every component; the skill carries the same list with implementation
 - **spacing-scale** — Tailwind's 4px scale only; no arbitrary pixel spacing.
 - **touch-density** — `h-12` baseline keeps 48px touch targets even at desk density;
   no cramped tap clusters.
-- **container-width** — one consistent desktop max-width (`max-w-6xl`/`7xl`), picked
-  in the shell.
+- **container-width** — the main container is **full-width** (owner, 2026-07-21 —
+  supersedes the earlier `max-w-7xl` cap): content claims every pixel the chrome
+  leaves free; only the `px-4 sm:px-6` gutters remain. Prose/help copy still respects
+  line-length-control inside its own block.
 - **z-index-management** — in-page layers `0/10/20/40`; PrimeNG overlays own 1000+.
 - **fixed-element-offset** — fixed topbar/sidebar reserve padding; nothing hides
   beneath them.
