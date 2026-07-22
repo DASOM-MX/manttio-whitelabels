@@ -98,7 +98,7 @@
 /* Compact "rows per page" select — inherits .p-select → .field-input by
    default. Shrink it to match the paginator buttons (compact opt-down). */
 .p-paginator .p-select {
-  @apply w-auto !h-10 px-3 py-1.5 text-sm;
+  @apply w-auto !h-9 px-3 py-1 text-sm;
 }
 .p-paginator .p-select-label {
   @apply pr-1;

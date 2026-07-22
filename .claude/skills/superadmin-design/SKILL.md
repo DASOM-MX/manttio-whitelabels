@@ -62,15 +62,17 @@ status cues, and restrained motion — never decoration.
 
 ## Density — low-to-mid whitespace
 
-- Baseline control height is **48px: `.field-input` = `h-12`** (deliberate deviation from
-  the frontend's `h-14`; superadmin is a desk tool). Compact contexts (paginator
-  rows-per-page, dropdown filter inputs) opt down to `!h-10`.
+- Baseline control height is **40px desk / 44px touch: `.field-input` = `h-11 sm:h-10`**
+  with a 1px hairline (slimmed 2026-07-22 — supersedes the 48px `h-12`/`border-2`
+  chrome; still a deliberate deviation from the frontend's `h-14`). Text 16px below
+  `sm`, `text-sm` from `sm` up. Compact contexts (paginator rows-per-page, dropdown
+  filter inputs) opt down to `!h-9`.
 - Cards: `p-5` (soft-UI turn 2026-07-22). Section gaps `gap-4`/`gap-5`. Page gutters
   `px-4 md:px-6`. Airy chrome, dense data.
 - Tables are compact: `py-2.5` cells, 13–14px cell text, header row as a
   micro-label (see cues below).
 - Prefer one dense, well-grouped screen over two airy ones — but never sacrifice the
-  56px→48px baseline alignment: every control on a row snaps to the same height.
+  baseline alignment: every control on a row snaps to the same height.
 
 ## Surfaces — soft elevation (owner 2026-07-22, supersedes borders-not-shadows)
 
@@ -241,8 +243,8 @@ durations in components:
   (WCAG, MD).
 - **error-summary** — multiple errors get a summary at top with anchor links to each
   field (WCAG).
-- **touch-friendly-input** — mobile input height ≥44px (the `h-12` = 48px baseline
-  complies; `!h-10` compacts are desktop-scope only) (Apple HIG).
+- **touch-friendly-input** — mobile input height ≥44px (the baseline is `h-11` below
+  `sm`; `!h-9` compacts are desktop-scope only) (Apple HIG).
 - **destructive-emphasis** — destructive actions use the danger color and sit
   visually separated from primary actions (HIG, MD).
 - **toast-accessibility** — toasts never steal focus; `aria-live="polite"` (WCAG).
@@ -296,7 +298,7 @@ durations in components:
 - **spacing-scale** — 4pt/8dp incremental spacing system (Tailwind's 4px scale — no
   arbitrary pixel values; Material Design).
 - **touch-density** — Component spacing comfortable for touch: not cramped, no
-  mis-taps — the `h-12` baseline keeps 48px targets even at desk density.
+  mis-taps — the baseline stays `h-11` (44px) below `sm`.
 - **container-width** — the main container is **full-width** (owner, 2026-07-21 —
   supersedes the `max-w-7xl` cap): only the shell's `px-4 sm:px-6` gutters remain;
   prose blocks still self-limit line length.
@@ -323,7 +325,7 @@ durations in components:
       buttons, real `<label for>`s, heading order, keyboard-only walkthrough works
 - [ ] Responsive pass: no page-level horizontal scroll at 375px, inputs ≥16px on
       mobile, wide tables in `overflow-x-auto`, `min-h-dvh` not `100vh`
-- [ ] Controls snap to the `h-12` baseline (or `!h-10` compact)
+- [ ] Controls snap to the `h-11 sm:h-10` baseline (or `!h-9` compact)
 - [ ] Soft elevation: cards `rounded-2xl` + neutral `shadow-card`, no edge borders;
       hairlines only as internal dividers; dark-mode pairings applied
 - [ ] Status rendered as pills; numeric columns `font-data`/tnum

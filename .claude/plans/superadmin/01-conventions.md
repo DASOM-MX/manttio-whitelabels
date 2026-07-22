@@ -151,7 +151,7 @@ Binding for every component; the skill carries the same list with implementation
 - **horizontal-scroll** — never page-level on mobile; wide tables scroll in their own
   `overflow-x-auto`.
 - **spacing-scale** — Tailwind's 4px scale only; no arbitrary pixel spacing.
-- **touch-density** — `h-12` baseline keeps 48px touch targets even at desk density;
+- **touch-density** — the `h-11 sm:h-10` baseline keeps 44px touch targets below `sm`;
   no cramped tap clusters.
 - **container-width** — the main container is **full-width** (owner, 2026-07-21 —
   supersedes the earlier `max-w-7xl` cap): content claims every pixel the chrome
@@ -194,14 +194,16 @@ Binding for every component; the skill carries the same list with implementation
   disabled/focus states; re-implementing them in templates almost always misses one.
   These globals are **ported from `frontend/src/styles.scss`** in shell CP-2 — keep them
   byte-compatible where possible so fixes can flow between apps.
-- `.field-input` is **fixed at 48px (`h-12`) in superadmin** — a deliberate deviation
-  from the frontend's 56px/`h-14` (the field app is glove-friendly mobile capture; the
-  superadmin is a tight desk console — see Design language). Every control snaps to
-  that one baseline: `<p-select>`, `<p-datepicker>`, `<input pInputText>`,
-  `<p-inputnumber>` all inherit it. Textareas opt out via `!h-auto`; compact controls
-  (paginator rows-per-page, dropdown filter inputs) opt down to `!h-10`. A non-standard
-  height gets an `!h-*` override in that component's theme sheet, never a parallel
-  class.
+- `.field-input` is **fixed at 40px desk / 44px touch (`h-11 sm:h-10`) with a 1px
+  hairline** (slimmed 2026-07-22, owner: "inputs are too chunky" — supersedes the 48px
+  `h-12`/`border-2` chrome) — still a deliberate deviation from the frontend's
+  56px/`h-14` (the field app is glove-friendly mobile capture; the superadmin is a
+  desk console). Text is 16px below `sm` (iOS auto-zoom) and `text-sm` from `sm` up.
+  Every control snaps to that one baseline: `<p-select>`, `<p-datepicker>`,
+  `<input pInputText>`, `<p-inputnumber>` all inherit it. Textareas opt out via
+  `!h-auto`; compact controls (paginator rows-per-page, dropdown filter inputs) opt
+  down to `!h-9`. A non-standard height gets an `!h-*` override in that component's
+  theme sheet, never a parallel class.
 - **Dialogs** (`<p-dialog>`, `<p-confirmDialog>`) are capped at **`max-w-11/12`** via
   `styleClass` (a `tailwind.config.js` extension). Inline pixel width stays for roomy
   viewports; the cap keeps a ~4% gutter on narrow screens. Apply on **every** dialog.
@@ -358,7 +360,7 @@ Forms & feedback rules (MEDIUM — added 2026-07-05; implementation notes in the
   **read-only-distinction** — read-only ≠ disabled, visually and semantically ·
   **focus-management** — failed submit focuses first invalid field ·
   **error-summary** — multi-error summary with anchor links (WCAG) ·
-  **touch-friendly-input** — mobile inputs ≥44px (`h-12` complies; `!h-10` is
+  **touch-friendly-input** — mobile inputs ≥44px (the baseline is `h-11` below `sm`; `!h-9` is
   desktop-scope) · **destructive-emphasis** — danger color, separated from primary ·
   **toast-accessibility** — toasts don't steal focus, `aria-live="polite"` ·
   **aria-live-errors** — errors announce via `role="alert"`/`aria-live` ·
