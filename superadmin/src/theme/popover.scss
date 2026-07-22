@@ -5,7 +5,7 @@
    surfaces. Opaque-enough alphas keep content readable where
    backdrop-filter is unsupported. */
 .p-popover {
-  @apply rounded-xl border shadow-xl bg-white/85 border-surface-200/80
+  @apply rounded-chip border shadow-xl bg-white/85 border-surface-200/80
          dark:bg-surface-900/85 dark:border-surface-700/70;
   /* NOT `@apply backdrop-blur-md`: the utility compiles to a var() chain
      whose universal `--tw-backdrop-*` defaults are only emitted when a

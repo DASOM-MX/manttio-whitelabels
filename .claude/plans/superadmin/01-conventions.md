@@ -69,7 +69,7 @@ auto-loads it — **edit both in the same commit.**
   owner may opt in later). Dynamic titles/descriptions bind computeds or signal
   ternaries, never method calls.
 - **Soft elevation (owner, 2026-07-22 — Purity-style soft-UI reference; supersedes
-  borders-not-shadows):** cards are white `rounded-2xl` surfaces floating on the tinted
+  borders-not-shadows):** cards are white `rounded-card` surfaces floating on the tinted
   page background with a soft neutral shadow (`.card`/`.card-section` → `shadow-card`);
   hairline borders retire to *internal* dividers and nested grouping. The shell keeps
   its 2026-07-21 chrome shadows (`.shell-sidebar`/`.shell-topbar`). Shadows are always
@@ -94,15 +94,15 @@ auto-loads it — **edit both in the same commit.**
   `table.scss`, and any future `<p-button>` via the preset's button `borderRadius`
   token (plan 17 — the old button sheet is retired; dialog/drawer/toast close
   buttons render stock). The shell nav left the pill language with the Diamond turn
-  (owner 2026-07-22) — nav rows are flat `rounded-lg`. **Boundary:**
-  inputs (`.field-input`, icon-picker trigger) keep `rounded-lg`, cards
-  `rounded-2xl`, icon chips `rounded-xl`.
+  (owner 2026-07-22) — nav rows are flat `rounded-control`. **Boundary (tokenized
+  2026-07-22, § Styling):** inputs `rounded-control`, cards/dialogs `rounded-card`,
+  icon chips + popovers `rounded-chip`, pills `rounded-full`.
 - **Strong cues:** status pills wherever state exists (never color alone); active nav =
   **Diamond-style flat rows on the dark brand panel** (owner 2026-07-22, Diamond turn
   v2 per reference screenshot — supersedes the elevated-pill/chip nav, which
   superseded the solid-primary block): the sidebar is `primary-1000` in **both
   modes** with a rounded right edge and hairline `primary-800/50` outline;
-  light-on-dark `rounded-lg` rows (`primary-100`/`200` text, `primary-300`
+  light-on-dark `rounded-control` rows (`primary-100`/`200` text, `primary-300`
   `.nav-icon`s), hover `white/10`, active child = solid `primary-600` row with white
   text (`.nav-active`), active-trail group = white text/icon (`.nav-group-active`),
   no shadows inside the nav; micro-labels (`text-2xs font-medium`) for
@@ -203,6 +203,13 @@ Binding for every component; the skill carries the same list with implementation
 
 - **Tailwind CSS 3.4 only.** Do not upgrade or downgrade. If a new utility/class is needed,
   add it to `tailwind.config.js` (extend `theme`) rather than using arbitrary values inline.
+- **Radius language is tokenized (owner 2026-07-22, plan 17):** `rounded-card`
+  (1rem — cards, panels, dialogs, table shells; the sidebar edge is
+  `rounded-r-card`) · `rounded-chip` (0.75rem — icon chips, popovers) ·
+  `rounded-control` (0.5rem — inputs, nav rows, small in-card surfaces) ·
+  `rounded-full` (pills/actions). New chrome uses these — never raw
+  `rounded-lg`/`xl`/`2xl`; page templates migrate as the plan 17 CP-3..5
+  passes touch them. Values mirror the preset's `border.radius` tokens.
 - Prefer `size-*` over paired `w-*`/`h-*` when width and height are equal
   (e.g. `w-4 h-4` → `size-4`).
 - **Never** use inline `style="..."` attributes (or `[style]` / `[ngStyle]`) in templates.

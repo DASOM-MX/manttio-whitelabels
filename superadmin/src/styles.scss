@@ -66,7 +66,7 @@
     // `h-11` below `sm` keeps the 44px mobile touch target, and mobile
     // stays 16px text (iOS auto-zoom) while desktop compacts to `text-sm`.
     // Textareas opt out via `!h-auto`; compact controls opt down to `!h-9`.
-    @apply w-full h-11 sm:h-10 px-3.5 py-2 bg-white border border-surface-200 rounded-lg text-base sm:text-sm text-surface-1000 font-data tabular-nums transition-colors duration-150 focus:outline-none focus:border-primary-700 focus:ring-4 focus:ring-primary-700/20 disabled:bg-surface-0 disabled:text-surface-400
+    @apply w-full h-11 sm:h-10 px-3.5 py-2 bg-white border border-surface-200 rounded-control text-base sm:text-sm text-surface-1000 font-data tabular-nums transition-colors duration-150 focus:outline-none focus:border-primary-700 focus:ring-4 focus:ring-primary-700/20 disabled:bg-surface-0 disabled:text-surface-400
            dark:bg-surface-900 dark:border-surface-700 dark:text-surface-0 dark:focus:border-primary-400 dark:focus:ring-primary-400/25 dark:disabled:bg-surface-800 dark:disabled:text-surface-500;
   }
   .field-input--error {
@@ -77,8 +77,8 @@
     // read as actions, not inputs, and the old py-2.5 made them balloon.
     // Blob buttons (owner, 2026-07-21): actions are smooth pills
     // (rounded-full, px-5 so text clears the curve); icon-only buttons are
-    // full circles; the shell nav rides the same pill language. Inputs keep
-    // rounded-lg, cards rounded-xl.
+    // full circles. Radius tokens (2026-07-22): inputs/nav rounded-control,
+    // cards/dialogs rounded-card, chips/popovers rounded-chip.
     @apply inline-flex items-center justify-center gap-2 min-h-10 px-5 py-2 rounded-full text-base font-semibold transition-colors duration-150 focus:outline-none focus-visible:ring-4 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
@@ -97,17 +97,17 @@
   }
 
   /* Soft elevation (owner 2026-07-22, Purity-style soft UI — supersedes
-     borders-not-shadows for cards): white rounded-2xl surfaces float on the
+     borders-not-shadows for cards): white rounded-card surfaces float on the
      tinted page background with a soft neutral shadow; hairlines retire to
      internal dividers. Neutral black alpha only — colored glows stay
      banned. */
   .card {
-    @apply bg-white rounded-2xl shadow-card dark:bg-surface-900;
+    @apply bg-white rounded-card shadow-card dark:bg-surface-900;
   }
   .card-section {
     // p-6 since plan 17 (breathable executive rhythm — air lives in the
     // chrome, data stays dense inside tables).
-    @apply bg-white rounded-2xl shadow-card p-6 dark:bg-surface-900;
+    @apply bg-white rounded-card shadow-card p-6 dark:bg-surface-900;
   }
   .app-dark .card,
   .app-dark .card-section {
@@ -121,10 +121,10 @@
      blurbs, never buttons. Glyph rides `currentColor`; keep it aria-hidden
      with the label alongside. */
   .icon-chip {
-    @apply inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-400 text-white;
+    @apply inline-flex size-10 shrink-0 items-center justify-center rounded-chip bg-primary-400 text-white;
   }
   .icon-chip--soft {
-    @apply inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-primary-400 shadow-card dark:bg-surface-900;
+    @apply inline-flex size-10 shrink-0 items-center justify-center rounded-chip bg-white text-primary-400 shadow-card dark:bg-surface-900;
   }
 
   /* Micro-label for card/section/table headers (01 Design language). */
@@ -176,7 +176,7 @@
      floating over the canvas; the topbar stays white card-tone. Neutral black
      alpha shadows only — never a colored glow. */
   .shell-sidebar {
-    @apply bg-primary-1000 border border-l-0 border-primary-800/50 rounded-r-2xl;
+    @apply bg-primary-1000 border border-l-0 border-primary-800/50 rounded-r-card;
     box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.12);
   }
   .shell-topbar {
@@ -192,7 +192,7 @@
 
   /* Sidebar nav — Diamond-style flat rows on the dark brand panel (owner
      2026-07-22, Diamond turn v2; supersedes the elevated-pill/blob nav and
-     its icon chips): light-on-dark rounded-lg rows, plain outlined icons,
+     its icon chips): light-on-dark rounded-control rows, plain outlined icons,
      hover = white/10, active child = solid primary-600 row (interactive-solid
      step, white text clears 4.5:1), active trail = white text/icon. The
      panel is `primary-1000` in BOTH modes, so no dark: variants here. No
@@ -200,10 +200,10 @@
      template utilities, so hover can't outrank `.nav-active` in the
      cascade. */
   .nav-item {
-    @apply relative flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-primary-100 transition-colors;
+    @apply relative flex h-10 w-full items-center gap-3 rounded-control px-3 text-sm font-medium text-primary-100 transition-colors;
   }
   .nav-child {
-    @apply relative flex h-9 items-center rounded-lg pl-11 pr-3 text-sm text-primary-200 transition-colors;
+    @apply relative flex h-9 items-center rounded-control pl-11 pr-3 text-sm text-primary-200 transition-colors;
   }
   .nav-item:hover,
   .nav-child:not(.nav-active):hover {

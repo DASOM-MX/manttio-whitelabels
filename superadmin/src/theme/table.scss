@@ -5,7 +5,7 @@
    surface; rows separate via whitespace + hover, the header via its
    surface tint. */
 .p-datatable {
-  @apply block w-full max-w-full bg-white rounded-2xl shadow-card overflow-hidden
+  @apply block w-full max-w-full bg-white rounded-card shadow-card overflow-hidden
          dark:bg-surface-900;
 }
 .app-dark .p-datatable {

@@ -86,8 +86,8 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
 
 ## Surfaces — soft elevation (owner 2026-07-22, supersedes borders-not-shadows)
 
-- Cards/panels: white `rounded-2xl` floating on the tinted page bg with the soft
-  neutral `shadow-card` (`.card`/`.card-section` carry it; `dark:bg-surface-900` with a
+- Cards/panels: white `rounded-card` (1rem — the tokenized radius, see boundary
+  below) floating on the tinted page bg with the soft neutral `shadow-card` (`.card`/`.card-section` carry it; `dark:bg-surface-900` with a
   deepened `.app-dark` shadow). **No hairline borders on card edges** — hairlines
   retire to *internal* dividers. The shell chrome keeps its 2026-07-21 shadows
   (`.shell-sidebar`/`.shell-topbar`). **Depth needs contrast:** the `background` alias
@@ -113,8 +113,11 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   follow via `table.scss`, and any future `<p-button>` via the preset's button
   `borderRadius` token (plan 17 — the old button sheet is retired).
   The shell nav left the pill language with the Diamond turn (owner 2026-07-22) —
-  nav rows are flat `rounded-lg`. Boundary: inputs stay `rounded-lg`,
-  cards `rounded-2xl`, icon chips `rounded-xl`.
+  nav rows are flat `rounded-control`. Boundary (tokenized 2026-07-22 in
+  `tailwind.config.js`): inputs/nav `rounded-control` (0.5rem), cards/dialogs/table
+  shells `rounded-card` (1rem, sidebar edge `rounded-r-card`), icon chips +
+  popovers `rounded-chip` (0.75rem), pills `rounded-full` — never raw
+  `rounded-lg`/`xl`/`2xl` in new chrome.
 
 ## Strong visual cues
 
@@ -130,7 +133,7 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   2026-07-22, Diamond turn v2 per reference screenshot — supersedes the
   elevated-pill/chip nav): the sidebar is `primary-1000` in **both modes** with a
   rounded right edge + hairline `primary-800/50` outline; light-on-dark
-  `rounded-lg` rows (`primary-100`/`200` text, `primary-300` `.nav-icon`s), hover
+  `rounded-control` rows (`primary-100`/`200` text, `primary-300` `.nav-icon`s), hover
   `white/10`, active child = solid `primary-600` row with white text
   (`.nav-active`), active-trail group = white text/icon (`.nav-group-active`).
   No shadows inside the nav.
@@ -351,8 +354,10 @@ durations in components:
 - [ ] Responsive pass: no page-level horizontal scroll at 375px, inputs ≥16px on
       mobile, wide tables in `overflow-x-auto`, `min-h-dvh` not `100vh`
 - [ ] Controls snap to the `h-11 sm:h-10` baseline (or `!h-9` compact)
-- [ ] Soft elevation: cards `rounded-2xl` + neutral `shadow-card`, no edge borders;
+- [ ] Soft elevation: cards `rounded-card` + neutral `shadow-card`, no edge borders;
       hairlines only as internal dividers; dark-mode pairings applied
+- [ ] Radius tokens only in new chrome (`rounded-card`/`chip`/`control`/`full`) —
+      no raw `rounded-lg`/`xl`/`2xl`
 - [ ] Status rendered as pills; numeric columns `font-data`/tnum
 - [ ] Motion uses `MOTION` tokens + reduced-motion guard
 - [ ] Global classes (`.field-input`, `.btn-*`, `.card`) reused, not re-implemented

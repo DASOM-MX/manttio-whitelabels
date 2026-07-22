@@ -103,6 +103,19 @@ module.exports = {
         '2xs': ['0.6875rem', { lineHeight: '1rem' }],
       },
 
+      // Semantic radius tokens (owner 2026-07-22): the shape boundary as
+      // utilities — `rounded-card` for cards/panels/dialogs/table shells
+      // (and the sidebar's `rounded-r-card` edge), `rounded-chip` for icon
+      // chips + popovers, `rounded-control` for inputs/nav rows. Pills stay
+      // `rounded-full`. New chrome uses these, never raw rounded-lg/xl/2xl;
+      // page templates migrate as CP-3..5 touch them. Values mirror the
+      // preset's border.radius tokens (formField lg=0.5rem, dialog 1rem).
+      borderRadius: {
+        card: '1rem',
+        chip: '0.75rem',
+        control: '0.5rem',
+      },
+
       // Soft-elevation card shadow (owner 2026-07-22, Purity-style soft UI):
       // neutral black alpha only — never colored. Dark mode deepens it via
       // the .app-dark overrides in styles.scss.
