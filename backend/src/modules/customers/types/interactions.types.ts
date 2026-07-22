@@ -4,6 +4,14 @@ import type { InteractionRefKind, InteractionType } from '../enums/interactions.
 export type InteractionRow = typeof customerInteractions.$inferSelect;
 export type NewInteraction = typeof customerInteractions.$inferInsert;
 
+/** Repository row after the users left-join (author name columns folded in;
+ *  the DTO composes the full display name). */
+export type InteractionRowWithAuthor = InteractionRow & {
+  userName: string | null;
+  userPaternalLastName: string | null;
+  userMaternalLastName: string | null;
+};
+
 /** API shape returned to the superadmin (matches its `Interaction` DTO). `ref`
  *  is assembled from the `refKind`/`refId` columns; `userName` is joined from
  *  `users`. `createdAt` serializes to ISO via `c.json`. */
