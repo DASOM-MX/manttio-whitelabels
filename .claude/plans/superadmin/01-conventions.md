@@ -11,9 +11,9 @@ before writing any component.
 
 ## Typography (decided 2026-07-05 · typeface revised 2026-07-22)
 
-- **Superadmin's typeface is Nunito Sans** (variable; owner 2026-07-22 — supersedes
-  Quicksand, which superseded Commissioner the same day: rounded terminals keep the
-  blob-language warmth with better body-text legibility).
+- **Superadmin's typeface is Figtree** (variable; owner 2026-07-22, plan 17 —
+  supersedes Nunito Sans, which superseded Quicksand/Commissioner the same day:
+  geometric-clean with a touch of warmth for the executive turn).
   This is a **deliberate deviation from frontend
   parity**: the superadmin is *our* product chrome, constant across tenants, and its
   own voice tells tenants who they're working with. Tenant-facing surfaces
@@ -22,11 +22,11 @@ before writing any component.
   (`03-branding.md` §2.1), defaulting to the business-identity pair **Work Sans
   (body) + Rubik (headings)** — the field app migrates off Inter to the brand-font
   CSS vars (recorded as a fork `frontend/` task, not superadmin work).
-- **Self-hosted, never CDN:** `@fontsource-variable/nunito-sans` — one woff2.
+- **Self-hosted, never CDN:** `@fontsource-variable/figtree` — one woff2.
   No `fonts.googleapis.com` import (offline, CSP, no FOUT) — paste-in embed
   snippets get translated to the fontsource equivalent.
 - Stacks in `tailwind.config.js`:
-  `sans: ['"Nunito Sans Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif']`,
+  `sans: ['"Figtree Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif']`,
   plus a `data` stack for numeric table/money columns. Weights: **400 body ·
   500 labels/buttons · 600–700 headings**.
 - **Tabular numerals:** data cells set `font-feature-settings: 'tnum'`.
@@ -34,20 +34,29 @@ before writing any component.
   (Commissioner's was a no-op — digit widths measured unequal with the feature on),
   so `font-data` heads with **Atkinson Hyperlegible** (the frontend's existing
   numeric stack — tnum verified: all digit groups measure identically) with the
-  product voice everywhere else. Unchanged under Nunito Sans.
+  product voice everywhere else. Unchanged under Figtree.
 - PrimeNG inherits the body font — no per-component font overrides.
 
-## Design language — solid & tight (decided 2026-07-05)
+## Design language — soft-executive (decided 2026-07-05 · identity revised 2026-07-22, plan 17)
 
-The superadmin reads as a dense, confident **operations console** (dark-fintech
-reference). Solidity comes from hairline borders, compact rhythm, strong status cues,
-and restrained motion — never decoration. The committed skill
+The superadmin reads as a clean, breathable **business console** (PrimeNG Diamond
+reference; supersedes the field-app-derived "solid & tight" operations-console
+identity — this app serves office/executive users, not sunlight-and-gloves field
+techs; WCAG contrast rules are untouched). Confidence comes from stock Aura chrome,
+generous page-level rhythm, soft-elevated cards, strong status cues, and restrained
+motion — never decoration. The committed skill
 **`.claude/skills/superadmin-design`** mirrors this section so every module agent
 auto-loads it — **edit both in the same commit.**
 
-- **Density (mid whitespace — relaxed 2026-07-22 with the soft-UI turn):** cards `p-5`;
-  section gaps `gap-4`/`gap-5`; tables stay compact (`py-2.5` cells, 13–14px text).
-  Airy chrome, dense data.
+- **Component chrome is preset-first (owner 2026-07-22, plan 17):** PrimeNG renders
+  **stock Aura**, customized only through `ManttioPreset` design tokens
+  (`app/theme/manttio-preset.ts`) — a value we would have put in an override sheet
+  goes in a token whenever Aura exposes one. See the PrimeNG section for the
+  surviving-sheet rules.
+- **Density (breathable — plan 17, supersedes the soft-UI turn's `p-5`):** cards
+  `p-6`; section gaps `gap-5`/`gap-6`; tables stay compact (`py-2.5` cells, 13–14px
+  text). Airy chrome, dense data — the air lives at the page level, never inside
+  the data.
 - **Soft elevation (owner, 2026-07-22 — Purity-style soft-UI reference; supersedes
   borders-not-shadows):** cards are white `rounded-2xl` surfaces floating on the tinted
   page background with a soft neutral shadow (`.card`/`.card-section` → `shadow-card`);
@@ -70,11 +79,13 @@ auto-loads it — **edit both in the same commit.**
   trailing edge; timelines pair small accent icons with micro-label timestamps.
 - **Blob buttons (owner, 2026-07-21):** actions are smooth, almost blob-like — the
   `.btn` family is a pill (`rounded-full`, `px-5` so text clears the curve) and
-  icon-only buttons are full circles (`rounded-full`); PrimeNG buttons, paginator
-  pages, and dialog/drawer/toast close buttons follow via `.btn` inheritance + the
-  theme sheets. The shell nav rides the same pill language (`.nav-item`/`.nav-child`
-  `rounded-full`; extended 2026-07-22). **Boundary:** inputs (`.field-input`,
-  icon-picker trigger) keep `rounded-lg`, cards `rounded-2xl`, icon chips `rounded-xl`.
+  icon-only buttons are full circles (`rounded-full`); paginator pages follow via
+  `table.scss`, and any future `<p-button>` via the preset's button `borderRadius`
+  token (plan 17 — the old button sheet is retired; dialog/drawer/toast close
+  buttons render stock). The shell nav rides the same pill language
+  (`.nav-item`/`.nav-child` `rounded-full`; extended 2026-07-22). **Boundary:**
+  inputs (`.field-input`, icon-picker trigger) keep `rounded-lg`, cards
+  `rounded-2xl`, icon chips `rounded-xl`.
 - **Strong cues:** status pills wherever state exists (never color alone); active nav =
   **elevated white pill** (`.nav-active`/`.nav-group-active` + `shadow-card`) with the
   group's icon chip flipped to filled `primary-400` (`.nav-chip`; owner 2026-07-22,
@@ -205,11 +216,13 @@ Binding for every component; the skill carries the same list with implementation
   `h-12`/`border-2` chrome) — still a deliberate deviation from the frontend's
   56px/`h-14` (the field app is glove-friendly mobile capture; the superadmin is a
   desk console). Text is 16px below `sm` (iOS auto-zoom) and `text-sm` from `sm` up.
-  Every control snaps to that one baseline: `<p-select>`, `<p-datepicker>`,
-  `<input pInputText>`, `<p-inputnumber>` all inherit it. Textareas opt out via
-  `!h-auto`; compact controls (paginator rows-per-page, dropdown filter inputs) opt
-  down to `!h-9`. A non-standard height gets an `!h-*` override in that component's
-  theme sheet, never a parallel class.
+  Every control snaps to that one baseline: `.field-input` carries it for raw
+  inputs, and `src/theme/forms.scss` applies the same responsive sizing to every
+  PrimeNG form control (`<p-select>`, `<p-datepicker>`, `<input pInputText>`,
+  `<p-inputnumber>`) over stock Aura chrome (plan 17 — no token is
+  breakpoint-aware). Textareas opt out via `!h-auto`; compact controls (paginator
+  rows-per-page in `table.scss`, dropdown filter inputs in `forms.scss`) opt down
+  to `!h-9`. A non-standard height goes in those sheets, never a parallel class.
 - **Dialogs** (`<p-dialog>`, `<p-confirmDialog>`) are capped at **`max-w-11/12`** via
   `styleClass` (a `tailwind.config.js` extension). Inline pixel width stays for roomy
   viewports; the cap keeps a ~4% gutter on narrow screens. Apply on **every** dialog.
@@ -274,10 +287,20 @@ Binding for every component; the skill carries the same list with implementation
   scales, and since plan 16 the utility names match). The preset is ported from
   `frontend/src/app/theme/manttio-preset.ts`; if the palette tweaks in
   `tailwind.config.js`, keep the preset in sync.
-- `theme.options.cssLayer: { name: 'primeng' }` puts Aura in a named layer so
-  **per-component override sheets in `src/theme/*.scss` win** without `!important`. To
-  restyle a PrimeNG component, edit/add its sheet there and `@import` it in
-  `src/theme/_index.scss` — no overrides in component styles or templates.
+- **Preset-first chrome (owner 2026-07-22, plan 17 — supersedes the
+  sheet-per-component approach):** components render **stock Aura**; shape/spacing/
+  color decisions are expressed as `ManttioPreset` design tokens (semantic
+  `formField`, `colorScheme` primary/formField, per-component tokens like the
+  button pill radius). **Never add a new override sheet for chrome.** A sheet in
+  `src/theme/` is justified only by (a) a need no token can express (the responsive
+  control baseline in `forms.scss`) or (b) layout-integration, not look (overlay
+  anchoring in `overlays.scss`, table density + paginator in `table.scss`, the tabs
+  nav-button kill) — plus the two house visual cues (`tag.scss` status pills,
+  `popover.scss` liquid glass). Every surviving sheet opens with why it exists;
+  hold new ones to the same bar.
+- `theme.options.cssLayer: { name: 'primeng' }` puts Aura in a named layer so the
+  **surviving sheets in `src/theme/*.scss` win** without `!important` — no PrimeNG
+  overrides in component styles or templates.
 - Reach for PrimeNG before hand-rolling overlays/feedback: **`<p-dialog>`** for modals,
   **`<p-confirmDialog>`** + `ConfirmationService` for confirms, **`<p-popover>`** for
   popover menus (outside-click/ESC/positioning solved), **`<p-toast>`** + `MessageService`

@@ -81,16 +81,17 @@ module.exports = {
       },
 
       fontFamily: {
-        // Nunito Sans is the superadmin's own voice (01-conventions Typography;
-        // owner 2026-07-22, supersedes Quicksand/Commissioner) — constant across
-        // tenants, a deliberate deviation from frontend parity.
-        sans: ['"Nunito Sans Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Figtree is the superadmin's own voice (01-conventions Typography;
+        // owner 2026-07-22, plan 17 — supersedes Nunito Sans, which superseded
+        // Quicksand/Commissioner) — constant across tenants, a deliberate
+        // deviation from frontend parity.
+        sans: ['"Figtree Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         // Numeric/data stack: Atkinson Hyperlegible heads it (verified
         // tabular digits — 01 Typography fallback, 2026-07-06); the product
         // voice only backs it up for non-digit glyphs.
         data: [
           '"Atkinson Hyperlegible"',
-          '"Nunito Sans Variable"',
+          '"Figtree Variable"',
           'ui-sans-serif',
           'system-ui',
           'sans-serif',

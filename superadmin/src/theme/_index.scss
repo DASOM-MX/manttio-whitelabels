@@ -1,21 +1,12 @@
-/* PrimeNG component theme — split per component for clarity (frontend parity).
-   Each file targets PrimeNG's class hooks and applies our Tailwind design
-   tokens (.field-input, .btn-*, palette utilities) at the superadmin's
-   compact scale. Aura lives in the `primeng` CSS layer (app.config), so these
-   unlayered sheets win without `!important`. */
-@import './inputtext';
-@import './password';
-@import './textarea';
-@import './inputnumber';
-@import './select';
-@import './multiselect';
-@import './datepicker';
-@import './checkbox';
-@import './button';
-@import './tag';
-@import './table';
-@import './dialog';
-@import './drawer';
-@import './toast';
-@import './popover';
-@import './tabs';
+/* PrimeNG theme layer — preset-first (plan 17 CP-1, owner 2026-07-22):
+   stock Aura carries all component chrome via ManttioPreset design tokens
+   (app/theme/manttio-preset.ts). Only layout-integration rules and house
+   visual cues survive as sheets — each file opens with why it exists. Aura
+   lives in the `primeng` CSS layer (app.config), so these unlayered sheets
+   still win without `!important`. */
+@import './forms'; /* responsive control baseline (no token is breakpoint-aware) */
+@import './overlays'; /* select/multiselect/datepicker anchoring (first-paint fix) */
+@import './tag'; /* status-pill visual cue (01 Design language: strong cues) */
+@import './table'; /* density + floating shadow-card surface + pill paginator */
+@import './popover'; /* liquid-glass owner exception (popovers only) */
+@import './tabs'; /* nav-button kill + transparent panels on the framing card */

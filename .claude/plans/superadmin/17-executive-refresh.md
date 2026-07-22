@@ -1,9 +1,20 @@
 # 17 — Executive refresh: clean, breathable UI on stock PrimeNG ("soft-executive")
 
-> **Status:** planned 2026-07-22 (owner session) — runs **next, immediately after PR #88
-> merges**, before modules 09/10/12/13 start (deliberate mid-suite insertion so the
-> remaining modules are authored in the refreshed language, not restyled later).
+> **Status:** in-progress — **CP-1 done 2026-07-22** (branch
+> `feature/superadmin-executive-refresh-cp1`, stacked on #88; built in the
+> `executive-refresh-cp1` worktree for fast rollback), CP-2 next. Runs before modules
+> 09/10/12/13 start (deliberate mid-suite insertion so the remaining modules are
+> authored in the refreshed language, not restyled later).
 > **Owner:** planning session 2026-07-22 · **Last updated:** 2026-07-22
+> **CP-1 disposition confirmations (2026-07-22):** 13 sheets deleted (the 8 form
+> sheets + `button`/`dialog`/`drawer`/`toast`; `tabs` slimmed to integration-only) —
+> their non-chrome content consolidated into two new thin sheets: **`forms.scss`**
+> (responsive control baseline — no Aura token is breakpoint-aware) and
+> **`overlays.scss`** (select/multiselect/datepicker first-paint anchoring).
+> **`tag.scss` kept** (departure from the default-delete verdict: the pill shape +
+> soft-bg/ring severity ladder IS the status-pill cue; stock Aura's tag is a plain
+> badge). `table.scss`/`popover.scss` kept as planned. `<p-button>` turned out
+> unused (all buttons are native `.btn-*`) — the pill button token is future-proofing.
 > **Owner decisions (2026-07-22, all locked):** ① **preset-first** component styling —
 > stock Aura chrome through `ManttioPreset` design tokens, override sheets retired ·
 > ② **soft-executive hybrid** — #88's personality (floating `shadow-card` cards,
