@@ -10,7 +10,17 @@
 > **dark brand panel** (sidebar `primary-1000` both modes, rounded right edge +
 > `primary-800/50` hairline, light-on-dark rows, solid `primary-600` active row —
 > supersedes the pill nav, its icon chips, and the 2026-07-21 hand-tuned pill
-> spacing); breadcrumbs stayed off pending owner eyeball), CP-3 next. Runs before modules
+> spacing); breadcrumbs stayed off pending owner eyeball), CP-3 next.
+> **Post-CP-2 owner turns (2026-07-22, same worktree):** inputs → **soft branded
+> outline** (primary-600/40 rest → solid 600 hover → 700 + halo focus; third
+> revision that day — see 01 §Design language) after the CSS-layer root cause
+> (PrimeNG's injected `cssLayer.order` establishes layer order, not styles.scss —
+> preflight had been stripping ALL Aura borders since the app's start) ·
+> buttons → **default-PrimeNG shape** ("blob-like buttons do not look clean"):
+> `.btn` family + paginator pages `rounded-control`/`px-4`, `<p-button>` token
+> `{border.radius.lg}` — **supersedes decision ② as far as the pill `.btn`
+> family goes**; the rest of ② (shadow-cards, `rounded-card`, glass popovers)
+> stands. Chrome icon-circles (topbar) stay round. Runs before modules
 > 09/10/12/13 start (deliberate mid-suite insertion so the remaining modules are
 > authored in the refreshed language, not restyled later).
 > **Owner:** planning session 2026-07-22 · **Last updated:** 2026-07-22

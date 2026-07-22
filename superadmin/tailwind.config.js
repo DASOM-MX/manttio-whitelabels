@@ -106,8 +106,10 @@ module.exports = {
       // Semantic radius tokens (owner 2026-07-22): the shape boundary as
       // utilities — `rounded-card` for cards/panels/dialogs/table shells
       // (and the sidebar's `rounded-r-card` edge), `rounded-chip` for icon
-      // chips + popovers, `rounded-control` for inputs/nav rows. Pills stay
-      // `rounded-full`. New chrome uses these, never raw rounded-lg/xl/2xl;
+      // chips + popovers, `rounded-control` for inputs/buttons/nav rows
+      // (buttons joined 2026-07-22 — default-PrimeNG shape, no more pills).
+      // Status/role pills + chrome icon-circles stay `rounded-full`. New
+      // chrome uses these, never raw rounded-lg/xl/2xl;
       // page templates migrate as CP-3..5 touch them. Values mirror the
       // preset's border.radius tokens (formField lg=0.5rem, dialog 1rem).
       borderRadius: {

@@ -114,10 +114,11 @@ export const ManttioPreset = definePreset(Aura, {
     },
   },
   components: {
-    // Blob-pill actions (01 shape boundary: buttons rounded-full) — native
-    // buttons get it from `.btn`; this keeps any future <p-button> in the
-    // same language.
-    button: { root: { borderRadius: '9999px', paddingX: '1.25rem' } },
+    // Default-PrimeNG button shape at the control radius (owner 2026-07-22 —
+    // supersedes the blob pill): matches formField/rounded-control so buttons
+    // and inputs align on a row. Native buttons get it from `.btn`; this
+    // keeps any future <p-button> in the same language. Padding is stock.
+    button: { root: { borderRadius: '{border.radius.lg}' } },
     // Overlay panels ride the card radius language (cards rounded-2xl,
     // dialogs one step under).
     dialog: { root: { borderRadius: '1rem' } },

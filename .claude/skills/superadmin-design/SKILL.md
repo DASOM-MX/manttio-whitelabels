@@ -116,16 +116,19 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   0…1000 by 100 (no `-50`/`-950`; plan 16 tombstoned `sky`/`granite`/`navy`/`cyan` —
   those classes emit no CSS). Sole literal-hex island: the static role-pill ladder
   (`.role-pill--*` in `styles.scss`).
-- **Blob buttons** (owner, 2026-07-21): actions are smooth pills — the `.btn` family
-  is `rounded-full` (`px-5`), icon-only buttons are full circles; paginator pages
-  follow via `table.scss`, and any future `<p-button>` via the preset's button
-  `borderRadius` token (plan 17 — the old button sheet is retired).
-  The shell nav left the pill language with the Diamond turn (owner 2026-07-22) —
-  nav rows are flat `rounded-control`. Boundary (tokenized 2026-07-22 in
-  `tailwind.config.js`): inputs/nav `rounded-control` (0.5rem), cards/dialogs/table
-  shells `rounded-card` (1rem, sidebar edge `rounded-r-card`), icon chips +
-  popovers `rounded-chip` (0.75rem), pills `rounded-full` — never raw
-  `rounded-lg`/`xl`/`2xl` in new chrome.
+- **Default-PrimeNG buttons** (owner 2026-07-22: "blob-like buttons do not look
+  clean" — supersedes the 2026-07-21 blob/pill buttons): actions are
+  `rounded-control` rectangles at the input radius, stock-Aura `px-4` — the
+  `.btn` family carries it, paginator pages follow via `table.scss`, and any
+  future `<p-button>` via the preset's button `borderRadius: {border.radius.lg}`
+  token. Ghost icon-only buttons in chrome (topbar bell/theme/menu, avatars)
+  stay circles — chrome, not actions. Nav rows are flat `rounded-control`
+  (Diamond turn, owner 2026-07-22). Boundary (tokenized 2026-07-22 in
+  `tailwind.config.js`): inputs/buttons/nav `rounded-control` (0.5rem),
+  cards/dialogs/table shells `rounded-card` (1rem, sidebar edge
+  `rounded-r-card`), icon chips + popovers `rounded-chip` (0.75rem), status/role
+  pills + chrome icon-circles `rounded-full` — never raw `rounded-lg`/`xl`/`2xl`
+  in new chrome.
 
 ## Strong visual cues
 

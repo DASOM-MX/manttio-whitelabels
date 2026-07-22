@@ -88,15 +88,18 @@ auto-loads it — **edit both in the same commit.**
 - **Stat cards (reference idiom):** micro-label + `font-data` value + delta
   (`text-emerald-600`/`text-red-600`, sign always shown) with an `.icon-chip` on the
   trailing edge; timelines pair small accent icons with micro-label timestamps.
-- **Blob buttons (owner, 2026-07-21):** actions are smooth, almost blob-like — the
-  `.btn` family is a pill (`rounded-full`, `px-5` so text clears the curve) and
-  icon-only buttons are full circles (`rounded-full`); paginator pages follow via
-  `table.scss`, and any future `<p-button>` via the preset's button `borderRadius`
+- **Default-PrimeNG buttons (owner 2026-07-22: "blob-like buttons do not look
+  clean" — supersedes the 2026-07-21 blob/pill buttons):** actions are
+  `rounded-control` rectangles at the input radius, stock-Aura `px-4` — the
+  `.btn` family carries it, paginator pages follow via `table.scss`, and any
+  future `<p-button>` via the preset's button `borderRadius: {border.radius.lg}`
   token (plan 17 — the old button sheet is retired; dialog/drawer/toast close
-  buttons render stock). The shell nav left the pill language with the Diamond turn
-  (owner 2026-07-22) — nav rows are flat `rounded-control`. **Boundary (tokenized
-  2026-07-22, § Styling):** inputs `rounded-control`, cards/dialogs `rounded-card`,
-  icon chips + popovers `rounded-chip`, pills `rounded-full`.
+  buttons render stock). **Ghost icon-only buttons in chrome (topbar
+  bell/theme/menu, avatars) stay circles** — they read as chrome, not actions.
+  Nav rows are flat `rounded-control` (Diamond turn, owner 2026-07-22).
+  **Boundary (tokenized 2026-07-22, § Styling):** inputs/buttons/nav
+  `rounded-control`, cards/dialogs `rounded-card`, icon chips + popovers
+  `rounded-chip`, status/role pills + chrome icon-circles `rounded-full`.
 - **Strong cues:** status pills wherever state exists (never color alone); active nav =
   **Diamond-style flat rows on the dark brand panel** (owner 2026-07-22, Diamond turn
   v2 per reference screenshot — supersedes the elevated-pill/chip nav, which
@@ -206,8 +209,9 @@ Binding for every component; the skill carries the same list with implementation
 - **Radius language is tokenized (owner 2026-07-22, plan 17):** `rounded-card`
   (1rem — cards, panels, dialogs, table shells; the sidebar edge is
   `rounded-r-card`) · `rounded-chip` (0.75rem — icon chips, popovers) ·
-  `rounded-control` (0.5rem — inputs, nav rows, small in-card surfaces) ·
-  `rounded-full` (pills/actions). New chrome uses these — never raw
+  `rounded-control` (0.5rem — inputs, **buttons** (2026-07-22, default-PrimeNG
+  turn), nav rows, small in-card surfaces) · `rounded-full` (status/role pills +
+  chrome icon-circles only). New chrome uses these — never raw
   `rounded-lg`/`xl`/`2xl`; page templates migrate as the plan 17 CP-3..5
   passes touch them. Values mirror the preset's `border.radius` tokens.
 - Prefer `size-*` over paired `w-*`/`h-*` when width and height are equal
