@@ -1,9 +1,17 @@
 /* PrimeNG Table — compact operations-console density (01 Design language):
-   hairline borders, micro-label headers, 13–14px cell text, tabular numerals
-   via `font-data` on numeric columns (module templates opt in per column). */
+   micro-label headers, 13–14px cell text, tabular numerals via `font-data`
+   on numeric columns (module templates opt in per column). Borderless since
+   the soft-UI pass (owner 2026-07-22): the table is a floating shadow-card
+   surface; rows separate via whitespace + hover, the header via its
+   surface tint. */
 .p-datatable {
-  @apply block w-full max-w-full bg-white border border-surface-200 rounded-xl overflow-hidden
-         dark:bg-surface-900 dark:border-surface-800;
+  @apply block w-full max-w-full bg-white rounded-2xl shadow-card overflow-hidden
+         dark:bg-surface-900;
+}
+.app-dark .p-datatable {
+  box-shadow:
+    0 6px 20px -6px rgb(0 0 0 / 0.5),
+    0 2px 8px -2px rgb(0 0 0 / 0.4);
 }
 
 /* Wrappers PrimeNG always renders but that should stay hidden until active. */
@@ -26,7 +34,7 @@
   @apply bg-surface-0 dark:bg-surface-900;
 
   > tr > th {
-    @apply px-4 py-3 text-left micro-label whitespace-nowrap border-b border-surface-200 dark:border-surface-800;
+    @apply px-4 py-3 text-left micro-label whitespace-nowrap;
 
     &.p-sortable-column {
       @apply cursor-pointer select-none;
@@ -47,11 +55,8 @@
   @apply bg-white dark:bg-surface-900;
 
   > tr {
-    @apply transition-colors duration-100 border-t border-surface-200 dark:border-surface-800;
+    @apply transition-colors duration-100;
 
-    &:first-child {
-      @apply border-t-0;
-    }
     &:hover {
       @apply bg-primary-0 dark:bg-surface-800;
     }
@@ -76,8 +81,8 @@
 
 /* Paginator (rendered when [paginator]="true") */
 .p-paginator {
-  @apply flex items-center justify-end gap-1.5 px-4 py-3 border-t border-surface-200 bg-white
-         dark:bg-surface-900 dark:border-surface-800;
+  @apply flex items-center justify-end gap-1.5 px-4 py-3 bg-white
+         dark:bg-surface-900;
 }
 .p-paginator-page,
 .p-paginator-prev,
@@ -113,6 +118,6 @@
   @apply bg-surface-0 dark:bg-surface-900;
 }
 .p-datatable-footer {
-  @apply px-4 py-3 border-t border-surface-200 bg-surface-0
-         dark:bg-surface-900 dark:border-surface-800;
+  @apply px-4 py-3 bg-surface-0
+         dark:bg-surface-900;
 }
