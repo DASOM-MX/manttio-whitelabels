@@ -59,12 +59,15 @@ auto-loads it — **edit both in the same commit.**
   surviving-sheet rules.
 - **Density (breathable — plan 17, supersedes the soft-UI turn's `p-5`):** cards
   `p-6`; section gaps `gap-5`/`gap-6`; page gutters `px-4 sm:px-6 md:px-8` with
-  `py-6` (shell-owned, CP-2); tables stay compact (`py-2.5` cells, 13–14px
-  text). Airy chrome, dense data — the air lives at the page level, never inside
-  the data.
+  `py-6` (shell-owned, CP-2); topbar + sidebar header strips `h-14` (slimmed from
+  `h-16`, owner 2026-07-22 — the strip holds only the notification bell + user
+  pill; the theme switcher lives in the user popover); tables stay compact
+  (`py-2.5` cells, 13–14px text). Airy chrome, dense data — the air lives at the
+  page level, never inside the data.
 - **Page-header pattern (plan 17 §5, CP-2):** every routed page opens with the
   shared `shared/components/page-header` (`app-page-header`) — the page's single
-  `h1` (`text-2xl font-semibold tracking-tight`), optional muted description,
+  `h1` (`text-2xl font-medium tracking-tight` — 500 since the weight-ladder turn),
+  optional muted description,
   optional `backLink`/`backLabel` (detail/form pages), a `meta` slot for status
   tags beside the title, and the default slot for right-aligned actions (the
   filters-popover trigger stays left of the primary action). The component owns

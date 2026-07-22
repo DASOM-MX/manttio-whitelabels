@@ -91,7 +91,9 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   `!h-9`.
 - Cards: `p-6` (plan 17 breathable rhythm — supersedes the soft-UI turn's `p-5`).
   Section gaps `gap-5`/`gap-6`. Page gutters `px-4 sm:px-6 md:px-8` + `py-6`
-  (shell-owned, CP-2); topbar and sidebar header strips sit at `h-16`.
+  (shell-owned, CP-2); topbar and sidebar header strips sit at `h-14` (slimmed from
+  `h-16`, owner 2026-07-22 — the strip holds only the notification bell + user pill;
+  the theme switcher lives in the user popover).
   Airy chrome, dense data.
 - Tables are compact: `py-2.5` cells, 13–14px cell text, header row as a
   micro-label (see cues below).
