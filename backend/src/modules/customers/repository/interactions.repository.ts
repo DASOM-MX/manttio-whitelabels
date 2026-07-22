@@ -7,20 +7,12 @@ import { displayName } from '../../users/utils/display-name';
 import { InteractionRefKind, InteractionType } from '../enums/interactions.enum';
 import type {
   InteractionDTO,
-  InteractionRow,
+  InteractionRowWithAuthor,
   NewInteraction,
   RecentInteractionDTO,
 } from '../types/interactions.types';
 
-// Row shape after the users left-join (author name columns folded in; the
-// DTO composes the full display name).
-type RowWithAuthor = InteractionRow & {
-  userName: string | null;
-  userPaternalLastName: string | null;
-  userMaternalLastName: string | null;
-};
-
-const toDTO = (row: RowWithAuthor): InteractionDTO => ({
+const toDTO = (row: InteractionRowWithAuthor): InteractionDTO => ({
   id: row.id,
   customerId: row.customerId,
   type: row.type,
