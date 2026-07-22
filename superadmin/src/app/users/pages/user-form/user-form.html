@@ -9,7 +9,7 @@
   <div>
     <h1 class="text-xl font-bold text-granite-1000 dark:text-granite-0">
       @if (isEdit()) {
-        {{ selected()?.name || 'Usuario' }}
+        {{ fullName() }}
       } @else {
         Nuevo usuario
       }
@@ -97,6 +97,15 @@
             </p>
           </div>
           <div>
+            <p class="field-label">Apellidos</p>
+            <p class="mt-1 text-sm font-medium text-granite-900 dark:text-granite-100">
+              {{ user.paternalLastName }} {{ user.maternalLastName }}
+              @if (!user.paternalLastName && !user.maternalLastName) {
+                —
+              }
+            </p>
+          </div>
+          <div>
             <p class="field-label">Correo</p>
             <p class="mt-1 text-sm font-medium text-granite-900 dark:text-granite-100">
               {{ user.email }}
@@ -160,7 +169,29 @@
           <label class="field-label" for="user-name"
             >Nombre<span aria-hidden="true"> *</span></label
           >
-          <input id="user-name" pInputText formControlName="name" autocomplete="name" />
+          <input id="user-name" pInputText formControlName="name" autocomplete="given-name" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="user-paternal-last-name"
+            >Apellido paterno<span aria-hidden="true"> *</span></label
+          >
+          <input
+            id="user-paternal-last-name"
+            pInputText
+            formControlName="paternalLastName"
+            autocomplete="family-name"
+          />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="user-maternal-last-name"
+            >Apellido materno<span aria-hidden="true"> *</span></label
+          >
+          <input
+            id="user-maternal-last-name"
+            pInputText
+            formControlName="maternalLastName"
+            autocomplete="additional-name"
+          />
         </div>
         <div class="field-group">
           <label class="field-label" for="user-email"

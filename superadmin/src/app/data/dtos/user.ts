@@ -6,6 +6,10 @@ import type { Role } from './auth';
 export interface User {
   id: string;
   name: string;
+  /** Mexican two-surname convention (2026-07-21); null on rows that predate
+   *  the split — their full name lives in `name`. */
+  paternalLastName?: string | null;
+  maternalLastName?: string | null;
   email: string;
   phone?: string;
   role: Role;
@@ -27,6 +31,9 @@ export interface UserListQuery {
 
 export interface CreateUserRequest {
   name: string;
+  /** Required by the form (the API tolerates absence for the legacy field app). */
+  paternalLastName: string;
+  maternalLastName: string;
   email: string;
   phone?: string;
   role: Role;
@@ -41,6 +48,8 @@ export interface CreateUserResponse {
 
 export interface UpdateUserRequest {
   name?: string;
+  paternalLastName?: string;
+  maternalLastName?: string;
   email?: string;
   phone?: string;
   role?: Role;

@@ -73,7 +73,9 @@
       <!-- Whole row opens the user (QA 2026-07-08); the action links stay as
            the keyboard path. Owner rows link too — their page is read-only. -->
       <tr class="cursor-pointer" (click)="openUser(user)">
-        <td class="font-medium">{{ user.name }}</td>
+        <td class="font-medium">
+          {{ user.name }} {{ user.paternalLastName }} {{ user.maternalLastName }}
+        </td>
         <td>{{ user.email }}</td>
         <td>
           <span class="role-pill" [class]="user.role | rolePillClass">{{

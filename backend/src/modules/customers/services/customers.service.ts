@@ -13,6 +13,7 @@ import {
 import { notifyBestEffort } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums/notifications.enum';
 import { findUserById } from '../../users/repository/users.repository';
+import { displayName } from '../../users/utils/display-name';
 import type {
   CustomerRow,
   CustomerWithRelations,
@@ -152,7 +153,7 @@ export const createCustomer = async (
     type: NotificationType.ClientRegisteredFromSuperadmin,
     title: 'Cliente registrado',
     body: actor
-      ? `${customer.name} fue dado de alta por ${actor.name}.`
+      ? `${customer.name} fue dado de alta por ${displayName(actor)}.`
       : `${customer.name} fue dado de alta.`,
     data: { customerId: customer.id },
   });
@@ -195,7 +196,7 @@ export const editCustomer = async (
       type: NotificationType.ClientUpdated,
       title: 'Cliente actualizado',
       body: actor
-        ? `${actor.name} actualizó los datos de ${updated.name}.`
+        ? `${displayName(actor)} actualizó los datos de ${updated.name}.`
         : `Se actualizaron los datos de ${updated.name}.`,
       data: { customerId: updated.id },
     });

@@ -102,9 +102,21 @@ export class UserForm implements HasPendingChanges {
 
   protected form = this.fb.nonNullable.group({
     name: ['', Validators.required],
+    // Both Mexican surnames are asked for here (owner ask, 2026-07-21); the
+    // API keeps them optional for the legacy field-app path.
+    paternalLastName: ['', Validators.required],
+    maternalLastName: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
     phone: [''],
     role: ['technician' as Role, Validators.required],
+  });
+
+  /** Header display: full name for rows that carry the surname split, the
+   *  legacy single name otherwise. */
+  protected fullName = computed(() => {
+    const user = this.selected();
+    if (!user) return 'Usuario';
+    return [user.name, user.paternalLastName, user.maternalLastName].filter(Boolean).join(' ');
   });
 
   /** In-tenant grantable roles only — `owner` is never offered (14 §2 note 1). */
@@ -154,9 +166,23 @@ export class UserForm implements HasPendingChanges {
     });
   }
 
-  private hydrate(user: { name: string; email: string; phone?: string; role: Role }): void {
+  private hydrate(user: {
+    name: string;
+    paternalLastName?: string | null;
+    maternalLastName?: string | null;
+    email: string;
+    phone?: string;
+    role: Role;
+  }): void {
     this.form.patchValue(
-      { name: user.name, email: user.email, phone: user.phone ?? '', role: user.role },
+      {
+        name: user.name,
+        paternalLastName: user.paternalLastName ?? '',
+        maternalLastName: user.maternalLastName ?? '',
+        email: user.email,
+        phone: user.phone ?? '',
+        role: user.role,
+      },
       { emitEvent: false },
     );
     this.form.markAsPristine();
@@ -215,6 +241,8 @@ export class UserForm implements HasPendingChanges {
         .dispatch(
           new UpdateUser(id, {
             name: raw.name,
+            paternalLastName: raw.paternalLastName,
+            maternalLastName: raw.maternalLastName,
             email: raw.email,
             phone: raw.phone || undefined,
             role: raw.role,
@@ -244,6 +272,8 @@ export class UserForm implements HasPendingChanges {
       .dispatch(
         new CreateUser({
           name: raw.name,
+          paternalLastName: raw.paternalLastName,
+          maternalLastName: raw.maternalLastName,
           email: raw.email,
           phone: raw.phone || undefined,
           role: raw.role,

@@ -616,3 +616,46 @@ describe('POST /users/:id/password (role-gated reset)', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('user Mexican surnames (2026-07-21)', () => {
+  test('create echoes both surnames; PATCH updates one; legacy create still works without them', async () => {
+    const { token } = await seedAdminAndLogin();
+
+    const res = await request('/users', {
+      method: 'POST',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({
+        name: 'María',
+        paternalLastName: 'García',
+        maternalLastName: 'López',
+        email: uniqueEmail('surnames'),
+        role: 'technician',
+      }),
+    });
+    expect(res.status).toBe(201);
+    const created = await json<{
+      user: { id: string; paternalLastName: string | null; maternalLastName: string | null };
+    }>(res);
+    expect(created.user.paternalLastName).toBe('García');
+    expect(created.user.maternalLastName).toBe('López');
+
+    const patch = await request(`/users/${created.user.id}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ maternalLastName: 'Hernández' }),
+    });
+    expect(patch.status).toBe(200);
+    const patched = await json<{ user: { maternalLastName: string | null } }>(patch);
+    expect(patched.user.maternalLastName).toBe('Hernández');
+
+    // The legacy field-app path (no surnames) keeps working.
+    const legacy = await request('/users', {
+      method: 'POST',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ name: 'Solo Nombre', email: uniqueEmail('legacy'), role: 'technician' }),
+    });
+    expect(legacy.status).toBe(201);
+    const legacyBody = await json<{ user: { paternalLastName: string | null } }>(legacy);
+    expect(legacyBody.user.paternalLastName).toBeNull();
+  });
+});

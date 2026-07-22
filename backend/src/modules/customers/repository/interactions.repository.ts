@@ -3,6 +3,7 @@ import type { Db } from '../../database/client';
 import { customerInteractions } from '../models/customer-interactions.model';
 import { customers } from '../models/customers.model';
 import { users } from '../../users/models/users.model';
+import { displayName } from '../../users/utils/display-name';
 import { InteractionRefKind, InteractionType } from '../enums/interactions.enum';
 import type {
   InteractionDTO,
@@ -11,8 +12,13 @@ import type {
   RecentInteractionDTO,
 } from '../types/interactions.types';
 
-// Row shape after the users left-join (author name folded in).
-type RowWithAuthor = InteractionRow & { userName: string | null };
+// Row shape after the users left-join (author name columns folded in; the
+// DTO composes the full display name).
+type RowWithAuthor = InteractionRow & {
+  userName: string | null;
+  userPaternalLastName: string | null;
+  userMaternalLastName: string | null;
+};
 
 const toDTO = (row: RowWithAuthor): InteractionDTO => ({
   id: row.id,
@@ -21,7 +27,12 @@ const toDTO = (row: RowWithAuthor): InteractionDTO => ({
   body: row.body,
   ref: row.refKind && row.refId ? { kind: row.refKind, id: row.refId } : undefined,
   userId: row.userId,
-  userName: row.userName ?? undefined,
+  userName:
+    displayName({
+      name: row.userName,
+      paternalLastName: row.userPaternalLastName,
+      maternalLastName: row.userMaternalLastName,
+    }) || undefined,
   createdAt: row.createdAt,
 });
 
@@ -35,6 +46,8 @@ const authoredColumns = {
   userId: customerInteractions.userId,
   createdAt: customerInteractions.createdAt,
   userName: users.name,
+  userPaternalLastName: users.paternalLastName,
+  userMaternalLastName: users.maternalLastName,
 };
 
 /** Paged, newest-first timeline for one customer (08 §2). */
@@ -103,14 +116,27 @@ export const insertInteraction = async (
 ): Promise<InteractionDTO> => {
   const [row] = await db.insert(customerInteractions).values(values).returning();
   if (!row) throw new Error('insertInteraction returned no row');
-  let userName: string | null = null;
+  let author: {
+    name: string;
+    paternalLastName: string | null;
+    maternalLastName: string | null;
+  } | null = null;
   if (row.userId) {
-    const [author] = await db
-      .select({ name: users.name })
+    const [found] = await db
+      .select({
+        name: users.name,
+        paternalLastName: users.paternalLastName,
+        maternalLastName: users.maternalLastName,
+      })
       .from(users)
       .where(eq(users.id, row.userId))
       .limit(1);
-    userName = author?.name ?? null;
+    author = found ?? null;
   }
-  return toDTO({ ...row, userName });
+  return toDTO({
+    ...row,
+    userName: author?.name ?? null,
+    userPaternalLastName: author?.paternalLastName ?? null,
+    userMaternalLastName: author?.maternalLastName ?? null,
+  });
 };
