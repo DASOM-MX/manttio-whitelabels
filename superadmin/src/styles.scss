@@ -173,23 +173,25 @@
   /* Nav rides the blob language too (owner, 2026-07-21): pills, px-4 so
      content clears the curve. */
   .nav-item {
-    @apply relative flex h-10 w-full items-center gap-3 rounded-full px-4 text-sm font-medium text-surface-700 transition-colors dark:text-surface-300;
+    @apply relative flex h-10 w-full items-center gap-3 rounded-full px-4 text-sm font-medium text-surface-700 transition-colors dark:text-surface-300 shadow-sm border-primary-0;
   }
   .nav-child {
-    @apply relative flex h-9 items-center rounded-full px-4 text-sm text-surface-600 transition-colors dark:text-surface-400;
+    @apply relative flex h-9 items-center rounded-full px-4 text-sm text-surface-600 transition-colors dark:text-surface-400 border-primary-0 border bg-primary-0;
   }
   .nav-item:not(.nav-active):not(.nav-group-active):hover,
   .nav-child:not(.nav-active):hover {
     @apply bg-surface-100 dark:bg-surface-800;
   }
 
-  /* Group parent whose child route is active: soft primary tint — the solid
-     block below is reserved for the destination link itself. */
+  /* Group parent whose child route is active: a clearly visible primary
+     tint (primary-0 vanished against the blended surface-0 sidebar — owner
+     fix 2026-07-22). The solid block below stays reserved for the
+     destination link itself. */
   .nav-group-active {
-    @apply bg-primary-0 text-primary-800 dark:bg-primary-1000/40 dark:text-primary-300;
+    @apply bg-primary-100 text-primary-800 dark:bg-primary-1000/60 dark:text-primary-300;
   }
   .nav-group-active:hover {
-    @apply bg-primary-100 dark:bg-primary-1000/60;
+    @apply bg-primary-200 dark:bg-primary-1000/80;
   }
 
   /* Active nav entry (owner redesign 2026-07-21 — supersedes the accent-bar

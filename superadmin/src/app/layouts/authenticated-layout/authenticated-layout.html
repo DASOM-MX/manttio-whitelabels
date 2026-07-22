@@ -160,7 +160,7 @@
   </div>
 
   <nav class="flex-1 overflow-y-auto px-3 py-3" aria-label="Módulos">
-    <ul class="flex flex-col gap-0.5">
+    <ul class="flex flex-col gap-2.5">
       @for (entry of navView(); track entry.label) {
         <li>
           @if (entry.children) {
@@ -186,7 +186,7 @@
               ></svg>
             </button>
             @if (entry.expanded) {
-              <ul class="mt-0.5 flex flex-col gap-0.5 pl-12" animate.enter="anim-fade-enter">
+              <ul class="pt-2.5 flex flex-col gap-2.5 pl-6" animate.enter="anim-fade-enter">
                 @for (child of entry.children; track child.route) {
                   <li>
                     <a
