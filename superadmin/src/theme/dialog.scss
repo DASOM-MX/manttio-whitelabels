@@ -1,5 +1,5 @@
 /* PrimeNG Dialog + ConfirmDialog — true overlays, so shadows are allowed
-   here (01 Design language: borders-not-shadows applies to in-page surfaces). */
+   here (01 Design language: overlays keep their own stronger shadows). */
 .p-dialog-mask.p-overlay-mask {
   @apply bg-surface-1000/60;
 }

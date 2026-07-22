@@ -45,29 +45,35 @@ and restrained motion — never decoration. The committed skill
 **`.claude/skills/superadmin-design`** mirrors this section so every module agent
 auto-loads it — **edit both in the same commit.**
 
-- **Density (low-to-mid whitespace):** cards `p-4` (page-level summary cards max
-  `p-5`); section gaps `gap-4`; compact tables (`py-2.5` cells, 13–14px text). Prefer
-  one dense, well-grouped screen over two airy ones.
-- **Borders, not shadows:** in-page surfaces use 1px hairlines
-  (`border-surface-200 dark:border-surface-800`) on flat backgrounds; shadows are
-  reserved for true overlays (dialogs, popovers, drawers). Nested grouping = background
-  shift or divider, never another shadowed box. **Chrome exception (owner, 2026-07-21):**
-  the app shell's sidebar + topbar separate via smooth *neutral* shadows instead of
-  hairlines (`.shell-sidebar`/`.shell-topbar`) — the sidebar shares the page background
-  so the nav blends with the content, the topbar keeps the card tone so the two strips
-  read as distinct surfaces. Neutral black alpha only; colored glows stay banned.
+- **Density (mid whitespace — relaxed 2026-07-22 with the soft-UI turn):** cards `p-5`;
+  section gaps `gap-4`/`gap-5`; tables stay compact (`py-2.5` cells, 13–14px text).
+  Airy chrome, dense data.
+- **Soft elevation (owner, 2026-07-22 — Purity-style soft-UI reference; supersedes
+  borders-not-shadows):** cards are white `rounded-2xl` surfaces floating on the tinted
+  page background with a soft neutral shadow (`.card`/`.card-section` → `shadow-card`);
+  hairline borders retire to *internal* dividers and nested grouping. The shell keeps
+  its 2026-07-21 chrome shadows (`.shell-sidebar`/`.shell-topbar`). Shadows are always
+  **neutral black alpha** — colored glows stay banned (AI-slop rule).
+- **Accent step (owner, 2026-07-22):** `primary-400` is the *decorative* accent — icon
+  chips (`.icon-chip`/`.icon-chip--soft`), single-hue chart area fills, progress bars,
+  highlight numbers (the reference's teal, brand-mapped). Interactive solids (buttons,
+  the filled nav chip's container aside) stay on `primary-600`/`700` — white text on
+  400 doesn't clear 4.5:1.
+- **Stat cards (reference idiom):** micro-label + `font-data` value + delta
+  (`text-emerald-600`/`text-red-600`, sign always shown) with an `.icon-chip` on the
+  trailing edge; timelines pair small accent icons with micro-label timestamps.
 - **Blob buttons (owner, 2026-07-21):** actions are smooth, almost blob-like — the
   `.btn` family is a pill (`rounded-full`, `px-5` so text clears the curve) and
   icon-only buttons are full circles (`rounded-full`); PrimeNG buttons, paginator
   pages, and dialog/drawer/toast close buttons follow via `.btn` inheritance + the
   theme sheets. The shell nav rides the same pill language (`.nav-item`/`.nav-child`
-  `rounded-full px-4`; extended 2026-07-22). **Boundary:** inputs (`.field-input`,
-  icon-picker trigger) keep `rounded-lg`, cards `rounded-xl`.
+  `rounded-full`; extended 2026-07-22). **Boundary:** inputs (`.field-input`,
+  icon-picker trigger) keep `rounded-lg`, cards `rounded-2xl`, icon chips `rounded-xl`.
 - **Strong cues:** status pills wherever state exists (never color alone); active nav =
-  solid brand-primary block + light neutral shadow (`.nav-active`, steps mirror
-  `.btn-primary`; owner redesign 2026-07-21 — supersedes the 2px accent-bar + tint
-  idiom; group parents with an active child carry the soft tint via
-  `.nav-group-active`); micro-labels (`text-2xs font-medium`) for
+  **elevated white pill** (`.nav-active`/`.nav-group-active` + `shadow-card`) with the
+  group's icon chip flipped to filled `primary-400` (`.nav-chip`; owner 2026-07-22,
+  Purity reference — supersedes the solid-primary block, which superseded the accent
+  bar); micro-labels (`text-2xs font-medium`) for
   card/section/table headers — **title/sentence case, never uppercase** (QA 2026-07-07:
   uppercase is reserved for warnings or explicit requests; headings/labels render in
   their authored case);

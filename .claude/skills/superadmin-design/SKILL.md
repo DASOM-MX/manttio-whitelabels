@@ -10,9 +10,10 @@ Typography, Design language, Accessibility, Layout & responsive, Animations, and
 Forms & feedback sections — if they disagree, the plan file wins and this skill needs
 updating in the same commit).
 
-The look: a dense, confident operations console (dark-fintech reference). Solidity comes
-from hairline borders, compact rhythm, strong status cues, and restrained motion — never
-from decoration.
+The look (revised 2026-07-22 — Purity-style **soft UI** reference): a confident
+operations console of white `rounded-2xl` cards floating on the tinted page background
+with soft neutral shadows, brand-accent chips, airy chrome around dense data, strong
+status cues, and restrained motion — never decoration.
 
 ## Hard rules (non-negotiable)
 
@@ -61,23 +62,28 @@ from decoration.
 - Baseline control height is **48px: `.field-input` = `h-12`** (deliberate deviation from
   the frontend's `h-14`; superadmin is a desk tool). Compact contexts (paginator
   rows-per-page, dropdown filter inputs) opt down to `!h-10`.
-- Cards: `p-4` (page-level summary cards may take `p-5`, nothing larger). Section gaps
-  `gap-4`. Page gutters `px-4 md:px-6`.
+- Cards: `p-5` (soft-UI turn 2026-07-22). Section gaps `gap-4`/`gap-5`. Page gutters
+  `px-4 md:px-6`. Airy chrome, dense data.
 - Tables are compact: `py-2.5` cells, 13–14px cell text, header row as a
   micro-label (see cues below).
 - Prefer one dense, well-grouped screen over two airy ones — but never sacrifice the
   56px→48px baseline alignment: every control on a row snaps to the same height.
 
-## Surfaces — borders, not shadows
+## Surfaces — soft elevation (owner 2026-07-22, supersedes borders-not-shadows)
 
-- Cards/panels: `1px` hairline borders (`border-surface-200 dark:border-surface-800`),
-  flat backgrounds (`bg-white dark:bg-surface-900`). **No drop shadows on in-page
-  surfaces.** Shadows are reserved for true overlays (dialogs, popovers, drawers) —
-  plus one chrome exception (owner, 2026-07-21): the shell's sidebar + topbar separate
-  via smooth neutral shadows (`.shell-sidebar`/`.shell-topbar`), the sidebar sharing
-  the page background so the nav blends with content. Neutral black alpha only.
+- Cards/panels: white `rounded-2xl` floating on the tinted page bg with the soft
+  neutral `shadow-card` (`.card`/`.card-section` carry it; `dark:bg-surface-900` with a
+  deepened `.app-dark` shadow). **No hairline borders on card edges** — hairlines
+  retire to *internal* dividers. The shell chrome keeps its 2026-07-21 shadows
+  (`.shell-sidebar`/`.shell-topbar`).
+- Shadows are always **neutral black alpha** — a colored/glowing shadow is still
+  banned AI-slop.
 - Nested grouping inside a card = background shift (`bg-surface-100 dark:bg-surface-800/40`)
   or a hairline divider — not another shadowed box.
+- **Accent step:** `primary-400` is the decorative accent (the reference's teal,
+  brand-mapped) — `.icon-chip` (filled) / `.icon-chip--soft` (white chip, accent
+  glyph), single-hue chart area fills, progress bars, highlight numbers. Interactive
+  solids stay `primary-600`/`700` — white text on 400 fails 4.5:1.
 - The palette is the two semantic brand scales only — `primary-*` / `surface-*`, steps
   0…1000 by 100 (no `-50`/`-950`; plan 16 tombstoned `sky`/`granite`/`navy`/`cyan` —
   those classes emit no CSS). Sole literal-hex island: the static role-pill ladder
@@ -86,17 +92,21 @@ from decoration.
   is `rounded-full` (`px-5`), icon-only buttons are full circles; PrimeNG buttons,
   paginator pages, and close buttons follow via `.btn` inheritance + theme sheets.
   The shell nav rides the same pill language (`.nav-item`/`.nav-child`
-  `rounded-full px-4`; extended 2026-07-22). Boundary: inputs stay `rounded-lg`,
-  cards `rounded-xl`.
+  `rounded-full`; extended 2026-07-22). Boundary: inputs stay `rounded-lg`,
+  cards `rounded-2xl`, icon chips `rounded-xl`.
 
 ## Strong visual cues
 
 - **Status pills** everywhere state exists (CRM status, billing, stock, visit status) —
   vibrant in both modes per the dark-mode rules; pill + label, never color alone.
-- **Active nav**: solid brand-primary block + light neutral shadow (`.nav-active`,
-  steps mirror `.btn-primary`; owner redesign 2026-07-21 — supersedes the accent-bar +
-  tint idiom). Group parents with an active child take the soft `.nav-group-active`
-  tint — the solid block marks the destination link only.
+- **Active nav**: elevated white pill (`.nav-active` on the destination link,
+  `.nav-group-active` on its group — both `shadow-card`) with the group's `.nav-chip`
+  flipped to filled `primary-400` (owner 2026-07-22, Purity reference — supersedes the
+  solid-primary block). Idle items sit flat with a soft white chip carrying the accent
+  glyph.
+- **Stat cards** (reference idiom): micro-label + `font-data` value + signed delta
+  (`text-emerald-600`/`text-red-600`) with an `.icon-chip` on the trailing edge;
+  timelines pair small accent icons with micro-label timestamps.
 - **Micro-labels** for card/section/table headers (`.micro-label`:
   `text-2xs font-medium text-surface-500 dark:text-surface-400`) — authored
   title/sentence case, never `uppercase` (QA 2026-07-07: uppercase is reserved for
@@ -305,7 +315,8 @@ durations in components:
 - [ ] Responsive pass: no page-level horizontal scroll at 375px, inputs ≥16px on
       mobile, wide tables in `overflow-x-auto`, `min-h-dvh` not `100vh`
 - [ ] Controls snap to the `h-12` baseline (or `!h-10` compact)
-- [ ] Borders not shadows on in-page surfaces; dark-mode pairings applied
+- [ ] Soft elevation: cards `rounded-2xl` + neutral `shadow-card`, no edge borders;
+      hairlines only as internal dividers; dark-mode pairings applied
 - [ ] Status rendered as pills; numeric columns `font-data`/tnum
 - [ ] Motion uses `MOTION` tokens + reduced-motion guard
 - [ ] Global classes (`.field-input`, `.btn-*`, `.card`) reused, not re-implemented

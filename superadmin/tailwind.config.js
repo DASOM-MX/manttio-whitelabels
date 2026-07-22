@@ -98,6 +98,13 @@ module.exports = {
         '2xs': ['0.6875rem', { lineHeight: '1rem' }],
       },
 
+      // Soft-elevation card shadow (owner 2026-07-22, Purity-style soft UI):
+      // neutral black alpha only — never colored. Dark mode deepens it via
+      // the .app-dark overrides in styles.scss.
+      boxShadow: {
+        card: '0 4px 16px -4px rgb(0 0 0 / 0.07), 0 2px 6px -2px rgb(0 0 0 / 0.05)',
+      },
+
       // Used to cap PrimeNG dialogs on narrow viewports so the chrome
       // never goes edge-to-edge — keeps a 1/12 gutter on each side.
       maxWidth: {

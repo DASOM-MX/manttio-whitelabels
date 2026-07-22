@@ -171,12 +171,14 @@
               (click)="toggleGroup(entry.label)"
               [attr.aria-expanded]="entry.expanded"
             >
-              <svg
-                lucideIcon
-                [lucideIcon]="entry.icon"
-                class="size-5 shrink-0"
-                aria-hidden="true"
-              ></svg>
+              <span class="nav-chip">
+                <svg
+                  lucideIcon
+                  [lucideIcon]="entry.icon"
+                  class="size-5"
+                  aria-hidden="true"
+                ></svg>
+              </span>
               <span class="flex-1 text-left">{{ entry.label }}</span>
               <svg
                 lucideChevronDown
@@ -208,12 +210,14 @@
               routerLinkActive="nav-active"
               [routerLinkActiveOptions]="{ exact: entry.exact ?? false }"
             >
-              <svg
-                lucideIcon
-                [lucideIcon]="entry.icon"
-                class="size-5 shrink-0"
-                aria-hidden="true"
-              ></svg>
+              <span class="nav-chip">
+                <svg
+                  lucideIcon
+                  [lucideIcon]="entry.icon"
+                  class="size-5"
+                  aria-hidden="true"
+                ></svg>
+              </span>
               {{ entry.label }}
             </a>
           }
