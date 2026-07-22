@@ -74,14 +74,18 @@ export const listRecentInteractions = async (
   limit: number,
 ): Promise<RecentInteractionDTO[]> => {
   const rows = await db
-    .select({ ...authoredColumns, customerName: customers.name })
+    .select({ ...authoredColumns, customerName: customers.name, customerStatus: customers.status })
     .from(customerInteractions)
     .leftJoin(users, eq(customerInteractions.userId, users.id))
     .innerJoin(customers, eq(customerInteractions.customerId, customers.id))
     .where(isNull(customers.deletedAt))
     .orderBy(desc(customerInteractions.createdAt))
     .limit(limit);
-  return rows.map((row) => ({ ...toDTO(row), customerName: row.customerName }));
+  return rows.map((row) => ({
+    ...toDTO(row),
+    customerName: row.customerName,
+    customerStatus: row.customerStatus,
+  }));
 };
 
 /** Append a backend-generated `system` entry that a report reaching `finished`

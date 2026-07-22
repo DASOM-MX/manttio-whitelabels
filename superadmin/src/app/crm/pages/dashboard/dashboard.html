@@ -1,6 +1,7 @@
-<!-- The CRM cockpit (executive redesign 2026-07-22): KPI strip → trend +
-     follow-up agenda → channel mix + newest clients → activity ticker. Each
-     region loads/fails independently; feeds use the CP-3 p-table idiom
+<!-- The CRM cockpit (executive redesign 2026-07-22; row order per the owner's
+     layout turn the same day): KPI strip → trend + newest clients → channel
+     mix + activity (status + author details) → full-width follow-up agenda.
+     Each region loads/fails independently; feeds use the CP-3 p-table idiom
      (#loadingbody skeletons, whole-row click). -->
 <app-page-header title="Dashboard" [description]="headerDescription()" />
 
@@ -88,7 +89,8 @@
     }
   </div>
 
-  <!-- Trend + follow-up agenda -->
+  <!-- Trend + newest clients (owner 2026-07-22 layout turn: recientes rides
+       the trend rail; the agenda went full-width at the bottom) -->
   <div class="anim-stagger grid gap-4 lg:grid-cols-3">
     <section class="card-section lg:col-span-2" aria-labelledby="panel-trend-title">
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -137,27 +139,27 @@
       }
     </section>
 
-    <section class="card-section" aria-labelledby="panel-followups-title">
+    <section class="card-section" aria-labelledby="panel-clients-title">
       <div class="flex items-center justify-between gap-4 pb-3">
-        <h2 id="panel-followups-title" class="section-heading !pb-0">Seguimientos</h2>
+        <h2 id="panel-clients-title" class="section-heading !pb-0">Clientes recientes</h2>
         <a
-          routerLink="/customers/leads"
+          routerLink="/customers"
           class="text-xs font-medium text-primary-700 hover:underline dark:text-primary-300"
         >
-          Ver leads
+          Ver todos
         </a>
       </div>
-      @if (followUpsError()) {
+      @if (clientsError()) {
         <p class="text-sm text-surface-600 dark:text-surface-400">
-          No se pudieron cargar los seguimientos.
+          No se pudieron cargar los clientes recientes.
         </p>
-        <button type="button" class="btn-secondary mt-3" (click)="loadFollowUps(true)">
+        <button type="button" class="btn-secondary mt-3" (click)="loadClients(true)">
           Reintentar
         </button>
       } @else {
         <p-table
-          [value]="followUpRows()"
-          [loading]="followUpsPending()"
+          [value]="clientRows()"
+          [loading]="clientsPending()"
           [showLoader]="false"
           [rowHover]="true"
           [scrollable]="true"
@@ -167,26 +169,20 @@
           <ng-template #header>
             <tr>
               <th scope="col">Cliente</th>
-              <th scope="col">Estatus</th>
-              <th scope="col">Fecha</th>
+              <th scope="col">Alta</th>
             </tr>
           </ng-template>
           <ng-template #body let-row>
             <tr class="cursor-pointer" (click)="openCustomer(row.id)">
-              <td class="max-w-40 font-medium">
-                <span class="block truncate">{{ row.name }}</span>
+              <td class="font-medium">
+                {{ row.title }}
+                <span class="block text-xs font-normal text-surface-500 dark:text-surface-400">
+                  {{ row.subtitle || row.sourceLabel }}
+                </span>
               </td>
               <td>
-                <p-tag
-                  [severity]="row.status | customerStatusSeverity"
-                  [value]="row.status | customerStatusLabel"
-                />
-              </td>
-              <td>
-                <span
-                  class="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 font-data text-xs font-medium leading-none tabular-nums {{ row.dateClass }}"
-                >
-                  {{ row.dateLabel }}
+                <span class="whitespace-nowrap font-data text-sm tabular-nums">
+                  {{ row.createdAt | relativeTime }}
                 </span>
               </td>
             </tr>
@@ -196,15 +192,13 @@
               <tr>
                 <td><span class="skeleton"></span></td>
                 <td><span class="skeleton"></span></td>
-                <td><span class="skeleton"></span></td>
               </tr>
             }
           </ng-template>
           <ng-template #emptymessage>
             <tr>
-              <td colspan="3" class="py-6 text-center text-surface-500 dark:text-surface-400">
-                Sin seguimientos programados — agenda el próximo contacto desde la ficha del
-                cliente.
+              <td colspan="2" class="py-6 text-center text-surface-500 dark:text-surface-400">
+                Sin clientes registrados todavía.
               </td>
             </tr>
           </ng-template>
@@ -213,7 +207,8 @@
     </section>
   </div>
 
-  <!-- Channel mix + newest clients -->
+  <!-- Channel mix + activity (owner 2026-07-22 layout turn: the interactions
+       table sits beside the channels and carries the richer columns) -->
   <div class="anim-stagger grid gap-4 lg:grid-cols-3">
     <section class="card-section" aria-labelledby="panel-channels-title">
       <h2 id="panel-channels-title" class="section-heading">Canales de captación</h2>
@@ -271,27 +266,19 @@
       }
     </section>
 
-    <section class="card-section lg:col-span-2" aria-labelledby="panel-clients-title">
-      <div class="flex items-center justify-between gap-4 pb-3">
-        <h2 id="panel-clients-title" class="section-heading !pb-0">Clientes recientes</h2>
-        <a
-          routerLink="/customers"
-          class="text-xs font-medium text-primary-700 hover:underline dark:text-primary-300"
-        >
-          Ver todos
-        </a>
-      </div>
-      @if (clientsError()) {
+    <section class="card-section lg:col-span-2" aria-labelledby="panel-activity-title">
+      <h2 id="panel-activity-title" class="section-heading">Actividad reciente</h2>
+      @if (activityError()) {
         <p class="text-sm text-surface-600 dark:text-surface-400">
-          No se pudieron cargar los clientes recientes.
+          No se pudo cargar la actividad.
         </p>
-        <button type="button" class="btn-secondary mt-3" (click)="loadClients(true)">
+        <button type="button" class="btn-secondary mt-3" (click)="loadActivity(true)">
           Reintentar
         </button>
       } @else {
         <p-table
-          [value]="clientRows()"
-          [loading]="clientsPending()"
+          [value]="activityRows()"
+          [loading]="activityPending()"
           [showLoader]="false"
           [rowHover]="true"
           [scrollable]="true"
@@ -301,25 +288,52 @@
           <ng-template #header>
             <tr>
               <th scope="col">Cliente</th>
-              <th scope="col">Origen</th>
-              <th scope="col">Alta</th>
+              <th scope="col">Estatus</th>
+              <th scope="col">Tipo</th>
+              <th scope="col">Registro</th>
+              <th scope="col">Fecha</th>
             </tr>
           </ng-template>
-          <ng-template #body let-row>
-            <tr class="cursor-pointer" (click)="openCustomer(row.id)">
-              <td class="font-medium">
-                {{ row.title }}
-                @if (row.subtitle) {
-                  <span class="block text-xs font-normal text-surface-500 dark:text-surface-400">
-                    {{ row.subtitle }}
-                  </span>
-                }
+          <ng-template #body let-entry>
+            <!-- Whole row opens the client 360 — same interaction as the
+                 customers list tables. -->
+            <tr
+              class="cursor-pointer"
+              [class.opacity-70]="entry.type === 'system'"
+              (click)="openCustomer(entry.customerId)"
+            >
+              <td class="max-w-44 font-medium">
+                <span class="block truncate">{{ entry.customerName }}</span>
               </td>
-              <td>{{ row.sourceLabel }}</td>
+              <td>
+                <p-tag
+                  [severity]="entry.customerStatus | customerStatusSeverity"
+                  [value]="entry.customerStatus | customerStatusLabel"
+                />
+              </td>
+              <td>
+                <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+                  <svg
+                    lucideIcon
+                    [lucideIcon]="entry.type | interactionTypeIcon"
+                    class="size-4 shrink-0 text-surface-500 dark:text-surface-400"
+                    aria-hidden="true"
+                  ></svg>
+                  {{ entry.type | interactionTypeLabel }}
+                </span>
+              </td>
+              <td class="max-w-64">
+                <span class="block truncate">{{ entry.body }}</span>
+              </td>
               <td>
                 <span class="whitespace-nowrap font-data text-sm tabular-nums">
-                  {{ row.createdAt | relativeTime }}
+                  {{ entry.createdAt | relativeTime }}
                 </span>
+                @if (entry.userName) {
+                  <span class="block text-xs text-surface-500 dark:text-surface-400">
+                    {{ entry.userName }}
+                  </span>
+                }
               </td>
             </tr>
           </ng-template>
@@ -329,13 +343,15 @@
                 <td><span class="skeleton"></span></td>
                 <td><span class="skeleton"></span></td>
                 <td><span class="skeleton"></span></td>
+                <td><span class="skeleton"></span></td>
+                <td><span class="skeleton"></span></td>
               </tr>
             }
           </ng-template>
           <ng-template #emptymessage>
             <tr>
-              <td colspan="3" class="py-6 text-center text-surface-500 dark:text-surface-400">
-                Sin clientes registrados todavía.
+              <td colspan="5" class="py-6 text-center text-surface-500 dark:text-surface-400">
+                Sin actividad todavía — registra la primera llamada desde un cliente.
               </td>
             </tr>
           </ng-template>
@@ -344,20 +360,28 @@
     </section>
   </div>
 
-  <!-- Activity ticker -->
-  <section class="anim-stagger card-section" aria-labelledby="panel-activity-title">
-    <h2 id="panel-activity-title" class="section-heading">Actividad reciente</h2>
-    @if (activityError()) {
+  <!-- Follow-up agenda, full width -->
+  <section class="anim-stagger card-section" aria-labelledby="panel-followups-title">
+    <div class="flex items-center justify-between gap-4 pb-3">
+      <h2 id="panel-followups-title" class="section-heading !pb-0">Seguimientos</h2>
+      <a
+        routerLink="/customers/leads"
+        class="text-xs font-medium text-primary-700 hover:underline dark:text-primary-300"
+      >
+        Ver leads
+      </a>
+    </div>
+    @if (followUpsError()) {
       <p class="text-sm text-surface-600 dark:text-surface-400">
-        No se pudo cargar la actividad.
+        No se pudieron cargar los seguimientos.
       </p>
-      <button type="button" class="btn-secondary mt-3" (click)="loadActivity(true)">
+      <button type="button" class="btn-secondary mt-3" (click)="loadFollowUps(true)">
         Reintentar
       </button>
     } @else {
       <p-table
-        [value]="activityRows()"
-        [loading]="activityPending()"
+        [value]="followUpRows()"
+        [loading]="followUpsPending()"
         [showLoader]="false"
         [rowHover]="true"
         [scrollable]="true"
@@ -367,41 +391,26 @@
         <ng-template #header>
           <tr>
             <th scope="col">Cliente</th>
-            <th scope="col">Tipo</th>
-            <th scope="col">Registro</th>
-            <th scope="col">Autor</th>
+            <th scope="col">Origen</th>
+            <th scope="col">Estatus</th>
             <th scope="col">Fecha</th>
           </tr>
         </ng-template>
-        <ng-template #body let-entry>
-          <!-- Whole row opens the client 360 — same interaction as the
-               customers list tables. -->
-          <tr
-            class="cursor-pointer"
-            [class.opacity-70]="entry.type === 'system'"
-            (click)="openCustomer(entry.customerId)"
-          >
-            <td class="font-medium">{{ entry.customerName }}</td>
+        <ng-template #body let-row>
+          <tr class="cursor-pointer" (click)="openCustomer(row.id)">
+            <td class="font-medium">{{ row.name }}</td>
+            <td>{{ row.sourceLabel }}</td>
             <td>
-              <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
-                <svg
-                  lucideIcon
-                  [lucideIcon]="entry.type | interactionTypeIcon"
-                  class="size-4 shrink-0 text-surface-500 dark:text-surface-400"
-                  aria-hidden="true"
-                ></svg>
-                {{ entry.type | interactionTypeLabel }}
-              </span>
-            </td>
-            <td class="max-w-72">
-              <span class="block truncate">{{ entry.body }}</span>
-            </td>
-            <td class="text-surface-600 dark:text-surface-400">
-              {{ entry.userName || '—' }}
+              <p-tag
+                [severity]="row.status | customerStatusSeverity"
+                [value]="row.status | customerStatusLabel"
+              />
             </td>
             <td>
-              <span class="whitespace-nowrap font-data text-sm tabular-nums">
-                {{ entry.createdAt | relativeTime }}
+              <span
+                class="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 font-data text-xs font-medium leading-none tabular-nums {{ row.dateClass }}"
+              >
+                {{ row.dateLabel }}
               </span>
             </td>
           </tr>
@@ -413,14 +422,14 @@
               <td><span class="skeleton"></span></td>
               <td><span class="skeleton"></span></td>
               <td><span class="skeleton"></span></td>
-              <td><span class="skeleton"></span></td>
             </tr>
           }
         </ng-template>
         <ng-template #emptymessage>
           <tr>
-            <td colspan="5" class="py-6 text-center text-surface-500 dark:text-surface-400">
-              Sin actividad todavía — registra la primera llamada desde un cliente.
+            <td colspan="4" class="py-6 text-center text-surface-500 dark:text-surface-400">
+              Sin seguimientos programados — agenda el próximo contacto desde la ficha del
+              cliente.
             </td>
           </tr>
         </ng-template>

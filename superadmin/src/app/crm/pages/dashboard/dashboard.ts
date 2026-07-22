@@ -182,9 +182,10 @@ const conversionRate = (active: number, leads: number): number | null => {
 /** Clientes › Dashboard — the CRM cockpit (executive redesign 2026-07-22,
  *  supersedes the two-pie layout): KPI strip (leads / nuevos activos /
  *  conversión / seguimientos vencidos), six-month intake trend with the
- *  sanctioned single-hue area fill, follow-up agenda, channel-mix bars, and
- *  the two feeds. Data lives in `CustomerStatsState` so revisits render from
- *  cache. */
+ *  sanctioned single-hue area fill + newest clients on its rail, channel-mix
+ *  bars + the detailed activity table (customer status + author), and the
+ *  full-width follow-up agenda (owner layout turn, same day). Data lives in
+ *  `CustomerStatsState` so revisits render from cache. */
 @Component({
   selector: 'app-crm-dashboard',
   imports: [
@@ -413,6 +414,7 @@ export class CrmDashboard {
         id: c.id,
         name: c.name,
         status: c.status,
+        sourceLabel: CUSTOMER_SOURCE_LABELS[c.source] ?? c.source,
         dateLabel: tone === 'today' ? 'Hoy' : FOLLOW_UP_FMT.format(new Date(c.nextFollowUpAt)),
         dateClass: FOLLOW_UP_TONE_CLASSES[tone],
       };

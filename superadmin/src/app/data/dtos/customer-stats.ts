@@ -33,9 +33,11 @@ export interface IntakeStats {
 }
 
 /** `GET /customers/interactions/recent` — tenant-wide feed row: the timeline
- *  entry plus the customer it belongs to, for linking out of the Panel. */
+ *  entry plus the customer it belongs to, for linking out of the Panel. The
+ *  status rides along for the activity table's Estatus column (2026-07-22). */
 export interface RecentInteraction extends Interaction {
   customerName: string;
+  customerStatus: CustomerStatus;
 }
 
 /** `GET /customers/recent` — newest registered clients, display fields only.
@@ -73,6 +75,7 @@ export interface FollowUpCustomer {
   id: string;
   name: string;
   status: CustomerStatus;
+  source: CustomerSource;
   nextFollowUpAt: string;
 }
 

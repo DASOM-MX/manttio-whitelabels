@@ -58,11 +58,13 @@ export interface IntakeTrendResponse {
 }
 
 /** One agenda row of GET /customers/follow-ups: a live (non-blacklisted)
- *  customer with a scheduled follow-up, soonest/most-overdue first. */
+ *  customer with a scheduled follow-up, soonest/most-overdue first. NULL
+ *  legacy sources are bucketed as `other`, like the intake stats. */
 export interface FollowUpRow {
   id: string;
   name: string;
   status: CustomerStatus;
+  source: CustomerSource;
   nextFollowUpAt: Date;
 }
 

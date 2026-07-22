@@ -1,7 +1,7 @@
 import { and, asc, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { customers } from '../models/customers.model';
-import { CustomerStatus } from '../enums/customers.enum';
+import { CustomerSource, CustomerStatus } from '../enums/customers.enum';
 import type {
   FollowUpRow,
   IntakePeriod,
@@ -97,14 +97,20 @@ export const listFollowUps = async (db: Db, limit: number): Promise<FollowUpRow[
       id: customers.id,
       name: customers.name,
       status: customers.status,
+      source: customers.source,
       nextFollowUpAt: customers.nextFollowUpAt,
     })
     .from(customers)
     .where(followUpScope)
     .orderBy(asc(customers.nextFollowUpAt))
     .limit(limit);
-  // The isNotNull predicate guarantees the date — narrow it for the DTO.
-  return rows.map((row) => ({ ...row, nextFollowUpAt: row.nextFollowUpAt as Date }));
+  // The isNotNull predicate guarantees the date — narrow it for the DTO;
+  // NULL legacy sources bucket as `other` (intake-stats convention).
+  return rows.map((row) => ({
+    ...row,
+    source: row.source ?? CustomerSource.Other,
+    nextFollowUpAt: row.nextFollowUpAt as Date,
+  }));
 };
 
 /** Whole-scope aggregates for the follow-ups KPI (not just the page). */

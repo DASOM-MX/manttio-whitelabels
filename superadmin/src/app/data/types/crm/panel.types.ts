@@ -47,6 +47,7 @@ export interface FollowUpVM {
   id: string;
   name: string;
   status: CustomerStatus;
+  sourceLabel: string;
   dateLabel: string;
   /** Tone classes for the date pill (from the component's tone map). */
   dateClass: string;
