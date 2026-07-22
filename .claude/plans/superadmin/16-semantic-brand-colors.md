@@ -1,8 +1,14 @@
 # 16 — Semantic brand color classes (`primary-*` / `surface-*`)
 
-> **Status:** planned 2026-07-15 — **deferred by decision: this is the LAST plan of the suite.**
-> Do not start until the MVP modules (08–15) have shipped; it then runs as the closing
-> conventions sweep over everything that landed.
+> **Status:** planned 2026-07-15 — ~~deferred: LAST plan of the suite~~ **partially
+> superseded 2026-07-21 (owner):** the **superadmin leg (PR-2) was front-run** to unblock
+> the shell/nav redesign (the redesign writes new chrome styling and must be authored on
+> the semantic names, not on classes that would immediately be renamed). PR-2 landed with
+> the 2026-07-21 re-inventory: ~1,215 class instances swept, off-scale `-50`/`-950` drift
+> hand-mapped to on-scale house idioms, role pills resolved via **option (a)** (static
+> ladder as literal-hex `.role-pill--*` classes in `styles.scss`).
+> **PR-1 (frontend) and PR-3 (website) remain deferred to run last, after the MVP
+> modules (08–15) ship** — the original sequencing still governs them.
 > **Scope decisions (2026-07-15, owner):** rename approved (convention > diff size) · keep all
 > five single-value aliases, repointed honestly + normalized across the three apps · **three
 > PRs, one per app** · sequenced last (also implies after PR #51 and every module PR merged).

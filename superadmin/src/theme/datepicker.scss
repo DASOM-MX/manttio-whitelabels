@@ -8,8 +8,8 @@
   }
 }
 .p-datepicker-panel {
-  @apply bg-white border-2 border-granite-200 rounded-lg shadow-lg p-3 z-50
-         dark:bg-granite-900 dark:border-granite-700;
+  @apply bg-white border-2 border-surface-200 rounded-lg shadow-lg p-3 z-50
+         dark:bg-surface-900 dark:border-surface-700;
   /* Same anchoring strategy as p-select — override any inline position. */
   position: absolute !important;
   top: calc(100% + 4px) !important;
@@ -23,22 +23,22 @@
   @apply flex flex-col gap-2;
 }
 .p-datepicker-header {
-  @apply flex items-center justify-between mb-2 pb-2 border-b border-granite-200
-         dark:border-granite-700;
+  @apply flex items-center justify-between mb-2 pb-2 border-b border-surface-200
+         dark:border-surface-700;
 }
 .p-datepicker-title {
-  @apply flex items-center gap-1 font-semibold text-granite-900
-         dark:text-granite-100;
+  @apply flex items-center gap-1 font-semibold text-surface-900
+         dark:text-surface-100;
 }
 .p-datepicker-prev-button,
 .p-datepicker-next-button {
-  @apply size-9 inline-flex items-center justify-center rounded-full text-granite-700 hover:bg-sky-0 transition-colors
-         dark:text-granite-300 dark:hover:bg-granite-800;
+  @apply size-9 inline-flex items-center justify-center rounded-full text-surface-700 hover:bg-primary-0 transition-colors
+         dark:text-surface-300 dark:hover:bg-surface-800;
 }
 .p-datepicker-select-month,
 .p-datepicker-select-year {
-  @apply px-2 py-1 rounded-md text-sm font-semibold text-granite-900 hover:bg-sky-0 transition-colors
-         dark:text-granite-100 dark:hover:bg-granite-800;
+  @apply px-2 py-1 rounded-md text-sm font-semibold text-surface-900 hover:bg-primary-0 transition-colors
+         dark:text-surface-100 dark:hover:bg-surface-800;
 }
 .p-datepicker-calendar {
   @apply w-full border-collapse;
@@ -51,22 +51,22 @@
   @apply p-0.5;
 }
 .p-datepicker-day {
-  @apply size-9 rounded-full flex items-center justify-center text-sm text-granite-900 cursor-pointer transition-colors mx-auto font-data tabular-nums
-         dark:text-granite-100;
+  @apply size-9 rounded-full flex items-center justify-center text-sm text-surface-900 cursor-pointer transition-colors mx-auto font-data tabular-nums
+         dark:text-surface-100;
 
   &:hover {
-    @apply bg-sky-0 dark:bg-granite-800;
+    @apply bg-primary-0 dark:bg-surface-800;
   }
   &.p-datepicker-day-selected,
   &[data-p-selected='true'] {
-    @apply bg-sky-700 text-white font-bold dark:bg-sky-600;
+    @apply bg-primary-700 text-white font-bold dark:bg-primary-600;
   }
   &.p-datepicker-other-month,
   &[data-p-other-month='true'] {
-    @apply text-granite-300 dark:text-granite-600;
+    @apply text-surface-300 dark:text-surface-600;
   }
   &.p-datepicker-today {
-    @apply ring-2 ring-sky-300 dark:ring-sky-500;
+    @apply ring-2 ring-primary-300 dark:ring-primary-500;
   }
   &.p-disabled {
     @apply opacity-30 cursor-not-allowed;
@@ -75,8 +75,8 @@
 
 /* Time picker (showTime) */
 .p-datepicker-time-picker {
-  @apply mt-3 pt-3 border-t border-granite-200 flex items-center justify-center gap-2
-         dark:border-granite-700;
+  @apply mt-3 pt-3 border-t border-surface-200 flex items-center justify-center gap-2
+         dark:border-surface-700;
 }
 .p-datepicker-hour-picker,
 .p-datepicker-minute-picker,
@@ -84,22 +84,22 @@
   @apply flex flex-col items-center;
 
   span {
-    @apply font-data tabular-nums text-base font-semibold text-granite-900 px-2
-           dark:text-granite-100;
+    @apply font-data tabular-nums text-base font-semibold text-surface-900 px-2
+           dark:text-surface-100;
   }
   button {
-    @apply size-7 inline-flex items-center justify-center rounded-md text-granite-700 hover:bg-sky-0 transition-colors
-           dark:text-granite-300 dark:hover:bg-granite-800;
+    @apply size-7 inline-flex items-center justify-center rounded-md text-surface-700 hover:bg-primary-0 transition-colors
+           dark:text-surface-300 dark:hover:bg-surface-800;
   }
 }
 .p-datepicker-separator {
-  @apply font-data text-base font-semibold text-granite-700
-         dark:text-granite-300;
+  @apply font-data text-base font-semibold text-surface-700
+         dark:text-surface-300;
 }
 
 .p-datepicker-buttonbar {
-  @apply flex justify-between mt-3 pt-3 border-t border-granite-200 gap-2
-         dark:border-granite-700;
+  @apply flex justify-between mt-3 pt-3 border-t border-surface-200 gap-2
+         dark:border-surface-700;
 
   button {
     @apply btn-secondary text-sm min-h-9 px-3 py-1.5;

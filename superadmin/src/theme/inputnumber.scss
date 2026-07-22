@@ -11,8 +11,8 @@
     @apply flex flex-col;
   }
   .p-inputnumber-button {
-    @apply size-6 inline-flex items-center justify-center bg-granite-100 hover:bg-sky-0 border border-granite-200 text-granite-700 transition-colors cursor-pointer
-           dark:bg-granite-800 dark:hover:bg-granite-700 dark:border-granite-700 dark:text-granite-300;
+    @apply size-6 inline-flex items-center justify-center bg-surface-100 hover:bg-primary-0 border border-surface-200 text-surface-700 transition-colors cursor-pointer
+           dark:bg-surface-800 dark:hover:bg-surface-700 dark:border-surface-700 dark:text-surface-300;
 
     &:first-child {
       @apply rounded-tr-md;

@@ -1,7 +1,7 @@
 /* PrimeNG Popover (<p-popover>) — e.g. the topbar user menu. */
 .p-popover {
-  @apply rounded-xl border shadow-xl bg-white border-granite-200
-         dark:bg-granite-900 dark:border-granite-700;
+  @apply rounded-xl border shadow-xl bg-white border-surface-200
+         dark:bg-surface-900 dark:border-surface-700;
 
   /* Aura ships a caret/arrow on the popover via ::before + ::after. Our
      design is a clean panel without a pointer, so collapse them. */

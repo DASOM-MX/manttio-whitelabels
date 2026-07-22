@@ -8,16 +8,16 @@
   @apply absolute inset-0 size-full m-0 p-0 opacity-0 cursor-pointer;
 }
 .p-checkbox-box {
-  @apply size-5 rounded border-2 border-granite-400 bg-white flex items-center justify-center transition-colors cursor-pointer
-         dark:bg-granite-900 dark:border-granite-600;
+  @apply size-5 rounded border-2 border-surface-400 bg-white flex items-center justify-center transition-colors cursor-pointer
+         dark:bg-surface-900 dark:border-surface-600;
 }
 .p-checkbox.p-checkbox-checked .p-checkbox-box,
 .p-checkbox-box[data-p-checked='true'] {
-  @apply bg-sky-700 border-sky-700 dark:bg-sky-600 dark:border-sky-600;
+  @apply bg-primary-700 border-primary-700 dark:bg-primary-600 dark:border-primary-600;
 }
 .p-checkbox.p-focus .p-checkbox-box,
 .p-checkbox-box[data-p-focus='true'] {
-  @apply ring-4 ring-sky-700/25 dark:ring-sky-400/25;
+  @apply ring-4 ring-primary-700/25 dark:ring-primary-400/25;
 }
 .p-checkbox-icon {
   @apply size-3.5 text-white;

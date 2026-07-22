@@ -1,14 +1,16 @@
 /**
- * Superadmin Tailwind config — ported from `frontend/tailwind.config.js`.
+ * Superadmin Tailwind config — semantic brand scales (plan 16).
  *
- * Whitelabel twist (02-app-shell.md §5): the `sky` (primary) and `granite`
- * (surface) scales resolve through CSS variables so the boot-time
- * `GET /brand` fetch (module 03) can re-theme the app at runtime — the
- * `BrandThemeService` sets `--brand-primary-*` / `--brand-surface-*` on
- * `:root`. Values are HSL components ("H S% L%") at steps 0…1000 by 100
- * (branding rule 2). Fallbacks are a minimal neutral grayscale for the
- * no-brand instant only — the real default palette comes from the backend
- * (rule 3). `navy`/`cyan` stay static (non-brand accents).
+ * Whitelabel (02-app-shell.md §5): the `primary` and `surface` scales resolve
+ * through CSS variables so the boot-time `GET /brand` fetch (module 03) can
+ * re-theme the app at runtime — the `BrandThemeService` sets
+ * `--brand-primary-*` / `--brand-surface-*` on `:root`. Values are HSL
+ * components ("H S% L%") at steps 0…1000 by 100 (branding rule 2). Fallbacks
+ * are a minimal neutral grayscale for the no-brand instant only — the real
+ * default palette comes from the backend (rule 3).
+ *
+ * Utility name = scale name = wire name (`bg-primary-600`,
+ * `dark:bg-surface-800`) — no mapping table to carry in your head.
  */
 
 const NEUTRAL_L_BY_STEP = {
@@ -42,8 +44,8 @@ const brandScale = (name, fallbacks) =>
 
 // A whisper of blue on primary so interactive chrome still reads as such;
 // surface is pure grayscale (mirrors the backend's neutral default brand).
-const granite = brandScale('surface', neutralScale(0, 0));
-const sky = brandScale('primary', neutralScale(220, 10));
+const surface = brandScale('surface', neutralScale(0, 0));
+const primary = brandScale('primary', neutralScale(220, 10));
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -54,39 +56,24 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: granite['0'], // page bg
-        surface: sky['100'],
-        primary: sky['600'],
-        secondary: sky['300'],
-        dark: granite['800'], // texts
-        granite,
-        sky,
-        navy: {
-          50: '#F1F5F9',
-          100: '#E0E7EE',
-          200: '#BFCDD9',
-          300: '#94A8BC',
-          400: '#6A839E',
-          500: '#4C6783',
-          600: '#3B536A',
-          700: '#314357',
-          800: '#243345',
-          900: '#1B2937',
-          950: '#0F1923',
-        },
-        cyan: {
-          50: '#ECF8FD',
-          100: '#D2F0FB',
-          200: '#A8E2F6',
-          300: '#71CDEC',
-          400: '#62BCDD',
-          500: '#4BA8D1',
-          600: '#2F88AF',
-          700: '#266F92',
-          800: '#235974',
-          900: '#1F4A60',
-          950: '#102B3D',
-        },
+        // The two brand scales + single-value semantic aliases (plan 16 §Target):
+        // identical across frontend / superadmin / website.
+        primary: { ...primary, DEFAULT: primary['600'] }, // brand anchor (buttons, links, focus)
+        surface: { ...surface, DEFAULT: surface['100'] }, // card/panel tint
+        background: surface['0'], // page bg
+        secondary: primary['300'], // soft/secondary accent
+        dark: surface['800'], // body text
+
+        // Tombstones (plan 16 §Target 2) — the legacy palette names must stay
+        // as empty objects, NOT be deleted: `theme.extend` merges with the
+        // default theme, and `sky`/`cyan` are stock Tailwind names, so plain
+        // deletion would silently resurrect stock blue for any straggler
+        // class. Empty objects keep every legacy utility dead (no CSS
+        // emitted) while grep + build verification prove zero stragglers.
+        granite: {},
+        sky: {},
+        navy: {},
+        cyan: {},
       },
 
       fontFamily: {
