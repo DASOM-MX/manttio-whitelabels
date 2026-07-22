@@ -11,7 +11,7 @@
         type="color"
         [id]="inputId()"
         [formControl]="baseControl()"
-        class="h-12 w-16 cursor-pointer rounded-lg border-2 border-granite-200 bg-white p-1 dark:border-granite-700 dark:bg-granite-900"
+        class="h-12 w-16 cursor-pointer rounded-lg border-2 border-surface-200 bg-white p-1 dark:border-surface-700 dark:bg-surface-900"
       />
       <input
         type="text"
@@ -24,7 +24,7 @@
   }
 
   <div
-    class="mt-1 flex h-8 overflow-hidden rounded-lg border border-granite-200 dark:border-granite-800"
+    class="mt-1 flex h-8 overflow-hidden rounded-lg border border-surface-200 dark:border-surface-800"
     role="img"
     [attr.aria-label]="'Escala derivada de ' + label()"
   >
@@ -36,7 +36,7 @@
   @if (!readOnly()) {
     <button
       type="button"
-      class="mt-1 inline-flex items-center gap-1.5 self-start text-sm font-medium text-sky-700 transition-colors hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
+      class="mt-1 inline-flex items-center gap-1.5 self-start text-sm font-medium text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
       (click)="expanded.set(!expanded())"
       [attr.aria-expanded]="expanded()"
     >
@@ -56,12 +56,12 @@
       >
         @for (row of rows(); track row.step) {
           <div
-            class="flex items-center gap-2 rounded-lg border border-granite-200 p-1.5 dark:border-granite-800"
+            class="flex items-center gap-2 rounded-lg border border-surface-200 p-1.5 dark:border-surface-800"
           >
             <input
               type="color"
               [formControl]="row.control"
-              class="size-8 shrink-0 cursor-pointer rounded border border-granite-200 dark:border-granite-700"
+              class="size-8 shrink-0 cursor-pointer rounded border border-surface-200 dark:border-surface-700"
               [attr.aria-label]="label() + ' paso ' + row.step"
             />
             <span class="micro-label font-data tabular-nums">{{ row.step }}</span>

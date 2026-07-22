@@ -24,7 +24,7 @@
         <button
           type="button"
           cdkDragHandle
-          class="inline-flex size-8 shrink-0 cursor-grab items-center justify-center rounded-md text-granite-400 transition-colors hover:bg-granite-100 hover:text-granite-700 active:cursor-grabbing dark:text-granite-500 dark:hover:bg-granite-800 dark:hover:text-granite-300"
+          class="inline-flex size-8 shrink-0 cursor-grab items-center justify-center rounded-md text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-700 active:cursor-grabbing dark:text-surface-500 dark:hover:bg-surface-800 dark:hover:text-surface-300"
           (keydown)="onHandleKeydown($event, i)"
           [attr.aria-label]="'Reordenar ' + itemName() + ' ' + (i + 1) + ' (↑/↓ para mover)'"
         >
@@ -34,7 +34,7 @@
     </div>
   } @empty {
     <p
-      class="rounded-lg border border-dashed border-granite-300 px-4 py-6 text-center text-sm text-granite-500 dark:border-granite-700 dark:text-granite-400"
+      class="rounded-lg border border-dashed border-surface-300 px-4 py-6 text-center text-sm text-surface-500 dark:border-surface-700 dark:text-surface-400"
     >
       Sin elementos todavía.
     </p>
@@ -43,7 +43,7 @@
   @if (!readOnly()) {
     <button
       type="button"
-      class="inline-flex items-center gap-2 self-start text-sm font-semibold text-sky-700 transition-colors hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
+      class="inline-flex items-center gap-2 self-start text-sm font-semibold text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
       (click)="add.emit()"
     >
       <svg lucidePlus class="size-4" aria-hidden="true"></svg>

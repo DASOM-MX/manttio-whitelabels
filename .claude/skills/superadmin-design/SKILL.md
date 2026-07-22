@@ -60,26 +60,32 @@ from decoration.
   rows-per-page, dropdown filter inputs) opt down to `!h-10`.
 - Cards: `p-4` (page-level summary cards may take `p-5`, nothing larger). Section gaps
   `gap-4`. Page gutters `px-4 md:px-6`.
-- Tables are compact: `py-2.5` cells, 13–14px cell text, header row as uppercase
+- Tables are compact: `py-2.5` cells, 13–14px cell text, header row as a
   micro-label (see cues below).
 - Prefer one dense, well-grouped screen over two airy ones — but never sacrifice the
   56px→48px baseline alignment: every control on a row snaps to the same height.
 
 ## Surfaces — borders, not shadows
 
-- Cards/panels: `1px` hairline borders (`border-granite-200 dark:border-granite-800`),
-  flat backgrounds (`bg-white dark:bg-granite-900`). **No drop shadows on in-page
+- Cards/panels: `1px` hairline borders (`border-surface-200 dark:border-surface-800`),
+  flat backgrounds (`bg-white dark:bg-surface-900`). **No drop shadows on in-page
   surfaces.** Shadows are reserved for true overlays (dialogs, popovers, drawers).
-- Nested grouping inside a card = background shift (`bg-granite-50 dark:bg-granite-950/60`)
+- Nested grouping inside a card = background shift (`bg-surface-100 dark:bg-surface-800/40`)
   or a hairline divider — not another shadowed box.
+- The palette is the two semantic brand scales only — `primary-*` / `surface-*`, steps
+  0…1000 by 100 (no `-50`/`-950`; plan 16 tombstoned `sky`/`granite`/`navy`/`cyan` —
+  those classes emit no CSS). Sole literal-hex island: the static role-pill ladder
+  (`.role-pill--*` in `styles.scss`).
 
 ## Strong visual cues
 
 - **Status pills** everywhere state exists (CRM status, billing, stock, visit status) —
   vibrant in both modes per the dark-mode rules; pill + label, never color alone.
 - **Active nav**: 2px left accent bar in primary + tinted background — instantly locatable.
-- **Uppercase micro-labels** for card/section/table headers:
-  `text-[11px] font-medium tracking-caps text-granite-500 dark:text-granite-400 uppercase`.
+- **Micro-labels** for card/section/table headers (`.micro-label`:
+  `text-2xs font-medium text-surface-500 dark:text-surface-400`) — authored
+  title/sentence case, never `uppercase` (QA 2026-07-07: uppercase is reserved for
+  warnings or explicit requests).
 - **Tabular numerals** (`font-data`) for every numeric column — digits align vertically.
 - **Skeleton loaders** for content regions (tables, cards) instead of spinners; spinners
   only on buttons for in-flight actions.

@@ -35,19 +35,19 @@
   </form>
 
   <!-- Entries, newest first -->
-  <ol class="mt-4 flex flex-col divide-y divide-granite-200 dark:divide-granite-800">
+  <ol class="mt-4 flex flex-col divide-y divide-surface-200 dark:divide-surface-800">
     @for (entry of interactions(); track entry.id) {
       <li class="flex items-start gap-3 py-3" [class.opacity-70]="entry.type === 'system'">
         <span
           class="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full"
-          [class.bg-sky-100]="entry.type !== 'system'"
-          [class.text-sky-800]="entry.type !== 'system'"
-          [class.dark:bg-sky-950/60]="entry.type !== 'system'"
-          [class.dark:text-sky-300]="entry.type !== 'system'"
-          [class.bg-granite-100]="entry.type === 'system'"
-          [class.text-granite-500]="entry.type === 'system'"
-          [class.dark:bg-granite-800]="entry.type === 'system'"
-          [class.dark:text-granite-400]="entry.type === 'system'"
+          [class.bg-primary-100]="entry.type !== 'system'"
+          [class.text-primary-800]="entry.type !== 'system'"
+          [class.dark:bg-primary-1000/60]="entry.type !== 'system'"
+          [class.dark:text-primary-300]="entry.type !== 'system'"
+          [class.bg-surface-100]="entry.type === 'system'"
+          [class.text-surface-500]="entry.type === 'system'"
+          [class.dark:bg-surface-800]="entry.type === 'system'"
+          [class.dark:text-surface-400]="entry.type === 'system'"
         >
           <svg
             lucideIcon
@@ -58,7 +58,7 @@
         </span>
         <div class="min-w-0 flex-1">
           <p
-            class="flex flex-wrap items-baseline gap-x-2 text-xs text-granite-500 dark:text-granite-400"
+            class="flex flex-wrap items-baseline gap-x-2 text-xs text-surface-500 dark:text-surface-400"
           >
             <span class="font-semibold uppercase tracking-caps">{{
               entry.type | interactionTypeLabel
@@ -68,11 +68,11 @@
             }
             <span class="font-data tabular-nums">{{ entry.createdAt | relativeTime }}</span>
           </p>
-          <p class="mt-0.5 text-sm text-granite-800 dark:text-granite-200">{{ entry.body }}</p>
+          <p class="mt-0.5 text-sm text-surface-800 dark:text-surface-200">{{ entry.body }}</p>
           @if (entry.ref && entry.ref.kind === 'report') {
             <a
               [routerLink]="['/reports', entry.ref.id]"
-              class="mt-0.5 inline-block text-xs font-semibold text-sky-700 hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
+              class="mt-0.5 inline-block text-xs font-semibold text-primary-700 hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
             >
               Ver reporte
             </a>
@@ -80,7 +80,7 @@
         </div>
       </li>
     } @empty {
-      <li class="py-6 text-center text-sm text-granite-500 dark:text-granite-400">
+      <li class="py-6 text-center text-sm text-surface-500 dark:text-surface-400">
         Sin actividad todavía — registra la primera llamada.
       </li>
     }

@@ -1,13 +1,13 @@
 <div class="flex flex-wrap items-center gap-3">
   <a
     routerLink="/users"
-    class="inline-flex size-10 items-center justify-center rounded-lg text-granite-600 transition-colors hover:bg-granite-100 dark:text-granite-400 dark:hover:bg-granite-800"
+    class="inline-flex size-10 items-center justify-center rounded-lg text-surface-600 transition-colors hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
     aria-label="Volver a usuarios"
   >
     <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
   </a>
   <div>
-    <h1 class="text-xl font-bold text-granite-1000 dark:text-granite-0">
+    <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">
       @if (isEdit()) {
         {{ fullName() }}
       } @else {
@@ -15,14 +15,14 @@
       }
     </h1>
     @if (isEdit() && selected(); as user) {
-      <p class="mt-0.5 text-sm text-granite-600 dark:text-granite-400">{{ user.email }}</p>
+      <p class="mt-0.5 text-sm text-surface-600 dark:text-surface-400">{{ user.email }}</p>
     }
   </div>
 </div>
 
 @if (readOnly()) {
   <p
-    class="mt-4 rounded-lg border border-sky-200 bg-sky-0 px-4 py-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-1000/40 dark:text-sky-200"
+    class="mt-4 rounded-lg border border-primary-200 bg-primary-0 px-4 py-3 text-sm text-primary-900 dark:border-primary-800 dark:bg-primary-1000/40 dark:text-primary-200"
     role="note"
   >
     La cuenta del propietario no se administra desde aquí: los cambios se solicitan al equipo de
@@ -32,7 +32,7 @@
 
 @if (isEdit() && !readOnly()) {
   <div
-    class="mt-5 inline-flex rounded-lg border border-granite-200 p-0.5 dark:border-granite-800"
+    class="mt-5 inline-flex rounded-lg border border-surface-200 p-0.5 dark:border-surface-800"
     role="tablist"
     aria-label="Secciones del usuario"
     (keydown)="onTabKeydown($event)"
@@ -44,12 +44,12 @@
       id="tab-datos"
       aria-controls="panel-datos"
       class="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
-      [class.bg-sky-0]="tab() === 'datos'"
-      [class.text-sky-800]="tab() === 'datos'"
-      [class.dark:bg-sky-1000/40]="tab() === 'datos'"
-      [class.dark:text-sky-300]="tab() === 'datos'"
-      [class.text-granite-600]="tab() !== 'datos'"
-      [class.dark:text-granite-400]="tab() !== 'datos'"
+      [class.bg-primary-0]="tab() === 'datos'"
+      [class.text-primary-800]="tab() === 'datos'"
+      [class.dark:bg-primary-1000/40]="tab() === 'datos'"
+      [class.dark:text-primary-300]="tab() === 'datos'"
+      [class.text-surface-600]="tab() !== 'datos'"
+      [class.dark:text-surface-400]="tab() !== 'datos'"
       [attr.aria-selected]="tab() === 'datos'"
       [tabindex]="tab() === 'datos' ? 0 : -1"
       (click)="tab.set('datos')"
@@ -67,8 +67,8 @@
       [class.text-red-800]="tab() === 'critico'"
       [class.dark:bg-red-950/30]="tab() === 'critico'"
       [class.dark:text-red-300]="tab() === 'critico'"
-      [class.text-granite-600]="tab() !== 'critico'"
-      [class.dark:text-granite-400]="tab() !== 'critico'"
+      [class.text-surface-600]="tab() !== 'critico'"
+      [class.dark:text-surface-400]="tab() !== 'critico'"
       [attr.aria-selected]="tab() === 'critico'"
       [tabindex]="tab() === 'critico' ? 0 : -1"
       (click)="tab.set('critico')"
@@ -92,13 +92,13 @@
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
             <p class="field-label">Nombre</p>
-            <p class="mt-1 text-sm font-medium text-granite-900 dark:text-granite-100">
+            <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
               {{ user.name }}
             </p>
           </div>
           <div>
             <p class="field-label">Apellidos</p>
-            <p class="mt-1 text-sm font-medium text-granite-900 dark:text-granite-100">
+            <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
               {{ user.paternalLastName }} {{ user.maternalLastName }}
               @if (!user.paternalLastName && !user.maternalLastName) {
                 —
@@ -107,13 +107,13 @@
           </div>
           <div>
             <p class="field-label">Correo</p>
-            <p class="mt-1 text-sm font-medium text-granite-900 dark:text-granite-100">
+            <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
               {{ user.email }}
             </p>
           </div>
           <div>
             <p class="field-label">Teléfono</p>
-            <p class="mt-1 text-sm font-medium text-granite-900 dark:text-granite-100">
+            <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
               {{ user.phone || '—' }}
             </p>
           </div>
@@ -137,7 +137,7 @@
           </div>
           <div>
             <p class="field-label">Alta</p>
-            <p class="mt-1 text-sm font-medium text-granite-900 dark:text-granite-100">
+            <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
               {{ user.createdAt | date: 'dd/MM/y' }}
             </p>
           </div>
@@ -152,7 +152,7 @@
           </div>
         }
       } @else {
-        <p class="text-sm text-granite-600 dark:text-granite-400">Cargando usuario…</p>
+        <p class="text-sm text-surface-600 dark:text-surface-400">Cargando usuario…</p>
       }
     </section>
   } @else {
@@ -224,7 +224,7 @@
 
       @if (!isEdit()) {
         <p
-          class="rounded-lg border border-sky-200 bg-sky-0 px-3 py-2 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-1000/40 dark:text-sky-200"
+          class="rounded-lg border border-primary-200 bg-primary-0 px-3 py-2 text-sm text-primary-900 dark:border-primary-800 dark:bg-primary-1000/40 dark:text-primary-200"
         >
           Al crear la cuenta se genera una contraseña temporal que verás una sola vez.
         </p>
@@ -266,14 +266,14 @@
     @if (selected(); as user) {
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p class="text-sm font-semibold text-granite-900 dark:text-granite-100">
+          <p class="text-sm font-semibold text-surface-900 dark:text-surface-100">
             @if (user.active) {
               Desactivar cuenta
             } @else {
               Reactivar cuenta
             }
           </p>
-          <p class="mt-0.5 max-w-md text-sm text-granite-600 dark:text-granite-400">
+          <p class="mt-0.5 max-w-md text-sm text-surface-600 dark:text-surface-400">
             @if (user.active) {
               La cuenta queda bloqueada para iniciar sesión; sus datos e historial se conservan.
             } @else {
@@ -294,16 +294,16 @@
         }
       </div>
 
-      <hr class="border-granite-100 dark:border-granite-800" />
+      <hr class="border-surface-100 dark:border-surface-800" />
     }
 
     @if (canReset()) {
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p class="text-sm font-semibold text-granite-900 dark:text-granite-100">
+          <p class="text-sm font-semibold text-surface-900 dark:text-surface-100">
             Restablecer contraseña
           </p>
-          <p class="mt-0.5 max-w-md text-sm text-granite-600 dark:text-granite-400">
+          <p class="mt-0.5 max-w-md text-sm text-surface-600 dark:text-surface-400">
             Genera una contraseña temporal que se muestra una sola vez; el usuario deberá crear la
             suya al iniciar sesión.
           </p>
@@ -314,7 +314,7 @@
         </button>
       </div>
     } @else {
-      <p class="text-sm text-granite-600 dark:text-granite-400">
+      <p class="text-sm text-surface-600 dark:text-surface-400">
         Tu rol no puede restablecer la contraseña de esta cuenta.
       </p>
     }

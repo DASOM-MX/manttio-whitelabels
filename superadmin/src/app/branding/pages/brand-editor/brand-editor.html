@@ -1,7 +1,7 @@
 <div class="flex flex-wrap items-start justify-between gap-3">
   <div>
-    <h1 class="text-xl font-bold text-granite-1000 dark:text-granite-0">Marca</h1>
-    <p class="mt-1 text-sm text-granite-600 dark:text-granite-400">
+    <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">Marca</h1>
+    <p class="mt-1 text-sm text-surface-600 dark:text-surface-400">
       La identidad que viste tu sitio, tus aplicaciones y tus PDF.
     </p>
   </div>
@@ -32,7 +32,7 @@
 
 @if (readOnly()) {
   <p
-    class="mt-4 rounded-lg border border-sky-200 bg-sky-0 px-4 py-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-1000/40 dark:text-sky-200"
+    class="mt-4 rounded-lg border border-primary-200 bg-primary-0 px-4 py-3 text-sm text-primary-900 dark:border-primary-800 dark:bg-primary-1000/40 dark:text-primary-200"
     role="note"
   >
     Solo el propietario puede editar la marca. Estás viendo la configuración actual.
@@ -61,7 +61,7 @@
           >Eslogan<span aria-hidden="true"> *</span></label
         >
         <input id="brand-slogan" pInputText formControlName="slogan" maxlength="150" />
-        <p class="text-sm text-granite-500 dark:text-granite-400">
+        <p class="text-sm text-surface-500 dark:text-surface-400">
           Frase corta bajo el logotipo en el sitio público.
         </p>
       </div>
@@ -69,14 +69,14 @@
       <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
         <div>
           <dt class="micro-label">Nombre</dt>
-          <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
+          <dd class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
             {{ b.name }}
           </dd>
         </div>
         @if (b.slogan) {
           <div>
             <dt class="micro-label">Eslogan</dt>
-            <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
+            <dd class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
               {{ b.slogan }}
             </dd>
           </div>
@@ -84,7 +84,7 @@
         @if (b.description) {
           <div class="sm:col-span-2">
             <dt class="micro-label">Descripción del negocio</dt>
-            <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
+            <dd class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
               {{ b.description }}
             </dd>
           </div>
@@ -100,10 +100,10 @@
           [href]="siteUrl"
           target="_blank"
           rel="noopener"
-          class="self-start text-sm font-medium text-sky-700 underline-offset-2 hover:underline dark:text-sky-300"
+          class="self-start text-sm font-medium text-primary-700 underline-offset-2 hover:underline dark:text-primary-300"
           >{{ siteUrl }}</a
         >
-        <p class="text-sm text-granite-500 dark:text-granite-400">
+        <p class="text-sm text-surface-500 dark:text-surface-400">
           Se configura como parte de tu servicio; contáctanos si necesitas cambiarlo.
         </p>
       </div>
@@ -120,7 +120,7 @@
           class="!min-h-20"
           placeholder="Qué hace tu negocio, en dos o tres frases."
         ></textarea>
-        <p class="text-sm text-granite-500 dark:text-granite-400">
+        <p class="text-sm text-surface-500 dark:text-surface-400">
           Aparece en los resultados de búsqueda (meta descripción del sitio público).
         </p>
       </div>
@@ -163,39 +163,39 @@
            colors alongside the brand, and a primary too close to them blurs
            the destructive/warning/success/info affordances. -->
       <div
-        class="rounded-lg border border-granite-200 px-3 py-2.5 dark:border-granite-800"
+        class="rounded-lg border border-surface-200 px-3 py-2.5 dark:border-surface-800"
         role="note"
       >
-        <p class="text-sm text-granite-600 dark:text-granite-400">
+        <p class="text-sm text-surface-600 dark:text-surface-400">
           Además de tu marca, las aplicaciones usan colores fijos para estados y acciones. Estos no
           cambian con tu marca — si tu color primario se parece a alguno de ellos, los botones y
           avisos podrían confundirse entre sí:
         </p>
-        <ul class="mt-2.5 flex flex-col gap-2 text-sm text-granite-600 dark:text-granite-400">
+        <ul class="mt-2.5 flex flex-col gap-2 text-sm text-surface-600 dark:text-surface-400">
           <li class="flex items-center gap-2.5">
             <div
-              class="size-6 shrink-0 rounded-lg border border-granite-200 bg-red-500 dark:border-granite-800"
+              class="size-6 shrink-0 rounded-lg border border-surface-200 bg-red-500 dark:border-surface-800"
               aria-hidden="true"
             ></div>
             Rojo — errores y acciones destructivas
           </li>
           <li class="flex items-center gap-2.5">
             <div
-              class="size-6 shrink-0 rounded-lg border border-granite-200 bg-amber-400 dark:border-granite-800"
+              class="size-6 shrink-0 rounded-lg border border-surface-200 bg-amber-400 dark:border-surface-800"
               aria-hidden="true"
             ></div>
             Ámbar — advertencias
           </li>
           <li class="flex items-center gap-2.5">
             <div
-              class="size-6 shrink-0 rounded-lg border border-granite-200 bg-emerald-500 dark:border-granite-800"
+              class="size-6 shrink-0 rounded-lg border border-surface-200 bg-emerald-500 dark:border-surface-800"
               aria-hidden="true"
             ></div>
             Verde — operaciones exitosas
           </li>
           <li class="flex items-center gap-2.5">
             <div
-              class="size-6 shrink-0 rounded-lg border border-granite-200 bg-sky-500 dark:border-granite-800"
+              class="size-6 shrink-0 rounded-lg border border-surface-200 bg-primary-500 dark:border-surface-800"
               aria-hidden="true"
             ></div>
             Azul — confirmaciones y avisos
@@ -213,14 +213,14 @@
       @for (slot of imageSlots; track slot.id) {
         <div class="flex items-center gap-4">
           <div
-            class="flex h-24 w-44 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-granite-200 dark:border-granite-800"
-            [class.bg-granite-900]="slot.dark"
-            [class.bg-granite-0]="!slot.dark"
+            class="flex h-24 w-44 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-surface-200 dark:border-surface-800"
+            [class.bg-surface-900]="slot.dark"
+            [class.bg-surface-0]="!slot.dark"
           >
             @if (images()[slot.id].url; as url) {
               <img [src]="url" [alt]="slot.label" class="max-h-20 max-w-full object-contain p-2" />
             } @else {
-              <span class="text-sm text-granite-400" [class.text-granite-600]="slot.dark"
+              <span class="text-sm text-surface-400" [class.text-surface-600]="slot.dark"
                 >Sin imagen</span
               >
             }
@@ -231,7 +231,7 @@
               <!-- relative: anchors the sr-only file input, which otherwise
                    positions against the document and adds phantom page scroll -->
               <label
-                class="relative inline-flex cursor-pointer items-center gap-2 self-start text-sm font-medium text-sky-700 transition-colors hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
+                class="relative inline-flex cursor-pointer items-center gap-2 self-start text-sm font-medium text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
               >
                 <svg lucideImageUp class="size-4" aria-hidden="true"></svg>
                 @if (images()[slot.id].uploading) {
@@ -266,7 +266,7 @@
             <div>
               <dt class="micro-label">Teléfono</dt>
               <dd
-                class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-1000 dark:text-granite-0"
+                class="mt-0.5 font-data text-sm font-medium tabular-nums text-surface-1000 dark:text-surface-0"
               >
                 {{ phone }}
               </dd>
@@ -276,7 +276,7 @@
             <div>
               <dt class="micro-label">WhatsApp</dt>
               <dd
-                class="mt-0.5 font-data text-sm font-medium tabular-nums text-granite-1000 dark:text-granite-0"
+                class="mt-0.5 font-data text-sm font-medium tabular-nums text-surface-1000 dark:text-surface-0"
               >
                 {{ whatsapp }}
               </dd>
@@ -285,7 +285,7 @@
           @if (b.contact?.email; as email) {
             <div>
               <dt class="micro-label">Correo</dt>
-              <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
+              <dd class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
                 {{ email }}
               </dd>
             </div>
@@ -293,7 +293,7 @@
           @if (b.contact?.address; as address) {
             <div>
               <dt class="micro-label">Dirección</dt>
-              <dd class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
+              <dd class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
                 {{ address }}
               </dd>
             </div>
@@ -306,7 +306,7 @@
                   [href]="url"
                   target="_blank"
                   rel="noopener"
-                  class="text-sm font-medium text-sky-700 underline-offset-2 hover:underline dark:text-sky-300"
+                  class="text-sm font-medium text-primary-700 underline-offset-2 hover:underline dark:text-primary-300"
                   >{{ url }}</a
                 >
               </dd>
@@ -320,7 +320,7 @@
                   [href]="url"
                   target="_blank"
                   rel="noopener"
-                  class="text-sm font-medium text-sky-700 underline-offset-2 hover:underline dark:text-sky-300"
+                  class="text-sm font-medium text-primary-700 underline-offset-2 hover:underline dark:text-primary-300"
                   >{{ url }}</a
                 >
               </dd>
@@ -334,7 +334,7 @@
                   [href]="url"
                   target="_blank"
                   rel="noopener"
-                  class="text-sm font-medium text-sky-700 underline-offset-2 hover:underline dark:text-sky-300"
+                  class="text-sm font-medium text-primary-700 underline-offset-2 hover:underline dark:text-primary-300"
                   >{{ url }}</a
                 >
               </dd>
@@ -348,7 +348,7 @@
                   [href]="url"
                   target="_blank"
                   rel="noopener"
-                  class="text-sm font-medium text-sky-700 underline-offset-2 hover:underline dark:text-sky-300"
+                  class="text-sm font-medium text-primary-700 underline-offset-2 hover:underline dark:text-primary-300"
                   >{{ url }}</a
                 >
               </dd>
@@ -474,7 +474,7 @@
   >
     <div>
       <h2 id="brand-fonts-title" class="section-heading">Tipografía</h2>
-      <p class="text-sm text-granite-600 dark:text-granite-400">
+      <p class="text-sm text-surface-600 dark:text-surface-400">
         Se aplica al sitio y a la aplicación de campo; esta administración conserva su propia letra.
       </p>
     </div>
@@ -500,7 +500,7 @@
       } @else {
         <div>
           <p class="micro-label">Cuerpo</p>
-          <p class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
+          <p class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
             {{ bodyFontLabel() }}
           </p>
         </div>
@@ -512,7 +512,7 @@
           <li class="flex items-baseline gap-8 {{ size.gap }}">
             <span class="micro-label w-12 shrink-0 text-right font-data">{{ size.label }}</span>
             <p
-              class="{{ size.class }} truncate text-granite-800 dark:text-granite-200"
+              class="{{ size.class }} truncate text-surface-800 dark:text-surface-200"
               [style.font-family]="bodyFontFamily()"
             >
               Mantenimiento programado para el chiller 12 — 0123456789
@@ -543,7 +543,7 @@
       } @else {
         <div>
           <p class="micro-label">Encabezados</p>
-          <p class="mt-0.5 text-sm font-medium text-granite-1000 dark:text-granite-0">
+          <p class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
             {{ headingFontLabel() }}
           </p>
         </div>
@@ -553,7 +553,7 @@
           <li class="flex items-baseline gap-8 {{ size.gap }}">
             <span class="micro-label w-12 shrink-0 text-right font-data">{{ size.label }}</span>
             <p
-              class="{{ size.class }} truncate font-bold text-granite-900 dark:text-granite-100"
+              class="{{ size.class }} truncate font-bold text-surface-900 dark:text-surface-100"
               [style.font-family]="headingFontFamily()"
             >
               Climatización industrial sin paros

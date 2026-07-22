@@ -9,7 +9,7 @@
 }
 
 .p-tablist {
-  @apply border-b border-granite-200 dark:border-granite-800;
+  @apply border-b border-surface-200 dark:border-surface-800;
 }
 
 /* Small, fixed tab sets never overflow — kill the prev/next scroll buttons. */
@@ -22,19 +22,19 @@
 }
 
 .p-tab {
-  @apply px-4 py-3 text-sm font-medium text-granite-500 transition-colors dark:text-granite-400;
+  @apply px-4 py-3 text-sm font-medium text-surface-500 transition-colors dark:text-surface-400;
 }
 
 .p-tab:hover {
-  @apply text-granite-800 dark:text-granite-200;
+  @apply text-surface-800 dark:text-surface-200;
 }
 
 .p-tab.p-tab-active {
-  @apply text-sky-700 dark:text-sky-300;
+  @apply text-primary-700 dark:text-primary-300;
 }
 
 .p-tablist-active-bar {
-  @apply h-0.5 bg-sky-600 dark:bg-sky-400;
+  @apply h-0.5 bg-primary-600 dark:bg-primary-400;
 }
 
 .p-tabpanels {

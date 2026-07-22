@@ -1,7 +1,7 @@
 <div class="flex flex-wrap items-start justify-between gap-3">
   <div>
-    <h1 class="text-xl font-bold text-granite-1000 dark:text-granite-0">{{ title }}</h1>
-    <p class="mt-1 text-sm text-granite-600 dark:text-granite-400">
+    <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">{{ title }}</h1>
+    <p class="mt-1 text-sm text-surface-600 dark:text-surface-400">
       El directorio de clientes de tu negocio.
     </p>
   </div>
@@ -101,7 +101,7 @@
           {{ customer.contactName || '—' }}
           @if (customer.phone) {
             <span
-              class="block font-data text-xs tabular-nums text-granite-500 dark:text-granite-400"
+              class="block font-data text-xs tabular-nums text-surface-500 dark:text-surface-400"
               >{{ customer.phone }}</span
             >
           }
@@ -117,11 +117,11 @@
           <div class="flex max-w-44 flex-wrap gap-1">
             @for (tag of customer.tags; track tag) {
               <span
-                class="rounded-full bg-granite-100 px-2 py-0.5 text-xs font-medium text-granite-700 dark:bg-granite-800 dark:text-granite-300"
+                class="rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-surface-700 dark:bg-surface-800 dark:text-surface-300"
                 >{{ tag }}</span
               >
             } @empty {
-              <span class="text-granite-400">—</span>
+              <span class="text-surface-400">—</span>
             }
           </div>
         </td>
@@ -139,7 +139,7 @@
                 }}</span>
               }
             } @else {
-              <span class="text-granite-400">—</span>
+              <span class="text-surface-400">—</span>
             }
           </td>
         }
@@ -165,14 +165,14 @@
             }
             <a
               [routerLink]="['/customers', customer.id]"
-              class="inline-flex size-9 items-center justify-center rounded-md text-granite-600 transition-colors hover:bg-granite-100 hover:text-granite-900 dark:text-granite-400 dark:hover:bg-granite-800 dark:hover:text-granite-100"
+              class="inline-flex size-9 items-center justify-center rounded-md text-surface-600 transition-colors hover:bg-surface-100 hover:text-surface-900 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100"
               [attr.aria-label]="'Ver ' + customer.name"
             >
               <svg lucideEye class="size-4" aria-hidden="true"></svg>
             </a>
             <a
               [routerLink]="['/customers', customer.id, 'edit']"
-              class="inline-flex size-9 items-center justify-center rounded-md text-granite-600 transition-colors hover:bg-granite-100 hover:text-granite-900 dark:text-granite-400 dark:hover:bg-granite-800 dark:hover:text-granite-100"
+              class="inline-flex size-9 items-center justify-center rounded-md text-surface-600 transition-colors hover:bg-surface-100 hover:text-surface-900 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100"
               [attr.aria-label]="'Editar ' + customer.name"
             >
               <svg lucidePencil class="size-4" aria-hidden="true"></svg>
@@ -193,7 +193,7 @@
       <tr class="p-datatable-emptymessage">
         <td colspan="10">
           <span class="inline-flex flex-col items-center gap-2">
-            <svg lucideBuilding2 class="size-6 text-granite-400" aria-hidden="true"></svg>
+            <svg lucideBuilding2 class="size-6 text-surface-400" aria-hidden="true"></svg>
             Sin clientes con esos filtros.
           </span>
         </td>

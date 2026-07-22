@@ -45,7 +45,7 @@ auto-loads it — **edit both in the same commit.**
   `p-5`); section gaps `gap-4`; compact tables (`py-2.5` cells, 13–14px text). Prefer
   one dense, well-grouped screen over two airy ones.
 - **Borders, not shadows:** in-page surfaces use 1px hairlines
-  (`border-granite-200 dark:border-granite-800`) on flat backgrounds; shadows are
+  (`border-surface-200 dark:border-surface-800`) on flat backgrounds; shadows are
   reserved for true overlays (dialogs, popovers, drawers). Nested grouping = background
   shift or divider, never another shadowed box.
 - **Strong cues:** status pills wherever state exists (never color alone); active nav =
@@ -151,10 +151,14 @@ Binding for every component; the skill carries the same list with implementation
   color-swatch backgrounds and font-sample `font-family` bind `[style.*]` because
   user-picked brand values can't be utility classes. Nothing else qualifies.)
 - The color palette is the **runtime tenant brand**, shared with `frontend/` and `website/`:
-  `granite`/`sky` read `--brand-surface-*`/`--brand-primary-*` (HSL components, steps
-  **0…1000 by 100** — no `-50`/`-950`; contract rework 2026-07-12), `navy`/`cyan` stay
-  static accents (standard 50…950). Use those scales or the semantic tokens (`background`,
-  `surface`, `primary`, `secondary`, `dark`). **Do not introduce new ad-hoc hex values.**
+  exactly two scales, `primary` and `surface`, reading `--brand-primary-*`/
+  `--brand-surface-*` (HSL components, steps **0…1000 by 100** — no `-50`/`-950`;
+  contract rework 2026-07-12). Utility name = wire name (plan 16, superadmin leg landed
+  2026-07-21; the legacy `sky`/`granite`/`navy`/`cyan` names are tombstoned in
+  `tailwind.config.js` — they emit no CSS). Use those scales or the semantic aliases
+  (`background`, `surface`, `primary`, `secondary`, `dark`). The role-pill blue ladder is
+  the one sanctioned literal-hex island (`.role-pill--*` in `styles.scss` — static across
+  tenants by design, 14 §1). **Do not introduce new ad-hoc hex values.**
 - **Reuse the global classes from `styles.scss`** before re-styling locally: `.field-input`
   (form controls), `.field-label`, `.field-group`, `.btn-primary` / `-secondary` / `-neutral`
   / `-danger`, `.card`, `.card-section`. They already carry dark variants and
@@ -219,8 +223,9 @@ Binding for every component; the skill carries the same list with implementation
 
 ## PrimeNG
 
-- PrimeNG in **styled mode with the Aura preset** customized to the manttio palette
-  (`primary` = sky scale, `surface` = granite scale). The preset is ported from
+- PrimeNG in **styled mode with the Aura preset** customized to the tenant palette
+  (`primary`/`surface` — the preset reads the same `--brand-*` vars as the Tailwind
+  scales, and since plan 16 the utility names match). The preset is ported from
   `frontend/src/app/theme/manttio-preset.ts`; if the palette tweaks in
   `tailwind.config.js`, keep the preset in sync.
 - `theme.options.cssLayer: { name: 'primeng' }` puts Aura in a named layer so
@@ -267,16 +272,16 @@ shape 3 fits.
 
   | Light | Dark |
   |---|---|
-  | `bg-background` (page bg) | `dark:bg-granite-1000` |
-  | `bg-white` (cards/panels) | `dark:bg-granite-900` |
-  | `bg-granite-0` | `dark:bg-granite-900` |
-  | `bg-sky-0` / `bg-amber-50` / `bg-red-50` / `bg-emerald-50` | `dark:bg-sky-1000/40` / `dark:bg-amber-950/30` / `dark:bg-red-950/30` / `dark:bg-emerald-950/30` |
-  | `text-granite-1000` (titles) | `dark:text-granite-0` |
-  | `text-granite-900` | `dark:text-granite-100` |
-  | `text-granite-800` | `dark:text-granite-200` |
-  | `text-granite-700` / `-600` / `-500` (muted) | `dark:text-granite-300` / `-400` / `-400` |
-  | `text-sky-800` / `-700` (accent labels) | `dark:text-sky-300` |
-  | `border-granite-200` / `-300` | `dark:border-granite-700` |
+  | `bg-background` (page bg) | `dark:bg-surface-1000` |
+  | `bg-white` (cards/panels) | `dark:bg-surface-900` |
+  | `bg-surface-0` | `dark:bg-surface-900` |
+  | `bg-primary-0` / `bg-amber-50` / `bg-red-50` / `bg-emerald-50` | `dark:bg-primary-1000/40` / `dark:bg-amber-950/30` / `dark:bg-red-950/30` / `dark:bg-emerald-950/30` |
+  | `text-surface-1000` (titles) | `dark:text-surface-0` |
+  | `text-surface-900` | `dark:text-surface-100` |
+  | `text-surface-800` | `dark:text-surface-200` |
+  | `text-surface-700` / `-600` / `-500` (muted) | `dark:text-surface-300` / `-400` / `-400` |
+  | `text-primary-800` / `-700` (accent labels) | `dark:text-primary-300` |
+  | `border-surface-200` / `-300` | `dark:border-surface-700` |
 
 - **Status pills** (`bg-amber-100 text-amber-900`, etc.) stay unchanged in dark mode —
   intentionally vibrant in both. (Superadmin uses pills heavily: CRM status, billing
@@ -289,7 +294,7 @@ shape 3 fits.
 - Config-driven form builders default controls to **`Validators.required`** unless the
   field is explicitly optional. An empty form disables submit out of the box.
 - Wrap hover/active tints in the **`enabled:`** modifier
-  (`enabled:hover:bg-sky-800 enabled:active:bg-sky-900`) so disabled buttons don't flash.
+  (`enabled:hover:bg-primary-800 enabled:active:bg-primary-900`) so disabled buttons don't flash.
 
 Forms & feedback rules (MEDIUM — added 2026-07-05; implementation notes in the skill):
 
