@@ -51,6 +51,14 @@
   }
 }
 
+/* Skeleton pulse (skeletons over spinners, 01 Design language; plan 17
+   CP-3). Consumed by `.skeleton` in styles.scss — opacity only, no reflow. */
+@keyframes anim-skeleton-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
 /* Route/page content enter — re-triggered by the layout on NavigationEnd. */
 .anim-page-enter {
   animation: anim-rise-in var(--motion-slow) var(--ease-enter) backwards;
@@ -97,7 +105,8 @@
   .anim-leave,
   .anim-drawer-enter,
   .anim-drawer-leave,
-  .anim-stagger > * {
+  .anim-stagger > *,
+  .skeleton {
     animation: none !important;
   }
 }

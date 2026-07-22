@@ -143,8 +143,10 @@ auto-loads it — **edit both in the same commit.**
   (`h-56`); a size that must be exact belongs in a stylesheet, not inline brackets.
   (2) **Tabular/feed data renders as `p-table`** (the customers-list idiom:
   header/body templates, `rowHover`, whole-row click, `[scrollable]` +
-  `scrollHeight` for internal scroll, `emptymessage`) — never hand-rolled
-  `<ol>`/`<div>` row lists. (3) **Simple fixed sizing beats layout machinery:**
+  `scrollHeight` for internal scroll, `emptymessage` with the `.empty-icon`
+  disc + one sentence, and — since CP-3 (2026-07-22) — `[showLoader]="false"`
+  + a `#loadingbody` of 8 `.skeleton`-bar rows instead of the spinner
+  overlay) — never hand-rolled `<ol>`/`<div>` row lists. (3) **Simple fixed sizing beats layout machinery:**
   fixed card heights + internal scroll, page-scoped CSS only — never shell-layout
   surgery (flex-chain rewiring, route-data layout flags) for one page's sizing.
 - **Motion system (revised 2026-07-06 — Angular native, not anime.js):** Angular's
@@ -242,7 +244,9 @@ Binding for every component; the skill carries the same list with implementation
   tenants by design, 14 §1). **Do not introduce new ad-hoc hex values.**
 - **Reuse the global classes from `styles.scss`** before re-styling locally: `.field-input`
   (form controls), `.field-label`, `.field-group`, `.btn-primary` / `-secondary` / `-neutral`
-  / `-danger`, `.card`, `.card-section`. They already carry dark variants and
+  / `-danger`, `.card`, `.card-section`, and the CP-3 list trio — `.row-action` (+
+  `--danger`/`--success` — table row icon actions), `.skeleton` (loading bars),
+  `.empty-icon` (empty-state disc). They already carry dark variants and
   disabled/focus states; re-implementing them in templates almost always misses one.
   These globals are **ported from `frontend/src/styles.scss`** in shell CP-2 — keep them
   byte-compatible where possible so fixes can flow between apps.

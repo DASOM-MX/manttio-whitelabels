@@ -3,7 +3,7 @@ import { SlicePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { LucideLayoutTemplate, LucidePlus } from '@lucide/angular';
+import { LucideEye, LucideLayoutTemplate, LucidePlus } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { ReportTemplatesState } from '../../../../state/report-templates/report-templates.state';
 import { LoadTemplates } from '../../../../state/report-templates/report-templates.actions';
@@ -31,6 +31,7 @@ import type { ReportTemplate } from '../../../data/dtos/report-template';
     TemplateStatusSeverityPipe,
     QuestionCountPipe,
     LucidePlus,
+    LucideEye,
     LucideLayoutTemplate,
   ],
   providers: [ListQueryService],

@@ -191,6 +191,34 @@
     @apply border-t border-surface-200 pt-2 dark:border-surface-800;
   }
 
+  /* Skeleton bar for loading content regions (skeletons over spinners, 01
+     Design language; plan 17 CP-3). Tables render rows of these via
+     `#loadingbody` + `[showLoader]="false"`. Keyframe lives in
+     animations.scss and collapses under reduced motion (static bar). */
+  .skeleton {
+    @apply block h-3.5 w-full max-w-36 rounded-full bg-surface-200 dark:bg-surface-700;
+    animation: anim-skeleton-pulse 1.6s ease-in-out infinite;
+  }
+
+  /* Row-level icon actions in tables (plan 17 CP-3 — one idiom, was five
+     inline copies): icon-only ghosts, circles like the topbar chrome; they
+     stay the keyboard path when the whole row is clickable. */
+  .row-action {
+    @apply inline-flex size-9 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 hover:text-surface-900 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100;
+  }
+  .row-action--danger {
+    @apply inline-flex size-9 items-center justify-center rounded-full text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30;
+  }
+  .row-action--success {
+    @apply inline-flex size-9 items-center justify-center rounded-full text-emerald-700 transition-colors hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30;
+  }
+
+  /* Empty-state icon disc (module-stub idiom, standardized across list
+     empties at CP-3). */
+  .empty-icon {
+    @apply inline-flex size-12 items-center justify-center rounded-full bg-surface-100 text-surface-500 dark:bg-surface-800 dark:text-surface-400;
+  }
+
   /* Shell chrome (owner 2026-07-22, Diamond turn v2 — reference screenshot):
      the sidebar is the tenant's DARK brand panel — `primary-1000` in both
      modes with a rounded right edge and a hairline `primary-800/50` outline —

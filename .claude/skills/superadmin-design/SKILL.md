@@ -59,8 +59,11 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
    stylesheet, not inline brackets (owner, 2026-07-21).
 7. **Tabular/feed data renders as `p-table`** (the customers-list idiom: header/body
    templates, `rowHover`, whole-row click, `[scrollable]` + `scrollHeight` for
-   internal scroll, `emptymessage`) — never hand-rolled `<ol>`/`<div>` row lists
-   (owner, 2026-07-21).
+   internal scroll, `emptymessage` with the `.empty-icon` disc + one sentence, and —
+   since CP-3 (2026-07-22) — `[showLoader]="false"` + a `#loadingbody` of 8
+   `.skeleton`-bar rows instead of the spinner overlay; row-level icon actions use
+   `.row-action`/`--danger`/`--success`) — never hand-rolled `<ol>`/`<div>` row
+   lists (owner, 2026-07-21).
 8. **Simple fixed sizing beats layout machinery.** Fixed card heights + internal
    scroll, page-scoped CSS only — never shell-layout surgery (flex-chain rewiring,
    route-data layout flags) for one page's sizing (owner, 2026-07-21).
