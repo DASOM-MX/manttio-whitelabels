@@ -28,6 +28,10 @@ export type Env = {
    *  materialize a URL only when it is set, so a tenant deploy that hasn't
    *  configured the CDN serves text-only cards instead of `undefined/<key>`. */
   IMAGES_CDN_BASE_URL?: string;
+  /** Public base of the `manttio-contracts` bucket — contract documents
+   *  uploaded via POST /upload/contract; the returned URL is persisted in
+   *  contracts.file_url. Per-deploy, like the other CDN bases. */
+  CONTRACTS_CDN_BASE_URL: string;
   API_BASE_URL: string;
   RESEND_FROM: string;
   /** CDN fronting the shared `branding-fonts` bucket. Optional — until it is
@@ -46,6 +50,8 @@ export type Env = {
    *  brand assets get (owner 2026-07-26): marketing imagery has a different
    *  lifecycle and a different audience from operational report photos. */
   MANTTIO_IMAGES: R2Bucket;
+  /** Contract document bucket (`manttio-contracts`) — separate lifecycle from report data. */
+  MANTTIO_CONTRACTS: R2Bucket;
   /** 1 req/min per-IP throttle on POST /public/leads (Workers rate-limiting
    *  binding). Optional: when absent the throttle is skipped (fail-open). */
   LEADS_RATE_LIMITER?: RateLimit;

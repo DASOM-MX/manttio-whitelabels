@@ -13,6 +13,7 @@ import { customerInteractions } from '../customers/models/customer-interactions.
 import { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 import { reportEmails } from '../reports/models/report-emails.model';
 import { equipment, equipmentReports } from '../equipment/models/equipment.model';
+import { contracts } from '../contracts/models/contracts.model';
 import { notifications } from '../notifications/models/notifications.model';
 import { scheduledVisits, visitEquipment } from '../visits/models/visits.model';
 import { services } from '../services/models/services.model';
@@ -32,6 +33,7 @@ export { customerInteractions } from '../customers/models/customer-interactions.
 export { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 export { reportEmails } from '../reports/models/report-emails.model';
 export { equipment, equipmentReports } from '../equipment/models/equipment.model';
+export { contracts } from '../contracts/models/contracts.model';
 export { cmsDocuments, cmsClients } from '../cms/models/cms.model';
 export { reportTemplates } from '../report-templates/models/report-templates.model';
 export { brand } from '../brand/models/brand.model';
@@ -73,6 +75,7 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
   equipment: many(equipment),
   serviceOrders: many(serviceOrders),
   visits: many(scheduledVisits),
+  contracts: many(contracts),
 }));
 
 export const serviceOrdersRelations = relations(serviceOrders, ({ one, many }) => ({
@@ -118,6 +121,15 @@ export const serviceOrderEventsRelations = relations(serviceOrderEvents, ({ one 
   actor: one(users, {
     fields: [serviceOrderEvents.actorId],
     references: [users.id],
+  }),
+}));
+
+// A contract is standalone-capable: `customerId` is nullable, so imported
+// paper with no client on file still files cleanly (13 §1).
+export const contractsRelations = relations(contracts, ({ one }) => ({
+  customer: one(customers, {
+    fields: [contracts.customerId],
+    references: [customers.id],
   }),
 }));
 
