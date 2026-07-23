@@ -27,6 +27,10 @@ Service {
   description?,
   isListableInWebsite,     // boolean, default false — feeds the future
                            //   public website services section (15 ask)
+  isPriceVisibleInWebsite, // boolean, default false (decided 2026-07-23) — a
+                           //   listed service may show or hide its price on the
+                           //   site; independent of listing. Only meaningful
+                           //   when isListableInWebsite is true
   createdAt, updatedAt     // deletedAt: soft delete only, as everywhere
 }
 ```
@@ -42,7 +46,7 @@ Service {
 |---|---|---|---|---|
 | Read the catalog (pickers) | ✓ | ✓ | ✓ | ✓ᵃ |
 | Create / edit / delete services | ✓ | ✓ | — | — |
-| Toggle `isListableInWebsite` | ✓ | ✓ | — | — |
+| Toggle `isListableInWebsite` / `isPriceVisibleInWebsite` | ✓ | ✓ | — | — |
 
 a. Technicians only ever see service *names* through their assigned reports/orders;
    whether price is redacted for them is an 18 open decision (leaning hide).
@@ -53,9 +57,10 @@ a. Technicians only ever see service *names* through their assigned reports/orde
   website pill, updated) — customers-list idiom, URL-persisted filters (`q`).
   Primary action **Registrar servicio** opens the dialog.
 - `services/components/service-form-dialog/` — shape-3 create/edit: name, price
-  (`p-inputnumber` `mode="currency"` MXN), uom, description, `isListableInWebsite`
-  toggle with helper text ("Aparecerá en la sección de servicios del sitio cuando el
-  sitio la publique").
+  (`p-inputnumber` `mode="currency"` MXN), uom, description, then two website toggles:
+  `isListableInWebsite` ("Aparecerá en la sección de servicios del sitio") and, revealed
+  when it's on, `isPriceVisibleInWebsite` ("Mostrar el precio en el sitio") — progressive
+  disclosure, since price-visibility only matters for a listed service.
 - Delete = confirm dialog (audited soft delete), only when not the last picker option…
   no — deletes never block (global rule); confirm copy just states orders keep their
   history.
@@ -67,8 +72,9 @@ a. Technicians only ever see service *names* through their assigned reports/orde
   (catalog-sized). Any authenticated role (pickers).
 - `GET /services/:id`
 - `POST /services` · `PATCH /services/:id` · `DELETE /services/:id` (soft) — owner/admin.
-- Future (15): `GET /public/services` → published subset (`isListableInWebsite`),
-  price included? — decide with 15.
+- Future (15): `GET /public/services` → published subset (`isListableInWebsite`);
+  each entry includes `price` **only when `isPriceVisibleInWebsite`** (decided
+  2026-07-23 — per-service, not a global switch), otherwise price is omitted.
 
 ## 5. State
 
@@ -100,6 +106,7 @@ a. Technicians only ever see service *names* through their assigned reports/orde
 - `uom` stays free text v1; revisit an option catalog only on real demand.
 - Price visibility for technicians — owned by 18 (leaning hide).
 - Ask to 14: add `services` (and `service-orders`, 18) to the module/role matrix.
-- Ask to 15: public listing shape — with or without prices; per-service description
-  length for cards.
+- ~~Ask to 15: public listing with or without prices~~ — **decided 2026-07-23:**
+  per-service `isPriceVisibleInWebsite` flag (a listed service shows or hides its
+  price independently). Remaining 15 ask: per-service description length for cards.
 - Ask to 09: billing reads order-line snapshots, never the live catalog — confirm.

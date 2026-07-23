@@ -12,7 +12,8 @@ Creating an order also announces itself on the client's CRM timeline (08).
 customers 1 ─── * service_orders 1 ─┬─ * service_order_services * ─── 1 services
                                     ├─ * scheduled_visits   (12 — NOT NULL, order-bound)
                                     ├─ * reports            (06 — exploded + later links)
-                                    └─ * service_order_events  (§7 — the audit trail)
+                                    ├─ * service_order_events  (§7 — the audit trail)
+                                    └─ 0..1 contracts       (13 — order MAY generate one)
 report_templates * ─── 1 services   (06 §5 — fill-time picker prefilter)
 customer_interactions ← system entry on order creation (08)
 ```
@@ -26,14 +27,19 @@ history is what gets **handed to the client at the end of the service**.
 ## 1. Data model (DTO view)
 
 ```
-ServiceOrder {
+ServiceOrder {             // near-immutable — see mutability rules below
   id,                      // uuid PK (decided 2026-07-23 — folio is display-only)
   folio,                   // 'OS-YYYYMMDD-NNNN', unique — own daily counters
                            //   table (service_order_counters, report_counters
                            //   mechanics)
-  customerId,              // required — restrict, never cascade
+  customerId,              // required, immutable — restrict, never cascade
+  location?,               // service site/address (free text v1) — MUTABLE, but
+                           //   owner/admin only (decided 2026-07-23)
   status: 'open' | 'completed' | 'cancelled',
-  title?, notes?,
+  comments?,               // the ONLY freely-mutable field (staff; decided
+                           //   2026-07-23) — everything else is fixed at creation
+  contractId?,             // nullable — a maintenance contract THIS order generated
+                           //   (13); optional, order → contract direction (below)
   createdBy, createdAt, updatedAt   // deletedAt: soft delete only
 }
 ServiceOrderLine {         // table: service_order_services
@@ -48,6 +54,18 @@ ServiceOrderLine {         // table: service_order_services
   createdAt                // unique (serviceOrderId, serviceId)
 }
 ```
+
+**Mutability (decided 2026-07-23).** A service order is fixed at creation except two
+fields: `comments` (any staff role) and `location` (**owner/admin only**). Customer,
+lines, folio, and status-by-endpoint are immutable through `PATCH`. Both mutations
+append an event to the order timeline (§7).
+
+**Contracts — orders generate them, not vice-versa (decided 2026-07-23).** An order
+**may optionally generate** a maintenance contract (13, póliza) — e.g. a one-off job
+that turns into a recurring plan. The direction is order → contract (`contractId` set
+on the order that spawned it); a contract is never a prerequisite for an order. How a
+generated recurring contract then produces future work is a 13 concern (open ask below)
+— this reverses the earlier "contracts generate visits/orders" assumption.
 
 **Extensions to existing tables (all additive):**
 
@@ -102,11 +120,14 @@ Lifecycle notes:
 |---|---|---|---|---|
 | List/read orders | ✓ | ✓ | ✓ | ✓ᵃ |
 | Create orders (explosion included) | ✓ | ✓ | ✓ | — |
-| Edit title/notes · change status | ✓ | ✓ | ✓ | — |
-| See line prices | ✓ | ✓ | ✓ | open decision (leaning hide) |
+| Edit **comments** · change status | ✓ | ✓ | ✓ | — |
+| Edit **location** | ✓ | ✓ | — | — |
+| Generate a contract from an order (13) | ✓ | ✓ | — | — |
+| See line prices | ✓ | ✓ | ✓ | hidden (decided 2026-07-23) |
 
 a. Technicians reach orders through their assigned visits/reports (context header),
-   not a browsing need — nav entry is staff-only.
+   not a browsing need — nav entry is staff-only. Technician-facing responses omit
+   money (line/unit prices) entirely (decided 2026-07-23).
 
 ## 4. Expected API surface
 
@@ -115,11 +136,15 @@ a. Technicians reach orders through their assigned visits/reports (context heade
   reports (folio/status/assignee) + visits (12 shape)
 - `GET /service-orders/:id/timeline` → resolved `service_order_events` (§7),
   oldest-first — the order-view activity feed + the handoff document source
-- `POST /service-orders` — `{ customerId, title?, notes?, lines: [{ serviceId,
+- `POST /service-orders` — `{ customerId, location?, comments?, lines: [{ serviceId,
   quantity, technicianId, reportType }] }` → the §2 transaction
-- `PATCH /service-orders/:id` — title/notes only
+- `PATCH /service-orders/:id` — `comments` (any staff) and/or `location` (**owner/admin
+  only** — 403 for office); both audited to the timeline. No other field is patchable.
 - `POST /service-orders/:id/status` — `{ status }` (complete/cancel, confirm-heavy);
   `completed` yields the client handoff document (§7)
+- `POST /service-orders/:id/contract` — owner/admin: optionally generate a maintenance
+  contract from this order (13); sets `contractId`, logs `order_contract_generated`.
+  Blocked on 13.
 - `GET /customers/:id/service-orders` — customer-view card (07 slot — ask)
 - Lines are immutable after creation in v1 (open decision) — no line endpoints.
 
@@ -165,8 +190,9 @@ ServiceOrderEvent {            // table: service_order_events (append-only)
 ```
 
 **Event types (v1):**
-- Order: `order_created`, `order_line_added`, `order_status_changed`,
-  `order_completed`, `order_cancelled`.
+- Order: `order_created`, `order_line_added`, `order_comment_updated`,
+  `order_location_changed` (changes `location {from,to}`), `order_status_changed`,
+  `order_completed`, `order_cancelled`, `order_contract_generated` (refId → contract).
 - Visit (from 12, logged here not on the visit): `visit_created`,
   `visit_reassigned` (changes `technicianId {from,to}`), `visit_corrected`,
   `visit_completed`, `visit_closed` (note = category + reason), `visit_rescheduled`
@@ -254,10 +280,15 @@ one is "something happened with this client", the order one is the job's full hi
   divider (recommended) vs exact-only.
 - Line mutability: immutable v1 (recommended) vs add/remove lines on open orders
   (would need explosion deltas + audit).
-- Technician price visibility (leaning hide — reports/visits never show money).
+- ~~Technician price visibility~~ — **decided 2026-07-23: hidden.** Technician-facing
+  responses omit line/unit prices entirely.
 - Order creation UX: dialog with lines builder vs dedicated page — decide when CP-2
   starts.
-- Ask to 13: contracts generate *orders* (which explode visits/reports) instead of
-  bare visits — reconcile with 13 §1 when contracts resume.
+- **Order → contract direction — decided 2026-07-23:** an order MAY generate a
+  contract (13); a contract never generates an order (reverses the earlier
+  assumption). **13 open ask:** how does a generated *recurring* póliza then produce
+  future work — does the contract spawn periodic orders (which re-explode visits/
+  reports), or is each period a fresh manual order tagged with the `contractId`?
+  Reconcile in 13 §1 when contracts resume.
 - Ask to 07: "Órdenes de servicio" card slot on customer view.
 - Ask to 14: `service-orders` module row in the matrix.
