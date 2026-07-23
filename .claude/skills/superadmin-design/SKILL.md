@@ -10,10 +10,12 @@ Typography, Design language, Accessibility, Layout & responsive, Animations, and
 Forms & feedback sections — if they disagree, the plan file wins and this skill needs
 updating in the same commit).
 
-The look (revised 2026-07-22 — Purity-style **soft UI** reference): a confident
-operations console of white `rounded-2xl` cards floating on the tinted page background
-with soft neutral shadows, brand-accent chips, airy chrome around dense data, strong
-status cues, and restrained motion — never decoration.
+The look (revised 2026-07-22, plan 17 — **soft-executive**): a clean, breathable
+business console — stock PrimeNG Aura chrome carried on the soft personality: white
+`rounded-2xl` cards floating on the tinted page background with soft neutral shadows,
+pill actions, brand-accent chips, airy chrome around dense data, strong status cues,
+and restrained motion — never decoration. (Supersedes the field-app-derived
+"solid & tight" density heritage; WCAG contrast rules are untouched.)
 
 ## Hard rules (non-negotiable)
 
@@ -25,9 +27,9 @@ status cues, and restrained motion — never decoration.
    filled/duotone sets, never inline SVG one-offs when a Lucide glyph exists.
    Defaults: `size-4` inline with text, `size-5` in nav/buttons-only contexts,
    stroke-width 2 everywhere (don't vary it per icon).
-3. **Typeface is Nunito Sans** (variable, self-hosted
-   `@fontsource-variable/nunito-sans`; owner 2026-07-22 — supersedes
-   Quicksand/Commissioner).
+3. **Typeface is Figtree** (variable, self-hosted
+   `@fontsource-variable/figtree`; owner 2026-07-22, plan 17 — supersedes
+   Nunito Sans/Quicksand/Commissioner).
    400 body · 500 labels/buttons · 600–700 headings. Numeric table/money cells use the
    `font-data` stack with `tnum` (Atkinson Hyperlegible head — unchanged).
    Self-hosted only — never `fonts.googleapis.com`.
@@ -59,6 +61,12 @@ status cues, and restrained motion — never decoration.
 8. **Simple fixed sizing beats layout machinery.** Fixed card heights + internal
    scroll, page-scoped CSS only — never shell-layout surgery (flex-chain rewiring,
    route-data layout flags) for one page's sizing (owner, 2026-07-21).
+9. **PrimeNG chrome is preset-first** (owner 2026-07-22, plan 17): component look
+   comes from **stock Aura + `ManttioPreset` design tokens**
+   (`app/theme/manttio-preset.ts`) — never a new override sheet in `src/theme/`.
+   The only surviving sheets are layout-integration rules and house visual cues no
+   token can express (`forms`, `overlays`, `tag`, `table`, `popover`, `tabs` — each
+   opens with why it exists); adding one requires the same justification.
 
 ## Density — low-to-mid whitespace
 
@@ -67,8 +75,8 @@ status cues, and restrained motion — never decoration.
   chrome; still a deliberate deviation from the frontend's `h-14`). Text 16px below
   `sm`, `text-sm` from `sm` up. Compact contexts (paginator rows-per-page, dropdown
   filter inputs) opt down to `!h-9`.
-- Cards: `p-5` (soft-UI turn 2026-07-22). Section gaps `gap-4`/`gap-5`. Page gutters
-  `px-4 md:px-6`. Airy chrome, dense data.
+- Cards: `p-6` (plan 17 breathable rhythm — supersedes the soft-UI turn's `p-5`).
+  Section gaps `gap-5`/`gap-6`. Page gutters `px-4 md:px-6`. Airy chrome, dense data.
 - Tables are compact: `py-2.5` cells, 13–14px cell text, header row as a
   micro-label (see cues below).
 - Prefer one dense, well-grouped screen over two airy ones — but never sacrifice the
@@ -99,8 +107,9 @@ status cues, and restrained motion — never decoration.
   those classes emit no CSS). Sole literal-hex island: the static role-pill ladder
   (`.role-pill--*` in `styles.scss`).
 - **Blob buttons** (owner, 2026-07-21): actions are smooth pills — the `.btn` family
-  is `rounded-full` (`px-5`), icon-only buttons are full circles; PrimeNG buttons,
-  paginator pages, and close buttons follow via `.btn` inheritance + theme sheets.
+  is `rounded-full` (`px-5`), icon-only buttons are full circles; paginator pages
+  follow via `table.scss`, and any future `<p-button>` via the preset's button
+  `borderRadius` token (plan 17 — the old button sheet is retired).
   The shell nav rides the same pill language (`.nav-item`/`.nav-child`
   `rounded-full`; extended 2026-07-22). Boundary: inputs stay `rounded-lg`,
   cards `rounded-2xl`, icon chips `rounded-xl`.
@@ -336,3 +345,5 @@ durations in components:
 - [ ] Status rendered as pills; numeric columns `font-data`/tnum
 - [ ] Motion uses `MOTION` tokens + reduced-motion guard
 - [ ] Global classes (`.field-input`, `.btn-*`, `.card`) reused, not re-implemented
+- [ ] No new `src/theme/` sheets — PrimeNG chrome via `ManttioPreset` tokens
+      (a sheet only for layout-integration, opening with why it exists)

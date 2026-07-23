@@ -1,0 +1,35 @@
+/* Form-field baseline — the one surviving *form* sheet (plan 17 CP-1,
+   preset-first): stock Aura owns all chrome (colors, borders, radius, focus
+   states — expressed through ManttioPreset design tokens). This sheet holds
+   only what no design token can express: the responsive control baseline
+   (01 Styling — 40px desk / 44px touch, 16px text below `sm` against iOS
+   auto-zoom) and the block-level width defaults our form grids assume
+   (stock roots are inline-flex/content-sized). */
+.p-inputtext,
+.p-select,
+.p-multiselect {
+  @apply w-full h-11 sm:h-10 text-base sm:text-sm;
+}
+
+/* Composite wrappers span their grid cell like every other control. */
+.p-password,
+.p-datepicker,
+.p-inputnumber {
+  @apply w-full;
+}
+.p-inputnumber-input {
+  @apply w-full font-data tabular-nums;
+}
+
+/* Textareas grow with their rows — undo the fixed baseline, keep a floor. */
+.p-textarea {
+  @apply w-full !h-auto min-h-28 text-base sm:text-sm;
+}
+
+/* Compact opt-downs (01 Styling): filter inputs inside dropdown overlays sit
+   tighter than the page baseline. (The paginator's rows-per-page compact
+   lives in table.scss with the rest of the paginator.) */
+.p-select-filter,
+.p-multiselect-filter {
+  @apply text-sm !h-9;
+}

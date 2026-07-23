@@ -1,15 +1,14 @@
-/* Superadmin global styles — ported from `frontend/src/styles.scss` at the
-   compact "solid & tight" scale (01-conventions Design language). Deliberate
-   deviations from frontend: Nunito Sans (not Inter), `.field-input` h-12
-   (not h-14), borders-not-shadows card chrome, lucide icons (no PrimeIcons). */
+/* Superadmin global styles — the "soft-executive" scale (01-conventions
+   Design language; plan 17). Deliberate deviations from frontend: Figtree
+   (not Inter), `.field-input` h-11/h-10 (not h-14), floating shadow-card
+   surfaces, lucide icons (no PrimeIcons). */
 
-/* Self-hosted fonts — no CDN, ever (offline, CSP, no FOUT). Nunito Sans
-   Variable is the product voice (owner 2026-07-22 — supersedes Quicksand,
-   which superseded Commissioner the same day; rounded terminals keep the
-   blob-language warmth with better body-text legibility); Atkinson
-   Hyperlegible backs the numeric `font-data` stack (01 Typography
-   fallback). */
-@import '@fontsource-variable/nunito-sans';
+/* Self-hosted fonts — no CDN, ever (offline, CSP, no FOUT). Figtree
+   Variable is the product voice (owner 2026-07-22, plan 17 — supersedes
+   Nunito Sans, which superseded Quicksand/Commissioner; geometric-clean
+   with a touch of warmth for the executive turn); Atkinson Hyperlegible
+   backs the numeric `font-data` stack (01 Typography fallback). */
+@import '@fontsource-variable/figtree';
 @import '@fontsource/atkinson-hyperlegible/400.css';
 @import '@fontsource/atkinson-hyperlegible/700.css';
 
@@ -20,7 +19,9 @@
 /* Motion tokens + keyframes (Angular `animate.enter`/`animate.leave` classes). */
 @import './animations';
 
-/* PrimeNG component theme (per-component sheets in src/theme/*) */
+/* PrimeNG theme layer — preset-first (plan 17): stock Aura chrome via the
+   ManttioPreset tokens; src/theme/* holds only the surviving integration
+   sheets. */
 @import './theme/index';
 
 @layer base {
@@ -104,7 +105,9 @@
     @apply bg-white rounded-2xl shadow-card dark:bg-surface-900;
   }
   .card-section {
-    @apply bg-white rounded-2xl shadow-card p-5 dark:bg-surface-900;
+    // p-6 since plan 17 (breathable executive rhythm — air lives in the
+    // chrome, data stays dense inside tables).
+    @apply bg-white rounded-2xl shadow-card p-6 dark:bg-surface-900;
   }
   .app-dark .card,
   .app-dark .card-section {

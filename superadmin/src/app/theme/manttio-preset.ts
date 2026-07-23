@@ -46,12 +46,62 @@ const brandScale = (name: 'primary' | 'surface', hue: number, saturation: number
 
 const surface = { 0: '#FFFFFF', ...brandScale('surface', 0, 0) };
 
+/* Preset-first chrome (plan 17, owner 2026-07-22): component shape/spacing
+ * decisions live HERE as design tokens, not in override sheets — a value we
+ * would have put in a sheet goes in a token whenever Aura exposes one. The
+ * only surviving sheets in `src/theme/` are layout-integration rules and
+ * house visual cues no token can express (see `src/theme/_index.scss`). */
 export const ManttioPreset = definePreset(Aura, {
   semantic: {
     primary: brandScale('primary', 220, 10),
-    colorScheme: {
-      light: { surface },
-      dark: { surface },
+    // Inputs sit on the house rounded-lg + px-3.5. Responsive heights/text
+    // stay in `src/theme/forms.scss` — no token is breakpoint-aware.
+    formField: {
+      paddingX: '0.875rem',
+      borderRadius: '{border.radius.lg}',
     },
+    colorScheme: {
+      light: {
+        surface,
+        // Interactive solids anchor at 600/700/800 like `.btn-primary` —
+        // white on 400/500 doesn't clear 4.5:1 (01 Accessibility).
+        primary: {
+          color: '{primary.600}',
+          contrastColor: '#ffffff',
+          hoverColor: '{primary.700}',
+          activeColor: '{primary.800}',
+        },
+        // Field chrome converges on `.field-input`'s constants so raw inputs
+        // and PrimeNG controls read identically side-by-side.
+        formField: {
+          borderColor: '{surface.200}',
+          hoverBorderColor: '{surface.300}',
+          focusBorderColor: '{primary.700}',
+        },
+      },
+      dark: {
+        surface,
+        primary: {
+          color: '{primary.600}',
+          contrastColor: '#ffffff',
+          hoverColor: '{primary.500}',
+          activeColor: '{primary.400}',
+        },
+        formField: {
+          background: '{surface.900}',
+          borderColor: '{surface.700}',
+          focusBorderColor: '{primary.400}',
+        },
+      },
+    },
+  },
+  components: {
+    // Blob-pill actions (01 shape boundary: buttons rounded-full) — native
+    // buttons get it from `.btn`; this keeps any future <p-button> in the
+    // same language.
+    button: { root: { borderRadius: '9999px', paddingX: '1.25rem' } },
+    // Overlay panels ride the card radius language (cards rounded-2xl,
+    // dialogs one step under).
+    dialog: { root: { borderRadius: '1rem' } },
   },
 });

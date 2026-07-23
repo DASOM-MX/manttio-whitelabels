@@ -33,6 +33,9 @@ Aura + manttio preset; Tailwind 3.4). Canonical docs — read these first:
 - **Motion = Angular `animate.enter`/`animate.leave` + `src/animations.scss` tokens**
   — no anime.js, no ad-hoc keyframes in components; everything collapses under
   `prefers-reduced-motion`.
+- **PrimeNG chrome is preset-first (plan 17):** stock Aura + `ManttioPreset` design
+  tokens — never a new `src/theme/` override sheet for looks; sheets are only for
+  layout-integration or house cues, and every one opens with why it exists.
 - **List pages persist filters + page as URL query params** (`queryParamMap` is the
   single load path — users-list is canon). Filter fields render inside the shared
   `filters-popover` (trigger left of the page's primary action; no `appendTo="body"`

@@ -33,6 +33,7 @@ then its own file, and touches no other module's code.
 | 14 | `14-access-control.md` | Roles + tenant-config gating matrix (reference, binding for all modules) | — |
 | 15 | `15-website.md` | Public tenant website: consumes published CMS + brand (reads only — `website/` package work, not superadmin code) | 03, 04 |
 | 16 | `16-semantic-brand-colors.md` | Semantic Tailwind color classes (`primary-*`/`surface-*` replace `sky`/`granite`/`navy`/`cyan`) across frontend + superadmin + website | **everything — deferred closing sweep, runs last** |
+| 17 | `17-executive-refresh.md` | Whole-app UI/UX refresh: preset-first stock Aura + "soft-executive" language + Figtree, breathable executive rhythm | shipped surfaces (02–08, 11); **runs mid-suite, before 09/10/12/13** |
 
 Build order **is numeric order** (renumbered 2026-07-05: branding and CMS are separate,
 independent modules — 03/04 — and access-control moved to 14 as pure reference).
@@ -45,7 +46,10 @@ contracts generate visits, so the calendar's entity must exist first. **15** (th
 public website) is consumer-side `website/` work — it can start once 03's brand read
 path and 04's publish flow exist backend-side; it never blocks a superadmin module.
 **16** is the deferred closing sweep (decided 2026-07-15): strictly last, after the whole
-MVP ships — do not start it alongside module work.
+MVP ships — do not start it alongside module work. **17** (executive refresh) is the one
+sanctioned out-of-order insertion (owner 2026-07-22): it runs immediately after PR #88
+merges and **before 09/10/12/13 start**, so the remaining modules are authored in the
+refreshed language instead of being restyled later.
 
 ---
 
@@ -101,7 +105,8 @@ Rules for agents:
 | 13 contracts | not-started | — |
 | 14 access-control | done (doc) | — |
 | 15 website | in-progress · PR #44 | CP-2 |
-| 16 semantic-brand-colors | planned (doc) — **deferred, runs last (post-MVP)** | — |
+| 16 semantic-brand-colors | superadmin leg (PR-2) **done** — front-run 2026-07-21, PR #87; frontend/website legs deferred, run last (post-MVP) | — |
+| 17 executive-refresh | planned (doc) — **runs next, after PR #88 merges** | — |
 
 *(Owning agents update their row when they update their file's status header.)*
 
