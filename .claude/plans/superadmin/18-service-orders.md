@@ -155,10 +155,12 @@ a. Technicians reach orders through their assigned visits/reports (context heade
 - `service-orders/pages/order-view/` — header (folio, client link, status actions),
   lines card, exploded-reports card (status pills, link out), visits card with
   **Programar visita** (opens 12's dialog with the order locked).
-- `service-orders/components/order-form-dialog/` — shape-3 create: client select →
-  lines builder (service select + quantity + technician + reportType per line, add/
-  remove rows, running total) — the heaviest dialog yet; consider a full page if it
-  fights the dialog shape (open decision).
+- `service-orders/pages/order-builder/` — **dedicated create page** (decided
+  2026-07-23, not a dialog — too heavy for the shape-3 idiom): client select + location
+  + comments, then the lines builder (service select + quantity + technician +
+  reportType per row, add/remove rows, per-line + running total), and a review/confirm
+  before the create transaction (which explodes the reports). Route
+  `/service-orders/new`; "Nueva orden" on the list navigates here, not a dialog.
 - Customer view (07): "Órdenes de servicio" card.
 - Nav: **Negocio → Órdenes** (`module: 'service-orders'`, staff only).
 
@@ -233,8 +235,8 @@ one is "something happened with this client", the order one is the job's full hi
 
 ### CP-2 — Superadmin: orders UI
 - [ ] DTOs + `ServiceOrdersState` + http service
-- [ ] Orders list (URL filters) + create dialog (lines builder) + order view with the
-      **activity timeline feed** (§7)
+- [ ] Orders list (URL filters) + **order-builder page** (lines builder, `/new`) +
+      order view with the **activity timeline feed** (§7)
 - [ ] Nav + module keys; customer-view card (07 ask)
 
 ### CP-3 — Calendar rewire (closes 12 CP-1/CP-2 UI, immutable-record model)
@@ -282,8 +284,9 @@ one is "something happened with this client", the order one is the job's full hi
   (would need explosion deltas + audit).
 - ~~Technician price visibility~~ — **decided 2026-07-23: hidden.** Technician-facing
   responses omit line/unit prices entirely.
-- Order creation UX: dialog with lines builder vs dedicated page — decide when CP-2
-  starts.
+- ~~Order creation UX: dialog vs dedicated page~~ — **decided 2026-07-23: dedicated
+  builder page** (`/service-orders/new`); the multi-line builder is too heavy for the
+  shape-3 dialog idiom.
 - **Order → contract direction — decided 2026-07-23:** an order MAY generate a
   contract (13); a contract never generates an order (reverses the earlier
   assumption). **13 open ask:** how does a generated *recurring* póliza then produce
