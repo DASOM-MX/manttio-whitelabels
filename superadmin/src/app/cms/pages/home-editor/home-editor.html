@@ -38,6 +38,9 @@
                 >Título<span aria-hidden="true"> *</span></label
               >
               <input id="cms-title" pInputText formControlName="title" />
+              @if (form.controls.title.touched && form.controls.title.errors?.['required']) {
+                <p class="field-error" role="alert">Ingresa el título.</p>
+              }
               <p class="field-hint">
                 El rotador de audiencias lo completa (p. ej. «… para plantas»).
               </p>
@@ -53,6 +56,12 @@
                 formControlName="description"
                 rows="3"
               ></textarea>
+              @if (
+                form.controls.description.touched &&
+                form.controls.description.errors?.['required']
+              ) {
+                <p class="field-error" role="alert">Ingresa la descripción.</p>
+              }
             </div>
 
             <div class="field-group">
@@ -152,6 +161,12 @@
                 >Título de la sección<span aria-hidden="true"> *</span></label
               >
               <input id="cms-sc-title" pInputText formControlName="title" />
+              @if (
+                form.controls.services_content.controls.title.touched &&
+                form.controls.services_content.controls.title.errors?.['required']
+              ) {
+                <p class="field-error" role="alert">Ingresa el título de la sección.</p>
+              }
             </div>
             <div class="field-group">
               <label class="field-label" for="cms-sc-description"
@@ -163,6 +178,12 @@
                 formControlName="description"
                 rows="2"
               ></textarea>
+              @if (
+                form.controls.services_content.controls.description.touched &&
+                form.controls.services_content.controls.description.errors?.['required']
+              ) {
+                <p class="field-error" role="alert">Ingresa la descripción de la sección.</p>
+              }
             </div>
           </div>
 

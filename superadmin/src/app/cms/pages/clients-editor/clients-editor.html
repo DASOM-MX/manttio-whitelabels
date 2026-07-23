@@ -87,6 +87,9 @@
     <div class="field-group">
       <label class="field-label" for="client-name">Nombre<span aria-hidden="true"> *</span></label>
       <input id="client-name" pInputText formControlName="name" />
+      @if (form.controls.name.touched && form.controls.name.errors?.['required']) {
+        <p class="field-error" role="alert">Ingresa el nombre del cliente.</p>
+      }
     </div>
     <div class="field-group">
       <label class="field-label" for="client-legal">Razón social</label>

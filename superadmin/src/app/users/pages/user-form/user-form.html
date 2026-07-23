@@ -142,6 +142,9 @@
             >Nombre<span aria-hidden="true"> *</span></label
           >
           <input id="user-name" pInputText formControlName="name" autocomplete="given-name" />
+          @if (form.controls.name.touched && form.controls.name.errors?.['required']) {
+            <p class="field-error" role="alert">Ingresa el nombre.</p>
+          }
         </div>
         <div class="field-group">
           <label class="field-label" for="user-paternal-last-name"
@@ -153,6 +156,12 @@
             formControlName="paternalLastName"
             autocomplete="family-name"
           />
+          @if (
+            form.controls.paternalLastName.touched &&
+            form.controls.paternalLastName.errors?.['required']
+          ) {
+            <p class="field-error" role="alert">Ingresa el apellido paterno.</p>
+          }
         </div>
         <div class="field-group">
           <label class="field-label" for="user-maternal-last-name"
@@ -164,6 +173,12 @@
             formControlName="maternalLastName"
             autocomplete="additional-name"
           />
+          @if (
+            form.controls.maternalLastName.touched &&
+            form.controls.maternalLastName.errors?.['required']
+          ) {
+            <p class="field-error" role="alert">Ingresa el apellido materno.</p>
+          }
         </div>
         <div class="field-group">
           <label class="field-label" for="user-email"
@@ -176,6 +191,11 @@
             formControlName="email"
             autocomplete="email"
           />
+          @if (form.controls.email.touched && form.controls.email.errors?.['required']) {
+            <p class="field-error" role="alert">Ingresa el correo.</p>
+          } @else if (form.controls.email.touched && form.controls.email.errors?.['email']) {
+            <p class="field-error" role="alert">Ingresa un correo válido.</p>
+          }
         </div>
         <div class="field-group">
           <label class="field-label" for="user-phone">Teléfono</label>

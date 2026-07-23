@@ -97,6 +97,9 @@
       <div class="field-group">
         <label class="field-label" for="tpl-name">Nombre<span aria-hidden="true"> *</span></label>
         <input id="tpl-name" pInputText formControlName="name" />
+        @if (form.controls.name.touched && form.controls.name.errors?.['required']) {
+          <p class="field-error" role="alert">Ingresa el nombre de la plantilla.</p>
+        }
       </div>
       <div class="field-group">
         <label class="field-label" for="tpl-description">Descripción</label>
