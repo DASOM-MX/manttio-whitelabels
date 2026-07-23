@@ -18,6 +18,7 @@ import { REPORT_STATUS_LABELS } from '../../../model/constants/report/report-sta
 import { ReportStatusLabelPipe, ReportStatusSeverityPipe } from '../../../pipes/report-status.pipe';
 import { DeleteReportDialog } from '../../components/delete-report-dialog/delete-report-dialog';
 import { FiltersPopover } from '../../../shared/components/filters-popover/filters-popover';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { ReportListQuery, ReportStatus, ReportSummary } from '../../../data/dtos/report';
 
 /** Reports browser (06 §3). Technicians get the exact same page as
@@ -41,6 +42,7 @@ import type { ReportListQuery, ReportStatus, ReportSummary } from '../../../data
     ReportStatusSeverityPipe,
     DeleteReportDialog,
     FiltersPopover,
+    PageHeader,
     LucideEye,
     LucideTrash2,
     LucideFileText,

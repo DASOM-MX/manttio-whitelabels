@@ -4,7 +4,7 @@
    not a pill. Intentionally vibrant in both light and dark modes (01 Dark
    mode: pills unchanged). */
 .p-tag {
-  @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium;
 
   &.p-tag-success {
     @apply bg-emerald-100 text-emerald-900 ring-1 ring-emerald-300;

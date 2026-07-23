@@ -1,20 +1,15 @@
-<div class="flex flex-wrap items-start justify-between gap-3">
-  <div>
-    <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">CMS — Clientes</h1>
-    <p class="mt-1 text-sm text-surface-600 dark:text-surface-400">
-      Los clientes y logotipos que muestra tu sitio. Publica para hacer visibles los cambios.
-    </p>
-  </div>
-  <div class="flex flex-wrap items-center gap-3">
+<app-page-header
+  title="CMS — Clientes"
+  description="Los clientes y logotipos que muestra tu sitio. Publica para hacer visibles los cambios."
+>
     <app-publish-bar [unpublished]="unpublished()" [busy]="busy()" (publish)="publish()" />
     <button type="button" class="btn-primary" (click)="openCreate()">
       <svg lucidePlus class="size-4" aria-hidden="true"></svg>
       Nuevo cliente
     </button>
-  </div>
-</div>
+</app-page-header>
 
-<div class="mt-5">
+<div>
   <p-table [value]="clients()" [loading]="loading()" dataKey="id">
     <ng-template #header>
       <tr>

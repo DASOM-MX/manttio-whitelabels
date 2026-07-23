@@ -14,6 +14,7 @@ import {
 import { CUSTOMER_SOURCE_LABELS } from '../../../model/constants/customer/customer-source-labels.const';
 import { InteractionTypeIconPipe, InteractionTypeLabelPipe } from '../../../pipes/interaction.pipe';
 import { RelativeTimePipe } from '../../../pipes/relative-time.pipe';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { IntakeStats } from '../../../data/dtos/customer-stats';
 import type {
   PanelPeriodLabels,
@@ -98,6 +99,7 @@ const fmtDelta = (n: number): string => (n > 0 ? `+${n}` : `${n}`);
     RouterLink,
     ChartModule,
     TableModule,
+    PageHeader,
     LucideDynamicIcon,
     LucideTrendingUp,
     InteractionTypeIconPipe,
@@ -146,6 +148,15 @@ export class CrmDashboard {
   protected readonly periodLabels = computed<PanelPeriodLabels | null>(() => {
     const stats = this.stats();
     return stats ? buildPeriodLabels(stats) : null;
+  });
+
+  /** Header description (plan 17 §5 page-header pattern): the period line
+   *  when stats are in — a computed, never an inline chain in the binding. */
+  protected readonly headerDescription = computed(() => {
+    const labels = this.periodLabels();
+    return labels
+      ? `Captación por canal — ${labels.current} contra ${labels.previous}.`
+      : 'Captación y actividad de tus clientes.';
   });
 
   protected readonly totals = computed<PanelTotalsVM | null>(() => {

@@ -28,7 +28,11 @@ before writing any component.
 - Stacks in `tailwind.config.js`:
   `sans: ['"Figtree Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif']`,
   plus a `data` stack for numeric table/money columns. Weights: **400 body ·
-  500 labels/buttons · 600–700 headings**.
+  500 labels/buttons/headings** (owner 2026-07-22, "too bold — cleaner look":
+  headings dropped from 600–700 to 500 — size + tracking carry hierarchy, and
+  solid fills carry active states with no weight bump. 600+ is reserved for the
+  wordmark and rare emphasis, e.g. the tiny sort-order badge; never routine
+  chrome).
 - **Tabular numerals:** data cells set `font-feature-settings: 'tnum'`.
   **Resolved at CP-2 (2026-07-06): the product voice's tnum can't be trusted**
   (Commissioner's was a no-op — digit widths measured unequal with the feature on),
@@ -54,11 +58,22 @@ auto-loads it — **edit both in the same commit.**
   goes in a token whenever Aura exposes one. See the PrimeNG section for the
   surviving-sheet rules.
 - **Density (breathable — plan 17, supersedes the soft-UI turn's `p-5`):** cards
-  `p-6`; section gaps `gap-5`/`gap-6`; tables stay compact (`py-2.5` cells, 13–14px
+  `p-6`; section gaps `gap-5`/`gap-6`; page gutters `px-4 sm:px-6 md:px-8` with
+  `py-6` (shell-owned, CP-2); tables stay compact (`py-2.5` cells, 13–14px
   text). Airy chrome, dense data — the air lives at the page level, never inside
   the data.
+- **Page-header pattern (plan 17 §5, CP-2):** every routed page opens with the
+  shared `shared/components/page-header` (`app-page-header`) — the page's single
+  `h1` (`text-2xl font-semibold tracking-tight`), optional muted description,
+  optional `backLink`/`backLabel` (detail/form pages), a `meta` slot for status
+  tags beside the title, and the default slot for right-aligned actions (the
+  filters-popover trigger stays left of the primary action). The component owns
+  the `mb-6` under-header rhythm — pages never hand-roll an `<h1>` row.
+  Title-only by default: no breadcrumbs (the two-level nav already locates you;
+  owner may opt in later). Dynamic titles/descriptions bind computeds or signal
+  ternaries, never method calls.
 - **Soft elevation (owner, 2026-07-22 — Purity-style soft-UI reference; supersedes
-  borders-not-shadows):** cards are white `rounded-2xl` surfaces floating on the tinted
+  borders-not-shadows):** cards are white `rounded-card` surfaces floating on the tinted
   page background with a soft neutral shadow (`.card`/`.card-section` → `shadow-card`);
   hairline borders retire to *internal* dividers and nested grouping. The shell keeps
   its 2026-07-21 chrome shadows (`.shell-sidebar`/`.shell-topbar`). Shadows are always
@@ -77,20 +92,32 @@ auto-loads it — **edit both in the same commit.**
 - **Stat cards (reference idiom):** micro-label + `font-data` value + delta
   (`text-emerald-600`/`text-red-600`, sign always shown) with an `.icon-chip` on the
   trailing edge; timelines pair small accent icons with micro-label timestamps.
-- **Blob buttons (owner, 2026-07-21):** actions are smooth, almost blob-like — the
-  `.btn` family is a pill (`rounded-full`, `px-5` so text clears the curve) and
-  icon-only buttons are full circles (`rounded-full`); paginator pages follow via
-  `table.scss`, and any future `<p-button>` via the preset's button `borderRadius`
+- **Default-PrimeNG buttons (owner 2026-07-22: "blob-like buttons do not look
+  clean" — supersedes the 2026-07-21 blob/pill buttons):** actions are
+  `rounded-control` rectangles at the input radius, stock-Aura `px-4` — the
+  `.btn` family carries it, paginator pages follow via `table.scss`, and any
+  future `<p-button>` via the preset's button `borderRadius: {border.radius.lg}`
   token (plan 17 — the old button sheet is retired; dialog/drawer/toast close
-  buttons render stock). The shell nav rides the same pill language
-  (`.nav-item`/`.nav-child` `rounded-full`; extended 2026-07-22). **Boundary:**
-  inputs (`.field-input`, icon-picker trigger) keep `rounded-lg`, cards
-  `rounded-2xl`, icon chips `rounded-xl`.
+  buttons render stock). **Ghost icon-only buttons in chrome (topbar
+  bell/theme/menu, avatars) stay circles** — they read as chrome, not actions.
+  Nav rows are flat `rounded-control` (Diamond turn, owner 2026-07-22).
+  **Boundary (tokenized 2026-07-22, § Styling):** inputs/buttons/nav
+  `rounded-control`, cards/dialogs `rounded-card`, icon chips + popovers
+  `rounded-chip`, status/role pills + chrome icon-circles `rounded-full`.
+- **Condensed button copy (owner 2026-07-22: "Guardar y aplicar is just too
+  long"):** action labels are the bare verb wherever context disambiguates —
+  "Guardar", not "Guardar cambios"/"Guardar borrador"/"Guardar y aplicar"
+  (draft-vs-publish stays clear because "Publicar" sits alongside). Qualify
+  only when two same-verb actions share a view.
 - **Strong cues:** status pills wherever state exists (never color alone); active nav =
-  **elevated white pill** (`.nav-active`/`.nav-group-active` + `shadow-card`) with the
-  group's icon chip flipped to filled `primary-400` (`.nav-chip`; owner 2026-07-22,
-  Purity reference — supersedes the solid-primary block, which superseded the accent
-  bar); micro-labels (`text-2xs font-medium`) for
+  **Diamond-style flat rows on the dark brand panel** (owner 2026-07-22, Diamond turn
+  v2 per reference screenshot — supersedes the elevated-pill/chip nav, which
+  superseded the solid-primary block): the sidebar is `primary-1000` in **both
+  modes** with a rounded right edge and hairline `primary-800/50` outline;
+  light-on-dark `rounded-control` rows (`primary-100`/`200` text, `primary-300`
+  `.nav-icon`s), hover `white/10`, active child = solid `primary-600` row with white
+  text (`.nav-active`), active-trail group = white text/icon (`.nav-group-active`),
+  no shadows inside the nav; micro-labels (`text-2xs font-medium`) for
   card/section/table headers — **title/sentence case, never uppercase** (QA 2026-07-07:
   uppercase is reserved for warnings or explicit requests; headings/labels render in
   their authored case);
@@ -188,6 +215,14 @@ Binding for every component; the skill carries the same list with implementation
 
 - **Tailwind CSS 3.4 only.** Do not upgrade or downgrade. If a new utility/class is needed,
   add it to `tailwind.config.js` (extend `theme`) rather than using arbitrary values inline.
+- **Radius language is tokenized (owner 2026-07-22, plan 17):** `rounded-card`
+  (1rem — cards, panels, dialogs, table shells; the sidebar edge is
+  `rounded-r-card`) · `rounded-chip` (0.75rem — icon chips, popovers) ·
+  `rounded-control` (0.5rem — inputs, **buttons** (2026-07-22, default-PrimeNG
+  turn), nav rows, small in-card surfaces) · `rounded-full` (status/role pills +
+  chrome icon-circles only). New chrome uses these — never raw
+  `rounded-lg`/`xl`/`2xl`; page templates migrate as the plan 17 CP-3..5
+  passes touch them. Values mirror the preset's `border.radius` tokens.
 - Prefer `size-*` over paired `w-*`/`h-*` when width and height are equal
   (e.g. `w-4 h-4` → `size-4`).
 - **Never** use inline `style="..."` attributes (or `[style]` / `[ngStyle]`) in templates.
@@ -211,9 +246,17 @@ Binding for every component; the skill carries the same list with implementation
   disabled/focus states; re-implementing them in templates almost always misses one.
   These globals are **ported from `frontend/src/styles.scss`** in shell CP-2 — keep them
   byte-compatible where possible so fixes can flow between apps.
-- `.field-input` is **fixed at 40px desk / 44px touch (`h-11 sm:h-10`) with a 1px
-  hairline** (slimmed 2026-07-22, owner: "inputs are too chunky" — supersedes the 48px
-  `h-12`/`border-2` chrome) — still a deliberate deviation from the frontend's
+- `.field-input` is **fixed at 40px desk / 44px touch (`h-11 sm:h-10`) with a SOFT
+  BRANDED 1px outline that strengthens on approach**: `primary-600/40` tint at rest
+  → solid `primary-600` hover → `primary-700` + halo focus. Dark mode rides the
+  light end of the primary scale (`primary-400/40` → solid `400` → `400` + halo)
+  because a dark primary vanishes on the `surface-900` field. (Owner 2026-07-22,
+  third revision that day: softened from the solid dark-primary rest, which
+  superseded the neutral `surface-700` Diamond outline, the pale hairline, and the
+  48px `h-12`/`border-2` chrome before it. The preset's `formField` border tokens
+  carry the same values for PrimeNG controls — the alpha rest values as raw
+  `hsl(var())`, since tokens can't alpha-reference.) Still a deliberate deviation
+  from the frontend's
   56px/`h-14` (the field app is glove-friendly mobile capture; the superadmin is a
   desk console). Text is 16px below `sm` (iOS auto-zoom) and `text-sm` from `sm` up.
   Every control snaps to that one baseline: `.field-input` carries it for raw
@@ -298,9 +341,16 @@ Binding for every component; the skill carries the same list with implementation
   nav-button kill) — plus the two house visual cues (`tag.scss` status pills,
   `popover.scss` liquid glass). Every surviving sheet opens with why it exists;
   hold new ones to the same bar.
-- `theme.options.cssLayer: { name: 'primeng' }` puts Aura in a named layer so the
-  **surviving sheets in `src/theme/*.scss` win** without `!important` — no PrimeNG
-  overrides in component styles or templates.
+- `theme.options.cssLayer: { name: 'primeng', order: 'tailwind-base, primeng' }`
+  puts Aura in a named layer so the **surviving sheets in `src/theme/*.scss` win**
+  without `!important` — no PrimeNG overrides in component styles or templates.
+  The `order` string is load-bearing (2026-07-22): PrimeNG injects it as the
+  first `<style>` in `<head>`, before `styles.css`, so IT establishes the layer
+  order — Tailwind's preflight (wrapped in `tailwind-base` in `styles.scss`)
+  must be named first or its `border-width: 0` reset silently strips every Aura
+  component border (the pre-plan-17 override sheets had been masking exactly
+  this). Keep the `@layer tailwind-base, primeng;` statement in `styles.scss`
+  declaring the same order.
 - Reach for PrimeNG before hand-rolling overlays/feedback: **`<p-dialog>`** for modals,
   **`<p-confirmDialog>`** + `ConfirmationService` for confirms, **`<p-popover>`** for
   popover menus (outside-click/ESC/positioning solved), **`<p-toast>`** + `MessageService`

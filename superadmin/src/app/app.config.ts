@@ -38,10 +38,15 @@ export const appConfig: ApplicationConfig = {
           // `<html>.app-dark` is the single dark-mode source of truth —
           // Tailwind's `darkMode` selector and PrimeNG both read it.
           darkModeSelector: '.app-dark',
-          // Put Aura into a named CSS layer so our unlayered per-component
-          // override sheets in `src/theme/*.scss` win over Aura's runtime-
-          // injected CSS without `!important`.
-          cssLayer: { name: 'primeng', order: 'primeng' },
+          // Put Aura into a named CSS layer so the surviving unlayered
+          // sheets in `src/theme/*.scss` win over Aura's runtime-injected
+          // CSS without `!important`. The `order` string here is the
+          // AUTHORITATIVE layer order: PrimeNG injects it as the first
+          // <style> in <head> — before styles.css loads — so it, not the
+          // `@layer` statement in styles.scss, fixes layer precedence.
+          // `tailwind-base` (preflight) must come first or its
+          // `border-width: 0` reset beats every Aura component border.
+          cssLayer: { name: 'primeng', order: 'tailwind-base, primeng' },
         },
       },
     }),

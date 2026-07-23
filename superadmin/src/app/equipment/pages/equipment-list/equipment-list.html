@@ -1,11 +1,7 @@
-<div class="flex flex-wrap items-start justify-between gap-3">
-  <div>
-    <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">Equipos</h1>
-    <p class="mt-1 text-sm text-surface-600 dark:text-surface-400">
-      El registro de unidades instaladas que tu negocio atiende.
-    </p>
-  </div>
-  <div class="flex flex-wrap items-center gap-2">
+<app-page-header
+  title="Equipos"
+  description="El registro de unidades instaladas que tu negocio atiende."
+>
     <app-filters-popover [params]="['q', 'customer', 'status']">
       <div class="field-group">
         <label class="field-label" for="equipment-search">Buscar</label>
@@ -43,10 +39,9 @@
       <svg lucidePlus class="size-4" aria-hidden="true"></svg>
       Registrar equipo
     </button>
-  </div>
-</div>
+</app-page-header>
 
-<div class="mt-4">
+<div>
   <p-table
     [value]="equipment()"
     [lazy]="true"

@@ -30,7 +30,10 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
 3. **Typeface is Figtree** (variable, self-hosted
    `@fontsource-variable/figtree`; owner 2026-07-22, plan 17 — supersedes
    Nunito Sans/Quicksand/Commissioner).
-   400 body · 500 labels/buttons · 600–700 headings. Numeric table/money cells use the
+   400 body · 500 labels/buttons/headings (owner 2026-07-22 "cleaner look":
+   headings dropped from 600–700 — size + tracking carry hierarchy, solid fills
+   carry active states; 600+ only for the wordmark and rare emphasis).
+   Numeric table/money cells use the
    `font-data` stack with `tnum` (Atkinson Hyperlegible head — unchanged).
    Self-hosted only — never `fonts.googleapis.com`.
 4. **Motion = Angular's native `animate.enter`/`animate.leave` + `src/animations.scss`**
@@ -71,12 +74,22 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
 ## Density — low-to-mid whitespace
 
 - Baseline control height is **40px desk / 44px touch: `.field-input` = `h-11 sm:h-10`**
-  with a 1px hairline (slimmed 2026-07-22 — supersedes the 48px `h-12`/`border-2`
-  chrome; still a deliberate deviation from the frontend's `h-14`). Text 16px below
-  `sm`, `text-sm` from `sm` up. Compact contexts (paginator rows-per-page, dropdown
-  filter inputs) opt down to `!h-9`.
+  with a **soft branded 1px outline that strengthens on approach**: `primary-600/40`
+  tint at rest → solid `primary-600` hover → `primary-700` + halo focus (dark mode
+  `primary-400/40` → solid `400` → `400` + halo — a dark primary vanishes on the
+  `surface-900` field, so the ladder rides the light end of the scale. Owner
+  2026-07-22, third revision that day: softened from the solid dark-primary rest,
+  which superseded the neutral `surface-700` Diamond outline, the pale hairline, and
+  the 48px `h-12`/`border-2` chrome; still a deliberate deviation from the
+  frontend's `h-14`). The preset's `formField` border tokens carry the same values
+  for PrimeNG controls (alpha rest values as raw `hsl(var())` — tokens can't
+  alpha-reference). Text 16px below `sm`, `text-sm` from `sm` up.
+  Compact contexts (paginator rows-per-page, dropdown filter inputs) opt down to
+  `!h-9`.
 - Cards: `p-6` (plan 17 breathable rhythm — supersedes the soft-UI turn's `p-5`).
-  Section gaps `gap-5`/`gap-6`. Page gutters `px-4 md:px-6`. Airy chrome, dense data.
+  Section gaps `gap-5`/`gap-6`. Page gutters `px-4 sm:px-6 md:px-8` + `py-6`
+  (shell-owned, CP-2); topbar and sidebar header strips sit at `h-16`.
+  Airy chrome, dense data.
 - Tables are compact: `py-2.5` cells, 13–14px cell text, header row as a
   micro-label (see cues below).
 - Prefer one dense, well-grouped screen over two airy ones — but never sacrifice the
@@ -84,8 +97,8 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
 
 ## Surfaces — soft elevation (owner 2026-07-22, supersedes borders-not-shadows)
 
-- Cards/panels: white `rounded-2xl` floating on the tinted page bg with the soft
-  neutral `shadow-card` (`.card`/`.card-section` carry it; `dark:bg-surface-900` with a
+- Cards/panels: white `rounded-card` (1rem — the tokenized radius, see boundary
+  below) floating on the tinted page bg with the soft neutral `shadow-card` (`.card`/`.card-section` carry it; `dark:bg-surface-900` with a
   deepened `.app-dark` shadow). **No hairline borders on card edges** — hairlines
   retire to *internal* dividers. The shell chrome keeps its 2026-07-21 shadows
   (`.shell-sidebar`/`.shell-topbar`). **Depth needs contrast:** the `background` alias
@@ -106,23 +119,41 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   0…1000 by 100 (no `-50`/`-950`; plan 16 tombstoned `sky`/`granite`/`navy`/`cyan` —
   those classes emit no CSS). Sole literal-hex island: the static role-pill ladder
   (`.role-pill--*` in `styles.scss`).
-- **Blob buttons** (owner, 2026-07-21): actions are smooth pills — the `.btn` family
-  is `rounded-full` (`px-5`), icon-only buttons are full circles; paginator pages
-  follow via `table.scss`, and any future `<p-button>` via the preset's button
-  `borderRadius` token (plan 17 — the old button sheet is retired).
-  The shell nav rides the same pill language (`.nav-item`/`.nav-child`
-  `rounded-full`; extended 2026-07-22). Boundary: inputs stay `rounded-lg`,
-  cards `rounded-2xl`, icon chips `rounded-xl`.
+- **Default-PrimeNG buttons** (owner 2026-07-22: "blob-like buttons do not look
+  clean" — supersedes the 2026-07-21 blob/pill buttons): actions are
+  `rounded-control` rectangles at the input radius, stock-Aura `px-4` — the
+  `.btn` family carries it, paginator pages follow via `table.scss`, and any
+  future `<p-button>` via the preset's button `borderRadius: {border.radius.lg}`
+  token. Ghost icon-only buttons in chrome (topbar bell/theme/menu, avatars)
+  stay circles — chrome, not actions. **Button copy is the bare verb** where
+  context disambiguates — "Guardar", never "Guardar cambios"/"Guardar y
+  aplicar" (owner 2026-07-22); qualify only when two same-verb actions share a
+  view. Nav rows are flat `rounded-control`
+  (Diamond turn, owner 2026-07-22). Boundary (tokenized 2026-07-22 in
+  `tailwind.config.js`): inputs/buttons/nav `rounded-control` (0.5rem),
+  cards/dialogs/table shells `rounded-card` (1rem, sidebar edge
+  `rounded-r-card`), icon chips + popovers `rounded-chip` (0.75rem), status/role
+  pills + chrome icon-circles `rounded-full` — never raw `rounded-lg`/`xl`/`2xl`
+  in new chrome.
 
 ## Strong visual cues
 
+- **Page header** (plan 17 §5, CP-2): every routed page opens with the shared
+  `app-page-header` (`shared/components/page-header`) — single `h1`
+  (`text-2xl font-semibold tracking-tight`), optional muted description, optional
+  `backLink`, `meta` slot for title-adjacent status tags, default slot for
+  right-aligned actions; it owns the `mb-6` rhythm. Never hand-roll an `<h1>` row.
+  Title-only — no breadcrumbs unless the owner opts in.
 - **Status pills** everywhere state exists (CRM status, billing, stock, visit status) —
   vibrant in both modes per the dark-mode rules; pill + label, never color alone.
-- **Active nav**: elevated white pill (`.nav-active` on the destination link,
-  `.nav-group-active` on its group — both `shadow-card`) with the group's `.nav-chip`
-  flipped to filled `primary-400` (owner 2026-07-22, Purity reference — supersedes the
-  solid-primary block). Idle items sit flat with a soft white chip carrying the accent
-  glyph.
+- **Active nav**: Diamond-style flat rows on the dark brand panel (owner
+  2026-07-22, Diamond turn v2 per reference screenshot — supersedes the
+  elevated-pill/chip nav): the sidebar is `primary-1000` in **both modes** with a
+  rounded right edge + hairline `primary-800/50` outline; light-on-dark
+  `rounded-control` rows (`primary-100`/`200` text, `primary-300` `.nav-icon`s), hover
+  `white/10`, active child = solid `primary-600` row with white text
+  (`.nav-active`), active-trail group = white text/icon (`.nav-group-active`).
+  No shadows inside the nav.
 - **Stat cards** (reference idiom): micro-label + `font-data` value + signed delta
   (`text-emerald-600`/`text-red-600`) with an `.icon-chip` on the trailing edge;
   timelines pair small accent icons with micro-label timestamps.
@@ -340,8 +371,10 @@ durations in components:
 - [ ] Responsive pass: no page-level horizontal scroll at 375px, inputs ≥16px on
       mobile, wide tables in `overflow-x-auto`, `min-h-dvh` not `100vh`
 - [ ] Controls snap to the `h-11 sm:h-10` baseline (or `!h-9` compact)
-- [ ] Soft elevation: cards `rounded-2xl` + neutral `shadow-card`, no edge borders;
+- [ ] Soft elevation: cards `rounded-card` + neutral `shadow-card`, no edge borders;
       hairlines only as internal dividers; dark-mode pairings applied
+- [ ] Radius tokens only in new chrome (`rounded-card`/`chip`/`control`/`full`) —
+      no raw `rounded-lg`/`xl`/`2xl`
 - [ ] Status rendered as pills; numeric columns `font-data`/tnum
 - [ ] Motion uses `MOTION` tokens + reduced-motion guard
 - [ ] Global classes (`.field-input`, `.btn-*`, `.card`) reused, not re-implemented
