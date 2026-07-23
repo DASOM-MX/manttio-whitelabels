@@ -1,0 +1,143 @@
+<!-- Header row: wordmark (expanded) + drawer close (mobile) / rail toggle
+     (desktop). h-14 to stay level with the topbar strip (slim-topbar turn
+     2026-07-22). -->
+<div
+  class="flex h-14 shrink-0 items-center"
+  [class.gap-2]="!collapsed()"
+  [class.px-4]="!collapsed()"
+  [class.justify-center]="collapsed()"
+>
+  @if (!collapsed()) {
+    <p class="text-lg font-bold tracking-tight text-white">manttio</p>
+    <p class="mt-0.5 text-2xs font-medium text-primary-300">Admin</p>
+    <div class="flex-1"></div>
+  }
+  <button
+    type="button"
+    class="inline-flex size-9 items-center justify-center rounded-full text-primary-200 hover:bg-white/10 lg:hidden"
+    (click)="closed.emit()"
+    aria-label="Cerrar menú"
+  >
+    <svg lucideX class="size-5" aria-hidden="true"></svg>
+  </button>
+</div>
+
+<!-- Floating collapse handle (owner 2026-07-23, supersedes the header
+     toggle): a size-4 chevron circle straddling the panel's right edge —
+     right-0 + translate-x-1/2 leaves it half on the nav, half on the
+     canvas, 20px from the top. Desktop only; the drawer keeps its X. -->
+<button
+  type="button"
+  class="absolute right-0 top-5 z-10 hidden size-4 translate-x-1/2 items-center justify-center rounded-full bg-white text-surface-600 shadow-card ring-1 ring-surface-200 transition-colors hover:bg-surface-100 lg:flex dark:bg-surface-900 dark:text-surface-300 dark:ring-surface-700 dark:hover:bg-surface-800"
+  (click)="toggleCollapse()"
+  [attr.aria-label]="collapsed() ? 'Expandir menú' : 'Contraer menú'"
+  [attr.aria-expanded]="!collapsed()"
+>
+  @if (collapsed()) {
+    <svg lucideChevronRight class="size-3" aria-hidden="true"></svg>
+  } @else {
+    <svg lucideChevronLeft class="size-3" aria-hidden="true"></svg>
+  }
+</button>
+
+<!-- Collapsed rail: overflow must stay visible so the flyouts can escape
+     the aside (the rail is short — scrolling only matters expanded). -->
+<nav class="flex-1 px-3 py-3" [class.overflow-y-auto]="!collapsed()" aria-label="Módulos">
+  <ul class="flex flex-col gap-1">
+    @for (entry of navView(); track entry.label) {
+      <li [class.nav-flyout-host]="collapsed()">
+        @if (entry.children) {
+          @if (collapsed()) {
+            <!-- Rail icon navigates to the group's landing route; the
+                 flyout carries the children on hover/focus. -->
+            <a
+              class="nav-item justify-center !px-0"
+              [class.nav-active]="entry.groupActive"
+              [routerLink]="entry.route"
+              [attr.aria-label]="entry.label"
+              aria-haspopup="true"
+            >
+              <svg lucideIcon [lucideIcon]="entry.icon" class="nav-icon" aria-hidden="true"></svg>
+            </a>
+            <div class="nav-flyout">
+              <div class="nav-flyout-panel">
+                <p class="nav-flyout-title">{{ entry.label }}</p>
+                <!-- Two columns: the panel reads landscape, not a tall list. -->
+                <ul class="nav-flyout-grid">
+                  @for (child of entry.children; track child.route) {
+                    <li>
+                      <a
+                        class="nav-flyout-link"
+                        [routerLink]="child.route"
+                        routerLinkActive="nav-active"
+                        [routerLinkActiveOptions]="{ exact: child.exact ?? false }"
+                      >
+                        {{ child.label }}
+                      </a>
+                    </li>
+                  }
+                </ul>
+              </div>
+            </div>
+          } @else {
+            <button
+              type="button"
+              class="nav-item"
+              [class.nav-group-active]="entry.groupActive"
+              (click)="toggleGroup(entry.label)"
+              [attr.aria-expanded]="entry.expanded"
+            >
+              <svg lucideIcon [lucideIcon]="entry.icon" class="nav-icon" aria-hidden="true"></svg>
+              <span class="flex-1 text-left">{{ entry.label }}</span>
+              <svg
+                lucideChevronDown
+                class="size-4 shrink-0 text-primary-300 transition-transform"
+                [class.-rotate-90]="!entry.expanded"
+                aria-hidden="true"
+              ></svg>
+            </button>
+            @if (entry.expanded) {
+              <ul class="pt-1 flex flex-col gap-0.5" animate.enter="anim-fade-enter">
+                @for (child of entry.children; track child.route) {
+                  <li>
+                    <a
+                      class="nav-child"
+                      [routerLink]="child.route"
+                      routerLinkActive="nav-active"
+                      [routerLinkActiveOptions]="{ exact: child.exact ?? false }"
+                    >
+                      {{ child.label }}
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          }
+        } @else {
+          <a
+            class="nav-item"
+            [class.justify-center]="collapsed()"
+            [class.!px-0]="collapsed()"
+            [routerLink]="entry.route"
+            routerLinkActive="nav-active"
+            [routerLinkActiveOptions]="{ exact: entry.exact ?? false }"
+            [attr.aria-label]="collapsed() ? entry.label : null"
+          >
+            <svg lucideIcon [lucideIcon]="entry.icon" class="nav-icon" aria-hidden="true"></svg>
+            @if (!collapsed()) {
+              {{ entry.label }}
+            }
+          </a>
+          @if (collapsed()) {
+            <!-- Label-only flyout — the rail icon itself is the link. -->
+            <div class="nav-flyout">
+              <div class="nav-flyout-panel">
+                <p class="nav-flyout-title !py-1.5">{{ entry.label }}</p>
+              </div>
+            </div>
+          }
+        }
+      </li>
+    }
+  </ul>
+</nav>

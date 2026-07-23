@@ -1,4 +1,3 @@
-
 @if (isBooting()) {
   <!-- Splash: no gated UI renders until /auth/me resolves (02 §3). -->
   <div
@@ -35,12 +34,16 @@
   <div class="flex h-dvh bg-background dark:bg-surface-1000">
     <!-- Desktop sidebar: shares the page background — a smooth neutral shadow
          (not a hairline) separates it from the content column (owner
-         redesign 2026-07-21). z-20 so it casts over the z-10 topbar. -->
+         redesign 2026-07-21). z-20 so it casts over the z-10 topbar.
+         Collapsible into an icon rail (owner 2026-07-23) — width snaps, no
+         width animation (transform/opacity-only motion rule). -->
     <aside
-      class="shell-sidebar relative z-20 hidden w-64 shrink-0 flex-col lg:flex"
+      class="shell-sidebar relative z-20 hidden shrink-0 flex-col lg:flex"
+      [class.w-64]="!sidebarCollapsed()"
+      [class.w-20]="sidebarCollapsed()"
       aria-label="Navegación principal"
     >
-      <ng-container *ngTemplateOutlet="sidebarContent"></ng-container>
+      <app-sidebar [collapsed]="sidebarCollapsed()" />
     </aside>
 
     <!-- Mobile drawer -->
@@ -58,7 +61,7 @@
         animate.leave="anim-drawer-leave"
         aria-label="Navegación principal"
       >
-        <ng-container *ngTemplateOutlet="sidebarContent"></ng-container>
+        <app-sidebar (closed)="drawerOpen.set(false)" />
       </aside>
     }
 
@@ -147,83 +150,3 @@
 
   <app-force-password-dialog />
 }
-
-<ng-template #sidebarContent>
-  <!-- h-14 to stay level with the topbar strip (slim-topbar turn 2026-07-22). -->
-  <div class="flex h-14 shrink-0 items-center gap-2 px-4">
-    <p class="text-lg font-bold tracking-tight text-white">manttio</p>
-    <p class="mt-0.5 text-2xs font-medium text-primary-300">Admin</p>
-    <div class="flex-1"></div>
-    <button
-      type="button"
-      class="inline-flex size-9 items-center justify-center rounded-full text-primary-200 hover:bg-white/10 lg:hidden"
-      (click)="drawerOpen.set(false)"
-      aria-label="Cerrar menú"
-    >
-      <svg lucideX class="size-5" aria-hidden="true"></svg>
-    </button>
-  </div>
-
-  <nav class="flex-1 overflow-y-auto px-3 py-3" aria-label="Módulos">
-    <ul class="flex flex-col gap-1">
-      @for (entry of navView(); track entry.label) {
-        <li>
-          @if (entry.children) {
-            <button
-              type="button"
-              class="nav-item"
-              [class.nav-group-active]="entry.groupActive"
-              (click)="toggleGroup(entry.label)"
-              [attr.aria-expanded]="entry.expanded"
-            >
-              <svg
-                lucideIcon
-                [lucideIcon]="entry.icon"
-                class="nav-icon"
-                aria-hidden="true"
-              ></svg>
-              <span class="flex-1 text-left">{{ entry.label }}</span>
-              <svg
-                lucideChevronDown
-                class="size-4 shrink-0 text-primary-300 transition-transform"
-                [class.-rotate-90]="!entry.expanded"
-                aria-hidden="true"
-              ></svg>
-            </button>
-            @if (entry.expanded) {
-              <ul class="pt-1 flex flex-col gap-0.5" animate.enter="anim-fade-enter">
-                @for (child of entry.children; track child.route) {
-                  <li>
-                    <a
-                      class="nav-child"
-                      [routerLink]="child.route"
-                      routerLinkActive="nav-active"
-                      [routerLinkActiveOptions]="{ exact: child.exact ?? false }"
-                    >
-                      {{ child.label }}
-                    </a>
-                  </li>
-                }
-              </ul>
-            }
-          } @else {
-            <a
-              class="nav-item"
-              [routerLink]="entry.route"
-              routerLinkActive="nav-active"
-              [routerLinkActiveOptions]="{ exact: entry.exact ?? false }"
-            >
-              <svg
-                lucideIcon
-                [lucideIcon]="entry.icon"
-                class="nav-icon"
-                aria-hidden="true"
-              ></svg>
-              {{ entry.label }}
-            </a>
-          }
-        </li>
-      }
-    </ul>
-  </nav>
-</ng-template>
