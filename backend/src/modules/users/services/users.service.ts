@@ -5,11 +5,12 @@ import { hashPassword } from '../../auth/services/password.service';
 import {
   findUserById,
   insertUser,
+  listActiveUsersByRoles,
   listUsers,
   softDeleteUser,
   updateUser,
 } from '../repository/users.repository';
-import { toPublicUser, type PublicUser } from '../dtos/users.dto';
+import { toPublicUser, toRosterUser, type PublicUser, type RosterUser } from '../dtos/users.dto';
 import { PASSWORD_RESET_PAIRINGS } from '../enums/users.enum';
 import { generateTempPassword } from '../utils/temp-password';
 import type { UpdateUserFields } from '../types/users.types';
@@ -35,6 +36,14 @@ export const getUserById = async (db: Db, id: string): Promise<PublicUser | null
 export const getUsers = async (db: Db): Promise<PublicUser[]> => {
   const rows = await listUsers(db);
   return rows.map(toPublicUser);
+};
+
+// Technician roster for the calendar (12-calendar dep on 05): every staff role
+// schedules against it or reads the team week, so it is open to all
+// authenticated users — slimmed to display fields via RosterUser.
+export const getTechnicianRoster = async (db: Db): Promise<RosterUser[]> => {
+  const rows = await listActiveUsersByRoles(db, ['technician']);
+  return rows.map(toRosterUser).sort((a, b) => a.name.localeCompare(b.name));
 };
 
 // Temp-password model (backend plan §1): with no password supplied, generate

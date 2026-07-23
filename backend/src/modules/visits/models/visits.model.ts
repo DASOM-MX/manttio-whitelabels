@@ -1,0 +1,81 @@
+import { sql } from 'drizzle-orm';
+import { check, index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { customers } from '../../customers/models/customers.model';
+import { users } from '../../users/models/users.model';
+import { reports } from '../../reports/models/reports.model';
+import { VisitStatus } from '../enums/visits.enum';
+
+// A visit is a *plan*; a report is what *happened* (12-calendar §1). They link
+// (`report_id` set on completion) but neither replaces the other. Cancelled
+// visits stay visible (struck-through in the UI) — soft delete exists only for
+// true mistakes, per the global no-hard-delete rule.
+export const scheduledVisits = pgTable(
+  'scheduled_visits',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id, { onDelete: 'restrict' }),
+    // null = unassigned (the backlog lane). Mutated only through the audited
+    // /assign path — this column is just the latest assignment's target.
+    technicianId: uuid('technician_id').references(() => users.id, { onDelete: 'restrict' }),
+    scheduledStart: timestamp('scheduled_start', { withTimezone: true }).notNull(),
+    // Optional — many SMB visits are "morning-ish", not a fixed slot.
+    scheduledEnd: timestamp('scheduled_end', { withTimezone: true }),
+    status: text('status').$type<VisitStatus>().notNull().default(VisitStatus.Scheduled),
+    // Text to match the reports folio PK; set when the visit produced a report.
+    reportId: text('report_id').references(() => reports.id, { onDelete: 'restrict' }),
+    // Short label; the UI falls back to the customer name.
+    title: text('title'),
+    notes: text('notes'),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    // The calendar always reads by visible range.
+    index('scheduled_visits_start_idx')
+      .on(table.scheduledStart)
+      .where(sql`${table.deletedAt} is null`),
+    index('scheduled_visits_technician_idx')
+      .on(table.technicianId, table.scheduledStart)
+      .where(sql`${table.deletedAt} is null`),
+    index('scheduled_visits_customer_idx')
+      .on(table.customerId, table.scheduledStart)
+      .where(sql`${table.deletedAt} is null`),
+    check(
+      'scheduled_visits_status_check',
+      sql`${table.status} in ('scheduled', 'completed', 'cancelled', 'missed')`,
+    ),
+  ],
+);
+
+// Append-only assignment history (12-calendar §1): `from → to, by whom, when`.
+// No updates or deletes, ever — the trail IS the audit. A null technician on
+// either side is the unassigned backlog lane.
+export const visitAssignments = pgTable(
+  'visit_assignments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    visitId: uuid('visit_id')
+      .notNull()
+      .references(() => scheduledVisits.id, { onDelete: 'restrict' }),
+    fromTechnicianId: uuid('from_technician_id').references(() => users.id, {
+      onDelete: 'restrict',
+    }),
+    toTechnicianId: uuid('to_technician_id').references(() => users.id, {
+      onDelete: 'restrict',
+    }),
+    assignedBy: uuid('assigned_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    // History reads are always "oldest-first for one visit".
+    index('visit_assignments_visit_idx').on(table.visitId, table.createdAt),
+  ],
+);

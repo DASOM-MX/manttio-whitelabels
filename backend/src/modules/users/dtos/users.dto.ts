@@ -16,6 +16,17 @@ export type PublicUser = {
   updatedAt: Date;
 };
 
+// Roster shape for assignment pickers (calendar): display fields only — no
+// email, so it can be served to every authenticated role.
+export type RosterUser = Pick<PublicUser, 'id' | 'name' | 'paternalLastName' | 'maternalLastName'>;
+
+export const toRosterUser = (u: UserRow): RosterUser => ({
+  id: u.id,
+  name: u.name,
+  paternalLastName: u.paternalLastName,
+  maternalLastName: u.maternalLastName,
+});
+
 export const toPublicUser = (u: UserRow): PublicUser => ({
   id: u.id,
   name: u.name,

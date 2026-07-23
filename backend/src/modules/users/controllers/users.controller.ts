@@ -11,6 +11,7 @@ import {
   EmailInUseError,
   createUser,
   editUser,
+  getTechnicianRoster,
   getUserById,
   getUsers,
   removeUser,
@@ -27,6 +28,13 @@ users.get('/me', async (c) => {
   const user = await getUserById(db, me.id);
   if (!user) return c.json({ error: 'not_found' }, 404);
   return c.json({ user });
+});
+
+// Technician roster for the calendar — like `/me`, registered before the admin
+// gate: every authenticated role reads it (display fields only, no emails).
+users.get('/technicians', async (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  return c.json({ technicians: await getTechnicianRoster(db) });
 });
 
 users.use('*', requireRole(['owner', 'admin']));
