@@ -16,7 +16,7 @@
 } @else if (hasError()) {
   <div class="flex h-dvh items-center justify-center bg-background p-6 dark:bg-surface-1000">
     <div class="card-section w-full max-w-sm text-center">
-      <h1 class="text-lg font-bold text-surface-1000 dark:text-surface-0">
+      <h1 class="text-lg font-medium text-surface-1000 dark:text-surface-0">
         No se pudo cargar tu sesión
       </h1>
       <p class="mt-2 text-sm text-surface-600 dark:text-surface-400">
@@ -98,7 +98,7 @@
         <p-popover #userMenu appendTo="body">
           <div class="w-64 py-1.5">
             <div class="border-b border-surface-200 px-4 py-3 dark:border-surface-800">
-              <p class="truncate text-sm font-semibold text-surface-1000 dark:text-surface-0">
+              <p class="truncate text-sm font-medium text-surface-1000 dark:text-surface-0">
                 {{ me()?.user?.name }}
               </p>
               <p class="mt-0.5 truncate text-sm text-surface-600 dark:text-surface-400">

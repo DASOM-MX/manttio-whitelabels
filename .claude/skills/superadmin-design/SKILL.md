@@ -120,9 +120,9 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
 - Nested grouping inside a card = background shift (`bg-surface-100 dark:bg-surface-800/40`)
   or a hairline divider — not another shadowed box.
 - **Accent step:** `primary-400` is the decorative accent (the reference's teal,
-  brand-mapped) — `.icon-chip` (filled) / `.icon-chip--soft` (white chip, accent
-  glyph), single-hue chart area fills, progress bars, highlight numbers. Interactive
-  solids stay `primary-600`/`700` — white text on 400 fails 4.5:1.
+  brand-mapped) — `.icon-chip` (filled; the unused `--soft` variant was removed at
+  plan 17 CP-5), single-hue chart area fills, progress bars, highlight numbers.
+  Interactive solids stay `primary-600`/`700` — white text on 400 fails 4.5:1.
 - The palette is the two semantic brand scales only — `primary-*` / `surface-*`, steps
   0…1000 by 100 (no `-50`/`-950`; plan 16 tombstoned `sky`/`granite`/`navy`/`cyan` —
   those classes emit no CSS). Sole literal-hex island: the static role-pill ladder

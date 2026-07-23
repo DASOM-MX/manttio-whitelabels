@@ -91,7 +91,8 @@ auto-loads it — **edit both in the same commit.**
   text-primary-800` + the `initials` pipe, dark `primary-1000/60`/`primary-300`) —
   the reference's row identity, brand-tinted (canon: customers-list Cliente column).
 - **Accent step (owner, 2026-07-22):** `primary-400` is the *decorative* accent — icon
-  chips (`.icon-chip`/`.icon-chip--soft`), single-hue chart area fills, progress bars,
+  chips (`.icon-chip`; the unused `--soft` variant was removed at plan 17 CP-5,
+  2026-07-22), single-hue chart area fills, progress bars,
   highlight numbers (the reference's teal, brand-mapped). Interactive solids (buttons,
   the filled nav chip's container aside) stay on `primary-600`/`700` — white text on
   400 doesn't clear 4.5:1.

@@ -8,7 +8,7 @@
   <svg lucideBell class="size-5" aria-hidden="true"></svg>
   @if (hasUnread()) {
     <span
-      class="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-600 px-1 text-[10px] font-semibold leading-none text-white dark:bg-primary-500"
+      class="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-600 px-1 text-2xs font-medium leading-none text-white dark:bg-primary-500"
       aria-hidden="true"
     >
       {{ badgeText() }}
@@ -23,11 +23,7 @@
     >
       <p class="micro-label">Notificaciones</p>
       @if (hasUnread()) {
-        <button
-          type="button"
-          class="text-[13px] font-medium text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"
-          (click)="markAllRead()"
-        >
+        <button type="button" class="link-action" (click)="markAllRead()">
           Marcar todas como leídas
         </button>
       }
@@ -66,7 +62,7 @@
                 <span class="block truncate text-sm font-medium text-surface-900 dark:text-surface-100">
                   {{ row.n.title }}
                 </span>
-                <span class="mt-0.5 line-clamp-2 block text-[13px] leading-snug text-surface-600 dark:text-surface-400">
+                <span class="mt-0.5 line-clamp-2 block text-sm leading-snug text-surface-600 dark:text-surface-400">
                   {{ row.n.body }}
                 </span>
                 <span class="mt-1 block text-xs text-surface-500 dark:text-surface-500">
