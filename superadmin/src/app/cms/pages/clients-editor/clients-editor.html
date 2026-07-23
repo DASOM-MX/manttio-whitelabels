@@ -45,7 +45,7 @@
           <div class="flex justify-end gap-1">
             <button
               type="button"
-              class="inline-flex size-9 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 hover:text-surface-900 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100"
+              class="row-action"
               (click)="openEdit(client)"
               [attr.aria-label]="'Editar ' + client.name"
             >
@@ -53,7 +53,7 @@
             </button>
             <button
               type="button"
-              class="inline-flex size-9 items-center justify-center rounded-full text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+              class="row-action--danger"
               (click)="remove(client)"
               [attr.aria-label]="'Eliminar ' + client.name"
             >
@@ -112,9 +112,7 @@
           <span class="text-sm text-surface-400">Sin imagen</span>
         }
       </div>
-      <label
-        class="inline-flex cursor-pointer items-center gap-2 self-start text-sm font-medium text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
-      >
+      <label class="link-action cursor-pointer self-start">
         <svg lucideImageUp class="size-4" aria-hidden="true"></svg>
         @if (logo().uploading) {
           Subiendo…
@@ -138,7 +136,7 @@
         ariaLabel="Relación comercial"
         formControlName="businessRelationDescription"
       />
-      <p class="text-sm text-surface-500 dark:text-surface-400">
+      <p class="field-hint">
         Negritas, cursivas y listas; el servidor limpia cualquier otro formato.
       </p>
     </div>

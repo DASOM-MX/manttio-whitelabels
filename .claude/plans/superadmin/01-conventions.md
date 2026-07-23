@@ -262,10 +262,16 @@ Binding for every component; the skill carries the same list with implementation
   the one sanctioned literal-hex island (`.role-pill--*` in `styles.scss` — static across
   tenants by design, 14 §1). **Do not introduce new ad-hoc hex values.**
 - **Reuse the global classes from `styles.scss`** before re-styling locally: `.field-input`
-  (form controls), `.field-label`, `.field-group`, `.btn-primary` / `-secondary` / `-neutral`
-  / `-danger`, `.card`, `.card-section`, and the CP-3 list trio — `.row-action` (+
-  `--danger`/`--success` — table row icon actions), `.skeleton` (loading bars),
-  `.empty-icon` (empty-state disc). They already carry dark variants and
+  (form controls), `.field-label`, `.field-group`, `.field-hint` / `.field-error`
+  (feedback lines under a control — CP-4), `.btn-primary` / `-secondary` / `-neutral`
+  / `-danger`, `.link-action` (inline text-button/link — "Agregar X" repeater adds,
+  upload labels, "ver todos" card links; CP-4), `.card`, `.card-section`, `.callout`
+  (+ `--info`/`--warn`/`--danger` — bordered note/alert panels; CP-4), `.seg-tabs` /
+  `.seg-tab` (+ `.seg-tab-active`, `--danger` — the inline editor tab switcher;
+  CP-4), and the CP-3 list trio — `.row-action` (+ `--danger`/`--success`/`--grab` —
+  icon-ghost actions: table rows, editor repeater reorder/remove, rich-text toolbar;
+  widened beyond tables at CP-4, disabled steps dim to 0.4), `.skeleton` (loading
+  bars), `.empty-icon` (empty-state disc). They already carry dark variants and
   disabled/focus states; re-implementing them in templates almost always misses one.
   These globals are **ported from `frontend/src/styles.scss`** in shell CP-2 — keep them
   byte-compatible where possible so fixes can flow between apps.
@@ -437,6 +443,16 @@ shape 3 fits.
   field is explicitly optional. An empty form disables submit out of the box.
 - Wrap hover/active tints in the **`enabled:`** modifier
   (`enabled:hover:bg-primary-800 enabled:active:bg-primary-900`) so disabled buttons don't flash.
+- **Validation display canon (plan 17 CP-4, 2026-07-22):** the inline error is
+  `<p class="field-error" role="alert">` directly under its control, gated on
+  **`touched && errors?.['key']`** (never `dirty`-gated, never per-keystroke) —
+  every scalar field with a named label and a failable validator carries one.
+  Persistent helper copy is `<p class="field-hint">`. Required markers stay
+  `<span aria-hidden="true"> *</span>` on the label (uncolored). Repeater-row
+  internals rely on Aura's automatic `.ng-invalid.ng-dirty` red border + the
+  disabled submit instead of per-row messages (noise). Group-level failures
+  (fiscal all-or-nothing, password mismatch) render a `.callout--warn` or a
+  `.field-error` under the group, also `role="alert"`.
 
 Forms & feedback rules (MEDIUM — added 2026-07-05; implementation notes in the skill):
 

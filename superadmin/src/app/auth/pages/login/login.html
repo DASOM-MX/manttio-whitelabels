@@ -63,7 +63,7 @@
         </div>
 
         @if (error(); as msg) {
-          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">{{ msg }}</p>
+          <p class="field-error" role="alert">{{ msg }}</p>
         }
 
         <button type="submit" class="btn-primary w-full" [disabled]="form.invalid || busy()">

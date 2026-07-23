@@ -60,9 +60,7 @@
           <p
             class="flex flex-wrap items-baseline gap-x-2 text-xs text-surface-500 dark:text-surface-400"
           >
-            <span class="font-semibold uppercase tracking-caps">{{
-              entry.type | interactionTypeLabel
-            }}</span>
+            <span class="font-medium">{{ entry.type | interactionTypeLabel }}</span>
             @if (entry.userName) {
               <span>{{ entry.userName }}</span>
             }
@@ -70,10 +68,7 @@
           </p>
           <p class="mt-0.5 text-sm text-surface-800 dark:text-surface-200">{{ entry.body }}</p>
           @if (entry.ref && entry.ref.kind === 'report') {
-            <a
-              [routerLink]="['/reports', entry.ref.id]"
-              class="mt-0.5 inline-block text-xs font-semibold text-primary-700 hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
-            >
+            <a [routerLink]="['/reports', entry.ref.id]" class="link-action mt-0.5 text-xs">
               Ver reporte
             </a>
           }

@@ -15,7 +15,7 @@
       @if (!readOnly()) {
         <button
           type="button"
-          class="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+          class="row-action--danger"
           (click)="remove(i)"
           [attr.aria-label]="'Eliminar ' + itemName() + ' ' + (i + 1)"
         >
@@ -24,7 +24,7 @@
         <button
           type="button"
           cdkDragHandle
-          class="inline-flex size-8 shrink-0 cursor-grab items-center justify-center rounded-full text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-700 active:cursor-grabbing dark:text-surface-500 dark:hover:bg-surface-800 dark:hover:text-surface-300"
+          class="row-action--grab"
           (keydown)="onHandleKeydown($event, i)"
           [attr.aria-label]="'Reordenar ' + itemName() + ' ' + (i + 1) + ' (↑/↓ para mover)'"
         >
@@ -41,11 +41,7 @@
   }
 
   @if (!readOnly()) {
-    <button
-      type="button"
-      class="inline-flex items-center gap-2 self-start text-sm font-semibold text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
-      (click)="add.emit()"
-    >
+    <button type="button" class="link-action self-start" (click)="add.emit()">
       <svg lucidePlus class="size-4" aria-hidden="true"></svg>
       {{ addLabel() }}
     </button>

@@ -37,7 +37,7 @@
         spellcheck="false"
       />
       @if (form.controls['emailConfirm'].touched && !emailMatches()) {
-        <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+        <p class="field-error" role="alert">
           El correo no coincide.
         </p>
       }

@@ -38,7 +38,7 @@
                 >Título<span aria-hidden="true"> *</span></label
               >
               <input id="cms-title" pInputText formControlName="title" />
-              <p class="text-sm text-surface-500 dark:text-surface-400">
+              <p class="field-hint">
                 El rotador de audiencias lo completa (p. ej. «… para plantas»).
               </p>
             </div>
@@ -64,7 +64,7 @@
                 formControlName="hero_video_url"
                 placeholder="https://…/video.mp4"
               />
-              <p class="text-sm text-surface-500 dark:text-surface-400">
+              <p class="field-hint">
                 Opcional. Sin video, la portada muestra el degradado por defecto.
               </p>
             </div>
@@ -211,7 +211,7 @@
 
       <p-tabpanel value="clientes">
         <div class="flex flex-col gap-4" formGroupName="clients_content">
-          <p class="text-sm text-surface-500 dark:text-surface-400">
+          <p class="field-hint">
             Textos de la sección de clientes. Las empresas y sus logotipos se administran en «CMS —
             Clientes». Los campos vacíos usan el texto por defecto del sitio.
           </p>
@@ -336,9 +336,7 @@
                     [attr.aria-label]="'Nombre de la marca ' + (i + 1)"
                     placeholder="Carrier"
                   />
-                  <label
-                    class="inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm font-medium text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
-                  >
+                  <label class="link-action shrink-0 cursor-pointer">
                     <svg lucideImageUp class="size-4" aria-hidden="true"></svg>
                     @if (uploadingLogo() === mrow) {
                       Subiendo…
@@ -362,7 +360,7 @@
 
       <p-tabpanel value="ubicacion">
         <div class="flex flex-col gap-4" formGroupName="location_content">
-          <p class="text-sm text-surface-500 dark:text-surface-400">
+          <p class="field-hint">
             Textos de la sección de ubicación. La dirección, el teléfono, el correo y el mapa
             provienen de la Marca.
           </p>
