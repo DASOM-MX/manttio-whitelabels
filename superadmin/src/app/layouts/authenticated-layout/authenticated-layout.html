@@ -63,14 +63,11 @@
     }
 
     <div class="flex min-w-0 flex-1 flex-col">
-      <!-- Topbar: its own card-tone strip, separated from the content by a
-           soft shadow and from the nav by the surface change — the two
-           chrome strips no longer read as one bar. -->
-      <!-- h-16 + gutters aligned with the content column (plan 17 CP-2
-           executive rhythm). -->
-      <header
-        class="shell-topbar relative z-10 flex h-16 shrink-0 items-center gap-2 px-4 sm:px-6"
-      >
+      <!-- Topbar: a slim surfaceless strip (owner 2026-07-22 — h-16→h-14,
+           then shadow and white bg removed the same day): the bell + user
+           pill float directly on the canvas; the theme switcher lives in
+           the user popover. Gutters stay aligned with the content column. -->
+      <header class="relative z-10 flex h-14 shrink-0 items-center gap-2 px-4 sm:px-6">
         <button
           type="button"
           class="inline-flex size-10 items-center justify-center rounded-full text-surface-700 hover:bg-surface-100 lg:hidden dark:text-surface-300 dark:hover:bg-surface-800"
@@ -83,19 +80,6 @@
         <div class="flex-1"></div>
 
         <app-notification-center />
-
-        <button
-          type="button"
-          class="inline-flex size-10 items-center justify-center rounded-full text-surface-700 transition-colors hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800"
-          (click)="toggleDark()"
-          [attr.aria-label]="darkMode() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
-        >
-          @if (darkMode()) {
-            <svg lucideSun class="size-5" aria-hidden="true"></svg>
-          } @else {
-            <svg lucideMoon class="size-5" aria-hidden="true"></svg>
-          }
-        </button>
 
         <button
           type="button"
@@ -122,6 +106,21 @@
               </p>
               <p class="micro-label mt-2">{{ me()?.role }}</p>
             </div>
+            <!-- Theme switcher lives here since the slim-topbar turn (owner
+                 2026-07-22) — the strip keeps only the bell + user pill. -->
+            <button
+              type="button"
+              class="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-surface-800 transition-colors hover:bg-surface-100 dark:text-surface-200 dark:hover:bg-surface-800"
+              (click)="toggleDark()"
+            >
+              @if (darkMode()) {
+                <svg lucideSun class="size-4" aria-hidden="true"></svg>
+                Modo claro
+              } @else {
+                <svg lucideMoon class="size-4" aria-hidden="true"></svg>
+                Modo oscuro
+              }
+            </button>
             <button
               type="button"
               class="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-red-700 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
@@ -150,8 +149,8 @@
 }
 
 <ng-template #sidebarContent>
-  <!-- h-16 to stay level with the topbar strip (plan 17 CP-2). -->
-  <div class="flex h-16 shrink-0 items-center gap-2 px-4">
+  <!-- h-14 to stay level with the topbar strip (slim-topbar turn 2026-07-22). -->
+  <div class="flex h-14 shrink-0 items-center gap-2 px-4">
     <p class="text-lg font-bold tracking-tight text-white">manttio</p>
     <p class="mt-0.5 text-2xs font-medium text-primary-300">Admin</p>
     <div class="flex-1"></div>

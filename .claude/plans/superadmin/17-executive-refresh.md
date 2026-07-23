@@ -10,7 +10,13 @@
 > **dark brand panel** (sidebar `primary-1000` both modes, rounded right edge +
 > `primary-800/50` hairline, light-on-dark rows, solid `primary-600` active row —
 > supersedes the pill nav, its icon chips, and the 2026-07-21 hand-tuned pill
-> spacing); breadcrumbs stayed off pending owner eyeball), CP-3 next.
+> spacing); breadcrumbs stayed off pending owner eyeball) · **CP-3 done 2026-07-22**
+> (branch `feature/superadmin-executive-refresh-cp3`, stacked on CP-2: all five list
+> pages — skeleton `#loadingbody` rows + `[showLoader]="false"` replace the spinner
+> overlay (`.skeleton` bar + reduced-motion-guarded pulse), `.empty-icon` disc empties,
+> `.row-action`/`--danger`/`--success` extract the five inline icon-action copies,
+> equipment gains `rowHover` + canon whole-row click, templates' "Abrir" text link →
+> standard eye icon action), CP-4 next.
 > **Post-CP-2 owner turns (2026-07-22, same worktree):** inputs → **soft branded
 > outline** (primary-600/40 rest → solid 600 hover → 700 + halo focus; third
 > revision that day — see 01 §Design language) after the CSS-layer root cause

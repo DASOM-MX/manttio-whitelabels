@@ -59,8 +59,11 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
    stylesheet, not inline brackets (owner, 2026-07-21).
 7. **Tabular/feed data renders as `p-table`** (the customers-list idiom: header/body
    templates, `rowHover`, whole-row click, `[scrollable]` + `scrollHeight` for
-   internal scroll, `emptymessage`) — never hand-rolled `<ol>`/`<div>` row lists
-   (owner, 2026-07-21).
+   internal scroll, `emptymessage` with the `.empty-icon` disc + one sentence, and —
+   since CP-3 (2026-07-22) — `[showLoader]="false"` + a `#loadingbody` of 8
+   `.skeleton`-bar rows instead of the spinner overlay; row-level icon actions use
+   `.row-action`/`--danger`/`--success`) — never hand-rolled `<ol>`/`<div>` row
+   lists (owner, 2026-07-21).
 8. **Simple fixed sizing beats layout machinery.** Fixed card heights + internal
    scroll, page-scoped CSS only — never shell-layout surgery (flex-chain rewiring,
    route-data layout flags) for one page's sizing (owner, 2026-07-21).
@@ -88,7 +91,9 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   `!h-9`.
 - Cards: `p-6` (plan 17 breathable rhythm — supersedes the soft-UI turn's `p-5`).
   Section gaps `gap-5`/`gap-6`. Page gutters `px-4 sm:px-6 md:px-8` + `py-6`
-  (shell-owned, CP-2); topbar and sidebar header strips sit at `h-16`.
+  (shell-owned, CP-2); topbar and sidebar header strips sit at `h-14` (slimmed from
+  `h-16`, owner 2026-07-22 — the strip holds only the notification bell + user pill;
+  the theme switcher lives in the user popover).
   Airy chrome, dense data.
 - Tables are compact: `py-2.5` cells, 13–14px cell text, header row as a
   micro-label (see cues below).
@@ -101,7 +106,9 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   below) floating on the tinted page bg with the soft neutral `shadow-card` (`.card`/`.card-section` carry it; `dark:bg-surface-900` with a
   deepened `.app-dark` shadow). **No hairline borders on card edges** — hairlines
   retire to *internal* dividers. The shell chrome keeps its 2026-07-21 shadows
-  (`.shell-sidebar`/`.shell-topbar`). **Depth needs contrast:** the `background` alias
+  (`.shell-sidebar` — the topbar is SURFACELESS since 2026-07-22: no shadow, no
+  background, the bell + user pill float on the canvas).
+  **Depth needs contrast:** the `background` alias
   sits at `surface-100` in superadmin (one step under card whites, owner 2026-07-22) —
   keep page-level surfaces on `bg-background`, never on `bg-white`.
 - **Entity rows lead with an initials avatar**: `size-9 rounded-full bg-primary-100

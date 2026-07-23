@@ -51,6 +51,8 @@
     [first]="list.first()"
     [totalRecords]="total()"
     [loading]="loading()"
+    [showLoader]="false"
+    [rowHover]="true"
     dataKey="id"
   >
     <ng-template #header>
@@ -66,12 +68,14 @@
       </tr>
     </ng-template>
     <ng-template #body let-eq>
-      <tr>
+      <!-- Whole row opens the unit (canon idiom); the eye link stays the
+           keyboard path. -->
+      <tr class="cursor-pointer" (click)="openEquipment(eq)">
         <td class="font-medium">{{ eq.name || '—' }}</td>
         <td>{{ eq.kind || '—' }}</td>
         <td>{{ eq.brand || '—' }} {{ eq.model }}</td>
         <td class="font-data tabular-nums">{{ eq.serialNumber || '—' }}</td>
-        <td>
+        <td (click)="$event.stopPropagation()">
           <a
             [routerLink]="['/customers', eq.customerId]"
             class="font-medium text-primary-700 hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
@@ -85,22 +89,35 @@
           />
         </td>
         <td class="font-data tabular-nums">{{ eq.lastServiceDate || '—' }}</td>
-        <td class="w-16">
-          <a
-            [routerLink]="['/equipment', eq.id]"
-            class="inline-flex size-9 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 hover:text-surface-900 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100"
-            [attr.aria-label]="'Ver equipo ' + (eq.name || eq.serialNumber || eq.id)"
-          >
-            <svg lucideEye class="size-4" aria-hidden="true"></svg>
-          </a>
+        <td class="w-16" (click)="$event.stopPropagation()">
+          <div class="flex justify-end gap-1">
+            <a
+              [routerLink]="['/equipment', eq.id]"
+              class="row-action"
+              [attr.aria-label]="'Ver equipo ' + (eq.name || eq.serialNumber || eq.id)"
+            >
+              <svg lucideEye class="size-4" aria-hidden="true"></svg>
+            </a>
+          </div>
         </td>
       </tr>
+    </ng-template>
+    <ng-template #loadingbody>
+      @for (r of [0, 1, 2, 3, 4, 5, 6, 7]; track r) {
+        <tr>
+          @for (c of [0, 1, 2, 3, 4, 5, 6, 7]; track c) {
+            <td><span class="skeleton"></span></td>
+          }
+        </tr>
+      }
     </ng-template>
     <ng-template #emptymessage>
       <tr class="p-datatable-emptymessage">
         <td colspan="8">
-          <span class="inline-flex flex-col items-center gap-2">
-            <svg lucideWrench class="size-6 text-surface-400" aria-hidden="true"></svg>
+          <span class="inline-flex flex-col items-center gap-3">
+            <span class="empty-icon">
+              <svg lucideWrench class="size-5" aria-hidden="true"></svg>
+            </span>
             Sin equipos registrados — registra la primera unidad.
           </span>
         </td>
