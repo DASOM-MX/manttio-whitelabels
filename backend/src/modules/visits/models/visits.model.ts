@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   check,
   index,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -11,7 +12,8 @@ import {
 import { customers } from '../../customers/models/customers.model';
 import { users } from '../../users/models/users.model';
 import { reports } from '../../reports/models/reports.model';
-import { VisitStatus } from '../enums/visits.enum';
+import { VisitEventType, VisitStatus } from '../enums/visits.enum';
+import type { VisitChanges } from '../types/visits.types';
 
 // A visit is a *plan*; a report is what *happened* (12-calendar §1). They link
 // (`report_id` set on completion) but neither replaces the other. Cancelled
@@ -71,29 +73,41 @@ export const scheduledVisits = pgTable(
   ],
 );
 
-// Append-only assignment history (12-calendar §1): `from → to, by whom, when`.
-// No updates or deletes, ever — the trail IS the audit. A null technician on
-// either side is the unassigned backlog lane.
-export const visitAssignments = pgTable(
-  'visit_assignments',
+// Append-only audit log for every visit mutation (12-calendar §1, 2026-07-23):
+// what happened, by whom, when. No updates or deletes, ever — the trail IS the
+// audit. `assigned` events use the typed from/to technician columns (null on
+// either side = the unassigned backlog lane); the other event types describe
+// the change through `changes` (field → { from, to }) and `note`.
+export const visitEvents = pgTable(
+  'visit_events',
   {
     id: uuid('id').defaultRandom().primaryKey(),
     visitId: uuid('visit_id')
       .notNull()
       .references(() => scheduledVisits.id, { onDelete: 'restrict' }),
+    type: text('type').$type<VisitEventType>().notNull(),
+    // Who performed the mutation.
+    actorId: uuid('actor_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    // Set on `assigned` (and the birth `created`) events — the technician move.
     fromTechnicianId: uuid('from_technician_id').references(() => users.id, {
       onDelete: 'restrict',
     }),
     toTechnicianId: uuid('to_technician_id').references(() => users.id, {
       onDelete: 'restrict',
     }),
-    assignedBy: uuid('assigned_by')
-      .notNull()
-      .references(() => users.id, { onDelete: 'restrict' }),
+    changes: jsonb('changes').$type<VisitChanges>().notNull().default({}),
+    // Free text: the reason on status_changed / rescheduled events.
+    note: text('note'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // History reads are always "oldest-first for one visit".
-    index('visit_assignments_visit_idx').on(table.visitId, table.createdAt),
+    index('visit_events_visit_idx').on(table.visitId, table.createdAt),
+    check(
+      'visit_events_type_check',
+      sql`${table.type} in ('created', 'updated', 'assigned', 'status_changed', 'rescheduled')`,
+    ),
   ],
 );

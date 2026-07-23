@@ -1,15 +1,16 @@
 import { and, asc, eq, gte, isNull, lt } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { Db } from '../../database/client';
-import { scheduledVisits, visitAssignments } from '../models/visits.model';
+import { scheduledVisits, visitEvents } from '../models/visits.model';
 import { customers } from '../../customers/models/customers.model';
 import { users } from '../../users/models/users.model';
-import { VisitStatus } from '../enums/visits.enum';
+import { VisitEventType, VisitStatus } from '../enums/visits.enum';
 import type {
-  AssignmentEntry,
   NewVisit,
   RescheduleResult,
   UpdateVisitFields,
+  VisitChanges,
+  VisitEventEntry,
   VisitListFilters,
   VisitRow,
   VisitWithNames,
@@ -17,10 +18,37 @@ import type {
 
 const activeFilter = isNull(scheduledVisits.deletedAt);
 
+// A query executor: pooled Db or a transaction handle — both expose the same
+// builder, so event-writing helpers compose inside a mutation's transaction.
+type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
+type Executor = Db | Tx;
+
 // Display name for chips/history: first name + paternal surname (rows that
 // predate the surname split carry their full name in `name`).
 const displayName = (name: string | null, paternalLastName: string | null): string | null =>
   name ? [name, paternalLastName].filter(Boolean).join(' ') : null;
+
+interface EventInput {
+  visitId: string;
+  type: VisitEventType;
+  actorId: string;
+  fromTechnicianId?: string | null;
+  toTechnicianId?: string | null;
+  changes?: VisitChanges;
+  note?: string | null;
+}
+
+const insertEvent = async (tx: Executor, event: EventInput): Promise<void> => {
+  await tx.insert(visitEvents).values({
+    visitId: event.visitId,
+    type: event.type,
+    actorId: event.actorId,
+    fromTechnicianId: event.fromTechnicianId ?? null,
+    toTechnicianId: event.toTechnicianId ?? null,
+    changes: event.changes ?? {},
+    note: event.note ?? null,
+  });
+};
 
 export const listVisits = async (db: Db, filters: VisitListFilters): Promise<VisitWithNames[]> => {
   const conds = [
@@ -80,63 +108,74 @@ export const findVisitWithNames = async (db: Db, id: string): Promise<VisitWithN
   };
 };
 
-export const listVisitAssignments = async (db: Db, visitId: string): Promise<AssignmentEntry[]> => {
+export const listVisitEvents = async (db: Db, visitId: string): Promise<VisitEventEntry[]> => {
+  const actor = alias(users, 'actor');
   const fromTech = alias(users, 'from_tech');
   const toTech = alias(users, 'to_tech');
-  const assignor = alias(users, 'assignor');
   const rows = await db
     .select({
-      entry: visitAssignments,
+      event: visitEvents,
+      actorName: actor.name,
+      actorPaternal: actor.paternalLastName,
       fromName: fromTech.name,
       fromPaternal: fromTech.paternalLastName,
       toName: toTech.name,
       toPaternal: toTech.paternalLastName,
-      byName: assignor.name,
-      byPaternal: assignor.paternalLastName,
     })
-    .from(visitAssignments)
-    .leftJoin(fromTech, eq(visitAssignments.fromTechnicianId, fromTech.id))
-    .leftJoin(toTech, eq(visitAssignments.toTechnicianId, toTech.id))
-    .leftJoin(assignor, eq(visitAssignments.assignedBy, assignor.id))
-    .where(eq(visitAssignments.visitId, visitId))
-    .orderBy(asc(visitAssignments.createdAt));
+    .from(visitEvents)
+    .leftJoin(actor, eq(visitEvents.actorId, actor.id))
+    .leftJoin(fromTech, eq(visitEvents.fromTechnicianId, fromTech.id))
+    .leftJoin(toTech, eq(visitEvents.toTechnicianId, toTech.id))
+    .where(eq(visitEvents.visitId, visitId))
+    .orderBy(asc(visitEvents.createdAt));
   return rows.map((r) => ({
-    ...r.entry,
+    ...r.event,
+    actorName: displayName(r.actorName, r.actorPaternal),
     fromTechnicianName: displayName(r.fromName, r.fromPaternal),
     toTechnicianName: displayName(r.toName, r.toPaternal),
-    assignedByName: displayName(r.byName, r.byPaternal),
   }));
 };
 
-// Insert + seed the assignment trail in ONE transaction when the visit is born
-// assigned, so the current technician is always the latest entry's target.
+// Insert + open the audit trail with a `created` event in ONE transaction. When
+// born assigned, the created event carries the initial technician (from null),
+// so it doubles as the birth assignment record.
 export const insertVisit = async (db: Db, values: NewVisit): Promise<VisitRow> =>
   db.transaction(async (tx) => {
     const [visit] = await tx.insert(scheduledVisits).values(values).returning();
     if (!visit) throw new Error('insertVisit returned no row');
-    if (visit.technicianId) {
-      await tx.insert(visitAssignments).values({
-        visitId: visit.id,
-        fromTechnicianId: null,
-        toTechnicianId: visit.technicianId,
-        assignedBy: visit.createdBy,
-      });
-    }
+    await insertEvent(tx, {
+      visitId: visit.id,
+      type: VisitEventType.Created,
+      actorId: visit.createdBy,
+      toTechnicianId: visit.technicianId,
+    });
     return visit;
   });
 
+// Field edit (benign date move, title/notes) + an `updated` event carrying the
+// diff, in one transaction. `changes` is precomputed by the service.
 export const updateVisit = async (
   db: Db,
   id: string,
   fields: UpdateVisitFields,
-): Promise<VisitRow | null> => {
-  const [row] = await db
-    .update(scheduledVisits)
-    .set({ ...fields, updatedAt: new Date() })
-    .where(and(eq(scheduledVisits.id, id), activeFilter))
-    .returning();
-  return row ?? null;
-};
+  changes: VisitChanges,
+  actorId: string,
+): Promise<VisitRow | null> =>
+  db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(scheduledVisits)
+      .set({ ...fields, updatedAt: new Date() })
+      .where(and(eq(scheduledVisits.id, id), activeFilter))
+      .returning();
+    if (!row) return null;
+    await insertEvent(tx, {
+      visitId: id,
+      type: VisitEventType.Updated,
+      actorId,
+      changes,
+    });
+    return row;
+  });
 
 // Reassign + append the audit entry atomically — the only path that mutates
 // technician_id after birth.
@@ -145,7 +184,7 @@ export const reassignVisit = async (
   id: string,
   fromTechnicianId: string | null,
   toTechnicianId: string | null,
-  assignedBy: string,
+  actorId: string,
 ): Promise<VisitRow | null> =>
   db.transaction(async (tx) => {
     const [visit] = await tx
@@ -154,11 +193,15 @@ export const reassignVisit = async (
       .where(and(eq(scheduledVisits.id, id), activeFilter))
       .returning();
     if (!visit) return null;
-    await tx.insert(visitAssignments).values({
+    await insertEvent(tx, {
       visitId: id,
+      type: VisitEventType.Assigned,
+      actorId,
       fromTechnicianId,
       toTechnicianId,
-      assignedBy,
+      changes: {
+        technicianId: { from: fromTechnicianId, to: toTechnicianId },
+      },
     });
     return visit;
   });
@@ -166,20 +209,31 @@ export const reassignVisit = async (
 export const updateVisitStatus = async (
   db: Db,
   id: string,
-  status: VisitStatus,
+  fromStatus: VisitStatus,
+  toStatus: VisitStatus,
   statusReason: string | null,
-): Promise<VisitRow | null> => {
-  const [row] = await db
-    .update(scheduledVisits)
-    .set({ status, statusReason, updatedAt: new Date() })
-    .where(and(eq(scheduledVisits.id, id), activeFilter))
-    .returning();
-  return row ?? null;
-};
+  actorId: string,
+): Promise<VisitRow | null> =>
+  db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(scheduledVisits)
+      .set({ status: toStatus, statusReason, updatedAt: new Date() })
+      .where(and(eq(scheduledVisits.id, id), activeFilter))
+      .returning();
+    if (!row) return null;
+    await insertEvent(tx, {
+      visitId: id,
+      type: VisitEventType.StatusChanged,
+      actorId,
+      changes: { status: { from: fromStatus, to: toStatus } },
+      note: statusReason,
+    });
+    return row;
+  });
 
 // Reschedule = close the original (rescheduled, reason) + open a fresh scheduled
-// record carrying the chain link, in ONE transaction. The replacement inherits
-// the order/customer/title/notes; a technician change seeds its assignment trail.
+// record carrying the chain link, in ONE transaction. Both sides get an event:
+// the original a `rescheduled`, the replacement a `created`.
 export const rescheduleVisit = async (
   db: Db,
   original: VisitRow,
@@ -217,13 +271,23 @@ export const rescheduleVisit = async (
       })
       .returning();
     if (!visit) throw new Error('rescheduleVisit returned no replacement row');
-    if (fields.technicianId) {
-      await tx.insert(visitAssignments).values({
-        visitId: visit.id,
-        fromTechnicianId: null,
-        toTechnicianId: fields.technicianId,
-        assignedBy: fields.actorId,
-      });
-    }
+    await insertEvent(tx, {
+      visitId: original.id,
+      type: VisitEventType.Rescheduled,
+      actorId: fields.actorId,
+      note: fields.reason,
+      changes: {
+        scheduledStart: {
+          from: original.scheduledStart.toISOString(),
+          to: fields.scheduledStart.toISOString(),
+        },
+      },
+    });
+    await insertEvent(tx, {
+      visitId: visit.id,
+      type: VisitEventType.Created,
+      actorId: fields.actorId,
+      toTechnicianId: visit.technicianId,
+    });
     return { closed, visit };
   });

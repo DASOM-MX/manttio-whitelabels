@@ -72,7 +72,7 @@ visits.patch(
   async (c) => {
     const db = createDb(c.env.DATABASE_URL);
     try {
-      const visit = await editVisit(db, c.req.param('id'), c.req.valid('json'));
+      const visit = await editVisit(db, c.req.param('id'), c.req.valid('json'), c.get('user').id);
       if (!visit) return c.json({ error: 'not_found' }, 404);
       return c.json({ visit });
     } catch (err) {
@@ -112,7 +112,12 @@ visits.post(
   async (c) => {
     const db = createDb(c.env.DATABASE_URL);
     try {
-      const visit = await changeVisitStatus(db, c.req.param('id'), c.req.valid('json'));
+      const visit = await changeVisitStatus(
+        db,
+        c.req.param('id'),
+        c.req.valid('json'),
+        c.get('user').id,
+      );
       if (!visit) return c.json({ error: 'not_found' }, 404);
       return c.json({ visit });
     } catch (err) {

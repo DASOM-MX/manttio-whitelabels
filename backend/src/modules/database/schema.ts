@@ -14,7 +14,7 @@ import { reports, reportDetails, reportCounters } from '../reports/models/report
 import { reportEmails } from '../reports/models/report-emails.model';
 import { equipment, equipmentReports } from '../equipment/models/equipment.model';
 import { notifications } from '../notifications/models/notifications.model';
-import { scheduledVisits, visitAssignments } from '../visits/models/visits.model';
+import { scheduledVisits, visitEvents } from '../visits/models/visits.model';
 
 export { users } from '../users/models/users.model';
 export { customers } from '../customers/models/customers.model';
@@ -28,7 +28,7 @@ export { cmsDocuments, cmsClients } from '../cms/models/cms.model';
 export { reportTemplates } from '../report-templates/models/report-templates.model';
 export { brand } from '../brand/models/brand.model';
 export { notifications } from '../notifications/models/notifications.model';
-export { scheduledVisits, visitAssignments } from '../visits/models/visits.model';
+export { scheduledVisits, visitEvents } from '../visits/models/visits.model';
 
 export const usersRelations = relations(users, ({ many }) => ({
   reportsCreated: many(reports, { relationName: 'reports_created_by' }),
@@ -155,12 +155,16 @@ export const scheduledVisitsRelations = relations(scheduledVisits, ({ one, many 
     fields: [scheduledVisits.reportId],
     references: [reports.id],
   }),
-  assignments: many(visitAssignments),
+  events: many(visitEvents),
 }));
 
-export const visitAssignmentsRelations = relations(visitAssignments, ({ one }) => ({
+export const visitEventsRelations = relations(visitEvents, ({ one }) => ({
   visit: one(scheduledVisits, {
-    fields: [visitAssignments.visitId],
+    fields: [visitEvents.visitId],
     references: [scheduledVisits.id],
+  }),
+  actor: one(users, {
+    fields: [visitEvents.actorId],
+    references: [users.id],
   }),
 }));

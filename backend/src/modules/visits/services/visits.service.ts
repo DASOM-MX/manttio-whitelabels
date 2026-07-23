@@ -13,7 +13,7 @@ import {
   findVisitById,
   findVisitWithNames,
   insertVisit,
-  listVisitAssignments,
+  listVisitEvents,
   listVisits,
   reassignVisit,
   rescheduleVisit,
@@ -31,6 +31,7 @@ import type {
 import type {
   RescheduleResult,
   UpdateVisitFields,
+  VisitChanges,
   VisitRow,
   VisitWithHistory,
   VisitWithNames,
@@ -52,7 +53,7 @@ export const getVisits = async (db: Db, q: ListVisitsQuery): Promise<VisitWithNa
 export const getVisitById = async (db: Db, id: string): Promise<VisitWithHistory | null> => {
   const visit = await findVisitWithNames(db, id);
   if (!visit) return null;
-  return { ...visit, assignmentHistory: await listVisitAssignments(db, id) };
+  return { ...visit, events: await listVisitEvents(db, id) };
 };
 
 export const createVisit = async (
@@ -78,23 +79,63 @@ export const editVisit = async (
   db: Db,
   id: string,
   input: UpdateVisitInput,
+  actorId: string,
 ): Promise<VisitRow | null> => {
   const current = await findVisitById(db, id);
   if (!current) return null;
   const fields: UpdateVisitFields = {};
-  if (input.customerId !== undefined) fields.customerId = input.customerId;
-  if (input.scheduledStart !== undefined) fields.scheduledStart = new Date(input.scheduledStart);
-  if (input.scheduledEnd !== undefined) {
-    fields.scheduledEnd = input.scheduledEnd ? new Date(input.scheduledEnd) : null;
+  const changes: VisitChanges = {};
+
+  if (input.customerId !== undefined && input.customerId !== current.customerId) {
+    fields.customerId = input.customerId;
+    changes.customerId = { from: current.customerId, to: input.customerId };
   }
-  if (input.title !== undefined) fields.title = input.title?.trim() || null;
-  if (input.notes !== undefined) fields.notes = input.notes?.trim() || null;
+  if (input.scheduledStart !== undefined) {
+    const next = new Date(input.scheduledStart);
+    if (next.getTime() !== current.scheduledStart.getTime()) {
+      fields.scheduledStart = next;
+      changes.scheduledStart = {
+        from: current.scheduledStart.toISOString(),
+        to: next.toISOString(),
+      };
+    }
+  }
+  if (input.scheduledEnd !== undefined) {
+    const next = input.scheduledEnd ? new Date(input.scheduledEnd) : null;
+    const currentMs = current.scheduledEnd ? current.scheduledEnd.getTime() : null;
+    const nextMs = next ? next.getTime() : null;
+    if (nextMs !== currentMs) {
+      fields.scheduledEnd = next;
+      changes.scheduledEnd = {
+        from: current.scheduledEnd ? current.scheduledEnd.toISOString() : null,
+        to: next ? next.toISOString() : null,
+      };
+    }
+  }
+  if (input.title !== undefined) {
+    const next = input.title?.trim() || null;
+    if (next !== current.title) {
+      fields.title = next;
+      changes.title = { from: current.title, to: next };
+    }
+  }
+  if (input.notes !== undefined) {
+    const next = input.notes?.trim() || null;
+    if (next !== current.notes) {
+      fields.notes = next;
+      changes.notes = { from: current.notes, to: next };
+    }
+  }
+
+  // Nothing actually changed — no update, no audit noise.
+  if (Object.keys(fields).length === 0) return current;
+
   // Validate the merged window, not just the patched fields.
   assertWindow(
     fields.scheduledStart ?? current.scheduledStart,
     fields.scheduledEnd !== undefined ? fields.scheduledEnd : current.scheduledEnd,
   );
-  return updateVisit(db, id, fields);
+  return updateVisit(db, id, fields, changes, actorId);
 };
 
 export const assignVisit = async (
@@ -122,6 +163,7 @@ export const changeVisitStatus = async (
   db: Db,
   id: string,
   input: ChangeVisitStatusInput,
+  actorId: string,
 ): Promise<VisitRow | null> => {
   const current = await findVisitById(db, id);
   if (!current) return null;
@@ -132,7 +174,7 @@ export const changeVisitStatus = async (
   }
   // Reopening clears the closing reason; cancel/missed keep the optional context.
   const reason = input.status === VisitStatus.Scheduled ? null : input.reason ?? null;
-  return updateVisitStatus(db, id, input.status, reason);
+  return updateVisitStatus(db, id, current.status, input.status, reason, actorId);
 };
 
 export const rescheduleVisitService = async (

@@ -40,10 +40,13 @@ ScheduledVisit {
 }
 ```
 
-- **Reassignment is audited, append-only** (master plan §4): the backend keeps an
-  assignment history (`from → to, by whom, when`); the visit detail renders it. No
-  assignment record is ever edited or deleted — the current `technicianId` is just the
-  latest entry's target.
+- **Every mutation is audited, append-only** (master plan §4; generalized 2026-07-23):
+  the backend keeps a `visit_events` log — `created` / `updated` / `assigned` /
+  `status_changed` / `rescheduled` — each with the actor, timestamp, and a `changes`
+  diff (`field → { from, to }`); `assigned` events also carry typed from/to technician
+  columns (`from → to, by whom, when`) for clean name joins. No event is ever edited or
+  deleted; the current `technicianId` is just the latest assignment's target, and the
+  visit detail renders the full trail.
 - `completed` is set when a report is linked (backend hook, see 13/backend asks) or
   manually by staff; `missed` is manual in v1 (no auto-sweep yet — open decision).
 - Cancelled visits stay visible (struck-through style), never hard-deleted.
