@@ -1,6 +1,6 @@
 # 17 — Executive refresh: clean, breathable UI on stock PrimeNG ("soft-executive")
 
-> **Status:** in-progress — **CP-1 done 2026-07-22** (PR #89, branch
+> **Status:** done 2026-07-22 (all five CPs shipped) — **CP-1 done 2026-07-22** (PR #89, branch
 > `feature/superadmin-executive-refresh-cp1`, stacked on #88; built in the
 > `executive-refresh-cp1` worktree for fast rollback) · **CP-2 done 2026-07-22**
 > (branch `feature/superadmin-executive-refresh-cp2`, stacked on CP-1: shared
@@ -28,8 +28,18 @@
 > widths → `dialog-sm/md/lg` styleClass steps in `overlays.scss` (inline `[style]`
 > width exception retired), clients-editor drawer `drawer-form` (bracket utility
 > gone) + CP-3 skeleton rows, home-editor tabs framed in their `.card`; weight-
-> ladder + caps-law sweep on all form/overlay surfaces), CP-5 next (client 360 +
-> detail views + app-wide sweep — the dashboard leg landed early, see below).
+> ladder + caps-law sweep on all form/overlay surfaces) · **CP-5 done 2026-07-22**
+> (branch `style/superadmin-executive-refresh-cp5`, stacked on CP-4: client 360 +
+> equipment/report detail views onto the shared idioms — blacklist banner →
+> `callout--danger`, quick-contact circles / make-default / detach / copy ghosts →
+> `.row-action`, entity links → `.link-action`, detail-page centered spinners →
+> shape-mirroring `.skeleton` cards (spinners stay buttons-only per 01); the
+> app-wide sweep retired the last arbitrary bracket values (notification badge +
+> body text, share-links popover width), swept weight-ladder stragglers to 500 —
+> surviving 600+ is all sanctioned: wordmarks, the CRM KPI hero numerals (rare
+> emphasis), the brand-editor type preview — slimmed the equipment dropzones to
+> the hairline dashed border, and deleted the never-adopted `.icon-chip--soft`;
+> the dashboard leg had landed early, see below). **Plan complete.**
 > **Post-CP-2 owner turns (2026-07-22, same worktree):** inputs → **soft branded
 > outline** (primary-600/40 rest → solid 600 hover → 700 + halo focus; third
 > revision that day — see 01 §Design language) after the CSS-layer root cause
