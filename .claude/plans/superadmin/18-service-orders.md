@@ -38,12 +38,13 @@ ServiceOrder {
 }
 ServiceOrderLine {         // table: service_order_services
   id, serviceOrderId, serviceId,
-  quantity,                // int >= 1, default 1
+  quantity,                // int >= 1, default 1 — explodes `quantity` reports
+                           //   (one per unit, decided 2026-07-23)
   unitPrice,               // numeric(12,2) SNAPSHOT of services.price at order
                            //   time — catalog edits never rewrite history
-  // per-line explosion inputs (decided 2026-07-23 — invariants kept):
-  //   the create flow captures technicianId + reportType per line; they live
-  //   on the exploded report, not on the line
+  // explosion inputs (decided 2026-07-23 — invariants kept): the create flow
+  //   captures technicianId + reportType per line; the `quantity` exploded
+  //   reports inherit them and are each individually reassignable afterward
   createdAt                // unique (serviceOrderId, serviceId)
 }
 ```
@@ -57,8 +58,10 @@ ServiceOrderLine {         // table: service_order_services
 - `reports.serviceOrderId?` (nullable — manual/legacy reports stay valid) +
   `reports.serviceId?` (which line the report fulfills; drives the template
   prefilter). Both restrict.
-- `ReportStatus` gains **`pending`** (widen `reports_status_check`): the exploded
-  not-yet-started state. `created` remains the manual-report birth status.
+- `ReportStatus` gains **`pending`** and **`cancelled`** (widen `reports_status_check`):
+  `pending` = the exploded not-yet-started state; `cancelled` = an exploded report
+  voided when its order is cancelled (decided 2026-07-23). `created` remains the
+  manual-report birth status. (06 §amendment.)
 - `report_templates.serviceId?` (nullable = generic template) — 06 §5 amendment.
 - `InteractionRefKind` gains `ServiceOrder = 'service_order'` (TS-only; the table
   has no ref-kind CHECK).
@@ -66,12 +69,13 @@ ServiceOrderLine {         // table: service_order_services
 ## 2. Order creation — one transaction
 
 1. Insert `service_orders` (folio from counters) + lines (price snapshot).
-2. **Explode reports: one `pending` report per line** (open decision: × quantity).
-   Invariants kept (decided 2026-07-23): the creation flow captures **technician +
-   reportType per line** up front, so skeletons are born complete — folio, client
-   from the order, `serviceId`, `serviceOrderId`, `assignedTo`, `reportType`,
-   `status: 'pending'`. Template choice stays a fill-time concern, prefiltered by
-   `serviceId` (06).
+2. **Explode reports: one `pending` report per unit** (decided 2026-07-23 — a line
+   with `quantity: 3` explodes 3 reports). Invariants kept: the creation flow captures
+   **technician + reportType per line** up front, so skeletons are born complete —
+   folio, client from the order, `serviceId`, `serviceOrderId`, `assignedTo`,
+   `reportType`, `status: 'pending'`; the units inherit the line's tech/type and are
+   each individually reassignable after. Template choice stays a fill-time concern,
+   prefiltered by `serviceId` (06).
 3. Append the `service_order_events` `order_created` event (+ an `order_line_added`
    per line) — the order timeline opens with the creation (§7).
 4. Append the `customer_interactions` system entry (`type: 'system'`, ref
@@ -85,10 +89,12 @@ Lifecycle notes:
 - Order `status` is manual v1 (complete / cancel with confirm); auto-complete when
   all reports finish is an open decision. `order_completed` is what triggers the
   client handoff document (§7).
-- Cancelling an order does **not** cascade: its `scheduled` visits are **closed**
-  (12's close path, category `other`/reason "orden cancelada"); its pending reports
-  are cancelled — reports have no `cancelled` status yet (open decision below). Every
-  such child close appends its own event to the order timeline.
+- Cancelling an order (decided 2026-07-23): its `scheduled` visits are **closed**
+  (12's close path, category `other`/reason "orden cancelada") and its **unfinished
+  reports** (`pending`/`in-progress`) are set to `cancelled`; already-`finished`/
+  `mailed` reports stay (they're history). This is a lifecycle transition, not a
+  hard delete — soft-delete rules untouched. Every child transition appends its own
+  event to the order timeline.
 
 ## 3. Roles (extends `14-access-control.md` §2 — matrix ask in 17)
 
@@ -177,9 +183,11 @@ one is "something happened with this client", the order one is the job's full hi
 - `GET /service-orders/:id/timeline` → resolved events (actor + child display names),
   oldest-first — rendered on the order view as a vertical activity feed.
 - **Client handoff (the payoff):** at `order_completed`, the timeline + the finished
-  reports compose a **service history document** the client receives (PDF via the
-  `pdf/` module, or a shareable read link — decide at CP-5). This is *why* the audit
-  lives at the order level: one artifact covers the whole job end-to-end.
+  reports compose a **service history PDF** (decided 2026-07-23 — via the `pdf/`
+  module, consistent with report PDFs; the report layout stays in a domain helper per
+  the pdf-toolkit split). This is *why* the audit lives at the order level: one
+  artifact covers the whole job end-to-end. Delivery (attach to a completion email vs
+  a tokenized download link like the report-download path) is a CP-5 detail.
 
 ---
 
@@ -235,11 +243,13 @@ one is "something happened with this client", the order one is the job's full hi
 - Timeline granularity: do report *content* edits log to the order timeline, or only
   status transitions? Leaning status-only (content lives in the report itself) to keep
   the handoff readable.
-- Explosion × quantity: one report per **line** (recommended, satisfies "at least
-  one per service") vs one per unit when `quantity > 1`.
-- What happens to `pending` reports when an order is cancelled — reports have no
-  `cancelled` status; add one, or soft-delete the skeletons (they carry no field
-  data)? Leaning: add `cancelled` to `ReportStatus` with 18 as the only writer.
+- ~~Explosion × quantity~~ — **decided 2026-07-23: one report per unit** (a
+  `quantity: 3` line explodes 3 `pending` reports; each individually reassignable).
+- ~~Cancelled order → pending reports~~ — **decided 2026-07-23:** add `cancelled` to
+  `ReportStatus`; on order cancel, unfinished reports (`pending`/`in-progress`) → 
+  `cancelled`, finished/mailed untouched (06 §amendment). Never a hard delete.
+- ~~Handoff format~~ — **decided 2026-07-23: PDF** via the `pdf/` module (delivery
+  channel — email attach vs tokenized link — is a CP-5 detail).
 - Template picker fallback: exact-service + generic (`serviceId is null`) under a
   divider (recommended) vs exact-only.
 - Line mutability: immutable v1 (recommended) vs add/remove lines on open orders

@@ -323,10 +323,12 @@ ReportAnswer { questionId, label, datatype, value }               // label+datat
   `backend/src/modules/reports/models/reports.model.ts`:
   `created|in-progress|finished|mailed`. **Folio: no backend column yet** —
   backend ask (DTO keeps it optional). **Amended 2026-07-23 (18):** the enum gains
-  `pending` — service-order explosion skeletons (born with assignee + reportType,
-  no content); `pending → in-progress` when the tech picks a template and starts.
-  `created` stays the manual-report birth status. Reports also gain
-  `serviceOrderId?` / `serviceId?` — semantics owned by `18-service-orders.md` §2.
+  `pending` and `cancelled`. `pending` = service-order explosion skeletons (born with
+  assignee + reportType, no content), `pending → in-progress` when the tech picks a
+  template and starts. `cancelled` = an exploded report voided when its order is
+  cancelled (only unfinished reports — `pending`/`in-progress`; finished/mailed stay).
+  `created` stays the manual-report birth status. Reports also gain `serviceOrderId?` /
+  `serviceId?` — semantics owned by `18-service-orders.md` §2.
 - Customer/technician list filters: UI ships search + date + template + status;
   the id-based selects light up when 07 (customers) and a users lookup endpoint
   exist — query DTO already carries `customerId`/`technicianId`.
