@@ -290,7 +290,7 @@
      separate region below, so nothing ever passes under it. Neutral black
      alpha shadows only — never a colored glow. */
   .shell-sidebar {
-    @apply bg-primary-1000 border border-l-0 border-primary-800/50 rounded-r-card;
+    @apply bg-primary-1000 border border-l-0 border-primary-800/50 rounded-r-shell;
     box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.12);
   }
   .app-dark .shell-sidebar {
