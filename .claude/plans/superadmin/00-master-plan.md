@@ -33,6 +33,8 @@ then its own file, and touches no other module's code.
 | 14 | `14-access-control.md` | Roles + tenant-config gating matrix (reference, binding for all modules) | — |
 | 15 | `15-website.md` | Public tenant website: consumes published CMS + brand (reads only — `website/` package work, not superadmin code) | 03, 04 |
 | 16 | `16-semantic-brand-colors.md` | Semantic Tailwind color classes (`primary-*`/`surface-*` replace `sky`/`granite`/`navy`/`cyan`) across frontend + superadmin + website | **everything — deferred closing sweep, runs last** |
+| 17 | `17-services.md` | Tenant service catalog: name/price/uom/description + website-listing flag | 02 |
+| 18 | `18-service-orders.md` | Service orders: catalog lines → exploded `pending` reports, order-bound visits (12), CRM timeline entry (08), template↔service prefilter (06) | 07, 17, 06, 12 |
 
 Build order **is numeric order** (renumbered 2026-07-05: branding and CMS are separate,
 independent modules — 03/04 — and access-control moved to 14 as pure reference).

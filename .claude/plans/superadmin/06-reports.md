@@ -96,6 +96,10 @@ detail (builder + question preview).
 ReportTemplate {
   id, name, description?,
   status: 'draft' | 'active' | 'disabled',
+  serviceId?,                                  // 18 CP-4 (2026-07-23): binds the
+                                               //   template to a catalog service (17);
+                                               //   fill-time picker prefilters by the
+                                               //   report's serviceId, null = generic
   sections: TemplateSection[],                 // 1..n, ordered (decided 2026-07-05)
   disabledReason?, disabledBy?, disabledAt?,   // set via the disable dialog
   createdAt, updatedAt
@@ -318,7 +322,11 @@ ReportAnswer { questionId, label, datatype, value }               // label+datat
 - ~~Status enum~~ — **confirmed 2026-07-06** against
   `backend/src/modules/reports/models/reports.model.ts`:
   `created|in-progress|finished|mailed`. **Folio: no backend column yet** —
-  backend ask (DTO keeps it optional).
+  backend ask (DTO keeps it optional). **Amended 2026-07-23 (18):** the enum gains
+  `pending` — service-order explosion skeletons (born with assignee + reportType,
+  no content); `pending → in-progress` when the tech picks a template and starts.
+  `created` stays the manual-report birth status. Reports also gain
+  `serviceOrderId?` / `serviceId?` — semantics owned by `18-service-orders.md` §2.
 - Customer/technician list filters: UI ships search + date + template + status;
   the id-based selects light up when 07 (customers) and a users lookup endpoint
   exist — query DTO already carries `customerId`/`technicianId`.
