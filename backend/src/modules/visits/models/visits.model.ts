@@ -1,5 +1,13 @@
 import { sql } from 'drizzle-orm';
-import { check, index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  type AnyPgColumn,
+} from 'drizzle-orm/pg-core';
 import { customers } from '../../customers/models/customers.model';
 import { users } from '../../users/models/users.model';
 import { reports } from '../../reports/models/reports.model';
@@ -23,6 +31,14 @@ export const scheduledVisits = pgTable(
     // Optional — many SMB visits are "morning-ish", not a fixed slot.
     scheduledEnd: timestamp('scheduled_end', { withTimezone: true }),
     status: text('status').$type<VisitStatus>().notNull().default(VisitStatus.Scheduled),
+    // Required by the service when rescheduling ("could not be served" — 12 §1
+    // 2026-07-23); optional context on cancel/missed; cleared on reopen.
+    statusReason: text('status_reason'),
+    // Chain link: set on the replacement record the reschedule path opens.
+    rescheduledFromId: uuid('rescheduled_from_id').references(
+      (): AnyPgColumn => scheduledVisits.id,
+      { onDelete: 'restrict' },
+    ),
     // Text to match the reports folio PK; set when the visit produced a report.
     reportId: text('report_id').references(() => reports.id, { onDelete: 'restrict' }),
     // Short label; the UI falls back to the customer name.
@@ -46,9 +62,11 @@ export const scheduledVisits = pgTable(
     index('scheduled_visits_customer_idx')
       .on(table.customerId, table.scheduledStart)
       .where(sql`${table.deletedAt} is null`),
+    // Forward chain resolution: "this visit was rescheduled to …".
+    index('scheduled_visits_rescheduled_from_idx').on(table.rescheduledFromId),
     check(
       'scheduled_visits_status_check',
-      sql`${table.status} in ('scheduled', 'completed', 'cancelled', 'missed')`,
+      sql`${table.status} in ('scheduled', 'completed', 'cancelled', 'missed', 'rescheduled')`,
     ),
   ],
 );

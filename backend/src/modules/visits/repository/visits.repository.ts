@@ -4,10 +4,11 @@ import type { Db } from '../../database/client';
 import { scheduledVisits, visitAssignments } from '../models/visits.model';
 import { customers } from '../../customers/models/customers.model';
 import { users } from '../../users/models/users.model';
-import type { VisitStatus } from '../enums/visits.enum';
+import { VisitStatus } from '../enums/visits.enum';
 import type {
   AssignmentEntry,
   NewVisit,
+  RescheduleResult,
   UpdateVisitFields,
   VisitListFilters,
   VisitRow,
@@ -166,11 +167,63 @@ export const updateVisitStatus = async (
   db: Db,
   id: string,
   status: VisitStatus,
+  statusReason: string | null,
 ): Promise<VisitRow | null> => {
   const [row] = await db
     .update(scheduledVisits)
-    .set({ status, updatedAt: new Date() })
+    .set({ status, statusReason, updatedAt: new Date() })
     .where(and(eq(scheduledVisits.id, id), activeFilter))
     .returning();
   return row ?? null;
 };
+
+// Reschedule = close the original (rescheduled, reason) + open a fresh scheduled
+// record carrying the chain link, in ONE transaction. The replacement inherits
+// the order/customer/title/notes; a technician change seeds its assignment trail.
+export const rescheduleVisit = async (
+  db: Db,
+  original: VisitRow,
+  fields: {
+    scheduledStart: Date;
+    scheduledEnd: Date | null;
+    technicianId: string | null;
+    reason: string;
+    actorId: string;
+  },
+): Promise<RescheduleResult> =>
+  db.transaction(async (tx) => {
+    const now = new Date();
+    const [closed] = await tx
+      .update(scheduledVisits)
+      .set({
+        status: VisitStatus.Rescheduled,
+        statusReason: fields.reason,
+        updatedAt: now,
+      })
+      .where(and(eq(scheduledVisits.id, original.id), activeFilter))
+      .returning();
+    if (!closed) throw new Error('rescheduleVisit: original row vanished mid-transaction');
+    const [visit] = await tx
+      .insert(scheduledVisits)
+      .values({
+        customerId: original.customerId,
+        technicianId: fields.technicianId,
+        scheduledStart: fields.scheduledStart,
+        scheduledEnd: fields.scheduledEnd,
+        title: original.title,
+        notes: original.notes,
+        rescheduledFromId: original.id,
+        createdBy: fields.actorId,
+      })
+      .returning();
+    if (!visit) throw new Error('rescheduleVisit returned no replacement row');
+    if (fields.technicianId) {
+      await tx.insert(visitAssignments).values({
+        visitId: visit.id,
+        fromTechnicianId: null,
+        toTechnicianId: fields.technicianId,
+        assignedBy: fields.actorId,
+      });
+    }
+    return { closed, visit };
+  });

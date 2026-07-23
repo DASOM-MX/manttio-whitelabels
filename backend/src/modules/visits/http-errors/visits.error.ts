@@ -25,3 +25,10 @@ export class InvalidVisitWindowError extends Error {
     this.name = 'InvalidVisitWindowError';
   }
 }
+
+export class VisitNotReschedulableError extends Error {
+  constructor(status: string) {
+    super(`only scheduled visits can be rescheduled (visit is '${status}')`);
+    this.name = 'VisitNotReschedulableError';
+  }
+}

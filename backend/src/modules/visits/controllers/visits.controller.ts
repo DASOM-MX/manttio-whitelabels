@@ -9,6 +9,7 @@ import {
   changeVisitStatusSchema,
   createVisitSchema,
   listVisitsQuerySchema,
+  rescheduleVisitSchema,
   updateVisitSchema,
 } from '../validators/visits.validator';
 import {
@@ -18,12 +19,14 @@ import {
   editVisit,
   getVisitById,
   getVisits,
+  rescheduleVisitService,
 } from '../services/visits.service';
 import {
   InvalidVisitStatusTransitionError,
   InvalidVisitWindowError,
   TechSwapNotAllowedError,
   VisitNotReassignableError,
+  VisitNotReschedulableError,
 } from '../http-errors/visits.error';
 
 export const visits = new Hono<AppBindings>();
@@ -116,6 +119,36 @@ visits.post(
       if (err instanceof InvalidVisitStatusTransitionError) {
         return c.json({ error: 'invalid_transition', message: err.message }, 409);
       }
+      throw err;
+    }
+  },
+);
+
+// Could-not-serve reschedule (12 §1): closes the original (reason required) and
+// returns the fresh scheduled replacement.
+visits.post(
+  '/:id/reschedule',
+  requireRole(['owner', 'admin', 'office']),
+  zValidator('json', rescheduleVisitSchema),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    try {
+      const result = await rescheduleVisitService(
+        db,
+        c.req.param('id'),
+        c.req.valid('json'),
+        c.get('user').id,
+      );
+      if (!result) return c.json({ error: 'not_found' }, 404);
+      return c.json(result, 201);
+    } catch (err) {
+      if (err instanceof VisitNotReschedulableError) {
+        return c.json({ error: 'visit_not_reschedulable', message: err.message }, 409);
+      }
+      if (err instanceof InvalidVisitWindowError) {
+        return c.json({ error: 'invalid_window', message: err.message }, 400);
+      }
+      if (isForeignKeyViolation(err)) return c.json({ error: 'invalid_reference' }, 422);
       throw err;
     }
   },

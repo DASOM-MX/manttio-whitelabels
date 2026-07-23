@@ -27,7 +27,12 @@ ScheduledVisit {
   technicianId?,                // null = unassigned (backlog lane)
   scheduledStart,               // datetime
   scheduledEnd?,                // optional — many SMB visits are "morning-ish"
-  status: 'scheduled' | 'completed' | 'cancelled' | 'missed',
+  status: 'scheduled' | 'completed' | 'cancelled' | 'missed' | 'rescheduled',
+  statusReason?,                // required when rescheduling (2026-07-23);
+                                //   optional context on cancel/missed; cleared
+                                //   on reopen
+  rescheduledFromId?,           // chain link: set on the replacement record
+                                //   (2026-07-23) — detail resolves both ways
   reportId?,                    // set when the visit produced a report
   title?,                       // short label; defaults to customer name
   notes?,
@@ -42,6 +47,14 @@ ScheduledVisit {
 - `completed` is set when a report is linked (backend hook, see 13/backend asks) or
   manually by staff; `missed` is manual in v1 (no auto-sweep yet — open decision).
 - Cancelled visits stay visible (struck-through style), never hard-deleted.
+- **Reschedule = close + reopen (decided 2026-07-23):** when a visit could not be
+  served, it is never date-edited in place — `POST /visits/:id/reschedule` closes the
+  original (`status: 'rescheduled'`, **reason required**, terminal — no reopen; the
+  chain replaced it) and opens a new `scheduled` record in one transaction
+  (`rescheduledFromId` → original; same order/title/notes; new date/time; technician
+  defaults to the original's, overridable — an override seeds the new record's own
+  assignment-trail entry as usual). Only `scheduled` visits can be rescheduled.
+  Rescheduled chips render muted (not struck — that's cancelled).
 
 ## 2. Roles (extends `14-access-control.md` §2)
 
@@ -99,7 +112,10 @@ a. **Tech swap:** a technician can hand off a visit currently assigned to *them*
 - `POST /visits` · `PATCH /visits/:id` (fields; **not** technicianId)
 - `POST /visits/:id/assign` `{ technicianId }` — the audited reassignment path; backend
   enforces the tech-swap rule (requester is tech ⇒ current assignee must be requester)
-- `POST /visits/:id/status` `{ status }` (complete/miss/cancel)
+- `POST /visits/:id/status` `{ status, reason? }` (complete/miss/cancel/reopen —
+  never 'rescheduled': that state is only reachable through the reschedule path)
+- `POST /visits/:id/reschedule` `{ scheduledStart, scheduledEnd?, technicianId?,
+  reason }` → `{ closed, visit }` — the §1 close-+-reopen transaction (staff only)
 - `GET /customers/:id/visits` — upcoming visits on the customer view (07 slot — ask)
 - `GET /visits/external?from&to` → `ExternalEvent[]` for connected users in range (§7;
   short-cached server-side; title redacted per privacy rule; client matching by
@@ -208,6 +224,12 @@ roles. External chips show full title to their **owner**; other users see "Ocupa
   order-bound (`serviceOrderId` NOT NULL, 18 §1). Non-job appointments (sales,
   courtesy calls) live as CRM `visit` interactions (08); a diagnostic visit is a
   small order. Calendar UI ships as 18 CP-3.
+- ~~Do benign date moves also go through reschedule?~~ — **decided 2026-07-23:**
+  no. `PATCH /visits/:id` updates `scheduledStart`/`scheduledEnd` in place for benign
+  moves (client asked to move, typo fixes — office correction, no chain). The audited
+  **reschedule** (close + reopen, reason required) is *only* the could-not-serve path.
+  Two distinct actions in the UI: "Editar" (move the date) vs "Reprogramar" (couldn't
+  serve).
 - FullCalendar (drag-and-drop) vs staying custom — revisit only on real demand; verify
   Angular 21 + zoneless compat before adopting.
 - Tech swaps without approval (§2a): add an office-approval step if abused.

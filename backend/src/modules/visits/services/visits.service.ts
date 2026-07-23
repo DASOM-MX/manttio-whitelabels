@@ -7,6 +7,7 @@ import {
   InvalidVisitWindowError,
   TechSwapNotAllowedError,
   VisitNotReassignableError,
+  VisitNotReschedulableError,
 } from '../http-errors/visits.error';
 import {
   findVisitById,
@@ -15,6 +16,7 @@ import {
   listVisitAssignments,
   listVisits,
   reassignVisit,
+  rescheduleVisit,
   updateVisit,
   updateVisitStatus,
 } from '../repository/visits.repository';
@@ -23,9 +25,11 @@ import type {
   ChangeVisitStatusInput,
   CreateVisitInput,
   ListVisitsQuery,
+  RescheduleVisitInput,
   UpdateVisitInput,
 } from '../validators/visits.validator';
 import type {
+  RescheduleResult,
   UpdateVisitFields,
   VisitRow,
   VisitWithHistory,
@@ -121,9 +125,37 @@ export const changeVisitStatus = async (
 ): Promise<VisitRow | null> => {
   const current = await findVisitById(db, id);
   if (!current) return null;
+  // Idempotent on a repeat submit of the same status (double-click), no 409.
   if (current.status === input.status) return current;
   if (!canTransitionVisitStatus(current.status, input.status)) {
     throw new InvalidVisitStatusTransitionError(current.status, input.status);
   }
-  return updateVisitStatus(db, id, input.status);
+  // Reopening clears the closing reason; cancel/missed keep the optional context.
+  const reason = input.status === VisitStatus.Scheduled ? null : input.reason ?? null;
+  return updateVisitStatus(db, id, input.status, reason);
+};
+
+export const rescheduleVisitService = async (
+  db: Db,
+  id: string,
+  input: RescheduleVisitInput,
+  actorId: string,
+): Promise<RescheduleResult | null> => {
+  const current = await findVisitById(db, id);
+  if (!current) return null;
+  // Only a live scheduled visit can be rescheduled — closed/rescheduled ones are done.
+  if (current.status !== VisitStatus.Scheduled) {
+    throw new VisitNotReschedulableError(current.status);
+  }
+  const scheduledStart = new Date(input.scheduledStart);
+  const scheduledEnd = input.scheduledEnd ? new Date(input.scheduledEnd) : null;
+  assertWindow(scheduledStart, scheduledEnd);
+  return rescheduleVisit(db, current, {
+    scheduledStart,
+    scheduledEnd,
+    // Omitted technicianId inherits the original's assignee; explicit null unassigns.
+    technicianId: input.technicianId === undefined ? current.technicianId : input.technicianId,
+    reason: input.reason,
+    actorId,
+  });
 };

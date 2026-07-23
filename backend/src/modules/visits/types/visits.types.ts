@@ -35,3 +35,9 @@ export interface AssignmentEntry extends AssignmentRow {
 export interface VisitWithHistory extends VisitWithNames {
   assignmentHistory: AssignmentEntry[];
 }
+
+/** Result of the reschedule transaction: the closed original + its replacement. */
+export interface RescheduleResult {
+  closed: VisitRow;
+  visit: VisitRow;
+}

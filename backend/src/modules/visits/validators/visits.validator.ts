@@ -38,8 +38,26 @@ export const assignVisitSchema = z.object({
   technicianId: z.string().uuid().nullable(),
 });
 
+// `rescheduled` is unreachable here — it is only produced by the reschedule
+// transaction. `reason` is optional context on cancel/missed, ignored on
+// complete/reopen (the service clears it on reopen).
 export const changeVisitStatusSchema = z.object({
-  status: z.nativeEnum(VisitStatus),
+  status: z.enum([
+    VisitStatus.Scheduled,
+    VisitStatus.Completed,
+    VisitStatus.Cancelled,
+    VisitStatus.Missed,
+  ]),
+  reason: z.string().min(1).optional(),
+});
+
+// Could-not-serve reschedule (12 §1): closes the original (reason required) and
+// opens a fresh scheduled record. technicianId omitted = inherit the original's.
+export const rescheduleVisitSchema = z.object({
+  scheduledStart: z.string().datetime(),
+  scheduledEnd: z.string().datetime().nullable().optional(),
+  technicianId: z.string().uuid().nullable().optional(),
+  reason: z.string().min(1),
 });
 
 export type ListVisitsQuery = z.infer<typeof listVisitsQuerySchema>;
@@ -47,3 +65,4 @@ export type CreateVisitInput = z.infer<typeof createVisitSchema>;
 export type UpdateVisitInput = z.infer<typeof updateVisitSchema>;
 export type AssignVisitInput = z.infer<typeof assignVisitSchema>;
 export type ChangeVisitStatusInput = z.infer<typeof changeVisitStatusSchema>;
+export type RescheduleVisitInput = z.infer<typeof rescheduleVisitSchema>;
