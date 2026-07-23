@@ -65,6 +65,8 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
    `.row-action`/`--danger`/`--success` — since CP-4 the same classes cover editor
    repeater reorder/remove buttons and toolbar icon-ghosts, `--grab` for drag
    handles) — never hand-rolled `<ol>`/`<div>` row lists (owner, 2026-07-21).
+   Inside a padded card, wrap the table in `.card-flush-table` (theme/table.scss)
+   so it bleeds to the card edges (owner 2026-07-23; canon: CRM dashboard feeds).
 8. **Simple fixed sizing beats layout machinery.** Fixed card heights + internal
    scroll, page-scoped CSS only — never shell-layout surgery (flex-chain rewiring,
    route-data layout flags) for one page's sizing (owner, 2026-07-21).

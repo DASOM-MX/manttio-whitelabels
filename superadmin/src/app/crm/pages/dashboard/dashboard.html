@@ -34,7 +34,11 @@
           <div class="min-w-0">
             <h2 class="micro-label" [id]="'panel-kpi-' + kpi.id">{{ kpi.label }}</h2>
             <p class="mt-2 flex flex-wrap items-baseline gap-2">
-              <span class="font-data text-3xl font-semibold leading-none tabular-nums {{ kpi.valueClass }}">
+              <span
+                class="font-data text-3xl font-semibold leading-none tabular-nums {{
+                  kpi.valueClass
+                }}"
+              >
                 {{ kpi.value }}
               </span>
               @if (kpi.delta; as delta) {
@@ -68,7 +72,11 @@
         <div class="min-w-0">
           <h2 class="micro-label" id="panel-kpi-follow-ups">{{ kpi.label }}</h2>
           <p class="mt-2">
-            <span class="font-data text-3xl font-semibold leading-none tabular-nums {{ kpi.valueClass }}">
+            <span
+              class="font-data text-3xl font-semibold leading-none tabular-nums {{
+                kpi.valueClass
+              }}"
+            >
               {{ kpi.value }}
             </span>
           </p>
@@ -157,52 +165,54 @@
           Reintentar
         </button>
       } @else {
-        <p-table
-          [value]="clientRows()"
-          [loading]="clientsPending()"
-          [showLoader]="false"
-          [rowHover]="true"
-          [scrollable]="true"
-          scrollHeight="16rem"
-          dataKey="id"
-        >
-          <ng-template #header>
-            <tr>
-              <th scope="col">Cliente</th>
-              <th scope="col">Alta</th>
-            </tr>
-          </ng-template>
-          <ng-template #body let-row>
-            <tr class="cursor-pointer" (click)="openCustomer(row.id)">
-              <td class="font-medium">
-                {{ row.title }}
-                <span class="block text-xs font-normal text-surface-500 dark:text-surface-400">
-                  {{ row.subtitle || row.sourceLabel }}
-                </span>
-              </td>
-              <td>
-                <span class="whitespace-nowrap font-data text-sm tabular-nums">
-                  {{ row.createdAt | relativeTime }}
-                </span>
-              </td>
-            </tr>
-          </ng-template>
-          <ng-template #loadingbody>
-            @for (row of skeletonRows; track row) {
+        <div class="card-flush-table">
+          <p-table
+            [value]="clientRows()"
+            [loading]="clientsPending()"
+            [showLoader]="false"
+            [rowHover]="true"
+            [scrollable]="true"
+            scrollHeight="16rem"
+            dataKey="id"
+          >
+            <ng-template #header>
               <tr>
-                <td><span class="skeleton"></span></td>
-                <td><span class="skeleton"></span></td>
+                <th scope="col">Cliente</th>
+                <th scope="col">Alta</th>
               </tr>
-            }
-          </ng-template>
-          <ng-template #emptymessage>
-            <tr>
-              <td colspan="2" class="py-6 text-center text-surface-500 dark:text-surface-400">
-                Sin clientes registrados todavía.
-              </td>
-            </tr>
-          </ng-template>
-        </p-table>
+            </ng-template>
+            <ng-template #body let-row>
+              <tr class="cursor-pointer" (click)="openCustomer(row.id)">
+                <td class="font-medium">
+                  {{ row.title }}
+                  <span class="block text-xs font-normal text-surface-500 dark:text-surface-400">
+                    {{ row.subtitle || row.sourceLabel }}
+                  </span>
+                </td>
+                <td>
+                  <span class="whitespace-nowrap font-data text-sm tabular-nums">
+                    {{ row.createdAt | relativeTime }}
+                  </span>
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #loadingbody>
+              @for (row of skeletonRows; track row) {
+                <tr>
+                  <td><span class="skeleton"></span></td>
+                  <td><span class="skeleton"></span></td>
+                </tr>
+              }
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr>
+                <td colspan="2" class="py-6 text-center text-surface-500 dark:text-surface-400">
+                  Sin clientes registrados todavía.
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
       }
     </section>
   </div>
@@ -231,8 +241,8 @@
             <svg lucideShare2 class="size-5" aria-hidden="true"></svg>
           </span>
           <p class="max-w-xs text-sm text-surface-600 dark:text-surface-400">
-            Aún no hay datos de captación. Comparte tus enlaces de contacto para empezar a medir
-            tus canales.
+            Aún no hay datos de captación. Comparte tus enlaces de contacto para empezar a medir tus
+            canales.
           </p>
           <a routerLink="/dashboard" class="btn-secondary">Ir a los enlaces</a>
         </div>
@@ -252,10 +262,7 @@
               </div>
               <!-- Progress bars ride the decorative accent step (01). -->
               <div class="mt-1.5 h-1.5 rounded-full bg-surface-100 dark:bg-surface-800">
-                <div
-                  class="h-1.5 rounded-full bg-primary-400"
-                  [style.width.%]="bar.widthPct"
-                ></div>
+                <div class="h-1.5 rounded-full bg-primary-400" [style.width.%]="bar.widthPct"></div>
               </div>
               <p class="mt-1 font-data text-xs tabular-nums text-surface-500 dark:text-surface-400">
                 {{ bar.split }}
@@ -276,93 +283,91 @@
           Reintentar
         </button>
       } @else {
-        <p-table
-          [value]="activityRows()"
-          [loading]="activityPending()"
-          [showLoader]="false"
-          [rowHover]="true"
-          [scrollable]="true"
-          scrollHeight="16rem"
-          dataKey="id"
-        >
-          <ng-template #header>
-            <tr>
-              <th scope="col">Cliente</th>
-              <th scope="col">Estatus</th>
-              <th scope="col">Tipo</th>
-              <th scope="col">Registro</th>
-              <th scope="col">Fecha</th>
-            </tr>
-          </ng-template>
-          <ng-template #body let-entry>
-            <!-- Whole row opens the client 360 — same interaction as the
-                 customers list tables. -->
-            <tr
-              class="cursor-pointer"
-              [class.opacity-70]="entry.type === 'system'"
-              (click)="openCustomer(entry.customerId)"
-            >
-              <td class="max-w-44 font-medium">
-                <span class="block truncate">{{ entry.customerName }}</span>
-              </td>
-              <td>
-                <p-tag
-                  [severity]="entry.customerStatus | customerStatusSeverity"
-                  [value]="entry.customerStatus | customerStatusLabel"
-                />
-              </td>
-              <td>
-                <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
-                  <svg
-                    lucideIcon
-                    [lucideIcon]="entry.type | interactionTypeIcon"
-                    class="size-4 shrink-0 text-surface-500 dark:text-surface-400"
-                    aria-hidden="true"
-                  ></svg>
-                  {{ entry.type | interactionTypeLabel }}
-                </span>
-              </td>
-              <td class="max-w-64">
-                <!-- The cell truncates; hover serves the full record. -->
-                <span
-                  class="block truncate"
-                  [pTooltip]="entry.body"
-                  tooltipPosition="top"
-                >
-                  {{ entry.body }}
-                </span>
-              </td>
-              <td>
-                <span class="whitespace-nowrap font-data text-sm tabular-nums">
-                  {{ entry.createdAt | relativeTime }}
-                </span>
-                @if (entry.userName) {
-                  <span class="block text-xs text-surface-500 dark:text-surface-400">
-                    {{ entry.userName }}
-                  </span>
-                }
-              </td>
-            </tr>
-          </ng-template>
-          <ng-template #loadingbody>
-            @for (row of skeletonRows; track row) {
+        <div class="card-flush-table">
+          <p-table
+            [value]="activityRows()"
+            [loading]="activityPending()"
+            [showLoader]="false"
+            [rowHover]="true"
+            [scrollable]="true"
+            scrollHeight="16rem"
+            dataKey="id"
+          >
+            <ng-template #header>
               <tr>
-                <td><span class="skeleton"></span></td>
-                <td><span class="skeleton"></span></td>
-                <td><span class="skeleton"></span></td>
-                <td><span class="skeleton"></span></td>
-                <td><span class="skeleton"></span></td>
+                <th scope="col">Cliente</th>
+                <th scope="col">Estatus</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Registro</th>
+                <th scope="col">Fecha</th>
               </tr>
-            }
-          </ng-template>
-          <ng-template #emptymessage>
-            <tr>
-              <td colspan="5" class="py-6 text-center text-surface-500 dark:text-surface-400">
-                Sin actividad todavía — registra la primera llamada desde un cliente.
-              </td>
-            </tr>
-          </ng-template>
-        </p-table>
+            </ng-template>
+            <ng-template #body let-entry>
+              <!-- Whole row opens the client 360 — same interaction as the
+                 customers list tables. -->
+              <tr
+                class="cursor-pointer"
+                [class.opacity-70]="entry.type === 'system'"
+                (click)="openCustomer(entry.customerId)"
+              >
+                <td class="max-w-44 font-medium">
+                  <span class="block truncate">{{ entry.customerName }}</span>
+                </td>
+                <td>
+                  <p-tag
+                    [severity]="entry.customerStatus | customerStatusSeverity"
+                    [value]="entry.customerStatus | customerStatusLabel"
+                  />
+                </td>
+                <td>
+                  <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+                    <svg
+                      lucideIcon
+                      [lucideIcon]="entry.type | interactionTypeIcon"
+                      class="size-4 shrink-0 text-surface-500 dark:text-surface-400"
+                      aria-hidden="true"
+                    ></svg>
+                    {{ entry.type | interactionTypeLabel }}
+                  </span>
+                </td>
+                <td class="max-w-64">
+                  <!-- The cell truncates; hover serves the full record. -->
+                  <span class="block truncate" [pTooltip]="entry.body" tooltipPosition="top">
+                    {{ entry.body }}
+                  </span>
+                </td>
+                <td>
+                  <span class="whitespace-nowrap font-data text-sm tabular-nums">
+                    {{ entry.createdAt | relativeTime }}
+                  </span>
+                  @if (entry.userName) {
+                    <span class="block text-xs text-surface-500 dark:text-surface-400">
+                      {{ entry.userName }}
+                    </span>
+                  }
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #loadingbody>
+              @for (row of skeletonRows; track row) {
+                <tr>
+                  <td><span class="skeleton"></span></td>
+                  <td><span class="skeleton"></span></td>
+                  <td><span class="skeleton"></span></td>
+                  <td><span class="skeleton"></span></td>
+                  <td><span class="skeleton"></span></td>
+                </tr>
+              }
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr>
+                <td colspan="5" class="py-6 text-center text-surface-500 dark:text-surface-400">
+                  Sin actividad todavía — registra la primera llamada desde un cliente.
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
       }
     </section>
   </div>
@@ -386,61 +391,65 @@
         Reintentar
       </button>
     } @else {
-      <p-table
-        [value]="followUpRows()"
-        [loading]="followUpsPending()"
-        [showLoader]="false"
-        [rowHover]="true"
-        [scrollable]="true"
-        scrollHeight="16rem"
-        dataKey="id"
-      >
-        <ng-template #header>
-          <tr>
-            <th scope="col">Cliente</th>
-            <th scope="col">Origen</th>
-            <th scope="col">Estatus</th>
-            <th scope="col">Fecha</th>
-          </tr>
-        </ng-template>
-        <ng-template #body let-row>
-          <tr class="cursor-pointer" (click)="openCustomer(row.id)">
-            <td class="font-medium">{{ row.name }}</td>
-            <td>{{ row.sourceLabel }}</td>
-            <td>
-              <p-tag
-                [severity]="row.status | customerStatusSeverity"
-                [value]="row.status | customerStatusLabel"
-              />
-            </td>
-            <td>
-              <span
-                class="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 font-data text-xs font-medium leading-none tabular-nums {{ row.dateClass }}"
-              >
-                {{ row.dateLabel }}
-              </span>
-            </td>
-          </tr>
-        </ng-template>
-        <ng-template #loadingbody>
-          @for (row of skeletonRows; track row) {
+      <div class="card-flush-table">
+        <p-table
+          [value]="followUpRows()"
+          [loading]="followUpsPending()"
+          [showLoader]="false"
+          [rowHover]="true"
+          [scrollable]="true"
+          scrollHeight="16rem"
+          dataKey="id"
+        >
+          <ng-template #header>
             <tr>
-              <td><span class="skeleton"></span></td>
-              <td><span class="skeleton"></span></td>
-              <td><span class="skeleton"></span></td>
-              <td><span class="skeleton"></span></td>
+              <th scope="col">Cliente</th>
+              <th scope="col">Origen</th>
+              <th scope="col">Estatus</th>
+              <th scope="col">Fecha</th>
             </tr>
-          }
-        </ng-template>
-        <ng-template #emptymessage>
-          <tr>
-            <td colspan="4" class="py-6 text-center text-surface-500 dark:text-surface-400">
-              Sin seguimientos programados — agenda el próximo contacto desde la ficha del
-              cliente.
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
+          </ng-template>
+          <ng-template #body let-row>
+            <tr class="cursor-pointer" (click)="openCustomer(row.id)">
+              <td class="font-medium">{{ row.name }}</td>
+              <td>{{ row.sourceLabel }}</td>
+              <td>
+                <p-tag
+                  [severity]="row.status | customerStatusSeverity"
+                  [value]="row.status | customerStatusLabel"
+                />
+              </td>
+              <td>
+                <span
+                  class="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 font-data text-xs font-medium leading-none tabular-nums {{
+                    row.dateClass
+                  }}"
+                >
+                  {{ row.dateLabel }}
+                </span>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template #loadingbody>
+            @for (row of skeletonRows; track row) {
+              <tr>
+                <td><span class="skeleton"></span></td>
+                <td><span class="skeleton"></span></td>
+                <td><span class="skeleton"></span></td>
+                <td><span class="skeleton"></span></td>
+              </tr>
+            }
+          </ng-template>
+          <ng-template #emptymessage>
+            <tr>
+              <td colspan="4" class="py-6 text-center text-surface-500 dark:text-surface-400">
+                Sin seguimientos programados — agenda el próximo contacto desde la ficha del
+                cliente.
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
     }
   </section>
 </div>

@@ -272,7 +272,10 @@ Binding for every component; the skill carries the same list with implementation
   CP-4), and the CP-3 list trio — `.row-action` (+ `--danger`/`--success`/`--grab` —
   icon-ghost actions: table rows, editor repeater reorder/remove, rich-text toolbar;
   widened beyond tables at CP-4, disabled steps dim to 0.4), `.skeleton` (loading
-  bars), `.empty-icon` (empty-state disc). They already carry dark variants and
+  bars), `.empty-icon` (empty-state disc). For a `p-table` inside a padded card,
+  wrap it in `.card-flush-table` (theme/table.scss, owner 2026-07-23): cancels the
+  card's px-6 so the table bleeds edge-to-edge and sheds its own rounded/shadow
+  chrome — canon: the CRM dashboard feed cards. They already carry dark variants and
   disabled/focus states; re-implementing them in templates almost always misses one.
   These globals are **ported from `frontend/src/styles.scss`** in shell CP-2 — keep them
   byte-compatible where possible so fixes can flow between apps.
