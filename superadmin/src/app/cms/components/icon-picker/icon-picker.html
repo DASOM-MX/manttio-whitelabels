@@ -1,11 +1,7 @@
 <button
   type="button"
-  class="inline-flex size-12 shrink-0 items-center justify-center rounded-lg border bg-white text-surface-700 transition-colors focus:border-primary-700 focus:outline-none focus:ring-4 focus:ring-primary-700/20 disabled:bg-surface-0 disabled:text-surface-400 dark:bg-surface-900 dark:text-surface-300 dark:focus:border-primary-400 dark:focus:ring-primary-400/25 dark:disabled:bg-surface-800"
-  [class.border-surface-200]="!value()"
+  class="inline-flex size-11 shrink-0 items-center justify-center rounded-control border border-primary-600/40 bg-white text-surface-700 transition-colors hover:border-primary-600 focus:border-primary-700 focus:outline-none focus:ring-4 focus:ring-primary-700/20 disabled:border-surface-300 disabled:bg-surface-0 disabled:text-surface-400 sm:size-10 dark:border-primary-400/40 dark:bg-surface-900 dark:text-surface-300 dark:hover:border-primary-400 dark:focus:border-primary-400 dark:focus:ring-primary-400/25 dark:disabled:border-surface-700 dark:disabled:bg-surface-800"
   [class.border-dashed]="!value()"
-  [class.border-surface-300]="value()"
-  [class.dark:border-surface-700]="!value()"
-  [class.dark:border-surface-600]="value()"
   (click)="grid.toggle($event)"
   [disabled]="disabled()"
   aria-label="Elegir icono"
