@@ -165,12 +165,10 @@
   /* Icon chip (Purity reference): the teal accent squares, mapped to
      primary-400 — decorative markers on stat cards / timelines / feature
      blurbs, never buttons. Glyph rides `currentColor`; keep it aria-hidden
-     with the label alongside. */
+     with the label alongside. (`--soft` variant removed at plan 17 CP-5 —
+     never adopted.) */
   .icon-chip {
     @apply inline-flex size-10 shrink-0 items-center justify-center rounded-chip bg-primary-400 text-white;
-  }
-  .icon-chip--soft {
-    @apply inline-flex size-10 shrink-0 items-center justify-center rounded-chip bg-white text-primary-400 shadow-card dark:bg-surface-900;
   }
 
   /* Micro-label for card/section/table headers (01 Design language). */
@@ -292,7 +290,7 @@
      separate region below, so nothing ever passes under it. Neutral black
      alpha shadows only — never a colored glow. */
   .shell-sidebar {
-    @apply bg-primary-1000 border border-l-0 border-primary-800/50 rounded-r-card;
+    @apply bg-primary-1000 border border-l-0 border-primary-800/50 rounded-r-shell;
     box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.12);
   }
   .app-dark .shell-sidebar {

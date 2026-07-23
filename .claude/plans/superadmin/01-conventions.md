@@ -91,7 +91,8 @@ auto-loads it — **edit both in the same commit.**
   text-primary-800` + the `initials` pipe, dark `primary-1000/60`/`primary-300`) —
   the reference's row identity, brand-tinted (canon: customers-list Cliente column).
 - **Accent step (owner, 2026-07-22):** `primary-400` is the *decorative* accent — icon
-  chips (`.icon-chip`/`.icon-chip--soft`), single-hue chart area fills, progress bars,
+  chips (`.icon-chip`; the unused `--soft` variant was removed at plan 17 CP-5,
+  2026-07-22), single-hue chart area fills, progress bars,
   highlight numbers (the reference's teal, brand-mapped). Interactive solids (buttons,
   the filled nav chip's container aside) stay on `primary-600`/`700` — white text on
   400 doesn't clear 4.5:1.
@@ -271,7 +272,10 @@ Binding for every component; the skill carries the same list with implementation
   CP-4), and the CP-3 list trio — `.row-action` (+ `--danger`/`--success`/`--grab` —
   icon-ghost actions: table rows, editor repeater reorder/remove, rich-text toolbar;
   widened beyond tables at CP-4, disabled steps dim to 0.4), `.skeleton` (loading
-  bars), `.empty-icon` (empty-state disc). They already carry dark variants and
+  bars), `.empty-icon` (empty-state disc). For a `p-table` inside a padded card,
+  wrap it in `.card-flush-table` (theme/table.scss, owner 2026-07-23): cancels the
+  card's px-6 so the table bleeds edge-to-edge and sheds its own rounded/shadow
+  chrome — canon: the CRM dashboard feed cards. They already carry dark variants and
   disabled/focus states; re-implementing them in templates almost always misses one.
   These globals are **ported from `frontend/src/styles.scss`** in shell CP-2 — keep them
   byte-compatible where possible so fixes can flow between apps.

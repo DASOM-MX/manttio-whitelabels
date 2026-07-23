@@ -105,7 +105,7 @@ module.exports = {
 
       // Semantic radius tokens (owner 2026-07-22): the shape boundary as
       // utilities — `rounded-card` for cards/panels/dialogs/table shells
-      // (and the sidebar's `rounded-r-card` edge), `rounded-chip` for icon
+      // (the sidebar edge rides `rounded-r-shell`), `rounded-chip` for icon
       // chips + popovers, `rounded-control` for inputs/buttons/nav rows
       // (buttons joined 2026-07-22 — default-PrimeNG shape, no more pills).
       // Status/role pills + chrome icon-circles stay `rounded-full`. New
@@ -116,6 +116,9 @@ module.exports = {
         card: '1rem',
         chip: '0.75rem',
         control: '0.5rem',
+        // Sidebar right edge only (owner 2026-07-23): a deeper curve than
+        // the shared card radius so the brand panel reads as its own shape.
+        shell: '2.35rem',
       },
 
       // Soft-elevation card shadow (owner 2026-07-22, Purity-style soft UI):
