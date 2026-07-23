@@ -8,6 +8,14 @@ off it. One order composes 1..n catalog services (17) for one client, **owns 1..
 scheduled visits** (12 — when we go) and **0..n reports** (06 — what happened).
 Creating an order also announces itself on the client's CRM timeline (08).
 
+> **Packaging (decided 2026-07-23).** Orders/services/calendar form the **operations
+> suite**; **reporting (06) sells separately**. So the dependency is one-directional:
+> 18 enriches 06 (explosion, template↔service prefilter) but **06 never depends on 18**
+> — reports work fully standalone with `serviceOrderId` null (06 standalone-suite rule).
+> Visits (12) *do* require an order, but that's fine: a reporting-only tenant simply
+> doesn't run the calendar/orders modules at all. The manager's org-level module flags
+> gate which suite a tenant gets (`14-access-control.md` — flags are manager-owned).
+
 ```
 customers 1 ─── * service_orders 1 ─┬─ * service_order_services * ─── 1 services
                                     ├─ * scheduled_visits   (12 — NOT NULL, order-bound)
@@ -73,9 +81,11 @@ generated recurring contract then produces future work is a 13 concern (open ask
   strict order-bound; the table is empty pre-release so no backfill). Ad-hoc
   "visits" that aren't jobs stay CRM `visit` interactions (08); a diagnostic visit
   is a small order.
-- `reports.serviceOrderId?` (nullable — manual/legacy reports stay valid) +
+- `reports.serviceOrderId?` (nullable **by design** — reports never require an order;
+  reporting is a standalone sellable suite, 06 standalone-suite rule) +
   `reports.serviceId?` (which line the report fulfills; drives the template
-  prefilter). Both restrict.
+  prefilter). Both restrict. Explosion writes them; the manual report path leaves them
+  null and works unchanged.
 - `ReportStatus` gains **`pending`** and **`cancelled`** (widen `reports_status_check`):
   `pending` = the exploded not-yet-started state; `cancelled` = an exploded report
   voided when its order is cancelled (decided 2026-07-23). `created` remains the
