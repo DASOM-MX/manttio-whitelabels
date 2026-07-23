@@ -137,7 +137,15 @@ auto-loads it — **edit both in the same commit.**
   light-on-dark `rounded-control` rows (`primary-100`/`200` text, `primary-300`
   `.nav-icon`s), hover `white/10`, active child = solid `primary-600` row with white
   text (`.nav-active`), active-trail group = white text/icon (`.nav-group-active`),
-  no shadows inside the nav; micro-labels (`text-2xs font-medium`) for
+  no shadows inside the nav. The panel lives in its own `app-sidebar` component
+  (`layouts/components/sidebar/`, extracted 2026-07-23) rendered by both the desktop
+  aside and the mobile drawer; desktop collapses to a `w-20` **icon rail** (owner
+  2026-07-23, toggled by a floating `size-4` chevron handle straddling the panel's
+  right edge at `top-5`, persisted as `AppState.sidebarCollapsed`):
+  rail icons link to the group's landing route and reveal a `.nav-flyout` submenu on
+  hover/focus (CSS-only `:hover`/`:focus-within` — keyboard path is the normal tab
+  order; width snaps, no width animation per the transform/opacity motion rule);
+  micro-labels (`text-2xs font-medium`) for
   card/section/table headers — **title/sentence case, never uppercase** (QA 2026-07-07:
   uppercase is reserved for warnings or explicit requests; headings/labels render in
   their authored case);

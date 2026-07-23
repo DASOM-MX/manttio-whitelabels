@@ -163,7 +163,11 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   `rounded-control` rows (`primary-100`/`200` text, `primary-300` `.nav-icon`s), hover
   `white/10`, active child = solid `primary-600` row with white text
   (`.nav-active`), active-trail group = white text/icon (`.nav-group-active`).
-  No shadows inside the nav.
+  No shadows inside the nav. The panel is the `app-sidebar` component
+  (`layouts/components/sidebar/`); desktop collapses to a `w-20` icon rail
+  (owner 2026-07-23, persisted `AppState.sidebarCollapsed`) whose rows reveal
+  `.nav-flyout` submenus on hover/focus — CSS-only, width snaps (no width
+  animation per transform-performance).
 - **Stat cards** (reference idiom): micro-label + `font-data` value + signed delta
   (`text-emerald-600`/`text-red-600`) with an `.icon-chip` on the trailing edge;
   timelines pair small accent icons with micro-label timestamps.

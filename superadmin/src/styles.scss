@@ -330,4 +330,65 @@
     // No weight bump — the solid row carries the active cue (weight ladder).
     @apply bg-primary-600 text-white;
   }
+
+  /* Collapsed-rail flyouts (owner 2026-07-23): with the sidebar collapsed
+     to its icon rail, each row reveals a WHITE overlay submenu beside it on
+     hover/focus — separated from the dark rail by a 4px gap and a neutral
+     shadow (owner, same day: white + shadow, not the brand panel).
+     CSS-only (:hover / :focus-within), so the keyboard path is the normal
+     tab order and no JS state is needed. The pl-1 bridge is part of the
+     flyout element, keeping hover continuous across the gap. True overlay →
+     the shadow is allowed; dark mode adds a hairline ring (shadows vanish
+     on the dark canvas). */
+  .nav-flyout-host {
+    @apply relative;
+  }
+  .nav-flyout {
+    // left-full anchors to the ROW edge, which sits inside the panel's
+    // px-3 nav gutter — pl-7 + ml-px = that 12px gutter + 1px aside border
+    // + the 16px visual gap from the rail edge (owner spec 2026-07-23,
+    // widened from 4px the same day). The bridge stays part of this
+    // element, so hover survives the crossing.
+    @apply invisible absolute left-full top-0 z-30 ml-px pl-7 opacity-0 transition-opacity duration-150;
+  }
+  .nav-flyout-host:hover > .nav-flyout,
+  .nav-flyout-host:focus-within > .nav-flyout {
+    @apply visible opacity-100;
+  }
+  .nav-flyout-panel {
+    // Landscape proportions (owner: wider than long) — children render as a
+    // two-column grid at the call site, min-w keeps even a two-child group
+    // wide. The ::before is the speech-bubble tail: a rotated square tucked
+    // BEHIND the panel (-z-10 inside the flyout's stacking context), aimed
+    // at the rail icon; it rides the panel surface + dark hairline, no
+    // shadow of its own (it lives inside the panel's penumbra).
+    @apply relative w-max min-w-64 rounded-chip bg-white p-2 shadow-xl dark:bg-surface-900 dark:ring-1 dark:ring-surface-700;
+
+    &::before {
+      content: '';
+      @apply absolute -left-1.5 top-3.5 -z-10 size-3 rotate-45 rounded-sm bg-white dark:bg-surface-900 dark:ring-1 dark:ring-surface-700;
+    }
+  }
+  .nav-flyout-title {
+    @apply px-3 pb-1 pt-1.5 text-2xs font-medium text-surface-500 dark:text-surface-400;
+  }
+  /* Flyout children grid — two columns separated by a subtle hairline
+     (owner 2026-07-23): no column gap so the divider runs continuous at
+     the boundary (the links' own px-3 keeps text off it); nth-child lives
+     here because templates can't express it. */
+  .nav-flyout-grid {
+    @apply grid grid-cols-2 gap-y-0.5;
+
+    > li:nth-child(even) {
+      @apply border-l border-surface-200 dark:border-surface-800;
+    }
+  }
+  /* Flyout links ride the light surface (not `.nav-child`, which is
+     light-on-dark for the brand panel); active keeps `.nav-active`. */
+  .nav-flyout-link {
+    @apply flex h-9 items-center rounded-control px-3 text-sm text-surface-700 transition-colors dark:text-surface-300;
+  }
+  .nav-flyout-link:not(.nav-active):hover {
+    @apply bg-surface-100 text-surface-900 dark:bg-surface-800 dark:text-surface-100;
+  }
 }
