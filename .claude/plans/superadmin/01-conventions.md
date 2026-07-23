@@ -98,6 +98,19 @@ auto-loads it — **edit both in the same commit.**
 - **Stat cards (reference idiom):** micro-label + `font-data` value + delta
   (`text-emerald-600`/`text-red-600`, sign always shown) with an `.icon-chip` on the
   trailing edge; timelines pair small accent icons with micro-label timestamps.
+- **Data-viz (owner 2026-07-22, CRM-cockpit turn — supersedes utm-params 03's
+  2026-07-20 pies):** time series are `p-chart type="line"` — hero series
+  `primary-600` (dark `primary-400`) with the sole tolerated gradient (a
+  `primary-400` single-hue area fill fading to transparent), secondary series on
+  the scale's neutral end (`primary-1000` light / `primary-100` dark), smooth
+  `tension: 0.4`, no point dots, faint y-grid only, chart.js legend OFF — the
+  legend is dot chips in the card header. Categorical mixes (channels, sources)
+  are **never pies**: proportional single-hue bars (`bg-primary-400` fill on a
+  `surface-100`/`surface-800` track, width relative to the top row, `font-data`
+  counts, a muted split line beneath). Chart canvases live in a fixed-height
+  wrapper (`h-64`) with host + inner div `h-full` (PrimeNG 21 ignores
+  `styleClass` on `p-chart`); chart colors re-read the brand CSS vars on theme
+  change (canon: `crm/pages/dashboard`).
 - **Default-PrimeNG buttons (owner 2026-07-22: "blob-like buttons do not look
   clean" — supersedes the 2026-07-21 blob/pill buttons):** actions are
   `rounded-control` rectangles at the input radius, stock-Aura `px-4` — the

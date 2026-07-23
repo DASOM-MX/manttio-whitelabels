@@ -1,10 +1,18 @@
 import type { Db } from '../../database/client';
 import { CustomerSource } from '../enums/customers.enum';
-import { countIntakeBySource } from '../repository/customer-stats.repository';
+import {
+  countFollowUps,
+  countIntakeBySource,
+  countMonthlyIntake,
+  listFollowUps,
+} from '../repository/customer-stats.repository';
 import type {
+  FollowUpsResponse,
   IntakeSourceRow,
   IntakeStatsResponse,
   IntakeTotals,
+  IntakeTrendResponse,
+  TrendPoint,
 } from '../types/customer-stats.types';
 
 // Month boundaries are tenant-agnostic UTC for v1 (utm-params 03: coarse but
@@ -72,4 +80,29 @@ export const getIntakeStats = async (db: Db, month?: string): Promise<IntakeStat
   );
 
   return { period, previous, totals, rows };
+};
+
+/** Monthly intake series for the dashboard trend chart (CRM dashboard
+ *  redesign 2026-07-22): the last `months` calendar months ending at the
+ *  current one (MTD), zero-filled so the x-axis stays continuous. Same
+ *  snapshot semantics as the intake stats. */
+export const getIntakeTrend = async (db: Db, months: number): Promise<IntakeTrendResponse> => {
+  const now = new Date();
+  const start = monthStartUTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1));
+  const raw = await countMonthlyIntake(db, start, now);
+  const byMonth = new Map(raw.map((point) => [point.month, point]));
+
+  const series: TrendPoint[] = [];
+  for (let i = 0; i < months; i++) {
+    const bucket = monthStartUTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1) + i);
+    const key = `${bucket.getUTCFullYear()}-${String(bucket.getUTCMonth() + 1).padStart(2, '0')}`;
+    series.push(byMonth.get(key) ?? { month: key, leads: 0, active: 0 });
+  }
+  return { months: series };
+};
+
+/** Follow-up agenda + whole-scope counts for the dashboard (2026-07-22). */
+export const getFollowUps = async (db: Db, limit: number): Promise<FollowUpsResponse> => {
+  const [items, counts] = await Promise.all([listFollowUps(db, limit), countFollowUps(db)]);
+  return { items, overdueCount: counts.overdue, scheduledCount: counts.scheduled };
 };

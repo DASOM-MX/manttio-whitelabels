@@ -164,6 +164,17 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
 - **Stat cards** (reference idiom): micro-label + `font-data` value + signed delta
   (`text-emerald-600`/`text-red-600`) with an `.icon-chip` on the trailing edge;
   timelines pair small accent icons with micro-label timestamps.
+- **Data-viz** (owner 2026-07-22, CRM-cockpit turn): time series are
+  `p-chart type="line"` — hero series `primary-600` (dark `primary-400`) with the
+  sole tolerated gradient (a `primary-400` single-hue area fill fading to
+  transparent), secondary series on the scale's neutral end (`primary-1000` light /
+  `primary-100` dark), `tension: 0.4`, no point dots, faint y-grid only, chart.js
+  legend OFF — the legend is dot chips in the card header. Categorical mixes are
+  **never pies**: proportional single-hue bars (`bg-primary-400` on a surface
+  track, width relative to the top row, `font-data` counts). Chart canvases live
+  in a fixed-height wrapper (`h-64`), host + inner div `h-full` (PrimeNG 21
+  ignores `styleClass` on `p-chart`); colors re-read the brand CSS vars on theme
+  change (canon: `crm/pages/dashboard`).
 - **List filters live in a popover** (owner 2026-07-22, Chakra-style): the shared
   `shared/components/filters-popover` trigger (filter icon + active-count badge) sits
   left of the page's primary action; pass the page's URL param names as `[params]`

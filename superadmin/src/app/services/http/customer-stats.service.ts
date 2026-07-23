@@ -2,7 +2,9 @@ import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
 import type {
+  FollowUpsResponse,
   IntakeStats,
+  IntakeTrend,
   RecentCustomer,
   RecentInteraction,
   RecentItemsResponse,
@@ -16,6 +18,14 @@ export class CustomerStatsService {
 
   getIntake(month?: string): Observable<IntakeStats> {
     return this.remote.get<IntakeStats>('/customers/stats/intake', { month });
+  }
+
+  getTrend(months = 6): Observable<IntakeTrend> {
+    return this.remote.get<IntakeTrend>('/customers/stats/trend', { months });
+  }
+
+  getFollowUps(limit = 8): Observable<FollowUpsResponse> {
+    return this.remote.get<FollowUpsResponse>('/customers/follow-ups', { limit });
   }
 
   getRecentInteractions(limit = 8): Observable<RecentInteraction[]> {

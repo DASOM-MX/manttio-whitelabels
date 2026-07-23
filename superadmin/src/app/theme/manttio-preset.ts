@@ -122,5 +122,8 @@ export const ManttioPreset = definePreset(Aura, {
     // Overlay panels ride the card radius language (cards rounded-2xl,
     // dialogs one step under).
     dialog: { root: { borderRadius: '1rem' } },
+    // Tooltips carry full record bodies (CRM dashboard's Registro column) —
+    // stock 12.5rem clips a sentence into a word-per-line ribbon.
+    tooltip: { root: { maxWidth: '24rem' } },
   },
 });
