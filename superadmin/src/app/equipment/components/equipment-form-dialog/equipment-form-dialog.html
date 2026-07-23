@@ -109,7 +109,7 @@
         }
         @if (canAddPhoto()) {
           <label
-            class="flex size-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-surface-300 text-surface-500 transition-colors hover:border-primary-500 hover:text-primary-700 dark:border-surface-700 dark:hover:border-primary-500"
+            class="flex size-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-surface-300 text-surface-500 transition-colors hover:border-primary-500 hover:text-primary-700 dark:border-surface-700 dark:hover:border-primary-500"
           >
             <svg lucideImagePlus class="size-5" aria-hidden="true"></svg>
             <span class="text-xs font-medium">Agregar</span>
@@ -122,7 +122,7 @@
           </label>
         } @else if (uploadingPhoto()) {
           <div
-            class="flex size-20 items-center justify-center rounded-lg border-2 border-dashed border-surface-300 dark:border-surface-700"
+            class="flex size-20 items-center justify-center rounded-lg border border-dashed border-surface-300 dark:border-surface-700"
           >
             <span
               class="size-5 animate-spin rounded-full border-2 border-surface-300 border-t-primary-600"

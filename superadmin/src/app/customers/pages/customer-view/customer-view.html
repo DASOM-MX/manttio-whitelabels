@@ -378,11 +378,24 @@
     <a routerLink="/customers" class="btn-secondary">Volver a clientes</a>
   </div>
 } @else {
-  <div class="mt-10 flex justify-center">
-    <div
-      class="size-8 animate-spin rounded-full border-2 border-surface-200 border-t-primary-600 dark:border-surface-700 dark:border-t-primary-400"
-      role="status"
-      aria-label="Cargando cliente"
-    ></div>
+  <!-- Skeleton mirrors the page shape: 360 header card + tabs card
+       (skeletons over spinners, 01 Design language; plan 17 CP-5). -->
+  <div role="status" aria-label="Cargando cliente">
+    <section class="card-section mt-5">
+      <span class="skeleton max-w-56"></span>
+      <span class="skeleton mt-3 max-w-36"></span>
+      <span class="skeleton mt-3 max-w-72"></span>
+    </section>
+    <section class="card-section mt-4">
+      <span class="skeleton max-w-96"></span>
+      <div class="mt-6 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+        @for (r of [0, 1, 2, 3]; track r) {
+          <div>
+            <span class="skeleton max-w-24"></span>
+            <span class="skeleton mt-2 max-w-48"></span>
+          </div>
+        }
+      </div>
+    </section>
   </div>
 }
