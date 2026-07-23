@@ -16,7 +16,20 @@
 > overlay (`.skeleton` bar + reduced-motion-guarded pulse), `.empty-icon` disc empties,
 > `.row-action`/`--danger`/`--success` extract the five inline icon-action copies,
 > equipment gains `rowHover` + canon whole-row click, templates' "Abrir" text link →
-> standard eye icon action), CP-4 next.
+> standard eye icon action) · **CP-4 done 2026-07-22** (branch
+> `style/superadmin-executive-refresh-cp4`, stacked on the CRM-dashboard branch:
+> form-language extraction into `styles.scss` globals — `.field-error`/`.field-hint`,
+> `.link-action`, `.callout` + variants, `.seg-tabs`/`.seg-tab`, `.field-shell`,
+> `.row-action` widened to editor repeaters/toolbars (+`--grab`, disabled dim) —
+> inline validation errors on every scalar editor field (touched-gated,
+> `role="alert"`; repeater rows keep Aura's `ng-invalid.ng-dirty` border),
+> composite controls (tags-input, rich-text, icon-picker, scale-editor, template
+> columns toggle) onto the soft branded outline + `h-11 sm:h-10` baseline, dialog
+> widths → `dialog-sm/md/lg` styleClass steps in `overlays.scss` (inline `[style]`
+> width exception retired), clients-editor drawer `drawer-form` (bracket utility
+> gone) + CP-3 skeleton rows, home-editor tabs framed in their `.card`; weight-
+> ladder + caps-law sweep on all form/overlay surfaces), CP-5 next (client 360 +
+> detail views + app-wide sweep — the dashboard leg landed early, see below).
 > **Post-CP-2 owner turns (2026-07-22, same worktree):** inputs → **soft branded
 > outline** (primary-600/40 rest → solid 600 hover → 700 + halo focus; third
 > revision that day — see 01 §Design language) after the CSS-layer root cause

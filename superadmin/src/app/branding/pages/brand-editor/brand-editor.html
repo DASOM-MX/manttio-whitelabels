@@ -28,10 +28,7 @@
 </app-page-header>
 
 @if (readOnly()) {
-  <p
-    class="mt-4 rounded-lg border border-primary-200 bg-primary-0 px-4 py-3 text-sm text-primary-900 dark:border-primary-800 dark:bg-primary-1000/40 dark:text-primary-200"
-    role="note"
-  >
+  <p class="callout callout--info mt-4" role="note">
     Solo el propietario puede editar la marca. Estás viendo la configuración actual.
   </p>
 }
@@ -58,9 +55,7 @@
           >Eslogan<span aria-hidden="true"> *</span></label
         >
         <input id="brand-slogan" pInputText formControlName="slogan" maxlength="150" />
-        <p class="text-sm text-surface-500 dark:text-surface-400">
-          Frase corta bajo el logotipo en el sitio público.
-        </p>
+        <p class="field-hint">Frase corta bajo el logotipo en el sitio público.</p>
       </div>
     } @else if (brand(); as b) {
       <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
@@ -100,7 +95,7 @@
           class="self-start text-sm font-medium text-primary-700 underline-offset-2 hover:underline dark:text-primary-300"
           >{{ siteUrl }}</a
         >
-        <p class="text-sm text-surface-500 dark:text-surface-400">
+        <p class="field-hint">
           Se configura como parte de tu servicio; contáctanos si necesitas cambiarlo.
         </p>
       </div>
@@ -117,7 +112,7 @@
           class="!min-h-20"
           placeholder="Qué hace tu negocio, en dos o tres frases."
         ></textarea>
-        <p class="text-sm text-surface-500 dark:text-surface-400">
+        <p class="field-hint">
           Aparece en los resultados de búsqueda (meta descripción del sitio público).
         </p>
       </div>
@@ -146,10 +141,7 @@
     />
 
     @for (warning of contrastWarnings(); track warning) {
-      <p
-        class="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200"
-        role="status"
-      >
+      <p class="callout callout--warn flex items-start gap-2" role="status">
         <svg lucideTriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true"></svg>
         {{ warning }}
       </p>
@@ -227,9 +219,7 @@
             @if (!readOnly()) {
               <!-- relative: anchors the sr-only file input, which otherwise
                    positions against the document and adds phantom page scroll -->
-              <label
-                class="relative inline-flex cursor-pointer items-center gap-2 self-start text-sm font-medium text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
-              >
+              <label class="link-action relative cursor-pointer self-start">
                 <svg lucideImageUp class="size-4" aria-hidden="true"></svg>
                 @if (images()[slot.id].uploading) {
                   Subiendo…
@@ -369,7 +359,7 @@
             autocomplete="tel"
           />
           @if (contactControls.phone.touched && contactControls.phone.errors?.['phone']) {
-            <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+            <p class="field-error" role="alert">
               Ingresa un número de teléfono válido (10 a 15 dígitos).
             </p>
           }
@@ -386,7 +376,7 @@
             maxlength="20"
           />
           @if (contactControls.whatsapp.touched && contactControls.whatsapp.errors?.['phone']) {
-            <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+            <p class="field-error" role="alert">
               Ingresa un número de teléfono válido (10 a 15 dígitos).
             </p>
           }
@@ -404,7 +394,7 @@
             autocomplete="email"
           />
           @if (contactControls.email.touched && contactControls.email.errors?.['email']) {
-            <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+            <p class="field-error" role="alert">
               Ingresa un correo válido.
             </p>
           }

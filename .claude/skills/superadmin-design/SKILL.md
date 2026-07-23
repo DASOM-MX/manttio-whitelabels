@@ -62,8 +62,9 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
    internal scroll, `emptymessage` with the `.empty-icon` disc + one sentence, and —
    since CP-3 (2026-07-22) — `[showLoader]="false"` + a `#loadingbody` of 8
    `.skeleton`-bar rows instead of the spinner overlay; row-level icon actions use
-   `.row-action`/`--danger`/`--success`) — never hand-rolled `<ol>`/`<div>` row
-   lists (owner, 2026-07-21).
+   `.row-action`/`--danger`/`--success` — since CP-4 the same classes cover editor
+   repeater reorder/remove buttons and toolbar icon-ghosts, `--grab` for drag
+   handles) — never hand-rolled `<ol>`/`<div>` row lists (owner, 2026-07-21).
 8. **Simple fixed sizing beats layout machinery.** Fixed card heights + internal
    scroll, page-scoped CSS only — never shell-layout surgery (flex-chain rewiring,
    route-data layout flags) for one page's sizing (owner, 2026-07-21).
@@ -261,6 +262,17 @@ durations in components:
   position changes.
 
 ## Forms & feedback (MEDIUM)
+
+Implementation canon (plan 17 CP-4, 2026-07-22): the inline error is
+`<p class="field-error" role="alert">` directly under its control, gated on
+`touched && errors?.['key']` (never `dirty`, never per-keystroke); helper copy is
+`<p class="field-hint">`; required markers are `<span aria-hidden="true"> *</span>`
+on the label (uncolored). Repeater-row internals rely on Aura's automatic
+`.ng-invalid.ng-dirty` red border + the disabled submit instead of per-row
+messages. Bordered notes/warnings are `.callout` (+ `--info`/`--warn`/`--danger`);
+inline text-buttons ("Agregar X", upload labels) are `.link-action`; editor tab
+switchers are `.seg-tabs`/`.seg-tab` (+ `-active`, `-active--danger`); repeater
+reorder/remove and toolbar icon-ghosts reuse `.row-action` (+ `--danger`/`--grab`).
 
 - **input-labels** — visible label per input; never placeholder-only.
 - **error-placement** — error text directly below the related field.

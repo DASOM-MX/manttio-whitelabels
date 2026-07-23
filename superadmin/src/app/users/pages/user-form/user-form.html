@@ -6,10 +6,7 @@
 />
 
 @if (readOnly()) {
-  <p
-    class="mt-4 rounded-lg border border-primary-200 bg-primary-0 px-4 py-3 text-sm text-primary-900 dark:border-primary-800 dark:bg-primary-1000/40 dark:text-primary-200"
-    role="note"
-  >
+  <p class="callout callout--info mt-4" role="note">
     La cuenta del propietario no se administra desde aquí: los cambios se solicitan al equipo de
     soporte.
   </p>
@@ -17,7 +14,7 @@
 
 @if (isEdit() && !readOnly()) {
   <div
-    class="mt-5 inline-flex rounded-lg border border-surface-200 p-0.5 dark:border-surface-800"
+    class="seg-tabs mt-5"
     role="tablist"
     aria-label="Secciones del usuario"
     (keydown)="onTabKeydown($event)"
@@ -28,13 +25,8 @@
       role="tab"
       id="tab-datos"
       aria-controls="panel-datos"
-      class="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
-      [class.bg-primary-0]="tab() === 'datos'"
-      [class.text-primary-800]="tab() === 'datos'"
-      [class.dark:bg-primary-1000/40]="tab() === 'datos'"
-      [class.dark:text-primary-300]="tab() === 'datos'"
-      [class.text-surface-600]="tab() !== 'datos'"
-      [class.dark:text-surface-400]="tab() !== 'datos'"
+      class="seg-tab"
+      [class.seg-tab-active]="tab() === 'datos'"
       [attr.aria-selected]="tab() === 'datos'"
       [tabindex]="tab() === 'datos' ? 0 : -1"
       (click)="tab.set('datos')"
@@ -47,13 +39,8 @@
       role="tab"
       id="tab-critico"
       aria-controls="panel-critico"
-      class="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
-      [class.bg-red-50]="tab() === 'critico'"
-      [class.text-red-800]="tab() === 'critico'"
-      [class.dark:bg-red-950/30]="tab() === 'critico'"
-      [class.dark:text-red-300]="tab() === 'critico'"
-      [class.text-surface-600]="tab() !== 'critico'"
-      [class.dark:text-surface-400]="tab() !== 'critico'"
+      class="seg-tab"
+      [class.seg-tab-active--danger]="tab() === 'critico'"
       [attr.aria-selected]="tab() === 'critico'"
       [tabindex]="tab() === 'critico' ? 0 : -1"
       (click)="tab.set('critico')"
@@ -155,6 +142,9 @@
             >Nombre<span aria-hidden="true"> *</span></label
           >
           <input id="user-name" pInputText formControlName="name" autocomplete="given-name" />
+          @if (form.controls.name.touched && form.controls.name.errors?.['required']) {
+            <p class="field-error" role="alert">Ingresa el nombre.</p>
+          }
         </div>
         <div class="field-group">
           <label class="field-label" for="user-paternal-last-name"
@@ -166,6 +156,12 @@
             formControlName="paternalLastName"
             autocomplete="family-name"
           />
+          @if (
+            form.controls.paternalLastName.touched &&
+            form.controls.paternalLastName.errors?.['required']
+          ) {
+            <p class="field-error" role="alert">Ingresa el apellido paterno.</p>
+          }
         </div>
         <div class="field-group">
           <label class="field-label" for="user-maternal-last-name"
@@ -177,6 +173,12 @@
             formControlName="maternalLastName"
             autocomplete="additional-name"
           />
+          @if (
+            form.controls.maternalLastName.touched &&
+            form.controls.maternalLastName.errors?.['required']
+          ) {
+            <p class="field-error" role="alert">Ingresa el apellido materno.</p>
+          }
         </div>
         <div class="field-group">
           <label class="field-label" for="user-email"
@@ -189,6 +191,11 @@
             formControlName="email"
             autocomplete="email"
           />
+          @if (form.controls.email.touched && form.controls.email.errors?.['required']) {
+            <p class="field-error" role="alert">Ingresa el correo.</p>
+          } @else if (form.controls.email.touched && form.controls.email.errors?.['email']) {
+            <p class="field-error" role="alert">Ingresa un correo válido.</p>
+          }
         </div>
         <div class="field-group">
           <label class="field-label" for="user-phone">Teléfono</label>
@@ -208,9 +215,7 @@
       </div>
 
       @if (!isEdit()) {
-        <p
-          class="rounded-lg border border-primary-200 bg-primary-0 px-3 py-2 text-sm text-primary-900 dark:border-primary-800 dark:bg-primary-1000/40 dark:text-primary-200"
-        >
+        <p class="callout callout--info">
           Al crear la cuenta se genera una contraseña temporal que verás una sola vez.
         </p>
       }
@@ -251,7 +256,7 @@
     @if (selected(); as user) {
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p class="text-sm font-semibold text-surface-900 dark:text-surface-100">
+          <p class="text-sm font-medium text-surface-900 dark:text-surface-100">
             @if (user.active) {
               Desactivar cuenta
             } @else {
@@ -285,7 +290,7 @@
     @if (canReset()) {
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p class="text-sm font-semibold text-surface-900 dark:text-surface-100">
+          <p class="text-sm font-medium text-surface-900 dark:text-surface-100">
             Restablecer contraseña
           </p>
           <p class="mt-0.5 max-w-md text-sm text-surface-600 dark:text-surface-400">

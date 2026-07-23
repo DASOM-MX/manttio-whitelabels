@@ -5,8 +5,7 @@
   [closable]="!submitting()"
   [draggable]="false"
   [resizable]="false"
-  styleClass="max-w-11/12"
-  [style]="{ width: '30rem' }"
+  styleClass="dialog-md"
   header="Eliminar usuario"
 >
   <form [formGroup]="form" (ngSubmit)="confirm()" class="flex flex-col gap-4">
@@ -37,7 +36,7 @@
         spellcheck="false"
       />
       @if (form.controls['emailConfirm'].touched && !emailMatches()) {
-        <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+        <p class="field-error" role="alert">
           El correo no coincide.
         </p>
       }

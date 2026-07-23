@@ -247,11 +247,11 @@ Binding for every component; the skill carries the same list with implementation
 - Prefer `size-*` over paired `w-*`/`h-*` when width and height are equal
   (e.g. `w-4 h-4` → `size-4`).
 - **Never** use inline `style="..."` attributes (or `[style]` / `[ngStyle]`) in templates.
-  All styling goes through Tailwind classes or component-scoped styles. (Two exceptions:
-  the dialog width idiom `[style]="{ width: '32rem' }"` paired with the `max-w-11/12` cap
-  — see Dialogs below — and, added 2026-07-06, the brand editor's runtime previews:
-  color-swatch backgrounds and font-sample `font-family` bind `[style.*]` because
-  user-picked brand values can't be utility classes. Nothing else qualifies.)
+  All styling goes through Tailwind classes or component-scoped styles. (One exception —
+  added 2026-07-06 — the brand editor's runtime previews: color-swatch backgrounds and
+  font-sample `font-family` bind `[style.*]` because user-picked brand values can't be
+  utility classes. The old dialog-width `[style]` exception was retired at CP-4
+  (2026-07-22) — see Dialogs below. Nothing else qualifies.)
 - The color palette is the **runtime tenant brand**, shared with `frontend/` and `website/`:
   exactly two scales, `primary` and `surface`, reading `--brand-primary-*`/
   `--brand-surface-*` (HSL components, steps **0…1000 by 100** — no `-50`/`-950`;
@@ -262,10 +262,16 @@ Binding for every component; the skill carries the same list with implementation
   the one sanctioned literal-hex island (`.role-pill--*` in `styles.scss` — static across
   tenants by design, 14 §1). **Do not introduce new ad-hoc hex values.**
 - **Reuse the global classes from `styles.scss`** before re-styling locally: `.field-input`
-  (form controls), `.field-label`, `.field-group`, `.btn-primary` / `-secondary` / `-neutral`
-  / `-danger`, `.card`, `.card-section`, and the CP-3 list trio — `.row-action` (+
-  `--danger`/`--success` — table row icon actions), `.skeleton` (loading bars),
-  `.empty-icon` (empty-state disc). They already carry dark variants and
+  (form controls), `.field-label`, `.field-group`, `.field-hint` / `.field-error`
+  (feedback lines under a control — CP-4), `.btn-primary` / `-secondary` / `-neutral`
+  / `-danger`, `.link-action` (inline text-button/link — "Agregar X" repeater adds,
+  upload labels, "ver todos" card links; CP-4), `.card`, `.card-section`, `.callout`
+  (+ `--info`/`--warn`/`--danger` — bordered note/alert panels; CP-4), `.seg-tabs` /
+  `.seg-tab` (+ `.seg-tab-active`, `--danger` — the inline editor tab switcher;
+  CP-4), and the CP-3 list trio — `.row-action` (+ `--danger`/`--success`/`--grab` —
+  icon-ghost actions: table rows, editor repeater reorder/remove, rich-text toolbar;
+  widened beyond tables at CP-4, disabled steps dim to 0.4), `.skeleton` (loading
+  bars), `.empty-icon` (empty-state disc). They already carry dark variants and
   disabled/focus states; re-implementing them in templates almost always misses one.
   These globals are **ported from `frontend/src/styles.scss`** in shell CP-2 — keep them
   byte-compatible where possible so fixes can flow between apps.
@@ -289,9 +295,14 @@ Binding for every component; the skill carries the same list with implementation
   breakpoint-aware). Textareas opt out via `!h-auto`; compact controls (paginator
   rows-per-page in `table.scss`, dropdown filter inputs in `forms.scss`) opt down
   to `!h-9`. A non-standard height goes in those sheets, never a parallel class.
-- **Dialogs** (`<p-dialog>`, `<p-confirmDialog>`) are capped at **`max-w-11/12`** via
-  `styleClass` (a `tailwind.config.js` extension). Inline pixel width stays for roomy
-  viewports; the cap keeps a ~4% gutter on narrow screens. Apply on **every** dialog.
+- **Dialogs** (`<p-dialog>`, `<p-confirmDialog>`) take their width as
+  **`styleClass="dialog-sm|md|lg"`** (plan 17 CP-4, 2026-07-22 — supersedes the inline
+  `[style]` width + separate `max-w-11/12` clamp): three steps in `overlays.scss` —
+  `sm` 28rem (the default), `md` 30rem (roomier confirm/apply), `lg` 34rem (two-column
+  forms) — each already carrying the `max-w-11/12` phone clamp. Apply one on **every**
+  dialog; a new width step is a sheet change, never an inline style. The clients-editor
+  drawer's `drawer-form` class (full-width phone / 28rem from `sm`) lives in the same
+  sheet.
 
 ## Angular
 
@@ -437,6 +448,16 @@ shape 3 fits.
   field is explicitly optional. An empty form disables submit out of the box.
 - Wrap hover/active tints in the **`enabled:`** modifier
   (`enabled:hover:bg-primary-800 enabled:active:bg-primary-900`) so disabled buttons don't flash.
+- **Validation display canon (plan 17 CP-4, 2026-07-22):** the inline error is
+  `<p class="field-error" role="alert">` directly under its control, gated on
+  **`touched && errors?.['key']`** (never `dirty`-gated, never per-keystroke) —
+  every scalar field with a named label and a failable validator carries one.
+  Persistent helper copy is `<p class="field-hint">`. Required markers stay
+  `<span aria-hidden="true"> *</span>` on the label (uncolored). Repeater-row
+  internals rely on Aura's automatic `.ng-invalid.ng-dirty` red border + the
+  disabled submit instead of per-row messages (noise). Group-level failures
+  (fiscal all-or-nothing, password mismatch) render a `.callout--warn` or a
+  `.field-error` under the group, also `role="alert"`.
 
 Forms & feedback rules (MEDIUM — added 2026-07-05; implementation notes in the skill):
 
