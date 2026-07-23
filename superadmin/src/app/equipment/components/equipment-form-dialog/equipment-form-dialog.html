@@ -5,8 +5,7 @@
   [closable]="!submitting()"
   [draggable]="false"
   [resizable]="false"
-  styleClass="max-w-11/12"
-  [style]="{ width: '34rem' }"
+  styleClass="dialog-lg"
   [header]="editing() ? 'Editar equipo' : 'Registrar equipo'"
 >
   <form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-4 sm:grid-cols-2">

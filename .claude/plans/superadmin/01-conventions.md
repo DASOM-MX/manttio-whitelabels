@@ -247,11 +247,11 @@ Binding for every component; the skill carries the same list with implementation
 - Prefer `size-*` over paired `w-*`/`h-*` when width and height are equal
   (e.g. `w-4 h-4` → `size-4`).
 - **Never** use inline `style="..."` attributes (or `[style]` / `[ngStyle]`) in templates.
-  All styling goes through Tailwind classes or component-scoped styles. (Two exceptions:
-  the dialog width idiom `[style]="{ width: '32rem' }"` paired with the `max-w-11/12` cap
-  — see Dialogs below — and, added 2026-07-06, the brand editor's runtime previews:
-  color-swatch backgrounds and font-sample `font-family` bind `[style.*]` because
-  user-picked brand values can't be utility classes. Nothing else qualifies.)
+  All styling goes through Tailwind classes or component-scoped styles. (One exception —
+  added 2026-07-06 — the brand editor's runtime previews: color-swatch backgrounds and
+  font-sample `font-family` bind `[style.*]` because user-picked brand values can't be
+  utility classes. The old dialog-width `[style]` exception was retired at CP-4
+  (2026-07-22) — see Dialogs below. Nothing else qualifies.)
 - The color palette is the **runtime tenant brand**, shared with `frontend/` and `website/`:
   exactly two scales, `primary` and `surface`, reading `--brand-primary-*`/
   `--brand-surface-*` (HSL components, steps **0…1000 by 100** — no `-50`/`-950`;
@@ -295,9 +295,14 @@ Binding for every component; the skill carries the same list with implementation
   breakpoint-aware). Textareas opt out via `!h-auto`; compact controls (paginator
   rows-per-page in `table.scss`, dropdown filter inputs in `forms.scss`) opt down
   to `!h-9`. A non-standard height goes in those sheets, never a parallel class.
-- **Dialogs** (`<p-dialog>`, `<p-confirmDialog>`) are capped at **`max-w-11/12`** via
-  `styleClass` (a `tailwind.config.js` extension). Inline pixel width stays for roomy
-  viewports; the cap keeps a ~4% gutter on narrow screens. Apply on **every** dialog.
+- **Dialogs** (`<p-dialog>`, `<p-confirmDialog>`) take their width as
+  **`styleClass="dialog-sm|md|lg"`** (plan 17 CP-4, 2026-07-22 — supersedes the inline
+  `[style]` width + separate `max-w-11/12` clamp): three steps in `overlays.scss` —
+  `sm` 28rem (the default), `md` 30rem (roomier confirm/apply), `lg` 34rem (two-column
+  forms) — each already carrying the `max-w-11/12` phone clamp. Apply one on **every**
+  dialog; a new width step is a sheet change, never an inline style. The clients-editor
+  drawer's `drawer-form` class (full-width phone / 28rem from `sm`) lives in the same
+  sheet.
 
 ## Angular
 

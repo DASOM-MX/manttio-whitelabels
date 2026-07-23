@@ -14,6 +14,34 @@
   @apply absolute top-full left-0 right-auto bottom-auto mt-1 min-w-full origin-top z-50 !important;
 }
 
+/* Dialog width steps (plan 17 CP-4): every <p-dialog> takes one of these via
+   styleClass instead of an inline [style] width (01 Styling: exact sizes live
+   in stylesheets, and the no-inline-style rule loses its dialog exception).
+   Three steps only — sm 28rem (default), md 30rem (roomier confirm/apply),
+   lg 34rem (two-column forms). Each carries the max-w-11/12 phone clamp. */
+.p-dialog.dialog-sm {
+  width: 28rem;
+  @apply max-w-11/12;
+}
+.p-dialog.dialog-md {
+  width: 30rem;
+  @apply max-w-11/12;
+}
+.p-dialog.dialog-lg {
+  width: 34rem;
+  @apply max-w-11/12;
+}
+
+/* Right-hand form drawer (clients-editor): full-width sheet on phones, fixed
+   28rem panel from `sm` — the exact width lives here, not as a bracket
+   utility in the template. */
+.p-drawer-right.drawer-form {
+  width: 100%;
+  @screen sm {
+    width: 28rem;
+  }
+}
+
 /* Same strategy for the datepicker panel — override its inline position. */
 .p-datepicker {
   position: relative;

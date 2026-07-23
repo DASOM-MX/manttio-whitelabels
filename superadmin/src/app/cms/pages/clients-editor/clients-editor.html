@@ -2,15 +2,15 @@
   title="CMS — Clientes"
   description="Los clientes y logotipos que muestra tu sitio. Publica para hacer visibles los cambios."
 >
-    <app-publish-bar [unpublished]="unpublished()" [busy]="busy()" (publish)="publish()" />
-    <button type="button" class="btn-primary" (click)="openCreate()">
-      <svg lucidePlus class="size-4" aria-hidden="true"></svg>
-      Nuevo cliente
-    </button>
+  <app-publish-bar [unpublished]="unpublished()" [busy]="busy()" (publish)="publish()" />
+  <button type="button" class="btn-primary" (click)="openCreate()">
+    <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+    Nuevo cliente
+  </button>
 </app-page-header>
 
 <div>
-  <p-table [value]="clients()" [loading]="loading()" dataKey="id">
+  <p-table [value]="clients()" [loading]="loading()" [showLoader]="false" dataKey="id">
     <ng-template #header>
       <tr>
         <th scope="col">Logotipo</th>
@@ -63,6 +63,15 @@
         </td>
       </tr>
     </ng-template>
+    <ng-template #loadingbody>
+      @for (r of [0, 1, 2, 3, 4, 5]; track r) {
+        <tr>
+          @for (c of [0, 1, 2, 3]; track c) {
+            <td><span class="skeleton"></span></td>
+          }
+        </tr>
+      }
+    </ng-template>
     <ng-template #emptymessage>
       <tr class="p-datatable-emptymessage">
         <td colspan="4">Sin clientes en el contenido. Agrega el primero.</td>
@@ -77,7 +86,7 @@
   [visible]="drawerOpen()"
   (visibleChange)="!$event && closeDrawer()"
   position="right"
-  styleClass="w-full sm:!w-[28rem]"
+  styleClass="drawer-form"
   [header]="editing() ? 'Editar cliente' : 'Nuevo cliente'"
   [dismissible]="false"
   [motionOptions]="{ disabled: true }"
