@@ -27,6 +27,8 @@ import {
   CustomerStatusSeverityPipe,
 } from '../../../pipes/customer-status.pipe';
 import { DeleteCustomerDialog } from '../../components/delete-customer-dialog/delete-customer-dialog';
+import { FiltersPopover } from '../../../shared/components/filters-popover/filters-popover';
+import { InitialsPipe } from '../../../pipes/initials.pipe';
 import { ChangeStatusDialog } from '../../../crm/components/change-status-dialog/change-status-dialog';
 import { IsOverduePipe } from '../../../pipes/interaction.pipe';
 import { CustomerStatus } from '../../../data/dtos/customer';
@@ -56,6 +58,8 @@ import type { Customer, CustomerListQuery, CustomerSource } from '../../../data/
     IsOverduePipe,
     DeleteCustomerDialog,
     ChangeStatusDialog,
+    FiltersPopover,
+    InitialsPipe,
     LucidePlus,
     LucideEye,
     LucidePencil,
@@ -109,6 +113,11 @@ export class CustomersList {
   /** Leads view shows the follow-up column; blacklist shows reason/since. */
   protected isLeadsView = this.presetStatus === 'lead';
   protected isBlacklistView = this.presetStatus === 'blacklisted';
+
+  /** Preset views keep `status` out of the URL, so it's not clearable there. */
+  protected filterParams = this.presetStatus
+    ? ['q', 'source', 'tags']
+    : ['q', 'status', 'source', 'tags'];
 
   constructor() {
     this.list.init({

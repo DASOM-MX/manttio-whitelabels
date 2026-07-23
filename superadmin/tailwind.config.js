@@ -60,7 +60,11 @@ module.exports = {
         // identical across frontend / superadmin / website.
         primary: { ...primary, DEFAULT: primary['600'] }, // brand anchor (buttons, links, focus)
         surface: { ...surface, DEFAULT: surface['100'] }, // card/panel tint
-        background: surface['0'], // page bg
+        // Page bg sits one step under the card whites so the soft-UI
+        // elevation actually reads (owner 2026-07-22) — a deliberate
+        // superadmin-only divergence from the shared surface-0 value
+        // (plan 16 §Target 3 note).
+        background: surface['100'],
         secondary: primary['300'], // soft/secondary accent
         dark: surface['800'], // body text
 
@@ -77,16 +81,16 @@ module.exports = {
       },
 
       fontFamily: {
-        // Commissioner is the superadmin's own voice (01-conventions Typography) —
-        // constant across tenants, a deliberate deviation from frontend parity.
-        sans: ['"Commissioner Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        // Numeric/data stack. Commissioner's `tnum` proved a no-op (measured
-        // 2026-07-06: digit widths differ with the feature on), so per the 01
-        // fallback decision the head is Atkinson Hyperlegible — the
-        // frontend's existing numeric stack.
+        // Nunito Sans is the superadmin's own voice (01-conventions Typography;
+        // owner 2026-07-22, supersedes Quicksand/Commissioner) — constant across
+        // tenants, a deliberate deviation from frontend parity.
+        sans: ['"Nunito Sans Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Numeric/data stack: Atkinson Hyperlegible heads it (verified
+        // tabular digits — 01 Typography fallback, 2026-07-06); the product
+        // voice only backs it up for non-digit glyphs.
         data: [
           '"Atkinson Hyperlegible"',
-          '"Commissioner Variable"',
+          '"Nunito Sans Variable"',
           'ui-sans-serif',
           'system-ui',
           'sans-serif',
@@ -96,6 +100,13 @@ module.exports = {
       fontSize: {
         // Micro-labels (01 Design language): 11px card/table headers.
         '2xs': ['0.6875rem', { lineHeight: '1rem' }],
+      },
+
+      // Soft-elevation card shadow (owner 2026-07-22, Purity-style soft UI):
+      // neutral black alpha only — never colored. Dark mode deepens it via
+      // the .app-dark overrides in styles.scss.
+      boxShadow: {
+        card: '0 6px 20px -6px rgb(0 0 0 / 0.1), 0 2px 8px -2px rgb(0 0 0 / 0.06)',
       },
 
       // Used to cap PrimeNG dialogs on narrow viewports so the chrome

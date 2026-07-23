@@ -5,45 +5,44 @@
       El registro de unidades instaladas que tu negocio atiende.
     </p>
   </div>
-  <button type="button" class="btn-primary" (click)="openCreate()">
-    <svg lucidePlus class="size-4" aria-hidden="true"></svg>
-    Registrar equipo
-  </button>
-</div>
-
-<div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-  <div class="field-group sm:col-span-2">
-    <label class="field-label" for="equipment-search">Buscar</label>
-    <input
-      id="equipment-search"
-      pInputText
-      type="search"
-      [formControl]="search"
-      placeholder="Marca, modelo o serie"
-    />
-  </div>
-  <div class="field-group">
-    <label class="field-label" for="equipment-customer">Cliente</label>
-    <p-select
-      inputId="equipment-customer"
-      [formControl]="customerFilter"
-      [options]="customerOptions()"
-      optionLabel="label"
-      optionValue="value"
-      [filter]="true"
-      appendTo="body"
-    />
-  </div>
-  <div class="field-group">
-    <label class="field-label" for="equipment-status">Estado</label>
-    <p-select
-      inputId="equipment-status"
-      [formControl]="statusFilter"
-      [options]="statusOptions"
-      optionLabel="label"
-      optionValue="value"
-      appendTo="body"
-    />
+  <div class="flex flex-wrap items-center gap-2">
+    <app-filters-popover [params]="['q', 'customer', 'status']">
+      <div class="field-group">
+        <label class="field-label" for="equipment-search">Buscar</label>
+        <input
+          id="equipment-search"
+          pInputText
+          type="search"
+          [formControl]="search"
+          placeholder="Marca, modelo o serie"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="equipment-customer">Cliente</label>
+        <p-select
+          inputId="equipment-customer"
+          [formControl]="customerFilter"
+          [options]="customerOptions()"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="equipment-status">Estado</label>
+        <p-select
+          inputId="equipment-status"
+          [formControl]="statusFilter"
+          [options]="statusOptions"
+          optionLabel="label"
+          optionValue="value"
+        />
+      </div>
+    </app-filters-popover>
+    <button type="button" class="btn-primary" (click)="openCreate()">
+      <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+      Registrar equipo
+    </button>
   </div>
 </div>
 
@@ -94,7 +93,7 @@
         <td class="w-16">
           <a
             [routerLink]="['/equipment', eq.id]"
-            class="inline-flex size-9 items-center justify-center rounded-md text-surface-600 transition-colors hover:bg-surface-100 hover:text-surface-900 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100"
+            class="inline-flex size-9 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 hover:text-surface-900 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100"
             [attr.aria-label]="'Ver equipo ' + (eq.name || eq.serialNumber || eq.id)"
           >
             <svg lucideEye class="size-4" aria-hidden="true"></svg>

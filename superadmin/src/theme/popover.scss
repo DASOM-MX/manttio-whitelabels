@@ -1,7 +1,19 @@
-/* PrimeNG Popover (<p-popover>) — e.g. the topbar user menu. */
+/* PrimeNG Popover (<p-popover>) — the topbar user menu, filter popovers.
+   Subtle liquid-glass treatment (owner exception 2026-07-22, overlays
+   only): translucent surface + backdrop blur with a neutral shadow — no
+   glow, no gradient tint; the glassmorphism ban stands for in-page
+   surfaces. Opaque-enough alphas keep content readable where
+   backdrop-filter is unsupported. */
 .p-popover {
-  @apply rounded-xl border shadow-xl bg-white border-surface-200
-         dark:bg-surface-900 dark:border-surface-700;
+  @apply rounded-xl border shadow-xl bg-white/85 border-surface-200/80
+         dark:bg-surface-900/85 dark:border-surface-700/70;
+  /* NOT `@apply backdrop-blur-md`: the utility compiles to a var() chain
+     whose universal `--tw-backdrop-*` defaults are only emitted when a
+     backdrop class appears in scanned templates — from a stylesheet the
+     vars stay unresolved, the declaration goes invalid, and the blur
+     silently no-ops. Declare the filter directly (autoprefixer adds
+     -webkit-). */
+  backdrop-filter: blur(12px);
 
   /* Aura ships a caret/arrow on the popover via ::before + ::after. Our
      design is a clean panel without a pointer, so collapse them. */

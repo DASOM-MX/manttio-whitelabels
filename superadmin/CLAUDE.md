@@ -34,7 +34,9 @@ Aura + manttio preset; Tailwind 3.4). Canonical docs — read these first:
   — no anime.js, no ad-hoc keyframes in components; everything collapses under
   `prefers-reduced-motion`.
 - **List pages persist filters + page as URL query params** (`queryParamMap` is the
-  single load path — users-list is canon).
+  single load path — users-list is canon). Filter fields render inside the shared
+  `filters-popover` (trigger left of the page's primary action; no `appendTo="body"`
+  on controls projected into it).
 - **PrimeNG 21 gotcha:** `p-chart` ignores `styleClass` — bind `class` on the host
   and force its inner div `h-full` so chart.js's resize observer sizes the canvas
   (see `crm/pages/dashboard`).

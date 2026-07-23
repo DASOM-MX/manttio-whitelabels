@@ -10,9 +10,10 @@ Typography, Design language, Accessibility, Layout & responsive, Animations, and
 Forms & feedback sections — if they disagree, the plan file wins and this skill needs
 updating in the same commit).
 
-The look: a dense, confident operations console (dark-fintech reference). Solidity comes
-from hairline borders, compact rhythm, strong status cues, and restrained motion — never
-from decoration.
+The look (revised 2026-07-22 — Purity-style **soft UI** reference): a confident
+operations console of white `rounded-2xl` cards floating on the tinted page background
+with soft neutral shadows, brand-accent chips, airy chrome around dense data, strong
+status cues, and restrained motion — never decoration.
 
 ## Hard rules (non-negotiable)
 
@@ -24,9 +25,12 @@ from decoration.
    filled/duotone sets, never inline SVG one-offs when a Lucide glyph exists.
    Defaults: `size-4` inline with text, `size-5` in nav/buttons-only contexts,
    stroke-width 2 everywhere (don't vary it per icon).
-3. **Typeface is Commissioner** (variable, self-hosted `@fontsource-variable/commissioner`).
+3. **Typeface is Nunito Sans** (variable, self-hosted
+   `@fontsource-variable/nunito-sans`; owner 2026-07-22 — supersedes
+   Quicksand/Commissioner).
    400 body · 500 labels/buttons · 600–700 headings. Numeric table/money cells use the
-   `font-data` stack with `tnum`.
+   `font-data` stack with `tnum` (Atkinson Hyperlegible head — unchanged).
+   Self-hosted only — never `fonts.googleapis.com`.
 4. **Motion = Angular's native `animate.enter`/`animate.leave` + `src/animations.scss`**
    (revised 2026-07-06; supersedes the original anime.js mandate). Keyframes and
    tokens live in `animations.scss` only — no anime.js, no deprecated
@@ -37,7 +41,10 @@ from decoration.
    clients should never suspect "AI-generated product." Banned outright: glowing /
    colored drop shadows (`shadow-*` with color, `box-shadow` halos), neon gradients,
    purple→cyan / pink→blue gradient washes, gradient text, glassmorphism
-   (backdrop-blur + translucent glow), animated gradient backgrounds, and decorative
+   (backdrop-blur + translucent glow — owner exception 2026-07-22: **popovers only**
+   may carry a subtle liquid-glass treatment: translucent surface + backdrop blur,
+   neutral shadow, no glow/gradient tint; in-page surfaces never),
+   animated gradient backgrounds, and decorative
    "sparkle/magic" iconography. Color arrives through the palette scales and status
    pills — never through gradient decoration. The only tolerated gradient is a
    **subtle single-hue area fill under chart lines** (data-viz, like the reference),
@@ -55,33 +62,66 @@ from decoration.
 
 ## Density — low-to-mid whitespace
 
-- Baseline control height is **48px: `.field-input` = `h-12`** (deliberate deviation from
-  the frontend's `h-14`; superadmin is a desk tool). Compact contexts (paginator
-  rows-per-page, dropdown filter inputs) opt down to `!h-10`.
-- Cards: `p-4` (page-level summary cards may take `p-5`, nothing larger). Section gaps
-  `gap-4`. Page gutters `px-4 md:px-6`.
+- Baseline control height is **40px desk / 44px touch: `.field-input` = `h-11 sm:h-10`**
+  with a 1px hairline (slimmed 2026-07-22 — supersedes the 48px `h-12`/`border-2`
+  chrome; still a deliberate deviation from the frontend's `h-14`). Text 16px below
+  `sm`, `text-sm` from `sm` up. Compact contexts (paginator rows-per-page, dropdown
+  filter inputs) opt down to `!h-9`.
+- Cards: `p-5` (soft-UI turn 2026-07-22). Section gaps `gap-4`/`gap-5`. Page gutters
+  `px-4 md:px-6`. Airy chrome, dense data.
 - Tables are compact: `py-2.5` cells, 13–14px cell text, header row as a
   micro-label (see cues below).
 - Prefer one dense, well-grouped screen over two airy ones — but never sacrifice the
-  56px→48px baseline alignment: every control on a row snaps to the same height.
+  baseline alignment: every control on a row snaps to the same height.
 
-## Surfaces — borders, not shadows
+## Surfaces — soft elevation (owner 2026-07-22, supersedes borders-not-shadows)
 
-- Cards/panels: `1px` hairline borders (`border-surface-200 dark:border-surface-800`),
-  flat backgrounds (`bg-white dark:bg-surface-900`). **No drop shadows on in-page
-  surfaces.** Shadows are reserved for true overlays (dialogs, popovers, drawers).
+- Cards/panels: white `rounded-2xl` floating on the tinted page bg with the soft
+  neutral `shadow-card` (`.card`/`.card-section` carry it; `dark:bg-surface-900` with a
+  deepened `.app-dark` shadow). **No hairline borders on card edges** — hairlines
+  retire to *internal* dividers. The shell chrome keeps its 2026-07-21 shadows
+  (`.shell-sidebar`/`.shell-topbar`). **Depth needs contrast:** the `background` alias
+  sits at `surface-100` in superadmin (one step under card whites, owner 2026-07-22) —
+  keep page-level surfaces on `bg-background`, never on `bg-white`.
+- **Entity rows lead with an initials avatar**: `size-9 rounded-full bg-primary-100
+  text-primary-800` (dark `primary-1000/60`/`primary-300`) + the shared `initials`
+  pipe — canon: customers-list Cliente column.
+- Shadows are always **neutral black alpha** — a colored/glowing shadow is still
+  banned AI-slop.
 - Nested grouping inside a card = background shift (`bg-surface-100 dark:bg-surface-800/40`)
   or a hairline divider — not another shadowed box.
+- **Accent step:** `primary-400` is the decorative accent (the reference's teal,
+  brand-mapped) — `.icon-chip` (filled) / `.icon-chip--soft` (white chip, accent
+  glyph), single-hue chart area fills, progress bars, highlight numbers. Interactive
+  solids stay `primary-600`/`700` — white text on 400 fails 4.5:1.
 - The palette is the two semantic brand scales only — `primary-*` / `surface-*`, steps
   0…1000 by 100 (no `-50`/`-950`; plan 16 tombstoned `sky`/`granite`/`navy`/`cyan` —
   those classes emit no CSS). Sole literal-hex island: the static role-pill ladder
   (`.role-pill--*` in `styles.scss`).
+- **Blob buttons** (owner, 2026-07-21): actions are smooth pills — the `.btn` family
+  is `rounded-full` (`px-5`), icon-only buttons are full circles; PrimeNG buttons,
+  paginator pages, and close buttons follow via `.btn` inheritance + theme sheets.
+  The shell nav rides the same pill language (`.nav-item`/`.nav-child`
+  `rounded-full`; extended 2026-07-22). Boundary: inputs stay `rounded-lg`,
+  cards `rounded-2xl`, icon chips `rounded-xl`.
 
 ## Strong visual cues
 
 - **Status pills** everywhere state exists (CRM status, billing, stock, visit status) —
   vibrant in both modes per the dark-mode rules; pill + label, never color alone.
-- **Active nav**: 2px left accent bar in primary + tinted background — instantly locatable.
+- **Active nav**: elevated white pill (`.nav-active` on the destination link,
+  `.nav-group-active` on its group — both `shadow-card`) with the group's `.nav-chip`
+  flipped to filled `primary-400` (owner 2026-07-22, Purity reference — supersedes the
+  solid-primary block). Idle items sit flat with a soft white chip carrying the accent
+  glyph.
+- **Stat cards** (reference idiom): micro-label + `font-data` value + signed delta
+  (`text-emerald-600`/`text-red-600`) with an `.icon-chip` on the trailing edge;
+  timelines pair small accent icons with micro-label timestamps.
+- **List filters live in a popover** (owner 2026-07-22, Chakra-style): the shared
+  `shared/components/filters-popover` trigger (filter icon + active-count badge) sits
+  left of the page's primary action; pass the page's URL param names as `[params]`
+  (count + Limpiar derive from the URL). Controls projected inside must not use
+  `appendTo="body"` — their overlay must live inside the popover DOM.
 - **Micro-labels** for card/section/table headers (`.micro-label`:
   `text-2xs font-medium text-surface-500 dark:text-surface-400`) — authored
   title/sentence case, never `uppercase` (QA 2026-07-07: uppercase is reserved for
@@ -208,8 +248,8 @@ durations in components:
   (WCAG, MD).
 - **error-summary** — multiple errors get a summary at top with anchor links to each
   field (WCAG).
-- **touch-friendly-input** — mobile input height ≥44px (the `h-12` = 48px baseline
-  complies; `!h-10` compacts are desktop-scope only) (Apple HIG).
+- **touch-friendly-input** — mobile input height ≥44px (the baseline is `h-11` below
+  `sm`; `!h-9` compacts are desktop-scope only) (Apple HIG).
 - **destructive-emphasis** — destructive actions use the danger color and sit
   visually separated from primary actions (HIG, MD).
 - **toast-accessibility** — toasts never steal focus; `aria-live="polite"` (WCAG).
@@ -263,9 +303,10 @@ durations in components:
 - **spacing-scale** — 4pt/8dp incremental spacing system (Tailwind's 4px scale — no
   arbitrary pixel values; Material Design).
 - **touch-density** — Component spacing comfortable for touch: not cramped, no
-  mis-taps — the `h-12` baseline keeps 48px targets even at desk density.
-- **container-width** — Consistent max-width on desktop (`max-w-6xl`/`7xl` per page
-  type; pick once in the shell, reuse).
+  mis-taps — the baseline stays `h-11` (44px) below `sm`.
+- **container-width** — the main container is **full-width** (owner, 2026-07-21 —
+  supersedes the `max-w-7xl` cap): only the shell's `px-4 sm:px-6` gutters remain;
+  prose blocks still self-limit line length.
 - **z-index-management** — Layered scale: `0 / 10 / 20 / 40` for in-page layers; PrimeNG
   overlays own the 1000+ range — never compete with them.
 - **fixed-element-offset** — Fixed topbar/sidebar reserve safe padding for underlying
@@ -283,13 +324,15 @@ durations in components:
 
 - [ ] No emojis; all icons Lucide outlined, stroke-2, standard sizes
 - [ ] No AI-slop: zero glow shadows, neon/duotone gradients, gradient text, or
-      glassmorphism anywhere in the diff
+      glassmorphism anywhere in the diff (sole sanctioned exception: the popover
+      chrome's subtle liquid-glass, owned by `theme/popover.scss`)
 - [ ] A11y pass: contrast ≥4.5:1, visible focus ring, `aria-label` on icon-only
       buttons, real `<label for>`s, heading order, keyboard-only walkthrough works
 - [ ] Responsive pass: no page-level horizontal scroll at 375px, inputs ≥16px on
       mobile, wide tables in `overflow-x-auto`, `min-h-dvh` not `100vh`
-- [ ] Controls snap to the `h-12` baseline (or `!h-10` compact)
-- [ ] Borders not shadows on in-page surfaces; dark-mode pairings applied
+- [ ] Controls snap to the `h-11 sm:h-10` baseline (or `!h-9` compact)
+- [ ] Soft elevation: cards `rounded-2xl` + neutral `shadow-card`, no edge borders;
+      hairlines only as internal dividers; dark-mode pairings applied
 - [ ] Status rendered as pills; numeric columns `font-data`/tnum
 - [ ] Motion uses `MOTION` tokens + reduced-motion guard
 - [ ] Global classes (`.field-input`, `.btn-*`, `.card`) reused, not re-implemented

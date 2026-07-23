@@ -14,7 +14,7 @@ const HSL_COMPONENTS_RE = /^\d{1,3}(?:\.\d+)? \d{1,3}(?:\.\d+)?% \d{1,3}(?:\.\d+
  *  `manttio-preset.ts` take over.
  *
  *  The editor's live preview reuses this same service against draft values
- *  (03 §7); typography never applies to superadmin chrome — Commissioner is
+ *  (03 §7); typography never applies to superadmin chrome — Nunito Sans is
  *  the product voice (01 Typography). */
 @Injectable({ providedIn: 'root' })
 export class BrandThemeService {

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import type { FontCatalogEntry } from '../../data/dtos/brand';
 
 /** On-demand catalog font loading for the brand editor's sample previews
- *  (03 §6) — catalog fonts never ship with the superadmin bundle; Commissioner
+ *  (03 §6) — catalog fonts never ship with the superadmin bundle; Nunito Sans
  *  stays the product chrome. Resolves quietly on failure (preview just falls
  *  back to the system stack). */
 @Injectable({ providedIn: 'root' })

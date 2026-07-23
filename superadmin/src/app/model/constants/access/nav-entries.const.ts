@@ -1,45 +1,46 @@
 import {
-  LucideBuilding2,
+  LucideBriefcase,
   LucideCalendarDays,
   LucideFileText,
-  LucideLayoutDashboard,
-  LucideLayoutTemplate,
+  LucideHeartHandshake,
   LucideNewspaper,
   LucidePackage,
   LucidePackageSearch,
-  LucidePalette,
-  LucideReceiptText,
-  LucideScrollText,
-  LucideUsers,
-  LucideWarehouse,
 } from '@lucide/angular';
 import type { NavEntry } from '../../../data/types/access/nav-entry.type';
 
-/** Full nav, owner/admin shape (02 §4); office loses entries via the matrix. */
+/** Owner/admin/office nav — three groups (owner regroup 2026-07-22,
+ *  supersedes the 02 §4 flat list): Negocio · CRM · CMS. Children carry
+ *  their own module gates (mixed-module groups); office loses entries via
+ *  the matrix as before. Panel, Calendario, Facturación, Almacén, and the
+ *  Leads preset left the nav — their routes stay reachable by URL. */
 export const NAV: NavEntry[] = [
-  { label: 'Panel', icon: LucideLayoutDashboard, route: '/dashboard', module: 'dashboard' },
-  { label: 'Calendario', icon: LucideCalendarDays, route: '/calendar', module: 'calendar' },
-  { label: 'Usuarios', icon: LucideUsers, route: '/users', module: 'users' },
-  { label: 'Reportes', icon: LucideFileText, route: '/reports', module: 'reports' },
-  { label: 'Plantillas', icon: LucideLayoutTemplate, route: '/templates', module: 'templates' },
-  { label: 'Facturación', icon: LucideReceiptText, route: '/billing', module: 'billing' },
   {
-    label: 'Clientes',
-    icon: LucideBuilding2,
-    route: '/customers',
-    module: 'customers',
+    label: 'Negocio',
+    icon: LucideBriefcase,
+    route: '/branding',
     children: [
-      // CRM dashboard (utm-params 03) — same gate as the Clientes module
-      // (owner/admin/office; office admitted 2026-07-20).
-      { label: 'Dashboard', route: '/customers/dashboard' },
-      { label: 'Todos', route: '/customers', exact: true },
-      { label: 'Leads', route: '/customers/leads' },
-      { label: 'Lista negra', route: '/customers/blacklist' },
-      { label: 'Equipos', route: '/equipment' },
+      { label: 'Marca', route: '/branding', module: 'branding' },
+      { label: 'Usuarios', route: '/users', module: 'users' },
+      { label: 'Reportes', route: '/reports', module: 'reports' },
+      { label: 'Plantillas', route: '/templates', module: 'templates' },
     ],
   },
-  { label: 'Contratos', icon: LucideScrollText, route: '/contracts', module: 'contracts' },
-  { label: 'Marca', icon: LucidePalette, route: '/branding', module: 'branding' },
+  {
+    label: 'CRM',
+    icon: LucideHeartHandshake,
+    route: '/customers',
+    children: [
+      { label: 'Dashboard', route: '/customers/dashboard', module: 'customers' },
+      { label: 'Clientes', route: '/customers', exact: true, module: 'customers' },
+      { label: 'Equipos', route: '/equipment', module: 'equipment' },
+      { label: 'Contratos', route: '/contracts', module: 'contracts' },
+      { label: 'Lista negra', route: '/customers/blacklist', module: 'customers' },
+      // "Archivados" = the Disabled status preset (no archived status exists;
+      // soft-deleted rows are audit-only and never listed).
+      { label: 'Archivados', route: '/customers/archived', module: 'customers' },
+    ],
+  },
   {
     label: 'CMS',
     icon: LucideNewspaper,
@@ -50,10 +51,10 @@ export const NAV: NavEntry[] = [
       { label: 'Clientes', route: '/cms/clients' },
     ],
   },
-  { label: 'Almacén', icon: LucideWarehouse, route: '/warehouse', module: 'wms' },
 ];
 
-/** Technician nav is exactly these four entries (02 §4). */
+/** Technician nav is exactly these four entries (02 §4 — untouched by the
+ *  2026-07-22 regroup). */
 export const TECH_NAV: NavEntry[] = [
   { label: 'Calendario', icon: LucideCalendarDays, route: '/calendar', module: 'calendar' },
   { label: 'Mis reportes', icon: LucideFileText, route: '/reports', module: 'reports' },

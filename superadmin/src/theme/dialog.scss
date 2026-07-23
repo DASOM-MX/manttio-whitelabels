@@ -1,5 +1,5 @@
 /* PrimeNG Dialog + ConfirmDialog — true overlays, so shadows are allowed
-   here (01 Design language: borders-not-shadows applies to in-page surfaces). */
+   here (01 Design language: overlays keep their own stronger shadows). */
 .p-dialog-mask.p-overlay-mask {
   @apply bg-surface-1000/60;
 }
@@ -18,7 +18,7 @@
   @apply flex items-center gap-1;
 }
 .p-dialog-close-button {
-  @apply inline-flex items-center justify-center size-9 rounded-md text-surface-500 hover:bg-surface-100 hover:text-surface-900 transition-colors
+  @apply inline-flex items-center justify-center size-9 rounded-full text-surface-500 hover:bg-surface-100 hover:text-surface-900 transition-colors
          dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100;
 }
 .p-dialog-content {

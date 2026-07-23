@@ -9,10 +9,12 @@ before writing any component.
 
 ---
 
-## Typography (decided 2026-07-05)
+## Typography (decided 2026-07-05 · typeface revised 2026-07-22)
 
-- **Superadmin's typeface is Commissioner** (variable, weight axis only — expressive
-  flare/volume axes stay at defaults). This is a **deliberate deviation from frontend
+- **Superadmin's typeface is Nunito Sans** (variable; owner 2026-07-22 — supersedes
+  Quicksand, which superseded Commissioner the same day: rounded terminals keep the
+  blob-language warmth with better body-text legibility).
+  This is a **deliberate deviation from frontend
   parity**: the superadmin is *our* product chrome, constant across tenants, and its
   own voice tells tenants who they're working with. Tenant-facing surfaces
   (`website/` + `frontend/` field app) are **brand-font-driven** instead:
@@ -20,17 +22,19 @@ before writing any component.
   (`03-branding.md` §2.1), defaulting to the business-identity pair **Work Sans
   (body) + Rubik (headings)** — the field app migrates off Inter to the brand-font
   CSS vars (recorded as a fork `frontend/` task, not superadmin work).
-- **Self-hosted, never CDN:** `@fontsource-variable/commissioner` — one woff2,
-  preloaded in `index.html`. No `fonts.googleapis.com` import (offline, CSP, no FOUT).
+- **Self-hosted, never CDN:** `@fontsource-variable/nunito-sans` — one woff2.
+  No `fonts.googleapis.com` import (offline, CSP, no FOUT) — paste-in embed
+  snippets get translated to the fontsource equivalent.
 - Stacks in `tailwind.config.js`:
-  `sans: ['"Commissioner Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif']`,
+  `sans: ['"Nunito Sans Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif']`,
   plus a `data` stack for numeric table/money columns. Weights: **400 body ·
   500 labels/buttons · 600–700 headings**.
 - **Tabular numerals:** data cells set `font-feature-settings: 'tnum'`.
-  **Resolved at CP-2 (2026-07-06): Commissioner's tnum is a no-op** (digit widths
-  measured unequal with the feature on), so `font-data` heads with **Atkinson
-  Hyperlegible** (the frontend's existing numeric stack — tnum verified: all digit
-  groups measure identically) with Commissioner everywhere else.
+  **Resolved at CP-2 (2026-07-06): the product voice's tnum can't be trusted**
+  (Commissioner's was a no-op — digit widths measured unequal with the feature on),
+  so `font-data` heads with **Atkinson Hyperlegible** (the frontend's existing
+  numeric stack — tnum verified: all digit groups measure identically) with the
+  product voice everywhere else. Unchanged under Nunito Sans.
 - PrimeNG inherits the body font — no per-component font overrides.
 
 ## Design language — solid & tight (decided 2026-07-05)
@@ -41,15 +45,41 @@ and restrained motion — never decoration. The committed skill
 **`.claude/skills/superadmin-design`** mirrors this section so every module agent
 auto-loads it — **edit both in the same commit.**
 
-- **Density (low-to-mid whitespace):** cards `p-4` (page-level summary cards max
-  `p-5`); section gaps `gap-4`; compact tables (`py-2.5` cells, 13–14px text). Prefer
-  one dense, well-grouped screen over two airy ones.
-- **Borders, not shadows:** in-page surfaces use 1px hairlines
-  (`border-surface-200 dark:border-surface-800`) on flat backgrounds; shadows are
-  reserved for true overlays (dialogs, popovers, drawers). Nested grouping = background
-  shift or divider, never another shadowed box.
+- **Density (mid whitespace — relaxed 2026-07-22 with the soft-UI turn):** cards `p-5`;
+  section gaps `gap-4`/`gap-5`; tables stay compact (`py-2.5` cells, 13–14px text).
+  Airy chrome, dense data.
+- **Soft elevation (owner, 2026-07-22 — Purity-style soft-UI reference; supersedes
+  borders-not-shadows):** cards are white `rounded-2xl` surfaces floating on the tinted
+  page background with a soft neutral shadow (`.card`/`.card-section` → `shadow-card`);
+  hairline borders retire to *internal* dividers and nested grouping. The shell keeps
+  its 2026-07-21 chrome shadows (`.shell-sidebar`/`.shell-topbar`). Shadows are always
+  **neutral black alpha** — colored glows stay banned (AI-slop rule). **Depth needs
+  contrast:** superadmin's `background` alias repoints to `surface-100` (one step
+  under the card whites; owner 2026-07-22) — a deliberate superadmin-only divergence
+  from plan 16's shared `surface-0` value, or the elevation never reads.
+- **Entity rows lead with an initials avatar** (`size-9 rounded-full bg-primary-100
+  text-primary-800` + the `initials` pipe, dark `primary-1000/60`/`primary-300`) —
+  the reference's row identity, brand-tinted (canon: customers-list Cliente column).
+- **Accent step (owner, 2026-07-22):** `primary-400` is the *decorative* accent — icon
+  chips (`.icon-chip`/`.icon-chip--soft`), single-hue chart area fills, progress bars,
+  highlight numbers (the reference's teal, brand-mapped). Interactive solids (buttons,
+  the filled nav chip's container aside) stay on `primary-600`/`700` — white text on
+  400 doesn't clear 4.5:1.
+- **Stat cards (reference idiom):** micro-label + `font-data` value + delta
+  (`text-emerald-600`/`text-red-600`, sign always shown) with an `.icon-chip` on the
+  trailing edge; timelines pair small accent icons with micro-label timestamps.
+- **Blob buttons (owner, 2026-07-21):** actions are smooth, almost blob-like — the
+  `.btn` family is a pill (`rounded-full`, `px-5` so text clears the curve) and
+  icon-only buttons are full circles (`rounded-full`); PrimeNG buttons, paginator
+  pages, and dialog/drawer/toast close buttons follow via `.btn` inheritance + the
+  theme sheets. The shell nav rides the same pill language (`.nav-item`/`.nav-child`
+  `rounded-full`; extended 2026-07-22). **Boundary:** inputs (`.field-input`,
+  icon-picker trigger) keep `rounded-lg`, cards `rounded-2xl`, icon chips `rounded-xl`.
 - **Strong cues:** status pills wherever state exists (never color alone); active nav =
-  2px primary left-accent bar + tinted bg; micro-labels (`text-2xs font-medium`) for
+  **elevated white pill** (`.nav-active`/`.nav-group-active` + `shadow-card`) with the
+  group's icon chip flipped to filled `primary-400` (`.nav-chip`; owner 2026-07-22,
+  Purity reference — supersedes the solid-primary block, which superseded the accent
+  bar); micro-labels (`text-2xs font-medium`) for
   card/section/table headers — **title/sentence case, never uppercase** (QA 2026-07-07:
   uppercase is reserved for warnings or explicit requests; headings/labels render in
   their authored case);
@@ -59,7 +89,10 @@ auto-loads it — **edit both in the same commit.**
   iconography.
 - **No AI-slop aesthetics (added 2026-07-05):** banned outright — glowing/colored
   drop shadows, neon gradients, purple→cyan / pink→blue washes, gradient text,
-  glassmorphism (backdrop-blur + glow), animated gradient backgrounds, sparkle/magic
+  glassmorphism (backdrop-blur + glow; **owner exception 2026-07-22: popovers only**
+  may carry a *subtle* liquid-glass treatment — translucent surface + backdrop blur,
+  neutral shadow, no glow or gradient tint; in-page surfaces never),
+  animated gradient backgrounds, sparkle/magic
   iconography. This is a professional environment; clients must never read the
   product as AI-generated. Color arrives through palette scales and status pills.
   Sole tolerated gradient: a subtle single-hue area fill under chart lines.
@@ -124,10 +157,12 @@ Binding for every component; the skill carries the same list with implementation
 - **horizontal-scroll** — never page-level on mobile; wide tables scroll in their own
   `overflow-x-auto`.
 - **spacing-scale** — Tailwind's 4px scale only; no arbitrary pixel spacing.
-- **touch-density** — `h-12` baseline keeps 48px touch targets even at desk density;
+- **touch-density** — the `h-11 sm:h-10` baseline keeps 44px touch targets below `sm`;
   no cramped tap clusters.
-- **container-width** — one consistent desktop max-width (`max-w-6xl`/`7xl`), picked
-  in the shell.
+- **container-width** — the main container is **full-width** (owner, 2026-07-21 —
+  supersedes the earlier `max-w-7xl` cap): content claims every pixel the chrome
+  leaves free; only the `px-4 sm:px-6` gutters remain. Prose/help copy still respects
+  line-length-control inside its own block.
 - **z-index-management** — in-page layers `0/10/20/40`; PrimeNG overlays own 1000+.
 - **fixed-element-offset** — fixed topbar/sidebar reserve padding; nothing hides
   beneath them.
@@ -165,14 +200,16 @@ Binding for every component; the skill carries the same list with implementation
   disabled/focus states; re-implementing them in templates almost always misses one.
   These globals are **ported from `frontend/src/styles.scss`** in shell CP-2 — keep them
   byte-compatible where possible so fixes can flow between apps.
-- `.field-input` is **fixed at 48px (`h-12`) in superadmin** — a deliberate deviation
-  from the frontend's 56px/`h-14` (the field app is glove-friendly mobile capture; the
-  superadmin is a tight desk console — see Design language). Every control snaps to
-  that one baseline: `<p-select>`, `<p-datepicker>`, `<input pInputText>`,
-  `<p-inputnumber>` all inherit it. Textareas opt out via `!h-auto`; compact controls
-  (paginator rows-per-page, dropdown filter inputs) opt down to `!h-10`. A non-standard
-  height gets an `!h-*` override in that component's theme sheet, never a parallel
-  class.
+- `.field-input` is **fixed at 40px desk / 44px touch (`h-11 sm:h-10`) with a 1px
+  hairline** (slimmed 2026-07-22, owner: "inputs are too chunky" — supersedes the 48px
+  `h-12`/`border-2` chrome) — still a deliberate deviation from the frontend's
+  56px/`h-14` (the field app is glove-friendly mobile capture; the superadmin is a
+  desk console). Text is 16px below `sm` (iOS auto-zoom) and `text-sm` from `sm` up.
+  Every control snaps to that one baseline: `<p-select>`, `<p-datepicker>`,
+  `<input pInputText>`, `<p-inputnumber>` all inherit it. Textareas opt out via
+  `!h-auto`; compact controls (paginator rows-per-page, dropdown filter inputs) opt
+  down to `!h-9`. A non-standard height gets an `!h-*` override in that component's
+  theme sheet, never a parallel class.
 - **Dialogs** (`<p-dialog>`, `<p-confirmDialog>`) are capped at **`max-w-11/12`** via
   `styleClass` (a `tailwind.config.js` extension). Inline pixel width stays for roomy
   viewports; the cap keeps a ~4% gutter on narrow screens. Apply on **every** dialog.
@@ -220,6 +257,15 @@ Binding for every component; the skill carries the same list with implementation
   everything else — garbage never reaches state or the API), typed query building, and
   the dispatch. Never hand-roll filter/pagination wiring in a component. Canon consumer:
   `users/pages/users-list/users-list.ts` (05 §3).
+- **Filters live in a popover (owner, 2026-07-22 — Chakra-style):** list pages render
+  their filter fields inside the shared
+  `shared/components/filters-popover` component — a `Filtros` trigger (filter icon +
+  active-count badge) sitting **left of the page's primary action** — instead of an
+  always-open grid; the table claims the reclaimed space. Pass the page's URL param
+  names as `[params]` (the active count and Limpiar both derive from the URL — the
+  single load path stays intact). Overlay-bearing controls projected inside must
+  **not** use `appendTo="body"` (their overlay has to live inside the popover DOM or
+  the outside-click dismiss swallows it).
 
 ## PrimeNG
 
@@ -320,7 +366,7 @@ Forms & feedback rules (MEDIUM — added 2026-07-05; implementation notes in the
   **read-only-distinction** — read-only ≠ disabled, visually and semantically ·
   **focus-management** — failed submit focuses first invalid field ·
   **error-summary** — multi-error summary with anchor links (WCAG) ·
-  **touch-friendly-input** — mobile inputs ≥44px (`h-12` complies; `!h-10` is
+  **touch-friendly-input** — mobile inputs ≥44px (the baseline is `h-11` below `sm`; `!h-9` is
   desktop-scope) · **destructive-emphasis** — danger color, separated from primary ·
   **toast-accessibility** — toasts don't steal focus, `aria-live="polite"` ·
   **aria-live-errors** — errors announce via `role="alert"`/`aria-live` ·

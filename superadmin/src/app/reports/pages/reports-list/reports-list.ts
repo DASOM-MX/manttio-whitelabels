@@ -17,6 +17,7 @@ import { ListQueryService, keyIn } from '../../../services/table/list-query.serv
 import { REPORT_STATUS_LABELS } from '../../../model/constants/report/report-status-labels.const';
 import { ReportStatusLabelPipe, ReportStatusSeverityPipe } from '../../../pipes/report-status.pipe';
 import { DeleteReportDialog } from '../../components/delete-report-dialog/delete-report-dialog';
+import { FiltersPopover } from '../../../shared/components/filters-popover/filters-popover';
 import type { ReportListQuery, ReportStatus, ReportSummary } from '../../../data/dtos/report';
 
 /** Reports browser (06 §3). Technicians get the exact same page as
@@ -39,6 +40,7 @@ import type { ReportListQuery, ReportStatus, ReportSummary } from '../../../data
     ReportStatusLabelPipe,
     ReportStatusSeverityPipe,
     DeleteReportDialog,
+    FiltersPopover,
     LucideEye,
     LucideTrash2,
     LucideFileText,

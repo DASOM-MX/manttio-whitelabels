@@ -5,44 +5,43 @@
       El personal de tu negocio y sus roles de acceso.
     </p>
   </div>
-  <a routerLink="/users/new" class="btn-primary">
-    <svg lucidePlus class="size-4" aria-hidden="true"></svg>
-    Nuevo usuario
-  </a>
-</div>
-
-<div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-  <div class="field-group sm:col-span-2">
-    <label class="field-label" for="users-search">Buscar</label>
-    <input
-      id="users-search"
-      pInputText
-      type="search"
-      [formControl]="search"
-      placeholder="Nombre o correo"
-    />
-  </div>
-  <div class="field-group">
-    <label class="field-label" for="users-role">Rol</label>
-    <p-select
-      inputId="users-role"
-      [formControl]="roleFilter"
-      [options]="roleOptions"
-      optionLabel="label"
-      optionValue="value"
-      appendTo="body"
-    />
-  </div>
-  <div class="field-group">
-    <label class="field-label" for="users-active">Estado</label>
-    <p-select
-      inputId="users-active"
-      [formControl]="activeFilter"
-      [options]="activeOptions"
-      optionLabel="label"
-      optionValue="value"
-      appendTo="body"
-    />
+  <div class="flex flex-wrap items-center gap-2">
+    <app-filters-popover [params]="['q', 'role', 'active']">
+      <div class="field-group">
+        <label class="field-label" for="users-search">Buscar</label>
+        <input
+          id="users-search"
+          pInputText
+          type="search"
+          [formControl]="search"
+          placeholder="Nombre o correo"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="users-role">Rol</label>
+        <p-select
+          inputId="users-role"
+          [formControl]="roleFilter"
+          [options]="roleOptions"
+          optionLabel="label"
+          optionValue="value"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="users-active">Estado</label>
+        <p-select
+          inputId="users-active"
+          [formControl]="activeFilter"
+          [options]="activeOptions"
+          optionLabel="label"
+          optionValue="value"
+        />
+      </div>
+    </app-filters-popover>
+    <a routerLink="/users/new" class="btn-primary">
+      <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+      Nuevo usuario
+    </a>
   </div>
 </div>
 
@@ -95,14 +94,14 @@
             <div class="flex justify-end gap-1">
               <a
                 [routerLink]="['/users', user.id, 'edit']"
-                class="inline-flex size-9 items-center justify-center rounded-md text-surface-600 transition-colors hover:bg-surface-100 hover:text-surface-900 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100"
+                class="inline-flex size-9 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 hover:text-surface-900 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100"
                 [attr.aria-label]="'Editar ' + user.name"
               >
                 <svg lucidePencil class="size-4" aria-hidden="true"></svg>
               </a>
               <button
                 type="button"
-                class="inline-flex size-9 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                class="inline-flex size-9 items-center justify-center rounded-full text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
                 (click)="openDelete(user)"
                 [attr.aria-label]="'Eliminar ' + user.name"
               >
@@ -114,7 +113,7 @@
             <div class="flex justify-end gap-1">
               <a
                 [routerLink]="['/users', user.id, 'edit']"
-                class="inline-flex size-9 items-center justify-center rounded-md text-surface-600 transition-colors hover:bg-surface-100 hover:text-surface-900 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100"
+                class="inline-flex size-9 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 hover:text-surface-900 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100"
                 [attr.aria-label]="'Ver ' + user.name"
               >
                 <svg lucideEye class="size-4" aria-hidden="true"></svg>

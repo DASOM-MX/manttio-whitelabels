@@ -16,7 +16,7 @@
   @apply text-base font-bold text-surface-1000 dark:text-surface-0;
 }
 .p-drawer-close-button {
-  @apply inline-flex size-9 items-center justify-center rounded-md text-surface-500 transition-colors hover:bg-surface-100 hover:text-surface-900
+  @apply inline-flex size-9 items-center justify-center rounded-full text-surface-500 transition-colors hover:bg-surface-100 hover:text-surface-900
          dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100;
 }
 .p-drawer-content {

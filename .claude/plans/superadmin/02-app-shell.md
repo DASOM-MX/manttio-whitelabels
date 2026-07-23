@@ -80,6 +80,20 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
 
 - `AuthenticatedLayout` component: fixed sidebar (desktop) / drawer (mobile) + topbar with
   dark-mode toggle + user menu (logout).
+  **Chrome redesign (owner, 2026-07-21 — supersedes the CP-2 hairline chrome + `max-w-7xl`
+  cap recorded below):** the sidebar shares the page background and separates from the
+  content via a smooth neutral shadow (`.shell-sidebar`); the topbar is its own card-tone
+  strip (`.shell-topbar`) so the two chrome pieces read as distinct surfaces; active nav =
+  solid brand-primary block + light neutral shadow (`.nav-active`, `.nav-group-active`
+  tint for parents); the main container is full-width. Canon lives in 01 → Design
+  language + the `superadmin-design` skill.
+- **Nav regroup (owner, 2026-07-22 — supersedes the flat list below):** three groups —
+  **Negocio** (Marca / Usuarios / Reportes / Plantillas) · **CRM** (Dashboard / Clientes /
+  Equipos / Contratos / Lista negra / Archivados) · **CMS** (Home / Clientes). Children
+  carry per-module gates (`NavChild.module`) since groups now mix modules; a group whose
+  children all filter out hides itself. "Archivados" = the `Disabled` status preset
+  (`/customers/archived`). Panel, Calendario, Facturación, Almacén, and the Leads preset
+  left the owner nav (routes stay reachable by URL); **technician nav unchanged**.
 - Sidebar renders **only the entries `(tenantConfig, role)` allow** — matrix in
   `14-access-control.md` §2. Full nav (owner/admin): **Dashboard** · **Calendar** ·
   **Users** · **Reports** · **Plantillas** (`/templates` — report-template builder,
@@ -107,11 +121,13 @@ prettier. No Tailwind, no PrimeNG, no NGXS, no zoneless config.
 ## 5. Theming port (from `frontend/`)
 
 Copy, don't reinvent — keep byte-parity where possible. (Deliberate exceptions, all in
-01: **typography** — Commissioner, not Inter; **control density** — `.field-input`
+01: **typography** — Nunito Sans (owner 2026-07-22; Quicksand/Commissioner before that), not Inter; **control density** — `.field-input`
 `h-12`, not `h-14`; **icons** — lucide-angular outlined, not PrimeIcons; plus the
 borders-not-shadows surface chrome from the Design language.)
 
-- `tailwind.config.js` — palette scales (`granite`/`navy`/`sky`/`cyan`), semantic tokens,
+- `tailwind.config.js` — palette scales (originally `granite`/`navy`/`sky`/`cyan`;
+  renamed to semantic `primary`/`surface` + tombstones by plan 16's superadmin leg,
+  2026-07-21), semantic tokens,
   `darkMode: ['class', '.app-dark']`, `max-w-11/12` extension. **Whitelabel twist
   (decided 2026-07-05):** primary + surface scales resolve through **CSS variables** set
   at boot from the public `GET /brand` fetch (manttio values as fallbacks), and the shell
