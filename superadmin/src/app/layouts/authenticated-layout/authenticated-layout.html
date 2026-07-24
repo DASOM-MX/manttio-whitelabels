@@ -35,8 +35,9 @@
     <!-- Desktop sidebar: shares the page background — a smooth neutral shadow
          (not a hairline) separates it from the content column (owner
          redesign 2026-07-21). z-20 so it casts over the z-10 topbar.
-         Collapsible into an icon rail (owner 2026-07-23) — width snaps, no
-         width animation (transform/opacity-only motion rule). -->
+         Collapsible into an icon rail (owner 2026-07-23); the w-64⇄w-20 change
+         eases via .shell-sidebar's width transition (owner 2026-07-24,
+         supersedes the width-snap), snapping under reduced motion. -->
     <aside
       class="shell-sidebar relative z-20 hidden shrink-0 flex-col lg:flex"
       [class.w-64]="!sidebarCollapsed()"

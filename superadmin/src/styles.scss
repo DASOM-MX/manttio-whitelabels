@@ -292,6 +292,12 @@
   .shell-sidebar {
     @apply bg-primary-1000 border border-l-0 border-primary-800/50 rounded-r-shell;
     box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.12);
+    /* Rail collapse/expand eases the width between w-64 and w-20 (owner
+       2026-07-24, supersedes the earlier width-snap): a deliberate,
+       single-element exception to the transform-only motion rule — the shell
+       chrome, not per-frame content. Disabled under reduced-motion in
+       animations.scss, where it snaps as before. */
+    transition: width var(--motion-base) var(--ease-enter);
   }
   .app-dark .shell-sidebar {
     box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.5);
@@ -306,11 +312,14 @@
      shadows anywhere in the nav. Idle/hover chrome lives here, not as
      template utilities, so hover can't outrank `.nav-active` in the
      cascade. */
+  /* overflow-hidden + nowrap keep labels on one clipped line: during the rail
+     expand they reveal horizontally with the widening panel instead of
+     wrapping and jumping row height while the width is mid-animation. */
   .nav-item {
-    @apply relative flex h-10 w-full items-center gap-3 rounded-control px-3 text-sm font-medium text-primary-100 transition-colors;
+    @apply relative flex h-10 w-full items-center gap-3 overflow-hidden whitespace-nowrap rounded-control px-3 text-sm font-medium text-primary-100 transition-colors;
   }
   .nav-child {
-    @apply relative flex h-9 items-center rounded-control pl-11 pr-3 text-sm text-primary-200 transition-colors;
+    @apply relative flex h-9 items-center overflow-hidden whitespace-nowrap rounded-control pl-11 pr-3 text-sm text-primary-200 transition-colors;
   }
   .nav-item:hover,
   .nav-child:not(.nav-active):hover {
