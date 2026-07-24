@@ -114,8 +114,11 @@ a. Technicians only ever see service *names* through their assigned reports/orde
 - **Tax — decided 2026-07-24 (supersedes the `taxable` boolean):** each service carries a
   **Mexican IVA rate** `taxRate` (enum `iva_16` | `iva_8` | `iva_0` | `exento`, default
   `iva_16`) — not every service is 16%, and `exento` differs from `0%` in CFDI. Quotation/
-  order lines snapshot it and IVA totals compute **per line** (20 §3). **Open:** confirm the
-  v1 set (is border-region `iva_8` in scope?). **IEPS + IVA/ISR retenciones are the
+  order lines snapshot it and IVA totals compute **per line** (20 §3). **`iva_8` (región
+  fronteriza, 8%) is in scope — confirmed 2026-07-24: the tenant works mainly in northern
+  Mexico** — it's the border-stimulus rate, applied per qualifying service (so it stays
+  per-service selectable; the field default remains `iva_16`, the general rate). **IEPS +
+  IVA/ISR retenciones are the
   billing/facturación module's job (09), computed at invoicing — not here** (decided
   2026-07-24); the catalog/quote/order carry only each service's IVA rate. Model a per-line
   tax array in 09 if a tenant needs them (still behind the CFDI deferral, 00 §4).
