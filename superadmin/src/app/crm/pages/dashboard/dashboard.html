@@ -102,8 +102,8 @@
     }
   </div>
 
-  <!-- Trend + newest clients (owner 2026-07-22 layout turn: recientes rides
-       the trend rail) -->
+  <!-- The two captación charts share a row (2026-07-24 layout turn): the
+       trend hero on the col-span-2 rail, channel-mix bars alongside. -->
   <div class="anim-stagger grid gap-4 lg:grid-cols-3">
     <section class="card-section lg:col-span-2" aria-labelledby="panel-trend-title">
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -152,6 +152,63 @@
       }
     </section>
 
+    <section class="card-section" aria-labelledby="panel-channels-title">
+      <h2 id="panel-channels-title" class="section-heading">Canales de captación</h2>
+      @if (statsPending()) {
+        <div class="flex flex-col gap-5" aria-hidden="true">
+          @for (row of skeletonRows.slice(0, 4); track row) {
+            <div>
+              <span class="skeleton !max-w-28"></span>
+              <span class="skeleton mt-2 !h-1.5 !max-w-none"></span>
+            </div>
+          }
+        </div>
+      } @else if (statsError()) {
+        <p class="text-sm text-surface-600 dark:text-surface-400">
+          No se pudieron cargar los canales.
+        </p>
+      } @else if (intakeEmpty()) {
+        <div class="flex flex-col items-center gap-3 py-8 text-center">
+          <span class="empty-icon">
+            <svg lucideShare2 class="size-5" aria-hidden="true"></svg>
+          </span>
+          <p class="max-w-xs text-sm text-surface-600 dark:text-surface-400">
+            Aún no hay datos de captación. Comparte tus enlaces de contacto para empezar a medir tus
+            canales.
+          </p>
+          <a routerLink="/dashboard" class="btn-secondary">Ir a los enlaces</a>
+        </div>
+      } @else {
+        <ul class="flex flex-col gap-4">
+          @for (bar of channelBars(); track bar.source) {
+            <li>
+              <div class="flex items-baseline justify-between gap-2">
+                <span class="text-sm text-surface-800 dark:text-surface-200">
+                  {{ bar.source }}
+                </span>
+                <span
+                  class="font-data text-sm font-medium tabular-nums text-surface-1000 dark:text-surface-0"
+                >
+                  {{ bar.total }}
+                </span>
+              </div>
+              <!-- Progress bars ride the decorative accent step (01). -->
+              <div class="mt-1.5 h-1.5 rounded-full bg-surface-100 dark:bg-surface-800">
+                <div class="h-1.5 rounded-full bg-primary-400" [style.width.%]="bar.widthPct"></div>
+              </div>
+              <p class="mt-1 font-data text-xs tabular-nums text-surface-500 dark:text-surface-400">
+                {{ bar.split }}
+              </p>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
+
+  <!-- Newest clients + activity (2026-07-24 layout turn): recientes on the
+       left, the wider interactions table on the col-span-2 rail at right. -->
+  <div class="anim-stagger grid gap-4 lg:grid-cols-3">
     <section class="card-section" aria-labelledby="panel-clients-title">
       <div class="flex items-center justify-between gap-4 pb-3">
         <h2 id="panel-clients-title" class="section-heading !pb-0">Clientes recientes</h2>
@@ -218,63 +275,6 @@
             </ng-template>
           </p-table>
         </div>
-      }
-    </section>
-  </div>
-
-  <!-- Channel mix + activity (owner 2026-07-22 layout turn: the interactions
-       table sits beside the channels and carries the richer columns) -->
-  <div class="anim-stagger grid gap-4 lg:grid-cols-3">
-    <section class="card-section" aria-labelledby="panel-channels-title">
-      <h2 id="panel-channels-title" class="section-heading">Canales de captación</h2>
-      @if (statsPending()) {
-        <div class="flex flex-col gap-5" aria-hidden="true">
-          @for (row of skeletonRows.slice(0, 4); track row) {
-            <div>
-              <span class="skeleton !max-w-28"></span>
-              <span class="skeleton mt-2 !h-1.5 !max-w-none"></span>
-            </div>
-          }
-        </div>
-      } @else if (statsError()) {
-        <p class="text-sm text-surface-600 dark:text-surface-400">
-          No se pudieron cargar los canales.
-        </p>
-      } @else if (intakeEmpty()) {
-        <div class="flex flex-col items-center gap-3 py-8 text-center">
-          <span class="empty-icon">
-            <svg lucideShare2 class="size-5" aria-hidden="true"></svg>
-          </span>
-          <p class="max-w-xs text-sm text-surface-600 dark:text-surface-400">
-            Aún no hay datos de captación. Comparte tus enlaces de contacto para empezar a medir tus
-            canales.
-          </p>
-          <a routerLink="/dashboard" class="btn-secondary">Ir a los enlaces</a>
-        </div>
-      } @else {
-        <ul class="flex flex-col gap-4">
-          @for (bar of channelBars(); track bar.source) {
-            <li>
-              <div class="flex items-baseline justify-between gap-2">
-                <span class="text-sm text-surface-800 dark:text-surface-200">
-                  {{ bar.source }}
-                </span>
-                <span
-                  class="font-data text-sm font-medium tabular-nums text-surface-1000 dark:text-surface-0"
-                >
-                  {{ bar.total }}
-                </span>
-              </div>
-              <!-- Progress bars ride the decorative accent step (01). -->
-              <div class="mt-1.5 h-1.5 rounded-full bg-surface-100 dark:bg-surface-800">
-                <div class="h-1.5 rounded-full bg-primary-400" [style.width.%]="bar.widthPct"></div>
-              </div>
-              <p class="mt-1 font-data text-xs tabular-nums text-surface-500 dark:text-surface-400">
-                {{ bar.split }}
-              </p>
-            </li>
-          }
-        </ul>
       }
     </section>
 
