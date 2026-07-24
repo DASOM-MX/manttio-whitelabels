@@ -42,7 +42,7 @@
 
 <!-- Collapsed rail: overflow must stay visible so the flyouts can escape
      the aside (the rail is short — scrolling only matters expanded). -->
-<nav class="flex-1 px-3 py-3" [class.overflow-y-auto]="!collapsed()" aria-label="Módulos">
+<nav class="nav-rail flex-1 px-3 py-3" [class.overflow-y-auto]="!collapsed()" aria-label="Módulos">
   <ul class="flex flex-col gap-1">
     @for (entry of navView(); track entry.label) {
       <li [class.nav-flyout-host]="collapsed()">

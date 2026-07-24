@@ -341,7 +341,7 @@
      to its icon rail, each row reveals a WHITE overlay submenu beside it on
      hover/focus — separated from the dark rail by a 4px gap and a neutral
      shadow (owner, same day: white + shadow, not the brand panel).
-     CSS-only (:hover / :focus-within), so the keyboard path is the normal
+     CSS-only (:hover / :focus-visible), so the keyboard path is the normal
      tab order and no JS state is needed. The pl-1 bridge is part of the
      flyout element, keeping hover continuous across the gap. True overlay →
      the shadow is allowed; dark mode adds a hairline ring (shadows vanish
@@ -357,9 +357,20 @@
     // element, so hover survives the crossing.
     @apply invisible absolute left-full top-0 z-30 ml-px pl-7 opacity-0 transition-opacity duration-150;
   }
+  /* Pinned open on hover, or on keyboard `:focus-visible` (NOT `:focus-within`
+     — a mouse click leaves DOM focus on the link, which would pin the panel
+     open and overlap the next hovered row's flyout; :focus-visible fires for
+     keyboard focus only, so mouse clicks don't linger). */
   .nav-flyout-host:hover > .nav-flyout,
-  .nav-flyout-host:focus-within > .nav-flyout {
+  .nav-flyout-host:has(:focus-visible) > .nav-flyout {
     @apply visible opacity-100;
+  }
+  /* While the pointer is on the rail, only the hovered row's flyout shows: any
+     other row's panel (e.g. one kept open by keyboard focus) is suppressed so
+     two panels never overlap. Outside hover, :focus-visible still opens it for
+     keyboard users. */
+  .nav-rail:hover .nav-flyout-host:not(:hover) > .nav-flyout {
+    @apply invisible opacity-0;
   }
   .nav-flyout-panel {
     // Landscape proportions (owner: wider than long) — children render as a
