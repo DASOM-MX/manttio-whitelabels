@@ -34,8 +34,6 @@ import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { IntakeStats } from '../../../data/dtos/customer-stats';
 import type {
   ChannelBarVM,
-  FollowUpTone,
-  FollowUpVM,
   KpiCardVM,
   KpiDeltaVM,
   PanelPeriodLabels,
@@ -135,27 +133,12 @@ const buildPeriodLabels = (stats: IntakeStats): PanelPeriodLabels => {
 };
 
 const TREND_MONTH_FMT = new Intl.DateTimeFormat('es-MX', { month: 'short', timeZone: 'UTC' });
-const FOLLOW_UP_FMT = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' });
 
 /** X-axis label for a 'YYYY-MM' bucket; past years carry a short year mark. */
 const trendMonthLabel = (key: string): string => {
   const year = Number(key.slice(0, 4));
   const label = TREND_MONTH_FMT.format(new Date(`${key}-01T00:00:00.000Z`));
   return year === new Date().getUTCFullYear() ? label : `${label} ${String(year).slice(2)}`;
-};
-
-/** Same UTC-date-string comparison as the shared IsOverduePipe. */
-const followUpTone = (iso: string): FollowUpTone => {
-  const day = iso.slice(0, 10);
-  const today = new Date().toISOString().slice(0, 10);
-  return day < today ? 'overdue' : day === today ? 'today' : 'upcoming';
-};
-
-// Pills pair color with a label/sign and stay unchanged in dark mode (01).
-const FOLLOW_UP_TONE_CLASSES: Record<FollowUpTone, string> = {
-  overdue: 'bg-red-100 text-red-900',
-  today: 'bg-amber-100 text-amber-900',
-  upcoming: 'bg-surface-100 text-surface-700 dark:bg-surface-800 dark:text-surface-300',
 };
 
 // Stat-card deltas are signed colored text, never pills (01 stat-card idiom).
@@ -183,10 +166,11 @@ const conversionRate = (active: number, leads: number): number | null => {
 /** Clientes › Dashboard — the CRM cockpit (executive redesign 2026-07-22,
  *  supersedes the two-pie layout): KPI strip (leads / nuevos activos /
  *  conversión / seguimientos vencidos), six-month intake trend with the
- *  sanctioned single-hue area fill + newest clients on its rail, channel-mix
- *  bars + the detailed activity table (customer status + author), and the
- *  full-width follow-up agenda (owner layout turn, same day). Data lives in
- *  `CustomerStatsState` so revisits render from cache. */
+ *  sanctioned single-hue area fill + newest clients on its rail, and
+ *  channel-mix bars + the detailed activity table (customer status + author).
+ *  The follow-ups fetch now backs only its KPI count — the agenda table was
+ *  dropped on the owner's ask. Data lives in `CustomerStatsState` so revisits
+ *  render from cache. */
 @Component({
   selector: 'app-crm-dashboard',
   imports: [
@@ -408,20 +392,6 @@ export class CrmDashboard {
       widthPct: Math.max(Math.round((r.total / max) * 100), 4),
     }));
   });
-
-  protected readonly followUpRows = computed<FollowUpVM[]>(() =>
-    (this.followUps()?.items ?? []).map((c) => {
-      const tone = followUpTone(c.nextFollowUpAt);
-      return {
-        id: c.id,
-        name: c.name,
-        status: c.status,
-        sourceLabel: CUSTOMER_SOURCE_LABELS[c.source] ?? c.source,
-        dateLabel: tone === 'today' ? 'Hoy' : FOLLOW_UP_FMT.format(new Date(c.nextFollowUpAt)),
-        dateClass: FOLLOW_UP_TONE_CLASSES[tone],
-      };
-    }),
-  );
 
   protected readonly clientRows = computed<RecentClientVM[]>(() =>
     (this.recentClients() ?? []).map((c) => ({

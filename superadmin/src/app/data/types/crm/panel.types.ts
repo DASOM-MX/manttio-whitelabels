@@ -1,5 +1,4 @@
 import type { LucideIcon } from '@lucide/angular';
-import type { CustomerStatus } from '../../dtos/customer';
 
 /** View models for the CRM dashboard (utm-params 03; executive redesign
  *  2026-07-22) — mapped in computeds so templates stay free of function
@@ -38,19 +37,6 @@ export interface ChannelBarVM {
   total: number;
   split: string;
   widthPct: number;
-}
-
-export type FollowUpTone = 'overdue' | 'today' | 'upcoming';
-
-/** One agenda row of the follow-ups card. */
-export interface FollowUpVM {
-  id: string;
-  name: string;
-  status: CustomerStatus;
-  sourceLabel: string;
-  dateLabel: string;
-  /** Tone classes for the date pill (from the component's tone map). */
-  dateClass: string;
 }
 
 /** Legend chip over the trend chart — dot color mirrors the dataset. */

@@ -1,6 +1,7 @@
 <!-- The CRM cockpit (executive redesign 2026-07-22; row order per the owner's
      layout turn the same day): KPI strip → trend + newest clients → channel
-     mix + activity (status + author details) → full-width follow-up agenda.
+     mix + activity (status + author details). Follow-ups survive as the
+     fourth KPI only — the agenda table was dropped on the owner's ask.
      Each region loads/fails independently; feeds use the CP-3 p-table idiom
      (#loadingbody skeletons, whole-row click). -->
 <app-page-header title="Dashboard" [description]="headerDescription()" />
@@ -89,16 +90,20 @@
         </span>
       </section>
     } @else {
-      <!-- Follow-ups endpoint failed — the agenda card below owns the retry. -->
+      <!-- Follow-ups endpoint failed — this card owns the retry now that the
+           agenda table is gone. -->
       <section class="card-section !p-5">
         <h2 class="micro-label">Seguimientos vencidos</h2>
         <p class="mt-2 text-sm text-surface-600 dark:text-surface-400">No disponible.</p>
+        <button type="button" class="btn-secondary mt-3" (click)="loadFollowUps(true)">
+          Reintentar
+        </button>
       </section>
     }
   </div>
 
   <!-- Trend + newest clients (owner 2026-07-22 layout turn: recientes rides
-       the trend rail; the agenda went full-width at the bottom) -->
+       the trend rail) -->
   <div class="anim-stagger grid gap-4 lg:grid-cols-3">
     <section class="card-section lg:col-span-2" aria-labelledby="panel-trend-title">
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -371,85 +376,4 @@
       }
     </section>
   </div>
-
-  <!-- Follow-up agenda, full width -->
-  <section class="anim-stagger card-section" aria-labelledby="panel-followups-title">
-    <div class="flex items-center justify-between gap-4 pb-3">
-      <h2 id="panel-followups-title" class="section-heading !pb-0">Seguimientos</h2>
-      <a
-        routerLink="/customers/leads"
-        class="text-xs font-medium text-primary-700 hover:underline dark:text-primary-300"
-      >
-        Ver leads
-      </a>
-    </div>
-    @if (followUpsError()) {
-      <p class="text-sm text-surface-600 dark:text-surface-400">
-        No se pudieron cargar los seguimientos.
-      </p>
-      <button type="button" class="btn-secondary mt-3" (click)="loadFollowUps(true)">
-        Reintentar
-      </button>
-    } @else {
-      <div class="card-flush-table">
-        <p-table
-          [value]="followUpRows()"
-          [loading]="followUpsPending()"
-          [showLoader]="false"
-          [rowHover]="true"
-          [scrollable]="true"
-          scrollHeight="16rem"
-          dataKey="id"
-        >
-          <ng-template #header>
-            <tr>
-              <th scope="col">Cliente</th>
-              <th scope="col">Origen</th>
-              <th scope="col">Estatus</th>
-              <th scope="col">Fecha</th>
-            </tr>
-          </ng-template>
-          <ng-template #body let-row>
-            <tr class="cursor-pointer" (click)="openCustomer(row.id)">
-              <td class="font-medium">{{ row.name }}</td>
-              <td>{{ row.sourceLabel }}</td>
-              <td>
-                <p-tag
-                  [severity]="row.status | customerStatusSeverity"
-                  [value]="row.status | customerStatusLabel"
-                />
-              </td>
-              <td>
-                <span
-                  class="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 font-data text-xs font-medium leading-none tabular-nums {{
-                    row.dateClass
-                  }}"
-                >
-                  {{ row.dateLabel }}
-                </span>
-              </td>
-            </tr>
-          </ng-template>
-          <ng-template #loadingbody>
-            @for (row of skeletonRows; track row) {
-              <tr>
-                <td><span class="skeleton"></span></td>
-                <td><span class="skeleton"></span></td>
-                <td><span class="skeleton"></span></td>
-                <td><span class="skeleton"></span></td>
-              </tr>
-            }
-          </ng-template>
-          <ng-template #emptymessage>
-            <tr>
-              <td colspan="4" class="py-6 text-center text-surface-500 dark:text-surface-400">
-                Sin seguimientos programados — agenda el próximo contacto desde la ficha del
-                cliente.
-              </td>
-            </tr>
-          </ng-template>
-        </p-table>
-      </div>
-    }
-  </section>
 </div>
