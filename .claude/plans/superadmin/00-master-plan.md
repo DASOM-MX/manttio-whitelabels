@@ -35,7 +35,7 @@ then its own file, and touches no other module's code.
 | 16 | `16-semantic-brand-colors.md` | Semantic Tailwind color classes (`primary-*`/`surface-*` replace `sky`/`granite`/`navy`/`cyan`) across frontend + superadmin + website | **everything — deferred closing sweep, runs last** |
 | 17 | `17-services.md` | Tenant service catalog: name/price/uom/description + website-listing flag | 02 |
 | 18 | `18-service-orders.md` | Service orders: catalog lines → exploded `pending` reports, order-bound visits (12), CRM timeline entry (08), template↔service prefilter (06) | 07, 17, 19, 06, 12 |
-| 19 | `19-quotations.md` | Quotations: catalog-fed quotes with frozen price/uom/qty snapshots, mailed to client reviewer-contacts, token-guarded approve/decline, accept → generates a service order (18) | 07, 17; feeds 18 |
+| 19 | `19-quotations.md` | Quotations: catalog-fed quotes with frozen price/uom/qty snapshots, mailed to client reviewer-contacts, token-guarded approve/decline (mutable), 7-state machine; staff create a service order (18) from an approved quote | 07, 17; feeds 18 |
 
 Build order **is numeric order** (renumbered 2026-07-05: branding and CMS are separate,
 independent modules — 03/04 — and access-control moved to 14 as pure reference).

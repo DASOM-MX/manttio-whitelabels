@@ -1,18 +1,18 @@
 # 19 — Quotations (cotizaciones)
 
-> **Status:** planned · **Depends on:** 07 (client + contacts), 17 (catalog + `taxable`), `email/` + `pdf/` modules · **Feeds:** 18 (an accepted quotation generates a service order) · **Hooks:** 08 (CRM interaction), 09 (billing)
+> **Status:** planned · **Depends on:** 07 (client + contacts), 17 (catalog + `taxable`), `email/` + `pdf/` modules · **Feeds:** 18 (staff create a service order from an approved quote) · **Hooks:** 08 (CRM interaction), 09 (billing)
 > **Owner:** — · **Last updated:** 2026-07-24
 
 The **sales entry point** and the convergence of 17 and 18: a quotation is built from
-catalog services (17), mailed to the client's contacts (07), and — when a contact accepts
-through a **token-guarded page** — **generates a service order** (18). Price/uom/qty are
-**frozen at creation** (a quote is a commitment); every step is audited on the quotation's
-own timeline.
+catalog services (17), mailed to the client's reviewer-contacts (07) who approve/decline
+through a **token-guarded page**, and — once staff **create an order** from it — **feeds a
+service order** (18). Price/uom/qty are **frozen at creation** (a quote is a commitment);
+every step is audited on the quotation's own timeline.
 
 ```
-services (17) ──feeds──▶ QUOTATION (draft → sent → accepted) ──generates──▶ service_order (18) ──▶ visits/reports
-                                        │
-                                        └─ mailed to customer_contacts (07) → token page → accept/decline
+services (17) ──feeds──▶ QUOTATION (draft → waiting_approval → approved/partially/declined)
+                                        │                    └─staff create order──▶ service_order (18) ──▶ visits/reports
+                                        └─ mailed to customer_contacts (07) → token page → reviewers approve/decline (mutable)
 ```
 
 ## 1. Data model (DTO view)
@@ -23,10 +23,14 @@ Quotation {
   folio,                    // 'COT-YYYYMMDD-NNNN', unique — own daily counters
                             //   (quotation_counters, report_counters mechanics)
   customerId,               // required, restrict, never cascade
-  status: 'draft' | 'sent' | 'accepted' | 'closed'
-        | 'expired' | 'cancelled' | 'superseded',
-        // 'closed' = staff decided not to proceed (reason); reversible.
-        // Reviewer decline is NOT a status — it never resolves the quote (§2).
+  status: 'draft' | 'waiting_approval' | 'approved' | 'partially_approved'
+        | 'declined' | 'cancelled' | 'order_created',
+        // draft = created, editable, not yet mailed. On send → waiting_approval.
+        // Once sent the status tracks the reviewer tally (auto, mutable, §2):
+        //   waiting_approval (0 approvals) · partially_approved (≥1, not all) ·
+        //   approved (all) · declined (all red). cancelled + order_created are
+        //   EXPLICIT staff actions, each carrying a resolutionReason. A declined
+        //   quote is NEVER auto-cancelled.
   validUntil,               // date — expiry (auto-expire past it, §4)
   ivaRate,                  // numeric SNAPSHOT at creation (default 0.16) — §3
   comments?,                // terms / conditions (mutable in draft only)
@@ -34,17 +38,15 @@ Quotation {
                             //   (decided 2026-07-24 — new linked quotation, not
                             //   in-place versioning)
   createdBy, createdAt, updatedAt, deletedAt,   // soft delete only
-  // staff resolution (per-reviewer detail lives on QuotationRecipient). Accept
-  // and close each carry a MANDATORY reason for the audit trail (2026-07-24).
-  sentAt?,
-  acceptedAt?,             // staff accepted → a service order was opened (§6),
-                           //   gated by the approval rule (§2)
-  closedAt?,               // staff closed (not proceeding) — reversible: a closed
-                           //   or fully-declined quote can still be accepted later
-                           //   (owner/admin) — clients change their minds
-  resolutionReason?,       // REQUIRED on accept and on close
-  resolvedByUserId?,       // the staff user who accepted/closed
-  serviceOrderId?,         // the order opened on accept (18) — the convergence
+  // draft/waiting/approved/partially/declined are position + tally states; the two
+  // explicit terminal actions carry the resolution fields (2026-07-24):
+  sentAt?,                 // → waiting_approval
+  resolutionReason,        // ALWAYS exists once resolved — the comment on cancel OR
+                           //   order_created (mandatory; the audit "why")
+  cancelledAt?,            // set on explicit cancel (terminal)
+  orderCreatedAt?,         // set on explicit convert → order
+  resolvedByUserId?,       // the staff user who cancelled / created the order
+  serviceOrderId?,         // set when order_created (18) — the convergence
 }
 QuotationLine {             // FROZEN snapshot — the quote never re-reads the catalog
   id, quotationId,
@@ -88,35 +90,43 @@ accepted.
 `subtotal = Σ lineSubtotal`; `ivaBase = Σ lineSubtotal where taxable`;
 `iva = ivaBase * ivaRate`; `total = subtotal + iva`.
 
-## 2. Lifecycle & statuses
+## 2. Lifecycle & statuses (decided 2026-07-24)
 
-`draft` → `sent` → (`accepted` | `closed` | `expired`); plus `cancelled` and
-`superseded` (replaced by a revision). Reviewer approve/decline is **advisory** and does
-not itself move the status.
+Seven states. Five track the quote's position + the reviewer tally (auto, mutable); two
+are explicit staff terminal actions with a mandatory `resolutionReason`:
 
-- **Editable only in `draft`** (lines, validUntil, comments). Once `sent` the quote is
-  **immutable** — a change means **revise → a new linked quotation** that `supersedes`
-  this one (copies the lines into a fresh draft; the old one flips to `superseded`).
-- **Expiry (decided 2026-07-24):** past `validUntil` a `sent` quote becomes `expired`;
-  neither reviewers nor staff can accept an expired quote — **revise to a fresh quote**
-  for current prices (stale snapshots are the risk). Enforced by a daily cron sweep +
-  a guard on both the token and the accept endpoints.
-- **Reviewers approve/decline — advisory + mutable (decided 2026-07-24).** Only
-  reviewers (the per-contact toggle) can respond; each decision + reason is recorded on
-  their `QuotationRecipient`, so staff see **who approved, who didn't, and why**.
-  Reviewers may **change their mind mid-flight** (each change re-logged, §5).
-  **A decline never blocks the process** — the quote's future doesn't hinge on any
-  single client answer.
-- **Accept = open the order, staff action, gated (decided 2026-07-24).** A service order
-  is opened from the quote by an explicit staff **accept** (not auto on approval). Gate:
-  **≥1 reviewer approval → any staff (owner/admin/office)** may accept; **0 approvals
-  (fully declined / none approved) → owner/admin only** — the override, because clients
-  change their minds and a denied quote is never a dead end. **At least one approval is
-  the floor for office; owner/admin can open from zero.** Accept requires a **reason**
-  and opens the order (§6).
-- **Close = staff decide not to proceed** — also requires a **reason**. Reversible: a
-  `closed` (or fully-declined) quote can still be accepted later by owner/admin. Nothing
-  here is a hard dead end except `expired`/`cancelled`/`superseded`.
+```
+draft ──send──▶ waiting_approval ⇄ partially_approved ⇄ approved
+                       ⇅                    (reviewer tally, mutable)
+                   declined
+   any live state ──cancel(comment)──▶ cancelled           [terminal]
+   any live state ──create order(comment, gated)──▶ order_created  [terminal]
+```
+
+- **`draft`** — created, editable (lines, validUntil, comments), not yet mailed.
+- **On send → `waiting_approval`**. From there the status is a **pure function of the
+  reviewer tally** (A = #approved, D = #declined, N = #reviewers), recomputed on every
+  response: `approved` (A = N) · `declined` (D = N, all red) · `partially_approved`
+  (A ≥ 1, not all) · `waiting_approval` (A = 0, not all declined).
+- **Reviewers approve/decline — mutable (decided 2026-07-24).** Only reviewers (the
+  per-contact toggle) respond; each decision + reason is on their `QuotationRecipient`,
+  so staff see **who approved, who didn't, and why**. Reviewers may **change their mind
+  mid-flight** — the status re-derives and each change is re-logged (§5). **A decline
+  never blocks and a declined quote is NEVER auto-cancelled** — it stays a live state you
+  can still convert or leave for minds to change.
+- **`order_created` = explicit staff conversion → a service order (§6), gated.**
+  **≥1 approval (`approved`/`partially_approved`) → any staff (owner/admin/office)**;
+  **0 approvals (`declined` or `waiting_approval`) → owner/admin only** (the override —
+  clients change their minds, a denied quote is never a dead end). Carries a mandatory
+  **comment** (`resolutionReason`); terminal.
+- **`cancelled` = explicit staff abandonment**, mandatory **comment**; terminal. Distinct
+  from `declined` (a declined quote is not cancelled).
+- **Revise** (any live state) → a new linked `draft` (`supersedesQuotationId` → the old);
+  the old one is **cancelled** with an auto-comment referencing the successor (no separate
+  `superseded` status — keeps the seven).
+- **`validUntil`** is a **guard, not a status** (no `expired` state per the seven):
+  past it, the quote can't be converted to an order — **revise for current prices**.
+  A daily cron flags overdue quotes for the UI; the `/order` endpoint enforces it.
 
 ## 3. Tax — per-service taxable flag (decided 2026-07-24)
 
@@ -140,9 +150,10 @@ invoice must reconcile because both derive from the same frozen line snapshots.
   and a reviewer can **come back and change their answer** while the quote is live;
   for an informational token it's view-only.
   `POST /public/quotations/{token}/respond { response, reason? }` records (or updates) the
-  reviewer's decision — it never resolves the quote itself (staff accept/close does, §2).
-  Guards: expired → refuse; non-reviewer token → 403; quote already `accepted`/`closed`/
-  `cancelled` → view-only outcome. **Host:** a backend-rendered self-contained HTML page
+  reviewer's decision, then **re-derives the tally status** (§2) — it never itself
+  converts or cancels the quote (staff do, §2). Guards: past `validUntil` → refuse;
+  non-reviewer token → 403; quote already `order_created`/`cancelled` → view-only
+  outcome. **Host:** a backend-rendered self-contained HTML page
   (lean, matches the report-download precedent) — open decision if a richer SPA page is
   wanted.
 
@@ -162,24 +173,26 @@ QuotationEvent { id, quotationId, type, actorId?, contactId?, refKind?, refId?,
   recipient/contact, `changes` notes reviewer vs informational), `quotation_viewed`
   (contact via token), `quotation_reviewer_responded` (per reviewer, `contactId` +
   approved/declined + reason note — **one per response, including mind-changes**, so the
-  trail shows who approved / who didn't / who flipped and why), `quotation_accepted`
-  (staff, `note` = the mandatory reason; `changes` flags the **owner/admin override**
-  when accepted with 0 approvals), `quotation_closed` (staff, `note` = mandatory reason),
-  `quotation_expired`, `quotation_cancelled`, `quotation_superseded` (refId → the new
-  quote), `order_opened` (refId → the order).
+  trail shows who approved / who didn't / who flipped and why), `quotation_status_derived`
+  (the tally moved the status, e.g. waiting → partially_approved → approved), 
+  `quotation_order_created` (staff, `note` = the mandatory comment; `changes` flags the
+  **owner/admin override** when converted at 0 approvals; refId → the order),
+  `quotation_cancelled` (staff, `note` = mandatory comment; a revise-cancel notes the
+  successor).
 - **Attribution:** staff actions carry `actorId` (user); token-page actions carry
   `contactId` (the reviewing contact) with `actorId` null. Every event is written
-  **inside the same transaction** as the state change. Accept/close reasons are
-  non-optional here — the audit trail always has the "why".
+  **inside the same transaction** as the state change. The order/cancel comment
+  (`resolutionReason`) is always present — the audit trail always has the "why".
 
 ## 6. Convergence → service order (18)
 
-The staff **accept** action (§2 — gated: ≥1 approval for office, owner/admin can override
-from 0 approvals; reason mandatory) opens the order in one transaction: create the service
-order (18) inheriting the quotation's **line snapshots**
-(serviceName/uom/quantity/unitPrice/taxable) — never re-reading the catalog — set
-`service_orders.quotationId` + `quotations.serviceOrderId`, append the quotation's
-`order_opened` event and the order's opening `order_created` (`refKind: 'quotation'`).
+The staff **create-order** action (§2 — gated: ≥1 approval for office, owner/admin can
+override from 0 approvals; comment mandatory; blocked past `validUntil`) opens the order
+in one transaction: create the service order (18) inheriting the quotation's **line
+snapshots** (serviceName/uom/quantity/unitPrice/taxable) — never re-reading the catalog —
+set `service_orders.quotationId` + `quotations.serviceOrderId`, flip the quote to
+`order_created`, append the quotation's `quotation_order_created` event and the order's
+opening `order_created` (`refKind: 'quotation'`).
 The order then runs its own flow (explode reports per unit, schedule visits). **Direct
 orders stay allowed** (18, decided 2026-07-23) with `quotationId` null — the quote path
 is primary, not exclusive.
@@ -190,9 +203,9 @@ is primary, not exclusive.
 |---|---|---|---|---|
 | List / read quotations | ✓ | ✓ | ✓ | — |
 | Build / edit draft · send · revise · cancel | ✓ | ✓ | ✓ | — |
-| **Accept** (open order) when ≥1 approval — reason required | ✓ | ✓ | ✓ | — |
-| **Accept** a fully-declined quote (0 approvals) — reason required | ✓ | ✓ | — | — |
-| **Close** a quote — reason required | ✓ | ✓ | ✓ | — |
+| **Create order** when ≥1 approval — comment required | ✓ | ✓ | ✓ | — |
+| **Create order** from a fully-declined quote (0 approvals) — comment required | ✓ | ✓ | — | — |
+| **Cancel** a quote — comment required | ✓ | ✓ | ✓ | — |
 | Approve / decline via token page (mutable) | **reviewer** client contacts only (public, token-scoped) |
 
 ## 8. Pages & components
@@ -206,9 +219,9 @@ is primary, not exclusive.
 - `quotations/pages/quotation-view/` — header (folio, client, status, totals, approval
   tally e.g. "2/3 aprobaron"), lines, **recipients card** (each contact + reviewer badge
   + viewed/approved/declined pill + reason), **activity timeline** (§5), actions: Enviar,
-  Revisar→nueva, and the reason-gated **Aceptar** (opens the order; owner/admin see it
-  even at 0 approvals) / **Cerrar** / Cancelar — each opens a confirm dialog that
-  **requires a motivo**.
+  Revisar→nueva, **Crear orden** (gated — owner/admin see it even at 0 approvals) and
+  **Cancelar** — each opens a confirm dialog that **requires a comentario**
+  (`resolutionReason`).
 - `quotations/components/send-quotation-dialog/` — pick client contacts (07), each row
   with a **reviewer toggle** (`p-toggleswitch`/checkbox — only reviewers can
   approve/decline; the rest are informational) + optional message; confirm-heavy ("se
@@ -227,25 +240,26 @@ is primary, not exclusive.
 - `PATCH /quotations/:id` — **draft only** (lines/validUntil/comments); 409 once sent
 - `POST /quotations/:id/send` `{ recipients: [{ contactId, isReviewer }], message? }` →
   recipients + tokens, mails PDF + link, status → `sent`
-- `POST /quotations/:id/cancel` `{ reason }` · `POST /quotations/:id/revise` (→ new linked
-  draft, old → `superseded`)
-- `POST /quotations/:id/accept` `{ reason }` — **opens the order** (§6). Enforces the
-  gate: 403 for office when 0 approvals (owner/admin override); 409 if expired. Reason
-  mandatory.
-- `POST /quotations/:id/close` `{ reason }` — staff decide not to proceed; reason
-  mandatory; reversible (a later accept still allowed per the gate).
+- `POST /quotations/:id/revise` → new linked `draft`; the old one is **cancelled** with an
+  auto-comment referencing the successor (`supersedesQuotationId` on the new)
+- `POST /quotations/:id/order` `{ comment }` — **creates the service order** (§6).
+  Enforces the gate: 403 for office at 0 approvals (owner/admin override); 409 past
+  `validUntil`. Comment mandatory → `order_created`.
+- `POST /quotations/:id/cancel` `{ comment }` — explicit abandonment; comment mandatory →
+  `cancelled` (terminal).
 - **Public:** `GET /public/quotations/{token}` (view; reviewer tokens get the actions) ·
   `POST /public/quotations/{token}/respond` `{ response, reason? }` — reviewer-only,
-  expiry-guarded, **mutable** (updates a prior response); records/re-logs the reviewer's
-  decision but never resolves the quote (staff accept/close does, §2)
+  `validUntil`-guarded, **mutable** (updates a prior response); records/re-logs the
+  decision and re-derives the tally status, but never converts/cancels the quote (§2)
 - `GET /customers/:id/quotations` — customer-view card (07 ask)
 
 ## 10. State
 
 - `QuotationsState`: `items`, `total`, `loading`, `selected`, `query`. Actions:
   `LoadQuotations`, `LoadQuotationDetail`, `CreateQuotation`, `UpdateQuotation`,
-  `SendQuotation`, `AcceptQuotation(id, reason)` (opens order), `CloseQuotation(id,
-  reason)`, `CancelQuotation(id, reason)`, `ReviseQuotation`.
+  `SendQuotation`, `CreateOrderFromQuotation(id, comment)`, `CancelQuotation(id,
+  comment)`, `ReviseQuotation`. (Reviewer responses arrive server-side via the token
+  endpoint; the list/detail re-fetch reflects the re-derived status.)
 - `src/app/services/http/quotations.service.ts`.
 
 ---
@@ -256,13 +270,13 @@ is primary, not exclusive.
 - [ ] `services.taxable` (17 amendment); `quotations` + `quotation_lines` +
       `quotation_recipients` + `quotation_events` + `quotation_counters` tables,
       hand-written additive DDL; `service_orders.quotationId?`
-- [ ] CRUD (draft) + `/send` (tokens + email PDF) + `/cancel` + `/revise` + staff
-      `/accept` (reason, gated) + `/close` (reason); snapshot resolution server-side
+- [ ] CRUD (draft) + `/send` (tokens + email PDF) + `/revise` + `/order` (comment,
+      gated) + `/cancel` (comment); snapshot resolution server-side
 - [ ] Public `GET /public/quotations/{token}` + `/respond` (reviewer-only, **mutable**,
-      expiry-guarded); accept gate (≥1 approval for office, owner/admin override from 0);
-      **accept → open order (18) inheriting snapshots**
-- [ ] `quotation_events` for every mutation incl. per-response re-logs + mandatory
-      accept/close reasons; expiry cron sweep
+      `validUntil`-guarded) → **re-derives the tally status**; `/order` gate (≥1 approval
+      for office, owner/admin override from 0) → **opens order (18) inheriting snapshots**
+- [ ] `quotation_events` for every mutation incl. per-response re-logs + status-derive +
+      mandatory order/cancel comments; `validUntil` cron flag
 
 ### CP-2 — Superadmin: quotation UI
 - [ ] DTOs + `QuotationsState` + http service
@@ -271,27 +285,29 @@ is primary, not exclusive.
 
 ### CP-3 — Public token page + PDF
 - [ ] Cotización PDF (`pdf/` module, brand-themed); email template
-- [ ] Branded token page: view → accept/decline (+ reason); resolved/expired states
+- [ ] Branded token page: view → approve/decline (+ reason); overdue/resolved states
 
 ### CP-4 — Polish
-- [ ] Revise/supersede chain UI; accept (with reason + gate) / close (with reason) from
-      the view; owner/admin override on a fully-declined quote; dashboard "cotizaciones
-      pendientes" card; empty states; build green; manual pass: build → send → reviewer
-      approves (then flips their mind, re-logged) → staff accept → order appears with
-      matching frozen prices; and: all-decline → office blocked, owner opens the order
+- [ ] Revise chain UI; Crear orden (comment + gate) / Cancelar (comment) from the view;
+      owner/admin override on a fully-declined quote; the seven status pills + approval
+      tally; dashboard "cotizaciones pendientes" card; empty states; build green; manual
+      pass: build → send → reviewer approves (then flips their mind → status re-derives,
+      re-logged) → staff Crear orden → order appears with matching frozen prices; and:
+      all-decline → office blocked, owner creates the order
 
 ## Open decisions / asks
 - **Decided 2026-07-24:** quotation is the primary (not sole) order-birth path; revisions
-  = a new linked quotation (supersede chain), not in-place versioning; `validUntil` +
-  auto-expire; tax via per-service `taxable` flag + per-quote `ivaRate`.
-- **Reviewer model + resolution rule (decided 2026-07-24):** recipients carry an
-  `isReviewer` toggle; only reviewers approve/decline (mutable — they can change their
-  mind mid-flight, each change re-logged). Responses are **advisory** and a decline
-  **never blocks**. **Opening the order is a staff `accept`** (reason required):
-  **≥1 reviewer approval → any staff; 0 approvals (fully declined) → owner/admin only**
-  (override — clients change their minds). Staff `close` (reason required) is the
-  not-proceeding path and is reversible. **Both accept and close carry a mandatory reason
-  for the audit trail.**
+  = a new linked `draft` (the old is cancelled referencing the successor); tax via
+  per-service `taxable` flag + per-quote `ivaRate`. `validUntil` is a conversion **guard**
+  (no `expired` status — the seven states are canonical).
+- **State machine (decided 2026-07-24):** seven states — `draft`, `waiting_approval`,
+  `approved`, `partially_approved`, `declined`, `cancelled`, `order_created`. The first
+  five are position + reviewer-tally states (auto, mutable); a **declined quote is never
+  auto-cancelled**. `cancelled` and `order_created` are explicit staff actions, each
+  carrying a mandatory `resolutionReason` that **always exists**.
+- **Reviewer + create-order gate (decided 2026-07-24):** recipients carry an `isReviewer`
+  toggle; only reviewers approve/decline (mutable, re-logged). **Create order** = staff
+  action: **≥1 approval → any staff; 0 approvals → owner/admin only** (override).
 - Token page host: backend-rendered self-contained HTML (lean, report-download
   precedent) vs a public SPA route (richer, brand-consistent with the apps) — decide at
   CP-3; leaning backend-rendered.
