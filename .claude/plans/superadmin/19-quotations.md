@@ -153,9 +153,12 @@ invoice must reconcile because both derive from the same frozen line snapshots.
   reviewer's decision, then **re-derives the tally status** (§2) — it never itself
   converts or cancels the quote (staff do, §2). Guards: past `validUntil` → refuse;
   non-reviewer token → 403; quote already `order_created`/`cancelled` → view-only
-  outcome. **Host:** a backend-rendered self-contained HTML page
-  (lean, matches the report-download precedent) — open decision if a richer SPA page is
-  wanted.
+  outcome. **Host (decided 2026-07-24): the approval page lives in the backend** — a
+  self-contained server-rendered HTML page (brand-themed from `/brand`, forms POST to
+  `/respond`), the same shape as `/reports/download/`. No SPA route; the client never
+  touches an app bundle. It sits in the `quotations/` module (`templates/` markup +
+  `helpers/` renderer, per the backend template/helper split), mounted public before the
+  JWT middleware.
 
 ## 5. Audit — `quotation_events` (append-only)
 
@@ -226,7 +229,8 @@ is primary, not exclusive.
   with a **reviewer toggle** (`p-toggleswitch`/checkbox — only reviewers can
   approve/decline; the rest are informational) + optional message; confirm-heavy ("se
   enviará la cotización a…, N revisores").
-- **Public token page** (§4) — branded, standalone.
+- **Public approval page (§4) — backend-rendered, NOT a superadmin page** (server HTML in
+  the `quotations/` backend module; no Angular). Listed here only for the flow.
 - Customer view (07): "Cotizaciones" card (07 slot — ask).
 - Nav: **Negocio → Cotizaciones** (`module: 'quotations'`, staff only).
 
@@ -283,9 +287,11 @@ is primary, not exclusive.
 - [ ] Builder page (`/new`) + list (URL filters) + view with recipients + timeline
 - [ ] Send dialog (contact picker); nav + module keys
 
-### CP-3 — Public token page + PDF
+### CP-3 — Backend approval page + PDF
 - [ ] Cotización PDF (`pdf/` module, brand-themed); email template
-- [ ] Branded token page: view → approve/decline (+ reason); overdue/resolved states
+- [ ] **Backend-rendered** approval page (`quotations/templates/` + `helpers/`, public
+      route): view → approve/decline (+ reason); overdue/resolved/non-reviewer states —
+      no SPA
 
 ### CP-4 — Polish
 - [ ] Revise chain UI; Crear orden (comment + gate) / Cancelar (comment) from the view;
@@ -308,9 +314,9 @@ is primary, not exclusive.
 - **Reviewer + create-order gate (decided 2026-07-24):** recipients carry an `isReviewer`
   toggle; only reviewers approve/decline (mutable, re-logged). **Create order** = staff
   action: **≥1 approval → any staff; 0 approvals → owner/admin only** (override).
-- Token page host: backend-rendered self-contained HTML (lean, report-download
-  precedent) vs a public SPA route (richer, brand-consistent with the apps) — decide at
-  CP-3; leaning backend-rendered.
+- ~~Token page host~~ — **decided 2026-07-24: the approval page lives in the backend**
+  (server-rendered self-contained HTML in the `quotations/` module, report-download
+  precedent). No public SPA route.
 - Partial acceptance (accept a subset of lines) — **rejected v1**, all-or-nothing; a
   subset means a revised quote.
 - Multiple live quotations per client concurrently — **allowed** (competing proposals);
