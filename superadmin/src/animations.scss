@@ -109,4 +109,8 @@
   .skeleton {
     animation: none !important;
   }
+  /* The sidebar rail's width ease (styles.scss) snaps under reduced motion. */
+  .shell-sidebar {
+    transition: none !important;
+  }
 }

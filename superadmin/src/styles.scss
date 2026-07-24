@@ -292,6 +292,12 @@
   .shell-sidebar {
     @apply bg-primary-1000 border border-l-0 border-primary-800/50 rounded-r-shell;
     box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.12);
+    /* Rail collapse/expand eases the width between w-64 and w-20 (owner
+       2026-07-24, supersedes the earlier width-snap): a deliberate,
+       single-element exception to the transform-only motion rule — the shell
+       chrome, not per-frame content. Disabled under reduced-motion in
+       animations.scss, where it snaps as before. */
+    transition: width var(--motion-base) var(--ease-enter);
   }
   .app-dark .shell-sidebar {
     box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.5);
@@ -307,10 +313,10 @@
      template utilities, so hover can't outrank `.nav-active` in the
      cascade. */
   .nav-item {
-    @apply relative flex h-10 w-full items-center gap-3 rounded-control px-3 text-sm font-medium text-primary-100 transition-colors;
+    @apply relative flex h-10 w-full items-center gap-3 overflow-hidden whitespace-nowrap rounded-control px-3 text-sm font-medium text-primary-100 transition-colors;
   }
   .nav-child {
-    @apply relative flex h-9 items-center rounded-control pl-11 pr-3 text-sm text-primary-200 transition-colors;
+    @apply relative flex h-9 items-center overflow-hidden whitespace-nowrap rounded-control pl-11 pr-3 text-sm text-primary-200 transition-colors;
   }
   .nav-item:hover,
   .nav-child:not(.nav-active):hover {
@@ -335,7 +341,7 @@
      to its icon rail, each row reveals a WHITE overlay submenu beside it on
      hover/focus — separated from the dark rail by a 4px gap and a neutral
      shadow (owner, same day: white + shadow, not the brand panel).
-     CSS-only (:hover / :focus-within), so the keyboard path is the normal
+     CSS-only (:hover / :focus-visible), so the keyboard path is the normal
      tab order and no JS state is needed. The pl-1 bridge is part of the
      flyout element, keeping hover continuous across the gap. True overlay →
      the shadow is allowed; dark mode adds a hairline ring (shadows vanish
@@ -351,9 +357,20 @@
     // element, so hover survives the crossing.
     @apply invisible absolute left-full top-0 z-30 ml-px pl-7 opacity-0 transition-opacity duration-150;
   }
+  /* Pinned open on hover, or on keyboard `:focus-visible` (NOT `:focus-within`
+     — a mouse click leaves DOM focus on the link, which would pin the panel
+     open and overlap the next hovered row's flyout; :focus-visible fires for
+     keyboard focus only, so mouse clicks don't linger). */
   .nav-flyout-host:hover > .nav-flyout,
-  .nav-flyout-host:focus-within > .nav-flyout {
+  .nav-flyout-host:has(:focus-visible) > .nav-flyout {
     @apply visible opacity-100;
+  }
+  /* While the pointer is on the rail, only the hovered row's flyout shows: any
+     other row's panel (e.g. one kept open by keyboard focus) is suppressed so
+     two panels never overlap. Outside hover, :focus-visible still opens it for
+     keyboard users. */
+  .nav-rail:hover .nav-flyout-host:not(:hover) > .nav-flyout {
+    @apply invisible opacity-0;
   }
   .nav-flyout-panel {
     // Landscape proportions (owner: wider than long) — children render as a
@@ -390,5 +407,13 @@
   }
   .nav-flyout-link:not(.nav-active):hover {
     @apply bg-surface-100 text-surface-900 dark:bg-surface-800 dark:text-surface-100;
+  }
+  /* Active flyout link keeps white text on its solid primary-600 row. Both
+     `.nav-flyout-link` and `.nav-active` are single-class, so source order
+     (flyout-link is defined later) would otherwise let the light-surface text
+     beat `.nav-active`'s white — the compound selector outranks it in both
+     modes. */
+  .nav-flyout-link.nav-active {
+    @apply text-white;
   }
 }
