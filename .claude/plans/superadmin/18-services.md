@@ -10,8 +10,8 @@ services into a job; templates (06 §5) can bind to a service so report filling 
 from the right form set.
 
 Deliberately small: a flat catalog, no categories/variants in v1. Each service carries a
-`taxable` flag (2026-07-24) so quotations can build the IVA base (20 §3) — the only tax
-concept at the catalog level.
+**Mexican IVA rate** (`taxRate`, decided 2026-07-24 — 16% / 8% / 0% / exento) so quotations
+build the IVA base **per line** (20 §3); a boolean *taxable* isn't enough — the rates differ.
 
 ---
 
@@ -28,10 +28,10 @@ Service {
                            //   'equipo', 'visita'… — no invented catalog,
                            //   same posture as equipment.kind (11 §1)
   description?,
-  taxable,                 // boolean, default true (decided 2026-07-24) — whether
-                           //   IVA applies; quotation lines snapshot this to build
-                           //   the tax base (20 §3). Exempt/zero-rated services set
-                           //   false
+  taxRate,                 // Mexican IVA rate enum, default iva_16 (decided 2026-07-24):
+                           //   iva_16 (16%) | iva_8 (8%, frontera) | iva_0 (0%, tasa
+                           //   cero) | exento (CFDI-distinct from 0%). Quotation/order
+                           //   lines snapshot it; IVA sums per line (20 §3)
   isListableInWebsite,     // boolean, default false — feeds the future
                            //   public website services section (15 ask)
   isPriceVisibleInWebsite, // boolean, default false (decided 2026-07-23) — a
@@ -64,8 +64,8 @@ a. Technicians only ever see service *names* through their assigned reports/orde
   website pill, updated) — customers-list idiom, URL-persisted filters (`q`).
   Primary action **Registrar servicio** opens the dialog.
 - `services/components/service-form-dialog/` — shape-3 create/edit: name, price
-  (`p-inputnumber` `mode="currency"` MXN), uom, description, `taxable` toggle (default
-  on — "Aplica IVA"), then two website toggles:
+  (`p-inputnumber` `mode="currency"` MXN), uom, description, **`taxRate` select** (IVA
+  16% / 8% / 0% / Exento, default 16%), then two website toggles:
   `isListableInWebsite` ("Aparecerá en la sección de servicios del sitio") and, revealed
   when it's on, `isPriceVisibleInWebsite` ("Mostrar el precio en el sitio") — progressive
   disclosure, since price-visibility only matters for a listed service.
@@ -111,6 +111,12 @@ a. Technicians only ever see service *names* through their assigned reports/orde
 ## Open decisions / asks
 - **Money representation — decided 2026-07-23:** `numeric(12,2)`, MXN implicit,
   single currency in v1.
+- **Tax — decided 2026-07-24 (supersedes the `taxable` boolean):** each service carries a
+  **Mexican IVA rate** `taxRate` (enum `iva_16` | `iva_8` | `iva_0` | `exento`, default
+  `iva_16`) — not every service is 16%, and `exento` differs from `0%` in CFDI. Quotation/
+  order lines snapshot it and IVA totals compute **per line** (20 §3). **Open:** confirm the
+  v1 set (is border-region `iva_8` in scope?); IEPS + IVA/ISR **retenciones** stay deferred
+  with CFDI stamping (00 §4) — model a per-line tax array then if needed.
 - `uom` stays free text v1; revisit an option catalog only on real demand.
 - Price visibility for technicians — owned by 19 (leaning hide).
 - Ask to 14: add `services` (and `service-orders`, 19) to the module/role matrix.

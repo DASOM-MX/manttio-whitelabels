@@ -1,6 +1,6 @@
 # 20 — Quotations (cotizaciones)
 
-> **Status:** planned · **Depends on:** 07 (client + contacts), 18 (catalog + `taxable`), `email/` + `pdf/` modules · **Feeds:** 19 (staff create a service order from an approved quote) · **Hooks:** 08 (CRM interaction), 09 (billing)
+> **Status:** planned · **Depends on:** 07 (client + contacts), 18 (catalog + `taxRate`), `email/` + `pdf/` modules · **Feeds:** 19 (staff create a service order from an approved quote) · **Hooks:** 08 (CRM interaction), 09 (billing)
 > **Owner:** — · **Last updated:** 2026-07-24
 
 The **sales entry point** and the convergence of 18 and 19: a quotation is built from
@@ -32,7 +32,6 @@ Quotation {
         //   EXPLICIT staff actions, each carrying a resolutionReason. A declined
         //   quote is NEVER auto-cancelled.
   validUntil,               // date — expiry (auto-expire past it, §4)
-  ivaRate,                  // numeric SNAPSHOT at creation (default 0.16) — §3
   comments?,                // terms / conditions (mutable in draft only)
   supersedesQuotationId?,   // revision chain: this quote replaces a prior one
                             //   (decided 2026-07-24 — new linked quotation, not
@@ -57,7 +56,7 @@ QuotationLine {             // FROZEN snapshot — the quote never re-reads the 
   unitPrice,                // numeric(12,2) SNAPSHOT of services.price
   uom,                      // snapshot of services.uom
   quantity,                 // int >= 1
-  taxable,                  // boolean SNAPSHOT of services.taxable (§3)
+  taxRate,                  // SNAPSHOT of services.taxRate (§3) — Mexican IVA rate
   // lineSubtotal = unitPrice * quantity (computed; not stored)
   createdAt
 }
@@ -80,15 +79,17 @@ QuotationRecipient {        // one per mailed contact — the token model (§4)
 ```
 
 **Snapshot rule (decided 2026-07-24 — the tricky bit).** A quotation line freezes
-`serviceName` + `unitPrice` + `uom` + `quantity` + `taxable` at creation. Catalog edits
+`serviceName` + `unitPrice` + `uom` + `quantity` + `taxRate` at creation. Catalog edits
 (18) never rewrite an existing quote, and a soft-deleted service still renders on its old
 quotes. When the quote converts to an order (§6), the **order lines inherit these
 snapshots** — so the order (and eventually the invoice) charges exactly what the client
 accepted.
 
-**Totals** are computed from the frozen lines + `ivaRate`, never stored redundantly:
-`subtotal = Σ lineSubtotal`; `ivaBase = Σ lineSubtotal where taxable`;
-`iva = ivaBase * ivaRate`; `total = subtotal + iva`.
+**Totals** are computed from the frozen lines, never stored redundantly. IVA rates vary per
+line, so IVA is a **per-line** sum: `subtotal = Σ lineSubtotal`;
+`iva = Σ (lineSubtotal × rate(taxRate))` with `rate(iva_16)=0.16, rate(iva_8)=0.08,
+rate(iva_0)=0, rate(exento)=0`; `total = subtotal + iva`. `iva_0` and `exento` both add 0
+but stay distinct for CFDI.
 
 ## 2. Lifecycle & statuses (decided 2026-07-24)
 
@@ -128,14 +129,18 @@ draft ──send──▶ waiting_approval ⇄ partially_approved ⇄ approved
   past it, the quote can't be converted to an order — **revise for current prices**.
   A daily cron flags overdue quotes for the UI; the `/order` endpoint enforces it.
 
-## 3. Tax — per-service taxable flag (decided 2026-07-24)
+## 3. Tax — per-service Mexican IVA rate (decided 2026-07-24)
 
-`services` (18) gains a `taxable` boolean (default true). Each quotation line snapshots
-the service's `taxable` at creation; the quotation snapshots an `ivaRate` (default 0.16,
-editable per quote). Only taxable lines enter the IVA base — some services are
-exempt/zero-rated. The quotation total is the client-facing indicative figure; the
-**formal CFDI/IVA breakdown still happens at invoicing (09)** — the quote total and the
-invoice must reconcile because both derive from the same frozen line snapshots.
+`services` (18) carries a **`taxRate`** — a Mexican IVA rate enum, **not** a boolean, since
+not all services are 16%: `iva_16` (16%, general) | `iva_8` (8%, región fronteriza) |
+`iva_0` (0%, tasa cero) | `exento` (exento de IVA). Default `iva_16`. Each quotation line
+**snapshots the service's `taxRate`** at creation and **IVA is summed per line** (§1
+Totals), so a quote mixing 16% and exento lines is exact. `iva_0` vs `exento` both add 0 but
+are kept distinct — CFDI treats them differently (Tasa 0.000000 vs Exento). The quotation
+total is the client-facing indicative figure; the **formal CFDI/IVA breakdown still happens
+at invoicing (09)** — quote and invoice reconcile because both read the same frozen line
+snapshots. **IEPS and IVA/ISR retenciones are out of v1** (deferred with CFDI stamping,
+00 §4) — add a per-line tax array then if a tenant needs them.
 
 ## 4. Mailing + token-guarded accept/decline
 
@@ -192,7 +197,7 @@ QuotationEvent { id, quotationId, type, actorId?, contactId?, refKind?, refId?,
 The staff **create-order** action (§2 — gated: ≥1 approval for office, owner/admin can
 override from 0 approvals; comment mandatory; blocked past `validUntil`) opens the order
 in one transaction: create the service order (19) inheriting the quotation's **line
-snapshots** (serviceName/uom/quantity/unitPrice/taxable) — never re-reading the catalog —
+snapshots** (serviceName/uom/quantity/unitPrice/taxRate) — never re-reading the catalog —
 set `service_orders.quotationId` + `quotations.serviceOrderId`, flip the quote to
 `order_created`, append the quotation's `quotation_order_created` event and the order's
 opening `order_created` (`refKind: 'quotation'`).
@@ -217,7 +222,7 @@ is primary, not exclusive.
   total `font-data`, vigencia, creada), URL filters (`q`/`customer`/`status`).
 - `quotations/pages/quotation-builder/` — **dedicated builder page** (same call as 19's
   order builder): client select → lines builder (service select pulls the snapshot
-  name/price/uom/taxable, quantity, per-line subtotal; running subtotal / IVA / total),
+  name/price/uom/taxRate, quantity, per-line subtotal; running subtotal / IVA / total),
   validUntil, comments. Saves as `draft`. Route `/quotations/new`.
 - `quotations/pages/quotation-view/` — header (folio, client, status, totals, approval
   tally e.g. "2/3 aprobaron"), lines, **recipients card** (each contact + reviewer badge
@@ -239,8 +244,9 @@ is primary, not exclusive.
 - `GET /quotations?customerId&status&page&limit` → paged `{ items, total }`
 - `GET /quotations/:id` → quote + lines + recipients + computed totals
 - `GET /quotations/:id/timeline` → resolved `quotation_events` (§5)
-- `POST /quotations` — draft `{ customerId, validUntil, ivaRate?, comments?, lines: [{
-  serviceId, quantity, description? }] }` (snapshots resolved server-side from 18)
+- `POST /quotations` — draft `{ customerId, validUntil, comments?, lines: [{
+  serviceId, quantity, description? }] }` (snapshots — incl. each line's `taxRate` —
+  resolved server-side from 18)
 - `PATCH /quotations/:id` — **draft only** (lines/validUntil/comments); 409 once sent
 - `POST /quotations/:id/send` `{ recipients: [{ contactId, isReviewer }], message? }` →
   recipients + tokens, mails PDF + link, status → `sent`
@@ -271,7 +277,7 @@ is primary, not exclusive.
 ## Checkpoints (stacked with the operations suite — 18 → 20 → 19)
 
 ### CP-1 — Backend: quotations + convergence
-- [ ] `services.taxable` (18 amendment); `quotations` + `quotation_lines` +
+- [ ] `services.taxRate` (18 amendment); `quotations` + `quotation_lines` +
       `quotation_recipients` + `quotation_events` + `quotation_counters` tables,
       hand-written additive DDL; `service_orders.quotationId?`
 - [ ] CRUD (draft) + `/send` (tokens + email PDF) + `/revise` + `/order` (comment,
@@ -303,9 +309,10 @@ is primary, not exclusive.
 
 ## Open decisions / asks
 - **Decided 2026-07-24:** quotation is the primary (not sole) order-birth path; revisions
-  = a new linked `draft` (the old is cancelled referencing the successor); tax via
-  per-service `taxable` flag + per-quote `ivaRate`. `validUntil` is a conversion **guard**
-  (no `expired` status — the seven states are canonical).
+  = a new linked `draft` (the old is cancelled referencing the successor); **tax via a
+  per-service Mexican IVA rate** (`taxRate`: `iva_16`/`iva_8`/`iva_0`/`exento`), summed per
+  line (supersedes the earlier `taxable` boolean + per-quote `ivaRate`). `validUntil` is a
+  conversion **guard** (no `expired` status — the seven states are canonical).
 - **State machine (decided 2026-07-24):** seven states — `draft`, `waiting_approval`,
   `approved`, `partially_approved`, `declined`, `cancelled`, `order_created`. The first
   five are position + reviewer-tally states (auto, mutable); a **declined quote is never

@@ -10,7 +10,7 @@ Creating an order also announces itself on the client's CRM timeline (08).
 
 > **Born from quotations (decided 2026-07-24).** The primary way an order is created is
 > by **accepting a quotation (20)** — the order inherits the quote's frozen line
-> snapshots (name/uom/qty/unitPrice/taxable), so what's serviced/billed matches exactly
+> snapshots (name/uom/qty/unitPrice/taxRate), so what's serviced/billed matches exactly
 > what the client approved. `quotationId` links back to the source. **Direct order
 > creation stays allowed** (`quotationId` null) for walk-in/emergency jobs. The
 > order-builder page (§5) is the direct path; the quote path auto-generates on accept.
@@ -62,7 +62,7 @@ ServiceOrder {             // near-immutable — see mutability rules below
 }
 ServiceOrderLine {         // table: service_order_services
   id, serviceOrderId, serviceId,
-  serviceName, uom, taxable,  // SNAPSHOT — inherited from the quotation line when
+  serviceName, uom, taxRate,  // SNAPSHOT — inherited from the quotation line when
                            //   born from a quote (20), else captured from the
                            //   catalog on direct creation; keeps order ↔ quote ↔
                            //   invoice aligned
