@@ -312,9 +312,6 @@
      shadows anywhere in the nav. Idle/hover chrome lives here, not as
      template utilities, so hover can't outrank `.nav-active` in the
      cascade. */
-  /* overflow-hidden + nowrap keep labels on one clipped line: during the rail
-     expand they reveal horizontally with the widening panel instead of
-     wrapping and jumping row height while the width is mid-animation. */
   .nav-item {
     @apply relative flex h-10 w-full items-center gap-3 overflow-hidden whitespace-nowrap rounded-control px-3 text-sm font-medium text-primary-100 transition-colors;
   }
@@ -399,5 +396,13 @@
   }
   .nav-flyout-link:not(.nav-active):hover {
     @apply bg-surface-100 text-surface-900 dark:bg-surface-800 dark:text-surface-100;
+  }
+  /* Active flyout link keeps white text on its solid primary-600 row. Both
+     `.nav-flyout-link` and `.nav-active` are single-class, so source order
+     (flyout-link is defined later) would otherwise let the light-surface text
+     beat `.nav-active`'s white — the compound selector outranks it in both
+     modes. */
+  .nav-flyout-link.nav-active {
+    @apply text-white;
   }
 }
