@@ -1,0 +1,321 @@
+# 19 — Service orders
+
+> **Status:** planned · **Depends on:** 07 (client), 18 (catalog), 20 (born from accepted quotations), 06 (report explosion), 12 (visits) · **Hooks:** 08 (timeline), 09 (billing), 13 (contracts likely generate orders — ask)
+> **Owner:** — · **Last updated:** 2026-07-24
+
+The **commercial job**: what was sold to whom, and everything operational that hangs
+off it. One order composes 1..n catalog services (18) for one client, **owns 1..n
+scheduled visits** (12 — when we go) and **0..n reports** (06 — what happened).
+Creating an order also announces itself on the client's CRM timeline (08).
+
+> **Born from quotations (decided 2026-07-24).** The primary way an order is created is
+> by **accepting a quotation (20)** — the order inherits the quote's frozen line
+> snapshots (name/uom/qty/unitPrice/taxable), so what's serviced/billed matches exactly
+> what the client approved. `quotationId` links back to the source. **Direct order
+> creation stays allowed** (`quotationId` null) for walk-in/emergency jobs. The
+> order-builder page (§5) is the direct path; the quote path auto-generates on accept.
+
+> **Packaging (decided 2026-07-23).** Orders/services/calendar form the **operations
+> suite**; **reporting (06) sells separately**. So the dependency is one-directional:
+> 19 enriches 06 (explosion, template↔service prefilter) but **06 never depends on 19**
+> — reports work fully standalone with `serviceOrderId` null (06 standalone-suite rule).
+> Visits (12) *do* require an order, but that's fine: a reporting-only tenant simply
+> doesn't run the calendar/orders modules at all. The manager's org-level module flags
+> gate which suite a tenant gets (`14-access-control.md` — flags are manager-owned).
+
+```
+customers 1 ─── * service_orders 1 ─┬─ * service_order_services * ─── 1 services
+                                    ├─ * scheduled_visits   (12 — NOT NULL, order-bound)
+                                    ├─ * reports            (06 — exploded + later links)
+                                    ├─ * service_order_events  (§7 — the audit trail)
+                                    └─ 0..1 contracts       (13 — order MAY generate one)
+report_templates * ─── 1 services   (06 §5 — fill-time picker prefilter)
+customer_interactions ← system entry on order creation (08)
+```
+
+The **service order is the audit aggregate root** (decided 2026-07-23): every event
+across the order and its children — lines, visits, reports — appends to one
+`service_order_events` timeline (§7). There is **no per-child audit table** (this
+supersedes the visit-level `visit_events` in 12 / PR #97). That single consolidated
+history is what gets **handed to the client at the end of the service**.
+
+## 1. Data model (DTO view)
+
+```
+ServiceOrder {             // near-immutable — see mutability rules below
+  id,                      // uuid PK (decided 2026-07-23 — folio is display-only)
+  folio,                   // 'OS-YYYYMMDD-NNNN', unique — own daily counters
+                           //   table (service_order_counters, report_counters
+                           //   mechanics)
+  customerId,              // required, immutable — restrict, never cascade
+  quotationId?,            // nullable — the accepted quotation this order was born
+                           //   from (20); null for directly-created orders (both
+                           //   paths allowed, 2026-07-24). Immutable.
+  location?,               // service site/address (free text v1) — MUTABLE, but
+                           //   owner/admin only (decided 2026-07-23)
+  status: 'open' | 'completed' | 'cancelled',
+  comments?,               // the ONLY freely-mutable field (staff; decided
+                           //   2026-07-23) — everything else is fixed at creation
+  contractId?,             // nullable — a maintenance contract THIS order generated
+                           //   (13); optional, order → contract direction (below)
+  createdBy, createdAt, updatedAt   // deletedAt: soft delete only
+}
+ServiceOrderLine {         // table: service_order_services
+  id, serviceOrderId, serviceId,
+  serviceName, uom, taxable,  // SNAPSHOT — inherited from the quotation line when
+                           //   born from a quote (20), else captured from the
+                           //   catalog on direct creation; keeps order ↔ quote ↔
+                           //   invoice aligned
+  quantity,                // int >= 1, default 1 — explodes `quantity` reports
+                           //   (one per unit, decided 2026-07-23)
+  unitPrice,               // numeric(12,2) SNAPSHOT (same source as above) —
+                           //   catalog edits never rewrite history
+  // explosion inputs (decided 2026-07-23 — invariants kept): the create flow
+  //   captures technicianId + reportType per line; the `quantity` exploded
+  //   reports inherit them and are each individually reassignable afterward
+  createdAt                // unique (serviceOrderId, serviceId)
+}
+```
+
+**Mutability (decided 2026-07-23).** A service order is fixed at creation except two
+fields: `comments` (any staff role) and `location` (**owner/admin only**). Customer,
+lines, folio, and status-by-endpoint are immutable through `PATCH`. Both mutations
+append an event to the order timeline (§7).
+
+**Contracts — orders generate them, not vice-versa (decided 2026-07-23).** An order
+**may optionally generate** a maintenance contract (13, póliza) — e.g. a one-off job
+that turns into a recurring plan. The direction is order → contract (`contractId` set
+on the order that spawned it); a contract is never a prerequisite for an order. How a
+generated recurring contract then produces future work is a 13 concern (open ask below)
+— this reverses the earlier "contracts generate visits/orders" assumption.
+
+**Extensions to existing tables (all additive):**
+
+- `scheduled_visits.serviceOrderId` — **NOT NULL**, restrict (decided 2026-07-23:
+  strict order-bound; the table is empty pre-release so no backfill). Ad-hoc
+  "visits" that aren't jobs stay CRM `visit` interactions (08); a diagnostic visit
+  is a small order.
+- `reports.serviceOrderId?` (nullable **by design** — reports never require an order;
+  reporting is a standalone sellable suite, 06 standalone-suite rule) +
+  `reports.serviceId?` (which line the report fulfills; drives the template
+  prefilter). Both restrict. Explosion writes them; the manual report path leaves them
+  null and works unchanged.
+- `ReportStatus` gains **`pending`** and **`cancelled`** (widen `reports_status_check`):
+  `pending` = the exploded not-yet-started state; `cancelled` = an exploded report
+  voided when its order is cancelled (decided 2026-07-23). `created` remains the
+  manual-report birth status. (06 §amendment.)
+- `report_templates.serviceId?` (nullable = generic template) — 06 §5 amendment.
+- `InteractionRefKind` gains `ServiceOrder = 'service_order'` (TS-only; the table
+  has no ref-kind CHECK).
+
+## 2. Order creation — one transaction
+
+1. Insert `service_orders` (folio from counters) + lines (price snapshot).
+2. **Explode reports: one `pending` report per unit** (decided 2026-07-23 — a line
+   with `quantity: 3` explodes 3 reports). Invariants kept: the creation flow captures
+   **technician + reportType per line** up front, so skeletons are born complete —
+   folio, client from the order, `serviceId`, `serviceOrderId`, `assignedTo`,
+   `reportType`, `status: 'pending'`; the units inherit the line's tech/type and are
+   each individually reassignable after. Template choice stays a fill-time concern,
+   prefiltered by `serviceId` (06).
+3. Append the `service_order_events` `order_created` event (+ an `order_line_added`
+   per line) — the order timeline opens with the creation (§7).
+4. Append the `customer_interactions` system entry (`type: 'system'`, ref
+   `service_order`/order id, actor): "Orden de servicio OS-… creada — N servicios" —
+   the *customer* CRM timeline (08), complementary to the order timeline.
+5. FK violations map to 422 `invalid_reference`; everything restrict; no cascades.
+
+Lifecycle notes:
+- `pending → in-progress` when the tech opens the report and picks a template
+  (skipping `created`); the rest of the report lifecycle is unchanged (06).
+- Order `status` is manual v1 (complete / cancel with confirm); auto-complete when
+  all reports finish is an open decision. `order_completed` is what triggers the
+  client handoff document (§7).
+- Cancelling an order (decided 2026-07-23): its `scheduled` visits are **closed**
+  (12's close path, category `other`/reason "orden cancelada") and its **unfinished
+  reports** (`pending`/`in-progress`) are set to `cancelled`; already-`finished`/
+  `mailed` reports stay (they're history). This is a lifecycle transition, not a
+  hard delete — soft-delete rules untouched. Every child transition appends its own
+  event to the order timeline.
+
+## 3. Roles (extends `14-access-control.md` §2 — matrix ask in 18)
+
+| Action | owner | admin | office | technician |
+|---|---|---|---|---|
+| List/read orders | ✓ | ✓ | ✓ | ✓ᵃ |
+| Create orders (explosion included) | ✓ | ✓ | ✓ | — |
+| Edit **comments** · change status | ✓ | ✓ | ✓ | — |
+| Edit **location** | ✓ | ✓ | — | — |
+| Generate a contract from an order (13) | ✓ | ✓ | — | — |
+| See line prices | ✓ | ✓ | ✓ | hidden (decided 2026-07-23) |
+
+a. Technicians reach orders through their assigned visits/reports (context header),
+   not a browsing need — nav entry is staff-only. Technician-facing responses omit
+   money (line/unit prices) entirely (decided 2026-07-23).
+
+## 4. Expected API surface
+
+- `GET /service-orders?customerId&status&page&limit` → paged `{ items, total }`
+- `GET /service-orders/:id` → order + lines (joined service name/uom) + exploded
+  reports (folio/status/assignee) + visits (12 shape)
+- `GET /service-orders/:id/timeline` → resolved `service_order_events` (§7),
+  oldest-first — the order-view activity feed + the handoff document source
+- `POST /service-orders` — `{ customerId, location?, comments?, lines: [{ serviceId,
+  quantity, technicianId, reportType }] }` → the §2 transaction
+- `PATCH /service-orders/:id` — `comments` (any staff) and/or `location` (**owner/admin
+  only** — 403 for office); both audited to the timeline. No other field is patchable.
+- `POST /service-orders/:id/status` — `{ status }` (complete/cancel, confirm-heavy);
+  `completed` yields the client handoff document (§7)
+- `POST /service-orders/:id/contract` — owner/admin: optionally generate a maintenance
+  contract from this order (13); sets `contractId`, logs `order_contract_generated`.
+  Blocked on 13.
+- `GET /customers/:id/service-orders` — customer-view card (07 slot — ask)
+- Lines are immutable after creation in v1 (open decision) — no line endpoints.
+
+## 5. Pages & components
+
+- `service-orders/pages/orders-list/` — p-table (folio `font-data`, cliente, servicios
+  count, status pill, total `font-data`, fecha), URL filters (`q`/`customer`/`status`).
+- `service-orders/pages/order-view/` — header (folio, client link, status actions),
+  lines card, exploded-reports card (status pills, link out), visits card with
+  **Programar visita** (opens 12's dialog with the order locked).
+- `service-orders/pages/order-builder/` — **dedicated create page** (decided
+  2026-07-23, not a dialog — too heavy for the shape-3 idiom): client select + location
+  + comments, then the lines builder (service select + quantity + technician +
+  reportType per row, add/remove rows, per-line + running total), and a review/confirm
+  before the create transaction (which explodes the reports). Route
+  `/service-orders/new`; "Nueva orden" on the list navigates here, not a dialog.
+- Customer view (07): "Órdenes de servicio" card.
+- Nav: **Negocio → Órdenes** (`module: 'service-orders'`, staff only).
+
+## 6. State
+
+- `ServiceOrdersState`: `items`, `total`, `loading`, `selected`, `query`. Actions:
+  `LoadOrders`, `LoadOrderDetail`, `CreateOrder`, `UpdateOrder`, `SetOrderStatus`.
+- `src/app/services/http/service-orders.service.ts`.
+
+## 7. Order activity timeline — the audit trail + client handoff (decided 2026-07-23)
+
+**The service order is the single audit aggregate.** One append-only table logs every
+event across the order and its children; no per-child audit tables (supersedes 12's
+visit-level `visit_events` / PR #97). Mirrors `customer_interactions`' append-only
+posture (no updates, no deletes — the trail *is* the record).
+
+```
+ServiceOrderEvent {            // table: service_order_events (append-only)
+  id,                          // uuid
+  serviceOrderId,              // FK → service_orders, restrict
+  type,                        // enum, category below
+  actorId,                     // FK → users (who); null only for pure-system events
+  refKind?, refId?,            // link-out to the child the event concerns:
+                               //   'visit' | 'report' | 'line' (+ its id)
+  changes?,                    // jsonb diff (field → { from, to }) for edits/reassigns
+  note?,                       // free text / the close reason note
+  createdAt                    // no updatedAt, no deletedAt — append-only
+}
+```
+
+**Event types (v1):**
+- Order: `order_created`, `order_line_added`, `order_comment_updated`,
+  `order_location_changed` (changes `location {from,to}`), `order_status_changed`,
+  `order_completed`, `order_cancelled`, `order_contract_generated` (refId → contract).
+- Visit (from 12, logged here not on the visit): `visit_created`,
+  `visit_reassigned` (changes `technicianId {from,to}`), `visit_corrected`,
+  `visit_completed`, `visit_closed` (note = category + reason), `visit_rescheduled`
+  (refId → the successor visit).
+- Report (from 06): `report_exploded`, `report_status_changed`, `report_finished`.
+
+**Writes:** every mutating endpoint in 12/06/19 appends its event **inside the same
+transaction** as the state change (so the trail can never drift from reality). The
+`customer_interactions` system entry on order creation (§2) stays — that's the
+*customer* timeline (08); this is the *order* timeline. They're complementary: the CRM
+one is "something happened with this client", the order one is the job's full history.
+
+**Reads / handoff:**
+- `GET /service-orders/:id/timeline` → resolved events (actor + child display names),
+  oldest-first — rendered on the order view as a vertical activity feed.
+- **Client handoff (the payoff):** at `order_completed`, the timeline + the finished
+  reports compose a **service history PDF** (decided 2026-07-23 — via the `pdf/`
+  module, consistent with report PDFs; the report layout stays in a domain helper per
+  the pdf-toolkit split). This is *why* the audit lives at the order level: one
+  artifact covers the whole job end-to-end. Delivery (attach to a completion email vs
+  a tokenized download link like the report-download path) is a CP-5 detail.
+
+---
+
+## Checkpoints (implementation order — the operations suite, decided 2026-07-23)
+
+### CP-1 — Backend: catalog + orders + explosion + timeline
+- [ ] 18 CP-1 lands first (services table + CRUD)
+- [ ] `service_orders` + `service_order_services` + `service_order_counters` +
+      **`service_order_events`** tables, hand-written additive DDL;
+      `scheduled_visits.serviceOrderId` NOT NULL; `reports.serviceOrderId/serviceId`;
+      `pending` status widen
+- [ ] `POST /service-orders` transaction (folio, lines, explosion, `order_created`/
+      `order_line_added` events, customer interaction)
+- [ ] List/detail/patch/status endpoints + `GET /:id/timeline` + role guards
+- [ ] **Visit-audit relocation:** rip the visit-level `visit_events` (PR #97) and
+      route 12's visit mutations to `service_order_events` (visit_* event types)
+
+### CP-2 — Superadmin: orders UI
+- [ ] DTOs + `ServiceOrdersState` + http service
+- [ ] Orders list (URL filters) + **order-builder page** (lines builder, `/new`) +
+      order view with the **activity timeline feed** (§7)
+- [ ] Nav + module keys; customer-view card (07 ask)
+
+### CP-3 — Calendar rewire (closes 12 CP-1/CP-2 UI, immutable-record model)
+- [ ] Visit dialog gains the required **order** select (client-scoped); order-view
+      "Programar visita" pre-locks it
+- [ ] Respond / close (categorized reason) / reschedule (new record) flows; open-visit
+      correction + reassign; every action lands on the order timeline
+- [ ] Week grid ships (12 §3) with order folio on the chip hover/dialog
+
+### CP-4 — Templates prefilter (06 rewire)
+- [ ] `report_templates.serviceId` + builder field ("Servicio asociado")
+- [ ] Fill-time picker: exact-service templates first, generic fallback (open
+      decision below)
+- [ ] Field app surfaces `pending` in the tech's list once assigned
+
+### CP-5 — Handoff document + billing hooks
+- [ ] Client **service history document** at `order_completed` (timeline + finished
+      reports → PDF via `pdf/` module or shareable read link — pick the format)
+- [ ] Order auto-complete rule (if adopted); price visibility per role
+- [ ] 09 asks: bill from line snapshots
+
+## Open decisions / asks
+- **Decided 2026-07-23:** uuid PK + display folio; visits strictly order-bound
+  (NOT NULL); explosion keeps report invariants — technician + reportType captured
+  per line at creation; sequenced ahead of the calendar UI.
+  **Audit is order-level:** one append-only `service_order_events` timeline is the
+  sole audit trail (no per-child audit tables; supersedes visit-level `visit_events`),
+  and it's the client handoff document at service end.
+- **Handoff format:** PDF (via the `pdf/` module, consistent with report PDFs) vs a
+  shareable tokenized read link (like the report-download link) — decide at CP-5;
+  leaning PDF for a tangible deliverable.
+- Timeline granularity: do report *content* edits log to the order timeline, or only
+  status transitions? Leaning status-only (content lives in the report itself) to keep
+  the handoff readable.
+- ~~Explosion × quantity~~ — **decided 2026-07-23: one report per unit** (a
+  `quantity: 3` line explodes 3 `pending` reports; each individually reassignable).
+- ~~Cancelled order → pending reports~~ — **decided 2026-07-23:** add `cancelled` to
+  `ReportStatus`; on order cancel, unfinished reports (`pending`/`in-progress`) → 
+  `cancelled`, finished/mailed untouched (06 §amendment). Never a hard delete.
+- ~~Handoff format~~ — **decided 2026-07-23: PDF** via the `pdf/` module (delivery
+  channel — email attach vs tokenized link — is a CP-5 detail).
+- Template picker fallback: exact-service + generic (`serviceId is null`) under a
+  divider (recommended) vs exact-only.
+- Line mutability: immutable v1 (recommended) vs add/remove lines on open orders
+  (would need explosion deltas + audit).
+- ~~Technician price visibility~~ — **decided 2026-07-23: hidden.** Technician-facing
+  responses omit line/unit prices entirely.
+- ~~Order creation UX: dialog vs dedicated page~~ — **decided 2026-07-23: dedicated
+  builder page** (`/service-orders/new`); the multi-line builder is too heavy for the
+  shape-3 dialog idiom.
+- **Order → contract direction — decided 2026-07-23:** an order MAY generate a
+  contract (13); a contract never generates an order (reverses the earlier
+  assumption). **13 open ask:** how does a generated *recurring* póliza then produce
+  future work — does the contract spawn periodic orders (which re-explode visits/
+  reports), or is each period a fresh manual order tagged with the `contractId`?
+  Reconcile in 13 §1 when contracts resume.
+- Ask to 07: "Órdenes de servicio" card slot on customer view.
+- Ask to 14: `service-orders` module row in the matrix.

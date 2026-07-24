@@ -34,6 +34,9 @@ then its own file, and touches no other module's code.
 | 15 | `15-website.md` | Public tenant website: consumes published CMS + brand (reads only — `website/` package work, not superadmin code) | 03, 04 |
 | 16 | `16-semantic-brand-colors.md` | Semantic Tailwind color classes (`primary-*`/`surface-*` replace `sky`/`granite`/`navy`/`cyan`) across frontend + superadmin + website | **everything — deferred closing sweep, runs last** |
 | 17 | `17-executive-refresh.md` | Whole-app UI/UX refresh: preset-first stock Aura + "soft-executive" language + Figtree, breathable executive rhythm | shipped surfaces (02–08, 11); **runs mid-suite, before 09/10/12/13** |
+| 18 | `18-services.md` | Tenant service catalog: name/price/uom/description + website-listing flag | 02 |
+| 19 | `19-service-orders.md` | Service orders: catalog lines → exploded `pending` reports, order-bound visits (12), CRM timeline entry (08), order-level audit timeline, template↔service prefilter (06) | 07, 18, 20, 06, 12 |
+| 20 | `20-quotations.md` | Quotations: catalog-fed quotes with frozen price/uom/qty snapshots, mailed to client reviewer-contacts, token-guarded approve/decline (mutable), 7-state machine; staff create a service order (19) from an approved quote | 07, 18; feeds 19 |
 
 Build order **is numeric order** (renumbered 2026-07-05: branding and CMS are separate,
 independent modules — 03/04 — and access-control moved to 14 as pure reference).
@@ -50,6 +53,14 @@ MVP ships — do not start it alongside module work. **17** (executive refresh) 
 sanctioned out-of-order insertion (owner 2026-07-22): it runs immediately after PR #88
 merges and **before 09/10/12/13 start**, so the remaining modules are authored in the
 refreshed language instead of being restyled later.
+
+**18–20** are the **operations + sales suite** — services → quotations → service orders —
+a later wave built on 07 (clients) and the refreshed language. The suite's internal build
+order is **18 services → 20 quotations → 19 service orders** (a quotation is the sales
+entry point; an accepted quote gives birth to an order), even though the file numbers read
+18/19/20. **Reporting (06) stays independently sellable** — nothing in the suite is a hard
+dependency of 06 (06 standalone-suite rule), so a reporting-only tenant runs none of
+18/19/12.
 
 ---
 
@@ -107,6 +118,9 @@ Rules for agents:
 | 15 website | in-progress · PR #44 | CP-2 |
 | 16 semantic-brand-colors | superadmin leg (PR-2) **done** — front-run 2026-07-21, PR #87; frontend/website legs deferred, run last (post-MVP) | — |
 | 17 executive-refresh | planned (doc) — **runs next, after PR #88 merges** | — |
+| 18 services | not-started (planned doc) | — |
+| 19 service-orders | not-started (planned doc) | — |
+| 20 quotations | not-started (planned doc) | — |
 
 *(Owning agents update their row when they update their file's status header.)*
 
