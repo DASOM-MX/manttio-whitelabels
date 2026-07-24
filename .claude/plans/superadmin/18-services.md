@@ -115,8 +115,10 @@ a. Technicians only ever see service *names* through their assigned reports/orde
   **Mexican IVA rate** `taxRate` (enum `iva_16` | `iva_8` | `iva_0` | `exento`, default
   `iva_16`) — not every service is 16%, and `exento` differs from `0%` in CFDI. Quotation/
   order lines snapshot it and IVA totals compute **per line** (20 §3). **Open:** confirm the
-  v1 set (is border-region `iva_8` in scope?); IEPS + IVA/ISR **retenciones** stay deferred
-  with CFDI stamping (00 §4) — model a per-line tax array then if needed.
+  v1 set (is border-region `iva_8` in scope?). **IEPS + IVA/ISR retenciones are the
+  billing/facturación module's job (09), computed at invoicing — not here** (decided
+  2026-07-24); the catalog/quote/order carry only each service's IVA rate. Model a per-line
+  tax array in 09 if a tenant needs them (still behind the CFDI deferral, 00 §4).
 - `uom` stays free text v1; revisit an option catalog only on real demand.
 - Price visibility for technicians — owned by 19 (leaning hide).
 - Ask to 14: add `services` (and `service-orders`, 19) to the module/role matrix.

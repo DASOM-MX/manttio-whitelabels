@@ -139,8 +139,10 @@ Totals), so a quote mixing 16% and exento lines is exact. `iva_0` vs `exento` bo
 are kept distinct — CFDI treats them differently (Tasa 0.000000 vs Exento). The quotation
 total is the client-facing indicative figure; the **formal CFDI/IVA breakdown still happens
 at invoicing (09)** — quote and invoice reconcile because both read the same frozen line
-snapshots. **IEPS and IVA/ISR retenciones are out of v1** (deferred with CFDI stamping,
-00 §4) — add a per-line tax array then if a tenant needs them.
+snapshots. **IEPS and IVA/ISR retenciones are the billing/facturación module's job (09)**
+(decided 2026-07-24) — computed at invoicing, not at quote/order time; the quote carries only
+each line's IVA rate. Model a per-line tax array in 09 if a tenant needs them (still behind
+the CFDI deferral, 00 §4).
 
 ## 4. Mailing + token-guarded accept/decline
 
@@ -330,7 +332,8 @@ is primary, not exclusive.
   each resolves independently.
 - Quotation PDF (this module) vs the order service-history PDF (19 §7) are **separate**
   client documents — the quote is pre-sale, the handoff is post-service.
-- Ask to 09: quote totals are indicative; the CFDI IVA breakdown is authoritative at
-  invoicing — both derive from the same frozen line snapshots, must reconcile.
+- Ask to 09: quote totals are indicative; the **authoritative CFDI IVA breakdown +
+  retenciones (ISR / IVA retenido) compute at invoicing (09)** — both derive from the same
+  frozen line snapshots, must reconcile. Retenciones stay out of quote/order scope.
 - Ask to 14: `quotations` module row in the matrix.
 - Ask to 07: "Cotizaciones" card slot on the customer view.
