@@ -1,19 +1,8 @@
-<div class="flex flex-wrap items-center gap-3">
-  <a
-    routerLink="/customers"
-    class="inline-flex size-10 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
-    aria-label="Volver a clientes"
-  >
-    <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
-  </a>
-  <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">
-    @if (isEdit) {
-      Editar cliente
-    } @else {
-      Nuevo cliente
-    }
-  </h1>
-</div>
+<app-page-header
+  [title]="isEdit ? 'Editar cliente' : 'Nuevo cliente'"
+  backLink="/customers"
+  backLabel="Volver a clientes"
+/>
 
 <form [formGroup]="form" (ngSubmit)="submit()" class="mt-5 grid gap-4 xl:grid-cols-2">
   <!-- General -->
@@ -47,9 +36,7 @@
     <div class="field-group">
       <label class="field-label" for="cust-tags">Etiquetas</label>
       <app-tags-input controlId="cust-tags" formControlName="tags" />
-      <p class="text-sm text-surface-500 dark:text-surface-400">
-        Segmentación libre: escribe y presiona Enter.
-      </p>
+      <p class="field-hint">Segmentación libre: escribe y presiona Enter.</p>
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2">
@@ -89,11 +76,8 @@
         formControlName="observation"
         rows="3"
         maxlength="1000"
-        class="!h-auto"
       ></textarea>
-      <p class="text-sm text-surface-500 dark:text-surface-400">
-        Notas internas del cliente (no se muestran al cliente).
-      </p>
+      <p class="field-hint">Notas internas del cliente (no se muestran al cliente).</p>
     </div>
   </section>
 
@@ -123,7 +107,7 @@
             } @else {
               <button
                 type="button"
-                class="inline-flex items-center gap-1 text-xs font-semibold text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
+                class="link-action gap-1 text-xs"
                 (click)="setDefault(i)"
               >
                 <svg lucideStar class="size-3" aria-hidden="true"></svg>
@@ -133,7 +117,7 @@
             <div class="flex shrink-0 items-center gap-0.5">
               <button
                 type="button"
-                class="inline-flex size-8 items-center justify-center rounded-full text-surface-500 transition-colors hover:bg-surface-100 disabled:opacity-30 dark:text-surface-400 dark:hover:bg-surface-800"
+                class="row-action"
                 (click)="moveContact(i, -1)"
                 [disabled]="i === 0"
                 [attr.aria-label]="'Subir contacto ' + (i + 1)"
@@ -142,7 +126,7 @@
               </button>
               <button
                 type="button"
-                class="inline-flex size-8 items-center justify-center rounded-full text-surface-500 transition-colors hover:bg-surface-100 disabled:opacity-30 dark:text-surface-400 dark:hover:bg-surface-800"
+                class="row-action"
                 (click)="moveContact(i, 1)"
                 [disabled]="last"
                 [attr.aria-label]="'Bajar contacto ' + (i + 1)"
@@ -151,7 +135,7 @@
               </button>
               <button
                 type="button"
-                class="inline-flex size-8 items-center justify-center rounded-full text-red-600 transition-colors hover:bg-red-50 disabled:opacity-30 dark:text-red-400 dark:hover:bg-red-950/30"
+                class="row-action--danger"
                 (click)="removeContact(i)"
                 [disabled]="contacts.length === 1"
                 [attr.aria-label]="'Eliminar contacto ' + (i + 1)"
@@ -182,7 +166,7 @@
                 maxlength="20"
               />
               @if (contact.controls['phone'].touched && contact.controls['phone'].errors?.['phone']) {
-                <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+                <p class="field-error" role="alert">
                   Ingresa un número de teléfono válido (10 a 15 dígitos).
                 </p>
               }
@@ -197,7 +181,7 @@
                 maxlength="254"
               />
               @if (contact.controls['email'].touched && contact.controls['email'].errors?.['email']) {
-                <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+                <p class="field-error" role="alert">
                   Ingresa un correo válido.
                 </p>
               }
@@ -207,7 +191,7 @@
       }
       <button
         type="button"
-        class="inline-flex items-center gap-2 self-start text-sm font-semibold text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
+        class="link-action self-start"
         (click)="addContact()"
       >
         <svg lucidePlus class="size-4" aria-hidden="true"></svg>
@@ -239,7 +223,7 @@
           spellcheck="false"
         />
         @if (fiscalControls.rfc.touched && fiscalControls.rfc.errors?.['rfc']) {
-          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+          <p class="field-error" role="alert">
             RFC inválido: 12 caracteres (moral) o 13 (física).
           </p>
         }
@@ -277,7 +261,7 @@
           maxlength="5"
         />
         @if (fiscalControls.fiscalZip.touched && fiscalControls.fiscalZip.errors?.['pattern']) {
-          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+          <p class="field-error" role="alert">
             El CP fiscal son 5 dígitos.
           </p>
         }
@@ -305,7 +289,7 @@
           maxlength="254"
         />
         @if (fiscalControls.billingEmail.touched && fiscalControls.billingEmail.errors?.['email']) {
-          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+          <p class="field-error" role="alert">
             Ingresa un correo válido.
           </p>
         }
@@ -313,10 +297,7 @@
     </div>
 
     @if (fiscalIncomplete) {
-      <p
-        class="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200"
-        role="alert"
-      >
+      <p class="callout callout--warn" role="alert">
         El bloque fiscal es todo o nada: completa RFC, razón social, régimen, CP y uso CFDI — o
         déjalos todos vacíos.
       </p>
@@ -333,7 +314,7 @@
         ></span>
         Guardando…
       } @else if (isEdit) {
-        Guardar cambios
+        Guardar
       } @else {
         Crear cliente
       }

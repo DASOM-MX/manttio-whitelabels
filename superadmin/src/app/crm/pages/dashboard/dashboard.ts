@@ -2,23 +2,45 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { ChartModule } from 'primeng/chart';
 import { TableModule } from 'primeng/table';
-import { LucideDynamicIcon, LucideTrendingUp } from '@lucide/angular';
-import type { ChartData, ChartOptions } from 'chart.js';
+import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
+import {
+  LucideCalendarClock,
+  LucideDynamicIcon,
+  LucidePercent,
+  LucideShare2,
+  LucideTrendingUp,
+  LucideUserCheck,
+  LucideUserPlus,
+} from '@lucide/angular';
+import type { ChartData, ChartOptions, ScriptableContext } from 'chart.js';
 import { select, Store } from '@ngxs/store';
 import { CustomerStatsState } from '../../../../state/customer-stats/customer-stats.state';
 import {
+  LoadFollowUps,
   LoadIntakeStats,
+  LoadIntakeTrend,
   LoadRecentCustomers,
   LoadRecentInteractions,
 } from '../../../../state/customer-stats/customer-stats.actions';
 import { CUSTOMER_SOURCE_LABELS } from '../../../model/constants/customer/customer-source-labels.const';
+import {
+  CustomerStatusLabelPipe,
+  CustomerStatusSeverityPipe,
+} from '../../../pipes/customer-status.pipe';
 import { InteractionTypeIconPipe, InteractionTypeLabelPipe } from '../../../pipes/interaction.pipe';
 import { RelativeTimePipe } from '../../../pipes/relative-time.pipe';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { IntakeStats } from '../../../data/dtos/customer-stats';
 import type {
+  ChannelBarVM,
+  FollowUpTone,
+  FollowUpVM,
+  KpiCardVM,
+  KpiDeltaVM,
   PanelPeriodLabels,
-  PanelTotalsVM,
   RecentClientVM,
+  TrendSeriesChip,
 } from '../../../data/types/crm/panel.types';
 
 /** Effective palette color: the runtime brand CSS var when set, else the
@@ -26,6 +48,13 @@ import type {
 const hslVar = (name: string, fallback: string): string => {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return `hsl(${value || fallback})`;
+};
+
+/** Same var, with an alpha channel (modern space-separated hsl syntax —
+ *  canvas gradients parse it fine). */
+const hslVarAlpha = (name: string, fallback: string, alpha: number): string => {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return `hsl(${value || fallback} / ${alpha})`;
 };
 
 // tailwind.config.js neutralScale lightness per step — the no-brand fallback.
@@ -46,25 +75,47 @@ const PRIMARY_FALLBACK_L: Record<number, number> = {
 const primaryStep = (step: number): string =>
   hslVar(`--brand-primary-${step}`, `220 10% ${PRIMARY_FALLBACK_L[step]}%`);
 
-/** Single-hue slice ramp (01: color arrives through the palette scales —
- *  distinct primary steps, cycled; never a multi-hue chart palette). */
-const SLICE_STEPS = [600, 300, 800, 400, 900, 200, 700, 500, 1000, 100];
+const primaryStepAlpha = (step: number, alpha: number): string =>
+  hslVarAlpha(`--brand-primary-${step}`, `220 10% ${PRIMARY_FALLBACK_L[step]}%`, alpha);
 
-const sliceColors = (count: number): string[] =>
-  Array.from({ length: count }, (_, i) => primaryStep(SLICE_STEPS[i % SLICE_STEPS.length]));
+/** The one sanctioned gradient (01 Design language): a subtle single-hue
+ *  area fill under the hero trend line, fading to transparent. */
+const areaFill =
+  (topColor: string) =>
+  (context: ScriptableContext<'line'>): string | CanvasGradient => {
+    const { ctx, chartArea } = context.chart;
+    if (!chartArea) return 'transparent';
+    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+    gradient.addColorStop(0, topColor);
+    gradient.addColorStop(1, 'transparent');
+    return gradient;
+  };
 
-const buildPieOptions = (dark: boolean): ChartOptions<'pie'> => {
-  const legend = dark ? hslVar('--brand-surface-400', '0 0% 70%') : hslVar('--brand-surface-600', '0 0% 45%');
+const buildLineOptions = (dark: boolean): ChartOptions<'line'> => {
+  const tick = dark ? hslVar('--brand-surface-400', '0 0% 70%') : hslVar('--brand-surface-500', '0 0% 55%');
+  const grid = dark
+    ? hslVarAlpha('--brand-surface-800', '0 0% 28%', 0.6)
+    : hslVarAlpha('--brand-surface-200', '0 0% 90%', 0.8);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   return {
     maintainAspectRatio: false,
-    animation: reduced ? false : { duration: 300, easing: 'easeOutCubic' },
-    plugins: {
-      legend: {
-        position: 'right',
-        labels: { color: legend, usePointStyle: true, boxWidth: 8, boxHeight: 8 },
+    animation: reduced ? false : { duration: 400, easing: 'easeOutCubic' },
+    interaction: { mode: 'index', intersect: false },
+    plugins: { legend: { display: false } },
+    scales: {
+      x: {
+        grid: { display: false },
+        border: { display: false },
+        ticks: { color: tick },
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: grid },
+        border: { display: false },
+        ticks: { color: tick, precision: 0, maxTicksLimit: 5 },
       },
     },
+    elements: { point: { radius: 0, hoverRadius: 4, hitRadius: 12 } },
   };
 };
 
@@ -83,23 +134,73 @@ const buildPeriodLabels = (stats: IntakeStats): PanelPeriodLabels => {
   };
 };
 
-const fmtDelta = (n: number): string => (n > 0 ? `+${n}` : `${n}`);
+const TREND_MONTH_FMT = new Intl.DateTimeFormat('es-MX', { month: 'short', timeZone: 'UTC' });
+const FOLLOW_UP_FMT = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' });
 
-/** Clientes › Dashboard (utm-params 03, relocated to the CRM group
- *  2026-07-20): current-period channel mix as pies (previous-month comparison
- *  lives in the KPI deltas — owner 2026-07-20, supersedes grouped bars) plus
- *  the latest activity and newest clients. Fixed card heights (owner
- *  2026-07-21): charts capped at 325px, lists capped at max-h-96 with
- *  internal y-scroll. Data lives in `CustomerStatsState` so revisits render
- *  from cache. */
+/** X-axis label for a 'YYYY-MM' bucket; past years carry a short year mark. */
+const trendMonthLabel = (key: string): string => {
+  const year = Number(key.slice(0, 4));
+  const label = TREND_MONTH_FMT.format(new Date(`${key}-01T00:00:00.000Z`));
+  return year === new Date().getUTCFullYear() ? label : `${label} ${String(year).slice(2)}`;
+};
+
+/** Same UTC-date-string comparison as the shared IsOverduePipe. */
+const followUpTone = (iso: string): FollowUpTone => {
+  const day = iso.slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+  return day < today ? 'overdue' : day === today ? 'today' : 'upcoming';
+};
+
+// Pills pair color with a label/sign and stay unchanged in dark mode (01).
+const FOLLOW_UP_TONE_CLASSES: Record<FollowUpTone, string> = {
+  overdue: 'bg-red-100 text-red-900',
+  today: 'bg-amber-100 text-amber-900',
+  upcoming: 'bg-surface-100 text-surface-700 dark:bg-surface-800 dark:text-surface-300',
+};
+
+// Stat-card deltas are signed colored text, never pills (01 stat-card idiom).
+const DELTA_TONE_CLASSES = {
+  up: 'text-emerald-600 dark:text-emerald-400',
+  down: 'text-red-600 dark:text-red-400',
+  flat: 'text-surface-500 dark:text-surface-400',
+} as const;
+
+const VALUE_NEUTRAL = 'text-surface-1000 dark:text-surface-0';
+const VALUE_DANGER = 'text-red-600 dark:text-red-400';
+
+const countDelta = (diff: number): KpiDeltaVM => ({
+  text: diff > 0 ? `+${diff}` : `${diff}`,
+  textClass: DELTA_TONE_CLASSES[diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat'],
+});
+
+/** Share of the period's intake already active, in whole percent (null when
+ *  the period has no intake at all). */
+const conversionRate = (active: number, leads: number): number | null => {
+  const total = active + leads;
+  return total === 0 ? null : Math.round((active / total) * 100);
+};
+
+/** Clientes › Dashboard — the CRM cockpit (executive redesign 2026-07-22,
+ *  supersedes the two-pie layout): KPI strip (leads / nuevos activos /
+ *  conversión / seguimientos vencidos), six-month intake trend with the
+ *  sanctioned single-hue area fill + newest clients on its rail, channel-mix
+ *  bars + the detailed activity table (customer status + author), and the
+ *  full-width follow-up agenda (owner layout turn, same day). Data lives in
+ *  `CustomerStatsState` so revisits render from cache. */
 @Component({
   selector: 'app-crm-dashboard',
   imports: [
     RouterLink,
     ChartModule,
     TableModule,
+    TagModule,
+    TooltipModule,
+    PageHeader,
     LucideDynamicIcon,
+    LucideShare2,
     LucideTrendingUp,
+    CustomerStatusLabelPipe,
+    CustomerStatusSeverityPipe,
     InteractionTypeIconPipe,
     InteractionTypeLabelPipe,
     RelativeTimePipe,
@@ -114,6 +215,14 @@ export class CrmDashboard {
   private readonly statsLoading = select(CustomerStatsState.intakeLoading);
   protected readonly statsError = signal(false);
 
+  private readonly trend = select(CustomerStatsState.trend);
+  private readonly trendLoading = select(CustomerStatsState.trendLoading);
+  protected readonly trendError = signal(false);
+
+  private readonly followUps = select(CustomerStatsState.followUps);
+  private readonly followUpsLoading = select(CustomerStatsState.followUpsLoading);
+  protected readonly followUpsError = signal(false);
+
   private readonly activity = select(CustomerStatsState.activity);
   private readonly activityLoading = select(CustomerStatsState.activityLoading);
   protected readonly activityError = signal(false);
@@ -123,7 +232,7 @@ export class CrmDashboard {
   protected readonly clientsError = signal(false);
 
   /** `<html>.app-dark` is the single dark-mode source of truth — watch it so
-   *  chart colors follow the topbar toggle live. */
+   *  chart colors follow the theme toggle live. */
   private readonly dark = signal(document.documentElement.classList.contains('app-dark'));
   private readonly themeObserver = new MutationObserver(() =>
     this.dark.set(document.documentElement.classList.contains('app-dark')),
@@ -133,6 +242,12 @@ export class CrmDashboard {
    *  (no cache, no error yet). */
   protected readonly statsPending = computed(
     () => this.statsLoading() || (!this.stats() && !this.statsError()),
+  );
+  protected readonly trendPending = computed(
+    () => this.trendLoading() || (!this.trend() && !this.trendError()),
+  );
+  protected readonly followUpsPending = computed(
+    () => this.followUpsLoading() || (!this.followUps() && !this.followUpsError()),
   );
   protected readonly activityPending = computed(
     () => this.activityLoading() || (!this.activity() && !this.activityError()),
@@ -148,18 +263,77 @@ export class CrmDashboard {
     return stats ? buildPeriodLabels(stats) : null;
   });
 
-  protected readonly totals = computed<PanelTotalsVM | null>(() => {
+  protected readonly headerDescription = computed(() => {
+    const labels = this.periodLabels();
+    return labels
+      ? `Captación, seguimientos y actividad — ${labels.current} contra ${labels.previous}.`
+      : 'Captación, seguimientos y actividad de tus clientes.';
+  });
+
+  /** Cards 1–3 of the KPI strip (intake-backed); the follow-ups KPI rides
+   *  its own endpoint below. */
+  protected readonly intakeKpis = computed<KpiCardVM[]>(() => {
     const stats = this.stats();
-    if (!stats) return null;
+    const labels = this.periodLabels();
+    if (!stats || !labels) return [];
+    const t = stats.totals;
+    const vs = `contra ${labels.previous}`;
+    const rate = conversionRate(t.active, t.leads);
+    const prevRate = conversionRate(t.prevActive, t.prevLeads);
+    const rateDelta: KpiDeltaVM | null =
+      rate !== null && prevRate !== null
+        ? {
+            text: `${rate - prevRate > 0 ? '+' : ''}${rate - prevRate} pp`,
+            textClass:
+              DELTA_TONE_CLASSES[rate > prevRate ? 'up' : rate < prevRate ? 'down' : 'flat'],
+          }
+        : null;
+    return [
+      {
+        id: 'leads',
+        label: 'Leads',
+        value: `${t.leads}`,
+        valueClass: VALUE_NEUTRAL,
+        icon: LucideUserPlus,
+        delta: countDelta(t.leads - t.prevLeads),
+        sub: vs,
+      },
+      {
+        id: 'active',
+        label: 'Nuevos activos',
+        value: `${t.active}`,
+        valueClass: VALUE_NEUTRAL,
+        icon: LucideUserCheck,
+        delta: countDelta(t.active - t.prevActive),
+        sub: vs,
+      },
+      {
+        id: 'conversion',
+        label: 'Conversión',
+        value: rate === null ? '—' : `${rate}%`,
+        valueClass: VALUE_NEUTRAL,
+        icon: LucidePercent,
+        delta: rateDelta,
+        sub: 'De la captación del periodo',
+      },
+    ];
+  });
+
+  protected readonly followUpKpi = computed<KpiCardVM | null>(() => {
+    const followUps = this.followUps();
+    if (!followUps) return null;
     return {
-      leads: stats.totals.leads,
-      active: stats.totals.active,
-      leadsDelta: fmtDelta(stats.totals.leads - stats.totals.prevLeads),
-      activeDelta: fmtDelta(stats.totals.active - stats.totals.prevActive),
+      id: 'follow-ups',
+      label: 'Seguimientos vencidos',
+      value: `${followUps.overdueCount}`,
+      valueClass: followUps.overdueCount > 0 ? VALUE_DANGER : VALUE_NEUTRAL,
+      icon: LucideCalendarClock,
+      delta: null,
+      sub: `De ${followUps.scheduledCount} programados`,
     };
   });
 
-  /** Both periods all-zero → the intake region shows its empty state. */
+  /** Both periods all-zero → the channel card shows the share-links CTA. */
   protected readonly intakeEmpty = computed(() => {
     const stats = this.stats();
     if (!stats) return false;
@@ -167,11 +341,87 @@ export class CrmDashboard {
     return t.leads + t.active + t.prevLeads + t.prevActive === 0;
   });
 
-  protected readonly chartOptions = computed<ChartOptions<'pie'>>(() =>
-    buildPieOptions(this.dark()),
+  protected readonly chartOptions = computed<ChartOptions<'line'>>(() =>
+    buildLineOptions(this.dark()),
   );
-  protected readonly leadsChart = computed(() => this.buildPie('leads'));
-  protected readonly activeChart = computed(() => this.buildPie('active'));
+
+  /** Legend chips mirror the dataset colors (hero = brand primary, secondary
+   *  = the dark/light neutral end of the same scale). */
+  protected readonly trendSeries: TrendSeriesChip[] = [
+    { label: 'Leads', dotClass: 'bg-primary-600 dark:bg-primary-400' },
+    { label: 'Nuevos activos', dotClass: 'bg-primary-1000 dark:bg-primary-100' },
+  ];
+
+  protected readonly trendEmpty = computed(() => {
+    const trend = this.trend();
+    return !!trend && trend.months.every((p) => p.leads + p.active === 0);
+  });
+
+  protected readonly trendChart = computed<ChartData<'line', number[], string> | null>(() => {
+    const trend = this.trend();
+    if (!trend || this.trendEmpty()) return null;
+    const dark = this.dark();
+    const leadsColor = dark ? primaryStep(400) : primaryStep(600);
+    const activeColor = dark ? primaryStep(100) : primaryStep(1000);
+    // Fill rides the decorative accent step (01: primary-400 owns chart fills).
+    const fillTop = primaryStepAlpha(400, dark ? 0.25 : 0.2);
+    return {
+      labels: trend.months.map((p) => trendMonthLabel(p.month)),
+      datasets: [
+        {
+          label: 'Leads',
+          data: trend.months.map((p) => p.leads),
+          borderColor: leadsColor,
+          pointBackgroundColor: leadsColor,
+          borderWidth: 2,
+          tension: 0.4,
+          fill: true,
+          backgroundColor: areaFill(fillTop),
+        },
+        {
+          label: 'Nuevos activos',
+          data: trend.months.map((p) => p.active),
+          borderColor: activeColor,
+          pointBackgroundColor: activeColor,
+          backgroundColor: activeColor,
+          borderWidth: 2,
+          tension: 0.4,
+          fill: false,
+        },
+      ],
+    };
+  });
+
+  /** Channel-mix bars — the intake rows arrive sorted by current-period
+   *  total already (backend contract); width is relative to the top one. */
+  protected readonly channelBars = computed<ChannelBarVM[]>(() => {
+    const stats = this.stats();
+    if (!stats) return [];
+    const rows = stats.rows
+      .map((r) => ({ ...r, total: r.leads + r.active }))
+      .filter((r) => r.total > 0);
+    const max = Math.max(...rows.map((r) => r.total), 1);
+    return rows.map((r) => ({
+      source: CUSTOMER_SOURCE_LABELS[r.source] ?? r.source,
+      total: r.total,
+      split: `${r.leads} leads · ${r.active} activos`,
+      widthPct: Math.max(Math.round((r.total / max) * 100), 4),
+    }));
+  });
+
+  protected readonly followUpRows = computed<FollowUpVM[]>(() =>
+    (this.followUps()?.items ?? []).map((c) => {
+      const tone = followUpTone(c.nextFollowUpAt);
+      return {
+        id: c.id,
+        name: c.name,
+        status: c.status,
+        sourceLabel: CUSTOMER_SOURCE_LABELS[c.source] ?? c.source,
+        dateLabel: tone === 'today' ? 'Hoy' : FOLLOW_UP_FMT.format(new Date(c.nextFollowUpAt)),
+        dateClass: FOLLOW_UP_TONE_CLASSES[tone],
+      };
+    }),
+  );
 
   protected readonly clientRows = computed<RecentClientVM[]>(() =>
     (this.recentClients() ?? []).map((c) => ({
@@ -192,6 +442,8 @@ export class CrmDashboard {
     });
     inject(DestroyRef).onDestroy(() => this.themeObserver.disconnect());
     this.loadStats();
+    this.loadTrend();
+    this.loadFollowUps();
     this.loadActivity();
     this.loadClients();
   }
@@ -209,6 +461,20 @@ export class CrmDashboard {
     });
   }
 
+  protected loadTrend(refresh = false): void {
+    this.trendError.set(false);
+    this.store.dispatch(new LoadIntakeTrend(6, refresh)).subscribe({
+      error: () => this.trendError.set(true),
+    });
+  }
+
+  protected loadFollowUps(refresh = false): void {
+    this.followUpsError.set(false);
+    this.store.dispatch(new LoadFollowUps(8, refresh)).subscribe({
+      error: () => this.followUpsError.set(true),
+    });
+  }
+
   protected loadActivity(refresh = false): void {
     this.activityError.set(false);
     this.store.dispatch(new LoadRecentInteractions(20, refresh)).subscribe({
@@ -221,26 +487,5 @@ export class CrmDashboard {
     this.store.dispatch(new LoadRecentCustomers(8, refresh)).subscribe({
       error: () => this.clientsError.set(true),
     });
-  }
-
-  /** Current-period channel mix. Zero channels are dropped — invisible
-   *  slices would only clutter the legend. */
-  private buildPie(key: 'leads' | 'active'): ChartData<'pie', number[], string> | null {
-    const stats = this.stats();
-    if (!stats) return null;
-    const rows = stats.rows.filter((r) => r[key] > 0);
-    if (!rows.length) return null;
-    const border = this.dark() ? hslVar('--brand-surface-900', '0 0% 18%') : '#ffffff';
-    return {
-      labels: rows.map((r) => CUSTOMER_SOURCE_LABELS[r.source] ?? r.source),
-      datasets: [
-        {
-          data: rows.map((r) => r[key]),
-          backgroundColor: sliceColors(rows.length),
-          borderColor: border,
-          borderWidth: 2,
-        },
-      ],
-    };
   }
 }

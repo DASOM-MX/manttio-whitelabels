@@ -12,7 +12,6 @@ import { TextareaModule } from 'primeng/textarea';
 import { SelectModule } from 'primeng/select';
 import { MessageService } from 'primeng/api';
 import {
-  LucideArrowLeft,
   LucideChevronDown,
   LucideChevronUp,
   LucidePlus,
@@ -38,6 +37,7 @@ import { contactsRequiredValidator } from '../../../validators/contacts-required
 import { TagsInput } from '../../components/tags-input/tags-input';
 import { errorMessage } from '../../../data/utils';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { CustomerSource, CustomerStatus } from '../../../data/dtos/customer';
 import type { Customer, SaveCustomerRequest } from '../../../data/dtos/customer';
 
@@ -62,7 +62,7 @@ interface ContactSeed {
     TextareaModule,
     SelectModule,
     TagsInput,
-    LucideArrowLeft,
+    PageHeader,
     LucidePlus,
     LucideStar,
     LucideTrash2,

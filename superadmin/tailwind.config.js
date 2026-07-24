@@ -81,16 +81,17 @@ module.exports = {
       },
 
       fontFamily: {
-        // Nunito Sans is the superadmin's own voice (01-conventions Typography;
-        // owner 2026-07-22, supersedes Quicksand/Commissioner) — constant across
-        // tenants, a deliberate deviation from frontend parity.
-        sans: ['"Nunito Sans Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Figtree is the superadmin's own voice (01-conventions Typography;
+        // owner 2026-07-22, plan 17 — supersedes Nunito Sans, which superseded
+        // Quicksand/Commissioner) — constant across tenants, a deliberate
+        // deviation from frontend parity.
+        sans: ['"Figtree Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         // Numeric/data stack: Atkinson Hyperlegible heads it (verified
         // tabular digits — 01 Typography fallback, 2026-07-06); the product
         // voice only backs it up for non-digit glyphs.
         data: [
           '"Atkinson Hyperlegible"',
-          '"Nunito Sans Variable"',
+          '"Figtree Variable"',
           'ui-sans-serif',
           'system-ui',
           'sans-serif',
@@ -100,6 +101,24 @@ module.exports = {
       fontSize: {
         // Micro-labels (01 Design language): 11px card/table headers.
         '2xs': ['0.6875rem', { lineHeight: '1rem' }],
+      },
+
+      // Semantic radius tokens (owner 2026-07-22): the shape boundary as
+      // utilities — `rounded-card` for cards/panels/dialogs/table shells
+      // (the sidebar edge rides `rounded-r-shell`), `rounded-chip` for icon
+      // chips + popovers, `rounded-control` for inputs/buttons/nav rows
+      // (buttons joined 2026-07-22 — default-PrimeNG shape, no more pills).
+      // Status/role pills + chrome icon-circles stay `rounded-full`. New
+      // chrome uses these, never raw rounded-lg/xl/2xl;
+      // page templates migrate as CP-3..5 touch them. Values mirror the
+      // preset's border.radius tokens (formField lg=0.5rem, dialog 1rem).
+      borderRadius: {
+        card: '1rem',
+        chip: '0.75rem',
+        control: '0.5rem',
+        // Sidebar right edge only (owner 2026-07-23): a deeper curve than
+        // the shared card radius so the brand panel reads as its own shape.
+        shell: '2.35rem',
       },
 
       // Soft-elevation card shadow (owner 2026-07-22, Purity-style soft UI):

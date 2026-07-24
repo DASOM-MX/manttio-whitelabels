@@ -1,26 +1,42 @@
-/* Superadmin global styles — ported from `frontend/src/styles.scss` at the
-   compact "solid & tight" scale (01-conventions Design language). Deliberate
-   deviations from frontend: Nunito Sans (not Inter), `.field-input` h-12
-   (not h-14), borders-not-shadows card chrome, lucide icons (no PrimeIcons). */
+/* Superadmin global styles — the "soft-executive" scale (01-conventions
+   Design language; plan 17). Deliberate deviations from frontend: Figtree
+   (not Inter), `.field-input` h-11/h-10 (not h-14), floating shadow-card
+   surfaces, lucide icons (no PrimeIcons). */
 
-/* Self-hosted fonts — no CDN, ever (offline, CSP, no FOUT). Nunito Sans
-   Variable is the product voice (owner 2026-07-22 — supersedes Quicksand,
-   which superseded Commissioner the same day; rounded terminals keep the
-   blob-language warmth with better body-text legibility); Atkinson
-   Hyperlegible backs the numeric `font-data` stack (01 Typography
-   fallback). */
-@import '@fontsource-variable/nunito-sans';
+/* Self-hosted fonts — no CDN, ever (offline, CSP, no FOUT). Figtree
+   Variable is the product voice (owner 2026-07-22, plan 17 — supersedes
+   Nunito Sans, which superseded Quicksand/Commissioner; geometric-clean
+   with a touch of warmth for the executive turn); Atkinson Hyperlegible
+   backs the numeric `font-data` stack (01 Typography fallback). */
+@import '@fontsource-variable/figtree';
 @import '@fontsource/atkinson-hyperlegible/400.css';
 @import '@fontsource/atkinson-hyperlegible/700.css';
 
-@tailwind base;
+/* CSS layer order (plan 17 CP-2 follow-up): Tailwind's preflight reset is
+   unlayered by default, which silently beat Aura's `primeng` layer and
+   stripped component borders (inputs rendered borderless — the old override
+   sheets papered over this). Preflight now sits in `tailwind-base` BELOW
+   `primeng`; components/utilities and the surviving sheets stay unlayered,
+   so they still win over Aura without `!important`.
+
+   NOTE: the statement below is NOT what establishes the order at runtime —
+   PrimeNG injects its `cssLayer.order` string (app.config.ts) as the first
+   <style> in <head>, before this file loads, and first occurrence wins.
+   Both must declare `tailwind-base, primeng`; this one is kept in sync so
+   the file reads truthfully on its own. */
+@layer tailwind-base, primeng;
+@layer tailwind-base {
+  @tailwind base;
+}
 @tailwind components;
 @tailwind utilities;
 
 /* Motion tokens + keyframes (Angular `animate.enter`/`animate.leave` classes). */
 @import './animations';
 
-/* PrimeNG component theme (per-component sheets in src/theme/*) */
+/* PrimeNG theme layer — preset-first (plan 17): stock Aura chrome via the
+   ManttioPreset tokens; src/theme/* holds only the surviving integration
+   sheets. */
 @import './theme/index';
 
 @layer base {
@@ -51,8 +67,11 @@
 @layer components {
   /* Labels/headings render in the authored title/sentence case — uppercase is
      reserved for warnings or explicit requests (QA 2026-07-07). */
+  /* Weight ladder (owner 2026-07-22, "too bold — cleaner look"): 400 body ·
+     500 labels/buttons/headings — 600+ is reserved for the wordmark and rare
+     emphasis, never routine chrome. */
   .field-label {
-    @apply block text-sm font-semibold text-surface-800 dark:text-surface-200;
+    @apply block text-sm font-medium text-surface-800 dark:text-surface-200;
   }
   .field-group {
     @apply flex flex-col gap-2;
@@ -61,24 +80,44 @@
     // Height is fixed (not `min-h-*`) so `<p-select>`, `<p-datepicker>`,
     // `<input pInputText>`, and `<p-inputnumber>` all render at the exact
     // same height when laid out side-by-side. Slimmed 2026-07-22 (owner:
-    // "inputs are too chunky"): 40px desk baseline with a 1px hairline —
+    // "inputs are too chunky"): 40px desk baseline with a soft branded 1px
+    // outline that strengthens on approach — primary-600/40 rest, solid 600
+    // hover, 700 + halo focus (owner 2026-07-22, softened same day from the
+    // solid dark-primary rest; mirrors the preset's formField tokens) —
     // `h-11` below `sm` keeps the 44px mobile touch target, and mobile
     // stays 16px text (iOS auto-zoom) while desktop compacts to `text-sm`.
     // Textareas opt out via `!h-auto`; compact controls opt down to `!h-9`.
-    @apply w-full h-11 sm:h-10 px-3.5 py-2 bg-white border border-surface-200 rounded-lg text-base sm:text-sm text-surface-1000 font-data tabular-nums transition-colors duration-150 focus:outline-none focus:border-primary-700 focus:ring-4 focus:ring-primary-700/20 disabled:bg-surface-0 disabled:text-surface-400
-           dark:bg-surface-900 dark:border-surface-700 dark:text-surface-0 dark:focus:border-primary-400 dark:focus:ring-primary-400/25 dark:disabled:bg-surface-800 dark:disabled:text-surface-500;
+    @apply w-full h-11 sm:h-10 px-3.5 py-2 bg-white border border-primary-600/40 rounded-control text-base sm:text-sm text-surface-1000 font-data tabular-nums transition-colors duration-150 enabled:hover:border-primary-600 focus:outline-none focus:border-primary-700 focus:ring-4 focus:ring-primary-700/20 disabled:bg-surface-0 disabled:text-surface-400 disabled:border-surface-300
+           dark:bg-surface-900 dark:border-primary-400/40 dark:enabled:hover:border-primary-400 dark:text-surface-0 dark:focus:border-primary-400 dark:focus:ring-primary-400/25 dark:disabled:bg-surface-800 dark:disabled:text-surface-500 dark:disabled:border-surface-700;
   }
-  .field-input--error {
-    @apply border-red-500 focus:border-red-500 focus:ring-red-500/15 dark:border-red-400 dark:focus:border-red-400 dark:focus:ring-red-400/25;
+  /* Composite-control shell (plan 17 CP-4): custom controls built from plain
+     elements (tags-input, rich-text) wear the same soft branded outline as
+     `.field-input`/stock Aura fields so composites read as one control family
+     (their border-2 neutral shells predated the 2026-07-22 soft-outline
+     turn). */
+  .field-shell {
+    @apply rounded-control border border-primary-600/40 bg-white transition-colors hover:border-primary-600 focus-within:border-primary-700 focus-within:ring-4 focus-within:ring-primary-700/20
+           dark:border-primary-400/40 dark:bg-surface-900 dark:hover:border-primary-400 dark:focus-within:border-primary-400 dark:focus-within:ring-primary-400/25;
+  }
+
+  /* Field feedback lines (01 Forms & feedback, plan 17 CP-4): hint =
+     persistent helper text under a control; error = the inline validation
+     message — rendered on `touched && errors`, always with role="alert".
+     Invalid *borders* come free from Aura (`.ng-invalid.ng-dirty`). */
+  .field-hint {
+    @apply text-sm text-surface-500 dark:text-surface-400;
+  }
+  .field-error {
+    @apply text-sm font-medium text-red-700 dark:text-red-400;
   }
   .btn {
     // Buttons sit a step shorter than the h-12 field baseline (40px) — they
     // read as actions, not inputs, and the old py-2.5 made them balloon.
-    // Blob buttons (owner, 2026-07-21): actions are smooth pills
-    // (rounded-full, px-5 so text clears the curve); icon-only buttons are
-    // full circles; the shell nav rides the same pill language. Inputs keep
-    // rounded-lg, cards rounded-xl.
-    @apply inline-flex items-center justify-center gap-2 min-h-10 px-5 py-2 rounded-full text-base font-semibold transition-colors duration-150 focus:outline-none focus-visible:ring-4 disabled:opacity-50 disabled:cursor-not-allowed;
+    // Default-PrimeNG shape (owner 2026-07-22: "blob-like buttons do not
+    // look clean" — supersedes the 2026-07-21 pill buttons): rounded-control
+    // rectangles matching the input radius, stock-Aura px-4. Ghost icon-only
+    // buttons (topbar bell/theme/menu) stay circles — chrome, not actions.
+    @apply inline-flex items-center justify-center gap-2 min-h-10 px-4 py-2 rounded-control text-base font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-4 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
     @apply btn bg-primary-700 text-white enabled:hover:bg-primary-800 enabled:active:bg-primary-900 focus-visible:ring-primary-700/30 dark:bg-primary-600 dark:enabled:hover:bg-primary-500 dark:enabled:active:bg-primary-400 dark:focus-visible:ring-primary-400/30;
@@ -95,16 +134,26 @@
     @apply btn bg-red-600 text-white enabled:hover:bg-red-700 enabled:active:bg-red-800 focus-visible:ring-red-600/30 dark:bg-red-500 dark:enabled:hover:bg-red-400 dark:enabled:active:bg-red-300;
   }
 
+  /* Inline text-link action (plan 17 CP-4 — one idiom, was ~10 inline
+     copies): "Agregar X" repeater buttons, card "ver todos" links, upload
+     labels. Weight ladder applies: 500, never semibold. Call sites may
+     override gap/text-size with utilities. */
+  .link-action {
+    @apply inline-flex items-center gap-2 text-sm font-medium text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200;
+  }
+
   /* Soft elevation (owner 2026-07-22, Purity-style soft UI — supersedes
-     borders-not-shadows for cards): white rounded-2xl surfaces float on the
+     borders-not-shadows for cards): white rounded-card surfaces float on the
      tinted page background with a soft neutral shadow; hairlines retire to
      internal dividers. Neutral black alpha only — colored glows stay
      banned. */
   .card {
-    @apply bg-white rounded-2xl shadow-card dark:bg-surface-900;
+    @apply bg-white rounded-card shadow-card dark:bg-surface-900;
   }
   .card-section {
-    @apply bg-white rounded-2xl shadow-card p-5 dark:bg-surface-900;
+    // p-6 since plan 17 (breathable executive rhythm — air lives in the
+    // chrome, data stays dense inside tables).
+    @apply bg-white rounded-card shadow-card p-6 dark:bg-surface-900;
   }
   .app-dark .card,
   .app-dark .card-section {
@@ -116,12 +165,10 @@
   /* Icon chip (Purity reference): the teal accent squares, mapped to
      primary-400 — decorative markers on stat cards / timelines / feature
      blurbs, never buttons. Glyph rides `currentColor`; keep it aria-hidden
-     with the label alongside. */
+     with the label alongside. (`--soft` variant removed at plan 17 CP-5 —
+     never adopted.) */
   .icon-chip {
-    @apply inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-400 text-white;
-  }
-  .icon-chip--soft {
-    @apply inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-primary-400 shadow-card dark:bg-surface-900;
+    @apply inline-flex size-10 shrink-0 items-center justify-center rounded-chip bg-primary-400 text-white;
   }
 
   /* Micro-label for card/section/table headers (01 Design language). */
@@ -136,7 +183,7 @@
      navy/cyan steps, inlined when plan 16 tombstoned those palette keys — so
      roles read identically on every tenant. */
   .role-pill {
-    @apply inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold leading-none;
+    @apply inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium leading-none;
   }
   .role-pill--owner {
     background-color: #1b2937;
@@ -159,7 +206,41 @@
      extra breathing room below. Our owners skew older; the heading has to
      read at a glance. Whitespace comes from padding, not leading. */
   .section-heading {
-    @apply pb-3 text-sm font-semibold leading-none text-surface-800 dark:text-surface-200;
+    @apply pb-3 text-sm font-medium leading-none text-surface-800 dark:text-surface-200;
+  }
+
+  /* Callout — the bordered note/alert panel (plan 17 CP-4 — one idiom, was
+     ad-hoc copies): read-only notices, blast-radius warnings, group-level
+     validation banners. Info rides the primary tint; warn/danger keep the
+     fixed status colors (status colors stay unbranded). */
+  .callout {
+    @apply rounded-lg border px-4 py-3 text-sm;
+  }
+  .callout--info {
+    @apply border-primary-200 bg-primary-0 text-primary-900 dark:border-primary-800 dark:bg-primary-1000/40 dark:text-primary-200;
+  }
+  .callout--warn {
+    @apply border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200;
+  }
+  .callout--danger {
+    @apply border-red-200 bg-red-50 text-red-900 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200;
+  }
+
+  /* Segmented tab switcher (plan 17 CP-4 — one idiom, was two hand-rolled
+     copies): the inline editor-page tab toggle (user-form, template-detail).
+     Active = soft primary tint; the danger variant marks Crítico. Roving
+     tabindex + aria wiring stay at the call site. */
+  .seg-tabs {
+    @apply inline-flex rounded-lg border border-surface-200 p-0.5 dark:border-surface-800;
+  }
+  .seg-tab {
+    @apply rounded-md px-4 py-1.5 text-sm font-medium text-surface-600 transition-colors dark:text-surface-400;
+  }
+  .seg-tab-active {
+    @apply bg-primary-0 text-primary-800 dark:bg-primary-1000/40 dark:text-primary-300;
+  }
+  .seg-tab-active--danger {
+    @apply bg-red-50 text-red-800 dark:bg-red-950/30 dark:text-red-300;
   }
 
   /* Divider between multi-field repeater rows (rows carry no border). */
@@ -167,70 +248,147 @@
     @apply border-t border-surface-200 pt-2 dark:border-surface-800;
   }
 
-  /* Shell chrome (owner redesign 2026-07-21): the sidebar and topbar are the
-     sanctioned shadow exception to borders-not-shadows. The nav shares the
-     page background (alike brand tones, no hairline) and a smooth neutral
-     shadow separates it from the content; the topbar keeps the card tone so
-     the two strips read as distinct surfaces. Neutral black alpha only —
-     never a colored glow. */
-  .shell-sidebar {
-    @apply bg-background dark:bg-surface-1000;
-    box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.08);
+  /* Skeleton bar for loading content regions (skeletons over spinners, 01
+     Design language; plan 17 CP-3). Tables render rows of these via
+     `#loadingbody` + `[showLoader]="false"`. Keyframe lives in
+     animations.scss and collapses under reduced motion (static bar). */
+  .skeleton {
+    @apply block h-3.5 w-full max-w-36 rounded-full bg-surface-200 dark:bg-surface-700;
+    animation: anim-skeleton-pulse 1.6s ease-in-out infinite;
   }
-  .shell-topbar {
-    @apply bg-white dark:bg-surface-900;
-    box-shadow: 0 2px 10px -2px rgb(0 0 0 / 0.06);
+
+  /* Icon-ghost actions (plan 17 CP-3, widened at CP-4): table row actions,
+     editor repeater reorder/remove buttons, rich-text toolbar — icon-only
+     ghosts, circles like the topbar chrome; they stay the keyboard path when
+     the whole row is clickable. Disabled steps (first/last reorder) dim to
+     0.4 per the disabled-states rule. */
+  .row-action {
+    @apply inline-flex size-9 shrink-0 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 hover:text-surface-900 disabled:opacity-40 disabled:hover:bg-transparent dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100;
+  }
+  .row-action--danger {
+    @apply inline-flex size-9 shrink-0 items-center justify-center rounded-full text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40 disabled:hover:bg-transparent dark:text-red-400 dark:hover:bg-red-950/30;
+  }
+  .row-action--success {
+    @apply inline-flex size-9 shrink-0 items-center justify-center rounded-full text-emerald-700 transition-colors hover:bg-emerald-50 disabled:opacity-40 disabled:hover:bg-transparent dark:text-emerald-400 dark:hover:bg-emerald-950/30;
+  }
+  .row-action--grab {
+    @apply inline-flex size-9 shrink-0 cursor-grab items-center justify-center rounded-full text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-700 active:cursor-grabbing dark:text-surface-500 dark:hover:bg-surface-800 dark:hover:text-surface-300;
+  }
+
+  /* Empty-state icon disc (module-stub idiom, standardized across list
+     empties at CP-3). */
+  .empty-icon {
+    @apply inline-flex size-12 items-center justify-center rounded-full bg-surface-100 text-surface-500 dark:bg-surface-800 dark:text-surface-400;
+  }
+
+  /* Shell chrome (owner 2026-07-22, Diamond turn v2 — reference screenshot):
+     the sidebar is the tenant's DARK brand panel — `primary-1000` in both
+     modes with a rounded right edge and a hairline `primary-800/50` outline —
+     floating over the canvas. The topbar has NO surface of its own (owner
+     2026-07-22, two steps the same day: shadow removed, then the white bg) —
+     the bell + user pill float directly on the canvas; content scrolls in a
+     separate region below, so nothing ever passes under it. Neutral black
+     alpha shadows only — never a colored glow. */
+  .shell-sidebar {
+    @apply bg-primary-1000 border border-l-0 border-primary-800/50 rounded-r-shell;
+    box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.12);
   }
   .app-dark .shell-sidebar {
     box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.5);
   }
-  .app-dark .shell-topbar {
-    box-shadow: 0 2px 10px -2px rgb(0 0 0 / 0.45);
-  }
 
-  /* Sidebar nav items — idle/hover chrome lives here, not as template
-     utilities, so hover can't outrank the solid `.nav-active` state in the
+  /* Sidebar nav — Diamond-style flat rows on the dark brand panel (owner
+     2026-07-22, Diamond turn v2; supersedes the elevated-pill/blob nav and
+     its icon chips): light-on-dark rounded-control rows, plain outlined icons,
+     hover = white/10, active child = solid primary-600 row (interactive-solid
+     step, white text clears 4.5:1), active trail = white text/icon. The
+     panel is `primary-1000` in BOTH modes, so no dark: variants here. No
+     shadows anywhere in the nav. Idle/hover chrome lives here, not as
+     template utilities, so hover can't outrank `.nav-active` in the
      cascade. */
-  /* Nav rides the blob language too (owner, 2026-07-21): pills, px-4 so
-     content clears the curve. */
   .nav-item {
-    @apply relative flex h-11 w-full items-center gap-3 rounded-full px-3 text-sm font-medium text-surface-700 transition-colors dark:text-surface-300;
+    @apply relative flex h-10 w-full items-center gap-3 rounded-control px-3 text-sm font-medium text-primary-100 transition-colors;
   }
   .nav-child {
-    @apply relative flex h-9 items-center rounded-full px-4 text-sm text-surface-600 transition-colors dark:text-surface-400 border-primary-0 border bg-primary-0 dark:border-surface-800 dark:bg-surface-900/60;
+    @apply relative flex h-9 items-center rounded-control pl-11 pr-3 text-sm text-primary-200 transition-colors;
   }
-  .nav-item:not(.nav-active):not(.nav-group-active):hover,
+  .nav-item:hover,
   .nav-child:not(.nav-active):hover {
-    @apply bg-surface-100 dark:bg-surface-800;
+    @apply bg-white/10;
   }
-
-  /* Nav icon chip (Purity reference): idle = soft white chip with the
-     brand-accent glyph; the group whose child is active flips it filled. */
-  .nav-chip {
-    @apply inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-white text-primary-400 shadow-sm transition-colors dark:bg-surface-900 dark:text-primary-300;
+  .nav-icon {
+    @apply size-5 shrink-0 text-primary-300 transition-colors;
   }
-  .nav-group-active .nav-chip,
-  .nav-active .nav-chip {
-    @apply bg-primary-400 text-white dark:bg-primary-400 dark:text-white shadow-none;
-  }
-
-  /* Active trail (owner 2026-07-22, Purity-style — supersedes the solid
-     primary block): the group holding the active route and the active child
-     link render as elevated white pills on the blended sidebar; the filled
-     chip carries the accent. */
   .nav-group-active {
-    @apply bg-white text-surface-900 shadow-card dark:bg-surface-900 dark:text-surface-0;
+    @apply text-white;
   }
-  .nav-group-active:hover {
-    @apply bg-white dark:bg-surface-900;
+  .nav-group-active .nav-icon,
+  .nav-active .nav-icon {
+    @apply text-white;
   }
   .nav-active {
-    @apply bg-white text-surface-900 font-semibold shadow-card border-transparent dark:bg-surface-800 dark:text-surface-0;
+    // No weight bump — the solid row carries the active cue (weight ladder).
+    @apply bg-primary-600 text-white;
   }
-  .app-dark .nav-group-active,
-  .app-dark .nav-active {
-    box-shadow:
-      0 4px 16px -4px rgb(0 0 0 / 0.5),
-      0 2px 6px -2px rgb(0 0 0 / 0.4);
+
+  /* Collapsed-rail flyouts (owner 2026-07-23): with the sidebar collapsed
+     to its icon rail, each row reveals a WHITE overlay submenu beside it on
+     hover/focus — separated from the dark rail by a 4px gap and a neutral
+     shadow (owner, same day: white + shadow, not the brand panel).
+     CSS-only (:hover / :focus-within), so the keyboard path is the normal
+     tab order and no JS state is needed. The pl-1 bridge is part of the
+     flyout element, keeping hover continuous across the gap. True overlay →
+     the shadow is allowed; dark mode adds a hairline ring (shadows vanish
+     on the dark canvas). */
+  .nav-flyout-host {
+    @apply relative;
+  }
+  .nav-flyout {
+    // left-full anchors to the ROW edge, which sits inside the panel's
+    // px-3 nav gutter — pl-7 + ml-px = that 12px gutter + 1px aside border
+    // + the 16px visual gap from the rail edge (owner spec 2026-07-23,
+    // widened from 4px the same day). The bridge stays part of this
+    // element, so hover survives the crossing.
+    @apply invisible absolute left-full top-0 z-30 ml-px pl-7 opacity-0 transition-opacity duration-150;
+  }
+  .nav-flyout-host:hover > .nav-flyout,
+  .nav-flyout-host:focus-within > .nav-flyout {
+    @apply visible opacity-100;
+  }
+  .nav-flyout-panel {
+    // Landscape proportions (owner: wider than long) — children render as a
+    // two-column grid at the call site, min-w keeps even a two-child group
+    // wide. The ::before is the speech-bubble tail: a rotated square tucked
+    // BEHIND the panel (-z-10 inside the flyout's stacking context), aimed
+    // at the rail icon; it rides the panel surface + dark hairline, no
+    // shadow of its own (it lives inside the panel's penumbra).
+    @apply relative w-max min-w-64 rounded-chip bg-white p-2 shadow-xl dark:bg-surface-900 dark:ring-1 dark:ring-surface-700;
+
+    &::before {
+      content: '';
+      @apply absolute -left-1.5 top-3.5 -z-10 size-3 rotate-45 rounded-sm bg-white dark:bg-surface-900 dark:ring-1 dark:ring-surface-700;
+    }
+  }
+  .nav-flyout-title {
+    @apply px-3 pb-1 pt-1.5 text-2xs font-medium text-surface-500 dark:text-surface-400;
+  }
+  /* Flyout children grid — two columns separated by a subtle hairline
+     (owner 2026-07-23): no column gap so the divider runs continuous at
+     the boundary (the links' own px-3 keeps text off it); nth-child lives
+     here because templates can't express it. */
+  .nav-flyout-grid {
+    @apply grid grid-cols-2 gap-y-0.5;
+
+    > li:nth-child(even) {
+      @apply border-l border-surface-200 dark:border-surface-800;
+    }
+  }
+  /* Flyout links ride the light surface (not `.nav-child`, which is
+     light-on-dark for the brand panel); active keeps `.nav-active`. */
+  .nav-flyout-link {
+    @apply flex h-9 items-center rounded-control px-3 text-sm text-surface-700 transition-colors dark:text-surface-300;
+  }
+  .nav-flyout-link:not(.nav-active):hover {
+    @apply bg-surface-100 text-surface-900 dark:bg-surface-800 dark:text-surface-100;
   }
 }

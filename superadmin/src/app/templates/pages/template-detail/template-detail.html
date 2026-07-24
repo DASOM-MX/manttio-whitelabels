@@ -1,22 +1,9 @@
-<div class="flex flex-wrap items-center gap-3">
-  <a
-    routerLink="/templates"
-    class="inline-flex size-10 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
-    aria-label="Volver a plantillas"
-  >
-    <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
-  </a>
-  <div>
-    <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">
-      @if (isNew) {
-        Nueva plantilla
-      } @else {
-        Editor de plantilla
-      }
-    </h1>
-  </div>
-  <p-tag [severity]="statusSeverity()" [value]="statusLabel()" />
-  <div class="flex-1"></div>
+<app-page-header
+  [title]="isNew ? 'Nueva plantilla' : 'Editor de plantilla'"
+  backLink="/templates"
+  backLabel="Volver a plantillas"
+>
+  <p-tag meta [severity]="statusSeverity()" [value]="statusLabel()" />
 
   <div class="flex flex-wrap gap-2">
     @if (isDraft()) {
@@ -26,7 +13,7 @@
         (click)="save()"
         [disabled]="form.invalid || busy()"
       >
-        Guardar borrador
+        Guardar
       </button>
       @if (!isNew) {
         <button type="button" class="btn-secondary" (click)="activate()" [disabled]="busy()">
@@ -45,21 +32,15 @@
       </button>
     }
   </div>
-</div>
+</app-page-header>
 
 @if (isDisabled() && selected(); as tpl) {
-  <p
-    class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200"
-    role="note"
-  >
+  <p class="callout callout--danger mt-4" role="note">
     Deshabilitada el {{ tpl.disabledAt | slice: 0 : 10 }} — «{{ tpl.disabledReason }}». Es un estado
     permanente; duplica su contenido en una plantilla nueva para reutilizar la forma.
   </p>
 } @else if (isActive()) {
-  <p
-    class="mt-4 rounded-lg border border-primary-200 bg-primary-0 px-4 py-3 text-sm text-primary-900 dark:border-primary-800 dark:bg-primary-1000/40 dark:text-primary-200"
-    role="note"
-  >
+  <p class="callout callout--info mt-4" role="note">
     Activa en la aplicación de campo. Para editarla, pásala a borrador — dejará de ofrecerse hasta
     que la reactives.
   </p>
@@ -67,7 +48,7 @@
 
 <!-- Editor and preview are separate tabs (QA 2026-07-09) -->
 <div
-  class="mt-5 inline-flex rounded-lg border border-surface-200 p-0.5 dark:border-surface-800"
+  class="seg-tabs mt-5"
   role="tablist"
   aria-label="Secciones de la plantilla"
   (keydown)="onTabKeydown($event)"
@@ -78,13 +59,8 @@
     role="tab"
     id="tab-editor"
     aria-controls="panel-editor"
-    class="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
-    [class.bg-primary-0]="tab() === 'editor'"
-    [class.text-primary-800]="tab() === 'editor'"
-    [class.dark:bg-primary-1000/40]="tab() === 'editor'"
-    [class.dark:text-primary-300]="tab() === 'editor'"
-    [class.text-surface-600]="tab() !== 'editor'"
-    [class.dark:text-surface-400]="tab() !== 'editor'"
+    class="seg-tab"
+    [class.seg-tab-active]="tab() === 'editor'"
     [attr.aria-selected]="tab() === 'editor'"
     [tabindex]="tab() === 'editor' ? 0 : -1"
     (click)="tab.set('editor')"
@@ -97,13 +73,8 @@
     role="tab"
     id="tab-preview"
     aria-controls="panel-preview"
-    class="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
-    [class.bg-primary-0]="tab() === 'preview'"
-    [class.text-primary-800]="tab() === 'preview'"
-    [class.dark:bg-primary-1000/40]="tab() === 'preview'"
-    [class.dark:text-primary-300]="tab() === 'preview'"
-    [class.text-surface-600]="tab() !== 'preview'"
-    [class.dark:text-surface-400]="tab() !== 'preview'"
+    class="seg-tab"
+    [class.seg-tab-active]="tab() === 'preview'"
     [attr.aria-selected]="tab() === 'preview'"
     [tabindex]="tab() === 'preview' ? 0 : -1"
     (click)="tab.set('preview')"
@@ -126,6 +97,9 @@
       <div class="field-group">
         <label class="field-label" for="tpl-name">Nombre<span aria-hidden="true"> *</span></label>
         <input id="tpl-name" pInputText formControlName="name" />
+        @if (form.controls.name.touched && form.controls.name.errors?.['required']) {
+          <p class="field-error" role="alert">Ingresa el nombre de la plantilla.</p>
+        }
       </div>
       <div class="field-group">
         <label class="field-label" for="tpl-description">Descripción</label>
@@ -146,7 +120,7 @@
           <div class="flex items-center gap-2">
             <button
               type="button"
-              class="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-surface-500 transition-colors hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
+              class="row-action"
               (click)="toggleSection(section)"
               [attr.aria-expanded]="sectionOpen"
               [attr.aria-controls]="'section-body-' + si"
@@ -165,7 +139,7 @@
             @if (!readOnly()) {
               <button
                 type="button"
-                class="inline-flex size-8 items-center justify-center rounded-full text-surface-500 transition-colors hover:bg-surface-100 disabled:opacity-30 dark:text-surface-400 dark:hover:bg-surface-800"
+                class="row-action"
                 (click)="move(sections, si, -1)"
                 [disabled]="si === 0"
                 [attr.aria-label]="'Subir sección ' + (si + 1)"
@@ -174,7 +148,7 @@
               </button>
               <button
                 type="button"
-                class="inline-flex size-8 items-center justify-center rounded-full text-surface-500 transition-colors hover:bg-surface-100 disabled:opacity-30 dark:text-surface-400 dark:hover:bg-surface-800"
+                class="row-action"
                 (click)="move(sections, si, 1)"
                 [disabled]="lastS"
                 [attr.aria-label]="'Bajar sección ' + (si + 1)"
@@ -183,7 +157,7 @@
               </button>
               <button
                 type="button"
-                class="inline-flex size-8 items-center justify-center rounded-full text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                class="row-action--danger"
                 (click)="removeAt(sections, si)"
                 [attr.aria-label]="'Eliminar sección ' + (si + 1)"
               >
@@ -205,14 +179,14 @@
               <div class="field-group">
                 <span class="field-label" [id]="'section-cols-' + si">Columnas</span>
                 <div
-                  class="inline-flex h-12 items-center gap-0.5 self-start rounded-lg border-2 border-surface-200 p-1 dark:border-surface-700"
+                  class="inline-flex h-11 items-center gap-0.5 self-start rounded-control border border-surface-200 p-1 sm:h-10 dark:border-surface-800"
                   role="group"
                   [attr.aria-labelledby]="'section-cols-' + si"
                 >
                   @for (col of [1, 2, 3]; track col) {
                     <button
                       type="button"
-                      class="h-9 rounded-md px-3 font-data text-sm font-semibold tabular-nums transition-colors"
+                      class="h-9 rounded-md px-3 font-data text-sm font-medium tabular-nums transition-colors sm:h-8"
                       [class.bg-primary-700]="sectionCols === col"
                       [class.text-white]="sectionCols === col"
                       [class.text-surface-600]="sectionCols !== col"
@@ -245,7 +219,7 @@
                     <div class="flex items-end gap-2">
                       <button
                         type="button"
-                        class="mb-2 inline-flex size-8 shrink-0 items-center justify-center rounded-full text-surface-500 transition-colors hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
+                        class="row-action mb-2"
                         (click)="toggleQuestion(question)"
                         [attr.aria-expanded]="questionOpen"
                         [attr.aria-controls]="'q-body-' + si + '-' + qi"
@@ -274,7 +248,7 @@
                         <div class="mb-2 flex shrink-0 gap-0.5">
                           <button
                             type="button"
-                            class="inline-flex size-8 items-center justify-center rounded-full text-surface-500 transition-colors hover:bg-surface-100 disabled:opacity-30 dark:text-surface-400 dark:hover:bg-surface-800"
+                            class="row-action"
                             (click)="move(sectionQuestions, qi, -1)"
                             [disabled]="qi === 0"
                             [attr.aria-label]="'Subir pregunta ' + (qi + 1)"
@@ -283,7 +257,7 @@
                           </button>
                           <button
                             type="button"
-                            class="inline-flex size-8 items-center justify-center rounded-full text-surface-500 transition-colors hover:bg-surface-100 disabled:opacity-30 dark:text-surface-400 dark:hover:bg-surface-800"
+                            class="row-action"
                             (click)="move(sectionQuestions, qi, 1)"
                             [disabled]="lastQ"
                             [attr.aria-label]="'Bajar pregunta ' + (qi + 1)"
@@ -292,7 +266,7 @@
                           </button>
                           <button
                             type="button"
-                            class="inline-flex size-8 items-center justify-center rounded-full text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                            class="row-action--danger"
                             (click)="removeAt(sectionQuestions, qi)"
                             [attr.aria-label]="'Eliminar pregunta ' + (qi + 1)"
                           >
@@ -449,7 +423,7 @@
                 @if (!readOnly()) {
                   <button
                     type="button"
-                    class="inline-flex items-center gap-2 self-start text-sm font-semibold text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
+                    class="link-action self-start"
                     (click)="addQuestion(section)"
                   >
                     <svg lucidePlus class="size-4" aria-hidden="true"></svg>
@@ -466,7 +440,7 @@
     @if (!readOnly()) {
       <button
         type="button"
-        class="inline-flex items-center gap-2 self-start text-sm font-semibold text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
+        class="link-action self-start"
         (click)="addSection()"
       >
         <svg lucidePlus class="size-4" aria-hidden="true"></svg>
@@ -494,7 +468,7 @@
         <div
           class="mt-3 rounded-lg border border-surface-200 bg-surface-0 p-3 dark:border-surface-800 dark:bg-surface-900"
         >
-          <p class="text-sm font-bold text-surface-900 dark:text-surface-100">Datos del negocio</p>
+          <p class="text-sm font-medium text-surface-900 dark:text-surface-100">Datos del negocio</p>
           <p class="text-xs text-surface-500 dark:text-surface-400">
             Cliente · Técnico · Fecha de servicio · Folio
           </p>
@@ -503,7 +477,7 @@
         <!-- Tenant-designed sections -->
         @for (section of preview(); track $index) {
           <div class="mt-3 rounded-lg border border-surface-200 p-3 dark:border-surface-800">
-            <p class="text-sm font-bold text-surface-900 dark:text-surface-100">
+            <p class="text-sm font-medium text-surface-900 dark:text-surface-100">
               {{ section.title }}
             </p>
             @if (section.columns === 1) {
@@ -560,7 +534,7 @@
         <div
           class="mt-3 rounded-lg border border-surface-200 bg-surface-0 p-3 dark:border-surface-800 dark:bg-surface-900"
         >
-          <p class="text-sm font-bold text-surface-900 dark:text-surface-100">
+          <p class="text-sm font-medium text-surface-900 dark:text-surface-100">
             Evidencia fotográfica
           </p>
           <div class="mt-2 grid grid-cols-4 gap-2">
@@ -574,7 +548,7 @@
         <div
           class="mt-3 rounded-lg border border-surface-200 bg-surface-0 p-3 dark:border-surface-800 dark:bg-surface-900"
         >
-          <p class="text-sm font-bold text-surface-900 dark:text-surface-100">
+          <p class="text-sm font-medium text-surface-900 dark:text-surface-100">
             Comentarios y firma
           </p>
           <p class="text-xs text-surface-500 dark:text-surface-400">

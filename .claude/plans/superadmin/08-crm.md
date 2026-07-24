@@ -97,6 +97,12 @@ Deliberately **not** a task system — one field, defined on the Customer DTO in
   rejects `system`.
 - `nextFollowUpAt` travels on the normal `PATCH /customers/:id` (07's endpoint).
 - `GET /customers?status=...&source=...` — already covered by 07's list endpoint.
+- **Dashboard reads (landed 2026-07-22, CRM-cockpit redesign — utm-params 03 has the
+  full page spec):** `GET /customers/stats/trend?months=3..12` (monthly lead/active
+  buckets, zero-filled, UTC, intake snapshot semantics) and
+  `GET /customers/follow-ups?limit=1..20` (agenda soonest-first + whole-scope
+  `overdueCount`/`scheduledCount`; excludes blacklisted). Both on the module gate
+  (owner/admin/office), declared before `GET /:id`.
 
 ### 4.1 Read-path caching — per-tenant Durable Object (decided 2026-07-06)
 
@@ -191,7 +197,9 @@ as ask), don't fork the table.
   revisit only if typo pain is real.
 - Which system-event emitters beyond status changes land in v1 (report created, bill
   sent) — depends on backend hooks; timeline renders whatever arrives.
-- Source stats endpoint for the dashboard card: v1 or later?
+- ~~Source stats endpoint for the dashboard card: v1 or later?~~ — **resolved:**
+  landed as `GET /customers/stats/intake` (utm-params 03, 2026-07-20), extended
+  2026-07-22 with the trend + follow-ups reads (§4).
 - Which CRM projections the tenant-cache DO holds in v1 (§4.1) — backend call, with the
   invalidation hooks.
 - Ask to 07: customers-table extraction for filtered reuse.

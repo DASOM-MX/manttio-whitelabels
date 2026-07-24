@@ -1,13 +1,4 @@
-<div class="flex flex-wrap items-center gap-3">
-  <a
-    routerLink="/reports"
-    class="inline-flex size-10 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
-    aria-label="Volver a reportes"
-  >
-    <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
-  </a>
-  <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">Reporte de servicio</h1>
-  <div class="flex-1"></div>
+<app-page-header title="Reporte de servicio" backLink="/reports" backLabel="Volver a reportes">
   @if (report(); as r) {
     <button type="button" class="btn-secondary" (click)="downloadPdf()" [disabled]="downloading()">
       <svg lucideDownload class="size-4" aria-hidden="true"></svg>
@@ -28,7 +19,7 @@
       </button>
     }
   }
-</div>
+</app-page-header>
 
 @if (report(); as r) {
   <!-- Header card: system-owned heading (client/tech/date/template/status) -->
@@ -147,11 +138,24 @@
   <!-- Slot reserved for 10 (materials card): report-materials-editor mounts
        here once WMS lands (tech-editable on own reports). Do not build here. -->
 } @else {
-  <div class="mt-10 flex justify-center">
-    <div
-      class="size-8 animate-spin rounded-full border-2 border-surface-200 border-t-primary-600 dark:border-surface-700 dark:border-t-primary-400"
-      role="status"
-      aria-label="Cargando reporte"
-    ></div>
+  <!-- Skeleton mirrors the page shape: header card + first section card
+       (skeletons over spinners, 01 Design language; plan 17 CP-5). -->
+  <div role="status" aria-label="Cargando reporte">
+    <section class="card-section mt-5">
+      <span class="skeleton max-w-24"></span>
+      <div class="mt-6 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+        @for (r of [0, 1, 2, 3, 4, 5]; track r) {
+          <div>
+            <span class="skeleton max-w-24"></span>
+            <span class="skeleton mt-2 max-w-48"></span>
+          </div>
+        }
+      </div>
+    </section>
+    <section class="card-section mt-4">
+      <span class="skeleton max-w-36"></span>
+      <span class="skeleton mt-4 max-w-72"></span>
+      <span class="skeleton mt-2 max-w-56"></span>
+    </section>
   </div>
 }

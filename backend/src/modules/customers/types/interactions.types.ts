@@ -1,4 +1,5 @@
 import type { customerInteractions } from '../models/customer-interactions.model';
+import type { CustomerStatus } from '../enums/customers.enum';
 import type { InteractionRefKind, InteractionType } from '../enums/interactions.enum';
 
 export type InteractionRow = typeof customerInteractions.$inferSelect;
@@ -27,9 +28,12 @@ export interface InteractionDTO {
 }
 
 /** Feed row for the tenant-wide latest-activity read (utm-params 03): the
- *  timeline DTO plus the customer it belongs to, for linking out. */
+ *  timeline DTO plus the customer it belongs to, for linking out. The status
+ *  rides along since the 2026-07-22 cockpit layout turn (activity table's
+ *  Estatus column). */
 export interface RecentInteractionDTO extends InteractionDTO {
   customerName: string;
+  customerStatus: CustomerStatus;
 }
 
 /** A backend-generated `system` entry appended in the same transaction as the

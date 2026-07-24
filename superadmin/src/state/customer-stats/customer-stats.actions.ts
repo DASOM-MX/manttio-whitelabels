@@ -26,3 +26,19 @@ export class LoadRecentCustomers {
     readonly refresh = false,
   ) {}
 }
+
+export class LoadIntakeTrend {
+  static readonly type = '[CustomerStats] LoadIntakeTrend';
+  constructor(
+    readonly months = 6,
+    readonly refresh = false,
+  ) {}
+}
+
+export class LoadFollowUps {
+  static readonly type = '[CustomerStats] LoadFollowUps';
+  constructor(
+    readonly limit = 8,
+    readonly refresh = false,
+  ) {}
+}

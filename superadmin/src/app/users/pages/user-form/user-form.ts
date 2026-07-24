@@ -18,7 +18,6 @@ import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import {
-  LucideArrowLeft,
   LucideKeyRound,
   LucidePencil,
   LucideUserCheck,
@@ -40,6 +39,7 @@ import { ROLE_LABELS } from '../../../model/constants/user/role-labels.const';
 import { GRANTABLE_ROLES } from '../../../model/constants/user/grantable-roles.const';
 import { TempPasswordDialog } from '../../components/temp-password-dialog/temp-password-dialog';
 import { errorMessage } from '../../../data/utils';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
 import type { Role } from '../../../data/dtos/auth';
 
@@ -65,7 +65,7 @@ type Tab = (typeof TAB_ORDER)[number];
     TempPasswordDialog,
     RoleLabelPipe,
     RolePillClassPipe,
-    LucideArrowLeft,
+    PageHeader,
     LucideKeyRound,
     LucidePencil,
     LucideUserCheck,

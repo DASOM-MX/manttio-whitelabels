@@ -8,7 +8,11 @@ import {
   recentCustomersQuerySchema,
   updateCustomerSchema,
 } from '../validators/customers.validator';
-import { intakeStatsQuerySchema } from '../validators/customer-stats.validator';
+import {
+  followUpsQuerySchema,
+  intakeStatsQuerySchema,
+  intakeTrendQuerySchema,
+} from '../validators/customer-stats.validator';
 import {
   addInteractionSchema,
   changeStatusSchema,
@@ -29,7 +33,7 @@ import {
   getInteractions,
   getRecentInteractions,
 } from '../services/interactions.service';
-import { getIntakeStats } from '../services/customer-stats.service';
+import { getFollowUps, getIntakeStats, getIntakeTrend } from '../services/customer-stats.service';
 import { getCustomerEquipment } from '../../equipment/services/equipment.service';
 import { getCustomerReports } from '../../reports/services/reports.service';
 import {
@@ -56,6 +60,30 @@ customers.get(
   async (c) => {
     const db = createDb(c.env.DATABASE_URL);
     return c.json(await getIntakeStats(db, c.req.valid('query').month));
+  },
+);
+
+// Monthly intake series for the dashboard trend chart (CRM dashboard
+// redesign 2026-07-22). Same gate + placement rules as /stats/intake.
+customers.get(
+  '/stats/trend',
+  requireRole(['owner', 'admin', 'office']),
+  zValidator('query', intakeTrendQuerySchema),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    return c.json(await getIntakeTrend(db, c.req.valid('query').months));
+  },
+);
+
+// Follow-up agenda + overdue/scheduled counts for the dashboard (CRM
+// dashboard redesign 2026-07-22). Declared before GET /:id.
+customers.get(
+  '/follow-ups',
+  requireRole(['owner', 'admin', 'office']),
+  zValidator('query', followUpsQuerySchema),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    return c.json(await getFollowUps(db, c.req.valid('query').limit));
   },
 );
 

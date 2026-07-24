@@ -30,6 +30,22 @@ export async function signIn(page: Page, me: MeResponse = ADMIN_ME): Promise<voi
 
   await page.route(/\/auth\/me(\?.*)?$/, (route) => route.fulfill({ json: me }));
   await page.route(/\/brand(\?.*)?$/, (route) => route.fulfill({ json: { name: 'E2E Brand' } }));
+
+  // The shell's notification bell fires on every authenticated page. Stub
+  // quiet defaults here, or a live dev backend answers the fake token with a
+  // real 401 and the interceptor logs the whole test out mid-run. Specs that
+  // assert on notifications register mockNotificationsApi afterwards — later
+  // routes win, so these defaults never shadow it.
+  await page.route(/\/notifications\/stream$/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'text/event-stream',
+      body: 'event: unread-count\ndata: 0\n\n',
+    }),
+  );
+  await page.route(/\/notifications(\?.*)?$/, (route) =>
+    route.fulfill({ json: { items: [], total: 0, unreadCount: 0, page: 1, limit: 25 } }),
+  );
 }
 
 export interface CustomersApiMock {

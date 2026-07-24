@@ -5,13 +5,31 @@
    surface; rows separate via whitespace + hover, the header via its
    surface tint. */
 .p-datatable {
-  @apply block w-full max-w-full bg-white rounded-2xl shadow-card overflow-hidden
+  @apply block w-full max-w-full bg-white rounded-card shadow-card overflow-hidden
          dark:bg-surface-900;
 }
 .app-dark .p-datatable {
   box-shadow:
     0 6px 20px -6px rgb(0 0 0 / 0.5),
     0 2px 8px -2px rgb(0 0 0 / 0.4);
+}
+
+/* Edge-to-edge variant inside padded cards (owner 2026-07-23, CRM
+   dashboard): wrap the p-table in `.card-flush-table` to cancel the
+   card-section's px-6 gutters — the table is part of the card surface
+   there, not a standalone floating one, so it sheds its own rounded +
+   shadow chrome. The px-4 cells keep content off the card edge. Lives
+   unlayered here (not styles.scss @layer components) so it can outrank
+   the .app-dark shadow above. */
+.card-flush-table {
+  @apply -mx-6;
+
+  .p-datatable {
+    @apply rounded-none shadow-none;
+  }
+}
+.app-dark .card-flush-table .p-datatable {
+  box-shadow: none;
 }
 
 /* Wrappers PrimeNG always renders but that should stay hidden until active. */
@@ -49,7 +67,7 @@
   @apply ml-1 inline-block align-middle size-3.5 text-primary-600 dark:text-primary-400;
 }
 .p-datatable-sort-badge {
-  @apply ml-1 inline-flex items-center justify-center size-4 rounded-full bg-primary-600 text-white text-2xs font-bold;
+  @apply ml-1 inline-flex items-center justify-center size-4 rounded-full bg-primary-600 text-white text-2xs font-semibold;
 }
 .p-datatable-tbody {
   @apply bg-white dark:bg-surface-900;
@@ -89,11 +107,14 @@
 .p-paginator-next,
 .p-paginator-first,
 .p-paginator-last {
-  @apply size-9 inline-flex items-center justify-center rounded-full text-sm font-semibold font-data tabular-nums text-surface-800 hover:bg-primary-0 cursor-pointer transition-colors
+  // rounded-control since the default-PrimeNG button turn (owner 2026-07-22
+  // — paginator pages follow the .btn shape, no more circles).
+  @apply size-9 inline-flex items-center justify-center rounded-control text-sm font-medium font-data tabular-nums text-surface-800 hover:bg-primary-0 cursor-pointer transition-colors
          dark:text-surface-200 dark:hover:bg-surface-800;
 
   &.p-paginator-page-selected {
-    @apply bg-primary-700 text-white font-bold hover:bg-primary-800 dark:bg-primary-600 dark:hover:bg-primary-500;
+    // No weight bump — the solid fill carries the cue (weight ladder).
+    @apply bg-primary-700 text-white hover:bg-primary-800 dark:bg-primary-600 dark:hover:bg-primary-500;
   }
   &.p-disabled {
     @apply opacity-30 cursor-not-allowed;

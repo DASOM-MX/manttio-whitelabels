@@ -1,18 +1,13 @@
-<div class="flex flex-wrap items-center gap-3">
-  <a
-    routerLink="/equipment"
-    class="inline-flex size-10 items-center justify-center rounded-full text-surface-600 transition-colors hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
-    aria-label="Volver a equipos"
-  >
-    <svg lucideArrowLeft class="size-5" aria-hidden="true"></svg>
-  </a>
-  <h1 class="text-xl font-bold text-surface-1000 dark:text-surface-0">Equipo</h1>
+<app-page-header title="Equipo" backLink="/equipment" backLabel="Volver a equipos">
+  <span meta class="contents">
+    @if (equipment(); as eq) {
+      <p-tag
+        [severity]="eq.status | equipmentStatusSeverity"
+        [value]="eq.status | equipmentStatusLabel"
+      />
+    }
+  </span>
   @if (equipment(); as eq) {
-    <p-tag
-      [severity]="eq.status | equipmentStatusSeverity"
-      [value]="eq.status | equipmentStatusLabel"
-    />
-    <div class="flex-1"></div>
     <div class="flex gap-2">
       <button type="button" class="btn-secondary" (click)="openEdit()">
         <svg lucidePencil class="size-4" aria-hidden="true"></svg>
@@ -25,7 +20,7 @@
       }
     </div>
   }
-</div>
+</app-page-header>
 
 @if (equipment(); as eq) {
   <div class="mt-5 grid gap-4 xl:grid-cols-2">
@@ -56,11 +51,9 @@
         <div>
           <dt class="micro-label">Cliente</dt>
           <dd class="mt-0.5 text-sm font-medium">
-            <a
-              [routerLink]="['/customers', eq.customerId]"
-              class="text-primary-700 hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
-              >{{ eq.customerName }}</a
-            >
+            <a [routerLink]="['/customers', eq.customerId]" class="link-action">{{
+              eq.customerName
+            }}</a>
           </dd>
         </div>
         <div>
@@ -165,7 +158,7 @@
         </div>
         <button
           type="button"
-          class="btn-secondary !h-12"
+          class="btn-secondary !h-11 sm:!h-10"
           (click)="attach()"
           [disabled]="!linkControl.value || linking()"
         >
@@ -178,10 +171,7 @@
         @for (report of eq.reports ?? []; track report.id) {
           <li class="flex items-center justify-between gap-3 py-2.5">
             <div class="min-w-0">
-              <a
-                [routerLink]="['/reports', report.id]"
-                class="text-sm font-semibold text-primary-700 hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
-              >
+              <a [routerLink]="['/reports', report.id]" class="link-action">
                 {{ report.folio || report.id }}
               </a>
               <p class="text-xs text-surface-500 dark:text-surface-400">
@@ -193,7 +183,7 @@
             </div>
             <button
               type="button"
-              class="inline-flex size-9 items-center justify-center rounded-full text-surface-500 transition-colors hover:bg-surface-100 hover:text-surface-800 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-200"
+              class="row-action"
               (click)="detach(report)"
               [attr.aria-label]="'Desvincular reporte ' + (report.folio || report.id)"
             >
@@ -211,11 +201,21 @@
 
   <app-equipment-form-dialog #formDialog (saved)="refresh()" />
 } @else {
-  <div class="mt-10 flex justify-center">
-    <div
-      class="size-8 animate-spin rounded-full border-2 border-surface-200 border-t-primary-600 dark:border-surface-700 dark:border-t-primary-400"
-      role="status"
-      aria-label="Cargando equipo"
-    ></div>
+  <!-- Skeleton mirrors the page shape: ficha + historial cards (skeletons
+       over spinners, 01 Design language; plan 17 CP-5). -->
+  <div class="mt-5 grid gap-4 xl:grid-cols-2" role="status" aria-label="Cargando equipo">
+    @for (card of [0, 1]; track card) {
+      <section class="card-section">
+        <span class="skeleton max-w-24"></span>
+        <div class="mt-6 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+          @for (r of [0, 1, 2, 3]; track r) {
+            <div>
+              <span class="skeleton max-w-24"></span>
+              <span class="skeleton mt-2 max-w-48"></span>
+            </div>
+          }
+        </div>
+      </section>
+    }
   </div>
 }
