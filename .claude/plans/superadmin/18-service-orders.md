@@ -1,12 +1,19 @@
 # 18 — Service orders
 
-> **Status:** planned · **Depends on:** 07 (client), 17 (catalog), 06 (report explosion), 12 (visits) · **Hooks:** 08 (timeline), 09 (billing), 13 (contracts likely generate orders — ask)
-> **Owner:** — · **Last updated:** 2026-07-23
+> **Status:** planned · **Depends on:** 07 (client), 17 (catalog), 19 (born from accepted quotations), 06 (report explosion), 12 (visits) · **Hooks:** 08 (timeline), 09 (billing), 13 (contracts likely generate orders — ask)
+> **Owner:** — · **Last updated:** 2026-07-24
 
 The **commercial job**: what was sold to whom, and everything operational that hangs
 off it. One order composes 1..n catalog services (17) for one client, **owns 1..n
 scheduled visits** (12 — when we go) and **0..n reports** (06 — what happened).
 Creating an order also announces itself on the client's CRM timeline (08).
+
+> **Born from quotations (decided 2026-07-24).** The primary way an order is created is
+> by **accepting a quotation (19)** — the order inherits the quote's frozen line
+> snapshots (name/uom/qty/unitPrice/taxable), so what's serviced/billed matches exactly
+> what the client approved. `quotationId` links back to the source. **Direct order
+> creation stays allowed** (`quotationId` null) for walk-in/emergency jobs. The
+> order-builder page (§5) is the direct path; the quote path auto-generates on accept.
 
 > **Packaging (decided 2026-07-23).** Orders/services/calendar form the **operations
 > suite**; **reporting (06) sells separately**. So the dependency is one-directional:
@@ -41,6 +48,9 @@ ServiceOrder {             // near-immutable — see mutability rules below
                            //   table (service_order_counters, report_counters
                            //   mechanics)
   customerId,              // required, immutable — restrict, never cascade
+  quotationId?,            // nullable — the accepted quotation this order was born
+                           //   from (19); null for directly-created orders (both
+                           //   paths allowed, 2026-07-24). Immutable.
   location?,               // service site/address (free text v1) — MUTABLE, but
                            //   owner/admin only (decided 2026-07-23)
   status: 'open' | 'completed' | 'cancelled',
@@ -52,10 +62,14 @@ ServiceOrder {             // near-immutable — see mutability rules below
 }
 ServiceOrderLine {         // table: service_order_services
   id, serviceOrderId, serviceId,
+  serviceName, uom, taxable,  // SNAPSHOT — inherited from the quotation line when
+                           //   born from a quote (19), else captured from the
+                           //   catalog on direct creation; keeps order ↔ quote ↔
+                           //   invoice aligned
   quantity,                // int >= 1, default 1 — explodes `quantity` reports
                            //   (one per unit, decided 2026-07-23)
-  unitPrice,               // numeric(12,2) SNAPSHOT of services.price at order
-                           //   time — catalog edits never rewrite history
+  unitPrice,               // numeric(12,2) SNAPSHOT (same source as above) —
+                           //   catalog edits never rewrite history
   // explosion inputs (decided 2026-07-23 — invariants kept): the create flow
   //   captures technicianId + reportType per line; the `quantity` exploded
   //   reports inherit them and are each individually reassignable afterward

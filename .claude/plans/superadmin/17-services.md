@@ -1,14 +1,17 @@
 # 17 — Services (catalog)
 
-> **Status:** planned · **Depends on:** 02 · **Consumed by:** 18 (order lines), 06 (template link), 15 (website listing), 09 (billing)
-> **Owner:** — · **Last updated:** 2026-07-23
+> **Status:** planned · **Depends on:** 02 · **Consumed by:** 19 (quotation lines), 18 (order lines), 06 (template link), 15 (website listing), 09 (billing)
+> **Owner:** — · **Last updated:** 2026-07-24
 
 The tenant's **service catalog** — what the business sells (mantenimiento preventivo,
-instalación, diagnóstico…), priced per unit of measure. Service orders (18) compose
-one or more catalog services into a job for a client; templates (06 §5) can bind to a
-service so report filling starts from the right form set.
+instalación, diagnóstico…), priced per unit of measure. Quotations (19) feed from this
+catalog, and the service orders (18) an accepted quote generates compose the same
+services into a job; templates (06 §5) can bind to a service so report filling starts
+from the right form set.
 
-Deliberately small: a flat catalog, no categories/variants/taxes in v1.
+Deliberately small: a flat catalog, no categories/variants in v1. Each service carries a
+`taxable` flag (2026-07-24) so quotations can build the IVA base (19 §3) — the only tax
+concept at the catalog level.
 
 ---
 
@@ -25,6 +28,10 @@ Service {
                            //   'equipo', 'visita'… — no invented catalog,
                            //   same posture as equipment.kind (11 §1)
   description?,
+  taxable,                 // boolean, default true (decided 2026-07-24) — whether
+                           //   IVA applies; quotation lines snapshot this to build
+                           //   the tax base (19 §3). Exempt/zero-rated services set
+                           //   false
   isListableInWebsite,     // boolean, default false — feeds the future
                            //   public website services section (15 ask)
   isPriceVisibleInWebsite, // boolean, default false (decided 2026-07-23) — a
@@ -57,7 +64,8 @@ a. Technicians only ever see service *names* through their assigned reports/orde
   website pill, updated) — customers-list idiom, URL-persisted filters (`q`).
   Primary action **Registrar servicio** opens the dialog.
 - `services/components/service-form-dialog/` — shape-3 create/edit: name, price
-  (`p-inputnumber` `mode="currency"` MXN), uom, description, then two website toggles:
+  (`p-inputnumber` `mode="currency"` MXN), uom, description, `taxable` toggle (default
+  on — "Aplica IVA"), then two website toggles:
   `isListableInWebsite` ("Aparecerá en la sección de servicios del sitio") and, revealed
   when it's on, `isPriceVisibleInWebsite` ("Mostrar el precio en el sitio") — progressive
   disclosure, since price-visibility only matters for a listed service.
