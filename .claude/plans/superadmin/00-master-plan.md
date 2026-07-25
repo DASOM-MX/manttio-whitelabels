@@ -29,11 +29,14 @@ then its own file, and touches no other module's code.
 | 10 | `10-wms.md` | Warehouse management: locations, materials, replenishments (file import + evidence), technician stock, report material tracking | 02, 05, 06 |
 | 11 | `11-equipment.md` | Client equipment/asset registry + per-unit service history | 07; hooks 06, 10 |
 | 12 | `12-calendar.md` | Scheduled visits + team calendar (reassign, tech swap, Google Calendar push + overlay) | 02, 05, 07 |
-| 13 | `13-contracts.md` | Maintenance contracts (pólizas) → generate visits into 12 | 07, 12; 11 opt. |
+| 13 | `13-contracts.md` | Contracts: signed document artifacts generated from service orders (guarantee / maintenance / rent / sell / buy / installation), typed + dated + audited | 07, 19; 11 opt. |
 | 14 | `14-access-control.md` | Roles + tenant-config gating matrix (reference, binding for all modules) | — |
 | 15 | `15-website.md` | Public tenant website: consumes published CMS + brand (reads only — `website/` package work, not superadmin code) | 03, 04 |
 | 16 | `16-semantic-brand-colors.md` | Semantic Tailwind color classes (`primary-*`/`surface-*` replace `sky`/`granite`/`navy`/`cyan`) across frontend + superadmin + website | **everything — deferred closing sweep, runs last** |
 | 17 | `17-executive-refresh.md` | Whole-app UI/UX refresh: preset-first stock Aura + "soft-executive" language + Figtree, breathable executive rhythm | shipped surfaces (02–08, 11); **runs mid-suite, before 09/10/12/13** |
+| 18 | `18-services.md` | Tenant service catalog: name/price/uom/description + website-listing flag | 02 |
+| 19 | `19-service-orders.md` | Service orders: catalog lines → exploded `pending` reports, order-bound visits (12), CRM timeline entry (08), order-level audit timeline, template↔service prefilter (06) | 07, 18, 20, 06, 12 |
+| 20 | `20-quotations.md` | Quotations: catalog-fed quotes with frozen price/uom/qty snapshots, mailed to client reviewer-contacts, token-guarded approve/decline (mutable), 7-state machine; staff create a service order (19) from an approved quote | 07, 18; feeds 19 |
 
 Build order **is numeric order** (renumbered 2026-07-05: branding and CMS are separate,
 independent modules — 03/04 — and access-control moved to 14 as pure reference).
@@ -41,8 +44,9 @@ independent modules — 03/04 — and access-control moved to 14 as pure referen
 branding + headless CMS are the whitelabel selling points** (independent of each other;
 parallel agents). **05, 06, 07** run in parallel as capacity allows. **08** starts after
 07's data-model checkpoint; **09** after 06 + 07; **10** after 05 + 06. Second wave:
-**11** after 07; **12** after 05 + 07; **13** after 12's CP-1 (visit entity) —
-contracts generate visits, so the calendar's entity must exist first. **15** (the
+**11** after 07; **12** after 05 + 07; **13** after **19** (service orders) — orders generate 0..n contracts (signed
+document artifacts, not visit generators; reworked 2026-07-24); standalone contracts need
+only 07. **15** (the
 public website) is consumer-side `website/` work — it can start once 03's brand read
 path and 04's publish flow exist backend-side; it never blocks a superadmin module.
 **16** is the deferred closing sweep (decided 2026-07-15): strictly last, after the whole
@@ -50,6 +54,14 @@ MVP ships — do not start it alongside module work. **17** (executive refresh) 
 sanctioned out-of-order insertion (owner 2026-07-22): it runs immediately after PR #88
 merges and **before 09/10/12/13 start**, so the remaining modules are authored in the
 refreshed language instead of being restyled later.
+
+**18–20** are the **operations + sales suite** — services → quotations → service orders —
+a later wave built on 07 (clients) and the refreshed language. The suite's internal build
+order is **18 services → 20 quotations → 19 service orders** (a quotation is the sales
+entry point; an accepted quote gives birth to an order), even though the file numbers read
+18/19/20. **Reporting (06) stays independently sellable** — nothing in the suite is a hard
+dependency of 06 (06 standalone-suite rule), so a reporting-only tenant runs none of
+18/19/12.
 
 ---
 
@@ -107,6 +119,9 @@ Rules for agents:
 | 15 website | in-progress · PR #44 | CP-2 |
 | 16 semantic-brand-colors | superadmin leg (PR-2) **done** — front-run 2026-07-21, PR #87; frontend/website legs deferred, run last (post-MVP) | — |
 | 17 executive-refresh | planned (doc) — **runs next, after PR #88 merges** | — |
+| 18 services | not-started (planned doc) | — |
+| 19 service-orders | not-started (planned doc) | — |
+| 20 quotations | not-started (planned doc) | — |
 
 *(Owning agents update their row when they update their file's status header.)*
 
@@ -141,8 +156,9 @@ Rules for agents:
   (client 360 header, multiple contacts, tags, referral link, WhatsApp/call/email
   quick actions that pre-fill the timeline composer). The strategic set gets its own
   modules: **11 equipment registry**, **12 calendar/scheduled visits** (staff schedule +
-  reassign; technicians view team calendar and swap their own visits), **13 maintenance
-  contracts** (office drafts, owner/admin activate; activation generates visits into 12).
+  reassign; technicians view team calendar and swap their own visits), **13 contracts**
+  (signed document artifacts generated from service orders — guarantee / maintenance /
+  rent / sell; typed, dated, audited; no visit generation).
   Service **sites** (multi-location clients) deliberately held until a real tenant asks.
 - **Visit reassignments are audited append-only** (same principle as WMS movements):
   assignment history is never edited/deleted; `technicianId` is the latest entry. See
@@ -152,8 +168,8 @@ Rules for agents:
   enum**: a `*Def` entity with an immutable auto-slugged `code`, an editable `label`,
   and an `active` flag — **deactivate-only, never deleted** (referencing records keep
   rendering by `code`). Instances: WMS `MovementReasonDef` (10 §1, owner/admin, locked
-  built-ins) and `ContractTypeDef` (13 §1.1, owner-only, unlocked seeds). New extensible
-  lists must reuse this shape.
+  built-ins). (Contracts (13) moved to a **fixed `ContractType` enum** on 2026-07-24 — no
+  longer an instance of this pattern.) New extensible lists must reuse this shape.
 - **Brand identity is tenant-owned — decided 2026-07-05** (supersedes "brand read-only,
   set via manager push"): one `Brand` object per tenant (name, slogan, logo/logo-dark/
   isologo R2 keys, contact, social, **materialized** primary + surface color scales
@@ -278,10 +294,9 @@ agent hitting a checkpoint checks this page for items tagged to it.
 - [ ] 10 — tracking-mode immutability after first movement; serialized consumption:
       `consumed` status vs virtual location; nesting depth (one sub-level enough?);
       van-as-sub-warehouse assumption; inbound dialog vs `replenishment` reason.
-- [ ] 12 — report→visit closing heuristic; `missed` auto-sweep cron (same infra as
-      13's expiry cron).
-- [ ] 13 — visit generation upfront vs rolling; `active → expired` cron; Spanish
-      contract-type label wording.
+- [ ] 12 — report→visit closing heuristic; `missed` auto-sweep cron.
+- [ ] 13 — whether contract-file downloads are access-logged (signed-URL TTL decided: 1 h;
+      no visit generation / expiry cron — validity derives from dates).
 - [~] 15 — ~~public **published-only** CMS read routes for the website~~ — **shipped
       2026-07-07 (PR #54): `GET /public/cms/home|clients`**. Still open: whether
       published docs ride the `TenantCacheDO` with publish-time invalidation
@@ -317,8 +332,6 @@ agent hitting a checkpoint checks this page for items tagged to it.
 - 08 — author-edit of manual timeline entries (default no); v2 deals + task entity.
 - 12 — FullCalendar adoption; swap approval step; external-event title privacy;
   timeline logging of matched events; secondary calendars; overlay freshness cache.
-- 13 — billing integration; contract PDF (póliza); `one_time_maintenance` prefill;
-  v2 behavior-bearing types.
 - 14 — per-warehouse self-checkout flag; office correcting report materials.
 - Backend — refresh-token encryption; PDF font-embedding cost measurement.
 
