@@ -26,7 +26,7 @@ then its own file, and touches no other module's code.
 | 07 | `07-clients.md` | Clients directory + Mexican invoicing info | 02 |
 | 08 | `08-crm.md` | Light CRM: status, source, blacklist, activity timeline, follow-up date | 07 |
 | 09 | `09-billing.md` | Billing + billing-by-reports | 02, 06, 07 |
-| 10 | `10-wms.md` | Warehouse management: locations, materials, replenishments (file import + evidence), technician stock, report material tracking | 02, 05, 06 |
+| 10 | `10-wms/` (suite — entry `10-wms/00-overview.md`; `10-wms.md` redirects) | Warehouse management: locations, materials, replenishments (file import + evidence), technician stock, report material tracking | 02, 05, 06 |
 | 11 | `11-equipment.md` | Client equipment/asset registry + per-unit service history | 07; hooks 06, 10 |
 | 12 | `12-calendar.md` | Scheduled visits + team calendar (reassign, tech swap, Google Calendar push + overlay) | 02, 05, 07 |
 | 13 | `13-contracts.md` | Contracts: signed document artifacts generated from service orders (guarantee / maintenance / rent / sell / buy / installation), typed + dated + audited | 07, 19; 11 opt. |
@@ -46,7 +46,10 @@ parallel agents). **05, 06, 07** run in parallel as capacity allows. **08** star
 07's data-model checkpoint; **09** after 06 + 07; **10** after 05 + 06. Second wave:
 **11** after 07; **12** after 05 + 07; **13** after **19** (service orders) — orders generate 0..n contracts (signed
 document artifacts, not visit generators; reworked 2026-07-24); standalone contracts need
-only 07. **15** (the
+only 07. **10's inventory *reservation* slice (10-wms §6 #10) needs 12's visit entity** —
+reservations are raised at visit scheduling — so **12's visit entity precedes that WMS
+slice** (owner 2026-07-21: build 12 first; the rest of WMS — warehouses/materials/stock/
+replenishments/stocktake — is independent of 12). **15** (the
 public website) is consumer-side `website/` work — it can start once 03's brand read
 path and 04's publish flow exist backend-side; it never blocks a superadmin module.
 **16** is the deferred closing sweep (decided 2026-07-15): strictly last, after the whole
@@ -111,7 +114,7 @@ Rules for agents:
 | 07 clients | **done** (frontend side; branch `feature/superadmin-customers`) | CP-3 |
 | 08 crm | **done** (frontend side; branch `feature/superadmin-crm`) | CP-4 |
 | 09 billing | not-started | — |
-| 10 wms | not-started | — |
+| 10 wms | not-started (plan expanded 2026-07-19 → `10-wms/` suite) | — |
 | 11 equipment | **done** (frontend side; branch `feature/superadmin-equipment`) | CP-3 |
 | 12 calendar | not-started | — |
 | 13 contracts | not-started | — |

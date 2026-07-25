@@ -182,10 +182,64 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
   — the template spec is fully decided (06 §5, incl. §5.5 binding/snapshot).
 - **billing** (09): bills + items (`report_id` per item), status flow with
   office-draft / owner-admin-send gating; report on ≤1 non-cancelled bill.
-- **wms** (10): the largest surface — stock endpoints all require a `reason`;
-  self-checkout constraints server-enforced; replenishments with backend file parsing
-  (`POST /replenishments/parse`, SheetJS-on-Workers CPU check) + R2 evidence;
-  movements append-only per §2.
+- **wms** (10): the largest surface — **three tracking modes**
+  `serialized | lot | unserialized` (lot added 2026-07-20 for batch consumables —
+  `material_lots` balances keyed by lot+location, movements + report-materials +
+  imports all carry `lotNumber + quantity`; **lot re-receipt tops up, optional
+  per-lot `expires_at` with manual-FEFO `lot_expired` reason + consume-expired
+  warning dialog**); stock endpoints all require a `reason` (**13 seeded built-ins
+  incl. `scrap`/Merma + `lot_expired`/Lote vencido, `readjustment_out`, added
+  2026-07-20**); self-checkout constraints server-enforced; replenishments via the
+  async import pipeline (below) + R2 evidence; movements append-only per §2. **Full backend spec now in the expanded suite
+  (2026-07-19): `.claude/plans/superadmin/10-wms/01-data-model.md` (tables, enums,
+  seeds, stock math) + `02-api-surface.md` (endpoint catalog, gates, error codes).**
+  New asks from the suite: two dedicated WMS R2 buckets (owner 2026-07-20) —
+  `manttio-wms-sheets` (transient import spreadsheets, purged after processing) +
+  `manttio-wms-evidence` (permanent evidence photos) — each with its own CDN base env
+  (equipment precedent); `office` role in the JWT middleware is
+  a prerequisite for the wms office gates. **Import pipeline (2026-07-19):**
+  replenishment imports are field-mapped **async batch jobs** — the request path
+  only stages the file in R2 + detects fields (header + ≤5 sample rows) + sets
+  `queued` and sends `{ importId }` to a **Cloudflare Queues** binding; the
+  backend's own **queue consumer** (spec:
+  `.claude/plans/superadmin/10-wms/11-processing-service.md` — decided 2026-07-19,
+  supersedes the external-service iterations) parses with a raised
+  `limits.cpu_ms`, writes rows/status into the **staging (temp) table**, and
+  **purges the staged binary once processed** (`file_deleted_at`; parsed `raw`
+  rows are the durable record — uploads are copies, the tenant keeps the
+  original); platform retries → DLQ ⇒ `failed`; a daily cron sweeps leftover
+  binaries **and never-approved staging rows**; **only one import in flight per
+  parent warehouse** (owner 2026-07-20 — a `parent_warehouse_id` partial unique
+  index on the pre-approval statuses →
+  `409 import_in_progress`); superadmin listens on an **SSE status stream**
+  (`GET /replenishments/imports/:id/events` — server-side row watcher, closes at
+  the terminal event; one-shot GET for loads). Row fixes +
+  evidence/notes prep persist on the staging rows/import (PATCH). **The whole
+  import lifecycle is audited** (owner 2026-07-20): an append-only
+  `replenishment_import_events` log — `created`→`mapping_submitted`→processing
+  (system)→`row_updated`/`row_removed`→`evidence_updated`/`notes_updated`→
+  `rejected`/`resubmitted`→`stale`|`cancelled`|`approved` — permanent, survives
+  approval; **governance tiers, each logged: staged-row removal is owner/admin +
+  reason-required** (office edits quantities, can't remove); **reject is owner/admin
+  + comment-required** (→ office adjusts + resubmits → re-notifies the manager);
+  **full cancel is owner-only + reason-required** (truncates staging, closes the
+  record → `cancelled`); plus a per-import human-readable plain-text-JSON
+  `submission_snapshot` (file + mapping). Replenishment-scoped, not a generic WMS
+  edit audit. **approval —
+  owner/admin only (14 §2.1e) — promotes staging into the inventory tables and
+  deletes the staged rows (true move — the one sanctioned hard-delete exception:
+  staging is a temp table, not an entity)** (doc + items + movements + stock in
+  one transaction). Config store: the cross-cutting Postgres **`settings` key-value table**
+  (`getSetting`/`setSetting`; **the DB is the source of truth**), fronted by a per-tenant
+  **Durable Object read-cache** (owner 2026-07-21 — rapid reads, write-through +
+  invalidate on `setSetting`; the existing `TenantCacheDO` §5 pattern, **not** a
+  replacement for the table); keys — first `wms.last_replenishment_mapping` (by header
+  text) powers the mapper prefill, second `notifications.manager_user_id` names the configured **CMS-manager**
+  who receives **approval/failure warnings** — the queue consumer emails them
+  (de-branded via `/brand`, best-effort, unconfigured-skip) on `ready`/`failed` and
+  superadmin shows an app-shell banner (2026-07-20). Retires the SheetJS-on-Workers
+  CPU concern. Ops asks: Workers **paid plan**
+  (Queues) + per-tenant queue/DLQ names (per-deploy values, like the buckets).
 - **equipment** (11): `equipment` table + `report_equipment` join; retro-link
   endpoints; hook: serialized unit consumed on a report ⇒ offer/auto-create the
   client `Equipment` (`material_unit_id` backlink).
