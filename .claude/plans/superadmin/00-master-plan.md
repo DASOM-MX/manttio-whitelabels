@@ -332,8 +332,6 @@ agent hitting a checkpoint checks this page for items tagged to it.
 - 08 — author-edit of manual timeline entries (default no); v2 deals + task entity.
 - 12 — FullCalendar adoption; swap approval step; external-event title privacy;
   timeline logging of matched events; secondary calendars; overlay freshness cache.
-- 13 — contract file versioning (keep old files); early-termination status vs soft-delete;
-  amount/value on contracts (billing 09).
 - 14 — per-warehouse self-checkout flag; office correcting report materials.
 - Backend — refresh-token encryption; PDF font-embedding cost measurement.
 

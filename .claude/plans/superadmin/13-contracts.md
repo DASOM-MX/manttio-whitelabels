@@ -29,6 +29,10 @@ Contract {
   type,                    // ContractType enum (fixed, §1.1)
   description?,            // free text — what the contract covers / notes
   equipmentIds?: string[], // covered units (11) — optional, scoped to the client
+  visibleToRoles,          // Role[] — which non-manager roles may view/download this
+                           //   contract (office / technician). Owner + admin always see
+                           //   it and are the only ones who set this. Default: all
+                           //   (office + technician) — owners restrict per contract
   // stored document — signed-URL access only (§1.2)
   fileKey,                 // R2 object key — PRIVATE, never a public URL
   fileName,                // original upload name
@@ -118,28 +122,36 @@ append-only `contract_events` table — start on `customer_interactions`, revisi
 
 ## 4. Roles (extends `14-access-control.md` §2)
 
+**Visibility is per-contract (decided 2026-07-24).** Owner + admin always see and manage
+every contract; **office/technician see a contract only when their role is in its
+`visibleToRoles`**, which **only owner/admin set**. Default `visibleToRoles = [office,
+technician]` (all staff see by default) — owners **restrict** it per contract for sensitive docs.
+
 | Action | owner | admin | office | technician |
 |---|---|---|---|---|
-| View / download contracts (signed URL) | ✓ | ✓ | ✓ | — |
-| Create (from order or standalone) + upload file | ✓ | ✓ | ✓ | — |
-| Edit metadata · replace file | ✓ | ✓ | ✓ | — |
+| View / download (signed URL) | ✓ all | ✓ all | if role ∈ `visibleToRoles` | if role ∈ `visibleToRoles` |
+| Create (from order or standalone) + upload | ✓ | ✓ | ✓ | — |
+| Edit metadata · replace file | ✓ | ✓ | ✓ (visible ones) | — |
+| **Set visibility by role** (`visibleToRoles`) | ✓ | ✓ | — | — |
 | Delete (soft, reason) | ✓ | ✓ | — | — |
 
-Technicians don't manage contracts (they see the job's visits/reports, not the paperwork).
-Contracts carry **no money workflow** in v1 (no `amount`/billing; reconciliation is 09's).
+Technicians never create/edit contracts (they only ever *view* one an owner explicitly
+shares). Contracts carry **no money workflow** (no `amount`/billing — decided 2026-07-24;
+reconciliation is 09's).
 
 ## 5. Expected API surface
 
-- `GET /contracts?page&limit&search&customerId&serviceOrderId&type&validity` → paged
-  (`validity` = derived por-iniciar / vigente / vencido filter)
+- `GET /contracts?page&limit&search&customerId&serviceOrderId&type&validity` → paged,
+  **role-scoped** (owner/admin see all; office/technician see only contracts whose
+  `visibleToRoles` includes their role). `validity` = derived por-iniciar / vigente / vencido
 - `GET /contracts/:id` → contract + resolved customer / order / equipment display
 - `GET /contracts/:id/file-url` → `{ url, expiresAt }` — a fresh short-lived **signed** R2
   GET URL (the only way the file is served)
 - `POST /contracts` (multipart) — `{ customerId, serviceOrderId?, name, type, description?,
   equipmentIds?, validFromDate, expiryDate?, file }` → validate file type, store to R2,
   write the record, audit (§3)
-- `PATCH /contracts/:id` — metadata edits (name/type/description/dates/equipment);
-  audited with a field diff
+- `PATCH /contracts/:id` — metadata edits (name/type/description/dates/equipment); plus
+  `visibleToRoles` (**owner/admin only** — 403 for office); audited with a field diff
 - `POST /contracts/:id/file` (multipart) — replace the stored file; audited
 - `DELETE /contracts/:id` `{ deleteComment }` — soft delete (audited)
 - `GET /customers/:id/contracts` — customer-view card (07 slot — ask)
@@ -155,8 +167,9 @@ Contracts carry **no money workflow** in v1 (no `amount`/billing; reconciliation
   create/edit: client select (pre-filled + locked when launched from an order), type
   select (the fixed enum), name, description, validFrom + optional expiry
   (`p-datepicker`; a "sin vencimiento" toggle clears expiry), equipment multiselect
-  (scoped to the client, hidden until 11), and the **file upload** (pdf/docx/odt/xls/xlsx,
-  single file). Edit keeps the current file unless replaced.
+  (scoped to the client, hidden until 11), a **visibility-by-role** multiselect (owner/admin
+  only — office / technician; managers implicit), and the **file upload**
+  (pdf/docx/odt/xls/xlsx, single file). Edit keeps the current file unless replaced.
 - `contracts/pages/contract-view/` — header (folio, client link, type tag, validity pill,
   order link when present), metadata card, **document card** (file name/type + **Descargar**
   → fetches a fresh signed URL), covered-equipment list, and the contract's audit entries
@@ -181,16 +194,17 @@ Contracts carry **no money workflow** in v1 (no `amount`/billing; reconciliation
 ### CP-1 — Backend: contracts + file store + audit
 - [ ] `contracts` table + `contract_counters` + hand-written additive DDL;
       `ContractType` / `ContractFileType` CHECKs; `serviceOrderId?` FK (restrict);
-      `InteractionRefKind.Contract`
+      `visibleToRoles`; `InteractionRefKind.Contract`
 - [ ] CRUD + multipart upload to R2 (type allowlist) + `GET /:id/file-url` (short-lived
-      **signed** URL) + soft delete
+      **signed** URL, 1 h) + **role-scoped list/read** (`visibleToRoles`; owner/admin-only
+      to set it) + soft delete
 - [ ] Audit to `customer_interactions` (create / update / file-replace / delete);
       order-generated also logs `order_contract_generated` to the order timeline (19 §7)
 
 ### CP-2 — Superadmin: contracts UI
 - [ ] DTOs + `ContractsState` + http service
-- [ ] List (URL filters, validity pill) + form (upload) + view (signed-URL download) +
-      delete dialog
+- [ ] List (URL filters, validity pill) + form (upload + role-visibility, owner/admin) +
+      view (signed-URL download) + delete dialog
 - [ ] Nav **Contratos** + `ModuleKey`/`MODULE_ROLES` `'contracts'`; build green
 
 ### CP-3 — Order + customer integration
@@ -208,15 +222,18 @@ Contracts carry **no money workflow** in v1 (no `amount`/billing; reconciliation
   contract does **not** auto-schedule; future maintenance is new orders.
 - **Signed-URL TTL — 1 hour (decided 2026-07-24).** Whether downloads are additionally
   access-logged is still open (revisit at build).
-- **Early termination** — cancelling a live contract before `expiryDate` is a soft delete
-  with a reason in v1 (no separate `cancelled` status); add one if reporting must
-  distinguish expired vs terminated.
-- **File versioning** — v1 keeps only the current file (replace overwrites the ref,
-  audited); keep old versions only if a tenant asks.
+- **Role visibility — decided 2026-07-24:** per-contract `visibleToRoles`, **owner/admin
+  set**; owner/admin always see all, office/technician only when their role is listed.
+  **Default: all staff** (`[office, technician]`) — owners restrict per contract.
+- ~~Early termination~~ — **decided 2026-07-24: always soft delete** (with a reason); **no
+  `cancelled` status.** A terminated contract is a soft-deleted record; a naturally lapsed
+  one is simply `vencido` (past `expiryDate`) but not deleted.
+- ~~File versioning~~ — **decided 2026-07-24: none.** Replacing the file overwrites the
+  stored object + `fileKey` (the change is audited); old versions are not kept.
+- ~~Amount / value~~ — **decided 2026-07-24: no amount** on a contract (it's a document,
+  not a money record — makes no sense here); value/billing lives in 09.
 - **Audit home** — `customer_interactions` (reuse append-only infra) vs a dedicated
   `contract_events` table — start on the former, revisit if the CRM timeline gets noisy.
-- **Amount / value** — omitted in v1 (no money workflow on contracts); add `amount?` only
-  if the order/quote total should carry onto the contract (coordinate with 09).
 - ~~description vs comments~~ — **decided 2026-07-24: description only** (a single
   free-text field; the separate `comments` field is dropped).
 - Ask to 07: "Contratos" card slot on customer-view.
