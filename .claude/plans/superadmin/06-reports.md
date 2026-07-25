@@ -7,7 +7,7 @@
 > number-only zod refine), migration `0013` applied to Neon. Still pending: reports
 > capture/answer-snapshot rework, folio column, provisioning-time HVAC seed.)
 > **Depends on:** 02 (CP-3, done)
-> **Owner:** branch `feature/superadmin-reports` (stacked on the 02 shell PR) · **Last updated:** 2026-07-06
+> **Owner:** branch `feature/superadmin-reports` (stacked on the 02 shell PR) · **Last updated:** 2026-07-25 (§6 mailing contact-picker amendment)
 
 Admin-side browser for service reports captured in the field app. Superadmin **reads and
 administers** report *instances*; it does not author them (capture stays in `frontend/`) —
@@ -58,7 +58,11 @@ ReportDetail = ReportSummary + {
 - `GET /reports?page&limit&search&customerId&technicianId&templateId&from&to&status` → paged
 - `GET /reports/:id`
 - `GET /reports/:id/pdf` (existing pdf pipeline)
-- `POST /reports/:id/resend-email` *(open decision)*
+- `POST /reports/:id/email` + `GET /reports/:id/emails` + `POST /emails/:emailId/revoke`
+  — recipient contact selection; **allow-list widened to `technician` (own reports only)**
+  (§6, decided 2026-07-25).
+- `GET /customers/:id/contacts` — contact list for the mail picker, open to any authed
+  role incl. technician (§6.1).
 - `DELETE /reports/:id` with `{ deleteComment }` (soft delete)
 
 ## 3. Pages & components
@@ -74,9 +78,10 @@ ReportDetail = ReportSummary + {
   reports are dynamic now, never assume the old fixed HVAC shape), photo grid, signature
   image (unstyled in dark mode per
   conventions), PDF download button. **"Enviar por correo" button (QA 2026-07-09,
-  field-app parity):** finished/mailed reports, admin tier only (backend gate on
-  `POST /reports/:id/email` is owner/admin); confirm dialog → send (backend defaults
-  `to` to the customer email) → toast + reload so `finished` flips to `mailed`. Slots
+  field-app parity):** finished/mailed reports; opens a **mail dialog with the client
+  contact picker** (§6 — name + area, decided 2026-07-25) instead of a bare confirm →
+  send `{ to, cc, message }` → toast + reload so `finished` flips to `mailed`. Superadmin
+  stays admin-tier; the field app widens this to the assigned technician (§6.1/§6.4). Slots
   reserved for 09 (billing card) and 10 (materials card) — leave a clearly-marked
   placeholder region, don't build their UI.
 - `reports/components/delete-report-dialog/` — shape-3 dialog, audit comment (reuse the
@@ -277,6 +282,77 @@ ReportAnswer { questionId, label, datatype, value }               // label+datat
 
 ---
 
+## 6. Report mailing — recipient contact selection (full-stack, 2026-07-25)
+
+**Today both apps mail with an empty payload** — `report-view.emailReport()` (superadmin)
+and `report-detail.mailReport()` (field app) both `POST /reports/:id/email` with `{}`, and
+the backend defaults `to` to the customer's single denormalized `email`. This amendment
+lets the sender **pick which of the client's contacts receive the report**, sourced from
+`customer_contacts` (07) and shown as **name + area** (the contact's `role` — there is no
+`area` column, decided 2026-07-25). It is the **same contact-selection pattern** the
+service-order handoff mailer (19 §7) and quotation reviewer-contacts (20) use.
+
+### 6.1 Backend
+
+- **New read endpoint `GET /customers/:id/contacts`** → `{ contacts: [{ id, name, role,
+  email, phone, isDefault }] }`, active customer only. **Open to any authenticated role,
+  technicians included** — the field app needs it and can't read the full customer object
+  today (contacts only ride embedded in `GET /customers/:id`, gated owner/admin/office).
+  This exposes just the picker fields, lazily loaded when the mail dialog opens; it does
+  **not** widen the full customer read.
+- **Role widening on the email routes:** `POST /reports/:id/email` (+ `GET /:id/emails`
+  history + `POST /emails/:emailId/revoke`) gain **`technician`** (was owner/admin —
+  decided 2026-07-25). A technician may mail only **their own** reports — scope the guard
+  to `assigned_to`/`created_by === me` (reuse the report read-access predicate), so a tech
+  can't mail arbitrary reports. Owner/admin keep unrestricted access.
+- **Recipient contract unchanged:** `sendReportEmailSchema` stays
+  `{ to?, cc?, expiresInDays?, message? }`. The picker resolves the selected contacts to
+  `to` (the default/first contact) + `cc` (the rest). The backend still defaults `to` to
+  `customer.email` when the body is empty — auto-send-on-submit and back-compat are
+  untouched. Contacts with a null email are returned but non-selectable client-side;
+  the existing `no_recipient` guard stays the backstop.
+
+### 6.2 The contact picker (built per app — a shared *pattern*, not one component)
+
+`frontend/` and `superadmin/` are separate packages, so the picker is built in each, same
+shape: a **multiselect of the client's contacts**, each row **name (primary) + area
+(`role`, muted sublabel; `—` when null)** with the email shown muted. **Rows without an
+email are disabled** with a hint. Selection resolves to `to`/`cc`. Same widget is later
+reused by 19 §7 (handoff) and 20 (quote reviewers) — keep the option-shape generic
+(`{ id, name, role, email }`).
+
+### 6.3 Superadmin UI
+
+- Replace the empty-body confirm dialog in `reports/pages/report-view` (`emailReport()`)
+  with a **shape-3 mail dialog**: the contact picker + optional `message` + optional
+  expiry. Contacts come from the already-embedded `customer.contacts` (no new fetch).
+  Selected → `api.email(id, { to, cc, message, expiresInDays })`. Admin-tier as today
+  (superadmin has no technician surface); reload still flips `finished → mailed`.
+
+### 6.4 Field app UI (the pattern is net-new here)
+
+- Add a contacts fetch: `reports.service.getContacts(customerId)` → the new endpoint,
+  held in ephemeral dialog state (no need for a persistent NGXS slice v1).
+- Replace `SendReportEmail(id, {})` in `reports/pages/report-detail` (`mailReport()`) with
+  the **mail dialog + contact picker**; selected → `SendReportEmail(id, { to, cc, message })`.
+- **Technicians can now mail their own reports** (backend gate widened, 6.1): the "Enviar
+  por correo" button surfaces for the assigned tech on `finished`/`mailed` reports, not
+  just admin-tier.
+- **Auto-send-on-submit stays** (single `customer.email`, best-effort) — the picker powers
+  the explicit send/resend action. *Open:* should submit-time also offer the picker?
+  Leaning no (keep on-site submit frictionless) — deferred.
+
+### 6.5 Checkpoints (mailing)
+
+- **CP-M1 — Backend:** `GET /customers/:id/contacts` (all authed roles) + email-route role
+  widening to `technician` scoped to own reports; validators/tests. Build green.
+- **CP-M2 — Superadmin picker:** contact-picker + mail dialog wired into `report-view`;
+  resolves to `to`/`cc`. Build green.
+- **CP-M3 — Field app picker:** contacts fetch + contact-picker + mail dialog wired into
+  `report-detail`; tech-mails-own-report path. Build green.
+
+---
+
 ## Checkpoints
 
 ### CP-1 — List
@@ -343,7 +419,9 @@ ReportAnswer { questionId, label, datatype, value }               // label+datat
 - Customer/technician list filters: UI ships search + date + template + status;
   the id-based selects light up when 07 (customers) and a users lookup endpoint
   exist — query DTO already carries `customerId`/`technicianId`.
-- Resend-email action: in or out for v1?
+- ~~Resend-email action: in or out for v1?~~ — **decided 2026-07-25: in**, upgraded to a
+  recipient **contact picker** (name + area) across superadmin + field app; technicians
+  can mail their own reports (§6).
 - Shared delete-dialog base component with 05: coordinate, don't duplicate silently.
 - ~~Datatype set~~ — **resolved 2026-07-05, final nine:** `text` / `textarea` /
   `number` / `date` / `boolean` / `select` / `multiselect` / `radio` /
