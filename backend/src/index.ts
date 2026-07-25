@@ -13,8 +13,10 @@ import { reportTemplates } from './modules/report-templates/controllers/report-t
 import { upload } from './modules/upload/controllers/upload.controller';
 import { cms } from './modules/cms/controllers/cms.controller';
 import { notifications } from './modules/notifications/controllers/notifications.controller';
+import { services } from './modules/services/controllers/services.controller';
 import { publicCms } from './modules/cms/controllers/public-cms.controller';
 import { publicLeads } from './modules/customers/controllers/public-leads.controller';
+import { publicServices } from './modules/services/controllers/public-services.controller';
 import { brand } from './modules/brand/controllers/brand.controller';
 import { fonts } from './modules/brand/controllers/fonts.controller';
 import { jwtMiddleware } from './modules/auth/middleware/jwt.middleware';
@@ -40,6 +42,10 @@ app.route('/public/cms', publicCms);
 // Public lead intake from the tenant website's contact form — Turnstile-gated.
 app.route('/public/leads', publicLeads);
 
+// Public service catalog for the tenant website's services section (18 §4).
+// Website-listed services only, prices included per-service opt-in.
+app.route('/public/services', publicServices);
+
 // Tenant brand identity + font catalog. GET /brand and GET /fonts are public
 // (login screens, website, field-app boot); PUT /brand carries its own guard
 // (owner JWT or the whitelabel manager's shared token).
@@ -58,6 +64,7 @@ app.use('/report-templates/*', jwtMiddleware);
 app.use('/upload/*', managerOr(jwtMiddleware));
 app.use('/cms/*', jwtMiddleware);
 app.use('/notifications/*', jwtMiddleware);
+app.use('/services/*', jwtMiddleware);
 
 app.route('/users', users);
 app.route('/customers', customers);
@@ -67,6 +74,7 @@ app.route('/report-templates', reportTemplates);
 app.route('/upload', upload);
 app.route('/cms', cms);
 app.route('/notifications', notifications);
+app.route('/services', services);
 
 app.onError((err, c) => {
   if (err instanceof SyntaxError || /JSON/i.test(err.message)) {

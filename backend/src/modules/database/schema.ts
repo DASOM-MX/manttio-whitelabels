@@ -27,6 +27,7 @@ export { cmsDocuments, cmsClients } from '../cms/models/cms.model';
 export { reportTemplates } from '../report-templates/models/report-templates.model';
 export { brand } from '../brand/models/brand.model';
 export { notifications } from '../notifications/models/notifications.model';
+export { services } from '../services/models/services.model';
 
 export const usersRelations = relations(users, ({ many }) => ({
   reportsCreated: many(reports, { relationName: 'reports_created_by' }),
