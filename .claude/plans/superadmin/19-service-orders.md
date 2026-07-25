@@ -211,7 +211,7 @@ ServiceOrderEvent {            // table: service_order_events (append-only)
   type,                        // enum, category below
   actorId,                     // FK → users (who); null only for pure-system events
   refKind?, refId?,            // link-out to the child the event concerns:
-                               //   'visit' | 'report' | 'line' (+ its id)
+                               //   'visit' | 'report' | 'line' | 'email' (+ its id)
   changes?,                    // jsonb diff (field → { from, to }) for edits/reassigns
   note?,                       // free text / the close reason note
   createdAt                    // no updatedAt, no deletedAt — append-only
@@ -221,7 +221,8 @@ ServiceOrderEvent {            // table: service_order_events (append-only)
 **Event types (v1):**
 - Order: `order_created`, `order_line_added`, `order_comment_updated`,
   `order_location_changed` (changes `location {from,to}`), `order_status_changed`,
-  `order_completed`, `order_cancelled`, `order_contract_generated` (refId → contract).
+  `order_completed`, `order_cancelled`, `order_contract_generated` (refId → contract),
+  `order_mailed` (refId → the `service_order_emails` row; handoff sent to a client contact).
 - Visit (from 12, logged here not on the visit): `visit_created`,
   `visit_reassigned` (changes `technicianId {from,to}`), `visit_corrected`,
   `visit_completed`, `visit_closed` (note = category + reason), `visit_rescheduled`
@@ -241,8 +242,30 @@ one is "something happened with this client", the order one is the job's full hi
   reports compose a **service history PDF** (decided 2026-07-23 — via the `pdf/`
   module, consistent with report PDFs; the report layout stays in a domain helper per
   the pdf-toolkit split). This is *why* the audit lives at the order level: one
-  artifact covers the whole job end-to-end. Delivery (attach to a completion email vs
-  a tokenized download link like the report-download path) is a CP-5 detail.
+  artifact covers the whole job end-to-end.
+- **Delivery — download or email, mirroring the report mailer (decided 2026-07-25):**
+  a completed order's handoff PDF can be **downloaded by staff** or **emailed to the
+  client's selected contacts**, following the report-email backend pattern
+  (`reports/services/report-email.service.ts`) as-is:
+  - **`service_order_emails`** send-log table mirrors `report_emails` — `serviceOrderId`
+    FK, `sentBy` (users, restrict), `sentAt`, `recipientTo`, `recipientCc[]`, unique
+    `accessToken`, `expiresAt?`, `revokedAt?`, `resendMessageId?`. It is the audit that
+    the handoff was sent (no open-tracking).
+  - `POST /service-orders/:id/email` (owner/admin), body mirroring `sendReportEmailSchema`
+    (`to?`/`cc?` emails + `expiresInDays?` 1–365 + `message?`). **Recipients are chosen
+    from the client's contacts** (07 `customer_contacts`) via the **shared contact picker
+    (name + area)** — the same picker report mailing uses (06); contacts without an email
+    are non-selectable.
+  - The email carries a **secure tokenized download link, not an attachment** (the report
+    pattern is explicit — "no attachments"): a JWT-whitelisted
+    `GET /service-orders/download/:token` renders the handoff PDF on demand and streams
+    it (like `/reports/download/:token`), honouring `expiresAt`/`revokedAt`.
+  - `dispatchServiceOrderEmail` mirrors `dispatchReportEmail`: compose the PDF,
+    brand-derived `from`/`replyTo` (rule 5), send via the generic `email/` transport,
+    stamp `resendMessageId`, and append an **`order_mailed`** event to the timeline — the
+    send is itself audited. Staff **download** hits an authenticated
+    `GET /service-orders/:id/document` (the same PDF). History + revoke:
+    `GET /service-orders/:id/emails` + `POST /service-orders/emails/:emailId/revoke`.
 
 ---
 
@@ -279,9 +302,15 @@ one is "something happened with this client", the order one is the job's full hi
       decision below)
 - [ ] Field app surfaces `pending` in the tech's list once assigned
 
-### CP-5 — Handoff document + billing hooks
-- [ ] Client **service history document** at `order_completed` (timeline + finished
-      reports → PDF via `pdf/` module or shareable read link — pick the format)
+### CP-5 — Handoff document + delivery + billing hooks
+- [ ] Client **service history PDF** at `order_completed` (timeline + finished reports
+      → PDF via the `pdf/` module + a domain layout helper, per the pdf-toolkit split)
+- [ ] **Delivery, mirroring the report mailer:** `service_order_emails` send-log;
+      `POST /:id/email` (owner/admin, recipients from the client's contacts via the
+      shared name+area picker) → tokenized `GET /service-orders/download/:token` link
+      (JWT-whitelisted, on-demand render) — **a link, not an attachment**; authenticated
+      `GET /:id/document` staff download; `GET /:id/emails` history +
+      `POST /service-orders/emails/:emailId/revoke`; `order_mailed` timeline event on send
 - [ ] Order auto-complete rule (if adopted); price visibility per role
 - [ ] 09 asks: bill from line snapshots
 
@@ -292,9 +321,12 @@ one is "something happened with this client", the order one is the job's full hi
   **Audit is order-level:** one append-only `service_order_events` timeline is the
   sole audit trail (no per-child audit tables; supersedes visit-level `visit_events`),
   and it's the client handoff document at service end.
-- **Handoff format:** PDF (via the `pdf/` module, consistent with report PDFs) vs a
-  shareable tokenized read link (like the report-download link) — decide at CP-5;
-  leaning PDF for a tangible deliverable.
+- ~~Handoff delivery~~ — **decided 2026-07-25: download or email to the client's
+  selected contacts, mirroring the report mailer** — a `service_order_emails` send-log +
+  a tokenized `GET /service-orders/download/:token` link (a **link, not an attachment**,
+  per the report pattern), an authenticated staff `GET /:id/document` download, and an
+  `order_mailed` timeline event. Recipients come from the client's `customer_contacts`
+  (07) via the shared name+area contact picker.
 - Timeline granularity: do report *content* edits log to the order timeline, or only
   status transitions? Leaning status-only (content lives in the report itself) to keep
   the handoff readable.
@@ -304,7 +336,7 @@ one is "something happened with this client", the order one is the job's full hi
   `ReportStatus`; on order cancel, unfinished reports (`pending`/`in-progress`) → 
   `cancelled`, finished/mailed untouched (06 §amendment). Never a hard delete.
 - ~~Handoff format~~ — **decided 2026-07-23: PDF** via the `pdf/` module (delivery
-  channel — email attach vs tokenized link — is a CP-5 detail).
+  channel decided 2026-07-25 — see the handoff-delivery entry above).
 - Template picker fallback: exact-service + generic (`serviceId is null`) under a
   divider (recommended) vs exact-only.
 - Line mutability: immutable v1 (recommended) vs add/remove lines on open orders
