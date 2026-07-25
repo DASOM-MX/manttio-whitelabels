@@ -113,12 +113,14 @@ summary) · file replaced · soft-deleted** — appends an **append-only** syste
 **customer's interaction timeline** (08, `customer_interactions`) — the always-present
 anchor that works for order-generated *and* standalone contracts, so there is **no
 per-contract audit table** (consistent with [[order-level-audit-trail]] and
-[[interactions-append-only-audit-trail]]). When order-generated, the **order timeline**
-(19 §7) additionally carries the `order_contract_generated` event. `InteractionRefKind`
-gains `Contract = 'contract'`.
+[[interactions-append-only-audit-trail]]). `InteractionRefKind` gains `Contract = 'contract'`.
 
-(Open: whether high-frequency metadata edits belong on the CRM timeline or a dedicated
-append-only `contract_events` table — start on `customer_interactions`, revisit if noisy.)
+**Creating a contract for a client writes a client audit record (decided 2026-07-25).**
+Just as raising a service order does (19 §2), `POST /contracts` appends a
+`customer_interactions` system entry ("Contrato CON-… creado — <tipo>") to that client's
+timeline — so the client 360 shows every contract raised for them. When the contract is
+order-generated the **order timeline** (19 §7) *additionally* carries the
+`order_contract_generated` event; the two are complementary (client history vs job history).
 
 ## 4. Roles (extends `14-access-control.md` §2)
 
@@ -232,8 +234,9 @@ reconciliation is 09's).
   stored object + `fileKey` (the change is audited); old versions are not kept.
 - ~~Amount / value~~ — **decided 2026-07-24: no amount** on a contract (it's a document,
   not a money record — makes no sense here); value/billing lives in 09.
-- **Audit home** — `customer_interactions` (reuse append-only infra) vs a dedicated
-  `contract_events` table — start on the former, revisit if the CRM timeline gets noisy.
+- ~~Audit home~~ — **decided 2026-07-25: the client's `customer_interactions` timeline**
+  (no dedicated `contract_events` table). Contract create / update / file-replace / delete
+  all append there; **creation mirrors order-creation's client entry** (19 §2).
 - ~~description vs comments~~ — **decided 2026-07-24: description only** (a single
   free-text field; the separate `comments` field is dropped).
 - Ask to 07: "Contratos" card slot on customer-view.
