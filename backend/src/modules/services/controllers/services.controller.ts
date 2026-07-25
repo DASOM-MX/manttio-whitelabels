@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import type { AppBindings } from '../../../env';
 import { createDb } from '../../database/client';
 import { requireRole } from '../../auth/middleware/roles.middleware';
-import { isAdminTier } from '../../auth/utils/role-tier';
+import { isBackOfficeTier } from '../../auth/utils/role-tier';
 import {
   createServiceSchema,
   deleteServiceSchema,
@@ -20,16 +20,18 @@ import {
 
 export const services = new Hono<AppBindings>();
 
-// Reads are open to any authenticated role — every quotation/order picker needs
-// the catalog (18 §2). The internal `cost` is redacted below admin tier.
+// Reads are open to any authenticated role — office and technician both work
+// from this catalog, prices included (18 §2). The internal `cost` is the one
+// field held back, and only from technicians: office quotes and invoices from
+// it, the field doesn't need it.
 services.get('/', zValidator('query', listServicesQuerySchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  return c.json(await getServices(db, c.req.valid('query'), isAdminTier(c.get('user'))));
+  return c.json(await getServices(db, c.req.valid('query'), isBackOfficeTier(c.get('user'))));
 });
 
 services.get('/:id', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  const row = await getServiceById(db, c.req.param('id'), isAdminTier(c.get('user')));
+  const row = await getServiceById(db, c.req.param('id'), isBackOfficeTier(c.get('user')));
   if (!row) return c.json({ error: 'not_found' }, 404);
   return c.json(row);
 });

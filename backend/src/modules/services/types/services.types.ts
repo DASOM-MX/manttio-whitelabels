@@ -45,7 +45,8 @@ export interface PublicServiceDTO {
 
 /** The catalog shape returned to the superadmin (matches its `Service` DTO).
  *  Money fields are strings, never numbers — `numeric` keeps exact decimals and
- *  a JSON float would not. `cost` is present only for admin-tier readers. */
+ *  a JSON float would not. `cost` is present only for back-office readers
+ *  (owner/admin/office) — never for technicians. */
 export interface ServiceDTO {
   id: string;
   name: string;

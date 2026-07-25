@@ -66,7 +66,7 @@ Service {
 | Action | owner | admin | office | technician |
 |---|---|---|---|---|
 | Read the catalog — list page + pickers, **price included** | ✓ | ✓ | ✓ | ✓ |
-| See a service's internal `cost` | ✓ | ✓ | — | — |
+| See a service's internal `cost` | ✓ | ✓ | ✓ | — |
 | Create / edit / delete services | ✓ | ✓ | — | — |
 | Toggle `isListableInWebsite` / `isPriceVisibleInWebsite` | ✓ | ✓ | — | — |
 
@@ -77,9 +77,16 @@ redacting it would only push people to ask someone else. `MODULE_ROLES.services 
 ['owner', 'admin', 'office', 'technician']`, the same read-wide set as reports /
 calendar / wms.
 
-The one thing they don't see is **`cost`**: it's the internal number margin is computed
-from, and `GET /services` omits it entirely below admin tier rather than shipping it and
-hiding it client-side.
+**`cost` follows the back-office line, not the admin line (decided 2026-07-25):** owner,
+admin *and* office see it — office quotes and invoices, so the number margin is computed
+from is part of their job. Technicians don't. `GET /services` omits the field entirely
+for them rather than shipping it and hiding it client-side.
+
+That's a second, narrower tier than the usual owner/admin one, so it gets its own
+predicate: `isBackOfficeTier` / `BACK_OFFICE_TIER` in `auth/utils/role-tier.ts`.
+Where `ADMIN_TIER` gates *authority*, this gates *commercial visibility*. Stated as an
+allow-list, never `role !== 'technician'` — a negative check would silently admit any
+role added later, the wrong default for a confidentiality gate.
 
 ## 3. UI — `/services`
 
@@ -163,8 +170,9 @@ hiding it client-side.
   tax array in 09 if a tenant needs them (still behind the CFDI deferral, 00 §4).
 - **Internal cost — decided 2026-07-25:** services carry an optional `cost`
   `numeric(12,2)` next to `price`, so margin on quotation/order lines (20) needs no
-  later schema change. **Admin-tier only** — `GET /services` omits `cost` for
-  office/technician readers, and it never reaches `/public/services`.
+  later schema change. **Back-office tier** (owner/admin/office, decided 2026-07-25) —
+  `GET /services` omits `cost` for technicians only, and it never reaches
+  `/public/services` at all.
 - **SAT catalog keys — decided 2026-07-25:** `satProdServCode` (c_ClaveProdServ) +
   `satUnitCode` (c_ClaveUnidad) live on the catalog now, optional and with no v1 UI.
   They're catalog attributes, not invoice attributes, so putting them here spares 09 a
@@ -177,7 +185,7 @@ hiding it client-side.
 - `uom` stays free text v1; revisit an option catalog only on real demand.
 - ~~Price visibility for technicians — owned by 19 (leaning hide)~~ — **decided
   2026-07-25:** office and technician both read the catalog *with* prices (§2). Only
-  `cost` is tier-gated. 19 no longer owns this question.
+  `cost` is tier-gated, and only against technicians. 19 no longer owns this question.
 - **No DB-level `check` constraints** on `price >= 0` or `tax_rate` — the validator
   enforces both, and the equipment precedent keeps constraints out of the DDL so the
   Drizzle model stays the single source of truth. Revisit if a non-API writer appears.

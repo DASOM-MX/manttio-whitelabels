@@ -55,7 +55,7 @@ rides the color (color-not-only). Source of truth:
 | Report templates (06 §5) | full | full | — | — |
 | Clients + CRM | full | full | full | — |
 | Equipment (11) | full | full | full | — |
-| Services catalog (18) | full | full | **read-only**⁶ | **read-only**⁶ |
+| Services catalog (18) | full | full | **read-only**⁶ | **read-only, no `cost`**⁶ |
 | Calendar (12) | full | full | full | **own visits + swap**⁴ |
 | Contracts (13) | full | full | **draft only**³ | — |
 | Billing | full | full | **draft only**³ | — |
@@ -103,9 +103,12 @@ rides the color (color-not-only). Source of truth:
    and technician both read it, prices included** — it's the price list the field needs
    on hand, and redacting it would only push people to ask someone else. So
    `MODULE_ROLES.services = ['owner', 'admin', 'office', 'technician']`, the same
-   read-wide set as reports/calendar/wms. The one field they don't see is the internal
-   **`cost`**: `GET /services` omits it below admin tier rather than shipping it and
-   hiding it client-side. Detail: `18-services.md` §2.
+   read-wide set as reports/calendar/wms. The internal **`cost`** follows a *different*
+   line: owner/admin/**office** see it — office quotes and invoices from it — and only
+   technicians don't. `GET /services` omits the field for them rather than shipping it
+   and hiding it client-side. That second tier has its own predicate,
+   `isBackOfficeTier` (`auth/utils/role-tier.ts`): `ADMIN_TIER` gates authority, this
+   gates commercial visibility. Detail: `18-services.md` §2.
 
 ### 2.1 WMS action matrix (decided 2026-07-05)
 

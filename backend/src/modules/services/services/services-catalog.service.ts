@@ -22,8 +22,9 @@ import type {
 
 const opt = <T>(v: T | null | undefined): T | undefined => (v == null ? undefined : v);
 
-/** `includeCost` is the caller's admin-tier flag — office/technician readers use
- *  the catalog as a picker and never see the internal cost. */
+/** `includeCost` is the caller's back-office-tier flag (18 §2): owner, admin and
+ *  office all quote and invoice from the internal cost. Technicians read the
+ *  catalog as a price list and never see it. */
 const toDTO = (row: ServiceRow, includeCost: boolean): ServiceDTO => ({
   id: row.id,
   name: row.name,

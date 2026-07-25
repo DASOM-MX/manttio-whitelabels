@@ -21,8 +21,8 @@ export const services = pgTable(
     // way to the API so no float ever rounds a peso amount.
     price: numeric('price', { precision: 12, scale: 2 }).notNull(),
     // Internal cost, for margin on quotation/order lines (decided 2026-07-25).
-    // Nullable — not every service has one loaded. Admin-tier only: the DTO
-    // omits it for office/technician readers.
+    // Nullable — not every service has one loaded. Back-office tier only: the
+    // DTO omits it for technicians (18 §2).
     cost: numeric('cost', { precision: 12, scale: 2 }),
     // Free text in v1 ('servicio', 'hora', 'equipo', 'visita'…) — same posture
     // as `equipment.kind`, no invented catalog.
