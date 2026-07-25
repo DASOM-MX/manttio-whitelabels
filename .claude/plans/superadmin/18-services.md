@@ -65,12 +65,21 @@ Service {
 
 | Action | owner | admin | office | technician |
 |---|---|---|---|---|
-| Read the catalog (pickers) | ✓ | ✓ | ✓ | ✓ᵃ |
+| Read the catalog — list page + pickers, **price included** | ✓ | ✓ | ✓ | ✓ |
+| See a service's internal `cost` | ✓ | ✓ | — | — |
 | Create / edit / delete services | ✓ | ✓ | — | — |
 | Toggle `isListableInWebsite` / `isPriceVisibleInWebsite` | ✓ | ✓ | — | — |
 
-a. Technicians only ever see service *names* through their assigned reports/orders;
-   whether price is redacted for them is a 19 open decision (leaning hide).
+**Decided 2026-07-25 (supersedes the earlier "technicians see names only" footnote and
+closes the 19 price-redaction ask):** office *and* technician both get the `/services`
+list page, prices and all — the catalog is a price list the field needs on hand, and
+redacting it would only push people to ask someone else. `MODULE_ROLES.services =
+['owner', 'admin', 'office', 'technician']`, the same read-wide set as reports /
+calendar / wms.
+
+The one thing they don't see is **`cost`**: it's the internal number margin is computed
+from, and `GET /services` omits it entirely below admin tier rather than shipping it and
+hiding it client-side.
 
 ## 3. UI — `/services`
 
@@ -130,7 +139,9 @@ a. Technicians only ever see service *names* through their assigned reports/orde
 ### CP-2 — Superadmin catalog UI
 - [ ] `ServicesState` + http service + DTOs
 - [ ] List page (URL filters) + shape-3 dialog + delete confirm
-- [ ] Nav entry + `ModuleKey`/`MODULE_ROLES` `'services'`; build green
+- [ ] Nav entry + `ModuleKey`/`MODULE_ROLES` `'services'` =
+      `['owner', 'admin', 'office', 'technician']` (§2); list page is read-only for
+      office/technician — no **Registrar servicio** button, no row actions; build green
 
 ### CP-3 — Website exposure
 - [x] `GET /public/services` — shipped with CP-1 (2026-07-25)
@@ -164,13 +175,15 @@ a. Technicians only ever see service *names* through their assigned reports/orde
   than the bare customers/reports shape. §3's confirm dialog therefore needs a required
   reason field, not just a yes/no.
 - `uom` stays free text v1; revisit an option catalog only on real demand.
-- Price visibility for technicians — owned by 19 (leaning hide). **Not yet
-  implemented:** `GET /services` currently returns `price` to every authenticated role,
-  since the catalog is the picker source. Only `cost` is tier-gated today.
+- ~~Price visibility for technicians — owned by 19 (leaning hide)~~ — **decided
+  2026-07-25:** office and technician both read the catalog *with* prices (§2). Only
+  `cost` is tier-gated. 19 no longer owns this question.
 - **No DB-level `check` constraints** on `price >= 0` or `tax_rate` — the validator
   enforces both, and the equipment precedent keeps constraints out of the DDL so the
   Drizzle model stays the single source of truth. Revisit if a non-API writer appears.
-- Ask to 14: add `services` (and `service-orders`, 19) to the module/role matrix.
+- Ask to 14: add `services` to the module/role matrix as
+  `['owner', 'admin', 'office', 'technician']` (decided 2026-07-25, §2). `service-orders`
+  (19) is still open.
 - ~~Ask to 15: public listing with or without prices~~ — **decided 2026-07-23:**
   per-service `isPriceVisibleInWebsite` flag (a listed service shows or hides its
   price independently). Remaining 15 ask: per-service description length for cards.
