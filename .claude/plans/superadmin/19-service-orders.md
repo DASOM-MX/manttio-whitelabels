@@ -28,7 +28,7 @@ customers 1 ─── * service_orders 1 ─┬─ * service_order_services * �
                                     ├─ * scheduled_visits   (12 — NOT NULL, order-bound)
                                     ├─ * reports            (06 — exploded + later links)
                                     ├─ * service_order_events  (§7 — the audit trail)
-                                    └─ 0..1 contracts       (13 — order MAY generate one)
+                                    └─ 0..n contracts       (13 — order MAY generate them; FK on contract)
 report_templates * ─── 1 services   (06 §5 — fill-time picker prefilter)
 customer_interactions ← system entry on order creation (08)
 ```
@@ -56,9 +56,8 @@ ServiceOrder {             // near-immutable — see mutability rules below
   status: 'open' | 'completed' | 'cancelled',
   comments?,               // the ONLY freely-mutable field (staff; decided
                            //   2026-07-23) — everything else is fixed at creation
-  contractId?,             // nullable — a maintenance contract THIS order generated
-                           //   (13); optional, order → contract direction (below)
-  createdBy, createdAt, updatedAt   // deletedAt: soft delete only
+  createdBy, createdAt, updatedAt   // deletedAt: soft delete only. Contracts link via
+                           //   contracts.serviceOrderId (0..n, 13 §1) — no contractId here
 }
 ServiceOrderLine {         // table: service_order_services
   id, serviceOrderId, serviceId,
@@ -82,12 +81,14 @@ fields: `comments` (any staff role) and `location` (**owner/admin only**). Custo
 lines, folio, and status-by-endpoint are immutable through `PATCH`. Both mutations
 append an event to the order timeline (§7).
 
-**Contracts — orders generate them, not vice-versa (decided 2026-07-23).** An order
-**may optionally generate** a maintenance contract (13, póliza) — e.g. a one-off job
-that turns into a recurring plan. The direction is order → contract (`contractId` set
-on the order that spawned it); a contract is never a prerequisite for an order. How a
-generated recurring contract then produces future work is a 13 concern (open ask below)
-— this reverses the earlier "contracts generate visits/orders" assumption.
+**Contracts — orders generate them, 0..n (direction decided 2026-07-23; model settled
+2026-07-24).** An order **may generate 0..n contracts** (13) — a guarantee, a
+programmed-maintenance agreement, a rental/sale doc — each a **stored signed document**
+with typed metadata. The link lives on the contract (`contracts.serviceOrderId`), not a
+`contractId` on the order; a contract is never a prerequisite for an order and **does not
+generate visits** (13, reworked 2026-07-24 — a `programmed_maintenance` contract is a
+document; future maintenance is new orders). Standalone contracts (no order) are also
+allowed. Direction: order → contract, never the reverse.
 
 **Extensions to existing tables (all additive):**
 
@@ -166,9 +167,10 @@ a. Technicians reach orders through their assigned visits/reports (context heade
   only** — 403 for office); both audited to the timeline. No other field is patchable.
 - `POST /service-orders/:id/status` — `{ status }` (complete/cancel, confirm-heavy);
   `completed` yields the client handoff document (§7)
-- `POST /service-orders/:id/contract` — owner/admin: optionally generate a maintenance
-  contract from this order (13); sets `contractId`, logs `order_contract_generated`.
-  Blocked on 13.
+- Contract generation is **`POST /contracts` (13)** carrying this order's id (0..n per
+  order); the order view's **Generar contrato** launches it and it logs
+  `order_contract_generated` (refId → the contract) on this order's timeline. No
+  `contractId` on the order — the link lives on the contract (13 §1).
 - `GET /customers/:id/service-orders` — customer-view card (07 slot — ask)
 - Lines are immutable after creation in v1 (open decision) — no line endpoints.
 
@@ -178,7 +180,8 @@ a. Technicians reach orders through their assigned visits/reports (context heade
   count, status pill, total `font-data`, fecha), URL filters (`q`/`customer`/`status`).
 - `service-orders/pages/order-view/` — header (folio, client link, status actions),
   lines card, exploded-reports card (status pills, link out), visits card with
-  **Programar visita** (opens 12's dialog with the order locked).
+  **Programar visita** (opens 12's dialog with the order locked), and a **contratos** card
+  with **Generar contrato** (13, 0..n).
 - `service-orders/pages/order-builder/` — **dedicated create page** (decided
   2026-07-23, not a dialog — too heavy for the shape-3 idiom): client select + location
   + comments, then the lines builder (service select + quantity + technician +
@@ -311,11 +314,12 @@ one is "something happened with this client", the order one is the job's full hi
 - ~~Order creation UX: dialog vs dedicated page~~ — **decided 2026-07-23: dedicated
   builder page** (`/service-orders/new`); the multi-line builder is too heavy for the
   shape-3 dialog idiom.
-- **Order → contract direction — decided 2026-07-23:** an order MAY generate a
-  contract (13); a contract never generates an order (reverses the earlier
-  assumption). **13 open ask:** how does a generated *recurring* póliza then produce
-  future work — does the contract spawn periodic orders (which re-explode visits/
-  reports), or is each period a fresh manual order tagged with the `contractId`?
-  Reconcile in 13 §1 when contracts resume.
+- **Order → contract direction — settled 2026-07-24:** an order generates **0..n
+  contracts** (13), each a **stored signed document** (guarantee/maintenance/rent/sell…),
+  linked via `contracts.serviceOrderId`; a contract never generates an order or visits.
+  The earlier "recurring póliza produces future work" question is **resolved — it doesn't
+  auto-generate**: a `programmed_maintenance` contract is a document, and future
+  maintenance is booked as new orders (optionally citing the contract). Standalone
+  contracts (no order) allowed. See `13-contracts.md`.
 - Ask to 07: "Órdenes de servicio" card slot on customer view.
 - Ask to 14: `service-orders` module row in the matrix.
