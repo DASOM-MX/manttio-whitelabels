@@ -75,9 +75,10 @@ ReportDetail = ReportSummary + {
 - `reports/pages/report-view/` — read-only detail: header card (client/tech/date/
   template/status), **template-shaped body**: one `.card-section` per answer section,
   rendered at the section's captured column count (same skeleton the builder previews —
-  reports are dynamic now, never assume the old fixed HVAC shape), photo grid, signature
-  image (unstyled in dark mode per
-  conventions), PDF download button. **"Enviar por correo" button (QA 2026-07-09,
+  **only the question sections are dynamic per template**; never assume the old fixed
+  HVAC question set). The **evidence photo grid and client signature are fixed — always
+  captured on every report** (signature image unstyled in dark mode per
+  conventions), then the PDF download button. **"Enviar por correo" button (QA 2026-07-09,
   field-app parity):** finished/mailed reports; opens a **mail dialog with the client
   contact picker** (§6 — name + area, decided 2026-07-25) instead of a bare confirm →
   send `{ to, cc, message }` → toast + reload so `finished` flips to `mailed`. Superadmin
