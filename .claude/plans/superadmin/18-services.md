@@ -136,12 +136,13 @@ role added later, the wrong default for a confidentiality gate.
 ## Checkpoints
 
 ### CP-1 — Backend catalog
-- [x] `services` table + hand-written additive DDL (ahead-of-migrations rule) — *DDL
-      pending manual application to the shared Neon DB*
+- [x] `services` table + hand-written additive DDL — **applied to the shared Neon DB
+      2026-07-25** (`create table` + partial name index, no migration file)
 - [x] CRUD endpoints + validators (price `>= 0`, uom required)
 - [x] Reads open to all authenticated roles; writes owner/admin
 - [x] `GET /public/services` (pulled forward from CP-3, 2026-07-25)
-- [ ] `test/services.test.ts` — blocked until the DDL is applied (the suite hits live Neon)
+- [x] `test/services.test.ts` — 17 tests, green. Fixtures are `test+`-prefixed **names**
+      (no email column to isolate on) and soft-deleted in `afterAll`
 
 ### CP-2 — Superadmin catalog UI
 - [ ] `ServicesState` + http service + DTOs

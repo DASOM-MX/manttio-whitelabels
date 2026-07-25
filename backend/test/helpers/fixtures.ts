@@ -23,6 +23,12 @@ export const uniqueRecipientEmail = (scope: string) =>
 
 export const uniqueName = (scope: string) => `test-${scope}-${tag()}`;
 
+// Used for `services.name`. The catalog has no email column to isolate on, so
+// service fixtures are identified by a `test+` name prefix instead — the same
+// marker the user/customer fixtures use in their addresses. The suite
+// soft-deletes them in `afterAll`; per the no-hard-delete rule the rows stay.
+export const uniqueServiceName = (scope: string) => `test+${scope}-${tag()}`;
+
 type SeededUser = {
   id: string;
   email: string;
