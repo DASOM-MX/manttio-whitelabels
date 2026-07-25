@@ -3,11 +3,12 @@ import { SlicePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { LucideLayoutTemplate, LucidePlus } from '@lucide/angular';
+import { LucideEye, LucideLayoutTemplate, LucidePlus } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { ReportTemplatesState } from '../../../../state/report-templates/report-templates.state';
 import { LoadTemplates } from '../../../../state/report-templates/report-templates.actions';
 import { ListQueryService } from '../../../services/table/list-query.service';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import {
   QuestionCountPipe,
   TemplateStatusLabelPipe,
@@ -25,10 +26,12 @@ import type { ReportTemplate } from '../../../data/dtos/report-template';
     RouterLink,
     TableModule,
     TagModule,
+    PageHeader,
     TemplateStatusLabelPipe,
     TemplateStatusSeverityPipe,
     QuestionCountPipe,
     LucidePlus,
+    LucideEye,
     LucideLayoutTemplate,
   ],
   providers: [ListQueryService],

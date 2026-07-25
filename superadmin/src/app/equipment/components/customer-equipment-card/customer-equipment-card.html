@@ -6,17 +6,14 @@
     </button>
   </div>
 
-  <ul class="divide-y divide-granite-200 dark:divide-granite-800">
+  <ul class="divide-y divide-surface-200 dark:divide-surface-800">
     @for (eq of equipment(); track eq.id) {
       <li class="flex items-center justify-between gap-3 py-2.5">
         <div class="min-w-0">
-          <a
-            [routerLink]="['/equipment', eq.id]"
-            class="text-sm font-semibold text-sky-700 hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
-          >
+          <a [routerLink]="['/equipment', eq.id]" class="link-action">
             {{ eq.name || eq.serialNumber || eq.kind || 'Equipo' }}
           </a>
-          <p class="text-xs text-granite-500 dark:text-granite-400">
+          <p class="text-xs text-surface-500 dark:text-surface-400">
             {{ eq.kind || '—' }}
             @if (eq.lastServiceDate) {
               · último servicio <span class="font-data tabular-nums">{{ eq.lastServiceDate }}</span>
@@ -30,9 +27,9 @@
       </li>
     } @empty {
       <li
-        class="flex flex-col items-center gap-2 py-6 text-center text-sm text-granite-500 dark:text-granite-400"
+        class="flex flex-col items-center gap-2 py-6 text-center text-sm text-surface-500 dark:text-surface-400"
       >
-        <svg lucideWrench class="size-5 text-granite-400" aria-hidden="true"></svg>
+        <svg lucideWrench class="size-5 text-surface-400" aria-hidden="true"></svg>
         Sin equipos registrados — agrega la primera unidad.
       </li>
     }

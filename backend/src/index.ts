@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import type { AppBindings } from './env';
+import type { AppBindings, Env } from './env';
+import { createDb } from './modules/database/client';
+import { sweepExpiredNotifications } from './modules/notifications/services/notifications-retention.service';
 import { auth } from './modules/auth/controllers/auth.controller';
 import { users } from './modules/users/controllers/users.controller';
 import { customers } from './modules/customers/controllers/customers.controller';
@@ -10,7 +12,9 @@ import { equipment } from './modules/equipment/controllers/equipment.controller'
 import { reportTemplates } from './modules/report-templates/controllers/report-templates.controller';
 import { upload } from './modules/upload/controllers/upload.controller';
 import { cms } from './modules/cms/controllers/cms.controller';
+import { notifications } from './modules/notifications/controllers/notifications.controller';
 import { publicCms } from './modules/cms/controllers/public-cms.controller';
+import { publicLeads } from './modules/customers/controllers/public-leads.controller';
 import { brand } from './modules/brand/controllers/brand.controller';
 import { fonts } from './modules/brand/controllers/fonts.controller';
 import { jwtMiddleware } from './modules/auth/middleware/jwt.middleware';
@@ -19,7 +23,12 @@ import { managerOr } from './modules/auth/middleware/manager.middleware';
 const app = new Hono<AppBindings>();
 
 app.use('*', logger());
-app.use('*', cors());
+// Reflected origin + credentials (a wildcard "*" is invalid on credentialed
+// requests) so the browser stores/sends the lead-dedup cookie on the
+// cross-origin POST /public/leads. Safe while auth stays header-based (Bearer
+// JWT): the API sets no auth cookies, so credentialed CORS grants nothing
+// ambient. Revisit before ever introducing cookie-based auth.
+app.use('*', cors({ origin: (origin) => origin, credentials: true }));
 
 app.get('/', (c) => c.json({ name: 'manttio-api', status: 'ok' }));
 
@@ -27,6 +36,9 @@ app.route('/auth', auth);
 
 // Public published-only CMS reads for the tenant website (no auth by design).
 app.route('/public/cms', publicCms);
+
+// Public lead intake from the tenant website's contact form — Turnstile-gated.
+app.route('/public/leads', publicLeads);
 
 // Tenant brand identity + font catalog. GET /brand and GET /fonts are public
 // (login screens, website, field-app boot); PUT /brand carries its own guard
@@ -45,6 +57,7 @@ app.use('/equipment/*', jwtMiddleware);
 app.use('/report-templates/*', jwtMiddleware);
 app.use('/upload/*', managerOr(jwtMiddleware));
 app.use('/cms/*', jwtMiddleware);
+app.use('/notifications/*', jwtMiddleware);
 
 app.route('/users', users);
 app.route('/customers', customers);
@@ -53,6 +66,7 @@ app.route('/equipment', equipment);
 app.route('/report-templates', reportTemplates);
 app.route('/upload', upload);
 app.route('/cms', cms);
+app.route('/notifications', notifications);
 
 app.onError((err, c) => {
   if (err instanceof SyntaxError || /JSON/i.test(err.message)) {
@@ -64,4 +78,15 @@ app.onError((err, c) => {
 
 app.notFound((c) => c.json({ error: 'not_found' }, 404));
 
-export default app;
+// The Worker's first cron (notifications plan §2.4): the daily notifications
+// retention sweep. When a second cron lands (WMS staging retention, 10-wms/11
+// §4), it adds its entry to wrangler.toml `triggers.crons` and a dispatch
+// branch on `controller.cron` here.
+const scheduled = (controller: ScheduledController, env: Env, ctx: ExecutionContext): void => {
+  ctx.waitUntil(sweepExpiredNotifications(createDb(env.DATABASE_URL), env));
+};
+
+// Named export for the test harness (`app.request`); the default export is
+// the module-worker handler surface wrangler deploys.
+export { app };
+export default { fetch: app.fetch, scheduled };

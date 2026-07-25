@@ -15,6 +15,11 @@ export const users = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     name: text('name').notNull(),
+    // Mexican two-surname convention (owner ask, 2026-07-21): the superadmin
+    // form asks for both; nullable because pre-existing rows predate the split
+    // (their full name lives in `name`).
+    paternalLastName: text('paternal_last_name'),
+    maternalLastName: text('maternal_last_name'),
     email: text('email').notNull(),
     passwordHash: text('password_hash').notNull(),
     role: text('role').$type<'owner' | 'admin' | 'office' | 'technician'>().notNull(),

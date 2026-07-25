@@ -7,6 +7,12 @@
 		"directory": "./dist/client",
 		"binding": "ASSETS"
 	},
+	"vars": {
+		// Turnstile site key for the /contact-us form (public by design) —
+		// per-tenant deploy value like API_BASE_URL. This default is the
+		// always-pass test key; set the real one per tenant at deploy time.
+		"TURNSTILE_SITE_KEY": "1x00000000000000000000AA"
+	},
 	"observability": {
 		"enabled": true
 	}

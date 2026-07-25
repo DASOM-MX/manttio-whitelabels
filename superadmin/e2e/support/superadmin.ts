@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 import type { MeResponse } from '../../src/app/data/dtos/auth';
 import type { Customer, SaveCustomerRequest } from '../../src/app/data/dtos/customer';
+import type { Notification } from '../../src/app/data/dtos/notification';
 
 /**
  * The NGXS storage plugin (app.config `keys: ['auth.token', 'app']`) persists
@@ -29,6 +30,22 @@ export async function signIn(page: Page, me: MeResponse = ADMIN_ME): Promise<voi
 
   await page.route(/\/auth\/me(\?.*)?$/, (route) => route.fulfill({ json: me }));
   await page.route(/\/brand(\?.*)?$/, (route) => route.fulfill({ json: { name: 'E2E Brand' } }));
+
+  // The shell's notification bell fires on every authenticated page. Stub
+  // quiet defaults here, or a live dev backend answers the fake token with a
+  // real 401 and the interceptor logs the whole test out mid-run. Specs that
+  // assert on notifications register mockNotificationsApi afterwards — later
+  // routes win, so these defaults never shadow it.
+  await page.route(/\/notifications\/stream$/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'text/event-stream',
+      body: 'event: unread-count\ndata: 0\n\n',
+    }),
+  );
+  await page.route(/\/notifications(\?.*)?$/, (route) =>
+    route.fulfill({ json: { items: [], total: 0, unreadCount: 0, page: 1, limit: 25 } }),
+  );
 }
 
 export interface CustomersApiMock {
@@ -76,6 +93,104 @@ export async function mockCustomersApi(page: Page): Promise<CustomersApiMock> {
     lastCreate: () => lastCreateBody,
     created: () => store,
   };
+}
+
+export interface NotificationsApiMock {
+  /** Ids the client has POSTed to `/:id/read`, in order. */
+  markedRead(): string[];
+  /** How many times `read-all` was called. */
+  readAllCalls(): number;
+}
+
+/**
+ * Stateful stub of the `/notifications` surface. `GET` serves the store;
+ * the FIRST `/stream` response scripts a `text/event-stream` body that pushes
+ * one extra notification (the live-delivery path) — later reconnects (the
+ * state's repeat/retry loop re-syncs via the one-shot GET) only re-send the
+ * current count. Mark-read endpoints mutate the store so re-syncs agree with
+ * what the client believes.
+ */
+export async function mockNotificationsApi(page: Page): Promise<NotificationsApiMock> {
+  const now = new Date().toISOString();
+  const seeded: Notification = {
+    id: 'n-1',
+    type: 'announcement',
+    title: 'Aviso del propietario',
+    body: 'Revisa el nuevo procedimiento de reabastecimiento.',
+    data: { link: '/customers/c-1' },
+    status: 'unread',
+    readAt: null,
+    createdAt: now,
+  };
+  const pushed: Notification = {
+    id: 'n-2',
+    type: 'client_registered_from_website',
+    title: 'Cliente nuevo desde el sitio web',
+    body: 'Acme SA llegó por el formulario de contacto.',
+    data: { customerId: 'c-2' },
+    status: 'unread',
+    readAt: null,
+    createdAt: now,
+  };
+  const store: Notification[] = [seeded];
+  const marked: string[] = [];
+  let readAll = 0;
+  let streamServed = false;
+  const unreadCount = () => store.filter((n) => n.status === 'unread').length;
+
+  await page.route(/\/notifications\/stream$/, async (route) => {
+    let body = `event: unread-count\ndata: ${unreadCount()}\n\n`;
+    if (!streamServed) {
+      streamServed = true;
+      store.unshift(pushed);
+      body += `event: notification\ndata: ${JSON.stringify(pushed)}\n\n`;
+      body += `event: unread-count\ndata: ${unreadCount()}\n\n`;
+    }
+    await route.fulfill({ status: 200, contentType: 'text/event-stream', body });
+  });
+
+  await page.route(/\/notifications\/read-all$/, async (route) => {
+    readAll += 1;
+    let updated = 0;
+    const readAt = new Date().toISOString();
+    for (const n of store) {
+      if (n.status === 'unread') {
+        n.status = 'read';
+        n.readAt = readAt;
+        updated += 1;
+      }
+    }
+    await route.fulfill({ json: { updated } });
+  });
+
+  await page.route(/\/notifications\/[^/?]+\/read$/, async (route) => {
+    const id = /\/notifications\/([^/]+)\/read$/.exec(route.request().url())?.[1] ?? '';
+    marked.push(id);
+    const n = store.find((x) => x.id === id);
+    if (!n) {
+      await route.fulfill({ status: 404, json: { error: 'notification_not_found' } });
+      return;
+    }
+    if (n.status === 'unread') {
+      n.status = 'read';
+      n.readAt = new Date().toISOString();
+    }
+    await route.fulfill({ json: { notification: n } });
+  });
+
+  await page.route(/\/notifications(\?.*)?$/, async (route) => {
+    await route.fulfill({
+      json: {
+        items: [...store],
+        total: store.length,
+        unreadCount: unreadCount(),
+        page: 1,
+        limit: 25,
+      },
+    });
+  });
+
+  return { markedRead: () => [...marked], readAllCalls: () => readAll };
 }
 
 /**

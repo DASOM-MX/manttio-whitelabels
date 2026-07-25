@@ -16,6 +16,15 @@ report-template builder (§5, owner/admin only) is this module's whitelabel head
 Reports are the anchor for billing (09: bill-by-report) and material tracking
 (10: materials consumed per report).
 
+> **Standalone-suite rule (decided 2026-07-23).** Reporting is an **independently
+> sellable suite** — a tenant may buy just the reporting flow without services/orders/
+> calendar (18/19/12). So **reports never require a service order**: `serviceOrderId` /
+> `serviceId` stay nullable *by design*, the manual create path is always complete on
+> its own, and the order-driven bits (explosion, `pending`/`cancelled` statuses,
+> template↔service prefilter) are **additive enrichments** that only light up when the
+> operations suite is enabled. Nothing in 06 may hard-depend on 19. 06 depends only on
+> 02 (never on 18/19).
+
 **Roles** (`14-access-control.md` §2): owner/admin full, office manage. **Technician** gets
 the same list + view pages as a **"My reports"** route — pre-filtered to their own reports
 (backend scopes the query), read-only (no delete/resend actions rendered) **with one
@@ -96,6 +105,10 @@ detail (builder + question preview).
 ReportTemplate {
   id, name, description?,
   status: 'draft' | 'active' | 'disabled',
+  serviceId?,                                  // 19 CP-4 (2026-07-23): binds the
+                                               //   template to a catalog service (18);
+                                               //   fill-time picker prefilters by the
+                                               //   report's serviceId, null = generic
   sections: TemplateSection[],                 // 1..n, ordered (decided 2026-07-05)
   disabledReason?, disabledBy?, disabledAt?,   // set via the disable dialog
   createdAt, updatedAt
@@ -318,7 +331,15 @@ ReportAnswer { questionId, label, datatype, value }               // label+datat
 - ~~Status enum~~ — **confirmed 2026-07-06** against
   `backend/src/modules/reports/models/reports.model.ts`:
   `created|in-progress|finished|mailed`. **Folio: no backend column yet** —
-  backend ask (DTO keeps it optional).
+  backend ask (DTO keeps it optional). **Amended 2026-07-23 (19):** the enum gains
+  `pending` and `cancelled`. `pending` = service-order explosion skeletons (born with
+  assignee + reportType, no content), `pending → in-progress` when the tech picks a
+  template and starts. `cancelled` = an exploded report voided when its order is
+  cancelled (only unfinished reports — `pending`/`in-progress`; finished/mailed stay).
+  `created` stays the manual-report birth status. Reports also gain `serviceOrderId?` /
+  `serviceId?` — semantics owned by `19-service-orders.md` §2. **These are additive:
+  the standalone reporting suite ignores `pending`/`cancelled` and leaves the order
+  columns null (standalone-suite rule above) — nothing here requires 19.**
 - Customer/technician list filters: UI ships search + date + template + status;
   the id-based selects light up when 07 (customers) and a users lookup endpoint
   exist — query DTO already carries `customerId`/`technicianId`.

@@ -1,53 +1,47 @@
-<div class="flex flex-wrap items-start justify-between gap-3">
-  <div>
-    <h1 class="text-xl font-bold text-granite-950 dark:text-granite-50">Equipos</h1>
-    <p class="mt-1 text-sm text-granite-600 dark:text-granite-400">
-      El registro de unidades instaladas que tu negocio atiende.
-    </p>
-  </div>
-  <button type="button" class="btn-primary" (click)="openCreate()">
-    <svg lucidePlus class="size-4" aria-hidden="true"></svg>
-    Registrar equipo
-  </button>
-</div>
+<app-page-header
+  title="Equipos"
+  description="El registro de unidades instaladas que tu negocio atiende."
+>
+    <app-filters-popover [params]="['q', 'customer', 'status']">
+      <div class="field-group">
+        <label class="field-label" for="equipment-search">Buscar</label>
+        <input
+          id="equipment-search"
+          pInputText
+          type="search"
+          [formControl]="search"
+          placeholder="Marca, modelo o serie"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="equipment-customer">Cliente</label>
+        <p-select
+          inputId="equipment-customer"
+          [formControl]="customerFilter"
+          [options]="customerOptions()"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="equipment-status">Estado</label>
+        <p-select
+          inputId="equipment-status"
+          [formControl]="statusFilter"
+          [options]="statusOptions"
+          optionLabel="label"
+          optionValue="value"
+        />
+      </div>
+    </app-filters-popover>
+    <button type="button" class="btn-primary" (click)="openCreate()">
+      <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+      Registrar equipo
+    </button>
+</app-page-header>
 
-<div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-  <div class="field-group sm:col-span-2">
-    <label class="field-label" for="equipment-search">Buscar</label>
-    <input
-      id="equipment-search"
-      pInputText
-      type="search"
-      [formControl]="search"
-      placeholder="Marca, modelo o serie"
-    />
-  </div>
-  <div class="field-group">
-    <label class="field-label" for="equipment-customer">Cliente</label>
-    <p-select
-      inputId="equipment-customer"
-      [formControl]="customerFilter"
-      [options]="customerOptions()"
-      optionLabel="label"
-      optionValue="value"
-      [filter]="true"
-      appendTo="body"
-    />
-  </div>
-  <div class="field-group">
-    <label class="field-label" for="equipment-status">Estado</label>
-    <p-select
-      inputId="equipment-status"
-      [formControl]="statusFilter"
-      [options]="statusOptions"
-      optionLabel="label"
-      optionValue="value"
-      appendTo="body"
-    />
-  </div>
-</div>
-
-<div class="mt-4">
+<div>
   <p-table
     [value]="equipment()"
     [lazy]="true"
@@ -57,6 +51,8 @@
     [first]="list.first()"
     [totalRecords]="total()"
     [loading]="loading()"
+    [showLoader]="false"
+    [rowHover]="true"
     dataKey="id"
   >
     <ng-template #header>
@@ -72,15 +68,17 @@
       </tr>
     </ng-template>
     <ng-template #body let-eq>
-      <tr>
+      <!-- Whole row opens the unit (canon idiom); the eye link stays the
+           keyboard path. -->
+      <tr class="cursor-pointer" (click)="openEquipment(eq)">
         <td class="font-medium">{{ eq.name || '—' }}</td>
         <td>{{ eq.kind || '—' }}</td>
         <td>{{ eq.brand || '—' }} {{ eq.model }}</td>
         <td class="font-data tabular-nums">{{ eq.serialNumber || '—' }}</td>
-        <td>
+        <td (click)="$event.stopPropagation()">
           <a
             [routerLink]="['/customers', eq.customerId]"
-            class="font-medium text-sky-700 hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-200"
+            class="font-medium text-primary-700 hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
             >{{ eq.customerName }}</a
           >
         </td>
@@ -91,22 +89,35 @@
           />
         </td>
         <td class="font-data tabular-nums">{{ eq.lastServiceDate || '—' }}</td>
-        <td class="w-16">
-          <a
-            [routerLink]="['/equipment', eq.id]"
-            class="inline-flex size-9 items-center justify-center rounded-md text-granite-600 transition-colors hover:bg-granite-100 hover:text-granite-900 dark:text-granite-400 dark:hover:bg-granite-800 dark:hover:text-granite-100"
-            [attr.aria-label]="'Ver equipo ' + (eq.name || eq.serialNumber || eq.id)"
-          >
-            <svg lucideEye class="size-4" aria-hidden="true"></svg>
-          </a>
+        <td class="w-16" (click)="$event.stopPropagation()">
+          <div class="flex justify-end gap-1">
+            <a
+              [routerLink]="['/equipment', eq.id]"
+              class="row-action"
+              [attr.aria-label]="'Ver equipo ' + (eq.name || eq.serialNumber || eq.id)"
+            >
+              <svg lucideEye class="size-4" aria-hidden="true"></svg>
+            </a>
+          </div>
         </td>
       </tr>
+    </ng-template>
+    <ng-template #loadingbody>
+      @for (r of [0, 1, 2, 3, 4, 5, 6, 7]; track r) {
+        <tr>
+          @for (c of [0, 1, 2, 3, 4, 5, 6, 7]; track c) {
+            <td><span class="skeleton"></span></td>
+          }
+        </tr>
+      }
     </ng-template>
     <ng-template #emptymessage>
       <tr class="p-datatable-emptymessage">
         <td colspan="8">
-          <span class="inline-flex flex-col items-center gap-2">
-            <svg lucideWrench class="size-6 text-granite-400" aria-hidden="true"></svg>
+          <span class="inline-flex flex-col items-center gap-3">
+            <span class="empty-icon">
+              <svg lucideWrench class="size-5" aria-hidden="true"></svg>
+            </span>
             Sin equipos registrados — registra la primera unidad.
           </span>
         </td>

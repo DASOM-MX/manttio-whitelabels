@@ -21,6 +21,7 @@ import { AppState } from '../state/app/app.state';
 import { AuthState } from '../state/auth/auth.state';
 import { LoadMe } from '../state/auth/auth.actions';
 import { BrandState } from '../state/brand/brand.state';
+import { NotificationsState } from '../state/notifications/notifications.state';
 import { LoadBrand } from '../state/brand/brand.actions';
 
 export const appConfig: ApplicationConfig = {
@@ -37,17 +38,24 @@ export const appConfig: ApplicationConfig = {
           // `<html>.app-dark` is the single dark-mode source of truth —
           // Tailwind's `darkMode` selector and PrimeNG both read it.
           darkModeSelector: '.app-dark',
-          // Put Aura into a named CSS layer so our unlayered per-component
-          // override sheets in `src/theme/*.scss` win over Aura's runtime-
-          // injected CSS without `!important`.
-          cssLayer: { name: 'primeng', order: 'primeng' },
+          // Put Aura into a named CSS layer so the surviving unlayered
+          // sheets in `src/theme/*.scss` win over Aura's runtime-injected
+          // CSS without `!important`. The `order` string here is the
+          // AUTHORITATIVE layer order: PrimeNG injects it as the first
+          // <style> in <head> — before styles.css loads — so it, not the
+          // `@layer` statement in styles.scss, fixes layer precedence.
+          // `tailwind-base` (preflight) must come first or its
+          // `border-width: 0` reset beats every Aura component border.
+          cssLayer: { name: 'primeng', order: 'tailwind-base, primeng' },
         },
       },
     }),
     ConfirmationService,
     MessageService,
     provideStore(
-      [AppState, AuthState, BrandState],
+      // NotificationsState is root-registered (not route-lazy): the bell lives
+      // in the shell topbar, so its feed exists on every page.
+      [AppState, AuthState, BrandState, NotificationsState],
       // Only the token persists — `me` (role) is refetched on
       // every boot so gated UI never renders from stale data (14 §3).
       withNgxsStoragePlugin({ keys: ['auth.token', 'app'] }),

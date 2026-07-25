@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { MEXICAN_TIMEZONE_VALUES } from '../constants/timezones';
-import { CustomerSource, CustomerStatus } from '../enums/customers.enum';
+import { ClientType, CustomerSource, CustomerStatus } from '../enums/customers.enum';
 
 // Sub-field formats are enforced client-side; the server stays lenient on the
 // optional strings (empty values arrive pruned) and only guards `name`.
@@ -26,6 +26,8 @@ const fiscalSchema = z.object({
 // the service leaves the stored value untouched (a defaulted `[]` would wipe
 // contacts/tags on a partial update). Create-time defaults come from the DB
 // column defaults / the service's default-contact normalization.
+// Attribution fields and statusChangedAt are deliberately absent: attribution
+// is write-once (public lead insert only), statusChangedAt is service-derived.
 export const createCustomerSchema = z.object({
   name: z.string().min(1),
   contactName: z.string().optional(),
@@ -39,6 +41,7 @@ export const createCustomerSchema = z.object({
   tags: z.array(z.string()).optional(),
   status: z.nativeEnum(CustomerStatus).optional(),
   source: z.nativeEnum(CustomerSource).optional(),
+  clientType: z.nativeEnum(ClientType).optional(),
   contacts: z.array(contactSchema).optional(),
   fiscal: fiscalSchema.optional(),
   timezone: z.enum(MEXICAN_TIMEZONE_VALUES).optional(),
@@ -52,5 +55,11 @@ export const updateCustomerSchema = createCustomerSchema
   .extend({ nextFollowUpAt: z.string().nullable().optional() })
   .refine((v) => Object.keys(v).length > 0, { message: 'no fields to update' });
 
+// Recent-clients card read (utm-params 03 amendment 2026-07-20).
+export const recentCustomersQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).default(8),
+});
+
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
 export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;
+export type RecentCustomersQuery = z.infer<typeof recentCustomersQuerySchema>;

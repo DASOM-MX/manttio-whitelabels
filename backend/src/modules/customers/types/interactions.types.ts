@@ -1,8 +1,17 @@
 import type { customerInteractions } from '../models/customer-interactions.model';
+import type { CustomerStatus } from '../enums/customers.enum';
 import type { InteractionRefKind, InteractionType } from '../enums/interactions.enum';
 
 export type InteractionRow = typeof customerInteractions.$inferSelect;
 export type NewInteraction = typeof customerInteractions.$inferInsert;
+
+/** Repository row after the users left-join (author name columns folded in;
+ *  the DTO composes the full display name). */
+export type InteractionRowWithAuthor = InteractionRow & {
+  userName: string | null;
+  userPaternalLastName: string | null;
+  userMaternalLastName: string | null;
+};
 
 /** API shape returned to the superadmin (matches its `Interaction` DTO). `ref`
  *  is assembled from the `refKind`/`refId` columns; `userName` is joined from
@@ -16,6 +25,15 @@ export interface InteractionDTO {
   userId: string | null;
   userName?: string;
   createdAt: Date;
+}
+
+/** Feed row for the tenant-wide latest-activity read (utm-params 03): the
+ *  timeline DTO plus the customer it belongs to, for linking out. The status
+ *  rides along since the 2026-07-22 cockpit layout turn (activity table's
+ *  Estatus column). */
+export interface RecentInteractionDTO extends InteractionDTO {
+  customerName: string;
+  customerStatus: CustomerStatus;
 }
 
 /** A backend-generated `system` entry appended in the same transaction as the

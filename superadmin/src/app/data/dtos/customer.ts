@@ -10,6 +10,9 @@ export enum CustomerStatus {
   Blacklisted = 'blacklisted',
 }
 
+// Full parity with the backend enum + the customers_source_check constraint
+// (10 values, verified 2026-07-20). deriveSource maps any matching utm_source
+// on the public lead endpoint; unmapped values fall back to Website.
 export enum CustomerSource {
   Facebook = 'facebook',
   Google = 'google',
@@ -18,6 +21,11 @@ export enum CustomerSource {
   Phonecall = 'phonecall',
   PersonalMeeting = 'personal_meeting',
   Other = 'other',
+  // Share-link-only channels: never hand-picked (manual-customer-sources.const);
+  // facebook/website above are share-link channels too but stay pickable.
+  Instagram = 'instagram',
+  Tiktok = 'tiktok',
+  Whatsapp = 'whatsapp',
 }
 
 export interface CustomerContact {

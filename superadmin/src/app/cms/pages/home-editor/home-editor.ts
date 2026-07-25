@@ -21,6 +21,7 @@ import { IconPicker } from '../../components/icon-picker/icon-picker';
 import { AsFormControlPipe, AsFormGroupPipe } from '../../../pipes/cast.pipe';
 import { PublishBar } from '../../components/publish-bar/publish-bar';
 import { errorMessage } from '../../../data/utils';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
 import type { CmsHome, CmsHomeManufacturer } from '../../../data/dtos/cms';
 
@@ -41,6 +42,7 @@ import type { CmsHome, CmsHomeManufacturer } from '../../../data/dtos/cms';
     AsFormGroupPipe,
     LucideImage,
     LucideImageUp,
+    PageHeader,
   ],
   templateUrl: './home-editor.html',
 })

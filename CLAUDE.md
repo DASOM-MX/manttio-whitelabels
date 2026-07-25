@@ -45,7 +45,7 @@ These apply across packages; per-package CLAUDE.md files own the rest.
 - **`.claude/` IS committed** (shared agent context for all devs: `skills/`, `plans/`) — **exception: `.claude/settings.local.json`** (per-user permissions, gitignored).
 - **Don't commit:** `frontend/src/environments/environment.development.ts` (local API URL override); `backend/.dev.vars` (local secrets); anything matching `.env*` outside the checked-in `*.example` files.
 - **Backend is the sole authority on JWT validity.** Frontend never decodes tokens; guards check presence only, the HTTP interceptor handles 401s.
-- **Soft deletes** are the default for user-facing resources (`users`, `customers`, `reports`, `reportDetails`). Hard deletes are reserved for fixture cleanup. The `users` table additionally carries `delete_comment` + `deleted_by` for an audit trail.
+- **No entity is ever hard-deleted (fork rule, 2026-07-19).** Soft delete (`deleted_at`) is the *only* removal mechanism, for every domain entity — no hard-DELETE endpoints, no `ON DELETE CASCADE`, no wipe scripts, no destructive migrations. Read helpers always filter `isNull(deletedAt)`. Deleting a customer with reports succeeds and leaves the reports' FK intact (no 409 in_use). `customer_interactions` is stricter still: append-only, no updates either — the timeline IS the audit trail. The `users` table additionally carries `delete_comment` + `deleted_by` for the delete audit.
 
 ### Where things live in `backend/`
 
@@ -74,4 +74,7 @@ Backend is **module-first (NestJS-like)**: `src/` holds only `env.ts`, `index.ts
 
 - API conventions, auth, validation, R2, email/PDF, testing — `backend/CLAUDE.md`.
 - Angular/NGXS/PrimeNG/Tailwind/dark-mode/dialog patterns — `frontend/CLAUDE.md`.
+- Superadmin quick rules + pointers to its canonical conventions
+  (`.claude/plans/superadmin/01-conventions.md` + the `superadmin-design` skill) —
+  `superadmin/CLAUDE.md`.
 - Marketing-site styling/brand voice — `website/CLAUDE.md`.

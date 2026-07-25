@@ -12,3 +12,11 @@ export class SetDarkMode {
   static readonly type = '[App] Set Dark Mode';
   constructor(public darkMode: boolean) {}
 }
+
+/** Collapse / expand the desktop sidebar into its icon rail. Persisted via
+ *  the storage plugin (`app` key) like dark mode; the mobile drawer always
+ *  renders expanded. */
+export class SetSidebarCollapsed {
+  static readonly type = '[App] Set Sidebar Collapsed';
+  constructor(public collapsed: boolean) {}
+}

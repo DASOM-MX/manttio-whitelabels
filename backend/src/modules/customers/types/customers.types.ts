@@ -4,6 +4,8 @@ import type { customerFiscal } from '../models/customer-fiscal.model';
 
 export type CustomerRow = typeof customers.$inferSelect;
 export type NewCustomer = typeof customers.$inferInsert;
+// Attribution columns (utm_*, gclid, fbclid, referrer, landing_page) are
+// deliberately absent: write-once, set only by the public lead insert.
 export type UpdateCustomerFields = Partial<
   Pick<
     CustomerRow,
@@ -21,6 +23,8 @@ export type UpdateCustomerFields = Partial<
     | 'source'
     | 'blacklistReason'
     | 'nextFollowUpAt'
+    | 'clientType'
+    | 'statusChangedAt'
     | 'timezone'
   >
 >;
@@ -35,3 +39,11 @@ export interface CustomerWithRelations extends CustomerRow {
   contacts: ContactRow[];
   fiscal: FiscalRow | null;
 }
+
+/** Row for the Panel's recent-clients card (utm-params 03 amendment): display
+ *  fields only, newest first. `name` is the commercial/display name; for
+ *  business rows `contactName` carries the person who registered. */
+export type RecentCustomerRow = Pick<
+  CustomerRow,
+  'id' | 'name' | 'contactName' | 'clientType' | 'source' | 'createdAt'
+>;

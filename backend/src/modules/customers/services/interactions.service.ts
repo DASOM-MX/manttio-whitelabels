@@ -1,16 +1,23 @@
 import type { Db } from '../../database/client';
 import { findCustomerById, updateCustomerWithRelations } from '../repository/customers.repository';
-import { insertInteraction, listInteractions } from '../repository/interactions.repository';
+import {
+  insertInteraction,
+  listInteractions,
+  listRecentInteractions,
+} from '../repository/interactions.repository';
 import { isLegalTransition } from '../utils/customer-status';
 import { CUSTOMER_STATUS_LABELS } from '../constants/customer-status';
+import { INTERACTION_MEDIUM_PHRASES } from '../constants/interaction-mediums';
 import { InteractionRefKind } from '../enums/interactions.enum';
 import { CustomerStatus } from '../enums/customers.enum';
 import {
   BlacklistReasonRequiredError,
   InvalidStatusTransitionError,
 } from '../http-errors/status-change.error';
+import { notifyBestEffort } from '../../notifications/services/notifications.service';
+import { NotificationType } from '../../notifications/enums/notifications.enum';
 import type { CustomerWithRelations, UpdateCustomerFields } from '../types/customers.types';
-import type { InteractionDTO } from '../types/interactions.types';
+import type { InteractionDTO, RecentInteractionDTO } from '../types/interactions.types';
 import type { AddInteractionInput, ChangeStatusInput } from '../validators/interactions.validator';
 
 export const getInteractions = async (
@@ -20,6 +27,12 @@ export const getInteractions = async (
   limit: number,
 ): Promise<{ items: InteractionDTO[]; total: number }> =>
   listInteractions(db, customerId, page, limit);
+
+/** Tenant-wide latest activity (utm-params 03 — owner/admin dashboard feed). */
+export const getRecentInteractions = async (
+  db: Db,
+  limit: number,
+): Promise<RecentInteractionDTO[]> => listRecentInteractions(db, limit);
 
 /** Log a manual touch (08 §2). Returns null when the customer is missing/deleted
  *  so the controller can 404 instead of orphaning a row. */
@@ -31,12 +44,27 @@ export const addInteraction = async (
 ): Promise<InteractionDTO | null> => {
   const customer = await findCustomerById(db, customerId);
   if (!customer || customer.deletedAt) return null;
-  return insertInteraction(db, {
+  const entry = await insertInteraction(db, {
     customerId,
     type: input.type,
     body: input.body.trim(),
     userId: actorId,
   });
+  // Owner awareness feed: owner broadcast, the acting user excluded. The
+  // interaction author is already resolved on the DTO; the body names the
+  // medium the touch came through (owner ask, 2026-07-21).
+  const medium = INTERACTION_MEDIUM_PHRASES[input.type];
+  await notifyBestEffort(db, {
+    role: 'owner',
+    excludeUserId: actorId,
+    type: NotificationType.ClientInteractionRegistered,
+    title: 'Interacción registrada',
+    body: entry.userName
+      ? `${entry.userName} registró ${medium} ${customer.name}.`
+      : `Se registró ${medium} ${customer.name}.`,
+    data: { customerId },
+  });
+  return entry;
 };
 
 /** Dedicated status transition (08 §1/§4): validates the legal transition and
@@ -63,6 +91,9 @@ export const changeCustomerStatus = async (
 
   const fields: UpdateCustomerFields = {
     status: target,
+    // A legal transition is always an actual change (isLegalTransition rejects
+    // no-ops), so the stamp needs no compare here.
+    statusChangedAt: new Date(),
     // Keep the reason only while blacklisted; clear it on any other target.
     blacklistReason: target === CustomerStatus.Blacklisted ? (reason ?? null) : null,
   };
@@ -74,10 +105,23 @@ export const changeCustomerStatus = async (
     `Estado: ${CUSTOMER_STATUS_LABELS[current.status]} → ${CUSTOMER_STATUS_LABELS[target]}` +
     (reason ? ` · ${reason}` : '');
 
-  return updateCustomerWithRelations(db, id, fields, undefined, undefined, {
+  const updated = await updateCustomerWithRelations(db, id, fields, undefined, undefined, {
     userId: actorId,
     body,
     refKind: InteractionRefKind.StatusChange,
     refId: id,
   });
+  // Only the blacklist transition is a notified event (plan §1 type set) —
+  // ordinary status moves stay timeline-only.
+  if (updated && target === CustomerStatus.Blacklisted) {
+    await notifyBestEffort(db, {
+      role: 'owner',
+      excludeUserId: actorId,
+      type: NotificationType.ClientBlacklisted,
+      title: 'Cliente en lista negra',
+      body: `${updated.name} fue puesto en lista negra · ${reason}`,
+      data: { customerId: id },
+    });
+  }
+  return updated;
 };

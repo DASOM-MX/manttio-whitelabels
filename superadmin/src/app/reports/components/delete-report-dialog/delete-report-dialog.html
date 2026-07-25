@@ -5,14 +5,13 @@
   [closable]="!submitting()"
   [draggable]="false"
   [resizable]="false"
-  styleClass="max-w-11/12"
-  [style]="{ width: '28rem' }"
+  styleClass="dialog-sm"
   header="Eliminar reporte"
 >
   <form [formGroup]="form" (ngSubmit)="confirm()" class="flex flex-col gap-4">
-    <p class="text-sm text-granite-700 dark:text-granite-300">
+    <p class="text-sm text-surface-700 dark:text-surface-300">
       Vas a eliminar el reporte de
-      <strong class="text-granite-1000 dark:text-granite-0">{{ target()?.customerName }}</strong>
+      <strong class="text-surface-1000 dark:text-surface-0">{{ target()?.customerName }}</strong>
       del {{ target()?.serviceDate }}. Queda registrado en la auditoría.
     </p>
 

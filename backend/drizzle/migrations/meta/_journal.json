@@ -134,6 +134,34 @@
       "when": 1784505600000,
       "tag": "0018_equipment_origin",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1784592000000,
+      "tag": "0019_right_strong_guy",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1784603544085,
+      "tag": "0020_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1784607386773,
+      "tag": "0021_notification_types",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1784618592503,
+      "tag": "0022_user_last_names",
+      "breakpoints": true
     }
   ]
 }

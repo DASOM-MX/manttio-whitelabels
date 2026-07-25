@@ -7,3 +7,6 @@ RESEND_API_KEY=""
 # Public base of the `manttio-equipment` bucket — what /upload/equipment returns
 # and persists in equipment.photos (S3 endpoint / r2.dev / custom domain).
 EQUIPMENT_CDN_BASE_URL=""
+# Cloudflare Turnstile always-pass test secret — fine for dev; real key via
+# `wrangler secret put TURNSTILE_SECRET_KEY [--env production]`.
+TURNSTILE_SECRET_KEY="1x0000000000000000000000000000000AA"

@@ -11,6 +11,7 @@ import type {
   NewContact,
   NewCustomer,
   NewFiscal,
+  RecentCustomerRow,
   UpdateCustomerFields,
 } from '../types/customers.types';
 import type { SystemAudit } from '../types/interactions.types';
@@ -45,6 +46,26 @@ export const listCustomers = async (db: Db): Promise<CustomerRow[]> => {
     .orderBy(desc(customers.createdAt));
 };
 
+/** Newest client rows for the Panel's recent-clients card (utm-params 03
+ *  amendment 2026-07-20). */
+export const listRecentCustomers = async (
+  db: Db,
+  limit: number,
+): Promise<RecentCustomerRow[]> =>
+  db
+    .select({
+      id: customers.id,
+      name: customers.name,
+      contactName: customers.contactName,
+      clientType: customers.clientType,
+      source: customers.source,
+      createdAt: customers.createdAt,
+    })
+    .from(customers)
+    .where(isNull(customers.deletedAt))
+    .orderBy(desc(customers.createdAt))
+    .limit(limit);
+
 /** Bare customer row (no relations) — used by the reports/email flows that only
  *  need name/email/timezone, and by test fixtures. */
 export const findCustomerById = async (db: Db, id: string): Promise<CustomerRow | null> => {
@@ -62,7 +83,11 @@ export const findCustomerWithRelations = async (
   db: Db,
   id: string,
 ): Promise<CustomerWithRelations | null> => {
-  const [customer] = await db.select().from(customers).where(eq(customers.id, id)).limit(1);
+  const [customer] = await db
+    .select()
+    .from(customers)
+    .where(and(eq(customers.id, id), isNull(customers.deletedAt)))
+    .limit(1);
   if (!customer) return null;
   const [contacts, fiscal] = await Promise.all([contactsOf(db, id), fiscalOf(db, id)]);
   return { ...customer, contacts, fiscal };

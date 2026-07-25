@@ -7,11 +7,12 @@ interface Props {
 
 const { brand } = Astro.props;
 
+// Root-anchored so they work from /contact-us too (utm-params plan 02 CP-3).
 const navLinks = [
-  { href: '#servicios', label: 'Servicios' },
-  { href: '#ubicacion', label: 'Ubicación' },
-  { href: '#marcas', label: 'Marcas' },
-  { href: '#contacto', label: 'Contacto' },
+  { href: '/#servicios', label: 'Servicios' },
+  { href: '/#ubicacion', label: 'Ubicación' },
+  { href: '/#marcas', label: 'Marcas' },
+  { href: '/#contacto', label: 'Contacto' },
 ];
 ---
 
@@ -54,7 +55,7 @@ const navLinks = [
         <a
           href={href}
           data-nav-link
-          data-target={href.slice(1)}
+          data-target={href.split('#')[1]}
           class="relative text-sm font-medium text-white/85 transition hover:text-white"
         >
           <span>{label}</span>
@@ -68,7 +69,7 @@ const navLinks = [
     </nav>
 
     <a
-      href="#contacto"
+      href="/contact-us"
       class="rounded-md bg-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-granite-900"
     >
       Cotiza ahora

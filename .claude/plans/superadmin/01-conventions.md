@@ -9,10 +9,12 @@ before writing any component.
 
 ---
 
-## Typography (decided 2026-07-05)
+## Typography (decided 2026-07-05 · typeface revised 2026-07-22)
 
-- **Superadmin's typeface is Commissioner** (variable, weight axis only — expressive
-  flare/volume axes stay at defaults). This is a **deliberate deviation from frontend
+- **Superadmin's typeface is Figtree** (variable; owner 2026-07-22, plan 17 —
+  supersedes Nunito Sans, which superseded Quicksand/Commissioner the same day:
+  geometric-clean with a touch of warmth for the executive turn).
+  This is a **deliberate deviation from frontend
   parity**: the superadmin is *our* product chrome, constant across tenants, and its
   own voice tells tenants who they're working with. Tenant-facing surfaces
   (`website/` + `frontend/` field app) are **brand-font-driven** instead:
@@ -20,36 +22,130 @@ before writing any component.
   (`03-branding.md` §2.1), defaulting to the business-identity pair **Work Sans
   (body) + Rubik (headings)** — the field app migrates off Inter to the brand-font
   CSS vars (recorded as a fork `frontend/` task, not superadmin work).
-- **Self-hosted, never CDN:** `@fontsource-variable/commissioner` — one woff2,
-  preloaded in `index.html`. No `fonts.googleapis.com` import (offline, CSP, no FOUT).
+- **Self-hosted, never CDN:** `@fontsource-variable/figtree` — one woff2.
+  No `fonts.googleapis.com` import (offline, CSP, no FOUT) — paste-in embed
+  snippets get translated to the fontsource equivalent.
 - Stacks in `tailwind.config.js`:
-  `sans: ['"Commissioner Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif']`,
+  `sans: ['"Figtree Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif']`,
   plus a `data` stack for numeric table/money columns. Weights: **400 body ·
-  500 labels/buttons · 600–700 headings**.
+  500 labels/buttons/headings** (owner 2026-07-22, "too bold — cleaner look":
+  headings dropped from 600–700 to 500 — size + tracking carry hierarchy, and
+  solid fills carry active states with no weight bump. 600+ is reserved for the
+  wordmark and rare emphasis, e.g. the tiny sort-order badge; never routine
+  chrome).
 - **Tabular numerals:** data cells set `font-feature-settings: 'tnum'`.
-  **Resolved at CP-2 (2026-07-06): Commissioner's tnum is a no-op** (digit widths
-  measured unequal with the feature on), so `font-data` heads with **Atkinson
-  Hyperlegible** (the frontend's existing numeric stack — tnum verified: all digit
-  groups measure identically) with Commissioner everywhere else.
+  **Resolved at CP-2 (2026-07-06): the product voice's tnum can't be trusted**
+  (Commissioner's was a no-op — digit widths measured unequal with the feature on),
+  so `font-data` heads with **Atkinson Hyperlegible** (the frontend's existing
+  numeric stack — tnum verified: all digit groups measure identically) with the
+  product voice everywhere else. Unchanged under Figtree.
 - PrimeNG inherits the body font — no per-component font overrides.
 
-## Design language — solid & tight (decided 2026-07-05)
+## Design language — soft-executive (decided 2026-07-05 · identity revised 2026-07-22, plan 17)
 
-The superadmin reads as a dense, confident **operations console** (dark-fintech
-reference). Solidity comes from hairline borders, compact rhythm, strong status cues,
-and restrained motion — never decoration. The committed skill
+The superadmin reads as a clean, breathable **business console** (PrimeNG Diamond
+reference; supersedes the field-app-derived "solid & tight" operations-console
+identity — this app serves office/executive users, not sunlight-and-gloves field
+techs; WCAG contrast rules are untouched). Confidence comes from stock Aura chrome,
+generous page-level rhythm, soft-elevated cards, strong status cues, and restrained
+motion — never decoration. The committed skill
 **`.claude/skills/superadmin-design`** mirrors this section so every module agent
 auto-loads it — **edit both in the same commit.**
 
-- **Density (low-to-mid whitespace):** cards `p-4` (page-level summary cards max
-  `p-5`); section gaps `gap-4`; compact tables (`py-2.5` cells, 13–14px text). Prefer
-  one dense, well-grouped screen over two airy ones.
-- **Borders, not shadows:** in-page surfaces use 1px hairlines
-  (`border-granite-200 dark:border-granite-800`) on flat backgrounds; shadows are
-  reserved for true overlays (dialogs, popovers, drawers). Nested grouping = background
-  shift or divider, never another shadowed box.
+- **Component chrome is preset-first (owner 2026-07-22, plan 17):** PrimeNG renders
+  **stock Aura**, customized only through `ManttioPreset` design tokens
+  (`app/theme/manttio-preset.ts`) — a value we would have put in an override sheet
+  goes in a token whenever Aura exposes one. See the PrimeNG section for the
+  surviving-sheet rules.
+- **Density (breathable — plan 17, supersedes the soft-UI turn's `p-5`):** cards
+  `p-6`; section gaps `gap-5`/`gap-6`; page gutters `px-4 sm:px-6 md:px-8` with
+  `py-6` (shell-owned, CP-2); topbar + sidebar header strips `h-14` (slimmed from
+  `h-16`, owner 2026-07-22 — the strip holds only the notification bell + user
+  pill; the theme switcher lives in the user popover); tables stay compact
+  (`py-2.5` cells, 13–14px text). Airy chrome, dense data — the air lives at the
+  page level, never inside the data.
+- **Page-header pattern (plan 17 §5, CP-2):** every routed page opens with the
+  shared `shared/components/page-header` (`app-page-header`) — the page's single
+  `h1` (`text-2xl font-medium tracking-tight` — 500 since the weight-ladder turn),
+  optional muted description,
+  optional `backLink`/`backLabel` (detail/form pages), a `meta` slot for status
+  tags beside the title, and the default slot for right-aligned actions (the
+  filters-popover trigger stays left of the primary action). The component owns
+  the `mb-6` under-header rhythm — pages never hand-roll an `<h1>` row.
+  Title-only by default: no breadcrumbs (the two-level nav already locates you;
+  owner may opt in later). Dynamic titles/descriptions bind computeds or signal
+  ternaries, never method calls.
+- **Soft elevation (owner, 2026-07-22 — Purity-style soft-UI reference; supersedes
+  borders-not-shadows):** cards are white `rounded-card` surfaces floating on the tinted
+  page background with a soft neutral shadow (`.card`/`.card-section` → `shadow-card`);
+  hairline borders retire to *internal* dividers and nested grouping. The shell keeps
+  its 2026-07-21 sidebar shadow (`.shell-sidebar`); the topbar is SURFACELESS —
+  no shadow, no background: the bell + user pill float directly on the canvas
+  (owner 2026-07-22, slim-topbar turn — content scrolls in a separate region,
+  nothing passes under it). Shadows are always
+  **neutral black alpha** — colored glows stay banned (AI-slop rule). **Depth needs
+  contrast:** superadmin's `background` alias repoints to `surface-100` (one step
+  under the card whites; owner 2026-07-22) — a deliberate superadmin-only divergence
+  from plan 16's shared `surface-0` value, or the elevation never reads.
+- **Entity rows lead with an initials avatar** (`size-9 rounded-full bg-primary-100
+  text-primary-800` + the `initials` pipe, dark `primary-1000/60`/`primary-300`) —
+  the reference's row identity, brand-tinted (canon: customers-list Cliente column).
+- **Accent step (owner, 2026-07-22):** `primary-400` is the *decorative* accent — icon
+  chips (`.icon-chip`; the unused `--soft` variant was removed at plan 17 CP-5,
+  2026-07-22), single-hue chart area fills, progress bars,
+  highlight numbers (the reference's teal, brand-mapped). Interactive solids (buttons,
+  the filled nav chip's container aside) stay on `primary-600`/`700` — white text on
+  400 doesn't clear 4.5:1.
+- **Stat cards (reference idiom):** micro-label + `font-data` value + delta
+  (`text-emerald-600`/`text-red-600`, sign always shown) with an `.icon-chip` on the
+  trailing edge; timelines pair small accent icons with micro-label timestamps.
+- **Data-viz (owner 2026-07-22, CRM-cockpit turn — supersedes utm-params 03's
+  2026-07-20 pies):** time series are `p-chart type="line"` — hero series
+  `primary-600` (dark `primary-400`) with the sole tolerated gradient (a
+  `primary-400` single-hue area fill fading to transparent), secondary series on
+  the scale's neutral end (`primary-1000` light / `primary-100` dark), smooth
+  `tension: 0.4`, no point dots, faint y-grid only, chart.js legend OFF — the
+  legend is dot chips in the card header. Categorical mixes (channels, sources)
+  are **never pies**: proportional single-hue bars (`bg-primary-400` fill on a
+  `surface-100`/`surface-800` track, width relative to the top row, `font-data`
+  counts, a muted split line beneath). Chart canvases live in a fixed-height
+  wrapper (`h-64`) with host + inner div `h-full` (PrimeNG 21 ignores
+  `styleClass` on `p-chart`); chart colors re-read the brand CSS vars on theme
+  change (canon: `crm/pages/dashboard`).
+- **Default-PrimeNG buttons (owner 2026-07-22: "blob-like buttons do not look
+  clean" — supersedes the 2026-07-21 blob/pill buttons):** actions are
+  `rounded-control` rectangles at the input radius, stock-Aura `px-4` — the
+  `.btn` family carries it, paginator pages follow via `table.scss`, and any
+  future `<p-button>` via the preset's button `borderRadius: {border.radius.lg}`
+  token (plan 17 — the old button sheet is retired; dialog/drawer/toast close
+  buttons render stock). **Ghost icon-only buttons in chrome (topbar
+  bell/theme/menu, avatars) stay circles** — they read as chrome, not actions.
+  Nav rows are flat `rounded-control` (Diamond turn, owner 2026-07-22).
+  **Boundary (tokenized 2026-07-22, § Styling):** inputs/buttons/nav
+  `rounded-control`, cards/dialogs `rounded-card`, icon chips + popovers
+  `rounded-chip`, status/role pills + chrome icon-circles `rounded-full`.
+- **Condensed button copy (owner 2026-07-22: "Guardar y aplicar is just too
+  long"):** action labels are the bare verb wherever context disambiguates —
+  "Guardar", not "Guardar cambios"/"Guardar borrador"/"Guardar y aplicar"
+  (draft-vs-publish stays clear because "Publicar" sits alongside). Qualify
+  only when two same-verb actions share a view.
 - **Strong cues:** status pills wherever state exists (never color alone); active nav =
-  2px primary left-accent bar + tinted bg; micro-labels (`text-2xs font-medium`) for
+  **Diamond-style flat rows on the dark brand panel** (owner 2026-07-22, Diamond turn
+  v2 per reference screenshot — supersedes the elevated-pill/chip nav, which
+  superseded the solid-primary block): the sidebar is `primary-1000` in **both
+  modes** with a rounded right edge and hairline `primary-800/50` outline;
+  light-on-dark `rounded-control` rows (`primary-100`/`200` text, `primary-300`
+  `.nav-icon`s), hover `white/10`, active child = solid `primary-600` row with white
+  text (`.nav-active`), active-trail group = white text/icon (`.nav-group-active`),
+  no shadows inside the nav. The panel lives in its own `app-sidebar` component
+  (`layouts/components/sidebar/`, extracted 2026-07-23) rendered by both the desktop
+  aside and the mobile drawer; desktop collapses to a `w-20` **icon rail** (owner
+  2026-07-23, toggled by a floating `size-4` chevron handle straddling the panel's
+  right edge at `top-5`, persisted as `AppState.sidebarCollapsed`):
+  rail icons link to the group's landing route and reveal a `.nav-flyout` submenu on
+  hover/focus (CSS-only `:hover`/`:focus-within` — keyboard path is the normal tab
+  order; width snaps, no width animation per the transform/opacity motion rule);
+  micro-labels (`text-2xs font-medium`) for
   card/section/table headers — **title/sentence case, never uppercase** (QA 2026-07-07:
   uppercase is reserved for warnings or explicit requests; headings/labels render in
   their authored case);
@@ -59,7 +155,10 @@ auto-loads it — **edit both in the same commit.**
   iconography.
 - **No AI-slop aesthetics (added 2026-07-05):** banned outright — glowing/colored
   drop shadows, neon gradients, purple→cyan / pink→blue washes, gradient text,
-  glassmorphism (backdrop-blur + glow), animated gradient backgrounds, sparkle/magic
+  glassmorphism (backdrop-blur + glow; **owner exception 2026-07-22: popovers only**
+  may carry a *subtle* liquid-glass treatment — translucent surface + backdrop blur,
+  neutral shadow, no glow or gradient tint; in-page surfaces never),
+  animated gradient backgrounds, sparkle/magic
   iconography. This is a professional environment; clients must never read the
   product as AI-generated. Color arrives through palette scales and status pills.
   Sole tolerated gradient: a subtle single-hue area fill under chart lines.
@@ -67,6 +166,17 @@ auto-loads it — **edit both in the same commit.**
   `lucide-angular`). `size-4` inline, `size-5` nav, stroke-2
   everywhere; never PrimeIcons in our own templates (PrimeNG's internal chevrons are
   the only tolerated appearance), never filled/duotone sets.
+- **Simplicity rules (owner, 2026-07-21):** (1) **no arbitrary Tailwind values in
+  templates** (`h-[235px]`, `h-[calc(...)]`) — standard scale utilities only
+  (`h-56`); a size that must be exact belongs in a stylesheet, not inline brackets.
+  (2) **Tabular/feed data renders as `p-table`** (the customers-list idiom:
+  header/body templates, `rowHover`, whole-row click, `[scrollable]` +
+  `scrollHeight` for internal scroll, `emptymessage` with the `.empty-icon`
+  disc + one sentence, and — since CP-3 (2026-07-22) — `[showLoader]="false"`
+  + a `#loadingbody` of 8 `.skeleton`-bar rows instead of the spinner
+  overlay) — never hand-rolled `<ol>`/`<div>` row lists. (3) **Simple fixed sizing beats layout machinery:**
+  fixed card heights + internal scroll, page-scoped CSS only — never shell-layout
+  surgery (flex-chain rewiring, route-data layout flags) for one page's sizing.
 - **Motion system (revised 2026-07-06 — Angular native, not anime.js):** Angular's
   `animate.enter`/`animate.leave` class bindings + `src/animations.scss`, which owns
   the keyframes and tokens as CSS custom properties — `--motion-fast` 150ms (micro
@@ -115,10 +225,12 @@ Binding for every component; the skill carries the same list with implementation
 - **horizontal-scroll** — never page-level on mobile; wide tables scroll in their own
   `overflow-x-auto`.
 - **spacing-scale** — Tailwind's 4px scale only; no arbitrary pixel spacing.
-- **touch-density** — `h-12` baseline keeps 48px touch targets even at desk density;
+- **touch-density** — the `h-11 sm:h-10` baseline keeps 44px touch targets below `sm`;
   no cramped tap clusters.
-- **container-width** — one consistent desktop max-width (`max-w-6xl`/`7xl`), picked
-  in the shell.
+- **container-width** — the main container is **full-width** (owner, 2026-07-21 —
+  supersedes the earlier `max-w-7xl` cap): content claims every pixel the chrome
+  leaves free; only the `px-4 sm:px-6` gutters remain. Prose/help copy still respects
+  line-length-control inside its own block.
 - **z-index-management** — in-page layers `0/10/20/40`; PrimeNG overlays own 1000+.
 - **fixed-element-offset** — fixed topbar/sidebar reserve padding; nothing hides
   beneath them.
@@ -133,36 +245,76 @@ Binding for every component; the skill carries the same list with implementation
 
 - **Tailwind CSS 3.4 only.** Do not upgrade or downgrade. If a new utility/class is needed,
   add it to `tailwind.config.js` (extend `theme`) rather than using arbitrary values inline.
+- **Radius language is tokenized (owner 2026-07-22, plan 17):** `rounded-card`
+  (1rem — cards, panels, dialogs, table shells; the sidebar edge is
+  `rounded-r-card`) · `rounded-chip` (0.75rem — icon chips, popovers) ·
+  `rounded-control` (0.5rem — inputs, **buttons** (2026-07-22, default-PrimeNG
+  turn), nav rows, small in-card surfaces) · `rounded-full` (status/role pills +
+  chrome icon-circles only). New chrome uses these — never raw
+  `rounded-lg`/`xl`/`2xl`; page templates migrate as the plan 17 CP-3..5
+  passes touch them. Values mirror the preset's `border.radius` tokens.
 - Prefer `size-*` over paired `w-*`/`h-*` when width and height are equal
   (e.g. `w-4 h-4` → `size-4`).
 - **Never** use inline `style="..."` attributes (or `[style]` / `[ngStyle]`) in templates.
-  All styling goes through Tailwind classes or component-scoped styles. (Two exceptions:
-  the dialog width idiom `[style]="{ width: '32rem' }"` paired with the `max-w-11/12` cap
-  — see Dialogs below — and, added 2026-07-06, the brand editor's runtime previews:
-  color-swatch backgrounds and font-sample `font-family` bind `[style.*]` because
-  user-picked brand values can't be utility classes. Nothing else qualifies.)
+  All styling goes through Tailwind classes or component-scoped styles. (One exception —
+  added 2026-07-06 — the brand editor's runtime previews: color-swatch backgrounds and
+  font-sample `font-family` bind `[style.*]` because user-picked brand values can't be
+  utility classes. The old dialog-width `[style]` exception was retired at CP-4
+  (2026-07-22) — see Dialogs below. Nothing else qualifies.)
 - The color palette is the **runtime tenant brand**, shared with `frontend/` and `website/`:
-  `granite`/`sky` read `--brand-surface-*`/`--brand-primary-*` (HSL components, steps
-  **0…1000 by 100** — no `-50`/`-950`; contract rework 2026-07-12), `navy`/`cyan` stay
-  static accents (standard 50…950). Use those scales or the semantic tokens (`background`,
-  `surface`, `primary`, `secondary`, `dark`). **Do not introduce new ad-hoc hex values.**
+  exactly two scales, `primary` and `surface`, reading `--brand-primary-*`/
+  `--brand-surface-*` (HSL components, steps **0…1000 by 100** — no `-50`/`-950`;
+  contract rework 2026-07-12). Utility name = wire name (plan 16, superadmin leg landed
+  2026-07-21; the legacy `sky`/`granite`/`navy`/`cyan` names are tombstoned in
+  `tailwind.config.js` — they emit no CSS). Use those scales or the semantic aliases
+  (`background`, `surface`, `primary`, `secondary`, `dark`). The role-pill blue ladder is
+  the one sanctioned literal-hex island (`.role-pill--*` in `styles.scss` — static across
+  tenants by design, 14 §1). **Do not introduce new ad-hoc hex values.**
 - **Reuse the global classes from `styles.scss`** before re-styling locally: `.field-input`
-  (form controls), `.field-label`, `.field-group`, `.btn-primary` / `-secondary` / `-neutral`
-  / `-danger`, `.card`, `.card-section`. They already carry dark variants and
+  (form controls), `.field-label`, `.field-group`, `.field-hint` / `.field-error`
+  (feedback lines under a control — CP-4), `.btn-primary` / `-secondary` / `-neutral`
+  / `-danger`, `.link-action` (inline text-button/link — "Agregar X" repeater adds,
+  upload labels, "ver todos" card links; CP-4), `.card`, `.card-section`, `.callout`
+  (+ `--info`/`--warn`/`--danger` — bordered note/alert panels; CP-4), `.seg-tabs` /
+  `.seg-tab` (+ `.seg-tab-active`, `--danger` — the inline editor tab switcher;
+  CP-4), and the CP-3 list trio — `.row-action` (+ `--danger`/`--success`/`--grab` —
+  icon-ghost actions: table rows, editor repeater reorder/remove, rich-text toolbar;
+  widened beyond tables at CP-4, disabled steps dim to 0.4), `.skeleton` (loading
+  bars), `.empty-icon` (empty-state disc). For a `p-table` inside a padded card,
+  wrap it in `.card-flush-table` (theme/table.scss, owner 2026-07-23): cancels the
+  card's px-6 so the table bleeds edge-to-edge and sheds its own rounded/shadow
+  chrome — canon: the CRM dashboard feed cards. They already carry dark variants and
   disabled/focus states; re-implementing them in templates almost always misses one.
   These globals are **ported from `frontend/src/styles.scss`** in shell CP-2 — keep them
   byte-compatible where possible so fixes can flow between apps.
-- `.field-input` is **fixed at 48px (`h-12`) in superadmin** — a deliberate deviation
-  from the frontend's 56px/`h-14` (the field app is glove-friendly mobile capture; the
-  superadmin is a tight desk console — see Design language). Every control snaps to
-  that one baseline: `<p-select>`, `<p-datepicker>`, `<input pInputText>`,
-  `<p-inputnumber>` all inherit it. Textareas opt out via `!h-auto`; compact controls
-  (paginator rows-per-page, dropdown filter inputs) opt down to `!h-10`. A non-standard
-  height gets an `!h-*` override in that component's theme sheet, never a parallel
-  class.
-- **Dialogs** (`<p-dialog>`, `<p-confirmDialog>`) are capped at **`max-w-11/12`** via
-  `styleClass` (a `tailwind.config.js` extension). Inline pixel width stays for roomy
-  viewports; the cap keeps a ~4% gutter on narrow screens. Apply on **every** dialog.
+- `.field-input` is **fixed at 40px desk / 44px touch (`h-11 sm:h-10`) with a SOFT
+  BRANDED 1px outline that strengthens on approach**: `primary-600/40` tint at rest
+  → solid `primary-600` hover → `primary-700` + halo focus. Dark mode rides the
+  light end of the primary scale (`primary-400/40` → solid `400` → `400` + halo)
+  because a dark primary vanishes on the `surface-900` field. (Owner 2026-07-22,
+  third revision that day: softened from the solid dark-primary rest, which
+  superseded the neutral `surface-700` Diamond outline, the pale hairline, and the
+  48px `h-12`/`border-2` chrome before it. The preset's `formField` border tokens
+  carry the same values for PrimeNG controls — the alpha rest values as raw
+  `hsl(var())`, since tokens can't alpha-reference.) Still a deliberate deviation
+  from the frontend's
+  56px/`h-14` (the field app is glove-friendly mobile capture; the superadmin is a
+  desk console). Text is 16px below `sm` (iOS auto-zoom) and `text-sm` from `sm` up.
+  Every control snaps to that one baseline: `.field-input` carries it for raw
+  inputs, and `src/theme/forms.scss` applies the same responsive sizing to every
+  PrimeNG form control (`<p-select>`, `<p-datepicker>`, `<input pInputText>`,
+  `<p-inputnumber>`) over stock Aura chrome (plan 17 — no token is
+  breakpoint-aware). Textareas opt out via `!h-auto`; compact controls (paginator
+  rows-per-page in `table.scss`, dropdown filter inputs in `forms.scss`) opt down
+  to `!h-9`. A non-standard height goes in those sheets, never a parallel class.
+- **Dialogs** (`<p-dialog>`, `<p-confirmDialog>`) take their width as
+  **`styleClass="dialog-sm|md|lg"`** (plan 17 CP-4, 2026-07-22 — supersedes the inline
+  `[style]` width + separate `max-w-11/12` clamp): three steps in `overlays.scss` —
+  `sm` 28rem (the default), `md` 30rem (roomier confirm/apply), `lg` 34rem (two-column
+  forms) — each already carrying the `max-w-11/12` phone clamp. Apply one on **every**
+  dialog; a new width step is a sheet change, never an inline style. The clients-editor
+  drawer's `drawer-form` class (full-width phone / 28rem from `sm`) lives in the same
+  sheet.
 
 ## Angular
 
@@ -207,17 +359,44 @@ Binding for every component; the skill carries the same list with implementation
   everything else — garbage never reaches state or the API), typed query building, and
   the dispatch. Never hand-roll filter/pagination wiring in a component. Canon consumer:
   `users/pages/users-list/users-list.ts` (05 §3).
+- **Filters live in a popover (owner, 2026-07-22 — Chakra-style):** list pages render
+  their filter fields inside the shared
+  `shared/components/filters-popover` component — a `Filtros` trigger (filter icon +
+  active-count badge) sitting **left of the page's primary action** — instead of an
+  always-open grid; the table claims the reclaimed space. Pass the page's URL param
+  names as `[params]` (the active count and Limpiar both derive from the URL — the
+  single load path stays intact). Overlay-bearing controls projected inside must
+  **not** use `appendTo="body"` (their overlay has to live inside the popover DOM or
+  the outside-click dismiss swallows it).
 
 ## PrimeNG
 
-- PrimeNG in **styled mode with the Aura preset** customized to the manttio palette
-  (`primary` = sky scale, `surface` = granite scale). The preset is ported from
+- PrimeNG in **styled mode with the Aura preset** customized to the tenant palette
+  (`primary`/`surface` — the preset reads the same `--brand-*` vars as the Tailwind
+  scales, and since plan 16 the utility names match). The preset is ported from
   `frontend/src/app/theme/manttio-preset.ts`; if the palette tweaks in
   `tailwind.config.js`, keep the preset in sync.
-- `theme.options.cssLayer: { name: 'primeng' }` puts Aura in a named layer so
-  **per-component override sheets in `src/theme/*.scss` win** without `!important`. To
-  restyle a PrimeNG component, edit/add its sheet there and `@import` it in
-  `src/theme/_index.scss` — no overrides in component styles or templates.
+- **Preset-first chrome (owner 2026-07-22, plan 17 — supersedes the
+  sheet-per-component approach):** components render **stock Aura**; shape/spacing/
+  color decisions are expressed as `ManttioPreset` design tokens (semantic
+  `formField`, `colorScheme` primary/formField, per-component tokens like the
+  button pill radius). **Never add a new override sheet for chrome.** A sheet in
+  `src/theme/` is justified only by (a) a need no token can express (the responsive
+  control baseline in `forms.scss`) or (b) layout-integration, not look (overlay
+  anchoring in `overlays.scss`, table density + paginator in `table.scss`, the tabs
+  nav-button kill) — plus the two house visual cues (`tag.scss` status pills,
+  `popover.scss` liquid glass). Every surviving sheet opens with why it exists;
+  hold new ones to the same bar.
+- `theme.options.cssLayer: { name: 'primeng', order: 'tailwind-base, primeng' }`
+  puts Aura in a named layer so the **surviving sheets in `src/theme/*.scss` win**
+  without `!important` — no PrimeNG overrides in component styles or templates.
+  The `order` string is load-bearing (2026-07-22): PrimeNG injects it as the
+  first `<style>` in `<head>`, before `styles.css`, so IT establishes the layer
+  order — Tailwind's preflight (wrapped in `tailwind-base` in `styles.scss`)
+  must be named first or its `border-width: 0` reset silently strips every Aura
+  component border (the pre-plan-17 override sheets had been masking exactly
+  this). Keep the `@layer tailwind-base, primeng;` statement in `styles.scss`
+  declaring the same order.
 - Reach for PrimeNG before hand-rolling overlays/feedback: **`<p-dialog>`** for modals,
   **`<p-confirmDialog>`** + `ConfirmationService` for confirms, **`<p-popover>`** for
   popover menus (outside-click/ESC/positioning solved), **`<p-toast>`** + `MessageService`
@@ -258,16 +437,16 @@ shape 3 fits.
 
   | Light | Dark |
   |---|---|
-  | `bg-background` (page bg) | `dark:bg-granite-1000` |
-  | `bg-white` (cards/panels) | `dark:bg-granite-900` |
-  | `bg-granite-0` | `dark:bg-granite-900` |
-  | `bg-sky-0` / `bg-amber-50` / `bg-red-50` / `bg-emerald-50` | `dark:bg-sky-1000/40` / `dark:bg-amber-950/30` / `dark:bg-red-950/30` / `dark:bg-emerald-950/30` |
-  | `text-granite-1000` (titles) | `dark:text-granite-0` |
-  | `text-granite-900` | `dark:text-granite-100` |
-  | `text-granite-800` | `dark:text-granite-200` |
-  | `text-granite-700` / `-600` / `-500` (muted) | `dark:text-granite-300` / `-400` / `-400` |
-  | `text-sky-800` / `-700` (accent labels) | `dark:text-sky-300` |
-  | `border-granite-200` / `-300` | `dark:border-granite-700` |
+  | `bg-background` (page bg) | `dark:bg-surface-1000` |
+  | `bg-white` (cards/panels) | `dark:bg-surface-900` |
+  | `bg-surface-0` | `dark:bg-surface-900` |
+  | `bg-primary-0` / `bg-amber-50` / `bg-red-50` / `bg-emerald-50` | `dark:bg-primary-1000/40` / `dark:bg-amber-950/30` / `dark:bg-red-950/30` / `dark:bg-emerald-950/30` |
+  | `text-surface-1000` (titles) | `dark:text-surface-0` |
+  | `text-surface-900` | `dark:text-surface-100` |
+  | `text-surface-800` | `dark:text-surface-200` |
+  | `text-surface-700` / `-600` / `-500` (muted) | `dark:text-surface-300` / `-400` / `-400` |
+  | `text-primary-800` / `-700` (accent labels) | `dark:text-primary-300` |
+  | `border-surface-200` / `-300` | `dark:border-surface-700` |
 
 - **Status pills** (`bg-amber-100 text-amber-900`, etc.) stay unchanged in dark mode —
   intentionally vibrant in both. (Superadmin uses pills heavily: CRM status, billing
@@ -280,7 +459,17 @@ shape 3 fits.
 - Config-driven form builders default controls to **`Validators.required`** unless the
   field is explicitly optional. An empty form disables submit out of the box.
 - Wrap hover/active tints in the **`enabled:`** modifier
-  (`enabled:hover:bg-sky-800 enabled:active:bg-sky-900`) so disabled buttons don't flash.
+  (`enabled:hover:bg-primary-800 enabled:active:bg-primary-900`) so disabled buttons don't flash.
+- **Validation display canon (plan 17 CP-4, 2026-07-22):** the inline error is
+  `<p class="field-error" role="alert">` directly under its control, gated on
+  **`touched && errors?.['key']`** (never `dirty`-gated, never per-keystroke) —
+  every scalar field with a named label and a failable validator carries one.
+  Persistent helper copy is `<p class="field-hint">`. Required markers stay
+  `<span aria-hidden="true"> *</span>` on the label (uncolored). Repeater-row
+  internals rely on Aura's automatic `.ng-invalid.ng-dirty` red border + the
+  disabled submit instead of per-row messages (noise). Group-level failures
+  (fiscal all-or-nothing, password mismatch) render a `.callout--warn` or a
+  `.field-error` under the group, also `role="alert"`.
 
 Forms & feedback rules (MEDIUM — added 2026-07-05; implementation notes in the skill):
 
@@ -306,7 +495,7 @@ Forms & feedback rules (MEDIUM — added 2026-07-05; implementation notes in the
   **read-only-distinction** — read-only ≠ disabled, visually and semantically ·
   **focus-management** — failed submit focuses first invalid field ·
   **error-summary** — multi-error summary with anchor links (WCAG) ·
-  **touch-friendly-input** — mobile inputs ≥44px (`h-12` complies; `!h-10` is
+  **touch-friendly-input** — mobile inputs ≥44px (the baseline is `h-11` below `sm`; `!h-9` is
   desktop-scope) · **destructive-emphasis** — danger color, separated from primary ·
   **toast-accessibility** — toasts don't steal focus, `aria-live="polite"` ·
   **aria-live-errors** — errors announce via `role="alert"`/`aria-live` ·

@@ -1,21 +1,30 @@
-import { desc, eq, sql } from 'drizzle-orm';
+import { desc, eq, isNull, sql } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { customerInteractions } from '../models/customer-interactions.model';
+import { customers } from '../models/customers.model';
 import { users } from '../../users/models/users.model';
+import { displayName } from '../../users/utils/display-name';
 import { InteractionRefKind, InteractionType } from '../enums/interactions.enum';
-import type { InteractionDTO, InteractionRow, NewInteraction } from '../types/interactions.types';
+import type {
+  InteractionDTO,
+  InteractionRowWithAuthor,
+  NewInteraction,
+  RecentInteractionDTO,
+} from '../types/interactions.types';
 
-// Row shape after the users left-join (author name folded in).
-type RowWithAuthor = InteractionRow & { userName: string | null };
-
-const toDTO = (row: RowWithAuthor): InteractionDTO => ({
+const toDTO = (row: InteractionRowWithAuthor): InteractionDTO => ({
   id: row.id,
   customerId: row.customerId,
   type: row.type,
   body: row.body,
   ref: row.refKind && row.refId ? { kind: row.refKind, id: row.refId } : undefined,
   userId: row.userId,
-  userName: row.userName ?? undefined,
+  userName:
+    displayName({
+      name: row.userName,
+      paternalLastName: row.userPaternalLastName,
+      maternalLastName: row.userMaternalLastName,
+    }) || undefined,
   createdAt: row.createdAt,
 });
 
@@ -29,6 +38,8 @@ const authoredColumns = {
   userId: customerInteractions.userId,
   createdAt: customerInteractions.createdAt,
   userName: users.name,
+  userPaternalLastName: users.paternalLastName,
+  userMaternalLastName: users.maternalLastName,
 };
 
 /** Paged, newest-first timeline for one customer (08 §2). */
@@ -55,6 +66,28 @@ export const listInteractions = async (
   return { items: rows.map(toDTO), total: countRows[0]?.count ?? 0 };
 };
 
+/** Tenant-wide latest activity across all customers (utm-params 03): newest
+ *  first. Timelines of soft-deleted customers stay stored but leave the feed
+ *  with their customer. */
+export const listRecentInteractions = async (
+  db: Db,
+  limit: number,
+): Promise<RecentInteractionDTO[]> => {
+  const rows = await db
+    .select({ ...authoredColumns, customerName: customers.name, customerStatus: customers.status })
+    .from(customerInteractions)
+    .leftJoin(users, eq(customerInteractions.userId, users.id))
+    .innerJoin(customers, eq(customerInteractions.customerId, customers.id))
+    .where(isNull(customers.deletedAt))
+    .orderBy(desc(customerInteractions.createdAt))
+    .limit(limit);
+  return rows.map((row) => ({
+    ...toDTO(row),
+    customerName: row.customerName,
+    customerStatus: row.customerStatus,
+  }));
+};
+
 /** Append a backend-generated `system` entry that a report reaching `finished`
  *  produces (08 §2 — the trail's "service performed" record, linking out to the
  *  report). Best-effort from the reports flow; never blocks the report write. */
@@ -79,14 +112,27 @@ export const insertInteraction = async (
 ): Promise<InteractionDTO> => {
   const [row] = await db.insert(customerInteractions).values(values).returning();
   if (!row) throw new Error('insertInteraction returned no row');
-  let userName: string | null = null;
+  let author: {
+    name: string;
+    paternalLastName: string | null;
+    maternalLastName: string | null;
+  } | null = null;
   if (row.userId) {
-    const [author] = await db
-      .select({ name: users.name })
+    const [found] = await db
+      .select({
+        name: users.name,
+        paternalLastName: users.paternalLastName,
+        maternalLastName: users.maternalLastName,
+      })
       .from(users)
       .where(eq(users.id, row.userId))
       .limit(1);
-    userName = author?.name ?? null;
+    author = found ?? null;
   }
-  return toDTO({ ...row, userName });
+  return toDTO({
+    ...row,
+    userName: author?.name ?? null,
+    userPaternalLastName: author?.paternalLastName ?? null,
+    userMaternalLastName: author?.maternalLastName ?? null,
+  });
 };

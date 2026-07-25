@@ -5,13 +5,12 @@
   [closable]="!submitting()"
   [draggable]="false"
   [resizable]="false"
-  styleClass="max-w-11/12"
-  [style]="{ width: '28rem' }"
+  styleClass="dialog-sm"
   header="Cambiar estado del cliente"
 >
   <form [formGroup]="form" (ngSubmit)="confirm()" class="flex flex-col gap-4">
-    <p class="text-sm text-granite-700 dark:text-granite-300">
-      <strong class="text-granite-950 dark:text-granite-50">{{ target()?.name }}</strong> — el
+    <p class="text-sm text-surface-700 dark:text-surface-300">
+      <strong class="text-surface-1000 dark:text-surface-0">{{ target()?.name }}</strong> — el
       cambio queda registrado en su historial.
     </p>
 
@@ -40,7 +39,7 @@
       </label>
       <textarea id="status-reason" pTextarea formControlName="reason" rows="2"></textarea>
       @if (isBlacklistTarget()) {
-        <p class="text-sm text-granite-500 dark:text-granite-400">
+        <p class="field-hint">
           Obligatorio: queda guardado como motivo de la lista negra.
         </p>
       }

@@ -10,9 +10,12 @@ Typography, Design language, Accessibility, Layout & responsive, Animations, and
 Forms & feedback sections — if they disagree, the plan file wins and this skill needs
 updating in the same commit).
 
-The look: a dense, confident operations console (dark-fintech reference). Solidity comes
-from hairline borders, compact rhythm, strong status cues, and restrained motion — never
-from decoration.
+The look (revised 2026-07-22, plan 17 — **soft-executive**): a clean, breathable
+business console — stock PrimeNG Aura chrome carried on the soft personality: white
+`rounded-2xl` cards floating on the tinted page background with soft neutral shadows,
+pill actions, brand-accent chips, airy chrome around dense data, strong status cues,
+and restrained motion — never decoration. (Supersedes the field-app-derived
+"solid & tight" density heritage; WCAG contrast rules are untouched.)
 
 ## Hard rules (non-negotiable)
 
@@ -24,9 +27,15 @@ from decoration.
    filled/duotone sets, never inline SVG one-offs when a Lucide glyph exists.
    Defaults: `size-4` inline with text, `size-5` in nav/buttons-only contexts,
    stroke-width 2 everywhere (don't vary it per icon).
-3. **Typeface is Commissioner** (variable, self-hosted `@fontsource-variable/commissioner`).
-   400 body · 500 labels/buttons · 600–700 headings. Numeric table/money cells use the
-   `font-data` stack with `tnum`.
+3. **Typeface is Figtree** (variable, self-hosted
+   `@fontsource-variable/figtree`; owner 2026-07-22, plan 17 — supersedes
+   Nunito Sans/Quicksand/Commissioner).
+   400 body · 500 labels/buttons/headings (owner 2026-07-22 "cleaner look":
+   headings dropped from 600–700 — size + tracking carry hierarchy, solid fills
+   carry active states; 600+ only for the wordmark and rare emphasis).
+   Numeric table/money cells use the
+   `font-data` stack with `tnum` (Atkinson Hyperlegible head — unchanged).
+   Self-hosted only — never `fonts.googleapis.com`.
 4. **Motion = Angular's native `animate.enter`/`animate.leave` + `src/animations.scss`**
    (revised 2026-07-06; supersedes the original anime.js mandate). Keyframes and
    tokens live in `animations.scss` only — no anime.js, no deprecated
@@ -37,39 +46,151 @@ from decoration.
    clients should never suspect "AI-generated product." Banned outright: glowing /
    colored drop shadows (`shadow-*` with color, `box-shadow` halos), neon gradients,
    purple→cyan / pink→blue gradient washes, gradient text, glassmorphism
-   (backdrop-blur + translucent glow), animated gradient backgrounds, and decorative
+   (backdrop-blur + translucent glow — owner exception 2026-07-22: **popovers only**
+   may carry a subtle liquid-glass treatment: translucent surface + backdrop blur,
+   neutral shadow, no glow/gradient tint; in-page surfaces never),
+   animated gradient backgrounds, and decorative
    "sparkle/magic" iconography. Color arrives through the palette scales and status
    pills — never through gradient decoration. The only tolerated gradient is a
    **subtle single-hue area fill under chart lines** (data-viz, like the reference),
    nothing else.
+6. **No arbitrary Tailwind values in templates** (`h-[235px]`, `h-[calc(...)]`) —
+   standard scale utilities only (`h-56`); a size that must be exact belongs in a
+   stylesheet, not inline brackets (owner, 2026-07-21).
+7. **Tabular/feed data renders as `p-table`** (the customers-list idiom: header/body
+   templates, `rowHover`, whole-row click, `[scrollable]` + `scrollHeight` for
+   internal scroll, `emptymessage` with the `.empty-icon` disc + one sentence, and —
+   since CP-3 (2026-07-22) — `[showLoader]="false"` + a `#loadingbody` of 8
+   `.skeleton`-bar rows instead of the spinner overlay; row-level icon actions use
+   `.row-action`/`--danger`/`--success` — since CP-4 the same classes cover editor
+   repeater reorder/remove buttons and toolbar icon-ghosts, `--grab` for drag
+   handles) — never hand-rolled `<ol>`/`<div>` row lists (owner, 2026-07-21).
+   Inside a padded card, wrap the table in `.card-flush-table` (theme/table.scss)
+   so it bleeds to the card edges (owner 2026-07-23; canon: CRM dashboard feeds).
+8. **Simple fixed sizing beats layout machinery.** Fixed card heights + internal
+   scroll, page-scoped CSS only — never shell-layout surgery (flex-chain rewiring,
+   route-data layout flags) for one page's sizing (owner, 2026-07-21).
+9. **PrimeNG chrome is preset-first** (owner 2026-07-22, plan 17): component look
+   comes from **stock Aura + `ManttioPreset` design tokens**
+   (`app/theme/manttio-preset.ts`) — never a new override sheet in `src/theme/`.
+   The only surviving sheets are layout-integration rules and house visual cues no
+   token can express (`forms`, `overlays`, `tag`, `table`, `popover`, `tabs` — each
+   opens with why it exists); adding one requires the same justification.
 
 ## Density — low-to-mid whitespace
 
-- Baseline control height is **48px: `.field-input` = `h-12`** (deliberate deviation from
-  the frontend's `h-14`; superadmin is a desk tool). Compact contexts (paginator
-  rows-per-page, dropdown filter inputs) opt down to `!h-10`.
-- Cards: `p-4` (page-level summary cards may take `p-5`, nothing larger). Section gaps
-  `gap-4`. Page gutters `px-4 md:px-6`.
-- Tables are compact: `py-2.5` cells, 13–14px cell text, header row as uppercase
+- Baseline control height is **40px desk / 44px touch: `.field-input` = `h-11 sm:h-10`**
+  with a **soft branded 1px outline that strengthens on approach**: `primary-600/40`
+  tint at rest → solid `primary-600` hover → `primary-700` + halo focus (dark mode
+  `primary-400/40` → solid `400` → `400` + halo — a dark primary vanishes on the
+  `surface-900` field, so the ladder rides the light end of the scale. Owner
+  2026-07-22, third revision that day: softened from the solid dark-primary rest,
+  which superseded the neutral `surface-700` Diamond outline, the pale hairline, and
+  the 48px `h-12`/`border-2` chrome; still a deliberate deviation from the
+  frontend's `h-14`). The preset's `formField` border tokens carry the same values
+  for PrimeNG controls (alpha rest values as raw `hsl(var())` — tokens can't
+  alpha-reference). Text 16px below `sm`, `text-sm` from `sm` up.
+  Compact contexts (paginator rows-per-page, dropdown filter inputs) opt down to
+  `!h-9`.
+- Cards: `p-6` (plan 17 breathable rhythm — supersedes the soft-UI turn's `p-5`).
+  Section gaps `gap-5`/`gap-6`. Page gutters `px-4 sm:px-6 md:px-8` + `py-6`
+  (shell-owned, CP-2); topbar and sidebar header strips sit at `h-14` (slimmed from
+  `h-16`, owner 2026-07-22 — the strip holds only the notification bell + user pill;
+  the theme switcher lives in the user popover).
+  Airy chrome, dense data.
+- Tables are compact: `py-2.5` cells, 13–14px cell text, header row as a
   micro-label (see cues below).
 - Prefer one dense, well-grouped screen over two airy ones — but never sacrifice the
-  56px→48px baseline alignment: every control on a row snaps to the same height.
+  baseline alignment: every control on a row snaps to the same height.
 
-## Surfaces — borders, not shadows
+## Surfaces — soft elevation (owner 2026-07-22, supersedes borders-not-shadows)
 
-- Cards/panels: `1px` hairline borders (`border-granite-200 dark:border-granite-800`),
-  flat backgrounds (`bg-white dark:bg-granite-900`). **No drop shadows on in-page
-  surfaces.** Shadows are reserved for true overlays (dialogs, popovers, drawers).
-- Nested grouping inside a card = background shift (`bg-granite-50 dark:bg-granite-950/60`)
+- Cards/panels: white `rounded-card` (1rem — the tokenized radius, see boundary
+  below) floating on the tinted page bg with the soft neutral `shadow-card` (`.card`/`.card-section` carry it; `dark:bg-surface-900` with a
+  deepened `.app-dark` shadow). **No hairline borders on card edges** — hairlines
+  retire to *internal* dividers. The shell chrome keeps its 2026-07-21 shadows
+  (`.shell-sidebar` — the topbar is SURFACELESS since 2026-07-22: no shadow, no
+  background, the bell + user pill float on the canvas).
+  **Depth needs contrast:** the `background` alias
+  sits at `surface-100` in superadmin (one step under card whites, owner 2026-07-22) —
+  keep page-level surfaces on `bg-background`, never on `bg-white`.
+- **Entity rows lead with an initials avatar**: `size-9 rounded-full bg-primary-100
+  text-primary-800` (dark `primary-1000/60`/`primary-300`) + the shared `initials`
+  pipe — canon: customers-list Cliente column.
+- Shadows are always **neutral black alpha** — a colored/glowing shadow is still
+  banned AI-slop.
+- Nested grouping inside a card = background shift (`bg-surface-100 dark:bg-surface-800/40`)
   or a hairline divider — not another shadowed box.
+- **Accent step:** `primary-400` is the decorative accent (the reference's teal,
+  brand-mapped) — `.icon-chip` (filled; the unused `--soft` variant was removed at
+  plan 17 CP-5), single-hue chart area fills, progress bars, highlight numbers.
+  Interactive solids stay `primary-600`/`700` — white text on 400 fails 4.5:1.
+- The palette is the two semantic brand scales only — `primary-*` / `surface-*`, steps
+  0…1000 by 100 (no `-50`/`-950`; plan 16 tombstoned `sky`/`granite`/`navy`/`cyan` —
+  those classes emit no CSS). Sole literal-hex island: the static role-pill ladder
+  (`.role-pill--*` in `styles.scss`).
+- **Default-PrimeNG buttons** (owner 2026-07-22: "blob-like buttons do not look
+  clean" — supersedes the 2026-07-21 blob/pill buttons): actions are
+  `rounded-control` rectangles at the input radius, stock-Aura `px-4` — the
+  `.btn` family carries it, paginator pages follow via `table.scss`, and any
+  future `<p-button>` via the preset's button `borderRadius: {border.radius.lg}`
+  token. Ghost icon-only buttons in chrome (topbar bell/theme/menu, avatars)
+  stay circles — chrome, not actions. **Button copy is the bare verb** where
+  context disambiguates — "Guardar", never "Guardar cambios"/"Guardar y
+  aplicar" (owner 2026-07-22); qualify only when two same-verb actions share a
+  view. Nav rows are flat `rounded-control`
+  (Diamond turn, owner 2026-07-22). Boundary (tokenized 2026-07-22 in
+  `tailwind.config.js`): inputs/buttons/nav `rounded-control` (0.5rem),
+  cards/dialogs/table shells `rounded-card` (1rem, sidebar edge
+  `rounded-r-card`), icon chips + popovers `rounded-chip` (0.75rem), status/role
+  pills + chrome icon-circles `rounded-full` — never raw `rounded-lg`/`xl`/`2xl`
+  in new chrome.
 
 ## Strong visual cues
 
+- **Page header** (plan 17 §5, CP-2): every routed page opens with the shared
+  `app-page-header` (`shared/components/page-header`) — single `h1`
+  (`text-2xl font-semibold tracking-tight`), optional muted description, optional
+  `backLink`, `meta` slot for title-adjacent status tags, default slot for
+  right-aligned actions; it owns the `mb-6` rhythm. Never hand-roll an `<h1>` row.
+  Title-only — no breadcrumbs unless the owner opts in.
 - **Status pills** everywhere state exists (CRM status, billing, stock, visit status) —
   vibrant in both modes per the dark-mode rules; pill + label, never color alone.
-- **Active nav**: 2px left accent bar in primary + tinted background — instantly locatable.
-- **Uppercase micro-labels** for card/section/table headers:
-  `text-[11px] font-medium tracking-caps text-granite-500 dark:text-granite-400 uppercase`.
+- **Active nav**: Diamond-style flat rows on the dark brand panel (owner
+  2026-07-22, Diamond turn v2 per reference screenshot — supersedes the
+  elevated-pill/chip nav): the sidebar is `primary-1000` in **both modes** with a
+  rounded right edge + hairline `primary-800/50` outline; light-on-dark
+  `rounded-control` rows (`primary-100`/`200` text, `primary-300` `.nav-icon`s), hover
+  `white/10`, active child = solid `primary-600` row with white text
+  (`.nav-active`), active-trail group = white text/icon (`.nav-group-active`).
+  No shadows inside the nav. The panel is the `app-sidebar` component
+  (`layouts/components/sidebar/`); desktop collapses to a `w-20` icon rail
+  (owner 2026-07-23, persisted `AppState.sidebarCollapsed`) whose rows reveal
+  `.nav-flyout` submenus on hover/focus — CSS-only, width snaps (no width
+  animation per transform-performance).
+- **Stat cards** (reference idiom): micro-label + `font-data` value + signed delta
+  (`text-emerald-600`/`text-red-600`) with an `.icon-chip` on the trailing edge;
+  timelines pair small accent icons with micro-label timestamps.
+- **Data-viz** (owner 2026-07-22, CRM-cockpit turn): time series are
+  `p-chart type="line"` — hero series `primary-600` (dark `primary-400`) with the
+  sole tolerated gradient (a `primary-400` single-hue area fill fading to
+  transparent), secondary series on the scale's neutral end (`primary-1000` light /
+  `primary-100` dark), `tension: 0.4`, no point dots, faint y-grid only, chart.js
+  legend OFF — the legend is dot chips in the card header. Categorical mixes are
+  **never pies**: proportional single-hue bars (`bg-primary-400` on a surface
+  track, width relative to the top row, `font-data` counts). Chart canvases live
+  in a fixed-height wrapper (`h-64`), host + inner div `h-full` (PrimeNG 21
+  ignores `styleClass` on `p-chart`); colors re-read the brand CSS vars on theme
+  change (canon: `crm/pages/dashboard`).
+- **List filters live in a popover** (owner 2026-07-22, Chakra-style): the shared
+  `shared/components/filters-popover` trigger (filter icon + active-count badge) sits
+  left of the page's primary action; pass the page's URL param names as `[params]`
+  (count + Limpiar derive from the URL). Controls projected inside must not use
+  `appendTo="body"` — their overlay must live inside the popover DOM.
+- **Micro-labels** for card/section/table headers (`.micro-label`:
+  `text-2xs font-medium text-surface-500 dark:text-surface-400`) — authored
+  title/sentence case, never `uppercase` (QA 2026-07-07: uppercase is reserved for
+  warnings or explicit requests).
 - **Tabular numerals** (`font-data`) for every numeric column — digits align vertically.
 - **Skeleton loaders** for content regions (tables, cards) instead of spinners; spinners
   only on buttons for in-flight actions.
@@ -148,6 +269,17 @@ durations in components:
 
 ## Forms & feedback (MEDIUM)
 
+Implementation canon (plan 17 CP-4, 2026-07-22): the inline error is
+`<p class="field-error" role="alert">` directly under its control, gated on
+`touched && errors?.['key']` (never `dirty`, never per-keystroke); helper copy is
+`<p class="field-hint">`; required markers are `<span aria-hidden="true"> *</span>`
+on the label (uncolored). Repeater-row internals rely on Aura's automatic
+`.ng-invalid.ng-dirty` red border + the disabled submit instead of per-row
+messages. Bordered notes/warnings are `.callout` (+ `--info`/`--warn`/`--danger`);
+inline text-buttons ("Agregar X", upload labels) are `.link-action`; editor tab
+switchers are `.seg-tabs`/`.seg-tab` (+ `-active`, `-active--danger`); repeater
+reorder/remove and toolbar icon-ghosts reuse `.row-action` (+ `--danger`/`--grab`).
+
 - **input-labels** — visible label per input; never placeholder-only.
 - **error-placement** — error text directly below the related field.
 - **submit-feedback** — loading state, then success/error state on submit.
@@ -192,8 +324,8 @@ durations in components:
   (WCAG, MD).
 - **error-summary** — multiple errors get a summary at top with anchor links to each
   field (WCAG).
-- **touch-friendly-input** — mobile input height ≥44px (the `h-12` = 48px baseline
-  complies; `!h-10` compacts are desktop-scope only) (Apple HIG).
+- **touch-friendly-input** — mobile input height ≥44px (the baseline is `h-11` below
+  `sm`; `!h-9` compacts are desktop-scope only) (Apple HIG).
 - **destructive-emphasis** — destructive actions use the danger color and sit
   visually separated from primary actions (HIG, MD).
 - **toast-accessibility** — toasts never steal focus; `aria-live="polite"` (WCAG).
@@ -247,9 +379,10 @@ durations in components:
 - **spacing-scale** — 4pt/8dp incremental spacing system (Tailwind's 4px scale — no
   arbitrary pixel values; Material Design).
 - **touch-density** — Component spacing comfortable for touch: not cramped, no
-  mis-taps — the `h-12` baseline keeps 48px targets even at desk density.
-- **container-width** — Consistent max-width on desktop (`max-w-6xl`/`7xl` per page
-  type; pick once in the shell, reuse).
+  mis-taps — the baseline stays `h-11` (44px) below `sm`.
+- **container-width** — the main container is **full-width** (owner, 2026-07-21 —
+  supersedes the `max-w-7xl` cap): only the shell's `px-4 sm:px-6` gutters remain;
+  prose blocks still self-limit line length.
 - **z-index-management** — Layered scale: `0 / 10 / 20 / 40` for in-page layers; PrimeNG
   overlays own the 1000+ range — never compete with them.
 - **fixed-element-offset** — Fixed topbar/sidebar reserve safe padding for underlying
@@ -267,13 +400,19 @@ durations in components:
 
 - [ ] No emojis; all icons Lucide outlined, stroke-2, standard sizes
 - [ ] No AI-slop: zero glow shadows, neon/duotone gradients, gradient text, or
-      glassmorphism anywhere in the diff
+      glassmorphism anywhere in the diff (sole sanctioned exception: the popover
+      chrome's subtle liquid-glass, owned by `theme/popover.scss`)
 - [ ] A11y pass: contrast ≥4.5:1, visible focus ring, `aria-label` on icon-only
       buttons, real `<label for>`s, heading order, keyboard-only walkthrough works
 - [ ] Responsive pass: no page-level horizontal scroll at 375px, inputs ≥16px on
       mobile, wide tables in `overflow-x-auto`, `min-h-dvh` not `100vh`
-- [ ] Controls snap to the `h-12` baseline (or `!h-10` compact)
-- [ ] Borders not shadows on in-page surfaces; dark-mode pairings applied
+- [ ] Controls snap to the `h-11 sm:h-10` baseline (or `!h-9` compact)
+- [ ] Soft elevation: cards `rounded-card` + neutral `shadow-card`, no edge borders;
+      hairlines only as internal dividers; dark-mode pairings applied
+- [ ] Radius tokens only in new chrome (`rounded-card`/`chip`/`control`/`full`) —
+      no raw `rounded-lg`/`xl`/`2xl`
 - [ ] Status rendered as pills; numeric columns `font-data`/tnum
 - [ ] Motion uses `MOTION` tokens + reduced-motion guard
 - [ ] Global classes (`.field-input`, `.btn-*`, `.card`) reused, not re-implemented
+- [ ] No new `src/theme/` sheets — PrimeNG chrome via `ManttioPreset` tokens
+      (a sheet only for layout-integration, opening with why it exists)

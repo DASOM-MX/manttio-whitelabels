@@ -46,12 +46,84 @@ const brandScale = (name: 'primary' | 'surface', hue: number, saturation: number
 
 const surface = { 0: '#FFFFFF', ...brandScale('surface', 0, 0) };
 
+/* Preset-first chrome (plan 17, owner 2026-07-22): component shape/spacing
+ * decisions live HERE as design tokens, not in override sheets — a value we
+ * would have put in a sheet goes in a token whenever Aura exposes one. The
+ * only surviving sheets in `src/theme/` are layout-integration rules and
+ * house visual cues no token can express (see `src/theme/_index.scss`). */
 export const ManttioPreset = definePreset(Aura, {
   semantic: {
     primary: brandScale('primary', 220, 10),
-    colorScheme: {
-      light: { surface },
-      dark: { surface },
+    // Inputs sit on the house rounded-lg + px-3.5. Responsive heights/text
+    // stay in `src/theme/forms.scss` — no token is breakpoint-aware. Focus
+    // adds a soft 4px halo (the `.field-input` ring language) on top of the
+    // primary border — raw hsl(var()) because tokens can't alpha-reference.
+    formField: {
+      paddingX: '0.875rem',
+      borderRadius: '{border.radius.lg}',
+      focusRing: {
+        width: '4px',
+        style: 'solid',
+        color: 'hsl(var(--brand-primary-600, 220 10% 45%) / 0.22)',
+        offset: '0',
+      },
     },
+    colorScheme: {
+      light: {
+        surface,
+        // Interactive solids anchor at 600/700/800 like `.btn-primary` —
+        // white on 400/500 doesn't clear 4.5:1 (01 Accessibility).
+        primary: {
+          color: '{primary.600}',
+          contrastColor: '#ffffff',
+          hoverColor: '{primary.700}',
+          activeColor: '{primary.800}',
+        },
+        // Soft branded outline (owner 2026-07-22, third revision that day:
+        // neutral surface-gray → solid primary-700 → this, after the solid
+        // read too loud on stacked forms): the 1px outline strengthens as you
+        // approach — primary-600/40 tint at rest, solid 600 on hover, 700 +
+        // halo on focus. Alpha can't reference a token, hence raw hsl(var())
+        // (fallback = the neutral ladder). `.field-input` mirrors these so
+        // raw inputs and PrimeNG controls read identically side-by-side.
+        formField: {
+          borderColor: 'hsl(var(--brand-primary-600, 220 10% 45%) / 0.4)',
+          hoverBorderColor: '{primary.600}',
+          focusBorderColor: '{primary.700}',
+        },
+      },
+      dark: {
+        surface,
+        primary: {
+          color: '{primary.600}',
+          contrastColor: '#ffffff',
+          hoverColor: '{primary.500}',
+          activeColor: '{primary.400}',
+        },
+        // Dark-mode analog of the soft branded outline: a dark primary
+        // vanishes on the surface-900 field, so the ladder rides the LIGHT
+        // end of the primary scale — 400/40 tint at rest, solid 400 on
+        // hover/focus (+ halo on focus). Still the tenant's hue.
+        formField: {
+          background: '{surface.900}',
+          borderColor: 'hsl(var(--brand-primary-400, 220 10% 70%) / 0.4)',
+          hoverBorderColor: '{primary.400}',
+          focusBorderColor: '{primary.400}',
+        },
+      },
+    },
+  },
+  components: {
+    // Default-PrimeNG button shape at the control radius (owner 2026-07-22 —
+    // supersedes the blob pill): matches formField/rounded-control so buttons
+    // and inputs align on a row. Native buttons get it from `.btn`; this
+    // keeps any future <p-button> in the same language. Padding is stock.
+    button: { root: { borderRadius: '{border.radius.lg}' } },
+    // Overlay panels ride the card radius language (cards rounded-2xl,
+    // dialogs one step under).
+    dialog: { root: { borderRadius: '1rem' } },
+    // Tooltips carry full record bodies (CRM dashboard's Registro column) —
+    // stock 12.5rem clips a sentence into a word-per-line ribbon.
+    tooltip: { root: { maxWidth: '24rem' } },
   },
 });

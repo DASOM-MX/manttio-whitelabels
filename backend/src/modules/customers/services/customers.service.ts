@@ -1,17 +1,24 @@
 import type { Db } from '../../database/client';
 import {
   deleteCustomer,
+  findCustomerById,
   findCustomerWithRelations,
   insertCustomerWithRelations,
   listCustomers,
+  listRecentCustomers,
   updateCustomerWithRelations,
   type ContactInput,
   type FiscalInput,
 } from '../repository/customers.repository';
+import { notifyBestEffort } from '../../notifications/services/notifications.service';
+import { NotificationType } from '../../notifications/enums/notifications.enum';
+import { findUserById } from '../../users/repository/users.repository';
+import { displayName } from '../../users/utils/display-name';
 import type {
   CustomerRow,
   CustomerWithRelations,
   NewCustomer,
+  RecentCustomerRow,
   UpdateCustomerFields,
 } from '../types/customers.types';
 import type { CreateCustomerInput, UpdateCustomerInput } from '../validators/customers.validator';
@@ -66,6 +73,7 @@ const buildNewCustomer = (
   tags: input.tags,
   status: input.status,
   source: input.source,
+  clientType: input.clientType,
   timezone: input.timezone,
 });
 
@@ -82,6 +90,7 @@ const collectScalarUpdates = (input: UpdateCustomerInput): UpdateCustomerFields 
   if (input.tags !== undefined) fields.tags = input.tags;
   if (input.status !== undefined) fields.status = input.status;
   if (input.source !== undefined) fields.source = input.source;
+  if (input.clientType !== undefined) fields.clientType = input.clientType;
   if (input.nextFollowUpAt !== undefined)
     fields.nextFollowUpAt = input.nextFollowUpAt ? new Date(input.nextFollowUpAt) : null;
   if (input.timezone !== undefined) fields.timezone = input.timezone;
@@ -107,6 +116,12 @@ const auditBodyForEdit = (input: UpdateCustomerInput): string => {
 
 export const getCustomers = async (db: Db): Promise<CustomerRow[]> => listCustomers(db);
 
+/** Latest registered clients (utm-params 03 amendment — the Panel card). */
+export const getRecentCustomers = async (
+  db: Db,
+  limit: number,
+): Promise<RecentCustomerRow[]> => listRecentCustomers(db, limit);
+
 export const getCustomerById = async (
   db: Db,
   id: string,
@@ -119,10 +134,30 @@ export const createCustomer = async (
 ): Promise<CustomerWithRelations> => {
   const contacts = normalizeContacts(input.contacts);
   const values = buildNewCustomer(input, primaryOf(contacts));
-  return insertCustomerWithRelations(db, values, contacts, normalizeFiscal(input.fiscal) ?? null, {
-    userId: actorId,
-    body: 'Cliente creado',
+  const customer = await insertCustomerWithRelations(
+    db,
+    values,
+    contacts,
+    normalizeFiscal(input.fiscal) ?? null,
+    {
+      userId: actorId,
+      body: 'Cliente creado',
+    },
+  );
+  // Owner awareness feed (notifications plan §1 note): owner broadcast, the
+  // acting user excluded; the body names who did it (owner ask, 2026-07-21).
+  const actor = await findUserById(db, actorId);
+  await notifyBestEffort(db, {
+    role: 'owner',
+    excludeUserId: actorId,
+    type: NotificationType.ClientRegisteredFromSuperadmin,
+    title: 'Cliente registrado',
+    body: actor
+      ? `${customer.name} fue dado de alta por ${displayName(actor)}.`
+      : `${customer.name} fue dado de alta.`,
+    data: { customerId: customer.id },
   });
+  return customer;
 };
 
 export const editCustomer = async (
@@ -132,13 +167,61 @@ export const editCustomer = async (
   actorId: string,
 ): Promise<CustomerWithRelations | null> => {
   const fields = collectScalarUpdates(input);
+  if (input.status !== undefined) {
+    // statusChangedAt stamps only on an actual transition, so it keeps meaning
+    // "when the status last changed" even if clients resend the same status.
+    const current = await findCustomerById(db, id);
+    if (current && current.status !== input.status) {
+      fields.statusChangedAt = new Date();
+    }
+  }
   const contacts = input.contacts !== undefined ? normalizeContacts(input.contacts) : undefined;
   if (contacts !== undefined) Object.assign(fields, contactMirror(primaryOf(contacts)));
-  return updateCustomerWithRelations(db, id, fields, contacts, normalizeFiscal(input.fiscal), {
-    userId: actorId,
-    body: auditBodyForEdit(input),
-  });
+  const updated = await updateCustomerWithRelations(
+    db,
+    id,
+    fields,
+    contacts,
+    normalizeFiscal(input.fiscal),
+    {
+      userId: actorId,
+      body: auditBodyForEdit(input),
+    },
+  );
+  if (updated) {
+    const actor = await findUserById(db, actorId);
+    await notifyBestEffort(db, {
+      role: 'owner',
+      excludeUserId: actorId,
+      type: NotificationType.ClientUpdated,
+      title: 'Cliente actualizado',
+      body: actor
+        ? `${displayName(actor)} actualizó los datos de ${updated.name}.`
+        : `Se actualizaron los datos de ${updated.name}.`,
+      data: { customerId: updated.id },
+    });
+  }
+  return updated;
 };
 
-export const removeCustomer = async (db: Db, id: string): Promise<{ id: string } | null> =>
-  deleteCustomer(db, id);
+export const removeCustomer = async (
+  db: Db,
+  id: string,
+  actorId: string,
+): Promise<{ id: string } | null> => {
+  // The name outlives the soft delete, but read it up front so the notice
+  // never depends on tombstone-filtered reads.
+  const current = await findCustomerById(db, id);
+  const removed = await deleteCustomer(db, id);
+  if (removed) {
+    await notifyBestEffort(db, {
+      role: 'owner',
+      excludeUserId: actorId,
+      type: NotificationType.ClientArchived,
+      title: 'Cliente archivado',
+      body: `${current?.name ?? 'Un cliente'} fue archivado.`,
+      data: { customerId: id },
+    });
+  }
+  return removed;
+};

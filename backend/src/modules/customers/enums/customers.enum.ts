@@ -11,6 +11,8 @@ export enum CustomerStatus {
   Blacklisted = 'blacklisted',
 }
 
+// Instagram/Tiktok/Whatsapp exceed the superadmin picker: they arrive via the
+// share links' utm_source (leads.service deriveSource), never hand-picked.
 export enum CustomerSource {
   Facebook = 'facebook',
   Google = 'google',
@@ -19,4 +21,12 @@ export enum CustomerSource {
   Phonecall = 'phonecall',
   PersonalMeeting = 'personal_meeting',
   Other = 'other',
+  Instagram = 'instagram',
+  Tiktok = 'tiktok',
+  Whatsapp = 'whatsapp',
+}
+
+export enum ClientType {
+  Person = 'person',
+  Business = 'business',
 }

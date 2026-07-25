@@ -1,14 +1,12 @@
-<div
-  class="rounded-lg border-2 border-granite-200 bg-white transition-colors focus-within:border-sky-700 focus-within:ring-4 focus-within:ring-sky-700/20 dark:border-granite-700 dark:bg-granite-900 dark:focus-within:border-sky-400 dark:focus-within:ring-sky-400/25"
->
+<div class="field-shell">
   <div
-    class="flex items-center gap-0.5 border-b border-granite-200 px-2 py-1.5 dark:border-granite-800"
+    class="flex items-center gap-0.5 border-b border-surface-200 px-2 py-1.5 dark:border-surface-800"
     role="toolbar"
     aria-label="Formato"
   >
     <button
       type="button"
-      class="inline-flex size-8 items-center justify-center rounded-md text-granite-600 transition-colors hover:bg-granite-100 hover:text-granite-900 disabled:cursor-not-allowed disabled:opacity-40 dark:text-granite-400 dark:hover:bg-granite-800 dark:hover:text-granite-100"
+      class="row-action size-8"
       (click)="exec('bold')"
       [disabled]="disabled()"
       aria-label="Negritas"
@@ -17,7 +15,7 @@
     </button>
     <button
       type="button"
-      class="inline-flex size-8 items-center justify-center rounded-md text-granite-600 transition-colors hover:bg-granite-100 hover:text-granite-900 disabled:cursor-not-allowed disabled:opacity-40 dark:text-granite-400 dark:hover:bg-granite-800 dark:hover:text-granite-100"
+      class="row-action size-8"
       (click)="exec('italic')"
       [disabled]="disabled()"
       aria-label="Cursivas"
@@ -26,7 +24,7 @@
     </button>
     <button
       type="button"
-      class="inline-flex size-8 items-center justify-center rounded-md text-granite-600 transition-colors hover:bg-granite-100 hover:text-granite-900 disabled:cursor-not-allowed disabled:opacity-40 dark:text-granite-400 dark:hover:bg-granite-800 dark:hover:text-granite-100"
+      class="row-action size-8"
       (click)="exec('insertUnorderedList')"
       [disabled]="disabled()"
       aria-label="Lista con viñetas"
@@ -38,7 +36,7 @@
   <div
     #editor
     [id]="controlId()"
-    class="prose-sm min-h-28 max-w-none px-4 py-2.5 text-base text-granite-1000 focus:outline-none [&_ul]:list-disc [&_ul]:pl-5 dark:text-granite-0"
+    class="prose-sm min-h-28 max-w-none px-4 py-2.5 text-base text-surface-1000 focus:outline-none sm:text-sm [&_ul]:list-disc [&_ul]:pl-5 dark:text-surface-0"
     [attr.contenteditable]="disabled() ? 'false' : 'true'"
     role="textbox"
     aria-multiline="true"

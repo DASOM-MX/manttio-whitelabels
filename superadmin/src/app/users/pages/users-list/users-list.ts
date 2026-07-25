@@ -15,6 +15,8 @@ import { ROLE_LABELS } from '../../../model/constants/user/role-labels.const';
 import { RoleLabelPipe, RolePillClassPipe } from '../../../pipes/role.pipe';
 import { CanManagePipe } from '../../../pipes/access.pipe';
 import { DeleteUserDialog } from '../../components/delete-user-dialog/delete-user-dialog';
+import { FiltersPopover } from '../../../shared/components/filters-popover/filters-popover';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { Role } from '../../../data/dtos/auth';
 import type { User, UserListQuery } from '../../../data/dtos/user';
 
@@ -38,6 +40,8 @@ import type { User, UserListQuery } from '../../../data/dtos/user';
     RolePillClassPipe,
     CanManagePipe,
     DeleteUserDialog,
+    FiltersPopover,
+    PageHeader,
     LucidePlus,
     LucidePencil,
     LucideTrash2,

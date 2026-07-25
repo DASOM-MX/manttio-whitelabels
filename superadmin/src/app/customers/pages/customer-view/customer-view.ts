@@ -8,7 +8,6 @@ import { TagModule } from 'primeng/tag';
 import { DatePickerModule } from 'primeng/datepicker';
 import { MessageService } from 'primeng/api';
 import {
-  LucideArrowLeft,
   LucideBan,
   LucideMail,
   LucidePencil,
@@ -38,6 +37,7 @@ import { ChangeStatusDialog } from '../../../crm/components/change-status-dialog
 import { CustomerTimeline } from '../../../crm/components/customer-timeline/customer-timeline';
 import { CustomerEquipmentCard } from '../../../equipment/components/customer-equipment-card/customer-equipment-card';
 import { CustomerReportsCard } from '../../../reports/components/customer-reports-card/customer-reports-card';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { errorMessage } from '../../../data/utils';
 
 /** Client detail (07 §3): 360 header + General/Contactos/Fiscal tabs, plus the
@@ -62,7 +62,7 @@ import { errorMessage } from '../../../data/utils';
     AddContactDialog,
     CustomerEquipmentCard,
     CustomerReportsCard,
-    LucideArrowLeft,
+    PageHeader,
     LucideBan,
     LucidePencil,
     LucidePhone,

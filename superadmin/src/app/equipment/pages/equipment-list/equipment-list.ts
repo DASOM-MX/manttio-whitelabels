@@ -1,5 +1,5 @@
 import { Component, computed, inject, viewChild } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { SelectModule } from 'primeng/select';
@@ -18,7 +18,9 @@ import {
   EquipmentStatusSeverityPipe,
 } from '../../../pipes/equipment-status.pipe';
 import { EquipmentFormDialog } from '../../components/equipment-form-dialog/equipment-form-dialog';
-import type { EquipmentListQuery, EquipmentStatus } from '../../../data/dtos/equipment';
+import { FiltersPopover } from '../../../shared/components/filters-popover/filters-popover';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
+import type { Equipment, EquipmentListQuery, EquipmentStatus } from '../../../data/dtos/equipment';
 
 /** Global equipment registry (11 §4) — a projection; the daily entry point
  *  is the customer view's equipment card. Filters + page persist as GET
@@ -36,6 +38,8 @@ import type { EquipmentListQuery, EquipmentStatus } from '../../../data/dtos/equ
     EquipmentStatusLabelPipe,
     EquipmentStatusSeverityPipe,
     EquipmentFormDialog,
+    FiltersPopover,
+    PageHeader,
     LucidePlus,
     LucideEye,
     LucideWrench,
@@ -45,6 +49,7 @@ import type { EquipmentListQuery, EquipmentStatus } from '../../../data/dtos/equ
 })
 export class EquipmentList {
   private store = inject(Store);
+  private router = inject(Router);
   protected list = inject(ListQueryService);
 
   protected equipment = select(EquipmentState.items);
@@ -110,5 +115,10 @@ export class EquipmentList {
 
   protected openCreate(): void {
     this.formDialog()?.open();
+  }
+
+  /** Row click → unit detail (canon whole-row idiom, plan 17 CP-3). */
+  protected openEquipment(eq: Equipment): void {
+    this.router.navigate(['/equipment', eq.id]);
   }
 }

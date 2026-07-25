@@ -3,6 +3,7 @@
 // caller falls back to the brand-neutral defaults and the site still renders.
 
 import { DEFAULT_BRAND, DEFAULT_CLIENTS, DEFAULT_HOME } from './defaults';
+import { resolveRuntimeVar } from './runtime-env';
 import type { Brand, CmsClient, CmsHome, FontCatalogEntry, SiteData } from './types';
 
 const FETCH_TIMEOUT_MS = 5_000;
@@ -20,23 +21,10 @@ async function fetchJson<T>(baseUrl: string, path: string): Promise<T | null> {
   }
 }
 
-interface RuntimeEnv {
-  API_BASE_URL?: string;
-}
-
-async function resolveBaseUrl(): Promise<string | null> {
+export async function resolveBaseUrl(): Promise<string | null> {
   // Runtime binding (wrangler var, per-tenant) wins over the build-time public var.
-  let runtimeUrl: string | undefined;
-  try {
-    // Astro v6 way to reach Workers bindings; throws outside the CF runtime.
-    const { env } = await import('cloudflare:workers');
-    runtimeUrl = (env as RuntimeEnv).API_BASE_URL;
-  } catch {
-    runtimeUrl = undefined;
-  }
-  const raw = runtimeUrl ?? import.meta.env.PUBLIC_API_BASE_URL;
-  if (!raw || typeof raw !== 'string') return null;
-  return raw.replace(/\/$/, '');
+  const raw = await resolveRuntimeVar('API_BASE_URL', 'PUBLIC_API_BASE_URL');
+  return raw ? raw.replace(/\/$/, '') : null;
 }
 
 // Blank means "unset" throughout the brand contract — the backend's neutral

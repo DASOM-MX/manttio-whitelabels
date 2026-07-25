@@ -5,14 +5,13 @@
   [closable]="!submitting()"
   [draggable]="false"
   [resizable]="false"
-  styleClass="max-w-11/12"
-  [style]="{ width: '28rem' }"
+  styleClass="dialog-sm"
   header="Agregar contacto"
 >
   <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
-    <p class="text-sm text-granite-700 dark:text-granite-300">
+    <p class="text-sm text-surface-700 dark:text-surface-300">
       Nuevo contacto para
-      <strong class="text-granite-1000 dark:text-granite-0">{{ target()?.name }}</strong
+      <strong class="text-surface-1000 dark:text-surface-0">{{ target()?.name }}</strong
       >.
     </p>
 
@@ -52,7 +51,7 @@
           autocomplete="off"
         />
         @if (form.controls.phone.touched && form.controls.phone.errors?.['phone']) {
-          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+          <p class="field-error" role="alert">
             Ingresa un número de teléfono válido (10 a 15 dígitos).
           </p>
         }
@@ -68,7 +67,7 @@
           autocomplete="off"
         />
         @if (form.controls.email.touched && form.controls.email.errors?.['email']) {
-          <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+          <p class="field-error" role="alert">
             Ingresa un correo válido.
           </p>
         }

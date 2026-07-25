@@ -5,14 +5,13 @@
   [closable]="!submitting()"
   [draggable]="false"
   [resizable]="false"
-  styleClass="max-w-11/12"
-  [style]="{ width: '30rem' }"
+  styleClass="dialog-md"
   header="Eliminar usuario"
 >
   <form [formGroup]="form" (ngSubmit)="confirm()" class="flex flex-col gap-4">
-    <p class="text-sm text-granite-700 dark:text-granite-300">
+    <p class="text-sm text-surface-700 dark:text-surface-300">
       Vas a eliminar a
-      <strong class="text-granite-1000 dark:text-granite-0">{{ target()?.name }}</strong> ({{
+      <strong class="text-surface-1000 dark:text-surface-0">{{ target()?.name }}</strong> ({{
         target()?.email
       }}). La cuenta se desactiva y queda registrada en la auditoría.
     </p>
@@ -37,7 +36,7 @@
         spellcheck="false"
       />
       @if (form.controls['emailConfirm'].touched && !emailMatches()) {
-        <p class="text-sm font-medium text-red-700 dark:text-red-400" role="alert">
+        <p class="field-error" role="alert">
           El correo no coincide.
         </p>
       }
