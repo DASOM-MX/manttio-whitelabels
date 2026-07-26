@@ -87,7 +87,8 @@
   - **Don't run on top of in-flight production data without checking the fixture cleanup.**
   - Resend is mocked in the test suite; the fixture email patterns (`test+...@penanevadachillers.com` for users, `dasom.mx+test-...@gmail.com` for customers) are still designed to be defense-in-depth deliverable in case a real send slips through.
 - Test helpers live in `test/helpers/`: `request(path, init?)` calls `app.request` with the test env bindings, `json(res)` parses + asserts shape, `authHeader(token)` / `jsonHeaders(token?)` for typical headers, `fixtures.ts` for seeded users/customers/reports.
-- One `*.test.ts` file per resource (`auth`, `users`, `customers`, `reports`, `upload`, `cms`) + a `smoke.test.ts` for the bare `/` endpoint. The CMS suite can't isolate by fixture email (per-tenant singleton docs) — it snapshots the `cms_*` tables in `beforeAll` and restores them in `afterAll` instead.
+- One `*.test.ts` file per resource (`auth`, `users`, `customers`, `reports`, `upload`, `cms`, `services`) + a `smoke.test.ts` for the bare `/` endpoint.
+- **Tables with no email column** carry the fixture marker in whatever field they do have: `services` fixtures are named `test+<scope>-<tag>` via `uniqueServiceName()`, and `services.test.ts` soft-deletes every `test+%` row in `afterAll`. Same `test+` marker as the user/customer addresses, so one pattern identifies fixtures across the schema. The CMS suite can't isolate by fixture email (per-tenant singleton docs) — it snapshots the `cms_*` tables in `beforeAll` and restores them in `afterAll` instead.
 - Fixture rows are identifiable by email pattern (`test+%`, `dasom.mx+test-%@gmail.com`) but are **never hard-deleted** — the no-hard-delete rule applies to fixtures too. If test data ever needs clearing from views, soft-delete it by pattern; the rows stay.
 
 ## Configuration + secrets
