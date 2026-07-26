@@ -39,6 +39,13 @@ Service {
                            //   sees (decided 2026-07-25). No fallback: a listed
                            //   service without one renders title-only. Shown in the
                            //   dialog only once isListableInWebsite is on
+  websiteImageKey?,        // the public card photo (owner 2026-07-26). Stores the R2
+                           //   KEY, not a URL — the bucket is `manttio-images` (its
+                           //   own bucket, like brand assets), uploaded via
+                           //   POST /upload/website-image, and the URL is materialized
+                           //   on read against IMAGES_CDN_BASE_URL so a CDN move never
+                           //   rewrites rows. Same disclosure rule as the copy above;
+                           //   /public/services publishes `imageUrl`, never the key
   internalServiceCode?,    // tenant catalog code (decided 2026-07-25). Internal only —
                            //   never on /public/services. UNIQUE across the live
                            //   catalog (partial index: nulls exempt, tombstones
@@ -120,7 +127,14 @@ service. Freeing the name would mean moving every injectable, a large unrelated 
   16% / 8% / 0% / Exento, default 16%), then two website toggles:
   `isListableInWebsite` ("Aparecerá en la sección de servicios del sitio") and, revealed
   when it's on, `isPriceVisibleInWebsite` ("Mostrar el precio en el sitio") — progressive
-  disclosure, since price-visibility only matters for a listed service.
+  disclosure, since price-visibility only matters for a listed service. The same
+  disclosure holds the two public-content fields: **Descripción para el sitio** and
+  **Imagen para el sitio** (2026-07-26 — preview box + `.link-action` upload/Quitar
+  pair, mirroring the clients-editor logo idiom; the photo state lives in a signal, not
+  a form control, and `Guardar` is disabled while an upload is in flight). Both are kept
+  when a service is unlisted — discarding them would lose work on every toggle — and
+  both are always sent on save (`''` when cleared) so clearing actually persists
+  through the PATCH.
 - Delete = confirm dialog (audited soft delete), only when not the last picker option…
   no — deletes never block (global rule); confirm copy just states orders keep their
   history.
@@ -137,14 +151,18 @@ service. Freeing the name would mean moving every injectable, a large unrelated 
   Never blocks on references; order/quote lines keep their FK and price snapshot.
 - `GET /public/services` → `{ services: [...] }` — unauthenticated, mounted before the
   JWT middleware alongside `/public/cms` and `/public/leads`. Published subset
-  (`isListableInWebsite`), name-sorted; each entry is `{ id, name, description?, uom,
-  price? }` — `price` present **only when `isPriceVisibleInWebsite`** (decided
+  (`isListableInWebsite`), name-sorted; each entry is `{ id, name, description?,
+  imageUrl?, uom, price? }` — `price` present **only when `isPriceVisibleInWebsite`** (decided
   2026-07-23 — per-service, not a global switch), so an omitted `price` is the site's
   cue to render "Precio a consultar". Never returns `cost`, the SAT keys, `taxRate`,
   or the delete audit; the repository selects only the public columns so a DTO slip
   can't leak them. Its `description` is **`websiteDescription`**, never the internal
   `description` (decided 2026-07-25) — management notes can't reach the site, and there
-  is deliberately no fallback. `internalServiceCode` never leaves the tenant either. An empty catalog is a 200 with `[]`, not a 404 (unlike the CMS
+  is deliberately no fallback. `internalServiceCode` never leaves the tenant either.
+  `imageUrl` (2026-07-26) is the **materialized** URL of `websiteImageKey` — the raw
+  bucket key never reaches an unauthenticated consumer, and the field is omitted both
+  when there is no photo and when the deploy has no `IMAGES_CDN_BASE_URL`, so the site
+  can never render `undefined/<key>`. An empty catalog is a 200 with `[]`, not a 404 (unlike the CMS
   reads) — nothing published yet is a legitimate state, and the site just omits the
   section. **Built 2026-07-25** ahead of the rest of CP-3.
 
@@ -193,6 +211,22 @@ service. Freeing the name would mean moving every injectable, a large unrelated 
       added 2026-07-26): eyebrow/title/description edited in the *Catálogo* tab of the
       home editor, blank falls back to `DEFAULT_CATALOG_CONTENT`. Copy only — the cards
       keep coming from `/public/services`, so the group has no array beside it.
+- [x] **Per-service photo** (`websiteImageKey`, owner 2026-07-26): new column + validator
+      field, `POST /upload/website-image` into the **`manttio-images`** bucket
+      (`MANTTIO_IMAGES` binding + `IMAGES_CDN_BASE_URL`, both wired in `wrangler.toml`;
+      the bucket already existed in the account, unbound), dialog upload/preview/Quitar,
+      and an `aspect-video object-cover` image atop the card. **Absent → no media block
+      at all** (owner 2026-07-26): a uniform band with neutral placeholder tiles for
+      photo-less services was built, screenshotted and rejected — "I would rather have
+      long cards than empty looking ones with no image" — so a mixed grid carries
+      whitespace in the text-only cards by choice, and no placeholder tile may be
+      reintroduced. 4 new tests; **DDL applied to the shared Neon DB.**
+      Verified live against the real backend end-to-end: upload → PATCH → `/public/services`
+      → rendered `<img>` on `:4202`, then cleared again.
+      **Deploy dependency:** no R2 custom domain is connected to `manttio-images` yet, so
+      uploaded photos won't load in a browser until one is — the same pending state as
+      `cdn.` / `logos.dasom.com`, which is why the field degrades to no-image rather than
+      a broken one.
 
 ## Open decisions / asks
 - **Money representation — decided 2026-07-23:** `numeric(12,2)`, MXN implicit,

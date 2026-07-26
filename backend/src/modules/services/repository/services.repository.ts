@@ -44,6 +44,7 @@ export const listPublishedServices = async (db: Db): Promise<PublicServiceRow[]>
       // `websiteDescription`, never `description` — the latter is internal
       // management copy and must not reach the site (decided 2026-07-25).
       websiteDescription: services.websiteDescription,
+      websiteImageKey: services.websiteImageKey,
       uom: services.uom,
       price: services.price,
       isPriceVisibleInWebsite: services.isPriceVisibleInWebsite,

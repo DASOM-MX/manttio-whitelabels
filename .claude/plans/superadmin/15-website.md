@@ -26,7 +26,7 @@ contact detail becomes a fetch.
 | Font catalog (03 §2.1) | `GET /fonts` — public | resolves `brand.font` codes → woff2 URLs for `@font-face` |
 | CMS home (04) | public **published-only** read (§1.1) | hero titles/descriptions, badges, service targets, services, services_content, service_area |
 | CMS clients (04) | public **published-only** read (§1.1) | client logos + `business_relation_description` entries |
-| Service catalog (18) | `GET /public/services` — public, no publish gate (the `isListableInWebsite` flag is the gate) | the priced catalog section: name, `websiteDescription`, unit, price when the service opts in. Its **section copy** comes from the CMS home doc (`catalog_content`), not from here |
+| Service catalog (18) | `GET /public/services` — public, no publish gate (the `isListableInWebsite` flag is the gate) | the priced catalog section: name, `websiteDescription`, unit, price when the service opts in, and the card photo as a materialized `imageUrl` (`manttio-images`, 2026-07-26). Its **section copy** comes from the CMS home doc (`catalog_content`), not from here |
 
 Drafts never reach the site — the publish gate is the whole point of 04 §5.
 

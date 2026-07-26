@@ -38,6 +38,11 @@ export const services = pgTable(
     // The public card copy. A listed service without one renders title-only;
     // there is deliberately no fallback to the internal `description`.
     websiteDescription: text('website_description'),
+    // The public card photo — an R2 key in `manttio-images` (via POST
+    // /upload/website-image), never a URL: the CDN base is per-deploy, so the URL
+    // is materialized on read and the stored key survives a CDN move. Same
+    // posture as `cms_clients.logo_key`; absent → the card renders text-only.
+    websiteImageKey: text('website_image_key'),
     // Tenant catalog code, internal only. Unique when set — partial index below.
     internalServiceCode: text('internal_service_code'),
     taxRate: text('tax_rate').$type<ServiceTaxRate>().notNull().default(ServiceTaxRate.Iva16),

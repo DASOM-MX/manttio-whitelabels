@@ -126,6 +126,10 @@ export interface PublicService {
   /** The tenant's **website** copy, not the internal management note — the
    *  backend deliberately sends no fallback, so absent means "title only". */
   description?: string;
+  /** Full CDN URL of the card photo (`manttio-images`). Absent when the service
+   *  has no photo, or when the backend deploy has no images CDN configured —
+   *  either way the card renders without an image, never a broken one. */
+  imageUrl?: string;
   /** Free-text unit of measure, e.g. 'servicio', 'hora', 'equipo'. */
   uom: string;
   /** Decimal string ('1200.00'), MXN. Present only when the service opts in to

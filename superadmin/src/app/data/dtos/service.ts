@@ -64,6 +64,14 @@ export interface Service {
   /** Public card copy for the website listing — the only description the site
    *  ever sees. No fallback: a listed service without one renders title-only. */
   websiteDescription?: string;
+  /** R2 key of the public card photo (`manttio-images`, via
+   *  `POST /upload/website-image`). The **key** is what's stored and what a save
+   *  sends back — the URL below is derived. */
+  websiteImageKey?: string;
+  /** Display URL for `websiteImageKey`, materialized by the backend. Read-only:
+   *  never send it back. Absent when there's no photo *or* the deploy has no
+   *  images CDN configured. */
+  websiteImageUrl?: string;
   /** Tenant catalog code, unique across the live catalog when set. Internal
    *  only — never exposed on `/public/services`. */
   internalServiceCode?: string;
@@ -93,7 +101,11 @@ export interface SaveServiceRequest {
   cost?: number;
   uom: ServiceUom;
   description?: string;
+  /** Empty string **clears** these on the server; `undefined` would leave the
+   *  stored value untouched (the write is a PATCH), so the dialog always sends
+   *  them. */
   websiteDescription?: string;
+  websiteImageKey?: string;
   internalServiceCode?: string;
   taxRate: ServiceTaxRate;
   isListableInWebsite: boolean;

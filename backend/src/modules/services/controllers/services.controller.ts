@@ -38,12 +38,22 @@ const codeInUse = (c: Context<AppBindings>, err: ServiceCodeInUseError) =>
 // it, the field doesn't need it.
 services.get('/', zValidator('query', listServicesQuerySchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  return c.json(await getServices(db, c.req.valid('query'), isBackOfficeTier(c.get('user'))));
+  return c.json(await getServices(
+      db,
+      c.req.valid('query'),
+      isBackOfficeTier(c.get('user')),
+      c.env.IMAGES_CDN_BASE_URL,
+    ));
 });
 
 services.get('/:id', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  const row = await getServiceById(db, c.req.param('id'), isBackOfficeTier(c.get('user')));
+  const row = await getServiceById(
+    db,
+    c.req.param('id'),
+    isBackOfficeTier(c.get('user')),
+    c.env.IMAGES_CDN_BASE_URL,
+  );
   if (!row) return c.json({ error: 'not_found' }, 404);
   return c.json(row);
 });
@@ -52,7 +62,7 @@ services.get('/:id', async (c) => {
 services.post('/', requireRole(['owner', 'admin']), zValidator('json', createServiceSchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   try {
-    return c.json(await createService(db, c.req.valid('json')), 201);
+    return c.json(await createService(db, c.req.valid('json'), c.env.IMAGES_CDN_BASE_URL), 201);
   } catch (err) {
     if (err instanceof ServiceCodeInUseError) return codeInUse(c, err);
     throw err;
@@ -66,7 +76,7 @@ services.patch(
   async (c) => {
     const db = createDb(c.env.DATABASE_URL);
     try {
-      const row = await editService(db, c.req.param('id'), c.req.valid('json'));
+      const row = await editService(db, c.req.param('id'), c.req.valid('json'), c.env.IMAGES_CDN_BASE_URL);
       if (!row) return c.json({ error: 'not_found' }, 404);
       return c.json(row);
     } catch (err) {
