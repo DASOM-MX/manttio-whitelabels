@@ -1,6 +1,7 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import type { AppBindings } from '../../../env';
+import { ServiceCodeInUseError } from '../http-errors/services.error';
 import { createDb } from '../../database/client';
 import { requireRole } from '../../auth/middleware/roles.middleware';
 import { isBackOfficeTier } from '../../auth/utils/role-tier';
@@ -19,6 +20,17 @@ import {
 } from '../services/services-catalog.service';
 
 export const services = new Hono<AppBindings>();
+
+/** Duplicate catalog code → 409. The message names the code so the dialog can
+ *  say which one clashed rather than a bare "already in use". */
+const codeInUse = (c: Context<AppBindings>, err: ServiceCodeInUseError) =>
+  c.json(
+    {
+      error: 'internal_service_code_in_use',
+      message: `Ya existe un servicio con el código "${err.code}".`,
+    },
+    409,
+  );
 
 // Reads are open to any authenticated role — office and technician both work
 // from this catalog, prices included (18 §2). The internal `cost` is the one
@@ -39,7 +51,12 @@ services.get('/:id', async (c) => {
 // Writes are admin-tier (owner/admin) — office never edits the catalog.
 services.post('/', requireRole(['owner', 'admin']), zValidator('json', createServiceSchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  return c.json(await createService(db, c.req.valid('json')), 201);
+  try {
+    return c.json(await createService(db, c.req.valid('json')), 201);
+  } catch (err) {
+    if (err instanceof ServiceCodeInUseError) return codeInUse(c, err);
+    throw err;
+  }
 });
 
 services.patch(
@@ -48,9 +65,14 @@ services.patch(
   zValidator('json', updateServiceSchema),
   async (c) => {
     const db = createDb(c.env.DATABASE_URL);
-    const row = await editService(db, c.req.param('id'), c.req.valid('json'));
-    if (!row) return c.json({ error: 'not_found' }, 404);
-    return c.json(row);
+    try {
+      const row = await editService(db, c.req.param('id'), c.req.valid('json'));
+      if (!row) return c.json({ error: 'not_found' }, 404);
+      return c.json(row);
+    } catch (err) {
+      if (err instanceof ServiceCodeInUseError) return codeInUse(c, err);
+      throw err;
+    }
   },
 );
 

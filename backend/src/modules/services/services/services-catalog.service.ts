@@ -1,4 +1,6 @@
 import type { Db } from '../../database/client';
+import { isUniqueViolation } from '../../database/db-errors';
+import { ServiceCodeInUseError } from '../http-errors/services.error';
 import {
   findServiceById,
   insertService,
@@ -22,6 +24,19 @@ import type {
 
 const opt = <T>(v: T | null | undefined): T | undefined => (v == null ? undefined : v);
 
+/** The catalog-code unique index is the only unique constraint on this table,
+ *  so a unique violation here can only be a duplicate code — translate it to
+ *  the typed domain error the controller maps to 409. Anything else rethrows
+ *  untouched. */
+const asCodeConflict = async <T>(run: () => Promise<T>, code: string | undefined): Promise<T> => {
+  try {
+    return await run();
+  } catch (err) {
+    if (isUniqueViolation(err)) throw new ServiceCodeInUseError(code ?? '');
+    throw err;
+  }
+};
+
 /** `includeCost` is the caller's back-office-tier flag (18 §2): owner, admin and
  *  office all quote and invoice from the internal cost. Technicians read the
  *  catalog as a price list and never see it. */
@@ -32,6 +47,8 @@ const toDTO = (row: ServiceRow, includeCost: boolean): ServiceDTO => ({
   cost: includeCost ? opt(row.cost) : undefined,
   uom: row.uom,
   description: opt(row.description),
+  websiteDescription: opt(row.websiteDescription),
+  internalServiceCode: opt(row.internalServiceCode),
   taxRate: row.taxRate,
   satProdServCode: opt(row.satProdServCode),
   satUnitCode: opt(row.satUnitCode),
@@ -60,6 +77,14 @@ const collectUpdate = (input: UpdateServiceInput): UpdateServiceFields => {
   if (input.cost !== undefined) f.cost = input.cost ?? null;
   if (input.uom !== undefined) f.uom = input.uom;
   if (input.description !== undefined) f.description = input.description ?? null;
+  if (input.websiteDescription !== undefined) {
+    f.websiteDescription = input.websiteDescription || null;
+  }
+  // Empty string clears the code rather than storing '' — '' would collide
+  // with the next empty one under the unique index.
+  if (input.internalServiceCode !== undefined) {
+    f.internalServiceCode = input.internalServiceCode || null;
+  }
   if (input.taxRate !== undefined) f.taxRate = input.taxRate;
   if (input.satProdServCode !== undefined) f.satProdServCode = input.satProdServCode ?? null;
   if (input.satUnitCode !== undefined) f.satUnitCode = input.satUnitCode ?? null;
@@ -87,7 +112,9 @@ export const getPublishedServices = async (db: Db): Promise<{ services: PublicSe
     services: rows.map((row) => ({
       id: row.id,
       name: row.name,
-      description: opt(row.description),
+      // The website copy only. No fallback to the internal `description` —
+      // a listed service with no website copy renders title-only.
+      description: opt(row.websiteDescription),
       uom: row.uom,
       price: row.isPriceVisibleInWebsite ? row.price : undefined,
     })),
@@ -114,6 +141,8 @@ export const createService = async (
     cost: clean.cost ?? null,
     uom: clean.uom,
     description: clean.description ?? null,
+    websiteDescription: clean.websiteDescription || null,
+    internalServiceCode: clean.internalServiceCode || null,
     taxRate: clean.taxRate,
     satProdServCode: clean.satProdServCode ?? null,
     satUnitCode: clean.satUnitCode ?? null,
@@ -121,7 +150,11 @@ export const createService = async (
     isPriceVisibleInWebsite: clean.isPriceVisibleInWebsite,
   };
   // Writes are admin-tier only, so the creator always sees the cost back.
-  return toDTO(await insertService(db, values), true);
+  const row = await asCodeConflict(
+    () => insertService(db, values),
+    clean.internalServiceCode,
+  );
+  return toDTO(row, true);
 };
 
 export const editService = async (
@@ -132,7 +165,10 @@ export const editService = async (
   const current = await findServiceById(db, id);
   if (!current) return null;
   const clean = normalizeWebsiteFlags(input, current.isListableInWebsite);
-  const row = await updateService(db, id, collectUpdate(clean));
+  const row = await asCodeConflict(
+    () => updateService(db, id, collectUpdate(clean)),
+    clean.internalServiceCode,
+  );
   return row ? toDTO(row, true) : null;
 };
 

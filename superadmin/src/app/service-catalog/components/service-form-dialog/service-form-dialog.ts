@@ -59,10 +59,12 @@ export class ServiceFormDialog {
     price: [0, [Validators.required, Validators.min(0)]],
     cost: [null as number | null],
     uom: [ServiceUom.Servicio, Validators.required],
+    internalServiceCode: [''],
     description: [''],
     taxRate: [ServiceTaxRate.Iva16, Validators.required],
     isListableInWebsite: [false],
     isPriceVisibleInWebsite: [false],
+    websiteDescription: [''],
   });
 
   private listable = toSignal(this.form.controls.isListableInWebsite.valueChanges, {
@@ -82,10 +84,12 @@ export class ServiceFormDialog {
       price: svc ? Number(svc.price) : 0,
       cost: svc?.cost === undefined ? null : Number(svc.cost),
       uom: svc?.uom ?? ServiceUom.Servicio,
+      internalServiceCode: svc?.internalServiceCode ?? '',
       description: svc?.description ?? '',
       taxRate: svc?.taxRate ?? ServiceTaxRate.Iva16,
       isListableInWebsite: svc?.isListableInWebsite ?? false,
       isPriceVisibleInWebsite: svc?.isPriceVisibleInWebsite ?? false,
+      websiteDescription: svc?.websiteDescription ?? '',
     });
     this.submitting.set(false);
     this.dialogOpen.set(true);
@@ -105,12 +109,18 @@ export class ServiceFormDialog {
       price: raw.price,
       cost: raw.cost ?? undefined,
       uom: raw.uom,
+      // Empty clears the code — '' would collide with the next blank one
+      // under the unique index.
+      internalServiceCode: raw.internalServiceCode.trim() || undefined,
       description: raw.description.trim() || undefined,
       taxRate: raw.taxRate,
       isListableInWebsite: listed,
       // Mirrors the server invariant: an unlisted service can't carry a
       // price-visible flag, so we never send a stale true.
       isPriceVisibleInWebsite: listed && raw.isPriceVisibleInWebsite,
+      // Website copy is kept even when unlisted — it's not exposed unless the
+      // service is listed, and discarding it would lose work on every toggle.
+      websiteDescription: raw.websiteDescription.trim() || undefined,
     };
     const editing = this.editing();
     this.submitting.set(true);

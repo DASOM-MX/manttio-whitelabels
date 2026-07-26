@@ -6,6 +6,7 @@ import {
   seedOfficeAndLogin,
   seedOwnerAndLogin,
   seedTechnicianAndLogin,
+  uniqueServiceCode,
   uniqueServiceName,
 } from './helpers/fixtures';
 import { createDb } from '../src/modules/database/client';
@@ -21,6 +22,8 @@ type Service = {
   cost?: string;
   uom: ServiceUom;
   description?: string;
+  websiteDescription?: string;
+  internalServiceCode?: string;
   taxRate: string;
   satProdServCode?: string;
   satUnitCode?: string;
@@ -278,10 +281,11 @@ describe('GET /public/services', () => {
     expect((findById(body.services, withoutPrice.id) as PublicService).price).toBeUndefined();
   });
 
-  test('never leaks cost, the SAT keys or the tax rate', async () => {
+  test('never leaks cost, the SAT keys, the tax rate or the catalog code', async () => {
     const svc = await seedService({
       cost: 1200,
       satProdServCode: '72101500',
+      internalServiceCode: uniqueServiceCode(),
       isListableInWebsite: true,
       isPriceVisibleInWebsite: true,
     });
@@ -293,6 +297,81 @@ describe('GET /public/services', () => {
     expect(entry['satProdServCode']).toBeUndefined();
     expect(entry['satUnitCode']).toBeUndefined();
     expect(entry['taxRate']).toBeUndefined();
+    expect(entry['internalServiceCode']).toBeUndefined();
+  });
+
+  test('publishes websiteDescription, never the internal description', async () => {
+    const svc = await seedService({
+      description: 'Nota interna: subir precio en marzo',
+      websiteDescription: 'Mantenimiento completo con reporte fotográfico.',
+      isListableInWebsite: true,
+    });
+
+    const body = await json<{ services: PublicService[] }>(await request('/public/services'));
+    const entry = findById(body.services, svc.id) as PublicService;
+    expect(entry.description).toBe('Mantenimiento completo con reporte fotográfico.');
+  });
+
+  test('a listed service with no website copy is title-only — no fallback', async () => {
+    const svc = await seedService({
+      description: 'Nota interna que no debe publicarse',
+      isListableInWebsite: true,
+    });
+
+    const body = await json<{ services: PublicService[] }>(await request('/public/services'));
+    const entry = findById(body.services, svc.id) as PublicService;
+    // Deliberately absent rather than falling back to the management note.
+    expect(entry.description).toBeUndefined();
+  });
+});
+
+describe('internalServiceCode', () => {
+  test('round-trips and is searchable via ?q=', async () => {
+    const code = uniqueServiceCode();
+    const svc = await seedService({ internalServiceCode: code });
+    expect(svc.internalServiceCode).toBe(code);
+
+    const { token } = await seedOwnerAndLogin();
+    const res = await request(`/services?q=${encodeURIComponent(code)}`, {
+      headers: jsonHeaders(token),
+    });
+    const body = await json<{ services: Service[] }>(res);
+    expect(findById(body.services, svc.id)).toBeDefined();
+  });
+
+  test('rejects a duplicate code with 409', async () => {
+    const code = uniqueServiceCode();
+    await seedService({ internalServiceCode: code });
+
+    const { token } = await seedOwnerAndLogin();
+    const res = await createService(token, serviceBody({ internalServiceCode: code }));
+    expect(res.status).toBe(409);
+    expect((await json<{ error: string }>(res)).error).toBe('internal_service_code_in_use');
+  });
+
+  test('a soft-deleted service releases its code for reuse', async () => {
+    const code = uniqueServiceCode();
+    const first = await seedService({ internalServiceCode: code });
+    const { token } = await seedOwnerAndLogin();
+
+    await request(`/services/${first.id}`, {
+      method: 'DELETE',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ deleteComment: 'reemplazado' }),
+    });
+
+    // The unique index is partial on `deleted_at is null`, so the tombstoned
+    // row no longer blocks the code.
+    const res = await createService(token, serviceBody({ internalServiceCode: code }));
+    expect(res.status).toBe(201);
+  });
+
+  test('two services may both leave the code empty', async () => {
+    // Nulls are exempt from the unique index — otherwise only one service
+    // could ever go without a code.
+    await seedService();
+    const { token } = await seedOwnerAndLogin();
+    expect((await createService(token, serviceBody())).status).toBe(201);
   });
 });
 

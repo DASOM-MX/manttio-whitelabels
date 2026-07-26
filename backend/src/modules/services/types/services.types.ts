@@ -12,6 +12,8 @@ export type UpdateServiceFields = Partial<
     | 'cost'
     | 'uom'
     | 'description'
+    | 'websiteDescription'
+    | 'internalServiceCode'
     | 'taxRate'
     | 'satProdServCode'
     | 'satUnitCode'
@@ -25,7 +27,9 @@ export type UpdateServiceFields = Partial<
 export interface PublicServiceRow {
   id: string;
   name: string;
-  description: string | null;
+  /** Selected from `services.websiteDescription`. The internal `description`
+   *  is management copy and is never read by this query (decided 2026-07-25). */
+  websiteDescription: string | null;
   uom: ServiceUom;
   price: string;
   isPriceVisibleInWebsite: boolean;
@@ -34,10 +38,14 @@ export interface PublicServiceRow {
 /** What `GET /public/services` returns per entry (18 §4). `price` is present
  *  only when the service opts in — an omitted `price` is the site's cue to
  *  render "Precio a consultar" rather than a number. No tax rate: the website
- *  is a brochure, and quoting IVA there would imply a binding price. */
+ *  is a brochure, and quoting IVA there would imply a binding price. No
+ *  `internalServiceCode` either — it never leaves the tenant. */
 export interface PublicServiceDTO {
   id: string;
   name: string;
+  /** The tenant's **website** copy (`websiteDescription`), never the internal
+   *  `description`. A listed service without one renders a title-only card —
+   *  there is deliberately no fallback to the management note. */
   description?: string;
   uom: ServiceUom;
   price?: string;
@@ -53,7 +61,12 @@ export interface ServiceDTO {
   price: string;
   cost?: string;
   uom: ServiceUom;
+  /** Internal management copy — never shown on the website. */
   description?: string;
+  /** Public card copy for the website listing. */
+  websiteDescription?: string;
+  /** Tenant catalog code, unique when set. Internal only. */
+  internalServiceCode?: string;
   taxRate: ServiceTaxRate;
   satProdServCode?: string;
   satUnitCode?: string;

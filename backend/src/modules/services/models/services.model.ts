@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm';
-import { boolean, index, numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  numeric,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { users } from '../../users/models/users.model';
 import { ServiceTaxRate, ServiceUom } from '../enums/services.enum';
 
@@ -24,7 +33,16 @@ export const services = pgTable(
     // Closed list (`ServiceUom`), validator-enforced — the column stays `text`
     // so adding a unit needs no DDL.
     uom: text('uom').$type<ServiceUom>().notNull(),
+    // Internal management copy — notes for whoever maintains the catalog.
+    // NEVER reaches the website; `websiteDescription` is the public text.
     description: text('description'),
+    // The public card copy (CP-3). Nullable: a listed service with none shows
+    // a title-only card rather than falling back to the internal note.
+    websiteDescription: text('website_description'),
+    // Tenant-facing catalog code. Internal only — never leaves the tenant,
+    // same posture as `cost` and the SAT keys. Unique when set, enforced by a
+    // partial index below (people look services up by it).
+    internalServiceCode: text('internal_service_code'),
     taxRate: text('tax_rate').$type<ServiceTaxRate>().notNull().default(ServiceTaxRate.Iva16),
     // CFDI catalog keys (c_ClaveProdServ / c_ClaveUnidad). Catalog attributes,
     // not invoice ones — carrying them here spares 09 a hand-backfill. No v1 UI.
@@ -46,5 +64,11 @@ export const services = pgTable(
     index('services_name_idx')
       .on(table.name)
       .where(sql`${table.deletedAt} is null`),
+    // Unique per live catalog only: nulls are exempt (the field is optional)
+    // and tombstoned rows release their code, so deleting a service frees its
+    // code for reuse without ever hard-deleting anything.
+    uniqueIndex('services_internal_code_uidx')
+      .on(table.internalServiceCode)
+      .where(sql`${table.internalServiceCode} is not null and ${table.deletedAt} is null`),
   ],
 );

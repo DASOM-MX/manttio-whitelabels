@@ -33,7 +33,16 @@ Service {
                            //   longitud/superficie/volumen/peso). Validator-
                            //   enforced, column stays `text` so a new unit needs
                            //   no DDL (2026-07-26)
-  description?,
+  description?,            // INTERNAL management copy — notes for whoever maintains
+                           //   the catalog. Never reaches the website (2026-07-25)
+  websiteDescription?,     // the public card copy, and the ONLY description the site
+                           //   sees (decided 2026-07-25). No fallback: a listed
+                           //   service without one renders title-only. Shown in the
+                           //   dialog only once isListableInWebsite is on
+  internalServiceCode?,    // tenant catalog code (decided 2026-07-25). Internal only —
+                           //   never on /public/services. UNIQUE across the live
+                           //   catalog (partial index: nulls exempt, tombstones
+                           //   release their code); duplicate → 409. Searchable via ?q=
   taxRate,                 // Mexican IVA rate enum, default iva_16 (decided 2026-07-24):
                            //   iva_16 (16%) | iva_8 (8%, frontera) | iva_0 (0%, tasa
                            //   cero) | exento (CFDI-distinct from 0%). Quotation/order
@@ -133,7 +142,9 @@ service. Freeing the name would mean moving every injectable, a large unrelated 
   2026-07-23 — per-service, not a global switch), so an omitted `price` is the site's
   cue to render "Precio a consultar". Never returns `cost`, the SAT keys, `taxRate`,
   or the delete audit; the repository selects only the public columns so a DTO slip
-  can't leak them. An empty catalog is a 200 with `[]`, not a 404 (unlike the CMS
+  can't leak them. Its `description` is **`websiteDescription`**, never the internal
+  `description` (decided 2026-07-25) — management notes can't reach the site, and there
+  is deliberately no fallback. `internalServiceCode` never leaves the tenant either. An empty catalog is a 200 with `[]`, not a 404 (unlike the CMS
   reads) — nothing published yet is a legitimate state, and the site just omits the
   section. **Built 2026-07-25** ahead of the rest of CP-3.
 
@@ -169,6 +180,8 @@ service. Freeing the name would mean moving every injectable, a large unrelated 
 
 ### CP-3 — Website exposure
 - [x] `GET /public/services` — shipped with CP-1 (2026-07-25)
+- [x] `websiteDescription` + `internalServiceCode` columns, API, dialog fields, catalog
+      column, 6 new tests (2026-07-25). **DDL applied to the shared Neon DB.**
 - [ ] `website/` services section consuming it (still needs the 15 card-copy decision)
 
 ## Open decisions / asks
@@ -199,6 +212,18 @@ service. Freeing the name would mean moving every injectable, a large unrelated 
   `deleted_by`, `DELETE` takes `{ deleteComment }`), matching users/equipment rather
   than the bare customers/reports shape. §3's confirm dialog therefore needs a required
   reason field, not just a yes/no.
+- **Website copy — decided 2026-07-25:** `description` is internal management copy;
+  `websiteDescription` is the public text and the **only** one `/public/services`
+  returns. No fallback between them, so a management note can never be published by
+  accident. The field is revealed in the dialog only once `isListableInWebsite` is on,
+  but its value is **kept** when the service is unlisted — it isn't exposed while
+  unlisted, and discarding it would lose work on every toggle.
+- **Catalog code — decided 2026-07-25:** `internalServiceCode`, optional, internal only
+  (never public). **Unique across the live catalog**, enforced by a partial unique index
+  (`where internal_service_code is not null and deleted_at is null`) so nulls are exempt
+  and a soft-deleted service releases its code for reuse. A duplicate returns
+  `409 internal_service_code_in_use`. `?q=` searches it alongside name and description.
+  An empty string is stored as NULL — `''` would collide with the next blank one.
 - ~~`uom` stays free text v1; revisit an option catalog only on real demand~~ —
   **decided 2026-07-26 (real demand arrived):** `uom` is a closed list, TS enum
   `ServiceUom` with 19 generic commercial units, mirrored in the superadmin DTO and

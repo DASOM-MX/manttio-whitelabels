@@ -18,6 +18,8 @@ export const createServiceSchema = z.object({
   // Closed list — an unknown unit is a 400, not a new de-facto unit.
   uom: z.nativeEnum(ServiceUom),
   description: z.string().optional(),
+  websiteDescription: z.string().optional(),
+  internalServiceCode: z.string().trim().optional(),
   taxRate: z.nativeEnum(ServiceTaxRate).default(ServiceTaxRate.Iva16),
   // SAT CFDI keys — no format assertion yet; the catalogs are versioned by the
   // SAT and validating against a stale copy would reject valid keys. Facturación

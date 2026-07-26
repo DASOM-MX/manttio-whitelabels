@@ -29,6 +29,11 @@ export const uniqueName = (scope: string) => `test-${scope}-${tag()}`;
 // soft-deletes them in `afterAll`; per the no-hard-delete rule the rows stay.
 export const uniqueServiceName = (scope: string) => `test+${scope}-${tag()}`;
 
+/** `services.internal_service_code` is unique across the live catalog, so
+ *  fixtures must mint their own. The suite's soft delete releases them again
+ *  (the unique index is partial on `deleted_at is null`). */
+export const uniqueServiceCode = () => `TEST-${tag()}`;
+
 type SeededUser = {
   id: string;
   email: string;
