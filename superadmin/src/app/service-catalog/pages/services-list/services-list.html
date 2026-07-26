@@ -1,0 +1,132 @@
+<app-page-header
+  title="Servicios"
+  description="El catálogo de lo que tu negocio vende, con su precio por unidad."
+>
+  <app-filters-popover [params]="['q']">
+    <div class="field-group">
+      <label class="field-label" for="services-search">Buscar</label>
+      <input
+        id="services-search"
+        pInputText
+        type="search"
+        [formControl]="search"
+        placeholder="Nombre o descripción"
+      />
+    </div>
+  </app-filters-popover>
+  @if (canManage()) {
+    <button type="button" class="btn-primary" (click)="openCreate()">
+      <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+      Registrar servicio
+    </button>
+  }
+</app-page-header>
+
+<div>
+  <p-table
+    [value]="services()"
+    [paginator]="true"
+    [rows]="list.PAGE_SIZE"
+    [loading]="loading()"
+    [showLoader]="false"
+    [rowHover]="true"
+    dataKey="id"
+  >
+    <ng-template #header>
+      <tr>
+        <th scope="col">Servicio</th>
+        <th scope="col">Precio</th>
+        @if (showsCost()) {
+          <th scope="col">Costo</th>
+        }
+        <th scope="col">Unidad</th>
+        <th scope="col">IVA</th>
+        <th scope="col">Sitio web</th>
+        <th scope="col">Actualizado</th>
+        @if (canManage()) {
+          <th scope="col"><span class="sr-only">Acciones</span></th>
+        }
+      </tr>
+    </ng-template>
+
+    <ng-template #body let-svc>
+      <tr>
+        <td>
+          <span class="font-medium">{{ svc.name }}</span>
+          @if (svc.description) {
+            <span class="block text-xs text-surface-500 dark:text-surface-400">
+              {{ svc.description }}
+            </span>
+          }
+        </td>
+        <td class="font-data tabular-nums">{{ svc.price | money }}</td>
+        @if (showsCost()) {
+          <!-- Redacted server-side below back-office tier, so an em dash here
+               means "not visible to me", not "not set". -->
+          <td class="font-data tabular-nums">{{ svc.cost | money }}</td>
+        }
+        <td>{{ svc.uom | serviceUomShort }}</td>
+        <td class="font-data tabular-nums">{{ svc.taxRate | serviceTaxRateShort }}</td>
+        <td>
+          @if (svc.isListableInWebsite) {
+            <p-tag
+              [severity]="svc.isPriceVisibleInWebsite ? 'success' : 'info'"
+              [value]="svc.isPriceVisibleInWebsite ? 'Listado con precio' : 'Listado sin precio'"
+            />
+          } @else {
+            <span class="text-surface-500 dark:text-surface-400">No listado</span>
+          }
+        </td>
+        <td class="font-data tabular-nums">{{ svc.updatedAt | relativeTime }}</td>
+        @if (canManage()) {
+          <td class="w-24">
+            <div class="flex justify-end gap-1">
+              <button
+                type="button"
+                class="row-action"
+                [attr.aria-label]="'Editar servicio ' + svc.name"
+                (click)="openEdit(svc)"
+              >
+                <svg lucidePencil class="size-4" aria-hidden="true"></svg>
+              </button>
+              <button
+                type="button"
+                class="row-action row-action--danger"
+                [attr.aria-label]="'Eliminar servicio ' + svc.name"
+                (click)="openDelete(svc)"
+              >
+                <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
+              </button>
+            </div>
+          </td>
+        }
+      </tr>
+    </ng-template>
+
+    <ng-template #loadingbody>
+      @for (r of skeletonRows; track r) {
+        <tr>
+          @for (c of skeletonColumns(); track c) {
+            <td><span class="skeleton"></span></td>
+          }
+        </tr>
+      }
+    </ng-template>
+
+    <ng-template #emptymessage>
+      <tr class="p-datatable-emptymessage">
+        <td [attr.colspan]="columnCount()">
+          <span class="inline-flex flex-col items-center gap-3">
+            <span class="empty-icon">
+              <svg lucideWrench class="size-5" aria-hidden="true"></svg>
+            </span>
+            Sin servicios en el catálogo — registra el primero.
+          </span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<app-service-form-dialog #formDialog (saved)="refresh()" />
+<app-delete-service-dialog #deleteDialog (deleted)="refresh()" />

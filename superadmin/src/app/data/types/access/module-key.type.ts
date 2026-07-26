@@ -6,6 +6,7 @@ export type ModuleKey =
   | 'templates'
   | 'customers'
   | 'equipment'
+  | 'services'
   | 'calendar'
   | 'contracts'
   | 'billing'

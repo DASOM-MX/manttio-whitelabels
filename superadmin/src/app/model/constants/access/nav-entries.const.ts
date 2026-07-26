@@ -6,6 +6,7 @@ import {
   LucideNewspaper,
   LucidePackage,
   LucidePackageSearch,
+  LucideTag,
 } from '@lucide/angular';
 import type { NavEntry } from '../../../data/types/access/nav-entry.type';
 
@@ -22,6 +23,7 @@ export const NAV: NavEntry[] = [
     children: [
       { label: 'Marca', route: '/branding', module: 'branding' },
       { label: 'Usuarios', route: '/users', module: 'users' },
+      { label: 'Servicios', route: '/services', module: 'services' },
       { label: 'Reportes', route: '/reports', module: 'reports' },
       { label: 'Plantillas', route: '/templates', module: 'templates' },
     ],
@@ -53,11 +55,14 @@ export const NAV: NavEntry[] = [
   },
 ];
 
-/** Technician nav is exactly these four entries (02 §4 — untouched by the
- *  2026-07-22 regroup). */
+/** Technician nav (02 §4 — the 2026-07-22 regroup left it alone; "Servicios"
+ *  joined 2026-07-25 when the catalog became read-wide, 18 §2). Technicians
+ *  read it as a price list: no create button, no row actions, and the API
+ *  withholds each service's internal cost. */
 export const TECH_NAV: NavEntry[] = [
   { label: 'Calendario', icon: LucideCalendarDays, route: '/calendar', module: 'calendar' },
   { label: 'Mis reportes', icon: LucideFileText, route: '/reports', module: 'reports' },
+  { label: 'Servicios', icon: LucideTag, route: '/services', module: 'services' },
   { label: 'Mi almacén', icon: LucidePackage, route: '/warehouse', module: 'wms', exact: true },
   {
     label: 'Consulta de stock',

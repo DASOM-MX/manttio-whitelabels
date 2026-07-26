@@ -14,3 +14,40 @@ export enum ServiceTaxRate {
   // Exento: outside the IVA act entirely. Same 0 MXN, different CFDI treatment.
   Exento = 'exento',
 }
+
+// Unit of measure a service is priced by (18 §1, decided 2026-07-26 — supersedes
+// the free-text v1 posture). A closed list rather than free text so the same
+// unit can't arrive as 'hr' / 'Hora' / 'horas' and split reporting later; kept
+// deliberately generic (common commercial units, no trade jargon) because the
+// catalog is whitelabel and every tenant sells something different.
+//
+// Validator-enforced only — no DB check constraint, same posture as taxRate:
+// the Drizzle model stays the single source of truth.
+export enum ServiceUom {
+  // Trabajo
+  Servicio = 'servicio',
+  Visita = 'visita',
+  Viaje = 'viaje',
+  // Tiempo
+  Hora = 'hora',
+  Dia = 'dia',
+  Mes = 'mes',
+  // Cantidad
+  Unidad = 'unidad',
+  Pieza = 'pieza',
+  Pallet = 'pallet',
+  // Longitud
+  Metro = 'metro',
+  Yarda = 'yarda',
+  Pulgada = 'pulgada',
+  // Superficie
+  MetroCuadrado = 'metro_cuadrado',
+  Hectarea = 'hectarea',
+  // Volumen
+  MetroCubico = 'metro_cubico',
+  Litro = 'litro',
+  Mililitro = 'mililitro',
+  Galon = 'galon',
+  // Peso
+  Kilogramo = 'kilogramo',
+}

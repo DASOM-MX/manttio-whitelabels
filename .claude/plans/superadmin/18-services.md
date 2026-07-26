@@ -28,9 +28,11 @@ Service {
   cost?,                   // numeric(12,2), optional (decided 2026-07-25) — internal
                            //   cost feeding margin on quotation/order lines (20).
                            //   Admin-tier only: the DTO omits it for office/technician
-  uom,                     // required free text v1: 'servicio', 'hora',
-                           //   'equipo', 'visita'… — no invented catalog,
-                           //   same posture as equipment.kind (11 §1)
+  uom,                     // required, closed list (enum ServiceUom, 19 members
+                           //   grouped by dimension: trabajo/tiempo/cantidad/
+                           //   longitud/superficie/volumen/peso). Validator-
+                           //   enforced, column stays `text` so a new unit needs
+                           //   no DDL (2026-07-26)
   description?,
   taxRate,                 // Mexican IVA rate enum, default iva_16 (decided 2026-07-24):
                            //   iva_16 (16%) | iva_8 (8%, frontera) | iva_0 (0%, tasa
@@ -90,11 +92,22 @@ role added later, the wrong default for a confidentiality gate.
 
 ## 3. UI — `/services`
 
-- `services/pages/services-list/` — p-table catalog (name, price `font-data`, uom,
-  website pill, updated) — customers-list idiom, URL-persisted filters (`q`).
-  Primary action **Registrar servicio** opens the dialog.
-- `services/components/service-form-dialog/` — shape-3 create/edit: name, price
-  (`p-inputnumber` `mode="currency"` MXN), uom, description, **`taxRate` select** (IVA
+**Folder is `app/service-catalog/`, not `app/services/` (decided 2026-07-25):**
+`app/services/` already means *injectables* (`http/`, `theme/`, `table/`), so feature
+pages can't live there. The route stays `/services` and `ModuleKey` stays `'services'` —
+only the folder differs, mirroring the same stutter dodge §5 applied to the http
+service. Freeing the name would mean moving every injectable, a large unrelated refactor.
+
+- `service-catalog/pages/services-list/` — p-table catalog (name + description, price
+  `font-data`, **costo** (back-office only), uom, **IVA**, website pill, updated) —
+  customers-list idiom, URL-persisted filter (`q`). Primary action **Registrar
+  servicio** opens the dialog. Paging is **client-side**: `GET /services` returns the
+  whole catalog, so the table isn't `[lazy]` and no `page` param is in the URL.
+  The costo column renders only when the API actually returned costs (i.e. not for
+  technicians); create button and row actions render only for admin tier.
+- `service-catalog/components/service-form-dialog/` — shape-3 create/edit: name, price
+  (`p-inputnumber` `mode="currency"` MXN), **`uom` select** (19 units, filterable,
+  default Servicio), description, **`taxRate` select** (IVA
   16% / 8% / 0% / Exento, default 16%), then two website toggles:
   `isListableInWebsite` ("Aparecerá en la sección de servicios del sitio") and, revealed
   when it's on, `isPriceVisibleInWebsite` ("Mostrar el precio en el sitio") — progressive
@@ -145,11 +158,14 @@ role added later, the wrong default for a confidentiality gate.
       (no email column to isolate on) and soft-deleted in `afterAll`
 
 ### CP-2 — Superadmin catalog UI
-- [ ] `ServicesState` + http service + DTOs
-- [ ] List page (URL filters) + shape-3 dialog + delete confirm
-- [ ] Nav entry + `ModuleKey`/`MODULE_ROLES` `'services'` =
+- [x] `ServicesState` + http service + DTOs (`ServiceTaxRate` is a TS **enum**, matching
+      the backend and the `CustomerStatus`/`TemplateStatus` precedent in `data/dtos/`)
+- [x] List page (URL filter `q`) + shape-3 dialog + delete confirm
+- [x] Nav entry + `ModuleKey`/`MODULE_ROLES` `'services'` =
       `['owner', 'admin', 'office', 'technician']` (§2); list page is read-only for
       office/technician — no **Registrar servicio** button, no row actions; build green
+- [x] **`TECH_NAV` gains "Servicios"** — technicians have catalog access, so leaving it
+      out of their nav would have made it URL-only
 
 ### CP-3 — Website exposure
 - [x] `GET /public/services` — shipped with CP-1 (2026-07-25)
@@ -183,7 +199,24 @@ role added later, the wrong default for a confidentiality gate.
   `deleted_by`, `DELETE` takes `{ deleteComment }`), matching users/equipment rather
   than the bare customers/reports shape. §3's confirm dialog therefore needs a required
   reason field, not just a yes/no.
-- `uom` stays free text v1; revisit an option catalog only on real demand.
+- ~~`uom` stays free text v1; revisit an option catalog only on real demand~~ —
+  **decided 2026-07-26 (real demand arrived):** `uom` is a closed list, TS enum
+  `ServiceUom` with 19 generic commercial units, mirrored in the superadmin DTO and
+  rendered as a filterable select with **PrimeNG option groups** (`[group]="true"` +
+  `SelectItemGroup[]`, not comment-only grouping): **Trabajo** servicio/visita/viaje ·
+  **Tiempo** hora/día/mes · **Cantidad** unidad/pieza/pallet · **Longitud**
+  metro/yarda/pulgada · **Superficie** m²/hectárea · **Volumen**
+  m³/litro/mililitro/galón · **Peso** kilogramo. Group membership lives in
+  `service-uom-groups.const.ts` as a `Record<ServiceUom, …>`, so a new enum member
+  **fails the build** until it's assigned a group instead of silently disappearing from
+  the dropdown (verified by adding a member and watching tsc reject it). Enum values
+  stay ASCII (`hectarea`, `galon`) even where the label is accented — the code is a
+  wire value, the label is presentation. Free text let the same unit arrive as 'hr' / 'Hora' / 'horas', which
+  would have split reporting once 19/20 aggregate lines. Deliberately generic, not
+  trade-specific — the catalog is whitelabel. **Validator-only enforcement**
+  (`z.nativeEnum`), no DB check constraint: same posture as `taxRate`, so the Drizzle
+  model stays the single source of truth and adding a unit needs no DDL. Applied with
+  zero live rows in the catalog, so no backfill.
 - ~~Price visibility for technicians — owned by 19 (leaning hide)~~ — **decided
   2026-07-25:** office and technician both read the catalog *with* prices (§2). Only
   `cost` is tier-gated, and only against technicians. 19 no longer owns this question.
