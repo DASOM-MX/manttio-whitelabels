@@ -202,10 +202,14 @@ service. Freeing the name would mean moving every injectable, a large unrelated 
 - ~~`uom` stays free text v1; revisit an option catalog only on real demand~~ —
   **decided 2026-07-26 (real demand arrived):** `uom` is a closed list, TS enum
   `ServiceUom` with 19 generic commercial units, mirrored in the superadmin DTO and
-  rendered as a filterable select. Grouped by dimension in declaration order (which is
-  also render order): **trabajo** servicio/visita/viaje · **tiempo** hora/día/mes ·
-  **cantidad** unidad/pieza/pallet · **longitud** metro/yarda/pulgada · **superficie**
-  m²/hectárea · **volumen** m³/litro/mililitro/galón · **peso** kilogramo. Enum values
+  rendered as a filterable select with **PrimeNG option groups** (`[group]="true"` +
+  `SelectItemGroup[]`, not comment-only grouping): **Trabajo** servicio/visita/viaje ·
+  **Tiempo** hora/día/mes · **Cantidad** unidad/pieza/pallet · **Longitud**
+  metro/yarda/pulgada · **Superficie** m²/hectárea · **Volumen**
+  m³/litro/mililitro/galón · **Peso** kilogramo. Group membership lives in
+  `service-uom-groups.const.ts` as a `Record<ServiceUom, …>`, so a new enum member
+  **fails the build** until it's assigned a group instead of silently disappearing from
+  the dropdown (verified by adding a member and watching tsc reject it). Enum values
   stay ASCII (`hectarea`, `galon`) even where the label is accented — the code is a
   wire value, the label is presentation. Free text let the same unit arrive as 'hr' / 'Hora' / 'horas', which
   would have split reporting once 19/20 aggregate lines. Deliberately generic, not

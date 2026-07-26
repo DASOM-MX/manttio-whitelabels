@@ -11,7 +11,7 @@ import { MessageService } from 'primeng/api';
 import { Store } from '@ngxs/store';
 import { CreateService, UpdateService } from '../../../../state/services/services.actions';
 import { SERVICE_TAX_RATE_LABELS } from '../../../model/constants/services/service-tax-rate-labels.const';
-import { SERVICE_UOM_LABELS } from '../../../model/constants/services/service-uom-labels.const';
+import { SERVICE_UOM_GROUPS } from '../../../model/constants/services/service-uom-groups.const';
 import { errorMessage } from '../../../data/utils';
 import { ServiceTaxRate, ServiceUom, type Service } from '../../../data/dtos/service';
 
@@ -50,10 +50,9 @@ export class ServiceFormDialog {
     Object.entries(SERVICE_TAX_RATE_LABELS) as [ServiceTaxRate, string][]
   ).map(([value, label]) => ({ label, value }));
 
-  /** Select options in the const's declaration order — commonest unit first. */
-  protected uomOptions = (Object.entries(SERVICE_UOM_LABELS) as [ServiceUom, string][]).map(
-    ([value, label]) => ({ label, value }),
-  );
+  /** Pre-grouped by dimension (PrimeNG `SelectItemGroup[]`) — 19 units read as
+   *  a wall in a flat list. */
+  protected uomGroups = SERVICE_UOM_GROUPS;
 
   protected form = this.fb.nonNullable.group({
     name: ['', Validators.required],

@@ -55,7 +55,10 @@
       <p-select
         inputId="svc-uom"
         formControlName="uom"
-        [options]="uomOptions"
+        [options]="uomGroups"
+        [group]="true"
+        optionGroupLabel="label"
+        optionGroupChildren="items"
         optionLabel="label"
         optionValue="value"
         [filter]="true"
