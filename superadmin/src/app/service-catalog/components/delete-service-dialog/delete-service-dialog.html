@@ -1,0 +1,52 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="dialog-md"
+  header="Eliminar servicio"
+>
+  <div class="grid gap-4">
+    <p class="text-sm text-surface-700 dark:text-surface-300">
+      <span class="font-medium">{{ target()?.name }}</span> dejará de aparecer al crear
+      cotizaciones y órdenes.
+    </p>
+
+    <div class="callout callout--info">
+      Las cotizaciones y órdenes que ya lo incluyen no cambian: conservan el servicio y el
+      precio con el que se vendieron.
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="confirm()" class="grid gap-4">
+      <div class="field-group">
+        <label class="field-label" for="svc-delete-comment">
+          Motivo<span aria-hidden="true"> *</span>
+        </label>
+        <textarea
+          id="svc-delete-comment"
+          pTextarea
+          formControlName="comment"
+          rows="2"
+          class="!min-h-16"
+          placeholder="Duplicado, ya no se ofrece…"
+        ></textarea>
+        <p class="field-hint">Queda registrado junto con quién lo eliminó.</p>
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button type="button" class="btn-neutral" (click)="close()" [disabled]="submitting()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-danger" [disabled]="!canConfirm()">
+          @if (submitting()) {
+            Eliminando…
+          } @else {
+            Eliminar
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</p-dialog>

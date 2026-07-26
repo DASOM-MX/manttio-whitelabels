@@ -90,10 +90,20 @@ role added later, the wrong default for a confidentiality gate.
 
 ## 3. UI — `/services`
 
-- `services/pages/services-list/` — p-table catalog (name, price `font-data`, uom,
-  website pill, updated) — customers-list idiom, URL-persisted filters (`q`).
-  Primary action **Registrar servicio** opens the dialog.
-- `services/components/service-form-dialog/` — shape-3 create/edit: name, price
+**Folder is `app/service-catalog/`, not `app/services/` (decided 2026-07-25):**
+`app/services/` already means *injectables* (`http/`, `theme/`, `table/`), so feature
+pages can't live there. The route stays `/services` and `ModuleKey` stays `'services'` —
+only the folder differs, mirroring the same stutter dodge §5 applied to the http
+service. Freeing the name would mean moving every injectable, a large unrelated refactor.
+
+- `service-catalog/pages/services-list/` — p-table catalog (name + description, price
+  `font-data`, **costo** (back-office only), uom, **IVA**, website pill, updated) —
+  customers-list idiom, URL-persisted filter (`q`). Primary action **Registrar
+  servicio** opens the dialog. Paging is **client-side**: `GET /services` returns the
+  whole catalog, so the table isn't `[lazy]` and no `page` param is in the URL.
+  The costo column renders only when the API actually returned costs (i.e. not for
+  technicians); create button and row actions render only for admin tier.
+- `service-catalog/components/service-form-dialog/` — shape-3 create/edit: name, price
   (`p-inputnumber` `mode="currency"` MXN), uom, description, **`taxRate` select** (IVA
   16% / 8% / 0% / Exento, default 16%), then two website toggles:
   `isListableInWebsite` ("Aparecerá en la sección de servicios del sitio") and, revealed
@@ -145,11 +155,14 @@ role added later, the wrong default for a confidentiality gate.
       (no email column to isolate on) and soft-deleted in `afterAll`
 
 ### CP-2 — Superadmin catalog UI
-- [ ] `ServicesState` + http service + DTOs
-- [ ] List page (URL filters) + shape-3 dialog + delete confirm
-- [ ] Nav entry + `ModuleKey`/`MODULE_ROLES` `'services'` =
+- [x] `ServicesState` + http service + DTOs (`ServiceTaxRate` is a TS **enum**, matching
+      the backend and the `CustomerStatus`/`TemplateStatus` precedent in `data/dtos/`)
+- [x] List page (URL filter `q`) + shape-3 dialog + delete confirm
+- [x] Nav entry + `ModuleKey`/`MODULE_ROLES` `'services'` =
       `['owner', 'admin', 'office', 'technician']` (§2); list page is read-only for
       office/technician — no **Registrar servicio** button, no row actions; build green
+- [x] **`TECH_NAV` gains "Servicios"** — technicians have catalog access, so leaving it
+      out of their nav would have made it URL-only
 
 ### CP-3 — Website exposure
 - [x] `GET /public/services` — shipped with CP-1 (2026-07-25)

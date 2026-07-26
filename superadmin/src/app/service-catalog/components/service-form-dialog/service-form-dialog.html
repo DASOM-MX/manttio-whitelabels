@@ -1,0 +1,129 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="dialog-lg"
+  [header]="editing() ? 'Editar servicio' : 'Registrar servicio'"
+>
+  <form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-4 sm:grid-cols-2">
+    <div class="field-group sm:col-span-2">
+      <label class="field-label" for="svc-name">Nombre<span aria-hidden="true"> *</span></label>
+      <input
+        id="svc-name"
+        pInputText
+        formControlName="name"
+        placeholder="Mantenimiento preventivo"
+      />
+      @if (form.controls.name.touched && form.controls.name.errors?.['required']) {
+        <p class="field-error" role="alert">Escribe el nombre del servicio.</p>
+      }
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="svc-price">Precio<span aria-hidden="true"> *</span></label>
+      <p-inputnumber
+        inputId="svc-price"
+        formControlName="price"
+        mode="currency"
+        currency="MXN"
+        locale="es-MX"
+        [min]="0"
+      />
+      @if (form.controls.price.touched && form.controls.price.errors?.['min']) {
+        <p class="field-error" role="alert">El precio no puede ser negativo.</p>
+      }
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="svc-cost">Costo interno</label>
+      <p-inputnumber
+        inputId="svc-cost"
+        formControlName="cost"
+        mode="currency"
+        currency="MXN"
+        locale="es-MX"
+        [min]="0"
+      />
+      <p class="field-hint">Sólo para calcular margen. Los técnicos no lo ven.</p>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="svc-uom">Unidad<span aria-hidden="true"> *</span></label>
+      <input id="svc-uom" pInputText formControlName="uom" placeholder="servicio, hora, visita…" />
+      @if (form.controls.uom.touched && form.controls.uom.errors?.['required']) {
+        <p class="field-error" role="alert">Indica la unidad que se cobra.</p>
+      }
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="svc-tax">IVA<span aria-hidden="true"> *</span></label>
+      <p-select
+        inputId="svc-tax"
+        formControlName="taxRate"
+        [options]="taxRateOptions"
+        optionLabel="label"
+        optionValue="value"
+        appendTo="body"
+      />
+      <p class="field-hint">Se aplica por línea en cotizaciones y órdenes.</p>
+    </div>
+
+    <div class="field-group sm:col-span-2">
+      <label class="field-label" for="svc-description">Descripción</label>
+      <textarea
+        id="svc-description"
+        pTextarea
+        formControlName="description"
+        rows="2"
+        class="!min-h-16"
+      ></textarea>
+    </div>
+
+    <div class="field-group sm:col-span-2">
+      <div class="flex items-center gap-2">
+        <p-checkbox
+          formControlName="isListableInWebsite"
+          [binary]="true"
+          inputId="svc-listable"
+        />
+        <label class="field-label !mb-0" for="svc-listable">
+          Aparecerá en la sección de servicios del sitio
+        </label>
+      </div>
+
+      <!-- Revealed only once the service is listed: price visibility is
+           meaningless on a service the site never shows. -->
+      @if (showsPriceToggle()) {
+        <div class="mt-3 flex items-center gap-2 pl-6">
+          <p-checkbox
+            formControlName="isPriceVisibleInWebsite"
+            [binary]="true"
+            inputId="svc-price-visible"
+          />
+          <label class="field-label !mb-0" for="svc-price-visible">
+            Mostrar el precio en el sitio
+          </label>
+        </div>
+        <p class="mt-1 pl-6 field-hint">
+          Si lo dejas apagado, el sitio muestra el servicio sin precio.
+        </p>
+      }
+    </div>
+
+    <div class="flex justify-end gap-2 sm:col-span-2">
+      <button type="button" class="btn-neutral" (click)="close()" [disabled]="submitting()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn-primary" [disabled]="form.invalid || submitting()">
+        @if (submitting()) {
+          Guardando…
+        } @else {
+          Guardar
+        }
+      </button>
+    </div>
+  </form>
+</p-dialog>

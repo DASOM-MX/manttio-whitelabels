@@ -1,0 +1,134 @@
+import { Component, computed, inject, output, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { DialogModule } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { SelectModule } from 'primeng/select';
+import { TextareaModule } from 'primeng/textarea';
+import { CheckboxModule } from 'primeng/checkbox';
+import { MessageService } from 'primeng/api';
+import { Store } from '@ngxs/store';
+import { CreateService, UpdateService } from '../../../../state/services/services.actions';
+import { SERVICE_TAX_RATE_LABELS } from '../../../model/constants/services/service-tax-rate-labels.const';
+import { errorMessage } from '../../../data/utils';
+import { ServiceTaxRate, type Service } from '../../../data/dtos/service';
+
+/** Shape-3 create/edit dialog for a catalog service (18 §3).
+ *
+ *  Price visibility on the website is revealed only once the service is
+ *  listed — progressive disclosure, because the flag is meaningless
+ *  otherwise. The backend enforces the same invariant, so the two can't
+ *  drift apart. */
+@Component({
+  selector: 'app-service-form-dialog',
+  imports: [
+    ReactiveFormsModule,
+    DialogModule,
+    InputTextModule,
+    InputNumberModule,
+    SelectModule,
+    TextareaModule,
+    CheckboxModule,
+  ],
+  templateUrl: './service-form-dialog.html',
+})
+export class ServiceFormDialog {
+  /** Emits after create/update so the list refetches. */
+  readonly saved = output<void>();
+
+  private fb = inject(FormBuilder);
+  private store = inject(Store);
+  private messages = inject(MessageService);
+
+  protected dialogOpen = signal(false);
+  protected submitting = signal(false);
+  protected editing = signal<Service | null>(null);
+
+  protected taxRateOptions = (
+    Object.entries(SERVICE_TAX_RATE_LABELS) as [ServiceTaxRate, string][]
+  ).map(([value, label]) => ({ label, value }));
+
+  protected form = this.fb.nonNullable.group({
+    name: ['', Validators.required],
+    price: [0, [Validators.required, Validators.min(0)]],
+    cost: [null as number | null],
+    uom: ['servicio', Validators.required],
+    description: [''],
+    taxRate: [ServiceTaxRate.Iva16, Validators.required],
+    isListableInWebsite: [false],
+    isPriceVisibleInWebsite: [false],
+  });
+
+  private listable = toSignal(this.form.controls.isListableInWebsite.valueChanges, {
+    initialValue: this.form.controls.isListableInWebsite.value,
+  });
+
+  /** The price-visibility toggle only exists for a listed service. */
+  protected showsPriceToggle = computed(() => this.listable() === true);
+
+  open(service?: Service): void {
+    const svc = service ?? null;
+    this.editing.set(svc);
+    this.form.reset({
+      name: svc?.name ?? '',
+      // Money arrives as an exact-decimal string; the control is numeric, so
+      // this is the one inbound conversion (mirrored on submit).
+      price: svc ? Number(svc.price) : 0,
+      cost: svc?.cost === undefined ? null : Number(svc.cost),
+      uom: svc?.uom ?? 'servicio',
+      description: svc?.description ?? '',
+      taxRate: svc?.taxRate ?? ServiceTaxRate.Iva16,
+      isListableInWebsite: svc?.isListableInWebsite ?? false,
+      isPriceVisibleInWebsite: svc?.isPriceVisibleInWebsite ?? false,
+    });
+    this.submitting.set(false);
+    this.dialogOpen.set(true);
+  }
+
+  protected close(): void {
+    if (this.submitting()) return;
+    this.dialogOpen.set(false);
+  }
+
+  protected submit(): void {
+    if (this.form.invalid || this.submitting()) return;
+    const raw = this.form.getRawValue();
+    const listed = raw.isListableInWebsite;
+    const payload = {
+      name: raw.name.trim(),
+      price: raw.price,
+      cost: raw.cost ?? undefined,
+      uom: raw.uom.trim(),
+      description: raw.description.trim() || undefined,
+      taxRate: raw.taxRate,
+      isListableInWebsite: listed,
+      // Mirrors the server invariant: an unlisted service can't carry a
+      // price-visible flag, so we never send a stale true.
+      isPriceVisibleInWebsite: listed && raw.isPriceVisibleInWebsite,
+    };
+    const editing = this.editing();
+    this.submitting.set(true);
+    this.store
+      .dispatch(editing ? new UpdateService(editing.id, payload) : new CreateService(payload))
+      .subscribe({
+        next: () => {
+          this.submitting.set(false);
+          this.dialogOpen.set(false);
+          this.messages.add({
+            severity: 'success',
+            summary: editing ? 'Servicio actualizado' : 'Servicio registrado',
+          });
+          this.saved.emit();
+        },
+        error: (err) => {
+          this.submitting.set(false);
+          this.messages.add({
+            severity: 'error',
+            summary: 'No se pudo guardar el servicio',
+            detail: errorMessage(err, 'Inténtalo de nuevo.'),
+          });
+        },
+      });
+  }
+}

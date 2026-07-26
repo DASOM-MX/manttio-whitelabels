@@ -11,6 +11,10 @@ export const MODULE_ROLES: Record<ModuleKey, readonly Role[]> = {
   templates: ['owner', 'admin'],
   customers: ['owner', 'admin', 'office'],
   equipment: ['owner', 'admin', 'office'],
+  // Read-wide (18 §2): office and technician both work from the catalog and
+  // see prices. Writes stay owner/admin, gated in-page — so the page renders
+  // read-only for the other two rather than being route-blocked.
+  services: ['owner', 'admin', 'office', 'technician'],
   calendar: ['owner', 'admin', 'office', 'technician'],
   contracts: ['owner', 'admin', 'office'],
   billing: ['owner', 'admin', 'office'],
