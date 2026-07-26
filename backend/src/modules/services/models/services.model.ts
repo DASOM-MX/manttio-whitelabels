@@ -33,15 +33,12 @@ export const services = pgTable(
     // Closed list (`ServiceUom`), validator-enforced — the column stays `text`
     // so adding a unit needs no DDL.
     uom: text('uom').$type<ServiceUom>().notNull(),
-    // Internal management copy — notes for whoever maintains the catalog.
-    // NEVER reaches the website; `websiteDescription` is the public text.
+    // Management copy — never reaches the website.
     description: text('description'),
-    // The public card copy (CP-3). Nullable: a listed service with none shows
-    // a title-only card rather than falling back to the internal note.
+    // The public card copy. A listed service without one renders title-only;
+    // there is deliberately no fallback to the internal `description`.
     websiteDescription: text('website_description'),
-    // Tenant-facing catalog code. Internal only — never leaves the tenant,
-    // same posture as `cost` and the SAT keys. Unique when set, enforced by a
-    // partial index below (people look services up by it).
+    // Tenant catalog code, internal only. Unique when set — partial index below.
     internalServiceCode: text('internal_service_code'),
     taxRate: text('tax_rate').$type<ServiceTaxRate>().notNull().default(ServiceTaxRate.Iva16),
     // CFDI catalog keys (c_ClaveProdServ / c_ClaveUnidad). Catalog attributes,
@@ -64,9 +61,8 @@ export const services = pgTable(
     index('services_name_idx')
       .on(table.name)
       .where(sql`${table.deletedAt} is null`),
-    // Unique per live catalog only: nulls are exempt (the field is optional)
-    // and tombstoned rows release their code, so deleting a service frees its
-    // code for reuse without ever hard-deleting anything.
+    // Live catalog only: nulls are exempt (the field is optional) and
+    // tombstoned rows release their code for reuse.
     uniqueIndex('services_internal_code_uidx')
       .on(table.internalServiceCode)
       .where(sql`${table.internalServiceCode} is not null and ${table.deletedAt} is null`),
