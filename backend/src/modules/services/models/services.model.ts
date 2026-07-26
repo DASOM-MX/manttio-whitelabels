@@ -4,41 +4,35 @@ import { users } from '../../users/models/users.model';
 import { ServiceTaxRate } from '../enums/services.enum';
 
 // The tenant's service catalog (18 §1) — what the business sells, priced per
-// unit of measure. Deliberately flat: no categories or variants in v1.
-// Quotations (20) and the orders they generate (19) FK to `services.id` *and*
-// snapshot the price they were sold at, so a repriced or soft-deleted service
-// never rewrites history.
+// unit of measure. Flat: no categories or variants in v1. Quotations (20) and
+// orders (19) FK here *and* snapshot the price sold at, so repricing or
+// soft-deleting a service never rewrites history.
 //
-// Applied directly to the shared Neon DB (ahead-of-migrations rule); no drizzle
-// migration file is generated from here.
+// Applied directly to the shared Neon DB (ahead-of-migrations rule) — no
+// drizzle migration file is generated from here.
 export const services = pgTable(
   'services',
   {
     id: uuid('id').defaultRandom().primaryKey(),
     name: text('name').notNull(),
-    // First money columns in the schema (18 §1). MXN implicit — single currency
-    // in v1. Drizzle maps `numeric` to a TS string; it stays a string all the
-    // way to the API so no float ever rounds a peso amount.
+    // MXN implicit, single currency in v1. Drizzle maps `numeric` to a TS
+    // string and it stays one all the way to the API — no float rounds a peso.
     price: numeric('price', { precision: 12, scale: 2 }).notNull(),
-    // Internal cost, for margin on quotation/order lines (decided 2026-07-25).
-    // Nullable — not every service has one loaded. Back-office tier only: the
-    // DTO omits it for technicians (18 §2).
+    // Margin input for quote/order lines. Back-office tier only — the DTO omits
+    // it for technicians (18 §2).
     cost: numeric('cost', { precision: 12, scale: 2 }),
-    // Free text in v1 ('servicio', 'hora', 'equipo', 'visita'…) — same posture
-    // as `equipment.kind`, no invented catalog.
+    // Free text ('servicio', 'hora', 'visita'…) — no invented catalog, same as
+    // `equipment.kind`.
     uom: text('uom').notNull(),
     description: text('description'),
     taxRate: text('tax_rate').$type<ServiceTaxRate>().notNull().default(ServiceTaxRate.Iva16),
-    // SAT CFDI catalog keys (decided 2026-07-25): c_ClaveProdServ and
-    // c_ClaveUnidad. Carried on the catalog — where they belong — so
-    // facturación (09) doesn't require an accountant to hand-backfill every
-    // service later. Optional, and not surfaced in the v1 dialog.
+    // CFDI catalog keys (c_ClaveProdServ / c_ClaveUnidad). Catalog attributes,
+    // not invoice ones — carrying them here spares 09 a hand-backfill. No v1 UI.
     satProdServCode: text('sat_prod_serv_code'),
     satUnitCode: text('sat_unit_code'),
-    // Feeds the future public website services section (15). Price visibility
-    // is independent of listing (decided 2026-07-23) — a listed service may
-    // still hide its number. Only meaningful while `isListableInWebsite` is
-    // true; the service layer forces it false otherwise.
+    // Public website listing (15). Price visibility is independent of listing —
+    // a listed service may still hide its number — and only meaningful while
+    // listed; the service layer forces it false otherwise.
     isListableInWebsite: boolean('is_listable_in_website').notNull().default(false),
     isPriceVisibleInWebsite: boolean('is_price_visible_in_website').notNull().default(false),
     // Audited soft delete, same shape as users/equipment.
