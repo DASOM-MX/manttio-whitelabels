@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { boolean, index, numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { users } from '../../users/models/users.model';
-import { ServiceTaxRate } from '../enums/services.enum';
+import { ServiceTaxRate, ServiceUom } from '../enums/services.enum';
 
 // The tenant's service catalog (18 §1) — what the business sells, priced per
 // unit of measure. Flat: no categories or variants in v1. Quotations (20) and
@@ -21,9 +21,9 @@ export const services = pgTable(
     // Margin input for quote/order lines. Back-office tier only — the DTO omits
     // it for technicians (18 §2).
     cost: numeric('cost', { precision: 12, scale: 2 }),
-    // Free text ('servicio', 'hora', 'visita'…) — no invented catalog, same as
-    // `equipment.kind`.
-    uom: text('uom').notNull(),
+    // Closed list (`ServiceUom`), validator-enforced — the column stays `text`
+    // so adding a unit needs no DDL.
+    uom: text('uom').$type<ServiceUom>().notNull(),
     description: text('description'),
     taxRate: text('tax_rate').$type<ServiceTaxRate>().notNull().default(ServiceTaxRate.Iva16),
     // CFDI catalog keys (c_ClaveProdServ / c_ClaveUnidad). Catalog attributes,

@@ -11,8 +11,9 @@ import { MessageService } from 'primeng/api';
 import { Store } from '@ngxs/store';
 import { CreateService, UpdateService } from '../../../../state/services/services.actions';
 import { SERVICE_TAX_RATE_LABELS } from '../../../model/constants/services/service-tax-rate-labels.const';
+import { SERVICE_UOM_LABELS } from '../../../model/constants/services/service-uom-labels.const';
 import { errorMessage } from '../../../data/utils';
-import { ServiceTaxRate, type Service } from '../../../data/dtos/service';
+import { ServiceTaxRate, ServiceUom, type Service } from '../../../data/dtos/service';
 
 /** Shape-3 create/edit dialog for a catalog service (18 §3).
  *
@@ -49,11 +50,16 @@ export class ServiceFormDialog {
     Object.entries(SERVICE_TAX_RATE_LABELS) as [ServiceTaxRate, string][]
   ).map(([value, label]) => ({ label, value }));
 
+  /** Select options in the const's declaration order — commonest unit first. */
+  protected uomOptions = (Object.entries(SERVICE_UOM_LABELS) as [ServiceUom, string][]).map(
+    ([value, label]) => ({ label, value }),
+  );
+
   protected form = this.fb.nonNullable.group({
     name: ['', Validators.required],
     price: [0, [Validators.required, Validators.min(0)]],
     cost: [null as number | null],
-    uom: ['servicio', Validators.required],
+    uom: [ServiceUom.Servicio, Validators.required],
     description: [''],
     taxRate: [ServiceTaxRate.Iva16, Validators.required],
     isListableInWebsite: [false],
@@ -76,7 +82,7 @@ export class ServiceFormDialog {
       // this is the one inbound conversion (mirrored on submit).
       price: svc ? Number(svc.price) : 0,
       cost: svc?.cost === undefined ? null : Number(svc.cost),
-      uom: svc?.uom ?? 'servicio',
+      uom: svc?.uom ?? ServiceUom.Servicio,
       description: svc?.description ?? '',
       taxRate: svc?.taxRate ?? ServiceTaxRate.Iva16,
       isListableInWebsite: svc?.isListableInWebsite ?? false,
@@ -99,7 +105,7 @@ export class ServiceFormDialog {
       name: raw.name.trim(),
       price: raw.price,
       cost: raw.cost ?? undefined,
-      uom: raw.uom.trim(),
+      uom: raw.uom,
       description: raw.description.trim() || undefined,
       taxRate: raw.taxRate,
       isListableInWebsite: listed,

@@ -1,5 +1,5 @@
 import type { services } from '../models/services.model';
-import type { ServiceTaxRate } from '../enums/services.enum';
+import type { ServiceTaxRate, ServiceUom } from '../enums/services.enum';
 
 export type ServiceRow = typeof services.$inferSelect;
 export type NewService = typeof services.$inferInsert;
@@ -26,7 +26,7 @@ export interface PublicServiceRow {
   id: string;
   name: string;
   description: string | null;
-  uom: string;
+  uom: ServiceUom;
   price: string;
   isPriceVisibleInWebsite: boolean;
 }
@@ -39,7 +39,7 @@ export interface PublicServiceDTO {
   id: string;
   name: string;
   description?: string;
-  uom: string;
+  uom: ServiceUom;
   price?: string;
 }
 
@@ -52,7 +52,7 @@ export interface ServiceDTO {
   name: string;
   price: string;
   cost?: string;
-  uom: string;
+  uom: ServiceUom;
   description?: string;
   taxRate: ServiceTaxRate;
   satProdServCode?: string;

@@ -52,10 +52,15 @@
 
     <div class="field-group">
       <label class="field-label" for="svc-uom">Unidad<span aria-hidden="true"> *</span></label>
-      <input id="svc-uom" pInputText formControlName="uom" placeholder="servicio, hora, visita…" />
-      @if (form.controls.uom.touched && form.controls.uom.errors?.['required']) {
-        <p class="field-error" role="alert">Indica la unidad que se cobra.</p>
-      }
+      <p-select
+        inputId="svc-uom"
+        formControlName="uom"
+        [options]="uomOptions"
+        optionLabel="label"
+        optionValue="value"
+        appendTo="body"
+      />
+      <p class="field-hint">El precio se cobra por esta unidad.</p>
     </div>
 
     <div class="field-group">

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ServiceTaxRate } from '../enums/services.enum';
+import { ServiceTaxRate, ServiceUom } from '../enums/services.enum';
 
 // Money in, money out: accepts a JSON number or a numeric string and normalizes
 // to the fixed-2 string the `numeric(12,2)` column stores. Rejects negatives,
@@ -15,7 +15,8 @@ export const createServiceSchema = z.object({
   name: z.string().trim().min(1),
   price: money,
   cost: money.optional(),
-  uom: z.string().trim().min(1),
+  // Closed list — an unknown unit is a 400, not a new de-facto unit.
+  uom: z.nativeEnum(ServiceUom),
   description: z.string().optional(),
   taxRate: z.nativeEnum(ServiceTaxRate).default(ServiceTaxRate.Iva16),
   // SAT CFDI keys — no format assertion yet; the catalogs are versioned by the

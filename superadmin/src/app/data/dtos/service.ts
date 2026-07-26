@@ -15,6 +15,25 @@ export enum ServiceTaxRate {
   Exento = 'exento',
 }
 
+/** Unit a service is priced by. Full parity with the backend `ServiceUom` enum
+ *  — the API rejects anything outside this list, so the form offers a select
+ *  rather than a text field. Generic commercial units on purpose: the catalog
+ *  is whitelabel and every tenant sells something different. */
+export enum ServiceUom {
+  Servicio = 'servicio',
+  Visita = 'visita',
+  Hora = 'hora',
+  Dia = 'dia',
+  Mes = 'mes',
+  Unidad = 'unidad',
+  Pieza = 'pieza',
+  Metro = 'metro',
+  MetroCuadrado = 'metro_cuadrado',
+  MetroCubico = 'metro_cubico',
+  Kilogramo = 'kilogramo',
+  Litro = 'litro',
+}
+
 export interface Service {
   id: string;
   name: string;
@@ -25,8 +44,7 @@ export interface Service {
    *  omits the field entirely for technicians, so `undefined` here means
    *  "not visible to me", not "not set". */
   cost?: string;
-  /** Free text v1: 'servicio', 'hora', 'equipo', 'visita'… */
-  uom: string;
+  uom: ServiceUom;
   description?: string;
   taxRate: ServiceTaxRate;
   /** SAT CFDI catalog keys — carried for facturación (09), no v1 UI. */
@@ -52,7 +70,7 @@ export interface SaveServiceRequest {
   name: string;
   price: number;
   cost?: number;
-  uom: string;
+  uom: ServiceUom;
   description?: string;
   taxRate: ServiceTaxRate;
   isListableInWebsite: boolean;

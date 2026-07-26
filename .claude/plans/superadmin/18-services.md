@@ -28,9 +28,10 @@ Service {
   cost?,                   // numeric(12,2), optional (decided 2026-07-25) — internal
                            //   cost feeding margin on quotation/order lines (20).
                            //   Admin-tier only: the DTO omits it for office/technician
-  uom,                     // required free text v1: 'servicio', 'hora',
-                           //   'equipo', 'visita'… — no invented catalog,
-                           //   same posture as equipment.kind (11 §1)
+  uom,                     // required, closed list (enum ServiceUom, 12 members —
+                           //   servicio/visita/hora/dia/mes/unidad/pieza/metro/
+                           //   m2/m3/kg/litro). Validator-enforced, column stays
+                           //   `text` so a new unit needs no DDL (2026-07-26)
   description?,
   taxRate,                 // Mexican IVA rate enum, default iva_16 (decided 2026-07-24):
                            //   iva_16 (16%) | iva_8 (8%, frontera) | iva_0 (0%, tasa
@@ -104,7 +105,8 @@ service. Freeing the name would mean moving every injectable, a large unrelated 
   The costo column renders only when the API actually returned costs (i.e. not for
   technicians); create button and row actions render only for admin tier.
 - `service-catalog/components/service-form-dialog/` — shape-3 create/edit: name, price
-  (`p-inputnumber` `mode="currency"` MXN), uom, description, **`taxRate` select** (IVA
+  (`p-inputnumber` `mode="currency"` MXN), **`uom` select** (12 units, default
+  Servicio), description, **`taxRate` select** (IVA
   16% / 8% / 0% / Exento, default 16%), then two website toggles:
   `isListableInWebsite` ("Aparecerá en la sección de servicios del sitio") and, revealed
   when it's on, `isPriceVisibleInWebsite` ("Mostrar el precio en el sitio") — progressive
@@ -196,7 +198,16 @@ service. Freeing the name would mean moving every injectable, a large unrelated 
   `deleted_by`, `DELETE` takes `{ deleteComment }`), matching users/equipment rather
   than the bare customers/reports shape. §3's confirm dialog therefore needs a required
   reason field, not just a yes/no.
-- `uom` stays free text v1; revisit an option catalog only on real demand.
+- ~~`uom` stays free text v1; revisit an option catalog only on real demand~~ —
+  **decided 2026-07-26 (real demand arrived):** `uom` is a closed list, TS enum
+  `ServiceUom` with 12 generic commercial units (servicio, visita, hora, día, mes,
+  unidad, pieza, metro, m², m³, kg, litro), mirrored in the superadmin DTO and rendered
+  as a select. Free text let the same unit arrive as 'hr' / 'Hora' / 'horas', which
+  would have split reporting once 19/20 aggregate lines. Deliberately generic, not
+  trade-specific — the catalog is whitelabel. **Validator-only enforcement**
+  (`z.nativeEnum`), no DB check constraint: same posture as `taxRate`, so the Drizzle
+  model stays the single source of truth and adding a unit needs no DDL. Applied with
+  zero live rows in the catalog, so no backfill.
 - ~~Price visibility for technicians — owned by 19 (leaning hide)~~ — **decided
   2026-07-25:** office and technician both read the catalog *with* prices (§2). Only
   `cost` is tier-gated, and only against technicians. 19 no longer owns this question.

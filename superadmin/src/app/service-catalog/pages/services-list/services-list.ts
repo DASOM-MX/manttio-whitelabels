@@ -13,6 +13,7 @@ import { hasRole } from '../../../guards/has-role.guard';
 import { MoneyPipe } from '../../../pipes/money.pipe';
 import { RelativeTimePipe } from '../../../pipes/relative-time.pipe';
 import { ServiceTaxRateShortPipe } from '../../../pipes/service-tax-rate.pipe';
+import { ServiceUomShortPipe } from '../../../pipes/service-uom.pipe';
 import { ServiceFormDialog } from '../../components/service-form-dialog/service-form-dialog';
 import { DeleteServiceDialog } from '../../components/delete-service-dialog/delete-service-dialog';
 import { FiltersPopover } from '../../../shared/components/filters-popover/filters-popover';
@@ -40,6 +41,7 @@ import type { Service, ServiceListQuery } from '../../../data/dtos/service';
     MoneyPipe,
     RelativeTimePipe,
     ServiceTaxRateShortPipe,
+    ServiceUomShortPipe,
     ServiceFormDialog,
     DeleteServiceDialog,
     FiltersPopover,

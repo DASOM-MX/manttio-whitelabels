@@ -65,7 +65,7 @@
                means "not visible to me", not "not set". -->
           <td class="font-data tabular-nums">{{ svc.cost | money }}</td>
         }
-        <td>{{ svc.uom }}</td>
+        <td>{{ svc.uom | serviceUomShort }}</td>
         <td class="font-data tabular-nums">{{ svc.taxRate | serviceTaxRateShort }}</td>
         <td>
           @if (svc.isListableInWebsite) {

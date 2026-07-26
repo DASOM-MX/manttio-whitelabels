@@ -10,7 +10,7 @@ import {
 } from './helpers/fixtures';
 import { createDb } from '../src/modules/database/client';
 import { services } from '../src/modules/database/schema';
-import { ServiceTaxRate } from '../src/modules/services/enums/services.enum';
+import { ServiceTaxRate, ServiceUom } from '../src/modules/services/enums/services.enum';
 
 type WorkerEnv = { DATABASE_URL: string };
 
@@ -19,7 +19,7 @@ type Service = {
   name: string;
   price: string;
   cost?: string;
-  uom: string;
+  uom: ServiceUom;
   description?: string;
   taxRate: string;
   satProdServCode?: string;
@@ -32,7 +32,7 @@ type PublicService = {
   id: string;
   name: string;
   description?: string;
-  uom: string;
+  uom: ServiceUom;
   price?: string;
 };
 
@@ -70,7 +70,7 @@ type ServiceOverrides = Partial<Omit<Service, 'id' | 'price' | 'cost'>> & {
 const serviceBody = (over: ServiceOverrides = {}) => ({
   name: uniqueServiceName('svc'),
   price: 1500,
-  uom: 'servicio',
+  uom: ServiceUom.Servicio,
   ...over,
 });
 
@@ -129,6 +129,30 @@ describe('POST /services', () => {
 
     const noUom = await createService(token, { name: uniqueServiceName('svc'), price: 10 });
     expect(noUom.status).toBe(400);
+  });
+
+  test('uom is a closed list — an unlisted unit is rejected on create and update', async () => {
+    const { token } = await seedOwnerAndLogin();
+
+    // Free text was the v1 posture; 'kilometro' is plausible but not a member,
+    // and accepting it is exactly what the enum exists to prevent.
+    const created = await createService(token, {
+      name: uniqueServiceName('svc'),
+      price: 10,
+      uom: 'kilometro',
+    });
+    expect(created.status).toBe(400);
+
+    const svc = await seedService();
+    const patched = await patchService(token, svc.id, { uom: 'kilometro' });
+    expect(patched.status).toBe(400);
+
+    // Every member round-trips.
+    for (const uom of Object.values(ServiceUom)) {
+      const res = await createService(token, serviceBody({ uom }));
+      expect(res.status).toBe(201);
+      expect((await json<Service>(res)).uom).toBe(uom);
+    }
   });
 
   test('office and technician cannot write to the catalog', async () => {
