@@ -28,10 +28,11 @@ Service {
   cost?,                   // numeric(12,2), optional (decided 2026-07-25) — internal
                            //   cost feeding margin on quotation/order lines (20).
                            //   Admin-tier only: the DTO omits it for office/technician
-  uom,                     // required, closed list (enum ServiceUom, 12 members —
-                           //   servicio/visita/hora/dia/mes/unidad/pieza/metro/
-                           //   m2/m3/kg/litro). Validator-enforced, column stays
-                           //   `text` so a new unit needs no DDL (2026-07-26)
+  uom,                     // required, closed list (enum ServiceUom, 19 members
+                           //   grouped by dimension: trabajo/tiempo/cantidad/
+                           //   longitud/superficie/volumen/peso). Validator-
+                           //   enforced, column stays `text` so a new unit needs
+                           //   no DDL (2026-07-26)
   description?,
   taxRate,                 // Mexican IVA rate enum, default iva_16 (decided 2026-07-24):
                            //   iva_16 (16%) | iva_8 (8%, frontera) | iva_0 (0%, tasa
@@ -105,8 +106,8 @@ service. Freeing the name would mean moving every injectable, a large unrelated 
   The costo column renders only when the API actually returned costs (i.e. not for
   technicians); create button and row actions render only for admin tier.
 - `service-catalog/components/service-form-dialog/` — shape-3 create/edit: name, price
-  (`p-inputnumber` `mode="currency"` MXN), **`uom` select** (12 units, default
-  Servicio), description, **`taxRate` select** (IVA
+  (`p-inputnumber` `mode="currency"` MXN), **`uom` select** (19 units, filterable,
+  default Servicio), description, **`taxRate` select** (IVA
   16% / 8% / 0% / Exento, default 16%), then two website toggles:
   `isListableInWebsite` ("Aparecerá en la sección de servicios del sitio") and, revealed
   when it's on, `isPriceVisibleInWebsite` ("Mostrar el precio en el sitio") — progressive
@@ -200,9 +201,13 @@ service. Freeing the name would mean moving every injectable, a large unrelated 
   reason field, not just a yes/no.
 - ~~`uom` stays free text v1; revisit an option catalog only on real demand~~ —
   **decided 2026-07-26 (real demand arrived):** `uom` is a closed list, TS enum
-  `ServiceUom` with 12 generic commercial units (servicio, visita, hora, día, mes,
-  unidad, pieza, metro, m², m³, kg, litro), mirrored in the superadmin DTO and rendered
-  as a select. Free text let the same unit arrive as 'hr' / 'Hora' / 'horas', which
+  `ServiceUom` with 19 generic commercial units, mirrored in the superadmin DTO and
+  rendered as a filterable select. Grouped by dimension in declaration order (which is
+  also render order): **trabajo** servicio/visita/viaje · **tiempo** hora/día/mes ·
+  **cantidad** unidad/pieza/pallet · **longitud** metro/yarda/pulgada · **superficie**
+  m²/hectárea · **volumen** m³/litro/mililitro/galón · **peso** kilogramo. Enum values
+  stay ASCII (`hectarea`, `galon`) even where the label is accented — the code is a
+  wire value, the label is presentation. Free text let the same unit arrive as 'hr' / 'Hora' / 'horas', which
   would have split reporting once 19/20 aggregate lines. Deliberately generic, not
   trade-specific — the catalog is whitelabel. **Validator-only enforcement**
   (`z.nativeEnum`), no DB check constraint: same posture as `taxRate`, so the Drizzle

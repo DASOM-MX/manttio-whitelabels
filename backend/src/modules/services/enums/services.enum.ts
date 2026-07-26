@@ -24,16 +24,30 @@ export enum ServiceTaxRate {
 // Validator-enforced only — no DB check constraint, same posture as taxRate:
 // the Drizzle model stays the single source of truth.
 export enum ServiceUom {
+  // Trabajo
   Servicio = 'servicio',
   Visita = 'visita',
+  Viaje = 'viaje',
+  // Tiempo
   Hora = 'hora',
   Dia = 'dia',
   Mes = 'mes',
+  // Cantidad
   Unidad = 'unidad',
   Pieza = 'pieza',
+  Pallet = 'pallet',
+  // Longitud
   Metro = 'metro',
+  Yarda = 'yarda',
+  Pulgada = 'pulgada',
+  // Superficie
   MetroCuadrado = 'metro_cuadrado',
+  Hectarea = 'hectarea',
+  // Volumen
   MetroCubico = 'metro_cubico',
-  Kilogramo = 'kilogramo',
   Litro = 'litro',
+  Mililitro = 'mililitro',
+  Galon = 'galon',
+  // Peso
+  Kilogramo = 'kilogramo',
 }

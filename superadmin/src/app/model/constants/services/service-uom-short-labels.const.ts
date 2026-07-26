@@ -5,14 +5,27 @@ import { ServiceUom } from '../../../data/dtos/service';
 export const SERVICE_UOM_SHORT_LABELS: Record<ServiceUom, string> = {
   [ServiceUom.Servicio]: 'Servicio',
   [ServiceUom.Visita]: 'Visita',
+  [ServiceUom.Viaje]: 'Viaje',
+
   [ServiceUom.Hora]: 'Hora',
   [ServiceUom.Dia]: 'Día',
   [ServiceUom.Mes]: 'Mes',
+
   [ServiceUom.Unidad]: 'Unidad',
   [ServiceUom.Pieza]: 'Pieza',
+  [ServiceUom.Pallet]: 'Pallet',
+
   [ServiceUom.Metro]: 'm',
+  [ServiceUom.Yarda]: 'yd',
+  [ServiceUom.Pulgada]: 'in',
+
   [ServiceUom.MetroCuadrado]: 'm²',
+  [ServiceUom.Hectarea]: 'ha',
+
   [ServiceUom.MetroCubico]: 'm³',
-  [ServiceUom.Kilogramo]: 'kg',
   [ServiceUom.Litro]: 'L',
+  [ServiceUom.Mililitro]: 'mL',
+  [ServiceUom.Galon]: 'gal',
+
+  [ServiceUom.Kilogramo]: 'kg',
 };

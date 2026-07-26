@@ -20,18 +20,32 @@ export enum ServiceTaxRate {
  *  rather than a text field. Generic commercial units on purpose: the catalog
  *  is whitelabel and every tenant sells something different. */
 export enum ServiceUom {
+  // Trabajo
   Servicio = 'servicio',
   Visita = 'visita',
+  Viaje = 'viaje',
+  // Tiempo
   Hora = 'hora',
   Dia = 'dia',
   Mes = 'mes',
+  // Cantidad
   Unidad = 'unidad',
   Pieza = 'pieza',
+  Pallet = 'pallet',
+  // Longitud
   Metro = 'metro',
+  Yarda = 'yarda',
+  Pulgada = 'pulgada',
+  // Superficie
   MetroCuadrado = 'metro_cuadrado',
+  Hectarea = 'hectarea',
+  // Volumen
   MetroCubico = 'metro_cubico',
-  Kilogramo = 'kilogramo',
   Litro = 'litro',
+  Mililitro = 'mililitro',
+  Galon = 'galon',
+  // Peso
+  Kilogramo = 'kilogramo',
 }
 
 export interface Service {
