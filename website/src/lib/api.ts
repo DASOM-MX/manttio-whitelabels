@@ -4,7 +4,14 @@
 
 import { DEFAULT_BRAND, DEFAULT_CLIENTS, DEFAULT_HOME } from './defaults';
 import { resolveRuntimeVar } from './runtime-env';
-import type { Brand, CmsClient, CmsHome, FontCatalogEntry, SiteData } from './types';
+import type {
+  Brand,
+  CmsClient,
+  CmsHome,
+  FontCatalogEntry,
+  PublicService,
+  SiteData,
+} from './types';
 
 const FETCH_TIMEOUT_MS = 5_000;
 
@@ -39,22 +46,35 @@ function withoutBlanks<T extends object>(obj: T): Partial<T> {
 export async function getSiteData(): Promise<SiteData> {
   const baseUrl = await resolveBaseUrl();
   if (!baseUrl) {
-    return { brand: DEFAULT_BRAND, home: DEFAULT_HOME, clients: DEFAULT_CLIENTS, fonts: [], live: false };
+    return {
+      brand: DEFAULT_BRAND,
+      home: DEFAULT_HOME,
+      clients: DEFAULT_CLIENTS,
+      services: [],
+      fonts: [],
+      live: false,
+    };
   }
 
-  const [brand, fonts, home, clients] = await Promise.all([
+  const [brand, fonts, home, clients, services] = await Promise.all([
     fetchJson<Brand>(baseUrl, '/brand'),
     fetchJson<FontCatalogEntry[]>(baseUrl, '/fonts'),
     // Published-only public routes — shape is the backend's call (plan 15 §1.1).
     fetchJson<CmsHome>(baseUrl, '/public/cms/home'),
     fetchJson<CmsClient[]>(baseUrl, '/public/cms/clients'),
+    // Published service catalog (18 §4). Unlike the CMS reads this never 404s —
+    // an empty catalog is a 200 with `[]`, so null here means a real failure.
+    fetchJson<{ services: PublicService[] }>(baseUrl, '/public/services'),
   ]);
 
   return {
     brand: brand ? { ...DEFAULT_BRAND, ...withoutBlanks(brand) } : DEFAULT_BRAND,
     home: home ?? DEFAULT_HOME,
     clients: clients?.length ? clients : DEFAULT_CLIENTS,
+    // No brand-neutral fallback: an invented price list would be worse than no
+    // section at all, so a failed read renders exactly like an empty catalog.
+    services: services?.services ?? [],
     fonts: fonts ?? [],
-    live: Boolean(brand || home || clients),
+    live: Boolean(brand || home || clients || services),
   };
 }

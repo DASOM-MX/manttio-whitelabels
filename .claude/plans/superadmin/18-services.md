@@ -182,7 +182,17 @@ service. Freeing the name would mean moving every injectable, a large unrelated 
 - [x] `GET /public/services` — shipped with CP-1 (2026-07-25)
 - [x] `websiteDescription` + `internalServiceCode` columns, API, dialog fields, catalog
       column, 6 new tests (2026-07-25). **DDL applied to the shared Neon DB.**
-- [ ] `website/` services section consuming it (still needs the 15 card-copy decision)
+- [x] `website/src/components/ServiceCatalog.astro` — own section (`#catalogo`), a card
+      per published service: title, `websiteDescription` when set, price + unit, or
+      "Precio a consultar" when the price is hidden. `uom` codes are labelled by
+      `website/src/lib/service-uom.ts` (bare symbol/lowercase noun — the labels read
+      mid-phrase, "MXN / m²"; an unknown code degrades to readable text so a backend
+      that grows a unit can't break a card). Verified against the real backend
+      2026-07-26, not a stub.
+- [x] **Section copy comes from the CMS** — `cms_home.catalog_content` (04 §6 group,
+      added 2026-07-26): eyebrow/title/description edited in the *Catálogo* tab of the
+      home editor, blank falls back to `DEFAULT_CATALOG_CONTENT`. Copy only — the cards
+      keep coming from `/public/services`, so the group has no array beside it.
 
 ## Open decisions / asks
 - **Money representation — decided 2026-07-23:** `numeric(12,2)`, MXN implicit,

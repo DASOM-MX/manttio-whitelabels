@@ -108,6 +108,10 @@ location_content?: {           // Location section copy (contact/map come from b
   eyebrow?: string; title: string; description: string;
   schedule?: string;           // "Lun a vie, 8:00 – 18:00" — shown under the phone item
 };
+catalog_content?: {            // Priced-catalog section copy (18 §4, added 2026-07-26).
+  eyebrow?: string; title: string; description: string;
+};                            //   Copy only — the cards come from /public/services,
+                              //   so unlike `manufacturers` there is no array here.
 // on CmsHomeService:
 icon?: string;                 // curated lucide code — picker with exactly 12 icons
                                // (3×4 grid; model/constants/cms/service-icons.const);
@@ -125,6 +129,9 @@ manufacturers repeater w/ per-row logo upload, one upload at a time), **Ubicaci�
 (location_content). Section-copy groups are validator-free: an all-blank group is
 omitted from the saved doc so the site keeps its fallbacks and published v1 docs
 round-trip clean. Same single-document save + publish bar; all panels stay mounted.
+A fourth tab, **Catálogo** (catalog_content), joined them 2026-07-26 for the priced
+catalog section (18 §4) — copy only, its cards live in the service catalog, which the
+tab's hint says so editors don't hunt for them here.
 
 ---
 

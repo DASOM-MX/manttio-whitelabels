@@ -103,6 +103,9 @@ export interface CmsHome {
   location_content?: CmsSectionContent & {
     schedule?: string; // e.g. 'Lun a vie, 8:00 – 18:00'
   };
+  /** Copy for the priced-catalog section (18 §4). The cards themselves come
+   *  from `/public/services`, so this group has no array beside it. */
+  catalog_content?: CmsSectionContent;
 }
 
 export interface CmsClient {
@@ -113,10 +116,30 @@ export interface CmsClient {
   businessRelationDescription?: string;
 }
 
+/** One entry of the tenant's published service catalog (18 §4) — mirror of the
+ *  backend's `PublicServiceDTO`. Only services flagged `isListableInWebsite`
+ *  reach this list, and the internal columns (cost, SAT keys, tax rate, catalog
+ *  code) are never in the payload. */
+export interface PublicService {
+  id: string;
+  name: string;
+  /** The tenant's **website** copy, not the internal management note — the
+   *  backend deliberately sends no fallback, so absent means "title only". */
+  description?: string;
+  /** Free-text unit of measure, e.g. 'servicio', 'hora', 'equipo'. */
+  uom: string;
+  /** Decimal string ('1200.00'), MXN. Present only when the service opts in to
+   *  showing its price; absent is the cue for "Precio a consultar". */
+  price?: string;
+}
+
 export interface SiteData {
   brand: Brand;
   home: CmsHome;
   clients: CmsClient[];
+  /** Published catalog (18). Empty is a legitimate state — nothing published
+   *  yet — and the site simply omits the section. */
+  services: PublicService[];
   fonts: FontCatalogEntry[];
   /** true when at least one read came from the live backend */
   live: boolean;

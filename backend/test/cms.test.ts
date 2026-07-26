@@ -53,6 +53,7 @@ const HOME_DOC = {
   // logoUrl is an editor echo — the backend must strip it and materialize its own.
   manufacturers: [{ name: 'Carrier', logoKey: 'cms/carrier.png', logoUrl: 'https://evil.example.com/spoof.png' }],
   location_content: { eyebrow: 'Ubicación', title: 'Corredor industrial', description: 'Desde NL.', schedule: 'Lun a vie, 8:00 – 18:00' },
+  catalog_content: { eyebrow: 'Catálogo', title: 'Servicios y precios', description: 'Precios de referencia.' },
 };
 
 type HomeEnvelope = {
@@ -142,6 +143,11 @@ describe('cms module', () => {
     expect(doc.title).toBe(HOME_DOC.title);
     expect(doc.hero_video_url).toBe(HOME_DOC.hero_video_url);
     expect(doc.services[0]?.icon).toBe('wrench');
+    // The catalog section's heading is CMS copy (18 §4) even though its entries
+    // come from `/public/services` — the website reads both and joins them.
+    expect(doc.catalog_content?.eyebrow).toBe(HOME_DOC.catalog_content.eyebrow);
+    expect(doc.catalog_content?.title).toBe(HOME_DOC.catalog_content.title);
+    expect(doc.catalog_content?.description).toBe(HOME_DOC.catalog_content.description);
     expect(doc.manufacturers?.[0]?.logoUrl).toBe(`${workerEnv.CDN_BASE_URL}/cms/carrier.png`);
     expect(JSON.stringify(doc)).not.toContain('evil.example.com');
   });
