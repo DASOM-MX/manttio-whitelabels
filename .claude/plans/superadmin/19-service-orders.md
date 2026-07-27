@@ -18,10 +18,10 @@ Creating an order also announces itself on the client's CRM timeline (08).
 > **CP-1 builds standalone — no cross-module coupling yet (decided 2026-07-26).** Orders
 > and quotations (20) are being built in parallel, so **CP-1 ships against `main` with no
 > link to either 20 or 12**:
-> - **No `quotationId` column in CP-1.** It is added additively by 20, in the PR that
->   implements *accept → creates order*, once both modules exist. Nothing dead in the
->   schema meanwhile; the direct-creation path (§5 builder) is the only birth route in
->   CP-1.
+> - ~~**No `quotationId` column in CP-1.**~~ **Linked 2026-07-27** (both CP-1s on
+>   main): `quotationId` + FK + one-order-per-quote unique landed with 20's
+>   `POST /quotations/:id/order` (DDL 0027). Both birth routes live — the §5
+>   builder direct path and the quote conversion.
 > - **CP-1 does not touch `scheduled_visits`.** The visits backend (12) is *not on main* —
 >   PR #97 was **closed unmerged**, so there is no `visit_events` table to rip out and no
 >   table to add `serviceOrderId` to. The calendar module gets rebuilt in CP-3 **already
@@ -64,10 +64,11 @@ ServiceOrder {             // near-immutable — see mutability rules below
                            //   table (service_order_counters, report_counters
                            //   mechanics)
   customerId,              // required, immutable — restrict, never cascade
-  quotationId?,            // NOT IN CP-1 (2026-07-26) — added additively by 20's
-                           //   accept flow. Nullable then: the accepted quotation this
-                           //   order was born from; null for directly-created orders
-                           //   (both paths allowed, 2026-07-24). Immutable.
+  quotationId?,            // landed 2026-07-27 with 20's /order — the accepted
+                           //   quotation this order was born from; null for
+                           //   directly-created orders (both paths allowed,
+                           //   2026-07-24). Immutable; unique among non-null
+                           //   (one order per quote, ever).
   location?,               // service site/address (free text v1) — MUTABLE, but
                            //   owner/admin only (decided 2026-07-23)
   status: 'open' | 'completed' | 'cancelled',

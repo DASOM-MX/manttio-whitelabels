@@ -13,6 +13,7 @@ import {
 import { users } from '../../users/models/users.model';
 import { customers } from '../../customers/models/customers.model';
 import { services } from '../../services/models/services.model';
+import { quotations } from '../../quotations/models/quotations.model';
 import { ServiceOrderStatus } from '../enums/service-orders.enum';
 import type { ServiceTaxRate, ServiceUom } from '../../services/enums/services.enum';
 
@@ -25,12 +26,9 @@ import type { ServiceTaxRate, ServiceUom } from '../../services/enums/services.e
 // folio never change; status moves only through POST /:id/status. Both allowed
 // mutations append an event to the order timeline.
 //
-// No `quotation_id` in CP-1 (decided 2026-07-26): quotations (20) are being
-// built in parallel, so the column arrives additively with the accept flow that
-// populates it. Direct creation is the only birth route until then.
-//
-// Applied directly to the shared Neon DB (ahead-of-migrations rule) — no
-// drizzle migration file is generated from here.
+// Two birth routes (19 §1, linked 2026-07-27): the direct order-builder path
+// (`quotationId` null) and the quote conversion (20 §6), which stamps the
+// accepted quotation it was born from.
 export const serviceOrders = pgTable(
   'service_orders',
   {
@@ -41,6 +39,15 @@ export const serviceOrders = pgTable(
     customerId: uuid('customer_id')
       .notNull()
       .references(() => customers.id, { onDelete: 'restrict' }),
+    // The accepted quotation this order was born from (20 §6); null for
+    // directly-created orders — both paths allowed (decided 2026-07-24).
+    // Immutable, like everything else fixed at creation. The reverse link
+    // (`quotations.serviceOrderId`) is set in the same conversion transaction;
+    // its FK lives in SQL only — declaring both sides in Drizzle would make
+    // the two model files import each other (models stay acyclic).
+    quotationId: uuid('quotation_id').references(() => quotations.id, {
+      onDelete: 'restrict',
+    }),
     // Service site. Free text in v1; owner/admin may edit it after creation,
     // office may not (19 §3).
     location: text('location'),
@@ -71,6 +78,13 @@ export const serviceOrders = pgTable(
     index('service_orders_status_idx')
       .on(table.status)
       .where(sql`${table.deletedAt} is null`),
+    // One order per quotation, ever — the conversion is a terminal one-shot
+    // (the quote flips to `order_created`); the index makes the invariant hold
+    // even against a race the status guard somehow missed. Doubles as the
+    // lookup for "which order did this quote become".
+    uniqueIndex('service_orders_quotation_uidx')
+      .on(table.quotationId)
+      .where(sql`${table.quotationId} is not null`),
   ],
 );
 

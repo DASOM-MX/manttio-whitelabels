@@ -68,6 +68,7 @@ const toOrderDTO = (
   folio: header.folio,
   customerId: header.customerId,
   customerName: header.customerName,
+  quotationId: opt(header.quotationId),
   location: opt(header.location),
   status: header.status,
   comments: opt(header.comments),

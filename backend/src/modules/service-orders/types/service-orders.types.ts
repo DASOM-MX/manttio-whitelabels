@@ -80,6 +80,9 @@ export interface ServiceOrderDTO {
   folio: string;
   customerId: string;
   customerName: string;
+  /** The accepted quotation this order was born from (20 §6); absent on
+   *  directly-created orders. */
+  quotationId?: string;
   location?: string;
   status: ServiceOrderStatus;
   comments?: string;
@@ -121,4 +124,37 @@ export interface CreateOrderCommand {
   comments: string | null;
   lines: OrderLineInput[];
   actorId: string;
+}
+
+/** One line with every value the order graph needs already frozen. The direct
+ *  path resolves these from the live catalog; the quote conversion inherits
+ *  them from the quotation's line snapshots (20 §6) — the graph insert never
+ *  reads the catalog, which is what keeps both paths' money semantics honest. */
+export interface FrozenOrderLine {
+  serviceId: string;
+  serviceName: string;
+  uom: ServiceUom;
+  taxRate: ServiceTaxRate;
+  quantity: number;
+  unitPrice: string;
+  technicianId: string;
+  reportType: string;
+}
+
+/** What the conversion service hands `createServiceOrderFromQuotation` after
+ *  running the gates: the quote's frozen lines merged per service, with each
+ *  service's explosion inputs attached, plus the audit facts the quotation
+ *  timeline records (approvals tally + whether the gate was overridden). */
+export interface ConvertQuotationCommand {
+  quotationId: string;
+  quotationFolio: string;
+  customerId: string;
+  location: string | null;
+  /** The mandatory "why" (20 §2) — becomes `quotations.resolutionReason` and
+   *  the `quotation_order_created` event note. */
+  comment: string;
+  lines: FrozenOrderLine[];
+  actorId: string;
+  approvedCount: number;
+  override: boolean;
 }

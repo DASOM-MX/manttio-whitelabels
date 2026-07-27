@@ -66,4 +66,7 @@ export enum ServiceOrderEventRefKind {
   /** Not in the plan's original list, but `order_contract_generated` is defined
    *  as "refId → contract" (19 §7) — it needs a kind to resolve against. */
   Contract = 'contract',
+  /** The accepted quotation an order was born from — carried by the opening
+   *  `order_created` event on converted orders (20 §6). */
+  Quotation = 'quotation',
 }

@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, ilike, inArray, isNull, sql } from 'drizzle-orm';
-import type { Db } from '../../database/client';
+import type { Db, Tx } from '../../database/client';
 import { customers } from '../../customers/models/customers.model';
 import { customerInteractions } from '../../customers/models/customer-interactions.model';
 import { InteractionRefKind, InteractionType } from '../../customers/enums/interactions.enum';
@@ -15,6 +15,15 @@ import {
   serviceOrderServices,
   serviceOrders,
 } from '../models/service-orders.model';
+import { quotations } from '../../quotations/models/quotations.model';
+import {
+  LIVE_STATUSES,
+  QuotationEventRefKind,
+  QuotationEventType,
+  QuotationStatus,
+} from '../../quotations/enums/quotations.enum';
+import { appendEvents as appendQuotationEvents } from '../../quotations/repository/quotations.repository';
+import { QuotationNotLiveError } from '../../quotations/http-errors/quotations.error';
 import { appendOrderEvent, appendOrderEvents } from './service-order-events.repository';
 import {
   ServiceOrderEventRefKind,
@@ -24,7 +33,9 @@ import {
 import { InvalidOrderReferenceError } from '../http-errors/service-orders.error';
 import { formatServiceOrderFolio } from '../utils/service-order-folio';
 import type {
+  ConvertQuotationCommand,
   CreateOrderCommand,
+  FrozenOrderLine,
   NewServiceOrderEvent,
   ServiceOrderFilters,
   ServiceOrderLineRow,
@@ -44,6 +55,7 @@ const orderColumns = {
   id: serviceOrders.id,
   folio: serviceOrders.folio,
   customerId: serviceOrders.customerId,
+  quotationId: serviceOrders.quotationId,
   location: serviceOrders.location,
   status: serviceOrders.status,
   comments: serviceOrders.comments,
@@ -61,6 +73,7 @@ export type OrderHeaderRow = {
   folio: string;
   customerId: string;
   customerName: string;
+  quotationId: string | null;
   location: string | null;
   status: ServiceOrderStatus;
   comments: string | null;
@@ -74,6 +87,7 @@ const toHeader = (row: {
   id: string;
   folio: string;
   customerId: string;
+  quotationId: string | null;
   location: string | null;
   status: ServiceOrderStatus;
   comments: string | null;
@@ -89,6 +103,7 @@ const toHeader = (row: {
   folio: row.folio,
   customerId: row.customerId,
   customerName: row.customerName ?? '',
+  quotationId: row.quotationId,
   location: row.location,
   status: row.status,
   comments: row.comments,
@@ -232,6 +247,188 @@ export const listOrderReports = async (
  *  service rows anyway, and a soft-deleted service satisfies the FK perfectly
  *  well while being exactly what we must refuse to sell.
  */
+type OrderGraphInput = {
+  customerId: string;
+  location: string | null;
+  comments: string | null;
+  /** Set only on the quote path — stamps the birth link (19 §1). */
+  quotationId?: string;
+  lines: FrozenOrderLine[];
+  actorId: string;
+  /** Extra ref on the opening `order_created` event (the quote path points it
+   *  at the quotation, 20 §6). */
+  openingRef?: { kind: ServiceOrderEventRefKind; id: string };
+  /** Overrides the default opening-event / CRM-entry phrasing. */
+  openingNote?: string;
+};
+
+/** The §2 order graph, on a caller-supplied transaction: counter → folio →
+ *  order → lines → exploded `pending` reports → opening timeline events →
+ *  customer CRM entry. Shared verbatim by both birth routes; callers own
+ *  reference resolution *before* and any extra writes *after*, all inside the
+ *  same `tx`. */
+const insertOrderGraph = async (
+  tx: Tx,
+  input: OrderGraphInput,
+  day: Date,
+): Promise<{ order: ServiceOrderRow; lines: ServiceOrderLineRow[]; reportIds: string[] }> => {
+  const totalUnits = input.lines.reduce((sum, l) => sum + l.quantity, 0);
+  const count = input.lines.length;
+  const countLabel = `${count} ${count === 1 ? 'servicio' : 'servicios'}`;
+
+  const [orderCounter] = await tx
+    .insert(serviceOrderCounters)
+    .values({ day: dayString(day), lastNumber: 1 })
+    .onConflictDoUpdate({
+      target: serviceOrderCounters.day,
+      set: { lastNumber: sql`${serviceOrderCounters.lastNumber} + 1` },
+    })
+    .returning({ lastNumber: serviceOrderCounters.lastNumber });
+  if (!orderCounter) throw new Error('insertOrderGraph: counter upsert returned no row');
+
+  const [order] = await tx
+    .insert(serviceOrders)
+    .values({
+      folio: formatServiceOrderFolio(day, orderCounter.lastNumber),
+      customerId: input.customerId,
+      quotationId: input.quotationId ?? null,
+      location: input.location,
+      comments: input.comments,
+      status: ServiceOrderStatus.Open,
+      createdBy: input.actorId,
+    })
+    .returning();
+  if (!order) throw new Error('insertOrderGraph: order insert returned no row');
+
+  // The lines land exactly as frozen by the caller — this function never
+  // consults the catalog (19 §1 / 20 §6).
+  const lines = await tx
+    .insert(serviceOrderServices)
+    .values(
+      input.lines.map((line) => ({
+        serviceOrderId: order.id,
+        serviceId: line.serviceId,
+        serviceName: line.serviceName,
+        uom: line.uom,
+        taxRate: line.taxRate,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+      })),
+    )
+    .returning();
+
+  // One report per sold unit (19 §2, decided 2026-07-23). Sequence numbers are
+  // reserved in a single counter bump rather than one upsert per report: same
+  // atomicity, one round trip, and no chance of a partial reservation.
+  const [reportCounter] = await tx
+    .insert(reportCounters)
+    .values({ day: dayString(day), lastNumber: totalUnits })
+    .onConflictDoUpdate({
+      target: reportCounters.day,
+      set: { lastNumber: sql`${reportCounters.lastNumber} + ${totalUnits}` },
+    })
+    .returning({ lastNumber: reportCounters.lastNumber });
+  if (!reportCounter) throw new Error('insertOrderGraph: report counter returned no row');
+
+  let sequence = reportCounter.lastNumber - totalUnits + 1;
+  const reportRows: (typeof reports.$inferInsert)[] = [];
+  const explodedReportIds: string[] = [];
+
+  for (const line of input.lines) {
+    for (let unit = 0; unit < line.quantity; unit += 1) {
+      const id = formatReportId(day, sequence);
+      sequence += 1;
+      explodedReportIds.push(id);
+      reportRows.push({
+        id,
+        reportType: line.reportType,
+        // Not on site yet — `dateArrival` is stamped when the technician
+        // actually opens the report, unlike the manual path which defaults it
+        // to now() precisely because opening one *is* arriving.
+        dateArrival: null,
+        createdBy: input.actorId,
+        assignedTo: line.technicianId,
+        clientId: input.customerId,
+        status: ReportStatus.Pending,
+        serviceOrderId: order.id,
+        serviceId: line.serviceId,
+      });
+    }
+  }
+
+  await tx.insert(reports).values(reportRows);
+  // Skeleton content rows: `data: {}` with `contentFilledAt` left null is the
+  // "nothing filled in yet" state. They exist from birth because every
+  // downstream read (`findReportWithDetails`) and every content write assumes
+  // the row is there.
+  await tx
+    .insert(reportDetails)
+    .values(reportRows.map((r) => ({ reportId: r.id, data: {}, pictures: [] })));
+
+  // The timeline opens with the creation (19 §2 step 3).
+  const events: NewServiceOrderEvent[] = [
+    {
+      serviceOrderId: order.id,
+      type: ServiceOrderEventType.OrderCreated,
+      actorId: input.actorId,
+      refKind: input.openingRef?.kind,
+      refId: input.openingRef?.id,
+      note: input.openingNote ?? `Orden creada con ${countLabel}`,
+    },
+    ...lines.map((line) => ({
+      serviceOrderId: order.id,
+      type: ServiceOrderEventType.OrderLineAdded,
+      actorId: input.actorId,
+      refKind: ServiceOrderEventRefKind.Line,
+      refId: line.id,
+      note: `${line.serviceName} × ${line.quantity} ${line.uom}`,
+    })),
+    ...explodedReportIds.map((reportId) => ({
+      serviceOrderId: order.id,
+      type: ServiceOrderEventType.ReportExploded,
+      actorId: input.actorId,
+      refKind: ServiceOrderEventRefKind.Report,
+      refId: reportId,
+    })),
+  ];
+  await appendOrderEvents(tx, events);
+
+  // The *customer* timeline (08), complementary to the order's own: this one
+  // answers "what happened with this client", not "what happened on this job".
+  await tx.insert(customerInteractions).values({
+    customerId: input.customerId,
+    type: InteractionType.System,
+    body: `Orden de servicio ${order.folio} creada — ${countLabel}`,
+    refKind: InteractionRefKind.ServiceOrder,
+    refId: order.id,
+    userId: input.actorId,
+  });
+
+  return { order, lines, reportIds: explodedReportIds };
+};
+
+/** Both birth routes resolve the humans the same way: existence + not-deleted
+ *  only, no role assertion — the same trusted-field posture report creation
+ *  takes with `assignedTo`, and small shops do send an admin to site. */
+const assertTechniciansExist = async (tx: Tx, technicianIds: string[]): Promise<void> => {
+  const rows = await tx
+    .select({ id: users.id })
+    .from(users)
+    .where(and(inArray(users.id, technicianIds), isNull(users.deletedAt)));
+  const found = new Set(rows.map((r) => r.id));
+  const missing = technicianIds.find((id) => !found.has(id));
+  if (missing) throw new InvalidOrderReferenceError('technician', missing);
+};
+
+const assertCustomerExists = async (tx: Tx, customerId: string): Promise<void> => {
+  const [customer] = await tx
+    .select({ id: customers.id })
+    .from(customers)
+    .where(and(eq(customers.id, customerId), isNull(customers.deletedAt)))
+    .limit(1);
+  if (!customer) throw new InvalidOrderReferenceError('customer', customerId);
+};
+
 export const createServiceOrder = async (
   db: Db,
   command: CreateOrderCommand,
@@ -239,27 +436,15 @@ export const createServiceOrder = async (
 ): Promise<{ order: ServiceOrderRow; lines: ServiceOrderLineRow[]; reportIds: string[] }> => {
   const serviceIds = [...new Set(command.lines.map((l) => l.serviceId))];
   const technicianIds = [...new Set(command.lines.map((l) => l.technicianId))];
-  const totalUnits = command.lines.reduce((sum, l) => sum + l.quantity, 0);
 
   return db.transaction(async (tx) => {
-    const [customer] = await tx
-      .select({ id: customers.id })
-      .from(customers)
-      .where(and(eq(customers.id, command.customerId), isNull(customers.deletedAt)))
-      .limit(1);
-    if (!customer) throw new InvalidOrderReferenceError('customer', command.customerId);
+    await assertCustomerExists(tx, command.customerId);
+    await assertTechniciansExist(tx, technicianIds);
 
-    // Existence + not-deleted only, no role assertion: the same trusted-field
-    // posture report creation already takes with `assignedTo`, and small shops
-    // do send an admin to site.
-    const technicianRows = await tx
-      .select({ id: users.id })
-      .from(users)
-      .where(and(inArray(users.id, technicianIds), isNull(users.deletedAt)));
-    const foundTechnicians = new Set(technicianRows.map((r) => r.id));
-    const missingTechnician = technicianIds.find((id) => !foundTechnicians.has(id));
-    if (missingTechnician) throw new InvalidOrderReferenceError('technician', missingTechnician);
-
+    // The direct path freezes the LIVE catalog here — and refuses soft-deleted
+    // services, which satisfy the FK perfectly well while being exactly what
+    // we must not sell (unlike the quote path, where a since-deleted service
+    // stays honored because the client already accepted it).
     const catalogRows = await tx
       .select({
         id: services.id,
@@ -274,137 +459,108 @@ export const createServiceOrder = async (
     const missingService = serviceIds.find((id) => !catalog.has(id));
     if (missingService) throw new InvalidOrderReferenceError('service', missingService);
 
-    const [orderCounter] = await tx
-      .insert(serviceOrderCounters)
-      .values({ day: dayString(day), lastNumber: 1 })
-      .onConflictDoUpdate({
-        target: serviceOrderCounters.day,
-        set: { lastNumber: sql`${serviceOrderCounters.lastNumber} + 1` },
-      })
-      .returning({ lastNumber: serviceOrderCounters.lastNumber });
-    if (!orderCounter) throw new Error('createServiceOrder: counter upsert returned no row');
-
-    const [order] = await tx
-      .insert(serviceOrders)
-      .values({
-        folio: formatServiceOrderFolio(day, orderCounter.lastNumber),
+    return insertOrderGraph(
+      tx,
+      {
         customerId: command.customerId,
         location: command.location,
         comments: command.comments,
-        status: ServiceOrderStatus.Open,
-        createdBy: command.actorId,
-      })
-      .returning();
-    if (!order) throw new Error('createServiceOrder: order insert returned no row');
-
-    // Price/name/uom/tax are frozen here — catalog edits after this moment never
-    // rewrite what the client agreed to (19 §1).
-    const lines = await tx
-      .insert(serviceOrderServices)
-      .values(
-        command.lines.map((line) => {
+        actorId: command.actorId,
+        lines: command.lines.map((line) => {
           const service = catalog.get(line.serviceId)!;
           return {
-            serviceOrderId: order.id,
             serviceId: line.serviceId,
             serviceName: service.name,
             uom: service.uom,
             taxRate: service.taxRate,
             quantity: line.quantity,
             unitPrice: service.price,
+            technicianId: line.technicianId,
+            reportType: line.reportType,
           };
         }),
-      )
-      .returning();
-
-    // One report per sold unit (19 §2, decided 2026-07-23). Sequence numbers are
-    // reserved in a single counter bump rather than one upsert per report: same
-    // atomicity, one round trip, and no chance of a partial reservation.
-    const [reportCounter] = await tx
-      .insert(reportCounters)
-      .values({ day: dayString(day), lastNumber: totalUnits })
-      .onConflictDoUpdate({
-        target: reportCounters.day,
-        set: { lastNumber: sql`${reportCounters.lastNumber} + ${totalUnits}` },
-      })
-      .returning({ lastNumber: reportCounters.lastNumber });
-    if (!reportCounter) throw new Error('createServiceOrder: report counter returned no row');
-
-    let sequence = reportCounter.lastNumber - totalUnits + 1;
-    const reportRows: (typeof reports.$inferInsert)[] = [];
-    const explodedReportIds: string[] = [];
-
-    for (const line of command.lines) {
-      for (let unit = 0; unit < line.quantity; unit += 1) {
-        const id = formatReportId(day, sequence);
-        sequence += 1;
-        explodedReportIds.push(id);
-        reportRows.push({
-          id,
-          reportType: line.reportType,
-          // Not on site yet — `dateArrival` is stamped when the technician
-          // actually opens the report, unlike the manual path which defaults it
-          // to now() precisely because opening one *is* arriving.
-          dateArrival: null,
-          createdBy: command.actorId,
-          assignedTo: line.technicianId,
-          clientId: command.customerId,
-          status: ReportStatus.Pending,
-          serviceOrderId: order.id,
-          serviceId: line.serviceId,
-        });
-      }
-    }
-
-    await tx.insert(reports).values(reportRows);
-    // Skeleton content rows: `data: {}` with `contentFilledAt` left null is the
-    // "nothing filled in yet" state. They exist from birth because every
-    // downstream read (`findReportWithDetails`) and every content write assumes
-    // the row is there.
-    await tx
-      .insert(reportDetails)
-      .values(reportRows.map((r) => ({ reportId: r.id, data: {}, pictures: [] })));
-
-    // The timeline opens with the creation (19 §2 step 3).
-    const events: NewServiceOrderEvent[] = [
-      {
-        serviceOrderId: order.id,
-        type: ServiceOrderEventType.OrderCreated,
-        actorId: command.actorId,
-        note: `Orden creada con ${lines.length} ${lines.length === 1 ? 'servicio' : 'servicios'}`,
       },
-      ...lines.map((line) => ({
-        serviceOrderId: order.id,
-        type: ServiceOrderEventType.OrderLineAdded,
-        actorId: command.actorId,
-        refKind: ServiceOrderEventRefKind.Line,
-        refId: line.id,
-        note: `${line.serviceName} × ${line.quantity} ${line.uom}`,
-      })),
-      ...explodedReportIds.map((reportId) => ({
-        serviceOrderId: order.id,
-        type: ServiceOrderEventType.ReportExploded,
-        actorId: command.actorId,
-        refKind: ServiceOrderEventRefKind.Report,
-        refId: reportId,
-      })),
-    ];
-    await appendOrderEvents(tx, events);
+      day,
+    );
+  });
+};
 
-    // The *customer* timeline (08), complementary to the order's own: this one
-    // answers "what happened with this client", not "what happened on this job".
-    await tx.insert(customerInteractions).values({
-      customerId: command.customerId,
-      type: InteractionType.System,
-      body: `Orden de servicio ${order.folio} creada — ${lines.length} ${
-        lines.length === 1 ? 'servicio' : 'servicios'
-      }`,
-      refKind: InteractionRefKind.ServiceOrder,
-      refId: order.id,
-      userId: command.actorId,
-    });
+/** The convergence (20 §6): one transaction that opens the order off the
+ *  quotation's frozen line snapshots and flips the quote to `order_created`.
+ *
+ *  The caller (service layer) has already run the gates — live status, expiry,
+ *  approvals, assignment coverage — against a plain read; the guarded UPDATE on
+ *  `quotations` here re-checks liveness *inside* the transaction, so two
+ *  concurrent conversions (or a convert racing a cancel) can't both win: the
+ *  loser matches zero rows and the whole graph rolls back. */
+export const createServiceOrderFromQuotation = async (
+  db: Db,
+  command: ConvertQuotationCommand,
+  day: Date = new Date(),
+): Promise<{ order: ServiceOrderRow; lines: ServiceOrderLineRow[]; reportIds: string[] }> => {
+  const technicianIds = [...new Set(command.lines.map((l) => l.technicianId))];
 
-    return { order, lines, reportIds: explodedReportIds };
+  return db.transaction(async (tx) => {
+    await assertCustomerExists(tx, command.customerId);
+    await assertTechniciansExist(tx, technicianIds);
+
+    // No catalog read: the lines are the quotation's snapshots, inherited
+    // verbatim — what's serviced/billed matches exactly what the client
+    // approved, even if the catalog repriced (or dropped) a service since.
+    const graph = await insertOrderGraph(
+      tx,
+      {
+        customerId: command.customerId,
+        location: command.location,
+        comments: null,
+        quotationId: command.quotationId,
+        actorId: command.actorId,
+        lines: command.lines,
+        openingRef: { kind: ServiceOrderEventRefKind.Quotation, id: command.quotationId },
+        openingNote: `Orden creada desde la cotización ${command.quotationFolio}`,
+      },
+      day,
+    );
+
+    // Flip the quote — terminal, comment-carrying (20 §2), guarded on liveness.
+    const [flipped] = await tx
+      .update(quotations)
+      .set({
+        status: QuotationStatus.OrderCreated,
+        serviceOrderId: graph.order.id,
+        orderCreatedAt: new Date(),
+        resolutionReason: command.comment,
+        resolvedByUserId: command.actorId,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(quotations.id, command.quotationId),
+          inArray(quotations.status, LIVE_STATUSES),
+          isNull(quotations.deletedAt),
+        ),
+      )
+      .returning({ id: quotations.id });
+    if (!flipped) throw new QuotationNotLiveError(QuotationStatus.OrderCreated);
+
+    // The quote's own timeline records the conversion (20 §5) — same
+    // transaction, so the pre-sale trail can't drift from the order it opened.
+    await appendQuotationEvents(tx, [
+      {
+        quotationId: command.quotationId,
+        type: QuotationEventType.OrderCreated,
+        actorId: command.actorId,
+        refKind: QuotationEventRefKind.ServiceOrder,
+        refId: graph.order.id,
+        note: command.comment,
+        // Flags the owner/admin override when converted without a single
+        // approval (20 §5) — the trail must show the gate was consciously
+        // bypassed, not met.
+        changes: { approvedCount: command.approvedCount, override: command.override },
+      },
+    ]);
+
+    return graph;
   });
 };
 

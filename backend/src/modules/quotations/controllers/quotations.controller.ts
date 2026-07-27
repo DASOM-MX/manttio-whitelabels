@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import type { AppBindings } from '../../../env';
 import { createDb } from '../../database/client';
@@ -17,12 +18,21 @@ import {
 } from '../http-errors/quotations.responses';
 import {
   cancelQuotationSchema,
+  createOrderFromQuotationSchema,
   createQuotationSchema,
   deleteQuotationSchema,
   listQuotationsQuerySchema,
   sendQuotationSchema,
   updateQuotationSchema,
 } from '../validators/quotations.validator';
+import { createOrderFromQuotation } from '../../service-orders/services/order-from-quotation.service';
+import {
+  AssignmentCoverageError,
+  ExplosionTooLargeError,
+  QuotationApprovalGateError,
+  QuotationExpiredError,
+} from '../../service-orders/http-errors/order-from-quotation.error';
+import { InvalidOrderReferenceError } from '../../service-orders/http-errors/service-orders.error';
 import {
   cancelQuotation,
   createQuotationDraft,
@@ -36,6 +46,11 @@ import {
 } from '../services/quotations.service';
 
 export const quotations = new Hono<AppBindings>();
+
+// A malformed :id can never match a uuid PK — 404 up front rather than a
+// Postgres 22P02 500 (same idiom as notifications/cms/service-orders). Used by
+// the /order route; the older routes predate it.
+const quotationIdSchema = z.string().uuid();
 
 // Every route is owner/admin/office (20 §7). Technicians have no quotation
 // surface at all — not even read: pricing and margin are commercial
@@ -161,6 +176,73 @@ quotations.post(
       return c.json(row);
     } catch (err) {
       if (err instanceof QuotationNotLiveError) return notLiveResponse(c);
+      throw err;
+    }
+  },
+);
+
+// The convergence (20 §6): staff open the service order this quote was
+// accepted for — frozen line snapshots inherited, reports exploded, quote
+// flipped to `order_created`, both timelines written, one transaction. The
+// conversion logic lives in the service-orders module (it owns the order
+// invariants); this route owns the HTTP mapping.
+quotations.post(
+  '/:id/order',
+  requireRole(['owner', 'admin', 'office']),
+  zValidator('json', createOrderFromQuotationSchema),
+  async (c) => {
+    const id = quotationIdSchema.safeParse(c.req.param('id'));
+    if (!id.success) return c.json({ error: 'not_found' }, 404);
+    const db = createDb(c.env.DATABASE_URL);
+    try {
+      const order = await createOrderFromQuotation(db, c.get('user'), id.data, c.req.valid('json'));
+      if (!order) return c.json({ error: 'not_found' }, 404);
+      return c.json({ order }, 201);
+    } catch (err) {
+      if (err instanceof QuotationNotLiveError) return notLiveResponse(c);
+      if (err instanceof QuotationExpiredError) {
+        return c.json(
+          {
+            error: 'quotation_expired',
+            message: 'La cotización venció; revísala para cotizar con precios vigentes.',
+            validUntil: err.validUntil,
+          },
+          409,
+        );
+      }
+      if (err instanceof QuotationApprovalGateError) {
+        return c.json(
+          {
+            error: 'approval_required',
+            message:
+              'La cotización no tiene aprobaciones; solo el propietario o un administrador puede convertirla.',
+          },
+          403,
+        );
+      }
+      if (err instanceof AssignmentCoverageError) {
+        return c.json(
+          {
+            error: 'assignment_coverage',
+            message: 'Las asignaciones no cubren exactamente los servicios de la cotización.',
+            missing: err.missing,
+            unknown: err.unknown,
+          },
+          422,
+        );
+      }
+      if (err instanceof ExplosionTooLargeError) {
+        return c.json(
+          {
+            error: 'explosion_too_large',
+            message: `La cotización generaría ${err.totalUnits} reportes; el máximo por orden es 50.`,
+          },
+          409,
+        );
+      }
+      if (err instanceof InvalidOrderReferenceError) {
+        return c.json({ error: 'invalid_reference', message: err.message }, 422);
+      }
       throw err;
     }
   },

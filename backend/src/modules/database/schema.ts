@@ -74,6 +74,11 @@ export const serviceOrdersRelations = relations(serviceOrders, ({ one, many }) =
     fields: [serviceOrders.customerId],
     references: [customers.id],
   }),
+  // Null for directly-created orders — both birth routes allowed (19 §1).
+  quotation: one(quotations, {
+    fields: [serviceOrders.quotationId],
+    references: [quotations.id],
+  }),
   creator: one(users, {
     fields: [serviceOrders.createdBy],
     references: [users.id],
@@ -220,6 +225,12 @@ export const quotationsRelations = relations(quotations, ({ one, many }) => ({
   lines: many(quotationLines),
   recipients: many(quotationRecipients),
   events: many(quotationEvents),
+  // The order this quote became (20 §6) — set once, when the quote flips to
+  // `order_created`.
+  serviceOrder: one(serviceOrders, {
+    fields: [quotations.serviceOrderId],
+    references: [serviceOrders.id],
+  }),
 }));
 
 export const quotationLinesRelations = relations(quotationLines, ({ one }) => ({
