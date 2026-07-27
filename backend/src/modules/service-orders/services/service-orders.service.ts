@@ -32,6 +32,7 @@ import type {
   ServiceOrderEventDTO,
   ServiceOrderLineDTO,
   ServiceOrderLineRow,
+  ServiceOrderReportDTO,
 } from '../types/service-orders.types';
 
 const opt = <T>(v: T | null | undefined): T | undefined => (v == null ? undefined : v);
@@ -114,31 +115,42 @@ export const getServiceOrderById = async (
   const header = await findServiceOrderById(db, id);
   if (!header) return null;
 
-  const [lines, reports] = await Promise.all([
-    listOrderLines(db, id),
-    listOrderReports(db, id),
-  ]);
+  const lines = await listOrderLines(db, id);
   const showMoney = canSeeMoney(user);
 
-  // No `visits` key in CP-1 — the visits table doesn't exist yet (PR #97 closed
-  // unmerged). CP-3 adds it when it builds them order-bound (19 CP-3).
+  // Lines only. The exploded reports are lazy-loaded via GET /:id/reports
+  // (decided 2026-07-27), and no `visits` key in CP-1 — the visits table
+  // doesn't exist yet (PR #97 closed unmerged); CP-3 adds it order-bound.
   return {
     ...toOrderDTO(header, lines, showMoney),
     lines: lines.map((line) => toLineDTO(line, showMoney)),
-    reports,
   };
+};
+
+/** The order view's reports card (19 §4, lazy — decided 2026-07-27). Null when
+ *  the order doesn't exist, so the controller can 404 instead of serving an
+ *  empty list for a wrong id. */
+export const getServiceOrderReports = async (
+  db: Db,
+  id: string,
+): Promise<ServiceOrderReportDTO[] | null> => {
+  const header = await findServiceOrderById(db, id);
+  if (!header) return null;
+  return listOrderReports(db, id);
 };
 
 export const getServiceOrderTimeline = async (
   db: Db,
   id: string,
-): Promise<ServiceOrderEventDTO[] | null> => {
+  page: number,
+  limit: number,
+): Promise<{ items: ServiceOrderEventDTO[]; total: number } | null> => {
   // 404 on a missing order rather than an empty feed: an order with no timeline
   // is impossible (creation always writes one), so empty would only ever mean
   // "wrong id".
   const header = await findServiceOrderById(db, id);
   if (!header) return null;
-  return listOrderEvents(db, id);
+  return listOrderEvents(db, id, page, limit);
 };
 
 export const addServiceOrder = async (

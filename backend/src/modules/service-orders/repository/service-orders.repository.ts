@@ -15,7 +15,7 @@ import {
   serviceOrderServices,
   serviceOrders,
 } from '../models/service-orders.model';
-import { serviceOrderEvents } from '../models/service-order-events.model';
+import { appendOrderEvent, appendOrderEvents } from './service-order-events.repository';
 import {
   ServiceOrderEventRefKind,
   ServiceOrderEventType,
@@ -389,7 +389,7 @@ export const createServiceOrder = async (
         refId: reportId,
       })),
     ];
-    await tx.insert(serviceOrderEvents).values(events);
+    await appendOrderEvents(tx, events);
 
     // The *customer* timeline (08), complementary to the order's own: this one
     // answers "what happened with this client", not "what happened on this job".
@@ -453,7 +453,7 @@ export const updateServiceOrder = async (
         changes: { location: { from: current.location, to: fields.location } },
       });
     }
-    if (events.length > 0) await tx.insert(serviceOrderEvents).values(events);
+    await appendOrderEvents(tx, events);
 
     return updated;
   });
@@ -479,7 +479,7 @@ export const completeServiceOrder = async (
       .returning();
     if (!updated) return null;
 
-    await tx.insert(serviceOrderEvents).values({
+    await appendOrderEvent(tx, {
       serviceOrderId: id,
       type: ServiceOrderEventType.OrderCompleted,
       actorId,
@@ -546,7 +546,7 @@ export const cancelServiceOrder = async (
         );
     }
 
-    await tx.insert(serviceOrderEvents).values([
+    await appendOrderEvents(tx, [
       {
         serviceOrderId: id,
         type: ServiceOrderEventType.OrderCancelled,

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import type { AppBindings } from '../../../env';
 import { createDb } from '../../database/client';
@@ -6,6 +7,7 @@ import { requireRole } from '../../auth/middleware/roles.middleware';
 import {
   createServiceOrderSchema,
   listServiceOrdersQuerySchema,
+  listTimelineQuerySchema,
   setServiceOrderStatusSchema,
   updateServiceOrderSchema,
 } from '../validators/service-orders.validator';
@@ -13,6 +15,7 @@ import {
   addServiceOrder,
   editServiceOrder,
   getServiceOrderById,
+  getServiceOrderReports,
   getServiceOrderTimeline,
   getServiceOrders,
   setServiceOrderStatus,
@@ -25,6 +28,11 @@ import {
 
 export const serviceOrders = new Hono<AppBindings>();
 
+// The PK is a uuid, so a malformed :id can never match a row — 404 it up front
+// rather than letting Postgres throw 22P02 into a 500 (backend/CLAUDE.md,
+// same idiom as notifications/cms).
+const idSchema = z.string().uuid();
+
 // Reads are open to any authenticated user: a technician opening an assigned
 // report needs the order header for context (19 §3). The service layer strips
 // every money field for them.
@@ -36,19 +44,37 @@ serviceOrders.get('/', zValidator('query', listServiceOrdersQuerySchema), async 
 });
 
 serviceOrders.get('/:id', async (c) => {
+  const id = idSchema.safeParse(c.req.param('id'));
+  if (!id.success) return c.json({ error: 'not_found' }, 404);
   const db = createDb(c.env.DATABASE_URL);
-  const order = await getServiceOrderById(db, c.get('user'), c.req.param('id'));
+  const order = await getServiceOrderById(db, c.get('user'), id.data);
   if (!order) return c.json({ error: 'not_found' }, 404);
   return c.json({ order });
 });
 
-// The order timeline (19 §7) — oldest-first, unpaged: it reads as a story and
-// becomes the client handoff document, so a partial history won't do.
-serviceOrders.get('/:id/timeline', async (c) => {
+// The exploded reports, lazy-loaded by the order view's reports card (decided
+// 2026-07-27) — not embedded in the detail read. Unpaged: the explosion caps
+// bound this at 50 rows.
+serviceOrders.get('/:id/reports', async (c) => {
+  const id = idSchema.safeParse(c.req.param('id'));
+  if (!id.success) return c.json({ error: 'not_found' }, 404);
   const db = createDb(c.env.DATABASE_URL);
-  const events = await getServiceOrderTimeline(db, c.req.param('id'));
-  if (!events) return c.json({ error: 'not_found' }, 404);
-  return c.json({ events });
+  const reports = await getServiceOrderReports(db, id.data);
+  if (!reports) return c.json({ error: 'not_found' }, 404);
+  return c.json({ reports });
+});
+
+// The order timeline (19 §7) — paged newest-first (decided 2026-07-27), the
+// same feed idiom as customer interactions. The CP-5 handoff document composes
+// from its own full internal read, so paging here costs the audit nothing.
+serviceOrders.get('/:id/timeline', zValidator('query', listTimelineQuerySchema), async (c) => {
+  const id = idSchema.safeParse(c.req.param('id'));
+  if (!id.success) return c.json({ error: 'not_found' }, 404);
+  const db = createDb(c.env.DATABASE_URL);
+  const { page, limit } = c.req.valid('query');
+  const timeline = await getServiceOrderTimeline(db, id.data, page, limit);
+  if (!timeline) return c.json({ error: 'not_found' }, 404);
+  return c.json({ items: timeline.items, total: timeline.total, page, limit });
 });
 
 // Booking work is the back office's day job, so office is in — technicians are
@@ -80,14 +106,11 @@ serviceOrders.patch(
   requireRole(['owner', 'admin', 'office']),
   zValidator('json', updateServiceOrderSchema),
   async (c) => {
+    const id = idSchema.safeParse(c.req.param('id'));
+    if (!id.success) return c.json({ error: 'not_found' }, 404);
     const db = createDb(c.env.DATABASE_URL);
     try {
-      const order = await editServiceOrder(
-        db,
-        c.get('user'),
-        c.req.param('id'),
-        c.req.valid('json'),
-      );
+      const order = await editServiceOrder(db, c.get('user'), id.data, c.req.valid('json'));
       if (!order) return c.json({ error: 'not_found' }, 404);
       return c.json({ order });
     } catch (err) {
@@ -106,14 +129,11 @@ serviceOrders.post(
   requireRole(['owner', 'admin', 'office']),
   zValidator('json', setServiceOrderStatusSchema),
   async (c) => {
+    const id = idSchema.safeParse(c.req.param('id'));
+    if (!id.success) return c.json({ error: 'not_found' }, 404);
     const db = createDb(c.env.DATABASE_URL);
     try {
-      const order = await setServiceOrderStatus(
-        db,
-        c.get('user'),
-        c.req.param('id'),
-        c.req.valid('json'),
-      );
+      const order = await setServiceOrderStatus(db, c.get('user'), id.data, c.req.valid('json'));
       if (!order) return c.json({ error: 'not_found' }, 404);
       return c.json({ order });
     } catch (err) {

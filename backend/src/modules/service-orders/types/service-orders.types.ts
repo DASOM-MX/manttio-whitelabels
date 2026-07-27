@@ -14,7 +14,6 @@ import type { ReportStatus, ReportType } from '../../reports/enums/reports.enum'
 export type ServiceOrderRow = typeof serviceOrders.$inferSelect;
 export type NewServiceOrder = typeof serviceOrders.$inferInsert;
 export type ServiceOrderLineRow = typeof serviceOrderServices.$inferSelect;
-export type ServiceOrderEventRow = typeof serviceOrderEvents.$inferSelect;
 export type NewServiceOrderEvent = typeof serviceOrderEvents.$inferInsert;
 
 /** List filters (19 §4). `search` matches the folio — the one thing people
@@ -59,9 +58,10 @@ export interface ServiceOrderLineDTO {
   amounts?: MoneyBreakdown;
 }
 
-/** One exploded report as the order view lists it (19 §4). Deliberately narrow:
- *  the order card shows folio, state and who has it — the report itself is one
- *  click away and owns the rest. */
+/** One exploded report as `GET /:id/reports` lists it (19 §4 — lazy-loaded by
+ *  the order view's reports card, decided 2026-07-27; not embedded in the
+ *  detail). Deliberately narrow: the card shows folio, state and who has it —
+ *  the report itself is one click away and owns the rest. */
 export interface ServiceOrderReportDTO {
   /** The report folio (`R-YYYYMMDD-NNNN`) — reports are keyed by it. */
   id: string;
@@ -92,12 +92,12 @@ export interface ServiceOrderDTO {
   updatedAt: string;
 }
 
-/** `GET /service-orders/:id` (19 §4). `visits` is absent in CP-1 by design —
- *  the visits backend doesn't exist yet (PR #97 closed unmerged); CP-3 adds the
- *  key when it builds them order-bound. */
+/** `GET /service-orders/:id` (19 §4): the order and its lines only. Exploded
+ *  reports load lazily via `GET /:id/reports` (decided 2026-07-27), and
+ *  `visits` is absent in CP-1 by design — the visits backend doesn't exist yet
+ *  (PR #97 closed unmerged); CP-3 adds it when it builds them order-bound. */
 export interface ServiceOrderDetailDTO extends ServiceOrderDTO {
   lines: ServiceOrderLineDTO[];
-  reports: ServiceOrderReportDTO[];
 }
 
 /** One resolved timeline entry (19 §7) — the order-view activity feed and, at

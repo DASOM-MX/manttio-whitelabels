@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import type { Db, DbOrTx } from '../../database/client';
 import { users } from '../../users/models/users.model';
 import { displayName } from '../../users/utils/display-name';
@@ -32,14 +32,18 @@ export const appendOrderEvents = async (
   await db.insert(serviceOrderEvents).values(values);
 };
 
-/** The whole timeline for one order, **oldest-first** (19 §7): this feed reads
- *  as a story, and it becomes the client handoff document, so it runs forwards
- *  — unlike the customer CRM timeline, which is newest-first. Unpaged for the
- *  same reason: a partial history is not an audit trail. */
+/** Paged, newest-first timeline for one order (19 §7, paging decided
+ *  2026-07-27) — the same feed idiom as `listInteractions`, because that is
+ *  what the order view renders it as. The audit loses nothing to paging: the
+ *  client handoff document (CP-5) composes from its own full oldest-first
+ *  internal read, not from this endpoint, and the `(serviceOrderId, createdAt)`
+ *  index serves both directions. */
 export const listOrderEvents = async (
   db: Db,
   serviceOrderId: string,
-): Promise<ServiceOrderEventDTO[]> => {
+  page: number,
+  limit: number,
+): Promise<{ items: ServiceOrderEventDTO[]; total: number }> => {
   const rows = await db
     .select({
       id: serviceOrderEvents.id,
@@ -57,9 +61,16 @@ export const listOrderEvents = async (
     .from(serviceOrderEvents)
     .leftJoin(users, eq(serviceOrderEvents.actorId, users.id))
     .where(eq(serviceOrderEvents.serviceOrderId, serviceOrderId))
-    .orderBy(asc(serviceOrderEvents.createdAt));
+    .orderBy(desc(serviceOrderEvents.createdAt), desc(serviceOrderEvents.id))
+    .limit(limit)
+    .offset((page - 1) * limit);
 
-  return rows.map((row) => ({
+  const countRows = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(serviceOrderEvents)
+    .where(eq(serviceOrderEvents.serviceOrderId, serviceOrderId));
+
+  const items = rows.map((row) => ({
     id: row.id,
     type: row.type,
     actorId: row.actorId ?? undefined,
@@ -74,4 +85,6 @@ export const listOrderEvents = async (
     note: row.note ?? undefined,
     createdAt: row.createdAt.toISOString(),
   }));
+
+  return { items, total: countRows[0]?.count ?? 0 };
 };

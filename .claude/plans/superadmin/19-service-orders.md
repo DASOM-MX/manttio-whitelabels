@@ -176,12 +176,20 @@ a. Technicians reach orders through their assigned visits/reports (context heade
 ## 4. Expected API surface
 
 - `GET /service-orders?customerId&status&page&limit` → paged `{ items, total }`
-- `GET /service-orders/:id` → order + lines (joined service name/uom) + exploded
-  reports (folio/status/assignee) + visits (12 shape)
+- `GET /service-orders/:id` → order + lines (snapshot columns) only (decided
+  2026-07-27 — reports lazy-load, visits join in CP-3)
+- `GET /service-orders/:id/reports` → the exploded reports
+  (folio/status/assignee), **lazy-loaded** by the order view's reports card
+  (decided 2026-07-27); unpaged — the explosion cap bounds it at 50
 - `GET /service-orders/:id/timeline` → resolved `service_order_events` (§7),
-  oldest-first — the order-view activity feed + the handoff document source
+  **paged newest-first** (decided 2026-07-27 — the interactions feed idiom;
+  supersedes "oldest-first unpaged"). The handoff document composes from its own
+  full oldest-first internal read, so paging the HTTP feed costs the audit
+  nothing
 - `POST /service-orders` — `{ customerId, location?, comments?, lines: [{ serviceId,
-  quantity, technicianId, reportType }] }` → the §2 transaction
+  quantity, technicianId, reportType }] }` → the §2 transaction. Caps (decided
+  2026-07-27, sized to real usage of ≤~10 services/order): ≤20 lines, quantity
+  ≤20, ≤50 exploded reports total; duplicate `serviceId` lines are a 400
 - `PATCH /service-orders/:id` — `comments` (any staff) and/or `location` (**owner/admin
   only** — 403 for office); both audited to the timeline. No other field is patchable.
 - `POST /service-orders/:id/status` — `{ status }` (complete/cancel, confirm-heavy);
@@ -256,7 +264,8 @@ one is "something happened with this client", the order one is the job's full hi
 
 **Reads / handoff:**
 - `GET /service-orders/:id/timeline` → resolved events (actor + child display names),
-  oldest-first — rendered on the order view as a vertical activity feed.
+  paged newest-first (2026-07-27) — rendered on the order view as a vertical
+  activity feed. The CP-5 handoff reads the full history internally, oldest-first.
 - **Client handoff (the payoff):** at `order_completed`, the timeline + the finished
   reports compose a **service history PDF** (decided 2026-07-23 — via the `pdf/`
   module, consistent with report PDFs; the report layout stays in a domain helper per

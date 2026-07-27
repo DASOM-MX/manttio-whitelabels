@@ -65,7 +65,6 @@ type Order = {
   createdBy: string;
   createdByName?: string;
   lines: OrderLine[];
-  reports: OrderReport[];
 };
 
 type TimelineEvent = {
@@ -162,10 +161,19 @@ const getOrder = async (token: string, id: string) => {
   return (await json<{ order: Order }>(res)).order;
 };
 
-const getTimeline = async (token: string, id: string) => {
-  const res = await request(`/service-orders/${id}/timeline`, { headers: jsonHeaders(token) });
+const getReports = async (token: string, id: string) => {
+  const res = await request(`/service-orders/${id}/reports`, { headers: jsonHeaders(token) });
   expect(res.status).toBe(200);
-  return (await json<{ events: TimelineEvent[] }>(res)).events;
+  return (await json<{ reports: OrderReport[] }>(res)).reports;
+};
+
+/** The whole timeline in one page — big enough for every scenario here. */
+const getTimeline = async (token: string, id: string) => {
+  const res = await request(`/service-orders/${id}/timeline?limit=50`, {
+    headers: jsonHeaders(token),
+  });
+  expect(res.status).toBe(200);
+  return (await json<{ items: TimelineEvent[]; total: number }>(res)).items;
 };
 
 /** An admin, a customer, a technician and one catalog service — the minimum to
@@ -213,16 +221,42 @@ describe('POST /service-orders', () => {
     expect(order.lines[0]!.unitPrice).toBe('1500.00');
     expect(order.lines[0]!.quantity).toBe(3);
 
-    // One report per sold unit, each born complete and `pending`.
-    expect(order.reports).toHaveLength(3);
-    for (const report of order.reports) {
+    // One report per sold unit, each born complete and `pending`. The detail
+    // response carries no reports — the order view lazy-loads them here.
+    const exploded = await getReports(token, order.id);
+    expect(exploded).toHaveLength(3);
+    for (const report of exploded) {
       expect(report.status).toBe(ReportStatus.Pending);
       expect(report.assignedTo).toBe(tech.id);
       expect(report.serviceId).toBe(service.id);
       expect(report.folio).toMatch(/^R-\d{8}-\d{4}$/);
     }
     // Distinct folios — the counter reserved a range, it didn't reuse one.
-    expect(new Set(order.reports.map((r) => r.folio)).size).toBe(3);
+    expect(new Set(exploded.map((r) => r.folio)).size).toBe(3);
+  });
+
+  test('rejects two lines for the same service with 400', async () => {
+    const { token, customer, tech, service } = await scenario();
+    const res = await createOrder(token, {
+      customerId: customer.id,
+      lines: [lineFor(service, tech), lineFor(service, tech, { quantity: 2 })],
+    });
+    // The unique index would refuse this anyway — the refine turns it into a
+    // clean validation error instead of a unique-violation 500.
+    expect(res.status).toBe(400);
+  });
+
+  test('caps the total exploded units per order', async () => {
+    const { token, customer, tech } = await scenario();
+    const a = await seedService(token);
+    const b = await seedService(token);
+    const c = await seedService(token);
+    const res = await createOrder(token, {
+      customerId: customer.id,
+      // 3 × 20 = 60 units > the 50-report explosion cap.
+      lines: [a, b, c].map((svc) => lineFor(svc, tech, { quantity: 20 })),
+    });
+    expect(res.status).toBe(400);
   });
 
   test('sums per-line tax exactly (16% + exento)', async () => {
@@ -249,12 +283,15 @@ describe('POST /service-orders', () => {
     });
     const { order } = await json<{ order: Order }>(res);
 
+    // Events from one transaction share Postgres' transaction timestamp, so
+    // assert composition, not position, for the creation burst.
     const events = await getTimeline(token, order.id);
     const types = events.map((e) => e.type);
-    expect(types[0]).toBe(ServiceOrderEventType.OrderCreated);
+    expect(types).toContain(ServiceOrderEventType.OrderCreated);
     expect(types.filter((t) => t === ServiceOrderEventType.OrderLineAdded)).toHaveLength(1);
     expect(types.filter((t) => t === ServiceOrderEventType.ReportExploded)).toHaveLength(2);
-    expect(events[0]!.actorName).toBeTruthy();
+    const created = events.find((e) => e.type === ServiceOrderEventType.OrderCreated);
+    expect(created!.actorName).toBeTruthy();
 
     // The customer's own timeline gets a complementary system entry (08).
     const entries = await db()
@@ -376,6 +413,55 @@ describe('GET /service-orders', () => {
     });
     expect(res.status).toBe(404);
   });
+
+  test('404s a malformed id on every :id route — never a 500', async () => {
+    const { token } = await seedAdminAndLogin();
+    const detail = await request('/service-orders/not-a-uuid', { headers: jsonHeaders(token) });
+    expect(detail.status).toBe(404);
+    const timeline = await request('/service-orders/not-a-uuid/timeline', {
+      headers: jsonHeaders(token),
+    });
+    expect(timeline.status).toBe(404);
+    const status = await setStatus(token, 'not-a-uuid', {
+      status: ServiceOrderStatus.Completed,
+    });
+    expect(status.status).toBe(404);
+  });
+});
+
+describe('GET /service-orders/:id/timeline', () => {
+  test('pages newest-first with a stable total', async () => {
+    const { token, customer, tech, service } = await scenario();
+    const created = await createOrder(token, {
+      customerId: customer.id,
+      lines: [lineFor(service, tech, { quantity: 2 })],
+    });
+    const { order } = await json<{ order: Order }>(created);
+    // 4 creation events + 1 completion (written later, so strictly newest).
+    await setStatus(token, order.id, { status: ServiceOrderStatus.Completed });
+
+    const page = async (n: number) => {
+      const res = await request(`/service-orders/${order.id}/timeline?page=${n}&limit=2`, {
+        headers: jsonHeaders(token),
+      });
+      expect(res.status).toBe(200);
+      return json<{ items: TimelineEvent[]; total: number; page: number; limit: number }>(res);
+    };
+
+    const first = await page(1);
+    expect(first.total).toBe(5);
+    expect(first.items).toHaveLength(2);
+    // Newest-first: the completion outranks the whole creation burst.
+    expect(first.items[0]!.type).toBe(ServiceOrderEventType.OrderCompleted);
+
+    // Stable ordering across pages: 2+2+1, no duplicates, nothing dropped.
+    const second = await page(2);
+    const third = await page(3);
+    expect(second.items).toHaveLength(2);
+    expect(third.items).toHaveLength(1);
+    const ids = [...first.items, ...second.items, ...third.items].map((e) => e.id);
+    expect(new Set(ids).size).toBe(5);
+  });
 });
 
 describe('PATCH /service-orders/:id', () => {
@@ -459,7 +545,8 @@ describe('POST /service-orders/:id/status', () => {
 
     // Push one of the two exploded reports to `finished` directly — the field
     // sign-off flow needs a signature upload this suite has no business faking.
-    const survivor = order.reports[0]!.id;
+    const exploded = await getReports(token, order.id);
+    const survivor = exploded[0]!.id;
     await db()
       .update(reports)
       .set({ status: ReportStatus.Finished, finishedAt: new Date() })
@@ -474,9 +561,10 @@ describe('POST /service-orders/:id/status', () => {
     const after = await getOrder(token, order.id);
     expect(after.status).toBe(ServiceOrderStatus.Cancelled);
 
-    const byId = new Map(after.reports.map((r) => [r.id, r.status]));
+    const afterReports = await getReports(token, order.id);
+    const byId = new Map(afterReports.map((r) => [r.id, r.status]));
     expect(byId.get(survivor)).toBe(ReportStatus.Finished);
-    const voided = after.reports.filter((r) => r.status === ReportStatus.Cancelled);
+    const voided = afterReports.filter((r) => r.status === ReportStatus.Cancelled);
     expect(voided).toHaveLength(1);
 
     // The cancellation and each voided report are both on the trail.
@@ -527,7 +615,7 @@ describe('exploded reports keep the report lifecycle', () => {
       lines: [lineFor(service, tech)],
     });
     const { order } = await json<{ order: Order }>(created);
-    const folio = order.reports[0]!.id;
+    const folio = (await getReports(token, order.id))[0]!.id;
 
     const techLogin = await request('/auth/login', {
       method: 'POST',
@@ -546,5 +634,26 @@ describe('exploded reports keep the report lifecycle', () => {
     const [row] = await db().select().from(reports).where(eq(reports.id, folio)).limit(1);
     expect(row!.status).toBe(ReportStatus.InProgress);
     expect(row!.serviceOrderId).toBe(order.id);
+  });
+
+  test('a report voided by cancellation rejects edits with 409', async () => {
+    const { token, customer, tech, service } = await scenario();
+    const created = await createOrder(token, {
+      customerId: customer.id,
+      lines: [lineFor(service, tech)],
+    });
+    const { order } = await json<{ order: Order }>(created);
+    const folio = (await getReports(token, order.id))[0]!.id;
+
+    await setStatus(token, order.id, { status: ServiceOrderStatus.Cancelled });
+
+    // `cancelled` is outside `isEditableStatus` — a voided report must not
+    // accept content afterwards, same as a finished one.
+    const res = await request(`/reports/${folio}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ work_type: 'Preventivo' }),
+    });
+    expect(res.status).toBe(409);
   });
 });

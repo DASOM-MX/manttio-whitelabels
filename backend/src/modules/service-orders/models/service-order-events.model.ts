@@ -42,7 +42,8 @@ export const serviceOrderEvents = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
-    // The only read shape: one order's whole history, oldest-first.
+    // Both read shapes — the paged newest-first UI feed and the CP-5 handoff's
+    // full oldest-first pass — scan this one index in opposite directions.
     index('service_order_events_order_idx').on(table.serviceOrderId, table.createdAt),
   ],
 );

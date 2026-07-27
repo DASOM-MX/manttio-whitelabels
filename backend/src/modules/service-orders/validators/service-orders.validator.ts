@@ -9,9 +9,10 @@ import { reportTypes } from '../../reports/enums/reports.enum';
 const orderLineSchema = z.object({
   serviceId: z.string().uuid(),
   // Each unit explodes its own report (19 §2), so this is also the report
-  // count. Capped to keep one fat-fingered quantity from exploding a thousand
-  // skeletons inside a single transaction.
-  quantity: z.coerce.number().int().min(1).max(100).default(1),
+  // count. Caps sized to reality (2026-07-27): real orders rarely carry more
+  // than ~10 services, so 20 is already generous — and it keeps a fat-fingered
+  // quantity from exploding thousands of skeletons in one transaction.
+  quantity: z.coerce.number().int().min(1).max(20).default(1),
   // Explosion inputs, captured per line so the skeletons are born complete
   // (19 §2 — the report invariants are kept, not relaxed).
   technicianId: z.string().uuid(),
@@ -23,7 +24,21 @@ export const createServiceOrderSchema = z.object({
   location: z.string().trim().optional(),
   comments: z.string().trim().optional(),
   // At least one line: an order with nothing sold is not an order.
-  lines: z.array(orderLineSchema).min(1).max(50),
+  lines: z
+    .array(orderLineSchema)
+    .min(1)
+    .max(20)
+    // One line per service per order — quantity is how you sell more of one
+    // thing. The DB unique index enforces this too, but a refine turns the
+    // duplicate into a clean 400 instead of a unique-violation 500.
+    .refine((lines) => new Set(lines.map((l) => l.serviceId)).size === lines.length, {
+      message: 'lines must reference distinct services',
+    })
+    // The transaction-size backstop: total units bounds the exploded reports
+    // (plus their detail rows and timeline events) written in one transaction.
+    .refine((lines) => lines.reduce((sum, l) => sum + l.quantity, 0) <= 50, {
+      message: 'an order may explode at most 50 reports',
+    }),
 });
 
 // The only two mutable fields (19 §1). `location` carries its own role gate in
@@ -61,7 +76,16 @@ export const listServiceOrdersQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(10),
 });
 
+// Paged timeline read (decided 2026-07-27) — same shape as the customer
+// interactions feed. The handoff document (CP-5) composes from its own full
+// internal read, not from this endpoint, so paging here costs the audit nothing.
+export const listTimelineQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+});
+
 export type CreateServiceOrderInput = z.infer<typeof createServiceOrderSchema>;
 export type UpdateServiceOrderInput = z.infer<typeof updateServiceOrderSchema>;
 export type SetServiceOrderStatusInput = z.infer<typeof setServiceOrderStatusSchema>;
 export type ListServiceOrdersQuery = z.infer<typeof listServiceOrdersQuerySchema>;
+export type ListTimelineQuery = z.infer<typeof listTimelineQuerySchema>;
