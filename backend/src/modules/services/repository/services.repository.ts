@@ -1,4 +1,4 @@
-import { and, asc, eq, ilike, isNull, or } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, isNull, or } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { services } from '../models/services.model';
 import type {
@@ -60,6 +60,19 @@ export const findServiceById = async (db: Db, id: string): Promise<ServiceRow | 
     .where(and(eq(services.id, id), activeFilter))
     .limit(1);
   return row ?? null;
+};
+
+/** Bulk catalog lookup, for the snapshot resolution behind quotation (20) and
+ *  order (19) lines. One query for a whole line set — resolving a 20-line quote
+ *  with `findServiceById` in a loop would be 20 sequential round trips inside
+ *  the request. Soft-deleted services are excluded, so a line referencing one
+ *  simply comes back missing and the caller rejects it by id. */
+export const findServicesByIds = async (db: Db, ids: string[]): Promise<ServiceRow[]> => {
+  if (ids.length === 0) return [];
+  return db
+    .select()
+    .from(services)
+    .where(and(inArray(services.id, ids), activeFilter));
 };
 
 export const insertService = async (db: Db, values: NewService): Promise<ServiceRow> => {

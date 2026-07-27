@@ -1,0 +1,662 @@
+import { afterAll, describe, expect, test } from 'vitest';
+import { inArray } from 'drizzle-orm';
+import { env, json, jsonHeaders, request } from './helpers/request';
+import {
+  seedContact,
+  seedCustomer,
+  seedOfficeAndLogin,
+  seedOwnerAndLogin,
+  seedTechnicianAndLogin,
+  uniqueServiceName,
+} from './helpers/fixtures';
+import { allResendSends, mockResend } from './helpers/resend';
+import { createDb } from '../src/modules/database/client';
+import { quotations } from '../src/modules/database/schema';
+import { ServiceTaxRate, ServiceUom } from '../src/modules/services/enums/services.enum';
+import {
+  QuotationEventType,
+  QuotationResponse,
+  QuotationStatus,
+} from '../src/modules/quotations/enums/quotations.enum';
+
+type WorkerEnv = { DATABASE_URL: string };
+
+type Line = {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  description?: string;
+  unitPrice: string;
+  uom: ServiceUom;
+  taxRate: ServiceTaxRate;
+  quantity: number;
+  lineSubtotal: string;
+};
+
+type Recipient = {
+  id: string;
+  contactId: string;
+  contactName?: string;
+  email: string;
+  isReviewer: boolean;
+  viewedAt?: string;
+  respondedAt?: string;
+  response?: QuotationResponse;
+  responseReason?: string;
+  token?: string;
+};
+
+type Quotation = {
+  id: string;
+  folio: string;
+  customerId: string;
+  customerName: string;
+  status: QuotationStatus;
+  validUntil: string;
+  isOverdue: boolean;
+  total: string;
+  tally: { reviewers: number; approved: number; declined: number; pending: number };
+  comments?: string;
+  supersedesQuotationId?: string;
+  sentAt?: string;
+  resolutionReason?: string;
+  serviceOrderId?: string;
+  lines: Line[];
+  recipients: Recipient[];
+  totals: { subtotal: string; iva: string; total: string };
+};
+
+type TimelineEvent = {
+  type: QuotationEventType;
+  contactId?: string;
+  note?: string;
+  changes?: Record<string, unknown>;
+};
+
+type PublicView = {
+  folio: string;
+  customerName: string;
+  status: QuotationStatus;
+  isOverdue: boolean;
+  lines: Line[];
+  totals: { subtotal: string; iva: string; total: string };
+  viewer: { isReviewer: boolean; response?: QuotationResponse; responseReason?: string };
+  canRespond: boolean;
+};
+
+mockResend();
+
+// Quotations carry no fixture-email column, so the suite tracks the ids it
+// creates and soft-deletes exactly those — never a hard delete, the fork rule
+// applies to fixtures too. Lines/recipients/events are append-only children and
+// stay put; they fall out of every read path once the parent is tombstoned.
+const created: string[] = [];
+
+afterAll(async () => {
+  if (created.length === 0) return;
+  const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
+  await db
+    .update(quotations)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(inArray(quotations.id, created));
+});
+
+const dayOffset = (days: number) => {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+};
+
+const makeService = async (
+  token: string,
+  overrides: { price?: number; taxRate?: ServiceTaxRate; uom?: ServiceUom } = {},
+) => {
+  const res = await request('/services', {
+    method: 'POST',
+    headers: jsonHeaders(token),
+    body: JSON.stringify({
+      name: uniqueServiceName('quote'),
+      price: overrides.price ?? 1000,
+      uom: overrides.uom ?? ServiceUom.Servicio,
+      taxRate: overrides.taxRate ?? ServiceTaxRate.Iva16,
+      description: 'Descripción de catálogo',
+    }),
+  });
+  expect(res.status).toBe(201);
+  return json<{ id: string; name: string; price: string }>(res);
+};
+
+const createQuote = async (token: string, body: object) =>
+  request('/quotations', { method: 'POST', headers: jsonHeaders(token), body: JSON.stringify(body) });
+
+const post = (token: string, path: string, body: object) =>
+  request(path, { method: 'POST', headers: jsonHeaders(token), body: JSON.stringify(body) });
+
+/** A customer + one contact + one service + a draft quote for one unit. */
+const scenario = async (opts: { price?: number; taxRate?: ServiceTaxRate; quantity?: number } = {}) => {
+  const { owner, token } = await seedOwnerAndLogin();
+  const customer = await seedCustomer();
+  const contact = await seedContact(customer.id, { isDefault: true });
+  const service = await makeService(token, { price: opts.price, taxRate: opts.taxRate });
+  const res = await createQuote(token, {
+    customerId: customer.id,
+    validUntil: dayOffset(30),
+    comments: 'Condiciones de prueba',
+    lines: [{ serviceId: service.id, quantity: opts.quantity ?? 1 }],
+  });
+  expect(res.status).toBe(201);
+  const quote = await json<Quotation>(res);
+  created.push(quote.id);
+  return { owner, token, customer, contact, service, quote };
+};
+
+/** Sends and returns the recipient tokens, read straight from the DB — the API
+ *  never discloses them, which is itself asserted below. */
+const sendAndGetTokens = async (
+  token: string,
+  quotationId: string,
+  recipients: { contactId: string; isReviewer: boolean }[],
+) => {
+  const res = await post(token, `/quotations/${quotationId}/send`, { recipients });
+  expect(res.status).toBe(200);
+  const body = await json<{ quotation: Quotation; delivery: { sent: number } }>(res);
+  const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
+  const rows = await db.query.quotationRecipients.findMany({
+    where: (r, { eq }) => eq(r.quotationId, quotationId),
+  });
+  const byContact = new Map(rows.map((r) => [r.contactId, r.token]));
+  return { body, tokenFor: (contactId: string) => byContact.get(contactId) as string };
+};
+
+describe('quotations — draft + snapshots (20 §1)', () => {
+  test('resolves catalog snapshots server-side and computes per-line totals', async () => {
+    const { quote, service } = await scenario({ price: 1500, quantity: 2 });
+
+    expect(quote.folio).toMatch(/^COT-\d{8}-\d{4}$/);
+    expect(quote.status).toBe(QuotationStatus.Draft);
+    expect(quote.isOverdue).toBe(false);
+    expect(quote.lines).toHaveLength(1);
+
+    const [line] = quote.lines;
+    expect(line?.serviceId).toBe(service.id);
+    expect(line?.serviceName).toBe(service.name);
+    // Price/uom/taxRate were never sent by the client — the server read them.
+    expect(line?.unitPrice).toBe('1500.00');
+    expect(line?.uom).toBe(ServiceUom.Servicio);
+    expect(line?.taxRate).toBe(ServiceTaxRate.Iva16);
+    expect(line?.lineSubtotal).toBe('3000.00');
+    // The catalog description is snapshotted when no override is given.
+    expect(line?.description).toBe('Descripción de catálogo');
+
+    expect(quote.totals).toEqual({ subtotal: '3000.00', iva: '480.00', total: '3480.00' });
+  });
+
+  test('a client cannot dictate price, uom or tax rate', async () => {
+    const { owner, token } = await seedOwnerAndLogin();
+    void owner;
+    const customer = await seedCustomer();
+    const service = await makeService(token, { price: 800 });
+    const res = await createQuote(token, {
+      customerId: customer.id,
+      validUntil: dayOffset(15),
+      lines: [
+        { serviceId: service.id, quantity: 1, unitPrice: '1.00', taxRate: ServiceTaxRate.Exento },
+      ],
+    });
+    expect(res.status).toBe(201);
+    const quote = await json<Quotation>(res);
+    created.push(quote.id);
+    // The injected fields are simply not part of the schema — the catalog wins.
+    expect(quote.lines[0]?.unitPrice).toBe('800.00');
+    expect(quote.lines[0]?.taxRate).toBe(ServiceTaxRate.Iva16);
+  });
+
+  test('sums IVA per line, so a mixed-rate quote is exact', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const customer = await seedCustomer();
+    const taxed = await makeService(token, { price: 1000, taxRate: ServiceTaxRate.Iva16 });
+    const exempt = await makeService(token, { price: 500, taxRate: ServiceTaxRate.Exento });
+    const border = await makeService(token, { price: 200, taxRate: ServiceTaxRate.Iva8 });
+    const res = await createQuote(token, {
+      customerId: customer.id,
+      validUntil: dayOffset(10),
+      lines: [
+        { serviceId: taxed.id, quantity: 1 },
+        { serviceId: exempt.id, quantity: 2 },
+        { serviceId: border.id, quantity: 3 },
+      ],
+    });
+    const quote = await json<Quotation>(res);
+    created.push(quote.id);
+    // 1000@16% = 160 · 1000@exento = 0 · 600@8% = 48  →  subtotal 2600, iva 208
+    expect(quote.totals).toEqual({ subtotal: '2600.00', iva: '208.00', total: '2808.00' });
+  });
+
+  test('a later catalog price change never rewrites an existing quote', async () => {
+    const { quote, service, token } = await scenario({ price: 1000 });
+    const bump = await request(`/services/${service.id}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ price: 9999 }),
+    });
+    expect(bump.status).toBe(200);
+
+    const after = await json<Quotation>(await request(`/quotations/${quote.id}`, {
+      headers: jsonHeaders(token),
+    }));
+    expect(after.lines[0]?.unitPrice).toBe('1000.00');
+    expect(after.totals.subtotal).toBe('1000.00');
+  });
+
+  test('a line referencing a deleted service is rejected by id', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const customer = await seedCustomer();
+    const service = await makeService(token);
+    const del = await request(`/services/${service.id}`, {
+      method: 'DELETE',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ deleteComment: 'fixture' }),
+    });
+    expect(del.status).toBe(200);
+
+    const res = await createQuote(token, {
+      customerId: customer.id,
+      validUntil: dayOffset(10),
+      lines: [{ serviceId: service.id, quantity: 1 }],
+    });
+    expect(res.status).toBe(400);
+    const body = await json<{ error: string; serviceId: string }>(res);
+    expect(body.error).toBe('service_not_found');
+    expect(body.serviceId).toBe(service.id);
+  });
+
+  test('opens its timeline with a created event and one per line', async () => {
+    const { quote, token } = await scenario();
+    const events = await json<TimelineEvent[]>(
+      await request(`/quotations/${quote.id}/timeline`, { headers: jsonHeaders(token) }),
+    );
+    expect(events.map((e) => e.type)).toEqual([
+      QuotationEventType.Created,
+      QuotationEventType.LineAdded,
+    ]);
+  });
+});
+
+describe('quotations — draft-only edits (20 §9)', () => {
+  test('patches a draft and replaces its line set', async () => {
+    const { quote, token, service } = await scenario({ price: 1000 });
+    const res = await request(`/quotations/${quote.id}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({
+        comments: 'Actualizado',
+        lines: [{ serviceId: service.id, quantity: 4, description: 'Nota por partida' }],
+      }),
+    });
+    expect(res.status).toBe(200);
+    const updated = await json<Quotation>(res);
+    expect(updated.comments).toBe('Actualizado');
+    expect(updated.lines).toHaveLength(1);
+    expect(updated.lines[0]?.quantity).toBe(4);
+    // The per-line override wins over the catalog description.
+    expect(updated.lines[0]?.description).toBe('Nota por partida');
+    expect(updated.totals.subtotal).toBe('4000.00');
+  });
+
+  test('409s once the quote has been sent', async () => {
+    const { quote, token, contact } = await scenario();
+    await sendAndGetTokens(token, quote.id, [{ contactId: contact.id, isReviewer: true }]);
+
+    const res = await request(`/quotations/${quote.id}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ comments: 'demasiado tarde' }),
+    });
+    expect(res.status).toBe(409);
+    expect((await json<{ error: string }>(res)).error).toBe('quotation_not_draft');
+  });
+});
+
+describe('quotations — send + recipients (20 §4)', () => {
+  test('mints a token per contact, mails each one, and moves to waiting_approval', async () => {
+    const { quote, token, contact } = await scenario();
+    const { body } = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: true },
+    ]);
+
+    expect(body.quotation.status).toBe(QuotationStatus.WaitingApproval);
+    expect(body.quotation.sentAt).toBeTruthy();
+    expect(body.delivery.sent).toBe(1);
+    expect(body.quotation.tally).toEqual({ reviewers: 1, approved: 0, declined: 0, pending: 1 });
+
+    const sends = allResendSends();
+    expect(sends).toHaveLength(1);
+    expect(sends[0]?.to).toBe(contact.email);
+    expect(sends[0]?.subject).toContain(quote.folio);
+    // A reviewer is told they can respond; the link is the public token page.
+    expect(sends[0]?.text).toContain('/public/quotations/');
+    expect(sends[0]?.text).toContain('aprobarla o rechazarla');
+  });
+
+  test('never returns a recipient token to staff', async () => {
+    const { quote, token, contact } = await scenario();
+    const { body } = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: true },
+    ]);
+    const [recipient] = body.quotation.recipients;
+    expect(recipient?.email).toBe(contact.email);
+    expect(recipient?.token).toBeUndefined();
+    expect(JSON.stringify(body.quotation)).not.toContain('token');
+  });
+
+  test('rejects a contact belonging to another customer', async () => {
+    const { quote, token } = await scenario();
+    const otherCustomer = await seedCustomer();
+    const outsider = await seedContact(otherCustomer.id);
+
+    const res = await post(token, `/quotations/${quote.id}/send`, {
+      recipients: [{ contactId: outsider.id, isReviewer: true }],
+    });
+    expect(res.status).toBe(400);
+    const body = await json<{ error: string; contactId: string }>(res);
+    expect(body.error).toBe('invalid_recipient');
+    expect(body.contactId).toBe(outsider.id);
+    // Nothing was mailed — the send fails whole rather than partially.
+    expect(allResendSends()).toHaveLength(0);
+  });
+
+  test('an all-informational send is allowed and simply has nothing to tally', async () => {
+    const { quote, token, contact } = await scenario();
+    const { body } = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: false },
+    ]);
+    expect(body.quotation.status).toBe(QuotationStatus.WaitingApproval);
+    expect(body.quotation.tally.reviewers).toBe(0);
+    expect(allResendSends()[0]?.text).not.toContain('aprobarla o rechazarla');
+  });
+
+  test('a re-send keeps the existing token so the mailed link stays valid', async () => {
+    const { quote, token, contact } = await scenario();
+    const first = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: false },
+    ]);
+    const firstToken = first.tokenFor(contact.id);
+
+    const second = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: true },
+    ]);
+    expect(second.tokenFor(contact.id)).toBe(firstToken);
+    // One row, not two — and the reviewer flag was upgraded in place.
+    expect(second.body.quotation.recipients).toHaveLength(1);
+    expect(second.body.quotation.recipients[0]?.isReviewer).toBe(true);
+    expect(second.body.quotation.tally.reviewers).toBe(1);
+    // `sentAt` records when the quote first left the building.
+    expect(second.body.quotation.sentAt).toBe(first.body.quotation.sentAt);
+  });
+});
+
+describe('quotations — token page + reviewer tally (20 §2, §4)', () => {
+  test('serves the quote to a token holder and records the first view only', async () => {
+    const { quote, token, contact } = await scenario({ price: 2000 });
+    const { tokenFor } = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: true },
+    ]);
+    const link = `/public/quotations/${tokenFor(contact.id)}`;
+
+    const view = await json<PublicView>(await request(link));
+    expect(view.folio).toBe(quote.folio);
+    expect(view.viewer.isReviewer).toBe(true);
+    expect(view.canRespond).toBe(true);
+    expect(view.totals.total).toBe('2320.00');
+
+    await request(link);
+    const events = await json<TimelineEvent[]>(
+      await request(`/quotations/${quote.id}/timeline`, { headers: jsonHeaders(token) }),
+    );
+    expect(events.filter((e) => e.type === QuotationEventType.Viewed)).toHaveLength(1);
+  });
+
+  test('an unknown token is 404, never a hint that it might exist', async () => {
+    const res = await request('/public/quotations/definitely-not-a-real-token');
+    expect(res.status).toBe(404);
+    expect((await json<{ error: string }>(res)).error).toBe('not_found');
+  });
+
+  test('derives waiting → partially_approved → approved across two reviewers', async () => {
+    const { quote, token, customer, contact } = await scenario();
+    const second = await seedContact(customer.id);
+    const { tokenFor } = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: true },
+      { contactId: second.id, isReviewer: true },
+    ]);
+
+    const first = await json<PublicView>(
+      await post('', `/public/quotations/${tokenFor(contact.id)}/respond`, {
+        response: QuotationResponse.Approved,
+      }),
+    );
+    expect(first.status).toBe(QuotationStatus.PartiallyApproved);
+
+    const both = await json<PublicView>(
+      await post('', `/public/quotations/${tokenFor(second.id)}/respond`, {
+        response: QuotationResponse.Approved,
+      }),
+    );
+    expect(both.status).toBe(QuotationStatus.Approved);
+
+    const staffView = await json<Quotation>(
+      await request(`/quotations/${quote.id}`, { headers: jsonHeaders(token) }),
+    );
+    expect(staffView.tally).toEqual({ reviewers: 2, approved: 2, declined: 0, pending: 0 });
+  });
+
+  test('all reviewers declining is a live state, not a cancellation', async () => {
+    const { quote, token, contact } = await scenario();
+    const { tokenFor } = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: true },
+    ]);
+    const view = await json<PublicView>(
+      await post('', `/public/quotations/${tokenFor(contact.id)}/respond`, {
+        response: QuotationResponse.Declined,
+        reason: 'Precio fuera de presupuesto',
+      }),
+    );
+    expect(view.status).toBe(QuotationStatus.Declined);
+    // Declined stays actionable — staff may still convert it (owner/admin
+    // override) and the reviewer may still change their mind.
+    expect(view.canRespond).toBe(true);
+
+    const staffView = await json<Quotation>(
+      await request(`/quotations/${quote.id}`, { headers: jsonHeaders(token) }),
+    );
+    expect(staffView.recipients[0]?.responseReason).toBe('Precio fuera de presupuesto');
+  });
+
+  test('a reviewer may change their mind, and every change is re-logged', async () => {
+    const { quote, token, contact } = await scenario();
+    const { tokenFor } = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: true },
+    ]);
+    const link = `/public/quotations/${tokenFor(contact.id)}/respond`;
+
+    await post('', link, { response: QuotationResponse.Approved });
+    const flipped = await json<PublicView>(
+      await post('', link, { response: QuotationResponse.Declined, reason: 'Lo reconsideramos' }),
+    );
+    expect(flipped.status).toBe(QuotationStatus.Declined);
+
+    const backAgain = await json<PublicView>(
+      await post('', link, { response: QuotationResponse.Approved }),
+    );
+    expect(backAgain.status).toBe(QuotationStatus.Approved);
+
+    const events = await json<TimelineEvent[]>(
+      await request(`/quotations/${quote.id}/timeline`, { headers: jsonHeaders(token) }),
+    );
+    // Three responses, three rows — the sequence is the evidence.
+    expect(events.filter((e) => e.type === QuotationEventType.ReviewerResponded)).toHaveLength(3);
+    expect(
+      events.filter((e) => e.type === QuotationEventType.StatusDerived).length,
+    ).toBeGreaterThanOrEqual(3);
+  });
+
+  test('an informational recipient cannot respond', async () => {
+    const { quote, token, contact } = await scenario();
+    const { tokenFor } = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: false },
+    ]);
+    const res = await post('', `/public/quotations/${tokenFor(contact.id)}/respond`, {
+      response: QuotationResponse.Approved,
+    });
+    expect(res.status).toBe(403);
+    expect((await json<{ error: string }>(res)).error).toBe('not_a_reviewer');
+  });
+
+  test('a decline must say why', async () => {
+    const { quote, token, contact } = await scenario();
+    const { tokenFor } = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: true },
+    ]);
+    const res = await post('', `/public/quotations/${tokenFor(contact.id)}/respond`, {
+      response: QuotationResponse.Declined,
+    });
+    expect(res.status).toBe(400);
+  });
+
+  test('an expired quote stays readable but refuses the answer', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const customer = await seedCustomer();
+    const contact = await seedContact(customer.id);
+    const service = await makeService(token);
+    const res = await createQuote(token, {
+      customerId: customer.id,
+      // Yesterday — `validUntil` is a guard, not a status (20 §2).
+      validUntil: dayOffset(-1),
+      lines: [{ serviceId: service.id, quantity: 1 }],
+    });
+    const quote = await json<Quotation>(res);
+    created.push(quote.id);
+    expect(quote.isOverdue).toBe(true);
+
+    const { tokenFor } = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: true },
+    ]);
+    const view = await json<PublicView>(await request(`/public/quotations/${tokenFor(contact.id)}`));
+    expect(view.isOverdue).toBe(true);
+    expect(view.canRespond).toBe(false);
+    // The lines are still visible — an expired link is not a dead end.
+    expect(view.lines).toHaveLength(1);
+
+    const denied = await post('', `/public/quotations/${tokenFor(contact.id)}/respond`, {
+      response: QuotationResponse.Approved,
+    });
+    expect(denied.status).toBe(409);
+    const body = await json<{ error: string; reason: string }>(denied);
+    expect(body.error).toBe('quotation_closed');
+    expect(body.reason).toBe('expired');
+  });
+});
+
+describe('quotations — terminal actions (20 §2)', () => {
+  test('cancel requires a comment and is terminal', async () => {
+    const { quote, token, contact } = await scenario();
+
+    const noComment = await post(token, `/quotations/${quote.id}/cancel`, { comment: '   ' });
+    expect(noComment.status).toBe(400);
+
+    const res = await post(token, `/quotations/${quote.id}/cancel`, {
+      comment: 'El cliente pospuso el proyecto',
+    });
+    expect(res.status).toBe(200);
+    const cancelled = await json<Quotation>(res);
+    expect(cancelled.status).toBe(QuotationStatus.Cancelled);
+    expect(cancelled.resolutionReason).toBe('El cliente pospuso el proyecto');
+
+    // Terminal: no further lifecycle action lands.
+    const resend = await post(token, `/quotations/${quote.id}/send`, {
+      recipients: [{ contactId: contact.id, isReviewer: true }],
+    });
+    expect(resend.status).toBe(409);
+    expect((await json<{ error: string }>(resend)).error).toBe('quotation_not_live');
+  });
+
+  test('revise opens a linked draft at current prices and cancels the original', async () => {
+    const { quote, token, service } = await scenario({ price: 1000 });
+    const bump = await request(`/services/${service.id}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ price: 1200 }),
+    });
+    expect(bump.status).toBe(200);
+
+    const res = await post(token, `/quotations/${quote.id}/revise`, {});
+    expect(res.status).toBe(201);
+    const revision = await json<Quotation>(res);
+    created.push(revision.id);
+
+    expect(revision.status).toBe(QuotationStatus.Draft);
+    expect(revision.supersedesQuotationId).toBe(quote.id);
+    expect(revision.folio).not.toBe(quote.folio);
+    // The whole point of revising: the new draft re-read the catalog.
+    expect(revision.lines[0]?.unitPrice).toBe('1200.00');
+
+    const original = await json<Quotation>(
+      await request(`/quotations/${quote.id}`, { headers: jsonHeaders(token) }),
+    );
+    expect(original.status).toBe(QuotationStatus.Cancelled);
+    expect(original.resolutionReason).toContain(quote.folio);
+  });
+
+  test('order_created is unreachable until 19 lands', async () => {
+    const { quote, token } = await scenario();
+    const res = await post(token, `/quotations/${quote.id}/order`, { comment: 'vamos' });
+    expect(res.status).toBe(404);
+    const staffView = await json<Quotation>(
+      await request(`/quotations/${quote.id}`, { headers: jsonHeaders(token) }),
+    );
+    expect(staffView.serviceOrderId).toBeUndefined();
+  });
+});
+
+describe('quotations — access (20 §7)', () => {
+  test('office can build and send', async () => {
+    const { token: ownerToken } = await seedOwnerAndLogin();
+    const { token: officeToken } = await seedOfficeAndLogin();
+    const customer = await seedCustomer();
+    const service = await makeService(ownerToken);
+
+    const res = await createQuote(officeToken, {
+      customerId: customer.id,
+      validUntil: dayOffset(7),
+      lines: [{ serviceId: service.id, quantity: 1 }],
+    });
+    expect(res.status).toBe(201);
+    created.push((await json<Quotation>(res)).id);
+  });
+
+  test('technicians have no quotation surface at all', async () => {
+    const { quote } = await scenario();
+    const { token: techToken } = await seedTechnicianAndLogin();
+
+    expect((await request('/quotations', { headers: jsonHeaders(techToken) })).status).toBe(403);
+    expect(
+      (await request(`/quotations/${quote.id}`, { headers: jsonHeaders(techToken) })).status,
+    ).toBe(403);
+    expect(
+      (await post(techToken, `/quotations/${quote.id}/cancel`, { comment: 'no' })).status,
+    ).toBe(403);
+  });
+
+  test('the list is unauthenticated-proof and filters by status', async () => {
+    expect((await request('/quotations')).status).toBe(401);
+
+    const { quote, token } = await scenario();
+    const res = await request(`/quotations?status=${QuotationStatus.Draft}&customerId=${quote.customerId}`, {
+      headers: jsonHeaders(token),
+    });
+    expect(res.status).toBe(200);
+    const page = await json<{ items: Quotation[]; total: number }>(res);
+    expect(page.items.map((q) => q.id)).toContain(quote.id);
+    expect(page.items.every((q) => q.status === QuotationStatus.Draft)).toBe(true);
+  });
+});

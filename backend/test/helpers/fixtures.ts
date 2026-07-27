@@ -4,7 +4,12 @@ import { createDb } from '../../src/modules/database/client';
 import { insertCustomer } from '../../src/modules/customers/repository/customers.repository';
 import { insertUser } from '../../src/modules/users/repository/users.repository';
 import { hashPassword } from '../../src/modules/auth/services/password.service';
-import { reportCounters, reportDetails, reports } from '../../src/modules/database/schema';
+import {
+  customerContacts,
+  reportCounters,
+  reportDetails,
+  reports,
+} from '../../src/modules/database/schema';
 import { ReportStatus, type WorkType } from '../../src/modules/reports/enums/reports.enum';
 import { request, json, jsonHeaders } from './request';
 
@@ -75,6 +80,32 @@ export const seedCustomer = async (): Promise<SeededCustomer> => {
   const email = uniqueRecipientEmail('customer');
   const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
   const row = await insertCustomer(db, { name, email });
+  return { id: row.id, name, email };
+};
+
+type SeededContact = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+/** A contact on a customer — the quotation recipient picker reads these (20 §4).
+ *  Inserted through the model rather than an API call because `POST /customers`
+ *  owns contact creation as part of a larger payload, and quote tests only need
+ *  the row. Addresses use the deliverable `+`-alias for the same
+ *  defense-in-depth reason customer emails do: contacts ARE mail recipients. */
+export const seedContact = async (
+  customerId: string,
+  opts: { isDefault?: boolean } = {},
+): Promise<SeededContact> => {
+  const name = uniqueName('contact');
+  const email = uniqueRecipientEmail('contact');
+  const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
+  const [row] = await db
+    .insert(customerContacts)
+    .values({ customerId, name, email, isDefault: opts.isDefault ?? false })
+    .returning();
+  if (!row) throw new Error('seedContact returned no row');
   return { id: row.id, name, email };
 };
 
