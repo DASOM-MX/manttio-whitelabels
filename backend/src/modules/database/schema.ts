@@ -19,6 +19,8 @@ import { quotations } from '../quotations/models/quotations.model';
 import { quotationLines } from '../quotations/models/quotation-lines.model';
 import { quotationRecipients } from '../quotations/models/quotation-recipients.model';
 import { quotationEvents } from '../quotations/models/quotation-events.model';
+import { serviceOrderServices, serviceOrders } from '../service-orders/models/service-orders.model';
+import { serviceOrderEvents } from '../service-orders/models/service-order-events.model';
 
 export { users } from '../users/models/users.model';
 export { customers } from '../customers/models/customers.model';
@@ -37,6 +39,12 @@ export { quotations, quotationCounters } from '../quotations/models/quotations.m
 export { quotationLines } from '../quotations/models/quotation-lines.model';
 export { quotationRecipients } from '../quotations/models/quotation-recipients.model';
 export { quotationEvents } from '../quotations/models/quotation-events.model';
+export {
+  serviceOrders,
+  serviceOrderServices,
+  serviceOrderCounters,
+} from '../service-orders/models/service-orders.model';
+export { serviceOrderEvents } from '../service-orders/models/service-order-events.model';
 
 export const usersRelations = relations(users, ({ many }) => ({
   reportsCreated: many(reports, { relationName: 'reports_created_by' }),
@@ -58,6 +66,48 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
   fiscal: one(customerFiscal),
   interactions: many(customerInteractions),
   equipment: many(equipment),
+  serviceOrders: many(serviceOrders),
+}));
+
+export const serviceOrdersRelations = relations(serviceOrders, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [serviceOrders.customerId],
+    references: [customers.id],
+  }),
+  creator: one(users, {
+    fields: [serviceOrders.createdBy],
+    references: [users.id],
+  }),
+  lines: many(serviceOrderServices),
+  // Exploded at creation, one per sold unit (19 §2).
+  reports: many(reports),
+  // The order timeline — the single audit aggregate for the job (19 §7).
+  events: many(serviceOrderEvents),
+}));
+
+export const serviceOrderServicesRelations = relations(serviceOrderServices, ({ one }) => ({
+  order: one(serviceOrders, {
+    fields: [serviceOrderServices.serviceOrderId],
+    references: [serviceOrders.id],
+  }),
+  // The catalog row the line was snapshotted from. Present for provenance only:
+  // every displayed value comes from the line's own frozen columns, never from
+  // following this FK (19 §1).
+  service: one(services, {
+    fields: [serviceOrderServices.serviceId],
+    references: [services.id],
+  }),
+}));
+
+export const serviceOrderEventsRelations = relations(serviceOrderEvents, ({ one }) => ({
+  order: one(serviceOrders, {
+    fields: [serviceOrderEvents.serviceOrderId],
+    references: [serviceOrders.id],
+  }),
+  actor: one(users, {
+    fields: [serviceOrderEvents.actorId],
+    references: [users.id],
+  }),
 }));
 
 export const customerContactsRelations = relations(customerContacts, ({ one }) => ({
@@ -99,6 +149,16 @@ export const reportsRelations = relations(reports, ({ one, many }) => ({
   client: one(customers, {
     fields: [reports.clientId],
     references: [customers.id],
+  }),
+  // Both null for a standalone report — reporting never requires an order
+  // (06 standalone-suite rule).
+  serviceOrder: one(serviceOrders, {
+    fields: [reports.serviceOrderId],
+    references: [serviceOrders.id],
+  }),
+  service: one(services, {
+    fields: [reports.serviceId],
+    references: [services.id],
   }),
   details: one(reportDetails),
   emails: many(reportEmails),

@@ -35,7 +35,7 @@ import {
 import { isFile, type FormValue } from '../../storage/utils/form-data';
 import { canAccess } from '../utils/report-access';
 import { isAdminTier } from '../../auth/utils/role-tier';
-import { isEditableStatus } from '../utils/report-lifecycle';
+import { isBirthStatus, isEditableStatus } from '../utils/report-lifecycle';
 import { ReportStatus } from '../enums/reports.enum';
 import { validateReportData } from '../validators/reports.validator';
 import { renderReportPdf } from '../helpers/report-pdf.helpers';
@@ -392,7 +392,9 @@ export const applyPatch = async (
         })
         .where(eq(reportDetails.reportId, report.id));
     }
-    if (report.status === ReportStatus.Created) {
+    // Either birth state promotes on the first content write — `pending`
+    // (exploded from an order) skips `created` entirely (19 §2).
+    if (isBirthStatus(report.status)) {
       await tx
         .update(reports)
         .set({ status: ReportStatus.InProgress, updatedAt: now })
