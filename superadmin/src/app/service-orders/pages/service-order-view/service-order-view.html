@@ -1,0 +1,291 @@
+@if (order(); as order) {
+  <app-page-header [title]="order.folio" backLink="/service-orders">
+    <ng-container meta>
+      <p-tag
+        [severity]="order.status | serviceOrderStatusSeverity"
+        [value]="order.status | serviceOrderStatusLabel"
+      />
+    </ng-container>
+    @if (isStaff() && isOpen()) {
+      <button type="button" class="btn-secondary" (click)="openEdit()">
+        <svg lucidePencil class="size-4" aria-hidden="true"></svg>
+        Editar
+      </button>
+      <button type="button" class="btn-danger" (click)="cancelOpen.set(true)">
+        <svg lucideX class="size-4" aria-hidden="true"></svg>
+        Cancelar
+      </button>
+      <button type="button" class="btn-primary" (click)="completeOpen.set(true)">
+        <svg lucideCheck class="size-4" aria-hidden="true"></svg>
+        Completar
+      </button>
+    }
+  </app-page-header>
+
+  <div class="flex flex-col gap-6">
+    <!-- Resumen -->
+    <section class="card p-6">
+      <h2 class="micro-label mb-4">Resumen</h2>
+      <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <dt class="micro-label">Cliente</dt>
+          <dd class="mt-1 text-sm font-medium">
+            <a [routerLink]="['/customers', order.customerId]" class="link-action">
+              {{ order.customerName }}
+            </a>
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Ubicación</dt>
+          <dd class="mt-1 text-sm">{{ order.location || '—' }}</dd>
+        </div>
+        <div>
+          <dt class="micro-label">Creada por</dt>
+          <dd class="mt-1 text-sm">{{ order.createdByName || '—' }}</dd>
+        </div>
+        <div>
+          <dt class="micro-label">Fecha</dt>
+          <dd class="mt-1 text-sm">{{ order.createdAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+        </div>
+        @if (order.comments) {
+          <div class="sm:col-span-2 lg:col-span-4">
+            <dt class="micro-label">Comentarios</dt>
+            <dd class="mt-1 text-sm">{{ order.comments }}</dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <!-- Servicios -->
+    <section class="card p-6">
+      <h2 class="micro-label mb-4">Servicios</h2>
+      <div class="card-flush-table">
+        <p-table [value]="order.lines">
+          <ng-template #header>
+            <tr>
+              <th scope="col">Servicio</th>
+              <th scope="col">Cantidad</th>
+              <th scope="col">IVA</th>
+              @if (showsMoney()) {
+                <th scope="col" class="text-right">Precio unitario</th>
+                <th scope="col" class="text-right">Importe</th>
+              }
+            </tr>
+          </ng-template>
+          <ng-template #body let-line>
+            <tr>
+              <td class="font-medium">{{ line.serviceName }}</td>
+              <td class="font-data">{{ line.quantity }} {{ line.uom | serviceUomShort }}</td>
+              <td class="font-data">{{ line.taxRate | serviceTaxRateShort }}</td>
+              @if (showsMoney()) {
+                <td class="font-data text-right">{{ line.unitPrice | money }}</td>
+                <td class="font-data text-right">{{ line.amounts?.total | money }}</td>
+              }
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+      @if (showsMoney()) {
+        <dl class="mt-4 flex flex-col items-end gap-1 text-sm">
+          <div class="flex gap-6">
+            <dt class="text-surface-500 dark:text-surface-400">Subtotal</dt>
+            <dd class="font-data w-28 text-right">{{ order.amounts?.subtotal | money }}</dd>
+          </div>
+          <div class="flex gap-6">
+            <dt class="text-surface-500 dark:text-surface-400">IVA</dt>
+            <dd class="font-data w-28 text-right">{{ order.amounts?.tax | money }}</dd>
+          </div>
+          <div class="flex gap-6 font-medium">
+            <dt>Total</dt>
+            <dd class="font-data w-28 text-right">{{ order.amounts?.total | money }}</dd>
+          </div>
+        </dl>
+      }
+    </section>
+
+    <!-- Reportes generados -->
+    <section class="card p-6">
+      <h2 class="micro-label mb-4">Reportes</h2>
+      @if (reports(); as reportRows) {
+        <div class="card-flush-table">
+          <p-table [value]="reportRows" [rowHover]="true">
+            <ng-template #header>
+              <tr>
+                <th scope="col">Folio</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Técnico</th>
+                <th scope="col">Estado</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-report>
+              <tr class="cursor-pointer" (click)="openReport(report)">
+                <td class="font-data font-medium">{{ report.folio }}</td>
+                <td>{{ report.reportType | reportTypeLabel }}</td>
+                <td>{{ report.assignedToName || '—' }}</td>
+                <td>
+                  <p-tag
+                    [severity]="report.status | reportStatusSeverity"
+                    [value]="report.status | reportStatusLabel"
+                  />
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr>
+                <td colspan="4">
+                  <div class="flex flex-col items-center gap-3 py-8 text-center">
+                    <span class="empty-icon">
+                      <svg lucideFileText class="size-5" aria-hidden="true"></svg>
+                    </span>
+                    <p class="text-sm text-surface-500 dark:text-surface-400">
+                      Esta orden no tiene reportes.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      } @else {
+        <div class="flex flex-col gap-2">
+          @for (row of [0, 1, 2]; track row) {
+            <div class="skeleton h-8"></div>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- Actividad (19 §7) -->
+    <section class="card p-6">
+      <h2 class="micro-label mb-4">Actividad</h2>
+      @if (timeline().length > 0) {
+        <ol class="flex flex-col">
+          @for (event of timeline(); track event.id) {
+            <li
+              class="flex items-start gap-3 border-b border-surface-200 py-3 last:border-b-0 dark:border-surface-700"
+            >
+              <span class="icon-chip mt-0.5 shrink-0">
+                <svg lucideHistory class="size-4" aria-hidden="true"></svg>
+              </span>
+              <div class="min-w-0 grow">
+                <p class="text-sm font-medium">{{ event.type | serviceOrderEventLabel }}</p>
+                @if (event.note) {
+                  <p class="text-sm text-surface-500 dark:text-surface-400">{{ event.note }}</p>
+                }
+              </div>
+              <div class="shrink-0 text-right">
+                <p class="micro-label">{{ event.createdAt | relativeTime }}</p>
+                @if (event.actorName) {
+                  <p class="text-2xs text-surface-500 dark:text-surface-400">
+                    {{ event.actorName }}
+                  </p>
+                }
+              </div>
+            </li>
+          }
+        </ol>
+        @if (hasMoreEvents()) {
+          <button type="button" class="link-action mt-3" (click)="loadMoreEvents()">
+            Ver más actividad
+          </button>
+        }
+      } @else {
+        <div class="flex flex-col gap-2">
+          @for (row of [0, 1, 2]; track row) {
+            <div class="skeleton h-8"></div>
+          }
+        </div>
+      }
+    </section>
+  </div>
+
+  <!-- Editar comentarios / ubicación (19 §1: los únicos campos mutables) -->
+  <p-dialog
+    header="Editar orden"
+    [modal]="true"
+    [visible]="editOpen()"
+    (visibleChange)="editOpen.set($event)"
+    [style]="{ width: '28rem' }"
+  >
+    <form [formGroup]="editForm" class="flex flex-col gap-5" (ngSubmit)="saveEdit()">
+      <div class="field-group">
+        <label class="field-label" for="edit-comments">Comentarios</label>
+        <textarea id="edit-comments" pTextarea formControlName="comments" rows="3"></textarea>
+      </div>
+      @if (canEditLocation()) {
+        <div class="field-group">
+          <label class="field-label" for="edit-location">Ubicación</label>
+          <input id="edit-location" pInputText formControlName="location" />
+          <p class="field-hint">Cambiarla queda registrado en la actividad de la orden.</p>
+        </div>
+      }
+      <div class="flex items-center justify-end gap-3">
+        <button type="button" class="btn-secondary" (click)="editOpen.set(false)">Cancelar</button>
+        <button type="submit" class="btn-primary" [disabled]="saving()">Guardar</button>
+      </div>
+    </form>
+  </p-dialog>
+
+  <!-- Completar -->
+  <p-dialog
+    header="Completar orden"
+    [modal]="true"
+    [visible]="completeOpen()"
+    (visibleChange)="completeOpen.set($event)"
+    [style]="{ width: '26rem' }"
+  >
+    <p class="text-sm">
+      La orden {{ order.folio }} se marcará como completada. Esta acción no se puede deshacer.
+    </p>
+    <div class="mt-6 flex items-center justify-end gap-3">
+      <button type="button" class="btn-secondary" (click)="completeOpen.set(false)">Cancelar</button>
+      <button type="button" class="btn-primary" [disabled]="saving()" (click)="confirmComplete()">
+        Completar
+      </button>
+    </div>
+  </p-dialog>
+
+  <!-- Cancelar (voids unfinished reports — 19 §2) -->
+  <p-dialog
+    header="Cancelar orden"
+    [modal]="true"
+    [visible]="cancelOpen()"
+    (visibleChange)="cancelOpen.set($event)"
+    [style]="{ width: '28rem' }"
+  >
+    <p class="callout callout--danger">
+      Los reportes sin terminar de esta orden se cancelarán. Los reportes ya terminados se
+      conservan.
+    </p>
+    <div class="field-group mt-4">
+      <label class="field-label" for="cancel-note">Motivo</label>
+      <textarea
+        id="cancel-note"
+        pTextarea
+        [formControl]="cancelNote"
+        rows="2"
+        placeholder="Opcional — queda en la actividad de la orden"
+      ></textarea>
+    </div>
+    <div class="mt-6 flex items-center justify-end gap-3">
+      <button type="button" class="btn-secondary" (click)="cancelOpen.set(false)">Volver</button>
+      <button type="button" class="btn-danger" [disabled]="saving()" (click)="confirmCancel()">
+        Cancelar orden
+      </button>
+    </div>
+  </p-dialog>
+} @else if (loadFailed()) {
+  <div class="card flex flex-col items-center gap-3 p-10 text-center">
+    <span class="empty-icon">
+      <svg lucideSearchX class="size-5" aria-hidden="true"></svg>
+    </span>
+    <p class="text-sm text-surface-500 dark:text-surface-400">No se encontró la orden.</p>
+    <a routerLink="/service-orders" class="btn-secondary">Volver a órdenes</a>
+  </div>
+} @else {
+  <div class="flex flex-col gap-6">
+    @for (row of [0, 1, 2]; track row) {
+      <div class="card p-6"><div class="skeleton h-24"></div></div>
+    }
+  </div>
+}

@@ -3,7 +3,7 @@ import { REPORT_STATUS_LABELS } from '../model/constants/report/report-status-la
 import { REPORT_STATUS_SEVERITIES } from '../model/constants/report/report-status-severities.const';
 import { TEMPLATE_STATUS_LABELS } from '../model/constants/report-template/template-status-labels.const';
 import { TEMPLATE_STATUS_SEVERITIES } from '../model/constants/report-template/template-status-severities.const';
-import type { ReportStatus } from '../data/dtos/report';
+import type { ReportStatus } from '../model/enums/report/report-status.enum';
 import type { ReportTemplate, TemplateStatus } from '../data/dtos/report-template';
 
 /** Pure per-row status mappings (01 Angular: no method calls in templates). */
@@ -17,7 +17,7 @@ export class ReportStatusLabelPipe implements PipeTransform {
 
 @Pipe({ name: 'reportStatusSeverity' })
 export class ReportStatusSeverityPipe implements PipeTransform {
-  transform(status: ReportStatus): 'secondary' | 'info' | 'success' | 'warn' {
+  transform(status: ReportStatus): 'secondary' | 'info' | 'success' | 'warn' | 'danger' {
     return REPORT_STATUS_SEVERITIES[status];
   }
 }

@@ -25,6 +25,7 @@ export const NAV: NavEntry[] = [
       { label: 'Usuarios', route: '/users', module: 'users' },
       { label: 'Servicios', route: '/services', module: 'services' },
       { label: 'Cotizaciones', route: '/quotations', module: 'quotations' },
+      { label: 'Órdenes', route: '/service-orders', module: 'service-orders' },
       { label: 'Reportes', route: '/reports', module: 'reports' },
       { label: 'Plantillas', route: '/templates', module: 'templates' },
     ],
