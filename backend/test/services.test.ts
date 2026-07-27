@@ -13,7 +13,7 @@ import { createDb } from '../src/modules/database/client';
 import { services } from '../src/modules/database/schema';
 import { ServiceTaxRate, ServiceUom } from '../src/modules/services/enums/services.enum';
 
-type WorkerEnv = { DATABASE_URL: string };
+type WorkerEnv = { DATABASE_URL: string; IMAGES_CDN_BASE_URL?: string };
 
 type Service = {
   id: string;
@@ -23,6 +23,8 @@ type Service = {
   uom: ServiceUom;
   description?: string;
   websiteDescription?: string;
+  websiteImageKey?: string;
+  websiteImageUrl?: string;
   internalServiceCode?: string;
   taxRate: string;
   satProdServCode?: string;
@@ -35,6 +37,7 @@ type PublicService = {
   id: string;
   name: string;
   description?: string;
+  imageUrl?: string;
   uom: ServiceUom;
   price?: string;
 };
@@ -322,6 +325,52 @@ describe('GET /public/services', () => {
     const entry = findById(body.services, svc.id) as PublicService;
     // Deliberately absent rather than falling back to the management note.
     expect(entry.description).toBeUndefined();
+  });
+});
+
+describe('website image (18 §1)', () => {
+  // The R2 key the editor would get back from POST /upload/website-image. No
+  // real upload here: this suite is about the column and the two DTOs, and the
+  // upload route is covered by upload.test.ts.
+  const KEY = 'website/1753500000000-chiller.jpg';
+  const imagesCdnBase = () => (env as unknown as WorkerEnv).IMAGES_CDN_BASE_URL;
+
+  test('stores the key and answers with both key and materialized URL', async () => {
+    const svc = await seedService({ websiteImageKey: KEY });
+
+    // The key round-trips so a re-save never drops the photo…
+    expect(svc.websiteImageKey).toBe(KEY);
+    // …and the URL is derived, never stored.
+    expect(svc.websiteImageUrl).toBe(`${imagesCdnBase()}/${KEY}`);
+  });
+
+  test('an empty string clears the photo', async () => {
+    const svc = await seedService({ websiteImageKey: KEY });
+    const { token } = await seedOwnerAndLogin();
+
+    const res = await patchService(token, svc.id, { websiteImageKey: '' });
+    const updated = await json<Service>(res);
+    // Cleared to null, not stored as '' — and no URL to materialize.
+    expect(updated.websiteImageKey).toBeUndefined();
+    expect(updated.websiteImageUrl).toBeUndefined();
+  });
+
+  test('the public listing publishes the URL and never the bucket key', async () => {
+    const svc = await seedService({ websiteImageKey: KEY, isListableInWebsite: true });
+
+    const body = await json<{ services: PublicService[] }>(await request('/public/services'));
+    const entry = findById(body.services, svc.id) as PublicService & Record<string, unknown>;
+    expect(entry.imageUrl).toBe(`${imagesCdnBase()}/${KEY}`);
+    // An unauthenticated consumer has no business seeing bucket paths.
+    expect(entry['websiteImageKey']).toBeUndefined();
+  });
+
+  test('a listed service with no photo omits imageUrl entirely', async () => {
+    const svc = await seedService({ isListableInWebsite: true });
+
+    const body = await json<{ services: PublicService[] }>(await request('/public/services'));
+    // Absent, not '' — the site's cue to render the text-only card.
+    expect((findById(body.services, svc.id) as PublicService).imageUrl).toBeUndefined();
   });
 });
 

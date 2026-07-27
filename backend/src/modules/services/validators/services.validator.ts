@@ -19,6 +19,9 @@ export const createServiceSchema = z.object({
   uom: z.nativeEnum(ServiceUom),
   description: z.string().optional(),
   websiteDescription: z.string().optional(),
+  // An R2 key from `POST /upload/image`, never a URL — the client uploads
+  // first and commits the key here on save.
+  websiteImageKey: z.string().trim().optional(),
   internalServiceCode: z.string().trim().optional(),
   taxRate: z.nativeEnum(ServiceTaxRate).default(ServiceTaxRate.Iva16),
   // SAT CFDI keys — no format assertion yet; the catalogs are versioned by the

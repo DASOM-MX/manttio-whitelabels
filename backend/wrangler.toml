@@ -15,6 +15,12 @@ CDN_BASE_URL = "https://cdn.dasom.com"
 # icons). Placeholder until the bucket's public/custom domain exists — set it
 # before provisioning the brand (deploy checklist, plan 02).
 LOGOS_CDN_BASE_URL = "https://logos.dasom.com"
+# Public base of the `manttio-images` bucket (public marketing imagery uploaded
+# via POST /upload/website-image — service catalog photos). Same placeholder
+# posture as LOGOS_CDN_BASE_URL: the bucket exists, its custom domain does not
+# yet. Optional in code — unset, the API omits image URLs rather than emitting
+# broken ones, so a tenant deploy without it degrades to text-only cards.
+IMAGES_CDN_BASE_URL = "https://images.dasom.com"
 API_BASE_URL = "http://127.0.0.1:8787"
 RESEND_FROM = "no-reply@dasom.com"
 # Cloudflare Turnstile server-side verification endpoint (POST /public/leads).
@@ -45,6 +51,13 @@ bucket_name = "manttio-logos"
 binding = "MANTTIO_EQUIPMENT"
 bucket_name = "manttio-equipment"
 
+# Public marketing-site imagery (service catalog photos) — its own bucket, the
+# same posture brand assets get (owner 2026-07-26). The bucket predates this
+# binding; its public base is IMAGES_CDN_BASE_URL (per-deploy, see below).
+[[r2_buckets]]
+binding = "MANTTIO_IMAGES"
+bucket_name = "manttio-images"
+
 # 1 req/min per IP on POST /public/leads (Workers rate-limiting API). Best-effort
 # per-colo counting — an abuse dial, not a strict quota. Optional binding: the
 # controller fails open when it is absent.
@@ -60,6 +73,7 @@ simple = { limit = 1, period = 60 }
 ENVIRONMENT = "production"
 CDN_BASE_URL = "https://cdn.dasom.com"
 LOGOS_CDN_BASE_URL = "https://logos.dasom.com"
+IMAGES_CDN_BASE_URL = "https://images.dasom.com"
 API_BASE_URL = "https://api.dasom.com"
 RESEND_FROM = "no-reply@dasom.com"
 TURNSTILE_SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
@@ -75,6 +89,10 @@ bucket_name = "manttio-logos"
 [[env.production.r2_buckets]]
 binding = "MANTTIO_EQUIPMENT"
 bucket_name = "manttio-equipment"
+
+[[env.production.r2_buckets]]
+binding = "MANTTIO_IMAGES"
+bucket_name = "manttio-images"
 
 [[env.production.unsafe.bindings]]
 name = "LEADS_RATE_LIMITER"

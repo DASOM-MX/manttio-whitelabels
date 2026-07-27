@@ -11,9 +11,12 @@ import { getPublishedServices } from '../services/services-catalog.service';
 //
 // Unlike the CMS reads this never 404s: an empty catalog is a legitimate state
 // (nothing published yet), and the site simply renders no services section.
+//
+// Photos ship as materialized `imageUrl`s (`manttio-images` via
+// IMAGES_CDN_BASE_URL), never as raw bucket keys.
 export const publicServices = new Hono<AppBindings>();
 
 publicServices.get('/', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  return c.json(await getPublishedServices(db));
+  return c.json(await getPublishedServices(db, c.env.IMAGES_CDN_BASE_URL));
 });

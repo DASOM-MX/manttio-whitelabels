@@ -8,12 +8,15 @@ import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { CheckboxModule } from 'primeng/checkbox';
 import { MessageService } from 'primeng/api';
+import { LucideImage, LucideImageUp, LucideTrash2 } from '@lucide/angular';
 import { Store } from '@ngxs/store';
 import { CreateService, UpdateService } from '../../../../state/services/services.actions';
 import { SERVICE_TAX_RATE_LABELS } from '../../../model/constants/services/service-tax-rate-labels.const';
 import { SERVICE_UOM_GROUPS } from '../../../model/constants/services/service-uom-groups.const';
+import { UploadService } from '../../../services/http/upload.service';
 import { errorMessage } from '../../../data/utils';
 import { ServiceTaxRate, ServiceUom, type Service } from '../../../data/dtos/service';
+import type { ServiceWebsiteImage } from '../../../data/types/services/service-website-image';
 
 /** Shape-3 create/edit dialog for a catalog service (18 §3).
  *
@@ -31,6 +34,9 @@ import { ServiceTaxRate, ServiceUom, type Service } from '../../../data/dtos/ser
     SelectModule,
     TextareaModule,
     CheckboxModule,
+    LucideImage,
+    LucideImageUp,
+    LucideTrash2,
   ],
   templateUrl: './service-form-dialog.html',
 })
@@ -41,10 +47,15 @@ export class ServiceFormDialog {
   private fb = inject(FormBuilder);
   private store = inject(Store);
   private messages = inject(MessageService);
+  private uploads = inject(UploadService);
 
   protected dialogOpen = signal(false);
   protected submitting = signal(false);
   protected editing = signal<Service | null>(null);
+  /** Website card photo — the key is committed on save, the url previews it.
+   *  Held outside the form because it's not a text control (same split as the
+   *  clients-editor logo). */
+  protected image = signal<ServiceWebsiteImage>({ uploading: false });
 
   protected taxRateOptions = (
     Object.entries(SERVICE_TAX_RATE_LABELS) as [ServiceTaxRate, string][]
@@ -91,8 +102,38 @@ export class ServiceFormDialog {
       isPriceVisibleInWebsite: svc?.isPriceVisibleInWebsite ?? false,
       websiteDescription: svc?.websiteDescription ?? '',
     });
+    this.image.set({
+      key: svc?.websiteImageKey,
+      url: svc?.websiteImageUrl,
+      uploading: false,
+    });
     this.submitting.set(false);
     this.dialogOpen.set(true);
+  }
+
+  protected onImageFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file || this.image().uploading) return;
+    this.image.update((s) => ({ ...s, uploading: true }));
+    this.uploads.uploadWebsiteImage(file).subscribe({
+      next: ({ key, url }) => this.image.set({ key, url, uploading: false }),
+      error: (err) => {
+        this.image.update((s) => ({ ...s, uploading: false }));
+        this.messages.add({
+          severity: 'error',
+          summary: 'No se pudo subir la imagen',
+          detail: errorMessage(err, 'Inténtalo de nuevo.'),
+        });
+      },
+    });
+  }
+
+  protected removeImage(): void {
+    if (this.image().uploading) return;
+    // Clears both — submit() sends '' so the server drops the stored key.
+    this.image.set({ uploading: false });
   }
 
   protected close(): void {
@@ -101,7 +142,7 @@ export class ServiceFormDialog {
   }
 
   protected submit(): void {
-    if (this.form.invalid || this.submitting()) return;
+    if (this.form.invalid || this.submitting() || this.image().uploading) return;
     const raw = this.form.getRawValue();
     const listed = raw.isListableInWebsite;
     const payload = {
@@ -121,6 +162,10 @@ export class ServiceFormDialog {
       // Website copy is kept even when unlisted — it's not exposed unless the
       // service is listed, and discarding it would lose work on every toggle.
       websiteDescription: raw.websiteDescription.trim() || undefined,
+      // Always sent (as '' when cleared) so "Quitar" actually persists — same
+      // reasoning as the copy, the photo survives an unlist so no re-upload on
+      // relist. The backend maps '' → null.
+      websiteImageKey: this.image().key ?? '',
     };
     const editing = this.editing();
     this.submitting.set(true);

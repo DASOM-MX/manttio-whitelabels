@@ -1,5 +1,6 @@
 import type { Db } from '../../database/client';
 import { isUniqueViolation } from '../../database/db-errors';
+import { cdnUrl } from '../../storage/services/storage.service';
 import { ServiceCodeInUseError } from '../http-errors/services.error';
 import {
   findServiceById,
@@ -24,6 +25,13 @@ import type {
 
 const opt = <T>(v: T | null | undefined): T | undefined => (v == null ? undefined : v);
 
+/** Read-time materialization of the website photo (`manttio-images`): the row
+ *  stores the R2 key, every response carries a URL. An absent key **and** an
+ *  unconfigured `IMAGES_CDN_BASE_URL` both yield `undefined`, so no consumer —
+ *  least of all the public page — can render `undefined/website/…`. */
+const websiteImageUrl = (key: string | null, cdnBase: string | undefined): string | undefined =>
+  key && cdnBase ? cdnUrl(cdnBase, key) : undefined;
+
 /** The catalog-code unique index is the only unique constraint on this table,
  *  so a unique violation here can only be a duplicate code — translate it to
  *  the typed domain error the controller maps to 409. Anything else rethrows
@@ -40,7 +48,7 @@ const asCodeConflict = async <T>(run: () => Promise<T>, code: string | undefined
 /** `includeCost` is the caller's back-office-tier flag (18 §2): owner, admin and
  *  office all quote and invoice from the internal cost. Technicians read the
  *  catalog as a price list and never see it. */
-const toDTO = (row: ServiceRow, includeCost: boolean): ServiceDTO => ({
+const toDTO = (row: ServiceRow, includeCost: boolean, imagesCdnBase?: string): ServiceDTO => ({
   id: row.id,
   name: row.name,
   price: row.price,
@@ -48,6 +56,9 @@ const toDTO = (row: ServiceRow, includeCost: boolean): ServiceDTO => ({
   uom: row.uom,
   description: opt(row.description),
   websiteDescription: opt(row.websiteDescription),
+  // The editor gets both: the key to send back on save, the URL to preview.
+  websiteImageKey: opt(row.websiteImageKey),
+  websiteImageUrl: websiteImageUrl(row.websiteImageKey, imagesCdnBase),
   internalServiceCode: opt(row.internalServiceCode),
   taxRate: row.taxRate,
   satProdServCode: opt(row.satProdServCode),
@@ -80,6 +91,13 @@ const collectUpdate = (input: UpdateServiceInput): UpdateServiceFields => {
   if (input.websiteDescription !== undefined) {
     f.websiteDescription = input.websiteDescription || null;
   }
+  // Empty string clears the photo — the editor's "Quitar" sends '' rather than
+  // a separate delete call. The R2 object is left in place: reverting a removal
+  // is a re-save of the same key, and orphaned objects are cheaper than a
+  // destructive cleanup path (no-hard-delete rule, in spirit).
+  if (input.websiteImageKey !== undefined) {
+    f.websiteImageKey = input.websiteImageKey || null;
+  }
   // Empty string clears the code rather than storing '' — '' would collide
   // with the next empty one under the unique index.
   if (input.internalServiceCode !== undefined) {
@@ -99,14 +117,18 @@ export const getServices = async (
   db: Db,
   q: ListServicesQuery,
   includeCost: boolean,
+  imagesCdnBase?: string,
 ): Promise<{ services: ServiceDTO[] }> => {
   const rows = await listServices(db, { search: q.q });
-  return { services: rows.map((row) => toDTO(row, includeCost)) };
+  return { services: rows.map((row) => toDTO(row, includeCost, imagesCdnBase)) };
 };
 
 /** Website listing (18 §4, CP-3). Unauthenticated: the price is dropped unless
  *  the service explicitly opts in — per-service, not a global switch. */
-export const getPublishedServices = async (db: Db): Promise<{ services: PublicServiceDTO[] }> => {
+export const getPublishedServices = async (
+  db: Db,
+  imagesCdnBase?: string,
+): Promise<{ services: PublicServiceDTO[] }> => {
   const rows = await listPublishedServices(db);
   return {
     services: rows.map((row) => ({
@@ -115,6 +137,9 @@ export const getPublishedServices = async (db: Db): Promise<{ services: PublicSe
       // The website copy only. No fallback to the internal `description` —
       // a listed service with no website copy renders title-only.
       description: opt(row.websiteDescription),
+      // The URL, never the key: an unauthenticated consumer has no business
+      // knowing bucket paths, and it has nothing to do with them anyway.
+      imageUrl: websiteImageUrl(row.websiteImageKey, imagesCdnBase),
       uom: row.uom,
       price: row.isPriceVisibleInWebsite ? row.price : undefined,
     })),
@@ -125,14 +150,16 @@ export const getServiceById = async (
   db: Db,
   id: string,
   includeCost: boolean,
+  imagesCdnBase?: string,
 ): Promise<ServiceDTO | null> => {
   const row = await findServiceById(db, id);
-  return row ? toDTO(row, includeCost) : null;
+  return row ? toDTO(row, includeCost, imagesCdnBase) : null;
 };
 
 export const createService = async (
   db: Db,
   input: CreateServiceInput,
+  imagesCdnBase?: string,
 ): Promise<ServiceDTO> => {
   const clean = normalizeWebsiteFlags(input, false);
   const values: NewService = {
@@ -142,6 +169,7 @@ export const createService = async (
     uom: clean.uom,
     description: clean.description ?? null,
     websiteDescription: clean.websiteDescription || null,
+    websiteImageKey: clean.websiteImageKey || null,
     internalServiceCode: clean.internalServiceCode || null,
     taxRate: clean.taxRate,
     satProdServCode: clean.satProdServCode ?? null,
@@ -154,13 +182,14 @@ export const createService = async (
     () => insertService(db, values),
     clean.internalServiceCode,
   );
-  return toDTO(row, true);
+  return toDTO(row, true, imagesCdnBase);
 };
 
 export const editService = async (
   db: Db,
   id: string,
   input: UpdateServiceInput,
+  imagesCdnBase?: string,
 ): Promise<ServiceDTO | null> => {
   const current = await findServiceById(db, id);
   if (!current) return null;
@@ -169,7 +198,7 @@ export const editService = async (
     () => updateService(db, id, collectUpdate(clean)),
     clean.internalServiceCode,
   );
-  return row ? toDTO(row, true) : null;
+  return row ? toDTO(row, true, imagesCdnBase) : null;
 };
 
 export const removeService = async (

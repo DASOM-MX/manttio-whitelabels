@@ -1,0 +1,220 @@
+---
+// Published service catalog (18 §4) — the tenant's priced offering, fed by
+// `GET /public/services`.
+//
+// Deliberately NOT the same thing as `Services.astro`: that section is the CMS
+// narrative (three marketing pillars with tags, edited in the superadmin CMS),
+// while this one is the operational catalog the business actually sells and
+// quotes from. They differ in source, cardinality (three vs dozens) and intent,
+// so the catalog is its own section rather than a replacement.
+//
+// Every entry here already passed the tenant's `isListableInWebsite` gate, and
+// `price` arrives only for services that opted in individually — an absent
+// price renders "Precio a consultar", never a zero.
+import { filled } from '../lib/content';
+import { DEFAULT_CATALOG_CONTENT } from '../lib/defaults';
+import { serviceUomLabel } from '../lib/service-uom';
+import type { CmsHome, PublicService } from '../lib/types';
+
+interface Props {
+  home: CmsHome;
+  services: PublicService[];
+}
+
+const { home, services } = Astro.props;
+
+// Section copy from the CMS (`catalog_content`, 04 §6 posture), brand-neutral
+// defaults as fallback — the two sources are independent on purpose: the copy is
+// edited in the CMS home editor, the cards come from the service catalog.
+const cc = home.catalog_content;
+const content = {
+  eyebrow: filled(cc?.eyebrow) ?? DEFAULT_CATALOG_CONTENT.eyebrow,
+  title: filled(cc?.title) ?? DEFAULT_CATALOG_CONTENT.title,
+  description: filled(cc?.description) ?? DEFAULT_CATALOG_CONTENT.description,
+};
+
+// Single currency in v1 (18: MXN implicit). The backend sends `numeric(12,2)`
+// as a decimal string so no float ever rounds a peso in transit; the only
+// number conversion in the whole path happens here, at display.
+const currency = new Intl.NumberFormat('es-MX', {
+  style: 'currency',
+  currency: 'MXN',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+// A malformed price degrades to "Precio a consultar" rather than rendering
+// "NaN" on a public page.
+const formatPrice = (raw?: string) => {
+  if (!raw) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? currency.format(value) : null;
+};
+
+const entries = services.map((service) => ({
+  ...service,
+  formattedPrice: formatPrice(service.price),
+  uomLabel: serviceUomLabel(service.uom),
+}));
+
+// A photo-less card is just shorter content in a stretched row, so it carries
+// whitespace between its copy and its pinned price. That is deliberate (owner
+// 2026-07-26): a uniform media band with neutral placeholder tiles was built and
+// rejected — "I would rather have long cards than empty looking ones with no
+// image". Do not reintroduce a placeholder tile here.
+---
+
+<section id="catalogo" class="bg-granite-100 py-20 lg:py-24" data-catalog-section>
+  <div class="mx-auto w-full max-w-7xl px-6 lg:px-10">
+    <div class="max-w-3xl">
+      <p class="text-sm font-semibold uppercase tracking-caps text-cyan-600" data-catalog-eyebrow>
+        {content.eyebrow}
+      </p>
+      <h2
+        class="mt-3 font-heading text-3xl font-bold text-granite-900 sm:text-4xl"
+        data-catalog-heading
+      >
+        {content.title}
+      </h2>
+      <p class="mt-4 text-base text-granite-700 sm:text-lg" data-catalog-lede>
+        {content.description}
+      </p>
+    </div>
+
+    <ul class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {entries.map((service) => (
+        <li
+          class="flex flex-col overflow-hidden rounded-2xl border border-granite-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-granite-300 hover:shadow-lg hover:shadow-granite-900/10"
+          data-catalog-card
+        >
+          {service.imageUrl && (
+            <img
+              src={service.imageUrl}
+              alt={service.name}
+              loading="lazy"
+              decoding="async"
+              class="aspect-video w-full object-cover"
+            />
+          )}
+
+          <div class="flex flex-1 flex-col p-7">
+            <h3 class="font-heading text-xl font-bold text-granite-900">
+              {service.name}
+            </h3>
+
+            {service.description && (
+              <p class="mt-3 text-sm leading-relaxed text-granite-600">
+                {service.description}
+              </p>
+            )}
+
+            <div class="mt-auto border-t border-granite-200 pt-5">
+              {service.formattedPrice ? (
+                <p class="flex flex-wrap items-baseline gap-x-2">
+                  <span class="text-2xl font-bold text-granite-900">
+                    {service.formattedPrice}
+                  </span>
+                  <span class="text-sm text-granite-500">MXN / {service.uomLabel}</span>
+                </p>
+              ) : (
+                <p class="flex flex-wrap items-baseline gap-x-2">
+                  <span class="text-base font-semibold text-cyan-700">Precio a consultar</span>
+                  <span class="text-sm text-granite-500">por {service.uomLabel}</span>
+                </p>
+              )}
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
+
+    <div class="mt-12 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <p class="text-sm text-granite-600">
+        Precios de referencia sin IVA. El alcance final se confirma en la cotización.
+      </p>
+      <a
+        href="/contact-us"
+        class="inline-flex items-center justify-center gap-2 self-start rounded-md bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 sm:self-auto"
+      >
+        Solicitar una cotización
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="size-4"
+          aria-hidden="true"
+        >
+          <path d="M5 12h14M13 5l7 7-7 7" />
+        </svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<script>
+  import anime from 'animejs';
+
+  const section = document.querySelector<HTMLElement>('[data-catalog-section]');
+  if (section) {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const intro = [
+      section.querySelector<HTMLElement>('[data-catalog-eyebrow]'),
+      section.querySelector<HTMLElement>('[data-catalog-heading]'),
+      section.querySelector<HTMLElement>('[data-catalog-lede]'),
+    ].filter((el): el is HTMLElement => !!el);
+    const cards = section.querySelectorAll<HTMLElement>('[data-catalog-card]');
+
+    if (!prefersReducedMotion) {
+      const reset = () => {
+        anime.set(intro, { opacity: 0, translateY: 18 });
+        anime.set(cards, { opacity: 0, translateY: 24 });
+      };
+
+      const playIntro = () => {
+        anime({
+          targets: intro,
+          opacity: [0, 1],
+          translateY: [18, 0],
+          duration: 720,
+          delay: anime.stagger(90),
+          easing: 'easeOutCubic',
+        });
+
+        // A long catalog would otherwise trail its last card in well after the
+        // section is read, so the per-card offset is capped by the grid size.
+        anime({
+          targets: cards,
+          opacity: [0, 1],
+          translateY: [24, 0],
+          duration: 640,
+          delay: anime.stagger(Math.min(90, 720 / Math.max(cards.length, 1)), { start: 200 }),
+          easing: 'easeOutCubic',
+        });
+      };
+
+      reset();
+
+      let hasPlayed = false;
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.intersectionRatio >= 0.15 && !hasPlayed) {
+              hasPlayed = true;
+              playIntro();
+            } else if (entry.intersectionRatio <= 0 && hasPlayed) {
+              hasPlayed = false;
+              reset();
+            }
+          });
+        },
+        { threshold: [0, 0.15] },
+      );
+      observer.observe(section);
+    }
+  }
+</script>

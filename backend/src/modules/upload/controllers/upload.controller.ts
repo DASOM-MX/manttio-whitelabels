@@ -51,3 +51,14 @@ upload.post('/logo', (c) =>
 upload.post('/equipment', (c) =>
   handleUpload(c, c.env.MANTTIO_EQUIPMENT, c.env.EQUIPMENT_CDN_BASE_URL, 'equipment'),
 );
+
+// Public marketing-site imagery → the dedicated `manttio-images` bucket (key
+// prefix `website/`, owner 2026-07-26): a photo a visitor sees has a different
+// audience and lifecycle from an operational report picture. The **key** is what
+// callers persist (`services.website_image_key`) — the URL is materialized on
+// read, so a CDN move never rewrites rows. `IMAGES_CDN_BASE_URL` is optional, so
+// an unconfigured deploy returns a bare key-path here rather than
+// `undefined/website/…`, and readers omit the URL entirely.
+upload.post('/website-image', (c) =>
+  handleUpload(c, c.env.MANTTIO_IMAGES, c.env.IMAGES_CDN_BASE_URL ?? '', 'website'),
+);
