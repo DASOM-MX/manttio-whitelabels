@@ -1,5 +1,8 @@
 <section aria-label="Cotizaciones">
-  <div class="card-flush-table">
+  <!-- No `card-flush-table` here: that cancels a card-section's px-6, and this
+       mounts inside a tabpanel whose padding is p-4/sm:p-5 — the -mx-6 would
+       drag the table past the card edge. Plain table, own surface. -->
+  <div>
     <p-table
       [value]="quotations()"
       [loading]="loading()"

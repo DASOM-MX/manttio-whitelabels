@@ -40,7 +40,7 @@
     }
   </app-page-header>
 
-  <section class="card">
+  <section class="card-section">
     <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
       <div>
         <dt class="micro-label">Cliente</dt>
@@ -99,7 +99,7 @@
     }
   </section>
 
-  <section class="card mt-4">
+  <section class="card-section mt-4">
     <h2 class="section-heading">Partidas</h2>
     <!-- Frozen at creation: these prices are what the client was quoted, even
          if the catalog has moved since. -->
@@ -159,7 +159,7 @@
     </dl>
   </section>
 
-  <section class="card mt-4">
+  <section class="card-section mt-4">
     <h2 class="section-heading">Destinatarios</h2>
     <div class="card-flush-table mt-3">
       <p-table [value]="q.recipients" dataKey="id">
@@ -203,7 +203,7 @@
     </div>
   </section>
 
-  <section class="card mt-4">
+  <section class="card-section mt-4">
     <h2 class="section-heading">Bitácora</h2>
     <!-- Append-only and in insertion order: nothing here is ever edited or
          removed, including a reviewer changing their mind. -->
@@ -272,10 +272,10 @@
 } @else {
   <div class="mt-6 flex flex-col gap-4">
     <span class="skeleton h-8 w-48"></span>
-    <section class="card">
+    <section class="card-section">
       <span class="skeleton"></span>
     </section>
-    <section class="card">
+    <section class="card-section">
       <span class="skeleton"></span>
     </section>
   </div>
