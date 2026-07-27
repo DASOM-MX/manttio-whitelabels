@@ -1,7 +1,7 @@
 # 20 — Quotations (cotizaciones)
 
-> **Status:** planned · **Depends on:** 07 (client + contacts), 18 (catalog + `taxRate`), `email/` + `pdf/` modules · **Feeds:** 19 (staff create a service order from an approved quote) · **Hooks:** 08 (CRM interaction), 09 (billing)
-> **Owner:** — · **Last updated:** 2026-07-24
+> **Status:** CP-1 built (backend, minus the `/order` convergence — see CP-1) · **Depends on:** 07 (client + contacts), 18 (catalog + `taxRate`), `email/` + `pdf/` modules · **Feeds:** 19 (staff create a service order from an approved quote) · **Hooks:** 08 (CRM interaction), 09 (billing)
+> **Owner:** — · **Last updated:** 2026-07-27
 
 The **sales entry point** and the convergence of 18 and 19: a quotation is built from
 catalog services (18), mailed to the client's reviewer-contacts (07) who approve/decline
@@ -279,16 +279,39 @@ is primary, not exclusive.
 ## Checkpoints (stacked with the operations suite — 18 → 20 → 19)
 
 ### CP-1 — Backend: quotations + convergence
-- [ ] `services.taxRate` (18 amendment); `quotations` + `quotation_lines` +
-      `quotation_recipients` + `quotation_events` + `quotation_counters` tables,
-      hand-written additive DDL; `service_orders.quotationId?`
-- [ ] CRUD (draft) + `/send` (tokens + email PDF) + `/revise` + `/order` (comment,
-      gated) + `/cancel` (comment); snapshot resolution server-side
-- [ ] Public `GET /public/quotations/{token}` + `/respond` (reviewer-only, **mutable**,
-      `validUntil`-guarded) → **re-derives the tally status**; `/order` gate (≥1 approval
-      for office, owner/admin override from 0) → **opens order (19) inheriting snapshots**
-- [ ] `quotation_events` for every mutation incl. per-response re-logs + status-derive +
-      mandatory order/cancel comments; `validUntil` cron flag
+- [x] `services.taxRate` — landed with 18 CP-1. `quotations` + `quotation_lines` +
+      `quotation_recipients` + `quotation_events` + `quotation_counters`, hand-written
+      additive DDL as `drizzle/migrations/0023_quotations.sql` and applied with
+      **`drizzle-kit migrate`** (owner 2026-07-27 — "shouldn't we do this through the
+      migrations?"; supersedes the out-of-band `db:push`/hand-apply habit). That run also
+      re-synced the tracking table, which was 4 files behind: `0020`–`0022` had been
+      applied out-of-band and were re-run as no-ops (all three are guarded). Enum-ish
+      columns carry **no CHECK constraints** — the `services` posture (18), not
+      `notifications` (0020): the Drizzle model is the single source of truth and the
+      tally rewrites `status` too often for a constraint to earn its keep.
+- [x] CRUD (draft) + `/send` + `/revise` + `/cancel`; snapshot resolution server-side —
+      the client sends only `serviceId` + `quantity`, so a caller can never quote a price
+      the catalog never held (asserted).
+- [ ] **`/order` deferred to 19** (owner 2026-07-26 — "defer, we will build quotations
+      first, then link them when building the service orders module"). It must open a
+      `service_order` in the same transaction and that table does not exist yet, so
+      `order_created` is currently an **unreachable status** — the honest representation,
+      since no order can exist to point at. Everything the conversion needs is already in
+      place: `quotations.serviceOrderId` (column, deliberately **no FK** until 19's DDL
+      adds it), `QuotationStatus.OrderCreated`, `QuotationEventType.OrderCreated`, the
+      `refKind: 'service_order'` enum member, and the §7 gate roles.
+- [x] Public `GET /public/quotations/{token}` + `/respond` (reviewer-only, **mutable**,
+      `validUntil`-guarded) → **re-derives the tally status**. CP-1 answers JSON; CP-3
+      replaces the `GET` with the server-rendered page on the same route, so links already
+      mailed keep working.
+- [x] `quotation_events` for every mutation incl. per-response re-logs + status-derive +
+      mandatory cancel comments. Events are always written **inside** the transaction that
+      makes the change, and always as a single multi-row insert — a 20-line quote opens
+      with 21 events and awaiting them one at a time would be 21 sequential round trips
+      inside the transaction holding the folio counter (owner 2026-07-27: "awaits inside
+      for loops are not performant").
+- [x] `test/quotations.test.ts` — 27 tests, green. Fixtures are tracked by id and
+      **soft-deleted** in `afterAll`; the no-hard-delete rule covers fixtures too.
 
 ### CP-2 — Superadmin: quotation UI
 - [ ] DTOs + `QuotationsState` + http service
@@ -310,6 +333,29 @@ is primary, not exclusive.
       all-decline → office blocked, owner creates the order
 
 ## Open decisions / asks
+- **Send scope (decided 2026-07-26):** CP-1's `/send` mints the per-recipient tokens,
+  moves the status and mails a **branded link email** (markup in
+  `quotations/templates/quotation-email.html.ts`, renderer in `helpers/`, dispatched
+  through the generic `email/` transport). The **cotización PDF attachment stays CP-3** —
+  the two checkpoints contradicted each other on this and the endpoint is honest as
+  written rather than a `/send` that sends nothing. Delivery is per-recipient and
+  `allSettled`: one bad address cannot cancel the rest, the send still commits, and the
+  response body names every failure so staff see who did receive it.
+- **Re-send (decided 2026-07-26):** `/send` may be called again on any live quote. It
+  upserts on `(quotationId, contactId)` and **keeps the existing token**, so a link
+  already sitting in someone's inbox never dies; `isReviewer` and the mailed address
+  refresh, prior responses are untouched, and `sentAt` records only the first send. The
+  tally then re-derives over the **full** reviewer set — adding a reviewer to an
+  `approved` quote correctly drops it back to `partially_approved`.
+- **Zero reviewers (decided 2026-07-26):** an all-informational send is **allowed** —
+  sharing a quote as an FYI with the decision handled offline. Such a quote has nothing
+  to tally and rests in `waiting_approval` until staff cancel or convert it. `N = 0`
+  therefore resolves to `waiting_approval`, never to a vacuous `approved`.
+- **`validUntil` (decided 2026-07-26):** overdue-ness is **computed on read**
+  (`isOverdue`), not a stored flag with a daily cron as CP-1 originally worded it. No
+  column can go stale, no second `triggers.crons` entry, and the guard is exact the
+  instant a quote expires. An expired quote stays **readable** on its token page — only
+  the action is refused, because a dead end helps nobody.
 - **Decided 2026-07-24:** quotation is the primary (not sole) order-birth path; revisions
   = a new linked `draft` (the old is cancelled referencing the successor); **tax via a
   per-service Mexican IVA rate** (`taxRate`: `iva_16`/`iva_8`/`iva_0`/`exento`), summed per

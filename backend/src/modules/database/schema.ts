@@ -14,6 +14,11 @@ import { reports, reportDetails, reportCounters } from '../reports/models/report
 import { reportEmails } from '../reports/models/report-emails.model';
 import { equipment, equipmentReports } from '../equipment/models/equipment.model';
 import { notifications } from '../notifications/models/notifications.model';
+import { services } from '../services/models/services.model';
+import { quotations } from '../quotations/models/quotations.model';
+import { quotationLines } from '../quotations/models/quotation-lines.model';
+import { quotationRecipients } from '../quotations/models/quotation-recipients.model';
+import { quotationEvents } from '../quotations/models/quotation-events.model';
 
 export { users } from '../users/models/users.model';
 export { customers } from '../customers/models/customers.model';
@@ -28,6 +33,10 @@ export { reportTemplates } from '../report-templates/models/report-templates.mod
 export { brand } from '../brand/models/brand.model';
 export { notifications } from '../notifications/models/notifications.model';
 export { services } from '../services/models/services.model';
+export { quotations, quotationCounters } from '../quotations/models/quotations.model';
+export { quotationLines } from '../quotations/models/quotation-lines.model';
+export { quotationRecipients } from '../quotations/models/quotation-recipients.model';
+export { quotationEvents } from '../quotations/models/quotation-events.model';
 
 export const usersRelations = relations(users, ({ many }) => ({
   reportsCreated: many(reports, { relationName: 'reports_created_by' }),
@@ -129,5 +138,65 @@ export const equipmentReportsRelations = relations(equipmentReports, ({ one }) =
   report: one(reports, {
     fields: [equipmentReports.reportId],
     references: [reports.id],
+  }),
+}));
+
+// Quotations (20). `supersedes` is the revision chain — self-referential, which
+// is exactly why these relations live here and not in the model file.
+export const quotationsRelations = relations(quotations, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [quotations.customerId],
+    references: [customers.id],
+  }),
+  author: one(users, {
+    fields: [quotations.createdBy],
+    references: [users.id],
+  }),
+  supersedes: one(quotations, {
+    fields: [quotations.supersedesQuotationId],
+    references: [quotations.id],
+    relationName: 'quotation_revision_chain',
+  }),
+  lines: many(quotationLines),
+  recipients: many(quotationRecipients),
+  events: many(quotationEvents),
+}));
+
+export const quotationLinesRelations = relations(quotationLines, ({ one }) => ({
+  quotation: one(quotations, {
+    fields: [quotationLines.quotationId],
+    references: [quotations.id],
+  }),
+  // The catalog row the line was snapshotted from — traceability only. The
+  // line never re-reads it (20 §1, the snapshot rule).
+  service: one(services, {
+    fields: [quotationLines.serviceId],
+    references: [services.id],
+  }),
+}));
+
+export const quotationRecipientsRelations = relations(quotationRecipients, ({ one }) => ({
+  quotation: one(quotations, {
+    fields: [quotationRecipients.quotationId],
+    references: [quotations.id],
+  }),
+  contact: one(customerContacts, {
+    fields: [quotationRecipients.contactId],
+    references: [customerContacts.id],
+  }),
+}));
+
+export const quotationEventsRelations = relations(quotationEvents, ({ one }) => ({
+  quotation: one(quotations, {
+    fields: [quotationEvents.quotationId],
+    references: [quotations.id],
+  }),
+  actor: one(users, {
+    fields: [quotationEvents.actorId],
+    references: [users.id],
+  }),
+  contact: one(customerContacts, {
+    fields: [quotationEvents.contactId],
+    references: [customerContacts.id],
   }),
 }));
