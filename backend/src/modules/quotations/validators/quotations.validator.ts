@@ -72,6 +72,15 @@ export const deleteQuotationSchema = z.object({
   deleteComment: z.string().trim().min(1, 'El comentario es obligatorio'),
 });
 
+/** `GET /customers/:id/quotations` — the client is the path, so the only query
+ *  left is paging. Deliberately not `listQuotationsQuerySchema.pick(...)`: a
+ *  `customerId` in the query string of a customer-scoped route could disagree
+ *  with the path, and there is no sensible way to resolve that. */
+export const customerQuotationsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 export const listQuotationsQuerySchema = z.object({
   q: z.string().optional(),
   customerId: z.string().uuid().optional(),

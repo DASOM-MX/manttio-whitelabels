@@ -1,6 +1,6 @@
 # 20 — Quotations (cotizaciones)
 
-> **Status:** CP-1 built (backend, minus the `/order` convergence — see CP-1) · **Depends on:** 07 (client + contacts), 18 (catalog + `taxRate`), `email/` + `pdf/` modules · **Feeds:** 19 (staff create a service order from an approved quote) · **Hooks:** 08 (CRM interaction), 09 (billing)
+> **Status:** CP-1 + CP-2 built (backend + superadmin UI, minus the `/order` convergence — see CP-1) · **Depends on:** 07 (client + contacts), 18 (catalog + `taxRate`), `email/` + `pdf/` modules · **Feeds:** 19 (staff create a service order from an approved quote) · **Hooks:** 08 (CRM interaction), 09 (billing)
 > **Owner:** — · **Last updated:** 2026-07-27
 
 The **sales entry point** and the convergence of 18 and 19: a quotation is built from
@@ -326,9 +326,16 @@ is primary, not exclusive.
       **soft-deleted** in `afterAll`; the no-hard-delete rule covers fixtures too.
 
 ### CP-2 — Superadmin: quotation UI
-- [ ] DTOs + `QuotationsState` + http service
-- [ ] Builder page (`/new`) + list (URL filters) + view with recipients + timeline
-- [ ] Send dialog (contact picker); nav + module keys
+- [x] DTOs + `QuotationsState` + http service
+- [x] Builder page (`/new`, plus `/:id/edit` for drafts) + list (URL filters) + view with
+      recipients + timeline
+- [x] Send dialog (contact picker); nav + module keys
+- [x] Cancel + audited-delete dialogs; customer-view "Cotizaciones" tab backed by the new
+      `GET /customers/:id/quotations`
+
+**Not in CP-2, by necessity:** **Crear orden** — `POST /:id/order` does not exist until 19,
+so no button is rendered (a button that 404s is worse than none). Lands in CP-4 with the
+gate + override.
 
 ### CP-3 — Backend approval page + PDF
 - [ ] Cotización PDF (`pdf/` module, brand-themed); email template
@@ -393,5 +400,26 @@ is primary, not exclusive.
 - Ask to 09: quote totals are indicative; the **authoritative CFDI IVA breakdown +
   retenciones (ISR / IVA retenido) compute at invoicing (09)** — both derive from the same
   frozen line snapshots, must reconcile. Retenciones stay out of quote/order scope.
-- Ask to 14: `quotations` module row in the matrix.
-- Ask to 07: "Cotizaciones" card slot on the customer view.
+- ~~Ask to 14: `quotations` module row in the matrix.~~ — **done (CP-2):** `quotations`
+  module key, owner/admin/office; no technician row at all, not even read. Delete is
+  admin-tier, gated in-page.
+- ~~Ask to 07: "Cotizaciones" card slot on the customer view.~~ — **done (CP-2):** its own
+  tab on the customer view, between Equipos and Servicios, reading
+  `GET /customers/:id/quotations` (20 §9). That route is owned by the **quotations**
+  module and mounted onto the customers path in `index.ts` — quotations already imports
+  customers for the contact check, so putting it in the customers controller would have
+  made the two circular.
+- **Sending needs a contact row (CP-1 gap, still open).** §4 says recipients are the
+  client's `customer_contacts` **"+ the customer's main email"**; only the contacts half
+  exists. `quotation_recipients.contact_id` is NOT NULL, and making it nullable would
+  collide with the events table's rule that a null `contact_id` means *staff action*.
+  **Consequence today: a client with zero contact rows cannot be sent a quote at all** —
+  CP-2's send dialog says so explicitly and links to the client rather than failing at the
+  API. The likely fix belongs in **07** (backfill a default contact from `customers.email`)
+  rather than in 20's schema.
+- **A re-send can lower the status (CP-1 behaviour, surfaced in CP-2).** The tally
+  re-derives over the full reviewer set, so adding a reviewer to an `approved` quote drops
+  it to `partially_approved`. The send dialog warns before it happens.
+- **A zero-reviewer quote rests in `waiting_approval` forever** — an all-informational send
+  has nothing to tally. The tally pipe renders that as "Sin revisores — envío informativo"
+  rather than letting it read as a stalled approval.

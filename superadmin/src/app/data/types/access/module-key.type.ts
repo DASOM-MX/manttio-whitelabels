@@ -7,6 +7,7 @@ export type ModuleKey =
   | 'customers'
   | 'equipment'
   | 'services'
+  | 'quotations'
   | 'calendar'
   | 'contracts'
   | 'billing'
