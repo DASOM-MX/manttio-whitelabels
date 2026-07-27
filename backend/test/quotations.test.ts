@@ -365,6 +365,22 @@ describe('quotations — send + recipients (20 §4)', () => {
     expect(allResendSends()).toHaveLength(0);
   });
 
+  test('rejects the same contact twice in one send', async () => {
+    const { quote, token, contact } = await scenario();
+    // The recipient upsert writes the whole list in one statement, and Postgres
+    // refuses an ON CONFLICT that would touch the same row twice — this used to
+    // surface as a 500 carrying the raw driver message.
+    const res = await post(token, `/quotations/${quote.id}/send`, {
+      recipients: [
+        { contactId: contact.id, isReviewer: true },
+        { contactId: contact.id, isReviewer: false },
+      ],
+    });
+    expect(res.status).toBe(400);
+    expect(await res.text()).not.toContain('ON CONFLICT');
+    expect(allResendSends()).toHaveLength(0);
+  });
+
   test('an all-informational send is allowed and simply has nothing to tally', async () => {
     const { quote, token, contact } = await scenario();
     const { body } = await sendAndGetTokens(token, quote.id, [
@@ -615,6 +631,56 @@ describe('quotations — terminal actions (20 §2)', () => {
       await request(`/quotations/${quote.id}`, { headers: jsonHeaders(token) }),
     );
     expect(staffView.serviceOrderId).toBeUndefined();
+  });
+});
+
+describe('quotations — audited soft delete', () => {
+  test('requires a comment, hides the quote, and kills the mailed links', async () => {
+    const { quote, token, contact } = await scenario();
+    const { tokenFor } = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: true },
+    ]);
+    const link = `/public/quotations/${tokenFor(contact.id)}`;
+    expect((await request(link)).status).toBe(200);
+
+    const noComment = await request(`/quotations/${quote.id}`, {
+      method: 'DELETE',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ deleteComment: '  ' }),
+    });
+    expect(noComment.status).toBe(400);
+
+    const res = await request(`/quotations/${quote.id}`, {
+      method: 'DELETE',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ deleteComment: 'Duplicada' }),
+    });
+    expect(res.status).toBe(200);
+    expect(await json<{ deleted: boolean }>(res)).toMatchObject({ deleted: true });
+
+    // Gone from every read path, the recipient token included.
+    expect((await request(`/quotations/${quote.id}`, { headers: jsonHeaders(token) })).status).toBe(404);
+    expect((await request(link)).status).toBe(404);
+
+    // Soft only — the row and its audit fields are still there.
+    const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
+    const row = await db.query.quotations.findFirst({
+      where: (q, { eq }) => eq(q.id, quote.id),
+    });
+    expect(row?.deletedAt).toBeTruthy();
+    expect(row?.deleteComment).toBe('Duplicada');
+    expect(row?.deletedBy).toBeTruthy();
+  });
+
+  test('office can cancel but not delete', async () => {
+    const { quote } = await scenario();
+    const { token: officeToken } = await seedOfficeAndLogin();
+    const res = await request(`/quotations/${quote.id}`, {
+      method: 'DELETE',
+      headers: jsonHeaders(officeToken),
+      body: JSON.stringify({ deleteComment: 'no debería' }),
+    });
+    expect(res.status).toBe(403);
   });
 });
 

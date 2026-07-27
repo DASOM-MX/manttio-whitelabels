@@ -408,7 +408,8 @@ export const setQuotationStatus = async (
     return row;
   });
 
-/** The timeline, oldest-first, with actor and contact names resolved so the UI
+/** The timeline in **insertion order** (`seq`, never `created_at` — a batch
+ *  shares one timestamp), with actor and contact names resolved so the UI
  *  renders a sentence per row without a lookup table. */
 export const listQuotationEvents = async (
   db: Db,
@@ -424,15 +425,34 @@ export const listQuotationEvents = async (
     .leftJoin(users, eq(users.id, quotationEvents.actorId))
     .leftJoin(customerContacts, eq(customerContacts.id, quotationEvents.contactId))
     .where(eq(quotationEvents.quotationId, quotationId))
-    .orderBy(asc(quotationEvents.createdAt));
+    .orderBy(asc(quotationEvents.seq));
 
-/** Soft delete, same posture as every other entity here. */
-export const softDeleteQuotation = async (db: Db, id: string): Promise<{ id: string } | null> => {
-  const now = new Date();
-  const [row] = await db
-    .update(quotations)
-    .set({ deletedAt: now, updatedAt: now })
-    .where(and(eq(quotations.id, id), activeFilter))
-    .returning();
-  return row ? { id: row.id } : null;
-};
+/** Audited soft delete + its event, atomically. Soft delete is the only removal
+ *  mechanism in this codebase; the row and its whole timeline stay, and every
+ *  read path drops it via `isNull(deletedAt)` — including
+ *  `findRecipientByToken`, so a recipient's link stops resolving the moment the
+ *  quote is tombstoned. */
+export const softDeleteQuotation = async (
+  db: Db,
+  id: string,
+  deleteComment: string,
+  deletedBy: string,
+): Promise<{ id: string } | null> =>
+  db.transaction(async (tx) => {
+    const now = new Date();
+    const [row] = await tx
+      .update(quotations)
+      .set({ deletedAt: now, updatedAt: now, deleteComment, deletedBy })
+      .where(and(eq(quotations.id, id), activeFilter))
+      .returning({ id: quotations.id });
+    if (!row) return null;
+    await appendEvents(tx, [
+      {
+        quotationId: id,
+        type: QuotationEventType.Deleted,
+        actorId: deletedBy,
+        note: deleteComment,
+      },
+    ]);
+    return row;
+  });

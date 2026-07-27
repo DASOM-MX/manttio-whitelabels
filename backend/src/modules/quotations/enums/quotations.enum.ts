@@ -69,13 +69,19 @@ export enum QuotationEventType {
   OrderCreated = 'quotation_order_created',
   // Staff abandonment; a revise-cancel notes the successor quote.
   Cancelled = 'quotation_cancelled',
+  // Audited soft delete. Written even though the timeline becomes unreachable
+  // through the API once the quote is tombstoned — the row is the record, and
+  // a deletion with no trail is exactly the gap an audit trail exists to close.
+  Deleted = 'quotation_deleted',
 }
 
-// What `refId` points at, when an event links out. `service_order` is declared
-// now and first written by 19 — the enum is the contract the convergence fills.
+// What `refId` points at, when an event links out. The acting contact is NOT a
+// member: that already has its own `contactId` column, and a second way to say
+// the same thing would let two events disagree about who acted.
 export enum QuotationEventRefKind {
   Recipient = 'recipient',
-  Contact = 'contact',
   Quotation = 'quotation',
+  // Declared now, first written by 19 — the enum is the contract the
+  // convergence fills.
   ServiceOrder = 'service_order',
 }

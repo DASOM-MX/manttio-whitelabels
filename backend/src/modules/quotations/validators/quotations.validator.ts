@@ -40,12 +40,23 @@ export const updateQuotationSchema = z.object({
 // Recipients are chosen from the customer's contacts (07); each carries the
 // reviewer toggle. Zero reviewers is allowed (owner 2026-07-26) — an
 // informational send — so there is deliberately no `.refine` demanding one.
-export const sendQuotationSchema = z.object({
-  recipients: z
-    .array(z.object({ contactId: z.string().uuid(), isReviewer: z.boolean().default(false) }))
-    .min(1, 'Elige al menos un destinatario'),
-  message: z.string().trim().optional(),
-});
+export const sendQuotationSchema = z
+  .object({
+    recipients: z
+      .array(z.object({ contactId: z.string().uuid(), isReviewer: z.boolean().default(false) }))
+      .min(1, 'Elige al menos un destinatario'),
+    message: z.string().trim().optional(),
+  })
+  // One entry per contact. The recipient upsert writes the whole list in a
+  // single statement, and Postgres rejects an ON CONFLICT that would touch the
+  // same row twice — so a repeated contact used to surface as a 500 carrying
+  // the raw driver message. Rejecting here is also the more honest answer than
+  // silently de-duplicating: two entries for one contact disagree about
+  // `isReviewer`, and picking a winner would quietly decide who may approve.
+  .refine((v) => new Set(v.recipients.map((r) => r.contactId)).size === v.recipients.length, {
+    path: ['recipients'],
+    message: 'Hay un destinatario repetido; elige cada contacto una sola vez.',
+  });
 
 // Both terminal staff actions carry a mandatory comment — the audit "why"
 // (20 §2). `min(1)` after trim so whitespace can't satisfy it.
@@ -53,6 +64,13 @@ const resolutionComment = z.object({ comment: z.string().trim().min(1, 'El comen
 
 export const cancelQuotationSchema = resolutionComment;
 export const createOrderFromQuotationSchema = resolutionComment;
+
+// Audited soft delete, same contract as users/services/equipment. Distinct from
+// `/cancel`: cancelling retires a quote the client may still be shown, deleting
+// takes it out of the tenant's own lists (and kills every recipient link).
+export const deleteQuotationSchema = z.object({
+  deleteComment: z.string().trim().min(1, 'El comentario es obligatorio'),
+});
 
 export const listQuotationsQuerySchema = z.object({
   q: z.string().optional(),
@@ -79,6 +97,7 @@ export type CreateQuotationInput = z.infer<typeof createQuotationSchema>;
 export type UpdateQuotationInput = z.infer<typeof updateQuotationSchema>;
 export type SendQuotationInput = z.infer<typeof sendQuotationSchema>;
 export type CancelQuotationInput = z.infer<typeof cancelQuotationSchema>;
+export type DeleteQuotationInput = z.infer<typeof deleteQuotationSchema>;
 export type ListQuotationsQuery = z.infer<typeof listQuotationsQuerySchema>;
 export type RespondQuotationInput = z.infer<typeof respondQuotationSchema>;
 export type QuotationLineInput = z.infer<typeof quotationLineInput>;
