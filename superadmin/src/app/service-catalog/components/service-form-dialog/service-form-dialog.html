@@ -70,6 +70,18 @@
     </div>
 
     <div class="field-group">
+      <label class="field-label" for="svc-code">Código interno</label>
+      <input
+        id="svc-code"
+        pInputText
+        formControlName="internalServiceCode"
+        spellcheck="false"
+        placeholder="MP-001"
+      />
+      <p class="field-hint">Sólo para uso interno. No puede repetirse en el catálogo.</p>
+    </div>
+
+    <div class="field-group">
       <label class="field-label" for="svc-tax">IVA<span aria-hidden="true"> *</span></label>
       <p-select
         inputId="svc-tax"
@@ -83,7 +95,7 @@
     </div>
 
     <div class="field-group sm:col-span-2">
-      <label class="field-label" for="svc-description">Descripción</label>
+      <label class="field-label" for="svc-description">Descripción interna</label>
       <textarea
         id="svc-description"
         pTextarea
@@ -91,6 +103,7 @@
         rows="2"
         class="!min-h-16"
       ></textarea>
+      <p class="field-hint">Notas para tu equipo. No se publica en el sitio.</p>
     </div>
 
     <div class="field-group sm:col-span-2">
@@ -105,8 +118,9 @@
         </label>
       </div>
 
-      <!-- Revealed only once the service is listed: price visibility is
-           meaningless on a service the site never shows. -->
+      <!-- Revealed only once the service is listed: neither the price toggle
+           nor the public copy means anything on a service the site never
+           shows. -->
       @if (showsPriceToggle()) {
         <div class="mt-3 flex items-center gap-2 pl-6">
           <p-checkbox
@@ -121,6 +135,24 @@
         <p class="mt-1 pl-6 field-hint">
           Si lo dejas apagado, el sitio muestra el servicio sin precio.
         </p>
+
+        <div class="field-group mt-4 pl-6">
+          <label class="field-label" for="svc-website-description">
+            Descripción para el sitio
+          </label>
+          <textarea
+            id="svc-website-description"
+            pTextarea
+            formControlName="websiteDescription"
+            rows="3"
+            class="!min-h-20"
+            placeholder="Cómo quieres que se lea este servicio para un cliente nuevo."
+          ></textarea>
+          <p class="field-hint">
+            Es el único texto que se publica. Si lo dejas vacío, el sitio muestra sólo el
+            nombre del servicio.
+          </p>
+        </div>
       }
     </div>
 

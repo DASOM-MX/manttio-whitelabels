@@ -59,7 +59,14 @@ export interface Service {
    *  "not visible to me", not "not set". */
   cost?: string;
   uom: ServiceUom;
+  /** Internal management copy. Never reaches the website. */
   description?: string;
+  /** Public card copy for the website listing — the only description the site
+   *  ever sees. No fallback: a listed service without one renders title-only. */
+  websiteDescription?: string;
+  /** Tenant catalog code, unique across the live catalog when set. Internal
+   *  only — never exposed on `/public/services`. */
+  internalServiceCode?: string;
   taxRate: ServiceTaxRate;
   /** SAT CFDI catalog keys — carried for facturación (09), no v1 UI. */
   satProdServCode?: string;
@@ -86,6 +93,8 @@ export interface SaveServiceRequest {
   cost?: number;
   uom: ServiceUom;
   description?: string;
+  websiteDescription?: string;
+  internalServiceCode?: string;
   taxRate: ServiceTaxRate;
   isListableInWebsite: boolean;
   isPriceVisibleInWebsite: boolean;

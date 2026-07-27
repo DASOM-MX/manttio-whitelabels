@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm';
-import { boolean, index, numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  numeric,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { users } from '../../users/models/users.model';
 import { ServiceTaxRate, ServiceUom } from '../enums/services.enum';
 
@@ -24,7 +33,13 @@ export const services = pgTable(
     // Closed list (`ServiceUom`), validator-enforced — the column stays `text`
     // so adding a unit needs no DDL.
     uom: text('uom').$type<ServiceUom>().notNull(),
+    // Management copy — never reaches the website.
     description: text('description'),
+    // The public card copy. A listed service without one renders title-only;
+    // there is deliberately no fallback to the internal `description`.
+    websiteDescription: text('website_description'),
+    // Tenant catalog code, internal only. Unique when set — partial index below.
+    internalServiceCode: text('internal_service_code'),
     taxRate: text('tax_rate').$type<ServiceTaxRate>().notNull().default(ServiceTaxRate.Iva16),
     // CFDI catalog keys (c_ClaveProdServ / c_ClaveUnidad). Catalog attributes,
     // not invoice ones — carrying them here spares 09 a hand-backfill. No v1 UI.
@@ -46,5 +61,10 @@ export const services = pgTable(
     index('services_name_idx')
       .on(table.name)
       .where(sql`${table.deletedAt} is null`),
+    // Live catalog only: nulls are exempt (the field is optional) and
+    // tombstoned rows release their code for reuse.
+    uniqueIndex('services_internal_code_uidx')
+      .on(table.internalServiceCode)
+      .where(sql`${table.internalServiceCode} is not null and ${table.deletedAt} is null`),
   ],
 );

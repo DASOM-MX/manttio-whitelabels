@@ -16,7 +16,13 @@ export const listServices = async (db: Db, filters: { search?: string }): Promis
   const conds = [activeFilter];
   if (filters.search) {
     const q = `%${filters.search}%`;
-    const match = or(ilike(services.name, q), ilike(services.description, q));
+    // The catalog code is searchable too — a unique code is exactly what
+    // people paste in to find one service.
+    const match = or(
+      ilike(services.name, q),
+      ilike(services.description, q),
+      ilike(services.internalServiceCode, q),
+    );
     if (match) conds.push(match);
   }
   return db
@@ -35,7 +41,9 @@ export const listPublishedServices = async (db: Db): Promise<PublicServiceRow[]>
     .select({
       id: services.id,
       name: services.name,
-      description: services.description,
+      // `websiteDescription`, never `description` — the latter is internal
+      // management copy and must not reach the site (decided 2026-07-25).
+      websiteDescription: services.websiteDescription,
       uom: services.uom,
       price: services.price,
       isPriceVisibleInWebsite: services.isPriceVisibleInWebsite,

@@ -70,7 +70,7 @@ export class ServicesList {
   protected showsCost = computed(() => this.services().some((s) => s.cost !== undefined));
 
   protected columnCount = computed(() => {
-    let count = 6; // servicio, precio, unidad, IVA, sitio web, actualizado
+    let count = 7; // servicio, código, precio, unidad, IVA, sitio web, actualizado
     if (this.showsCost()) count += 1;
     if (this.canManage()) count += 1; // row actions
     return count;

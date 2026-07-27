@@ -35,6 +35,7 @@
     <ng-template #header>
       <tr>
         <th scope="col">Servicio</th>
+        <th scope="col">Código interno</th>
         <th scope="col">Precio</th>
         @if (showsCost()) {
           <th scope="col">Costo</th>
@@ -59,6 +60,7 @@
             </span>
           }
         </td>
+        <td class="font-data tabular-nums">{{ svc.internalServiceCode || '—' }}</td>
         <td class="font-data tabular-nums">{{ svc.price | money }}</td>
         @if (showsCost()) {
           <!-- Redacted server-side below back-office tier, so an em dash here
