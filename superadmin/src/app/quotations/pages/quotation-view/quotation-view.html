@@ -1,5 +1,9 @@
 @if (quotation(); as q) {
-  <app-page-header [title]="q.folio" backLink="/quotations" backLabel="Volver a cotizaciones">
+  <app-page-header
+    [title]="'Cotización — ' + q.folio"
+    backLink="/quotations"
+    backLabel="Volver a cotizaciones"
+  >
     <div meta class="flex flex-wrap items-center gap-1">
       <p-tag
         [severity]="q.status | quotationStatusSeverity"
@@ -159,104 +163,122 @@
     </dl>
   </section>
 
-  <section class="card-section mt-4">
-    <h2 class="section-heading">Destinatarios</h2>
-    <div class="card-flush-table mt-3">
-      <p-table [value]="q.recipients" dataKey="id">
-        <ng-template #header>
-          <tr>
-            <th scope="col">Contacto</th>
-            <th scope="col">Correo</th>
-            <th scope="col">Estado</th>
-            <th scope="col">Abrió</th>
-            <th scope="col">Respondió</th>
-            <th scope="col">Motivo</th>
-          </tr>
-        </ng-template>
-        <ng-template #body let-recipient>
-          <tr>
-            <td class="font-medium">{{ recipient.contactName || '—' }}</td>
-            <td>{{ recipient.email }}</td>
-            <td>
-              <p-tag
-                [severity]="recipient | quotationRecipientSeverity"
-                [value]="recipient | quotationRecipientStanding"
-              />
-            </td>
-            <td class="font-data tabular-nums">
-              {{ recipient.viewedAt ? (recipient.viewedAt | relativeTime) : '—' }}
-            </td>
-            <td class="font-data tabular-nums">
-              {{ recipient.respondedAt ? (recipient.respondedAt | relativeTime) : '—' }}
-            </td>
-            <td class="text-sm text-surface-600 dark:text-surface-400">
-              {{ recipient.responseReason || '—' }}
-            </td>
-          </tr>
-        </ng-template>
-        <ng-template #emptymessage>
-          <tr class="p-datatable-emptymessage">
-            <td colspan="6">Todavía no se ha enviado a nadie.</td>
-          </tr>
-        </ng-template>
-      </p-table>
-    </div>
-  </section>
+  <!-- Who received it and what has happened since — the process around the
+       quote, as opposed to the quote itself above. Framed in a card the same
+       way the customer view frames its tabs (`.card` carries no padding
+       because `.p-tabpanels` supplies it). -->
+  <section class="card mt-4">
+    <p-tabs [value]="activeTab()" (valueChange)="setTab($event)">
+      <p-tablist>
+        <p-tab value="destinatarios">Destinatarios</p-tab>
+        <p-tab value="bitacora">Bitácora</p-tab>
+      </p-tablist>
+      <p-tabpanels>
+        <p-tabpanel value="destinatarios">
+          <!-- Full-bleed: `tabs.scss` retargets `.card-flush-table` to the
+               panel's own gutter. -->
+          <div class="card-flush-table">
+            <p-table [value]="q.recipients" dataKey="id">
+              <ng-template #header>
+                <tr>
+                  <th scope="col">Contacto</th>
+                  <th scope="col">Correo</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Abrió</th>
+                  <th scope="col">Respondió</th>
+                  <th scope="col">Motivo</th>
+                </tr>
+              </ng-template>
+              <ng-template #body let-recipient>
+                <tr>
+                  <td class="font-medium">{{ recipient.contactName || '—' }}</td>
+                  <td>{{ recipient.email }}</td>
+                  <td>
+                    <p-tag
+                      [severity]="recipient | quotationRecipientSeverity"
+                      [value]="recipient | quotationRecipientStanding"
+                    />
+                  </td>
+                  <td class="font-data tabular-nums">
+                    {{ recipient.viewedAt ? (recipient.viewedAt | relativeTime) : '—' }}
+                  </td>
+                  <td class="font-data tabular-nums">
+                    {{ recipient.respondedAt ? (recipient.respondedAt | relativeTime) : '—' }}
+                  </td>
+                  <td class="text-sm text-surface-600 dark:text-surface-400">
+                    {{ recipient.responseReason || '—' }}
+                  </td>
+                </tr>
+              </ng-template>
+              <ng-template #emptymessage>
+                <tr class="p-datatable-emptymessage">
+                  <td colspan="6">Todavía no se ha enviado a nadie.</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+        </p-tabpanel>
 
-  <section class="card-section mt-4">
-    <h2 class="section-heading">Bitácora</h2>
-    <!-- Append-only and in insertion order: nothing here is ever edited or
-         removed, including a reviewer changing their mind. -->
-    <p class="mt-1 text-sm text-surface-600 dark:text-surface-400">
-      Todo lo que ha pasado con esta cotización, en orden y sin ediciones.
-    </p>
-
-    <div class="card-flush-table mt-3">
-      <p-table [value]="timeline()" [loading]="timelineLoading()" [showLoader]="false" dataKey="id">
-        <ng-template #header>
-          <tr>
-            <th scope="col">Evento</th>
-            <th scope="col">Quién</th>
-            <th scope="col">Detalle</th>
-            <th scope="col">Cuándo</th>
-          </tr>
-        </ng-template>
-        <ng-template #body let-event>
-          <tr>
-            <td>
-              <span class="inline-flex items-center gap-2 font-medium">
-                <svg
-                  lucideIcon
-                  [lucideIcon]="event.type | quotationEventIcon"
-                  class="size-4 text-surface-500 dark:text-surface-400"
-                  aria-hidden="true"
-                ></svg>
-                {{ event.type | quotationEventLabel }}
-              </span>
-            </td>
-            <td>{{ event | quotationEventActor }}</td>
-            <td class="text-sm text-surface-600 dark:text-surface-400">
-              {{ event | quotationEventDetail }}
-            </td>
-            <td class="font-data tabular-nums">{{ event.createdAt | relativeTime }}</td>
-          </tr>
-        </ng-template>
-        <ng-template #loadingbody>
-          @for (r of skeletonRows; track r) {
-            <tr>
-              @for (c of [0, 1, 2, 3]; track c) {
-                <td><span class="skeleton"></span></td>
-              }
-            </tr>
-          }
-        </ng-template>
-        <ng-template #emptymessage>
-          <tr class="p-datatable-emptymessage">
-            <td colspan="4">Sin movimientos.</td>
-          </tr>
-        </ng-template>
-      </p-table>
-    </div>
+        <p-tabpanel value="bitacora">
+          <!-- Append-only and in insertion order: nothing here is ever edited or
+               removed, including a reviewer changing their mind. -->
+          <p class="mb-3 text-sm text-surface-600 dark:text-surface-400">
+            Todo lo que ha pasado con esta cotización, en orden y sin ediciones.
+          </p>
+          <div class="card-flush-table">
+            <p-table
+              [value]="timeline()"
+              [loading]="timelineLoading()"
+              [showLoader]="false"
+              dataKey="id"
+            >
+              <ng-template #header>
+                <tr>
+                  <th scope="col">Evento</th>
+                  <th scope="col">Quién</th>
+                  <th scope="col">Detalle</th>
+                  <th scope="col">Cuándo</th>
+                </tr>
+              </ng-template>
+              <ng-template #body let-event>
+                <tr>
+                  <td>
+                    <span class="inline-flex items-center gap-2 font-medium">
+                      <svg
+                        lucideIcon
+                        [lucideIcon]="event.type | quotationEventIcon"
+                        class="size-4 text-surface-500 dark:text-surface-400"
+                        aria-hidden="true"
+                      ></svg>
+                      {{ event.type | quotationEventLabel }}
+                    </span>
+                  </td>
+                  <td>{{ event | quotationEventActor }}</td>
+                  <td class="text-sm text-surface-600 dark:text-surface-400">
+                    {{ event | quotationEventDetail }}
+                  </td>
+                  <td class="font-data tabular-nums">{{ event.createdAt | relativeTime }}</td>
+                </tr>
+              </ng-template>
+              <ng-template #loadingbody>
+                @for (r of skeletonRows; track r) {
+                  <tr>
+                    @for (c of [0, 1, 2, 3]; track c) {
+                      <td><span class="skeleton"></span></td>
+                    }
+                  </tr>
+                }
+              </ng-template>
+              <ng-template #emptymessage>
+                <tr class="p-datatable-emptymessage">
+                  <td colspan="4">Sin movimientos.</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
   </section>
 
   <app-send-quotation-dialog #sendDialog (sent)="refresh()" />

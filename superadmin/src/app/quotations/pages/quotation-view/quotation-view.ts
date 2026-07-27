@@ -1,7 +1,8 @@
-import { Component, computed, inject, viewChild } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TableModule } from 'primeng/table';
+import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import {
@@ -63,6 +64,7 @@ import { errorMessage } from '../../../data/utils';
     DatePipe,
     RouterLink,
     TableModule,
+    TabsModule,
     TagModule,
     LucideDynamicIcon,
     MoneyPipe,
@@ -104,6 +106,10 @@ export class QuotationView {
   protected timelineLoading = select(QuotationsState.timelineLoading);
   private me = select(AuthState.me);
 
+  /** Recipients / timeline tab. Recipients leads: "did it reach them, and what
+   *  did they say" is the question staff open a sent quote with. */
+  protected activeTab = signal('destinatarios');
+
   protected sendDialog = viewChild<SendQuotationDialog>('sendDialog');
   protected cancelDialog = viewChild<CancelQuotationDialog>('cancelDialog');
   protected deleteDialog = viewChild<DeleteQuotationDialog>('deleteDialog');
@@ -126,6 +132,10 @@ export class QuotationView {
   constructor() {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) this.reload(id);
+  }
+
+  protected setTab(value: string | number | undefined): void {
+    this.activeTab.set(String(value ?? 'destinatarios'));
   }
 
   protected refresh(): void {
