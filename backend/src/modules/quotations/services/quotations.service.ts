@@ -34,6 +34,7 @@ import {
   recordResponseAndDeriveStatus,
   reviseQuotation as reviseQuotationRows,
   setQuotationStatus,
+  softDeleteQuotation,
   updateQuotationDraft,
   upsertRecipients,
 } from '../repository/quotations.repository';
@@ -499,6 +500,18 @@ export const cancelQuotation = async (
   if (!updated) return null;
   return loadDetail(db, id);
 };
+
+/** Audited soft delete. Unlike `/cancel` this is allowed from **any** state,
+ *  terminal ones included: cancelling is a lifecycle decision about a live
+ *  quote, deleting is housekeeping on the list — a duplicate, a test row, a
+ *  quote raised against the wrong client. The row and its timeline stay
+ *  forever; only visibility changes. */
+export const removeQuotation = async (
+  db: Db,
+  id: string,
+  deleteComment: string,
+  actorId: string,
+): Promise<{ id: string } | null> => softDeleteQuotation(db, id, deleteComment, actorId);
 
 // ---------------------------------------------------------------------------
 // Public token surface (20 §4)

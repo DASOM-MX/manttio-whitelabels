@@ -70,6 +70,12 @@ export const quotations = pgTable(
       .references(() => users.id, { onDelete: 'restrict' }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    // Audited soft delete, same shape as users/services/equipment — a quote is
+    // a commercial record, so removing it from view has to say who and why.
+    // Distinct from `cancelled`: cancelling retires a quote the client can
+    // still be shown, deleting takes it out of the tenant's own lists.
+    deleteComment: text('delete_comment'),
+    deletedBy: uuid('deleted_by').references(() => users.id, { onDelete: 'restrict' }),
     // Soft delete only — no hard deletes anywhere in this codebase.
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
