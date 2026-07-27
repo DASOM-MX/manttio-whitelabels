@@ -14,6 +14,7 @@ import { reports, reportDetails, reportCounters } from '../reports/models/report
 import { reportEmails } from '../reports/models/report-emails.model';
 import { equipment, equipmentReports } from '../equipment/models/equipment.model';
 import { notifications } from '../notifications/models/notifications.model';
+import { scheduledVisits, visitEquipment } from '../visits/models/visits.model';
 import { services } from '../services/models/services.model';
 import { serviceEvents } from '../services/models/service-events.model';
 import { quotations } from '../quotations/models/quotations.model';
@@ -42,6 +43,7 @@ export { quotationSettings } from '../quotations/models/quotation-settings.model
 export { quotationLines } from '../quotations/models/quotation-lines.model';
 export { quotationRecipients } from '../quotations/models/quotation-recipients.model';
 export { quotationEvents } from '../quotations/models/quotation-events.model';
+export { scheduledVisits, visitEquipment } from '../visits/models/visits.model';
 export {
   serviceOrders,
   serviceOrderServices,
@@ -70,6 +72,7 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
   interactions: many(customerInteractions),
   equipment: many(equipment),
   serviceOrders: many(serviceOrders),
+  visits: many(scheduledVisits),
 }));
 
 export const serviceOrdersRelations = relations(serviceOrders, ({ one, many }) => ({
@@ -290,5 +293,51 @@ export const quotationEventsRelations = relations(quotationEvents, ({ one }) => 
   contact: one(customerContacts, {
     fields: [quotationEvents.contactId],
     references: [customerContacts.id],
+  }),
+}));
+
+export const scheduledVisitsRelations = relations(scheduledVisits, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [scheduledVisits.customerId],
+    references: [customers.id],
+  }),
+  serviceOrder: one(serviceOrders, {
+    fields: [scheduledVisits.serviceOrderId],
+    references: [serviceOrders.id],
+  }),
+  // Two FKs land on `users`, so both need an explicit relationName — otherwise
+  // Drizzle can't tell the assignee from the author.
+  technician: one(users, {
+    fields: [scheduledVisits.technicianId],
+    references: [users.id],
+    relationName: 'visits_technician',
+  }),
+  creator: one(users, {
+    fields: [scheduledVisits.createdBy],
+    references: [users.id],
+    relationName: 'visits_created_by',
+  }),
+  report: one(reports, {
+    fields: [scheduledVisits.reportId],
+    references: [reports.id],
+  }),
+  // The reschedule chain, self-referential: `predecessor` is the closed visit
+  // this one replaces.
+  predecessor: one(scheduledVisits, {
+    fields: [scheduledVisits.rescheduledFromId],
+    references: [scheduledVisits.id],
+    relationName: 'visit_reschedule_chain',
+  }),
+  equipment: many(visitEquipment),
+}));
+
+export const visitEquipmentRelations = relations(visitEquipment, ({ one }) => ({
+  visit: one(scheduledVisits, {
+    fields: [visitEquipment.visitId],
+    references: [scheduledVisits.id],
+  }),
+  equipment: one(equipment, {
+    fields: [visitEquipment.equipmentId],
+    references: [equipment.id],
   }),
 }));
