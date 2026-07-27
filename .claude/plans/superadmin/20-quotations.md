@@ -310,7 +310,19 @@ is primary, not exclusive.
       with 21 events and awaiting them one at a time would be 21 sequential round trips
       inside the transaction holding the folio counter (owner 2026-07-27: "awaits inside
       for loops are not performant").
-- [x] `test/quotations.test.ts` — 27 tests, green. Fixtures are tracked by id and
+- [x] **`DELETE /quotations/:id`** — audited soft delete (owner 2026-07-27, CP-1 review).
+      Not in §9's surface; added because the module had a `deleted_at` column and no way
+      to use it. Admin-tier only (office can `/cancel`, which is a lifecycle decision the
+      client may still see, but not remove a quote from the tenant's lists), mandatory
+      `{ deleteComment }`, stamps `deleted_by`, appends a `quotation_deleted` event.
+      Allowed from any state — housekeeping, not a lifecycle step — and it also stops
+      every recipient token resolving.
+- [x] **Timeline ordering is `seq`, never `created_at`** (CP-1 review). Events are written
+      in batches and every row in a batch shares one `now()`, so ordering by timestamp
+      left ties the planner could return in any order — a trail reporting "line added"
+      before "quotation created". `quotation_events.seq` (bigserial) is the insertion
+      order and the only sort key; the covering index moved with it.
+- [x] `test/quotations.test.ts` — 30 tests, green. Fixtures are tracked by id and
       **soft-deleted** in `afterAll`; the no-hard-delete rule covers fixtures too.
 
 ### CP-2 — Superadmin: quotation UI

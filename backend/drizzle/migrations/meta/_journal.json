@@ -169,6 +169,20 @@
       "when": 1785131204063,
       "tag": "0023_quotations",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1785168151704,
+      "tag": "0024_quotations_delete_audit",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1785169246155,
+      "tag": "0025_quotation_events_seq",
+      "breakpoints": true
     }
   ]
 }

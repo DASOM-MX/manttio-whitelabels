@@ -18,6 +18,7 @@ import {
 import {
   cancelQuotationSchema,
   createQuotationSchema,
+  deleteQuotationSchema,
   listQuotationsQuerySchema,
   sendQuotationSchema,
   updateQuotationSchema,
@@ -29,6 +30,7 @@ import {
   getQuotationById,
   getQuotationTimeline,
   getQuotations,
+  removeQuotation,
   reviseQuotation,
   sendQuotation,
 } from '../services/quotations.service';
@@ -161,6 +163,29 @@ quotations.post(
       if (err instanceof QuotationNotLiveError) return notLiveResponse(c);
       throw err;
     }
+  },
+);
+
+// Audited soft delete — admin-tier only, so office can retire a quote with
+// `/cancel` (a lifecycle decision, visible to the client) but not remove it
+// from the tenant's lists. Allowed from any state, terminal ones included:
+// this is housekeeping, not a lifecycle step. Nothing is ever hard-deleted —
+// the row and its whole timeline stay, and every read filters them out,
+// including the recipient-token lookup, so the mailed links stop resolving.
+quotations.delete(
+  '/:id',
+  requireRole(['owner', 'admin']),
+  zValidator('json', deleteQuotationSchema),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    const row = await removeQuotation(
+      db,
+      c.req.param('id'),
+      c.req.valid('json').deleteComment,
+      c.get('user').id,
+    );
+    if (!row) return c.json({ error: 'not_found' }, 404);
+    return c.json({ id: row.id, deleted: true });
   },
 );
 

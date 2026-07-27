@@ -1,4 +1,4 @@
-import { index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { bigserial, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { quotations } from './quotations.model';
 import { users } from '../../users/models/users.model';
 import { customerContacts } from '../../customers/models/customer-contacts.model';
@@ -18,6 +18,14 @@ export const quotationEvents = pgTable(
   'quotation_events',
   {
     id: uuid('id').defaultRandom().primaryKey(),
+    // Insertion order, and the ONLY thing the timeline sorts by. `created_at`
+    // cannot do this job: events are written in batches (a quote opens with one
+    // `created` plus one `line_added` per line, in a single INSERT), and every
+    // row in a batch gets the same `now()` — so ordering by timestamp leaves
+    // rows with identical keys in whatever order the planner returns them, and
+    // a trail that reports "line added" before "quotation created" is not
+    // evidence of anything.
+    seq: bigserial('seq', { mode: 'number' }).notNull(),
     quotationId: uuid('quotation_id')
       .notNull()
       .references(() => quotations.id, { onDelete: 'restrict' }),
@@ -40,7 +48,7 @@ export const quotationEvents = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
-    // Timeline reads are always "this quote, oldest-first".
-    index('quotation_events_quotation_idx').on(table.quotationId, table.createdAt),
+    // Timeline reads are always "this quote, in insertion order".
+    index('quotation_events_quotation_idx').on(table.quotationId, table.seq),
   ],
 );
