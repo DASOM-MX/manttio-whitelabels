@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { GRANTABLE_ROLES } from '../enums/users.enum';
+import { GRANTABLE_ROLES, ROLES } from '../enums/users.enum';
 
 // `role` accepts GRANTABLE_ROLES, not ROLES: `owner` is provisioning-time only
 // and can never be granted through the users API (backend plan §1).
@@ -33,6 +33,20 @@ export const deleteUserSchema = z.object({
   deleteComment: z.string().trim().min(1),
 });
 
+// Paged roster read (05 §3 target contract). `role` accepts the full ROLES —
+// filtering BY owner is legitimate even though owner is never grantable.
+// `active` is accepted for forward-compat: the deactivation column is 05's
+// still-pending leg, so every listed (non-deleted) row is active and
+// `active=false` matches nothing.
+export const listUsersQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+  search: z.string().trim().min(1).optional(),
+  role: z.enum(ROLES).optional(),
+  active: z.enum(['true', 'false']).optional(),
+});
+
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 export type DeleteUserInput = z.infer<typeof deleteUserSchema>;
+export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>;

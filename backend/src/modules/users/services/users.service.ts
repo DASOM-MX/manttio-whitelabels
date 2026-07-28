@@ -5,7 +5,7 @@ import { hashPassword } from '../../auth/services/password.service';
 import {
   findUserById,
   insertUser,
-  listUsers,
+  listUsersPaged,
   softDeleteUser,
   updateUser,
 } from '../repository/users.repository';
@@ -13,7 +13,11 @@ import { toPublicUser, type PublicUser } from '../dtos/users.dto';
 import { PASSWORD_RESET_PAIRINGS } from '../enums/users.enum';
 import { generateTempPassword } from '../utils/temp-password';
 import type { UpdateUserFields } from '../types/users.types';
-import type { CreateUserInput, UpdateUserInput } from '../validators/users.validator';
+import type {
+  CreateUserInput,
+  ListUsersQuery,
+  UpdateUserInput,
+} from '../validators/users.validator';
 
 // Thrown when an insert/update collides with the active-email unique index; the
 // controller maps it to 409 email_in_use.
@@ -32,9 +36,17 @@ export const getUserById = async (db: Db, id: string): Promise<PublicUser | null
   return user ? toPublicUser(user) : null;
 };
 
-export const getUsers = async (db: Db): Promise<PublicUser[]> => {
-  const rows = await listUsers(db);
-  return rows.map(toPublicUser);
+export const getUsersPaged = async (
+  db: Db,
+  query: ListUsersQuery,
+): Promise<{ items: PublicUser[]; total: number; page: number; limit: number }> => {
+  // No deactivation column yet (05's pending leg): everyone listed is active,
+  // so filtering for inactive users truthfully matches nothing.
+  if (query.active === 'false') {
+    return { items: [], total: 0, page: query.page, limit: query.limit };
+  }
+  const { rows, total } = await listUsersPaged(db, query);
+  return { items: rows.map(toPublicUser), total, page: query.page, limit: query.limit };
 };
 
 // Temp-password model (backend plan §1): with no password supplied, generate
