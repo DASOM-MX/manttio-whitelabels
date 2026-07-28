@@ -5,7 +5,10 @@
 > `0011`, 2026-07-08 — and the **password-reset process, shipped 2026-07-09**:
 > `POST /users/:id/password` (pairing-gated), temp-password create, `must_change_password`
 > (migration `0012`), `POST /auth/password`. Temp passwords are always `tmp_` + 18 random
-> chars. Still pending: paged `GET /users` list query, `active` + `phone` columns.)
+> chars. The **paged `GET /users` list shipped 2026-07-28** (search/role/active
+> params, roster gate owner/admin/office, legacy `/users/list` retired — field app
+> + superadmin migrated in the same change; `active` in responses is derived from
+> the soft delete until the column lands). Still pending: `active` + `phone` columns.)
 > **Depends on:** 02 (CP-3, done)
 > **Owner:** branch `feature/superadmin-users` (stacked on the 02 shell PR) · **Last updated:** 2026-07-08
 
