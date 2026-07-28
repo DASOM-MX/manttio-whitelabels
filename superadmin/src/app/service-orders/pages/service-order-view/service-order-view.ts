@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
+import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -11,8 +12,8 @@ import { TextareaModule } from 'primeng/textarea';
 import { MessageService } from 'primeng/api';
 import {
   LucideCheck,
+  LucideDynamicIcon,
   LucideFileText,
-  LucideHistory,
   LucidePencil,
   LucideSearchX,
   LucideX,
@@ -30,6 +31,8 @@ import { AuthState } from '../../../../state/auth/auth.state';
 import { hasRole } from '../../../guards/has-role.guard';
 import { ServiceOrderStatus } from '../../../model/enums/service-order/service-order-status.enum';
 import {
+  ServiceOrderEventChipClassPipe,
+  ServiceOrderEventIconPipe,
   ServiceOrderEventLabelPipe,
   ServiceOrderStatusLabelPipe,
   ServiceOrderStatusSeverityPipe,
@@ -59,12 +62,15 @@ import type { ServiceOrderReport } from '../../../data/dtos/service-order';
     RouterLink,
     ReactiveFormsModule,
     TableModule,
+    TabsModule,
     TagModule,
     DialogModule,
     InputTextModule,
     TextareaModule,
     ServiceOrderStatusLabelPipe,
     ServiceOrderStatusSeverityPipe,
+    ServiceOrderEventChipClassPipe,
+    ServiceOrderEventIconPipe,
     ServiceOrderEventLabelPipe,
     ReportTypeLabelPipe,
     ReportStatusLabelPipe,
@@ -75,8 +81,8 @@ import type { ServiceOrderReport } from '../../../data/dtos/service-order';
     ServiceUomShortPipe,
     PageHeader,
     LucideCheck,
+    LucideDynamicIcon,
     LucideFileText,
-    LucideHistory,
     LucidePencil,
     LucideSearchX,
     LucideX,
@@ -103,6 +109,10 @@ export class ServiceOrderView {
   protected showsMoney = computed(() => this.order()?.amounts !== undefined);
   protected hasMoreEvents = computed(() => this.timeline().length < this.timelineTotal());
 
+  /** Which detail tab is showing — the activity feed lives in its own tab
+   *  (owner 2026-07-27), mirroring the customer-view idiom. */
+  protected activeTab = signal('general');
+
   protected saving = signal(false);
   protected editOpen = signal(false);
   protected cancelOpen = signal(false);
@@ -123,6 +133,11 @@ export class ServiceOrderView {
 
   private orderId(): string {
     return this.id().get('id') ?? '';
+  }
+
+  /** p-tabs emits `string | number | undefined` — normalize to our tab keys. */
+  protected setTab(value: string | number | undefined): void {
+    this.activeTab.set(String(value ?? 'general'));
   }
 
   protected loadMoreEvents(): void {
