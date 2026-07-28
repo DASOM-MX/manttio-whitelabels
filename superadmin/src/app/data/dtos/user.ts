@@ -65,8 +65,7 @@ export interface ResetPasswordResponse {
   tempPassword: string;
 }
 
-/** One row of today's roster read (`GET /users/list` — no `active`/`phone`),
- *  trimmed to what assignment pickers need. */
+/** A roster row trimmed to what assignment pickers need. */
 export interface AssignableUser {
   id: string;
   name: string;

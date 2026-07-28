@@ -27,20 +27,21 @@ export class UsersService {
     });
   }
 
-  /** The whole roster for assignment pickers. Today's backend lists users at
-   *  `GET /users/list` (legacy `{ users }` shape) — the paged `GET /users`
-   *  that `list()` targets is 05's pending backend migration; fold this into
-   *  `list()` when it lands. */
+  /** The roster for assignment pickers, name-sorted with display names
+   *  precomposed — one page of 100 covers any real tenant's staff. */
   listAssignable(): Observable<AssignableUser[]> {
-    return this.remote
-      .get<{ users: AssignableUser[] }>('/users/list')
-      .pipe(
-        map((res) =>
-          res.users
-            .map((u) => ({ ...u, fullName: [u.name, u.paternalLastName].filter(Boolean).join(' ') }))
-            .sort((a, b) => a.fullName.localeCompare(b.fullName, 'es')),
-        ),
-      );
+    return this.list({ limit: 100 }).pipe(
+      map((res) =>
+        res.items
+          .map((u) => ({
+            id: u.id,
+            name: u.name,
+            paternalLastName: u.paternalLastName,
+            fullName: [u.name, u.paternalLastName].filter(Boolean).join(' '),
+          }))
+          .sort((a, b) => a.fullName.localeCompare(b.fullName, 'es')),
+      ),
+    );
   }
 
   get(id: string): Observable<User> {
