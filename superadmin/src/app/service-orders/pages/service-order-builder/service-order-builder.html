@@ -61,10 +61,12 @@
         </button>
       </div>
 
-      <div class="flex flex-col gap-4" formArrayName="lines">
+      <!-- One surface: rows separate with hairline dividers, never a second
+           background inside the card (owner 2026-07-27). -->
+      <div class="flex flex-col gap-5" formArrayName="lines">
         @for (line of lines.controls; track line; let i = $index) {
           <div
-            class="grid gap-4 rounded-chip bg-surface-100 p-4 dark:bg-surface-800/40 sm:grid-cols-2 lg:grid-cols-5"
+            class="grid gap-4 border-b border-surface-200 pb-5 last:border-b-0 last:pb-0 dark:border-surface-700 sm:grid-cols-2 lg:grid-cols-5"
             [formGroupName]="i"
           >
             <div class="field-group lg:col-span-2">
