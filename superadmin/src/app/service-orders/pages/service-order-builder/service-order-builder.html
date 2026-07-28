@@ -14,6 +14,8 @@
           <label class="field-label" for="order-customer">
             Cliente<span aria-hidden="true"> *</span>
           </label>
+          <!-- The customer roster is 1000+ rows — virtual scroll keeps the
+               overlay light; the filter is how anyone actually picks. -->
           <p-select
             inputId="order-customer"
             formControlName="customerId"
@@ -22,6 +24,8 @@
             optionValue="id"
             [filter]="true"
             filterBy="name"
+            [virtualScroll]="true"
+            [virtualScrollItemSize]="40"
             placeholder="Selecciona un cliente"
           />
           @if (form.controls.customerId.touched && form.controls.customerId.errors?.['required']) {
@@ -104,10 +108,12 @@
                 [inputId]="'line-technician-' + i"
                 formControlName="technicianId"
                 [options]="technicians()"
-                optionLabel="name"
+                optionLabel="fullName"
                 optionValue="id"
                 [filter]="true"
-                filterBy="name"
+                filterBy="fullName"
+                [virtualScroll]="true"
+                [virtualScrollItemSize]="40"
                 placeholder="Asignar a"
               />
             </div>

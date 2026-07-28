@@ -1,8 +1,9 @@
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
 import type { PagedResponse } from '../../data/dtos/paged-response';
 import type {
+  AssignableUser,
   CreateUserRequest,
   CreateUserResponse,
   DeleteUserRequest,
@@ -24,6 +25,22 @@ export class UsersService {
       role: query.role,
       active: query.active === '' || query.active === undefined ? undefined : String(query.active),
     });
+  }
+
+  /** The whole roster for assignment pickers. Today's backend lists users at
+   *  `GET /users/list` (legacy `{ users }` shape) — the paged `GET /users`
+   *  that `list()` targets is 05's pending backend migration; fold this into
+   *  `list()` when it lands. */
+  listAssignable(): Observable<AssignableUser[]> {
+    return this.remote
+      .get<{ users: AssignableUser[] }>('/users/list')
+      .pipe(
+        map((res) =>
+          res.users
+            .map((u) => ({ ...u, fullName: [u.name, u.paternalLastName].filter(Boolean).join(' ') }))
+            .sort((a, b) => a.fullName.localeCompare(b.fullName, 'es')),
+        ),
+      );
   }
 
   get(id: string): Observable<User> {

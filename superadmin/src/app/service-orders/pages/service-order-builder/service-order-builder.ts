@@ -7,7 +7,7 @@ import {
   Validators,
   type FormGroup,
 } from '@angular/forms';
-import { map } from 'rxjs';
+import { catchError, map, of, type Observable } from 'rxjs';
 import { TableModule } from 'primeng/table';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
@@ -27,8 +27,10 @@ import { ServiceUomShortPipe } from '../../../pipes/service-uom.pipe';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { errorMessage } from '../../../data/utils';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
+import type { Customer } from '../../../data/dtos/customer';
 import type { Service } from '../../../data/dtos/service';
 import type { ServiceOrderDetail } from '../../../data/dtos/service-order';
+import type { AssignableUser } from '../../../data/dtos/user';
 
 interface BuilderLineValue {
   serviceId: string;
@@ -78,27 +80,36 @@ export class ServiceOrderBuilder implements HasPendingChanges {
   private router = inject(Router);
   private messages = inject(MessageService);
 
-  /** Reference data, loaded once per visit. Catalog-sized lists — the customer
-   *  select carries PrimeNG's built-in filter for typing. */
+  /** Reference data, loaded once per visit. Every stream degrades to an empty
+   *  list + toast on failure — an errored `toSignal` rethrows on every read,
+   *  which aborts each change-detection pass and leaves the page looking
+   *  frozen (the 2026-07-28 builder-freeze bug). The customer roster is NOT
+   *  catalog-sized (1000+ rows live), so its select virtual-scrolls. */
   protected customers = toSignal(
     inject(CustomersService)
-      .list({ limit: 100 })
-      .pipe(map((r) => r.items)),
+      .list({})
+      .pipe(
+        map((r) => r.items),
+        catchError(this.refDataFallback<Customer>('los clientes')),
+      ),
     { initialValue: [] },
   );
   protected services = toSignal(
     inject(ServicesCatalogService)
       .list({})
-      .pipe(map((r) => r.services)),
+      .pipe(
+        map((r) => r.services),
+        catchError(this.refDataFallback<Service>('el catálogo de servicios')),
+      ),
     { initialValue: [] },
   );
-  /** Anyone active can be assigned (the backend takes the same trusted-field
-   *  posture as report creation — small shops send admins to site), so the
-   *  select lists all active users, technicians included. */
+  /** Anyone on the roster can be assigned (the backend takes the same
+   *  trusted-field posture as report creation — small shops send admins to
+   *  site), so the select lists everyone, technicians included. */
   protected technicians = toSignal(
     inject(UsersService)
-      .list({ limit: 100, active: true })
-      .pipe(map((r) => r.items)),
+      .listAssignable()
+      .pipe(catchError(this.refDataFallback<AssignableUser>('los técnicos'))),
     { initialValue: [] },
   );
 
@@ -180,7 +191,7 @@ export class ServiceOrderBuilder implements HasPendingChanges {
         serviceName: service?.name ?? '',
         uom: service?.uom,
         quantity: line?.quantity ?? 0,
-        technicianName: tech ? `${tech.name} ${tech.paternalLastName ?? ''}`.trim() : '',
+        technicianName: tech?.fullName ?? '',
         reportType:
           REPORT_TYPE_OPTIONS.find((o) => o.value === line?.reportType)?.label ??
           line?.reportType ??
@@ -196,6 +207,20 @@ export class ServiceOrderBuilder implements HasPendingChanges {
 
   hasPendingChanges(): boolean {
     return this.form.dirty && !this.created;
+  }
+
+  /** Empty-list fallback for a failed reference fetch: toast + degrade. The
+   *  error must never reach `toSignal` — an errored signal rethrows on every
+   *  read, which kills each change-detection pass and freezes the page. */
+  private refDataFallback<T>(what: string): (err: unknown) => Observable<T[]> {
+    return (err) => {
+      this.messages.add({
+        severity: 'error',
+        summary: `No se pudieron cargar ${what}`,
+        detail: errorMessage(err, 'Recarga la página para reintentarlo.'),
+      });
+      return of([]);
+    };
   }
 
   private buildLine(): FormGroup {
