@@ -175,13 +175,16 @@
               <ol class="flex flex-col">
                 @for (event of timeline(); track event.id) {
                   <li
-                    class="flex items-start gap-3 border-b border-surface-200 py-3 last:border-b-0 dark:border-surface-700"
+                    class="flex items-center gap-3 border-b border-surface-200 py-2.5 last:border-b-0 dark:border-surface-700"
                   >
-                    <!-- Per-type icon + color family (label carries the meaning;
-                         the chip reinforces it) — CRM-timeline idiom, one size
-                         down for this denser feed. -->
+                    <!-- Uniform rows: the text block reserves two lines
+                         (min-h-10 = 2 × text-sm leading) and centers its
+                         content, so every row is the same height and the chip
+                         centers vertically whether or not a detail line
+                         exists. Per-type icon + color family — the label
+                         carries the meaning, the chip reinforces it. -->
                     <span
-                      class="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full"
+                      class="inline-flex size-7 shrink-0 items-center justify-center rounded-full"
                       [class]="event.type | serviceOrderEventChipClass"
                     >
                       <svg
@@ -191,22 +194,20 @@
                         aria-hidden="true"
                       ></svg>
                     </span>
-                    <div class="min-w-0 grow">
-                      <p class="text-sm font-medium">{{ event.type | serviceOrderEventLabel }}</p>
+                    <div class="flex min-h-10 min-w-0 grow flex-col justify-center">
+                      <p class="truncate text-sm font-medium">
+                        {{ event.type | serviceOrderEventLabel }}
+                      </p>
                       @if (event.note) {
-                        <p class="text-sm text-surface-500 dark:text-surface-400">
+                        <p class="truncate text-sm text-surface-500 dark:text-surface-400">
                           {{ event.note }}
                         </p>
                       }
                     </div>
-                    <div class="shrink-0 text-right">
-                      <p class="micro-label">{{ event.createdAt | relativeTime }}</p>
-                      @if (event.actorName) {
-                        <p class="text-2xs text-surface-500 dark:text-surface-400">
-                          {{ event.actorName }}
-                        </p>
-                      }
-                    </div>
+                    <p class="micro-label shrink-0 text-right">
+                      {{ event.createdAt | relativeTime
+                      }}@if (event.actorName) {<span> · {{ event.actorName }}</span>}
+                    </p>
                   </li>
                 }
               </ol>
