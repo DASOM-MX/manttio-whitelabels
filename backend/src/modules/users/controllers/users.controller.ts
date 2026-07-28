@@ -29,12 +29,15 @@ users.get('/me', async (c) => {
   return c.json({ user });
 });
 
-users.use('*', requireRole(['owner', 'admin']));
-
-users.get('/list', async (c) => {
+// The roster read admits office too — the service-order builder assigns
+// technicians, and office creates orders (19 §5). User *management* below
+// stays owner/admin.
+users.get('/list', requireRole(['owner', 'admin', 'office']), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   return c.json({ users: await getUsers(db) });
 });
+
+users.use('*', requireRole(['owner', 'admin']));
 
 users.get('/:id', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
