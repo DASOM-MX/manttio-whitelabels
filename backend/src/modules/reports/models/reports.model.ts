@@ -11,7 +11,7 @@ import {
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { ReportStatus, type WorkType } from '../enums/reports.enum';
+import { ReportStatus, type ReportType, type WorkType } from '../enums/reports.enum';
 import { users } from '../../users/models/users.model';
 import { customers } from '../../customers/models/customers.model';
 import { services } from '../../services/models/services.model';
@@ -21,7 +21,7 @@ export const reports = pgTable(
   'reports',
   {
     id: text('id').primaryKey(),
-    reportType: text('report_type').notNull(),
+    reportType: text('report_type').$type<ReportType>().notNull(),
     workType: text('work_type').$type<WorkType | null>(),
     dateArrival: timestamp('date_arrival', { withTimezone: true }),
     dateDeparture: timestamp('date_departure', { withTimezone: true }),

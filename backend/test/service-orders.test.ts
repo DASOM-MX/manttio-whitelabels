@@ -514,6 +514,23 @@ describe('PATCH /service-orders/:id', () => {
     const res = await patchOrder(token, order.id, { customerId: customer.id });
     expect(res.status).toBe(400);
   });
+
+  test('409s an edit on a closed order — the mutable pair freezes at complete', async () => {
+    const { token, customer, tech, service } = await scenario();
+    const created = await createOrder(token, {
+      customerId: customer.id,
+      lines: [lineFor(service, tech)],
+    });
+    const { order } = await json<{ order: Order }>(created);
+
+    await setStatus(token, order.id, { status: ServiceOrderStatus.Completed });
+
+    // Decided 2026-07-29: comments/location are editable only while open — a
+    // closed order is history and the handoff has already composed from it.
+    const denied = await patchOrder(token, order.id, { comments: 'tarde' });
+    expect(denied.status).toBe(409);
+    expect((await json<{ error: string }>(denied)).error).toBe('order_closed');
+  });
 });
 
 describe('POST /service-orders/:id/status', () => {

@@ -1,4 +1,4 @@
-ALTER TABLE "service_orders" ADD COLUMN "quotation_id" uuid;--> statement-breakpoint
+ALTER TABLE "service_orders" ADD COLUMN IF NOT EXISTS "quotation_id" uuid;--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "service_orders" ADD CONSTRAINT "service_orders_quotation_id_quotations_id_fk" FOREIGN KEY ("quotation_id") REFERENCES "public"."quotations"("id") ON DELETE restrict ON UPDATE no action;
 EXCEPTION

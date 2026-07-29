@@ -67,7 +67,7 @@ export interface ServiceOrderReportDTO {
   id: string;
   folio: string;
   status: ReportStatus;
-  reportType: string;
+  reportType: ReportType;
   /** Which line this report fulfills; drives the template prefilter (CP-4). */
   serviceId: string | null;
   assignedTo: string;
@@ -138,7 +138,7 @@ export interface FrozenOrderLine {
   quantity: number;
   unitPrice: string;
   technicianId: string;
-  reportType: string;
+  reportType: ReportType;
 }
 
 /** What the conversion service hands `createServiceOrderFromQuotation` after

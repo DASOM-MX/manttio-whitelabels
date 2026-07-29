@@ -24,6 +24,7 @@ import {
   InvalidOrderReferenceError,
   InvalidOrderTransitionError,
   LocationEditForbiddenError,
+  OrderClosedError,
 } from '../http-errors/service-orders.error';
 
 export const serviceOrders = new Hono<AppBindings>();
@@ -100,7 +101,8 @@ serviceOrders.post(
 );
 
 // `comments` and/or `location` only — everything else is fixed at creation
-// (19 §1). `location` is owner/admin-only and the service enforces it.
+// (19 §1), and only while the order is open (decided 2026-07-29). `location`
+// is owner/admin-only and the service enforces it.
 serviceOrders.patch(
   '/:id',
   requireRole(['owner', 'admin', 'office']),
@@ -116,6 +118,9 @@ serviceOrders.patch(
     } catch (err) {
       if (err instanceof LocationEditForbiddenError) {
         return c.json({ error: 'forbidden_location_edit', message: err.message }, 403);
+      }
+      if (err instanceof OrderClosedError) {
+        return c.json({ error: 'order_closed', message: err.message }, 409);
       }
       throw err;
     }

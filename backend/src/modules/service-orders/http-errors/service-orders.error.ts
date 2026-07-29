@@ -25,3 +25,14 @@ export class LocationEditForbiddenError extends Error {
     this.name = 'LocationEditForbiddenError';
   }
 }
+
+// Thrown when a PATCH lands on a completed/cancelled order (decided
+// 2026-07-29): the mutable pair is mutable only while the order is open — a
+// closed order is history, and the handoff document has already composed from
+// it. Maps to 409, same family as the status-transition refusal.
+export class OrderClosedError extends Error {
+  constructor(public status: string) {
+    super(`order is ${status}; comments and location are editable only while it is open`);
+    this.name = 'OrderClosedError';
+  }
+}

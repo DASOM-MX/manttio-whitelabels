@@ -10,6 +10,7 @@ import { isLiveStatus, QuotationResponse } from '../../quotations/enums/quotatio
 import { QuotationNotLiveError } from '../../quotations/http-errors/quotations.error';
 import { isOverdue } from '../../quotations/services/quotations.service';
 import type { QuotationLineRow } from '../../quotations/types/quotations.types';
+import type { ReportType } from '../../reports/enums/reports.enum';
 import { createServiceOrderFromQuotation } from '../repository/service-orders.repository';
 import { getServiceOrderById } from './service-orders.service';
 import {
@@ -34,7 +35,7 @@ const MAX_EXPLODED_REPORTS = 50;
  *  fields are identical across the group by construction. */
 const mergeQuoteLines = (
   quoteLines: QuotationLineRow[],
-  assignments: Map<string, { technicianId: string; reportType: string }>,
+  assignments: Map<string, { technicianId: string; reportType: ReportType }>,
 ): FrozenOrderLine[] => {
   const merged = new Map<string, FrozenOrderLine>();
   for (const line of quoteLines) {

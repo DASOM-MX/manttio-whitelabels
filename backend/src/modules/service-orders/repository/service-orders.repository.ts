@@ -30,7 +30,7 @@ import {
   ServiceOrderEventType,
   ServiceOrderStatus,
 } from '../enums/service-orders.enum';
-import { InvalidOrderReferenceError } from '../http-errors/service-orders.error';
+import { InvalidOrderReferenceError, OrderClosedError } from '../http-errors/service-orders.error';
 import { formatServiceOrderFolio } from '../utils/service-order-folio';
 import type {
   ConvertQuotationCommand,
@@ -566,9 +566,14 @@ export const createServiceOrderFromQuotation = async (
 
 // --- MUTATIONS ---
 
-/** `comments` and/or `location` — the only patchable fields (19 §1). Both
- *  mutations audit to the timeline in the same transaction. Returns null when
- *  the order doesn't exist (or is tombstoned), which the service maps to 404. */
+/** `comments` and/or `location` — the only patchable fields (19 §1), and only
+ *  while the order is `open` (decided 2026-07-29): a closed order is history
+ *  and the handoff document has already composed from it, so even the mutable
+ *  pair freezes at complete/cancel. Both mutations audit to the timeline in
+ *  the same transaction. Returns null when the order doesn't exist (or is
+ *  tombstoned), which the service maps to 404; a closed order throws instead
+ *  (409), checked inside the transaction so a racing complete can't slip an
+ *  edit through. */
 export const updateServiceOrder = async (
   db: Db,
   id: string,
@@ -582,6 +587,7 @@ export const updateServiceOrder = async (
       .where(and(eq(serviceOrders.id, id), activeFilter))
       .limit(1);
     if (!current) return null;
+    if (current.status !== ServiceOrderStatus.Open) throw new OrderClosedError(current.status);
 
     const [updated] = await tx
       .update(serviceOrders)
@@ -689,8 +695,13 @@ export const cancelServiceOrder = async (
         ),
       );
 
+    // …but emit events only for rows the UPDATE actually voided: under READ
+    // COMMITTED a report can reach `finished` between the two statements, and
+    // the re-checked filter rightly skips it — logging it as cancelled from the
+    // stale pre-read would put a lie on the trail the handoff composes from.
+    let voidedIds = new Set<string>();
     if (doomed.length > 0) {
-      await tx
+      const voided = await tx
         .update(reports)
         .set({ status: ReportStatus.Cancelled, updatedAt: new Date() })
         .where(
@@ -699,7 +710,9 @@ export const cancelServiceOrder = async (
             inArray(reports.status, voidable),
             isNull(reports.deletedAt),
           ),
-        );
+        )
+        .returning({ id: reports.id });
+      voidedIds = new Set(voided.map((r) => r.id));
     }
 
     await appendOrderEvents(tx, [
@@ -710,15 +723,17 @@ export const cancelServiceOrder = async (
         changes: { status: { from: ServiceOrderStatus.Open, to: ServiceOrderStatus.Cancelled } },
         note: note ?? null,
       },
-      ...doomed.map((report) => ({
-        serviceOrderId: id,
-        type: ServiceOrderEventType.ReportStatusChanged,
-        actorId,
-        refKind: ServiceOrderEventRefKind.Report,
-        refId: report.id,
-        changes: { status: { from: report.status, to: ReportStatus.Cancelled } },
-        note: 'Cancelado con la orden',
-      })),
+      ...doomed
+        .filter((report) => voidedIds.has(report.id))
+        .map((report) => ({
+          serviceOrderId: id,
+          type: ServiceOrderEventType.ReportStatusChanged,
+          actorId,
+          refKind: ServiceOrderEventRefKind.Report,
+          refId: report.id,
+          changes: { status: { from: report.status, to: ReportStatus.Cancelled } },
+          note: 'Cancelado con la orden',
+        })),
     ]);
 
     return updated;

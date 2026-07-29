@@ -18,8 +18,9 @@ import type {
 // Writers append **inside the same transaction** as the state change they
 // describe, so the trail can never drift from reality.
 //
-// Applied directly to the shared Neon DB (ahead-of-migrations rule) — no
-// drizzle migration file is generated from here.
+// DDL shipped in migration 0026 (generated as 0023, renumbered after #108/#109
+// took the range; already applied to the shared Neon DB under the old number —
+// hence that file's idempotence guards).
 export const serviceOrderEvents = pgTable(
   'service_order_events',
   {

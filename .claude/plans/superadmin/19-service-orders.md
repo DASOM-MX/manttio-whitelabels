@@ -97,7 +97,11 @@ ServiceOrderLine {         // table: service_order_services
 **Mutability (decided 2026-07-23).** A service order is fixed at creation except two
 fields: `comments` (any staff role) and `location` (**owner/admin only**). Customer,
 lines, folio, and status-by-endpoint are immutable through `PATCH`. Both mutations
-append an event to the order timeline (§7).
+append an event to the order timeline (§7). **And only while `open` (decided
+2026-07-29, CP-1 review):** at complete/cancel even the mutable pair freezes —
+a closed order is history and the handoff document (CP-5) has already composed
+from it. `PATCH` on a closed order is a 409 `order_closed`, matching the UI,
+which only offers Editar on open orders.
 
 **Contracts — orders generate them, 0..n (direction decided 2026-07-23; model settled
 2026-07-24).** An order **may generate 0..n contracts** (13) — a guarantee, a
