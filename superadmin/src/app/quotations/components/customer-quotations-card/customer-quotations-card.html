@@ -1,0 +1,85 @@
+<section aria-label="Cotizaciones">
+  <!-- Full-bleed inside the customer view's tabpanel — `tabs.scss` retargets
+       `.card-flush-table` to the panel's own gutter. -->
+  <div class="card-flush-table">
+    <p-table
+      [value]="quotations()"
+      [loading]="loading()"
+      [showLoader]="false"
+      [rowHover]="true"
+      dataKey="id"
+    >
+      <ng-template #header>
+        <tr>
+          <th scope="col">Folio</th>
+          <th scope="col">Estado</th>
+          <th scope="col">Revisores</th>
+          <th scope="col">Total</th>
+          <th scope="col">Vigencia</th>
+        </tr>
+      </ng-template>
+
+      <ng-template #body let-q>
+        <tr>
+          <td class="p-0">
+            <a
+              [routerLink]="['/quotations', q.id]"
+              class="block px-3 py-3 font-data font-medium tabular-nums"
+            >
+              {{ q.folio }}
+            </a>
+          </td>
+          <td>
+            <div class="flex flex-wrap items-center gap-1">
+              <p-tag
+                [severity]="q.status | quotationStatusSeverity"
+                [value]="q.status | quotationStatusLabel"
+              />
+              @if (q | quotationShowsOverdue) {
+                <p-tag severity="danger" value="Vencida" />
+              }
+            </div>
+          </td>
+          <td class="text-sm text-surface-600 dark:text-surface-400">
+            {{ q.tally | quotationTally }}
+          </td>
+          <td class="font-data tabular-nums">{{ q.total | money }}</td>
+          <td class="font-data tabular-nums">{{ q.validUntil }}</td>
+        </tr>
+      </ng-template>
+
+      <ng-template #loadingbody>
+        @for (r of skeletonRows; track r) {
+          <tr>
+            @for (c of [0, 1, 2, 3, 4]; track c) {
+              <td><span class="skeleton"></span></td>
+            }
+          </tr>
+        }
+      </ng-template>
+
+      <ng-template #emptymessage>
+        <tr class="p-datatable-emptymessage">
+          <td colspan="5">
+            <span class="inline-flex flex-col items-center gap-3">
+              <span class="empty-icon">
+                <svg lucideFileSpreadsheet class="size-5" aria-hidden="true"></svg>
+              </span>
+              Sin cotizaciones para este cliente.
+            </span>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  @if (total() > pageSize) {
+    <a
+      [routerLink]="['/quotations']"
+      [queryParams]="{ customerId: customerId() }"
+      class="link-action mt-3"
+    >
+      Ver las {{ total() }} cotizaciones
+    </a>
+  }
+</section>

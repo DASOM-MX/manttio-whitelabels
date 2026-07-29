@@ -1,0 +1,142 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="dialog-lg"
+  header="Enviar cotización"
+>
+  <div class="grid gap-4">
+    @if (loadingContacts()) {
+      <ul class="flex flex-col gap-2">
+        @for (row of [0, 1, 2]; track row) {
+          <li><span class="skeleton"></span></li>
+        }
+      </ul>
+    } @else if (hasNoContacts()) {
+      <!-- Not a UI shortcut: recipients are customer_contacts rows, so a client
+           with none has nobody to mail. -->
+      <div class="callout callout--warn" role="alert">
+        <p class="font-medium">Este cliente no tiene contactos registrados.</p>
+        <p class="mt-1">
+          La cotización se envía a los contactos del cliente, así que primero agrega uno con su
+          correo.
+        </p>
+        @if (quotation(); as q) {
+          <a [routerLink]="['/customers', q.customerId]" class="link-action mt-2">
+            Ir al cliente
+          </a>
+        }
+      </div>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="confirm()" class="grid gap-4">
+        <div>
+          <h3 class="section-heading">Destinatarios</h3>
+          <p class="mt-1 text-sm text-surface-600 dark:text-surface-400">
+            Marca a quién se le envía. Solo los <span class="font-medium">revisores</span>
+            pueden aprobar o rechazar; el resto recibe una copia informativa.
+          </p>
+
+          <ul
+            formArrayName="recipients"
+            class="mt-3 flex flex-col divide-y divide-surface-200 dark:divide-surface-800"
+          >
+            @for (row of rows(); track row.contactId) {
+              <li [formGroupName]="row.index" class="flex flex-wrap items-center gap-3 py-3">
+                <p-checkbox
+                  formControlName="included"
+                  [binary]="true"
+                  [inputId]="'recipient-' + row.index"
+                />
+                <label
+                  [attr.for]="'recipient-' + row.index"
+                  class="min-w-0 flex-1 cursor-pointer"
+                  [class.opacity-60]="!row.hasEmail"
+                >
+                  <span class="block text-sm font-medium text-surface-1000 dark:text-surface-0">
+                    {{ row.name }}
+                  </span>
+                  @if (row.hasEmail) {
+                    <span class="block text-xs text-surface-500 dark:text-surface-400">
+                      {{ row.email }}
+                    </span>
+                  } @else {
+                    <span class="block text-xs text-amber-700 dark:text-amber-400">
+                      Sin correo — no se le puede enviar
+                    </span>
+                  }
+                  @if (row.alreadySent) {
+                    <span class="block text-xs text-surface-500 dark:text-surface-400">
+                      Ya la recibió · conserva su misma liga
+                    </span>
+                  }
+                </label>
+                <!-- Only meaningful once the row is ticked, so it appears with it
+                     rather than sitting there greyed out. -->
+                @if (row.included) {
+                  <span class="flex items-center gap-2 text-sm">
+                    <p-checkbox
+                      formControlName="isReviewer"
+                      [binary]="true"
+                      [inputId]="'reviewer-' + row.index"
+                    />
+                    <label [attr.for]="'reviewer-' + row.index">Revisor</label>
+                  </span>
+                }
+              </li>
+            }
+          </ul>
+        </div>
+
+        @if (willLowerStatus()) {
+          <!-- The tally is re-derived over the FULL reviewer set, so a reviewer
+               who hasn't answered makes "todos aprobaron" false again. -->
+          <div class="callout callout--warn" role="alert">
+            Esta cotización ya está <span class="font-medium">aprobada</span>. Al agregar un revisor
+            que aún no responde, vuelve a <span class="font-medium">aprobada en parte</span> hasta
+            que él también apruebe.
+          </div>
+        }
+
+        @if (reviewerCount() === 0 && selected().length > 0) {
+          <div class="callout callout--info">
+            Sin revisores, nadie puede aprobar ni rechazar: la cotización queda
+            <span class="font-medium">en espera</span> hasta que la canceles o la conviertas en
+            orden. Úsalo solo para envíos informativos.
+          </div>
+        }
+
+        <div class="field-group">
+          <label class="field-label" for="send-message">Mensaje</label>
+          <textarea
+            id="send-message"
+            pTextarea
+            formControlName="message"
+            rows="3"
+            placeholder="Opcional — acompaña el correo."
+          ></textarea>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="text-sm text-surface-600 dark:text-surface-400">
+            {{ selected().length }} destinatario(s) · {{ reviewerCount() }} revisor(es)
+          </p>
+          <div class="flex gap-2">
+            <button type="button" class="btn-neutral" (click)="close()" [disabled]="submitting()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-primary" [disabled]="!canSend()">
+              @if (submitting()) {
+                Enviando…
+              } @else {
+                Enviar
+              }
+            </button>
+          </div>
+        </div>
+      </form>
+    }
+  </div>
+</p-dialog>
