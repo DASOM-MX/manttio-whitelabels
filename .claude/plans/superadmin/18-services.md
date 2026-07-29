@@ -244,14 +244,32 @@ today that means hand-typing the catalog.
   so an **Exportar CSV** toolbar action on the list serializes the loaded rows;
   admin-tier action, file includes `cost`. No backend surface.
 - **Import** is a dedicated page (`/services/import`, admin tier,
-  `pendingChangesGuard`): upload → client-side parse → **preview p-table with per-row
-  validation** (unknown uom/taxRate codes, non-numeric price, duplicate códigos in-file
-  or against the live catalog) → confirm → `POST /services/import { rows }`. The
-  backend **re-validates every row** (the client is never trusted) and the insert is
-  **transactional, all-or-nothing** — a 422 names each failing row; a partial import
-  that silently skipped rows would read as "imported everything" (no-silent-caps rule).
-  **Create-only in v1** — no upsert-by-código (open ask below). Each row's
-  `service_created` event carries `via: 'import'` (needs CP-4).
+  `pendingChangesGuard`): upload → client-side parse → **field mapper** → **preview
+  p-table with per-row validation** (unknown uom/taxRate codes, non-numeric price,
+  duplicate códigos in-file or against the live catalog) → confirm →
+  `POST /services/import { rows }`. The backend **re-validates every row** (the client
+  is never trusted) and the insert is **transactional, all-or-nothing** — a 422 names
+  each failing row; a partial import that silently skipped rows would read as
+  "imported everything" (no-silent-caps rule). **Create-only in v1** — no
+  upsert-by-código (open ask below). Each row's `service_created` event carries
+  `via: 'import'` (needs CP-4).
+- **Field mapper (owner ask 2026-07-29):** tenant price lists never arrive with our
+  canonical headers ("Concepto", "P.V.", "Clave SAT"…), so between parse and preview
+  sits a mapping step: one row per catalog field, each with a **source-column select**
+  populated from the file's headers plus a few sample values so the owner can see what
+  they're pointing at. Auto-match preselects by normalized header (lowercase,
+  accent-folded, space/punctuation-stripped) against the canonical names **and an alias
+  list** (`concepto`/`servicio`/`nombre` → name · `precio`/`precio de venta`/`pv` →
+  price · `costo` → cost · `unidad`/`um`/`u.m.` → uom · `iva`/`tasa` → taxRate ·
+  `codigo`/`clave`/`sku` → internalServiceCode · `clave sat`/`claveprodserv` →
+  satProdServCode · `clave unidad` → satUnitCode …). **`name` and `price` must map to a
+  column**; every other field may map to a column, a **fixed value for all rows** (the
+  escape hatch for lists with no unidad/IVA column — the selects offer the enum
+  options, defaults `servicio`/`iva_16`), or *Omitir*. Enum cells accept the wire code
+  **or** the Spanish label (accent-folded match against the label constants) — anything
+  else is a per-row error in the preview, never a silent guess. The mapper is entirely
+  client-side: it resolves before submit, so `POST /services/import` still receives
+  canonical rows and the backend contract doesn't change.
 
 ### 6.4 SAT code fields UI (CP-7)
 
@@ -338,8 +356,12 @@ them. CP-6's CSV columns already include both, so an import can seed them.
 
 ### CP-6 — CSV import/export (§6.3)
 - [ ] **Exportar CSV** list toolbar action (admin tier, client-side, wire-enum codes)
-- [ ] `/services/import` page: upload → parse → preview p-table with per-row
-      validation → confirm; `pendingChangesGuard`
+- [ ] `/services/import` page: upload → parse → field mapper → preview p-table with
+      per-row validation → confirm; `pendingChangesGuard`
+- [ ] Field mapper: source-column selects with sample values, alias-based auto-match,
+      fixed-value option for uom/taxRate/flags, *Omitir* for optionals; `name` +
+      `price` must map to a column; enum cells accept wire code or Spanish label
+      (accent-folded), unknowns → per-row preview errors
 - [ ] `POST /services/import { rows }` — backend re-validates every row, transactional
       all-or-nothing, 422 names each failing row; create-only v1
 - [ ] Per-row `service_created` events with `via: 'import'` (needs CP-4)
