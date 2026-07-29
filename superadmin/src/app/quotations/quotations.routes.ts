@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { provideStates } from '@ngxs/store';
+import { pendingChangesGuard } from '../guards/pending-changes.guard';
 import { QuotationsState } from '../../state/quotations/quotations.state';
 import { CustomersState } from '../../state/customers/customers.state';
 import { ServicesState } from '../../state/services/services.state';
@@ -18,8 +19,8 @@ export default [
     providers: [provideStates([QuotationsState, CustomersState, ServicesState])],
     children: [
       { path: '', component: QuotationsList },
-      { path: 'new', component: QuotationBuilder },
-      { path: ':id/edit', component: QuotationBuilder },
+      { path: 'new', component: QuotationBuilder, canDeactivate: [pendingChangesGuard] },
+      { path: ':id/edit', component: QuotationBuilder, canDeactivate: [pendingChangesGuard] },
       { path: ':id', component: QuotationView },
     ],
   },

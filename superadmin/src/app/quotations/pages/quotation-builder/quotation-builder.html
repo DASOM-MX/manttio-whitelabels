@@ -111,14 +111,14 @@
 
             <div class="field-group sm:col-span-2">
               <label class="field-label" [attr.for]="'line-qty-' + row.index">Cantidad</label>
+              <!-- Stepper glyphs stay PrimeNG's built-in SVGs — primeicons is
+                   not loaded in this app, so `pi pi-*` classes render nothing. -->
               <p-inputnumber
                 [inputId]="'line-qty-' + row.index"
                 formControlName="quantity"
                 [min]="1"
                 [showButtons]="true"
                 buttonLayout="horizontal"
-                incrementButtonIcon="pi pi-plus"
-                decrementButtonIcon="pi pi-minus"
               />
             </div>
 

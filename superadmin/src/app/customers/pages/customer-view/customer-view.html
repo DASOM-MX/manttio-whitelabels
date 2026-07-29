@@ -352,8 +352,7 @@
 
       <p-tabpanel value="cotizaciones">
         <!-- Pre-sale (20 §8): the client's proposals and where each one stands.
-             Reads the quotations list filtered by client — no dedicated
-             endpoint. -->
+             Reads the dedicated `GET /customers/:id/quotations` (20 §9). -->
         <app-customer-quotations-card [customerId]="c.id" />
       </p-tabpanel>
 

@@ -28,6 +28,7 @@ import { ServiceTaxRateShortPipe } from '../../../pipes/service-tax-rate.pipe';
 import { ServiceUomShortPipe } from '../../../pipes/service-uom.pipe';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { errorMessage } from '../../../data/utils';
+import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
 import type { QuotationBuilderRow } from '../../../data/types/quotation/quotation-builder-row.type';
 import type { QuotationLineForm } from '../../../data/types/quotation/quotation-line-form.type';
 import type { QuotationLineRequest } from '../../../data/dtos/quotation/quotation-requests';
@@ -69,7 +70,7 @@ const toCalendarDate = (date: Date): string =>
   ],
   templateUrl: './quotation-builder.html',
 })
-export class QuotationBuilder {
+export class QuotationBuilder implements HasPendingChanges {
   private fb = inject(FormBuilder);
   private store = inject(Store);
   private route = inject(ActivatedRoute);
@@ -164,14 +165,20 @@ export class QuotationBuilder {
     this.store.dispatch(new LoadCustomers({ page: 1, limit: 100 }));
     this.store.dispatch(new LoadServices({}));
     if (this.editingId) this.loadDraft(this.editingId);
-    else this.addLine();
+    else this.addLine(true);
+  }
+
+  hasPendingChanges(): boolean {
+    return this.form.dirty && !this.submitting();
   }
 
   protected get lines() {
     return this.form.controls.lines;
   }
 
-  protected addLine(): void {
+  /** `initial` = the starter row on `/new` — scaffolding, not user work, so it
+   *  alone must not arm the dirty-navigation guard. */
+  protected addLine(initial = false): void {
     this.lines.push(
       this.fb.nonNullable.group({
         serviceId: ['', Validators.required],
@@ -179,12 +186,16 @@ export class QuotationBuilder {
         description: [''],
       }),
     );
+    // push/removeAt never set dirty on their own, and a structural edit is
+    // still unsaved work the guard has to see.
+    if (!initial) this.form.markAsDirty();
   }
 
   /** The API demands at least one line, so the last row can't be removed. */
   protected removeLine(index: number): void {
     if (this.lines.length <= 1) return;
     this.lines.removeAt(index);
+    this.form.markAsDirty();
   }
 
   protected save(): void {
@@ -212,6 +223,9 @@ export class QuotationBuilder {
     request.subscribe({
       next: () => {
         this.submitting.set(false);
+        // Saved work isn't pending work — without this the guard would prompt
+        // on the success navigation below.
+        this.form.markAsPristine();
         this.messages.add({
           severity: 'success',
           summary: this.editingId ? 'Cotización actualizada' : 'Cotización creada',
