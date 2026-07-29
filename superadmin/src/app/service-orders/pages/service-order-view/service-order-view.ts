@@ -44,7 +44,7 @@ import { ServiceTaxRateShortPipe } from '../../../pipes/service-tax-rate.pipe';
 import { RelativeTimePipe } from '../../../pipes/relative-time.pipe';
 import { ServiceUomShortPipe } from '../../../pipes/service-uom.pipe';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
-import { errorMessage } from '../../../data/utils';
+import { errorCode, errorMessage } from '../../../data/utils';
 import type { ServiceOrderReport } from '../../../data/dtos/service-order';
 
 /** Order view (19 §5): header with folio + status actions, lines card,
@@ -173,6 +173,7 @@ export class ServiceOrderView {
       error: (err) => {
         this.saving.set(false);
         this.toastError('No se pudo guardar', err);
+        this.resyncIfClosed(err);
       },
     });
   }
@@ -204,8 +205,23 @@ export class ServiceOrderView {
       error: (err) => {
         this.saving.set(false);
         this.toastError('No se pudo cambiar el estado', err);
+        this.resyncIfClosed(err);
       },
     });
+  }
+
+  /** The backend refuses every mutation on a closed order (409 `order_closed`
+   *  on PATCH, `invalid_status_transition` on a second status move — decided
+   *  2026-07-29). Landing on one here means this tab is stale: someone closed
+   *  the order after it loaded. The action can never succeed, so drop the
+   *  dialogs and reload the detail — the fresh status hides the action buttons. */
+  private resyncIfClosed(err: unknown): void {
+    const code = errorCode(err);
+    if (code !== 'order_closed' && code !== 'invalid_status_transition') return;
+    this.editOpen.set(false);
+    this.completeOpen.set(false);
+    this.cancelOpen.set(false);
+    this.store.dispatch(new LoadServiceOrderDetail(this.orderId()));
   }
 
   private refreshTimeline(): void {
