@@ -2,7 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
 import { catchError, tap } from 'rxjs';
 import { ServicesCatalogService } from '../../app/services/http/services-catalog.service';
-import { CreateService, DeleteService, LoadServices, UpdateService } from './services.actions';
+import {
+  CreateService,
+  DeleteService,
+  LoadService,
+  LoadServices,
+  UpdateService,
+} from './services.actions';
 import type { Service, ServiceListQuery } from '../../app/data/dtos/service';
 
 export interface ServicesStateModel {
@@ -42,6 +48,13 @@ export class ServicesState {
         throw err;
       }),
     );
+  }
+
+  @Action(LoadService)
+  loadOne(ctx: StateContext<ServicesStateModel>, { id }: LoadService) {
+    // Cleared first so the form page never hydrates from a stale row.
+    ctx.patchState({ selected: null });
+    return this.api.get(id).pipe(tap((svc) => ctx.patchState({ selected: svc })));
   }
 
   /** The list page refetches after a save, so create only needs to not lie
