@@ -218,18 +218,43 @@
 
     <hr class="border-surface-100 dark:border-surface-800" />
 
-    <div class="flex items-center gap-2">
-      <p-checkbox formControlName="isListableInWebsite" [binary]="true" inputId="svc-listable" />
-      <label class="field-label !mb-0" for="svc-listable">
-        Aparecerá en la sección de servicios del sitio
-      </label>
+    <div class="flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <p-checkbox formControlName="isListableInWebsite" [binary]="true" inputId="svc-listable" />
+        <label class="field-label !mb-0" for="svc-listable">
+          Aparecerá en la sección de servicios del sitio
+        </label>
+      </div>
+      @if (showsPriceToggle()) {
+        <button
+          type="button"
+          class="row-action"
+          (click)="toggleWebsiteSection()"
+          [attr.aria-expanded]="websiteSectionOpen()"
+          aria-controls="svc-website-fields"
+          [attr.aria-label]="
+            websiteSectionOpen() ? 'Contraer opciones del sitio' : 'Expandir opciones del sitio'
+          "
+        >
+          @if (websiteSectionOpen()) {
+            <svg lucideChevronUp class="size-4" aria-hidden="true"></svg>
+          } @else {
+            <svg lucideChevronDown class="size-4" aria-hidden="true"></svg>
+          }
+        </button>
+      }
     </div>
 
     <!-- Revealed only once the service is listed: neither the price toggle
          nor the public copy means anything on a service the site never
-         shows. -->
-    @if (showsPriceToggle()) {
-      <div class="flex flex-col gap-4 pl-6">
+         shows. Collapsible so the form stays short once these are set. -->
+    @if (showsPriceToggle() && websiteSectionOpen()) {
+      <div
+        id="svc-website-fields"
+        class="flex flex-col gap-4 pl-6"
+        animate.enter="anim-enter"
+        animate.leave="anim-leave"
+      >
         <div>
           <div class="flex items-center gap-2">
             <p-checkbox

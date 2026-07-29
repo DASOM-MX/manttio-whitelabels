@@ -10,7 +10,14 @@ import { TextareaModule } from 'primeng/textarea';
 import { CheckboxModule } from 'primeng/checkbox';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
-import { LucideImage, LucideImageUp, LucidePencil, LucideTrash2 } from '@lucide/angular';
+import {
+  LucideChevronDown,
+  LucideChevronUp,
+  LucideImage,
+  LucideImageUp,
+  LucidePencil,
+  LucideTrash2,
+} from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { AuthState } from '../../../../state/auth/auth.state';
 import { ServicesState } from '../../../../state/services/services.state';
@@ -62,6 +69,8 @@ import type { ServiceWebsiteImage } from '../../../data/types/services/service-w
     ServiceTaxRateLabelPipe,
     ServiceUomLabelPipe,
     PageHeader,
+    LucideChevronDown,
+    LucideChevronUp,
     LucideImage,
     LucideImageUp,
     LucidePencil,
@@ -129,7 +138,16 @@ export class ServiceForm implements HasPendingChanges {
   /** The price-visibility toggle only exists for a listed service. */
   protected showsPriceToggle = computed(() => this.listable() === true);
 
+  /** The revealed website block is collapsible — long forms shouldn't force
+   *  scrolling past copy + photo already dealt with. Re-opens whenever the
+   *  listable checkbox turns on, so checking it always shows what it enabled. */
+  protected websiteSectionOpen = signal(true);
+
   constructor() {
+    effect(() => {
+      if (this.listable()) this.websiteSectionOpen.set(true);
+    });
+
     if (this.serviceId) {
       this.store.dispatch(new LoadService(this.serviceId)).subscribe({
         // The page is useless without the service → back to the list either
@@ -177,6 +195,10 @@ export class ServiceForm implements HasPendingChanges {
 
   private imageChanged(): boolean {
     return (this.image().key ?? '') !== (this.savedImageKey ?? '');
+  }
+
+  protected toggleWebsiteSection(): void {
+    this.websiteSectionOpen.update((open) => !open);
   }
 
   protected startEdit(): void {
