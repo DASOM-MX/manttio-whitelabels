@@ -31,9 +31,15 @@ export const createServiceSchema = z.object({
   satUnitCode: z.string().trim().optional(),
   isListableInWebsite: z.boolean().default(false),
   isPriceVisibleInWebsite: z.boolean().default(false),
+  // Clone provenance (18 §6.2): present only when the form was opened as
+  // /services/new?from=<id>. Its *presence* is what marks the created event
+  // `via: 'clone'` — there is no client-supplied `via`, so nothing arriving on
+  // this route can claim to be an import.
+  sourceServiceId: z.string().uuid().optional(),
 });
 
-export const updateServiceSchema = createServiceSchema.partial();
+// A clone is a birth fact, not an editable field — updates never carry it.
+export const updateServiceSchema = createServiceSchema.omit({ sourceServiceId: true }).partial();
 
 // Catalog-sized: a search box, no pagination (18 §4).
 export const listServicesQuerySchema = z.object({ q: z.string().optional() });

@@ -7,7 +7,8 @@
 <!-- View-first detail: static labels until "Editar" is clicked (QA 2026-07-09) —
      no live inputs, no accidental requests. -->
 @if (isEdit && !editing()) {
-  <section class="card-section mt-4 flex max-w-2xl flex-col gap-4">
+  <!-- Same rail as the Bitácora below — mismatched card widths read as a bug. -->
+  <section class="card-section mt-4 flex max-w-4xl flex-col gap-4">
     @if (selected(); as svc) {
       <div class="grid gap-4 sm:grid-cols-2">
         <div>
@@ -100,7 +101,13 @@
       }
 
       @if (canManage()) {
-        <div class="flex justify-end">
+        <div class="flex justify-end gap-2">
+          <!-- Duplicar (18 §6.2): opens a prefilled create — nothing is
+               written until the copy is saved. -->
+          <a class="btn-neutral" [routerLink]="['/services/new']" [queryParams]="{ from: svc.id }">
+            <svg lucideCopy class="size-4" aria-hidden="true"></svg>
+            Duplicar
+          </a>
           <button type="button" class="btn-primary" (click)="startEdit()">
             <svg lucidePencil class="size-4" aria-hidden="true"></svg>
             Editar
@@ -116,7 +123,9 @@
        edited or removed — who repriced what, and when. Admin tier only; the
        endpoint 403s office and technician, so it's never even requested. -->
   @if (canManage()) {
-    <section class="card-section mt-4 max-w-2xl">
+    <!-- Wider than the detail rail: four columns of trail don't fit 2xl and a
+         clipped diff defeats the audit. -->
+    <section class="card-section mt-4 max-w-4xl">
       <h2 class="section-heading">Bitácora</h2>
       <p class="mb-3 text-sm text-surface-600 dark:text-surface-400">
         Todo lo que ha pasado con este servicio, en orden y sin ediciones.
@@ -150,7 +159,9 @@
                 </span>
               </td>
               <td>{{ event.actorName || '—' }}</td>
-              <td class="text-sm text-surface-600 dark:text-surface-400">
+              <!-- The one wrapping cell in the house table idiom: a multi-field
+                   diff is a sentence, and nowrap would shove Cuándo off-card. -->
+              <td class="!whitespace-normal text-sm text-surface-600 dark:text-surface-400">
                 {{ event | serviceEventDetail }}
               </td>
               <td class="font-data tabular-nums">{{ event.createdAt | relativeTime }}</td>

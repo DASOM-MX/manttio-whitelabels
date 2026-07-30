@@ -80,7 +80,7 @@
           }
         </td>
         <td class="font-data tabular-nums">{{ svc.updatedAt | relativeTime }}</td>
-        <td class="w-24" (click)="$event.stopPropagation()">
+        <td class="w-32" (click)="$event.stopPropagation()">
           @if (canManage()) {
             <div class="flex justify-end gap-1">
               <a
@@ -89,6 +89,16 @@
                 [attr.aria-label]="'Editar servicio ' + svc.name"
               >
                 <svg lucidePencil class="size-4" aria-hidden="true"></svg>
+              </a>
+              <!-- Duplicar (18 §6.2): a prefilled create — nothing is written
+                   until the copy is saved. -->
+              <a
+                [routerLink]="['/services/new']"
+                [queryParams]="{ from: svc.id }"
+                class="row-action"
+                [attr.aria-label]="'Duplicar servicio ' + svc.name"
+              >
+                <svg lucideCopy class="size-4" aria-hidden="true"></svg>
               </a>
               <button
                 type="button"

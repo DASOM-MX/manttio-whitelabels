@@ -85,6 +85,7 @@ const patchService = (token: string, id: string, body: object) =>
 type ServiceOverrides = Partial<Omit<Service, 'id' | 'price' | 'cost'>> & {
   price?: number;
   cost?: number;
+  sourceServiceId?: string;
 };
 
 /** A valid create body; every field overridable per test. */
@@ -512,6 +513,24 @@ describe('GET /services/:id/timeline (18 §6.1)', () => {
     expect(events[0]!.changes).toEqual({ via: ServiceCreatedVia.Form });
     // Resolved at read time — the UI renders "quién" without a lookup table.
     expect(events[0]!.actorName).toBeTruthy();
+  });
+
+  test('a clone create records via clone + the source id (18 §6.2)', async () => {
+    const source = await seedService();
+    const { token } = await seedOwnerAndLogin();
+
+    const res = await createService(token, serviceBody({ sourceServiceId: source.id }));
+    expect(res.status).toBe(201);
+    const clone = await json<Service>(res);
+
+    const events = await json<ServiceEvent[]>(await timeline(token, clone.id));
+    expect(events).toHaveLength(1);
+    expect(events[0]!.type).toBe(ServiceEventType.Created);
+    // Derived from the id's presence — the clone's own trail names its source.
+    expect(events[0]!.changes).toEqual({
+      via: ServiceCreatedVia.Clone,
+      sourceServiceId: source.id,
+    });
   });
 
   test('an edit appends per-field old→new; a no-op edit appends nothing', async () => {

@@ -112,6 +112,10 @@ export interface SaveServiceRequest {
   taxRate: ServiceTaxRate;
   isListableInWebsite: boolean;
   isPriceVisibleInWebsite: boolean;
+  /** Clone provenance (18 §6.2): the id the form was prefilled from
+   *  (`/services/new?from=<id>`). Sent only on that create — its presence is
+   *  what makes the backend's `service_created` event say `via: 'clone'`. */
+  sourceServiceId?: string;
 }
 
 export interface DeleteServiceRequest {
