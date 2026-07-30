@@ -61,9 +61,11 @@ export const quotations = pgTable(
     resolvedByUserId: uuid('resolved_by_user_id').references(() => users.id, {
       onDelete: 'restrict',
     }),
-    // The convergence (20 §6). Declared now, written by 19: deliberately
-    // carries NO foreign key yet because `service_orders` does not exist — the
-    // FK is added by 19's DDL in the same change that first writes the column.
+    // The convergence (20 §6): the service order this quote became, set by the
+    // conversion transaction (linked 2026-07-27). The FK lives in SQL only
+    // (0027) — `service_orders.quotationId` already declares its side in
+    // Drizzle, and declaring both would make the two model files import each
+    // other (models stay acyclic; relations live in the barrel).
     serviceOrderId: uuid('service_order_id'),
     createdBy: uuid('created_by')
       .notNull()

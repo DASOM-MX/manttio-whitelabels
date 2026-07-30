@@ -1,8 +1,15 @@
 import { z } from 'zod';
-import { ReportStatus, reportTypes, workTypes, type WorkType } from '../enums/reports.enum';
+import {
+  ReportStatus,
+  reportTypes,
+  workTypes,
+  type ReportType,
+  type WorkType,
+} from '../enums/reports.enum';
 
-// Narrow the inferred type to WorkType (zod's tuple signature loses literals through a bare cast).
+// Narrow the inferred types (zod's tuple signature loses literals through a bare cast).
 const workTypeEnum = z.enum(workTypes as unknown as [WorkType, ...WorkType[]]);
+const reportTypeEnum = z.enum(reportTypes as unknown as [ReportType, ...ReportType[]]);
 
 // Multipart text fields (files are read separately via formData.getAll('pictures') etc.)
 // Geo fields arrive as strings — coerce to number and bound to valid WGS84 ranges.
@@ -11,7 +18,7 @@ const longitudeField = z.coerce.number().min(-180).max(180);
 const accuracyField = z.coerce.number().nonnegative();
 
 export const createReportMetaSchema = z.object({
-  report_type: z.enum(reportTypes as unknown as [string, ...string[]]),
+  report_type: reportTypeEnum,
   work_type: workTypeEnum.optional(),
   client_id: z.string().uuid(),
   date_arrival: z.string().datetime().optional(),

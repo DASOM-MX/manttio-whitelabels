@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, ilike, isNull, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, ilike, inArray, isNull, lte, sql } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { ReportStatus } from '../enums/reports.enum';
 import { reportCounters, reportDetails, reports } from '../models/reports.model';
@@ -167,12 +167,20 @@ export const reassignReport = async (db: Db, id: string, assignedTo: string) => 
   return row ?? null;
 };
 
-// Promote `created` → `in-progress` if needed. Idempotent.
+// Promote either birth state (`created` from the manual path, `pending` from an
+// order explosion) → `in-progress`. Idempotent, and narrow on purpose: a
+// `cancelled` or already-finished report is never revived by a content write.
 export const bumpToInProgress = async (db: Db, id: string) => {
   await db
     .update(reports)
     .set({ status: ReportStatus.InProgress, updatedAt: new Date() })
-    .where(and(eq(reports.id, id), eq(reports.status, ReportStatus.Created), activeFilter));
+    .where(
+      and(
+        eq(reports.id, id),
+        inArray(reports.status, [ReportStatus.Created, ReportStatus.Pending]),
+        activeFilter,
+      ),
+    );
 };
 
 export const markFinished = async (

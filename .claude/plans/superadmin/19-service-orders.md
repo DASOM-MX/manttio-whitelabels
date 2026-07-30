@@ -1,7 +1,7 @@
 # 19 — Service orders
 
-> **Status:** planned · **Depends on:** 07 (client), 18 (catalog), 20 (born from accepted quotations), 06 (report explosion), 12 (visits) · **Hooks:** 08 (timeline), 09 (billing), 13 (contracts likely generate orders — ask)
-> **Owner:** — · **Last updated:** 2026-07-24
+> **Status:** CP-1 in progress (`feature/backend-service-orders`) · **Depends on:** 07 (client), 18 (catalog ✓ landed #102–#105), 20 (born from accepted quotations — *not yet built*), 06 (report explosion), 12 (visits — *not on main*) · **Hooks:** 08 (timeline), 09 (billing), 13 (contracts likely generate orders — ask)
+> **Owner:** — · **Last updated:** 2026-07-26
 
 The **commercial job**: what was sold to whom, and everything operational that hangs
 off it. One order composes 1..n catalog services (18) for one client, **owns 1..n
@@ -14,6 +14,22 @@ Creating an order also announces itself on the client's CRM timeline (08).
 > what the client approved. `quotationId` links back to the source. **Direct order
 > creation stays allowed** (`quotationId` null) for walk-in/emergency jobs. The
 > order-builder page (§5) is the direct path; the quote path auto-generates on accept.
+
+> **CP-1 builds standalone — no cross-module coupling yet (decided 2026-07-26).** Orders
+> and quotations (20) are being built in parallel, so **CP-1 ships against `main` with no
+> link to either 20 or 12**:
+> - ~~**No `quotationId` column in CP-1.**~~ **Linked 2026-07-27** (both CP-1s on
+>   main): `quotationId` + FK + one-order-per-quote unique landed with 20's
+>   `POST /quotations/:id/order` (DDL 0027). Both birth routes live — the §5
+>   builder direct path and the quote conversion.
+> - **CP-1 does not touch `scheduled_visits`.** The visits backend (12) is *not on main* —
+>   PR #97 was **closed unmerged**, so there is no `visit_events` table to rip out and no
+>   table to add `serviceOrderId` to. The calendar module gets rebuilt in CP-3 **already
+>   order-bound and already writing to `service_order_events`** — the "visit-audit
+>   relocation" step is therefore obsolete, not deferred.
+> - **The `service_order_events` type enum ships complete in CP-1**, visit\_\* members
+>   included (§7). The enum is final from day one; the visit\_\* values simply have no
+>   writer until 12 returns.
 
 > **Packaging (decided 2026-07-23).** Orders/services/calendar form the **operations
 > suite**; **reporting (06) sells separately**. So the dependency is one-directional:
@@ -48,9 +64,11 @@ ServiceOrder {             // near-immutable — see mutability rules below
                            //   table (service_order_counters, report_counters
                            //   mechanics)
   customerId,              // required, immutable — restrict, never cascade
-  quotationId?,            // nullable — the accepted quotation this order was born
-                           //   from (20); null for directly-created orders (both
-                           //   paths allowed, 2026-07-24). Immutable.
+  quotationId?,            // landed 2026-07-27 with 20's /order — the accepted
+                           //   quotation this order was born from; null for
+                           //   directly-created orders (both paths allowed,
+                           //   2026-07-24). Immutable; unique among non-null
+                           //   (one order per quote, ever).
   location?,               // service site/address (free text v1) — MUTABLE, but
                            //   owner/admin only (decided 2026-07-23)
   status: 'open' | 'completed' | 'cancelled',
@@ -79,7 +97,11 @@ ServiceOrderLine {         // table: service_order_services
 **Mutability (decided 2026-07-23).** A service order is fixed at creation except two
 fields: `comments` (any staff role) and `location` (**owner/admin only**). Customer,
 lines, folio, and status-by-endpoint are immutable through `PATCH`. Both mutations
-append an event to the order timeline (§7).
+append an event to the order timeline (§7). **And only while `open` (decided
+2026-07-29, CP-1 review):** at complete/cancel even the mutable pair freezes —
+a closed order is history and the handoff document (CP-5) has already composed
+from it. `PATCH` on a closed order is a 409 `order_closed`, matching the UI,
+which only offers Editar on open orders.
 
 **Contracts — orders generate them, 0..n (direction decided 2026-07-23; model settled
 2026-07-24).** An order **may generate 0..n contracts** (13) — a guarantee, a
@@ -93,7 +115,9 @@ allowed. Direction: order → contract, never the reverse.
 **Extensions to existing tables (all additive):**
 
 - `scheduled_visits.serviceOrderId` — **NOT NULL**, restrict (decided 2026-07-23:
-  strict order-bound; the table is empty pre-release so no backfill). Ad-hoc
+  strict order-bound; the table is empty pre-release so no backfill). **Not a CP-1
+  change (2026-07-26)** — the table doesn't exist on main; 12's rebuild in CP-3 creates
+  it order-bound from the start. Ad-hoc
   "visits" that aren't jobs stay CRM `visit` interactions (08); a diagnostic visit
   is a small order.
 - `reports.serviceOrderId?` (nullable **by design** — reports never require an order;
@@ -157,12 +181,20 @@ a. Technicians reach orders through their assigned visits/reports (context heade
 ## 4. Expected API surface
 
 - `GET /service-orders?customerId&status&page&limit` → paged `{ items, total }`
-- `GET /service-orders/:id` → order + lines (joined service name/uom) + exploded
-  reports (folio/status/assignee) + visits (12 shape)
+- `GET /service-orders/:id` → order + lines (snapshot columns) only (decided
+  2026-07-27 — reports lazy-load, visits join in CP-3)
+- `GET /service-orders/:id/reports` → the exploded reports
+  (folio/status/assignee), **lazy-loaded** by the order view's reports card
+  (decided 2026-07-27); unpaged — the explosion cap bounds it at 50
 - `GET /service-orders/:id/timeline` → resolved `service_order_events` (§7),
-  oldest-first — the order-view activity feed + the handoff document source
+  **paged newest-first** (decided 2026-07-27 — the interactions feed idiom;
+  supersedes "oldest-first unpaged"). The handoff document composes from its own
+  full oldest-first internal read, so paging the HTTP feed costs the audit
+  nothing
 - `POST /service-orders` — `{ customerId, location?, comments?, lines: [{ serviceId,
-  quantity, technicianId, reportType }] }` → the §2 transaction
+  quantity, technicianId, reportType }] }` → the §2 transaction. Caps (decided
+  2026-07-27, sized to real usage of ≤~10 services/order): ≤20 lines, quantity
+  ≤20, ≤50 exploded reports total; duplicate `serviceId` lines are a 400
 - `PATCH /service-orders/:id` — `comments` (any staff) and/or `location` (**owner/admin
   only** — 403 for office); both audited to the timeline. No other field is patchable.
 - `POST /service-orders/:id/status` — `{ status }` (complete/cancel, confirm-heavy);
@@ -237,7 +269,8 @@ one is "something happened with this client", the order one is the job's full hi
 
 **Reads / handoff:**
 - `GET /service-orders/:id/timeline` → resolved events (actor + child display names),
-  oldest-first — rendered on the order view as a vertical activity feed.
+  paged newest-first (2026-07-27) — rendered on the order view as a vertical
+  activity feed. The CP-5 handoff reads the full history internally, oldest-first.
 - **Client handoff (the payoff):** at `order_completed`, the timeline + the finished
   reports compose a **service history PDF** (decided 2026-07-23 — via the `pdf/`
   module, consistent with report PDFs; the report layout stays in a domain helper per
@@ -271,17 +304,22 @@ one is "something happened with this client", the order one is the job's full hi
 
 ## Checkpoints (implementation order — the operations suite, decided 2026-07-23)
 
-### CP-1 — Backend: catalog + orders + explosion + timeline
-- [ ] 18 CP-1 lands first (services table + CRUD)
+### CP-1 — Backend: orders + explosion + timeline
+*Branch `feature/backend-service-orders`. Standalone against `main` — no quotations, no
+visits (2026-07-26 scope decision above).*
+
+- [x] 18 CP-1 lands first (services table + CRUD) — **done**, #102
 - [ ] `service_orders` + `service_order_services` + `service_order_counters` +
-      **`service_order_events`** tables, hand-written additive DDL;
-      `scheduled_visits.serviceOrderId` NOT NULL; `reports.serviceOrderId/serviceId`;
-      `pending` status widen
+      **`service_order_events`** tables, hand-written additive DDL (no `quotationId`);
+      `reports.serviceOrderId/serviceId`; `pending`/`cancelled` status widen
 - [ ] `POST /service-orders` transaction (folio, lines, explosion, `order_created`/
       `order_line_added` events, customer interaction)
 - [ ] List/detail/patch/status endpoints + `GET /:id/timeline` + role guards
-- [ ] **Visit-audit relocation:** rip the visit-level `visit_events` (PR #97) and
-      route 12's visit mutations to `service_order_events` (visit_* event types)
+- [ ] `service_order_events` type enum ships complete, visit_* members included but
+      unwired (their writer arrives with 12's rebuild in CP-3)
+- [x] ~~**Visit-audit relocation:** rip the visit-level `visit_events` (PR #97)~~ —
+      **obsolete 2026-07-26:** #97 closed unmerged, so nothing to rip; CP-3 builds
+      visits order-bound and writing to `service_order_events` from the start
 
 ### CP-2 — Superadmin: orders UI
 - [ ] DTOs + `ServiceOrdersState` + http service
@@ -289,7 +327,11 @@ one is "something happened with this client", the order one is the job's full hi
       order view with the **activity timeline feed** (§7)
 - [ ] Nav + module keys; customer-view card (07 ask)
 
-### CP-3 — Calendar rewire (closes 12 CP-1/CP-2 UI, immutable-record model)
+### CP-3 — Calendar (closes 12 CP-1/CP-2 UI, immutable-record model)
+*Not a "rewire" any more (2026-07-26): PR #97 was closed unmerged, so CP-3 **builds** the
+visits backend — `scheduled_visits` with `serviceOrderId` NOT NULL from birth, no
+`visit_events` table ever, visit mutations appending straight to `service_order_events`.*
+
 - [ ] Visit dialog gains the required **order** select (client-scoped); order-view
       "Programar visita" pre-locks it
 - [ ] Respond / close (categorized reason) / reschedule (new record) flows; open-visit
@@ -315,6 +357,12 @@ one is "something happened with this client", the order one is the job's full hi
 - [ ] 09 asks: bill from line snapshots
 
 ## Open decisions / asks
+- **Decided 2026-07-26 — CP-1 build scope (see the scope blockquote up top):** CP-1 is
+  backend-only and standalone. **No `quotationId`** (20 adds it with the accept flow),
+  **no `scheduled_visits` touch** (#97 closed unmerged → CP-3 builds visits order-bound;
+  the visit-audit relocation is obsolete, not deferred), **visit\_\* event types shipped
+  in the enum now** but unwired. Orders and quotations stay decoupled until both modules
+  are finished.
 - **Decided 2026-07-23:** uuid PK + display folio; visits strictly order-bound
   (NOT NULL); explosion keeps report invariants — technician + reportType captured
   per line at creation; sequenced ahead of the calendar UI.

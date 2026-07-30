@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { QuotationResponse, QuotationStatus } from '../enums/quotations.enum';
+import { reportTypes } from '../../reports/enums/reports.enum';
 
 // A calendar date (YYYY-MM-DD) for the `date` column. Kept as a string rather
 // than coerced through `Date`: parsing "2026-08-01" as a Date lands on UTC
@@ -63,7 +64,31 @@ export const sendQuotationSchema = z
 const resolutionComment = z.object({ comment: z.string().trim().min(1, 'El comentario es obligatorio') });
 
 export const cancelQuotationSchema = resolutionComment;
-export const createOrderFromQuotationSchema = resolutionComment;
+
+// The convergence body (20 §6, shape settled 2026-07-27). Beyond the mandatory
+// comment, the conversion must carry the order's explosion inputs: 19 §2 keeps
+// the report invariants — every exploded skeleton is born complete with a
+// technician and a report type — and the quote knows neither. One assignment
+// per DISTINCT quoted service (the service layer checks exact coverage against
+// the quote's lines; duplicate-service quote lines merge into one order line).
+// Quantities and every money field come from the quote's frozen snapshots and
+// are deliberately NOT accepted here.
+export const createOrderFromQuotationSchema = resolutionComment.extend({
+  location: z.string().trim().optional(),
+  assignments: z
+    .array(
+      z.object({
+        serviceId: z.string().uuid(),
+        technicianId: z.string().uuid(),
+        reportType: z.enum(reportTypes),
+      }),
+    )
+    .min(1)
+    .max(20)
+    .refine((rows) => new Set(rows.map((r) => r.serviceId)).size === rows.length, {
+      message: 'Hay un servicio repetido; asigna cada servicio una sola vez.',
+    }),
+});
 
 // Audited soft delete, same contract as users/services/equipment. Distinct from
 // `/cancel`: cancelling retires a quote the client may still be shown, deleting
@@ -106,6 +131,7 @@ export type CreateQuotationInput = z.infer<typeof createQuotationSchema>;
 export type UpdateQuotationInput = z.infer<typeof updateQuotationSchema>;
 export type SendQuotationInput = z.infer<typeof sendQuotationSchema>;
 export type CancelQuotationInput = z.infer<typeof cancelQuotationSchema>;
+export type ConvertQuotationInput = z.infer<typeof createOrderFromQuotationSchema>;
 export type DeleteQuotationInput = z.infer<typeof deleteQuotationSchema>;
 export type ListQuotationsQuery = z.infer<typeof listQuotationsQuerySchema>;
 export type RespondQuotationInput = z.infer<typeof respondQuotationSchema>;

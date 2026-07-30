@@ -11,7 +11,7 @@ import {
 } from './helpers/fixtures';
 import { allResendSends, mockResend } from './helpers/resend';
 import { createDb } from '../src/modules/database/client';
-import { quotations } from '../src/modules/database/schema';
+import { quotations, reports, serviceOrders } from '../src/modules/database/schema';
 import { ServiceTaxRate, ServiceUom } from '../src/modules/services/enums/services.enum';
 import {
   QuotationEventType,
@@ -623,10 +623,15 @@ describe('quotations — terminal actions (20 §2)', () => {
     expect(original.resolutionReason).toContain(quote.folio);
   });
 
-  test('order_created is unreachable until 19 lands', async () => {
+  test('the conversion body demands the explosion inputs — a bare comment is a 400', async () => {
+    // Until 2026-07-27 this asserted a 404: /order was deferred to 19 and
+    // `order_created` was unreachable. The endpoint exists now (the convergence
+    // suite below); what remains true is that the original `{ comment }`-only
+    // sketch is not enough — 19 §2's report invariants make the per-service
+    // assignments mandatory, so the old body shape is rejected outright.
     const { quote, token } = await scenario();
     const res = await post(token, `/quotations/${quote.id}/order`, { comment: 'vamos' });
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(400);
     const staffView = await json<Quotation>(
       await request(`/quotations/${quote.id}`, { headers: jsonHeaders(token) }),
     );
@@ -724,6 +729,249 @@ describe('quotations — access (20 §7)', () => {
     const page = await json<{ items: Quotation[]; total: number }>(res);
     expect(page.items.map((q) => q.id)).toContain(quote.id);
     expect(page.items.every((q) => q.status === QuotationStatus.Draft)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The convergence (20 §6, linked 2026-07-27): POST /quotations/:id/order
+// ---------------------------------------------------------------------------
+
+describe('quotations → service order (20 §6)', () => {
+  // Orders born here reference the same `test+`-named services; tombstone them
+  // and their exploded reports on the way out (soft delete only, as ever).
+  const convertedOrders: string[] = [];
+
+  afterAll(async () => {
+    if (convertedOrders.length === 0) return;
+    const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
+    await db
+      .update(reports)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(inArray(reports.serviceOrderId, convertedOrders));
+    await db
+      .update(serviceOrders)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(inArray(serviceOrders.id, convertedOrders));
+  });
+
+  type OrderDetail = {
+    id: string;
+    folio: string;
+    quotationId?: string;
+    customerId: string;
+    status: string;
+    location?: string;
+    servicesCount: number;
+    amounts?: { subtotal: string; tax: string; total: string };
+    lines: { serviceId: string; serviceName: string; unitPrice?: string; quantity: number }[];
+  };
+
+  const convert = (token: string, quotationId: string, body: object) =>
+    post(token, `/quotations/${quotationId}/order`, body);
+
+  const assignmentFor = (serviceId: string, technicianId: string) => ({
+    serviceId,
+    technicianId,
+    reportType: 'minisplit',
+  });
+
+  /** Draft → sent to one reviewer → approved via their token. */
+  const approvedScenario = async (opts: { price?: number; quantity?: number } = {}) => {
+    const base = await scenario(opts);
+    const { tokenFor } = await sendAndGetTokens(base.token, base.quote.id, [
+      { contactId: base.contact.id, isReviewer: true },
+    ]);
+    const approve = await post('', `/public/quotations/${tokenFor(base.contact.id)}/respond`, {
+      response: QuotationResponse.Approved,
+    });
+    expect(approve.status).toBe(200);
+    const { tech } = await seedTechnicianAndLogin();
+    return { ...base, tech };
+  };
+
+  test('converts an approved quote — snapshots inherited, quote flipped, both timelines written', async () => {
+    const { token, quote, service, customer, tech } = await approvedScenario({
+      price: 1500,
+      quantity: 2,
+    });
+
+    // Between approval and conversion the catalog moves on: the service is
+    // soft-deleted outright. The direct order path would refuse it (422); the
+    // quote path must honor it — the client accepted THIS price for THIS
+    // service, and the order inherits the frozen snapshot, never the catalog.
+    const del = await request(`/services/${service.id}`, {
+      method: 'DELETE',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ deleteComment: 'retirado tras cotizar' }),
+    });
+    expect(del.status).toBe(200);
+
+    // Office converts: with ≥1 approval the gate admits any staff role (20 §7).
+    const { token: officeToken } = await seedOfficeAndLogin();
+    const res = await convert(officeToken, quote.id, {
+      comment: 'Cliente confirmó por teléfono',
+      location: 'Planta norte',
+      assignments: [assignmentFor(service.id, tech.id)],
+    });
+    expect(res.status).toBe(201);
+    const { order } = await json<{ order: OrderDetail }>(res);
+    convertedOrders.push(order.id);
+
+    expect(order.folio).toMatch(/^OS-\d{8}-\d{4}$/);
+    expect(order.quotationId).toBe(quote.id);
+    expect(order.customerId).toBe(customer.id);
+    expect(order.location).toBe('Planta norte');
+    expect(order.servicesCount).toBe(1);
+    // The frozen snapshot, not the (now tombstoned) catalog row.
+    expect(order.lines[0]!.serviceName).toBe(service.name);
+    expect(order.lines[0]!.unitPrice).toBe('1500.00');
+    expect(order.lines[0]!.quantity).toBe(2);
+    expect(order.amounts).toEqual({ subtotal: '3000.00', tax: '480.00', total: '3480.00' });
+
+    // One pending report per unit, born assigned.
+    const reportsRes = await request(`/service-orders/${order.id}/reports`, {
+      headers: jsonHeaders(officeToken),
+    });
+    expect(reportsRes.status).toBe(200);
+    const exploded = (await json<{ reports: { status: string; assignedTo: string }[] }>(reportsRes))
+      .reports;
+    expect(exploded).toHaveLength(2);
+    expect(exploded.every((r) => r.status === 'pending' && r.assignedTo === tech.id)).toBe(true);
+
+    // The quote is terminal and points at its order, with the mandatory why.
+    const quoteRes = await request(`/quotations/${quote.id}`, { headers: jsonHeaders(token) });
+    const after = await json<Quotation>(quoteRes);
+    expect(after.status).toBe(QuotationStatus.OrderCreated);
+    expect(after.serviceOrderId).toBe(order.id);
+    expect(after.resolutionReason).toBe('Cliente confirmó por teléfono');
+
+    // Pre-sale timeline: quotation_order_created, ref → the order, no override.
+    const qEvents = await json<TimelineEvent[]>(
+      await request(`/quotations/${quote.id}/timeline`, { headers: jsonHeaders(token) }),
+    );
+    const converted = qEvents.find((e) => e.type === QuotationEventType.OrderCreated);
+    expect(converted).toBeDefined();
+    expect(converted!.note).toBe('Cliente confirmó por teléfono');
+    expect(converted!.changes).toMatchObject({ approvedCount: 1, override: false });
+
+    // Post-sale timeline: the order opens referencing the quotation.
+    const oEvents = await json<{ items: { type: string; ref?: { kind: string; id: string } }[] }>(
+      await request(`/service-orders/${order.id}/timeline?limit=50`, {
+        headers: jsonHeaders(officeToken),
+      }),
+    );
+    const opening = oEvents.items.find((e) => e.type === 'order_created');
+    expect(opening!.ref).toEqual({ kind: 'quotation', id: quote.id });
+  });
+
+  test('merges duplicate-service quote lines; owner override at 0 approvals is flagged', async () => {
+    // A quote with two lines for the SAME service (different description) —
+    // legal on a quote, one merged line on the order.
+    const { token: ownerToken } = await seedOwnerAndLogin();
+    const customer = await seedCustomer();
+    const service = await makeService(ownerToken, { price: 200 });
+    const res = await createQuote(ownerToken, {
+      customerId: customer.id,
+      validUntil: dayOffset(10),
+      lines: [
+        { serviceId: service.id, quantity: 1, description: 'Turno matutino' },
+        { serviceId: service.id, quantity: 2, description: 'Turno vespertino' },
+      ],
+    });
+    expect(res.status).toBe(201);
+    const dupQuote = await json<Quotation>(res);
+    created.push(dupQuote.id);
+
+    const { tech } = await seedTechnicianAndLogin();
+
+    // Office may NOT convert a quote with zero approvals (20 §7)…
+    const { token: officeToken } = await seedOfficeAndLogin();
+    const denied = await convert(officeToken, dupQuote.id, {
+      comment: 'sin aprobación',
+      assignments: [assignmentFor(service.id, tech.id)],
+    });
+    expect(denied.status).toBe(403);
+    expect((await json<{ error: string }>(denied)).error).toBe('approval_required');
+
+    // …but the owner can override, and the trail says so.
+    const converted = await convert(ownerToken, dupQuote.id, {
+      comment: 'Se procede sin revisión del cliente',
+      assignments: [assignmentFor(service.id, tech.id)],
+    });
+    expect(converted.status).toBe(201);
+    const { order } = await json<{ order: OrderDetail }>(converted);
+    convertedOrders.push(order.id);
+
+    expect(order.lines).toHaveLength(1);
+    expect(order.lines[0]!.quantity).toBe(3);
+    expect(order.amounts?.subtotal).toBe('600.00');
+
+    const qEvents = await json<TimelineEvent[]>(
+      await request(`/quotations/${dupQuote.id}/timeline`, { headers: jsonHeaders(ownerToken) }),
+    );
+    const evt = qEvents.find((e) => e.type === QuotationEventType.OrderCreated);
+    expect(evt!.changes).toMatchObject({ approvedCount: 0, override: true });
+  });
+
+  test('rejects an expired quote with 409', async () => {
+    const { token: ownerToken } = await seedOwnerAndLogin();
+    const customer = await seedCustomer();
+    const service = await makeService(ownerToken);
+    const res = await createQuote(ownerToken, {
+      customerId: customer.id,
+      validUntil: dayOffset(-1),
+      lines: [{ serviceId: service.id, quantity: 1 }],
+    });
+    const stale = await json<Quotation>(res);
+    created.push(stale.id);
+    const { tech } = await seedTechnicianAndLogin();
+
+    const denied = await convert(ownerToken, stale.id, {
+      comment: 'tarde',
+      assignments: [assignmentFor(service.id, tech.id)],
+    });
+    expect(denied.status).toBe(409);
+    expect((await json<{ error: string }>(denied)).error).toBe('quotation_expired');
+  });
+
+  test('a quote converts exactly once — the second attempt 409s', async () => {
+    const { token, quote, service, tech } = await approvedScenario();
+    const first = await convert(token, quote.id, {
+      comment: 'ok',
+      assignments: [assignmentFor(service.id, tech.id)],
+    });
+    expect(first.status).toBe(201);
+    convertedOrders.push((await json<{ order: OrderDetail }>(first)).order.id);
+
+    const second = await convert(token, quote.id, {
+      comment: 'otra vez',
+      assignments: [assignmentFor(service.id, tech.id)],
+    });
+    expect(second.status).toBe(409);
+    expect((await json<{ error: string }>(second)).error).toBe('quotation_not_live');
+  });
+
+  test('assignments must cover the quoted services exactly', async () => {
+    const { token, quote, tech } = await approvedScenario();
+    // An assignment for a service the quote never carried → both defects named.
+    const denied = await convert(token, quote.id, {
+      comment: 'mal armado',
+      assignments: [assignmentFor('00000000-0000-4000-8000-000000000000', tech.id)],
+    });
+    expect(denied.status).toBe(422);
+    const body = await json<{ error: string; missing: string[]; unknown: string[] }>(denied);
+    expect(body.error).toBe('assignment_coverage');
+    expect(body.missing).toHaveLength(1);
+    expect(body.unknown).toEqual(['00000000-0000-4000-8000-000000000000']);
+  });
+
+  test('404s a malformed quotation id', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const res = await convert(token, 'not-a-uuid', {
+      comment: 'x',
+      assignments: [assignmentFor('00000000-0000-4000-8000-000000000000', '00000000-0000-4000-8000-000000000001')],
+    });
+    expect(res.status).toBe(404);
   });
 });
 

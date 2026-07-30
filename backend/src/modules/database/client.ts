@@ -20,3 +20,14 @@ export const createDb = (databaseUrl: string) => {
 };
 
 export type Db = ReturnType<typeof createDb>;
+
+/** The handle Drizzle hands a `db.transaction(cb)` callback — same query
+ *  surface as `Db`, but enlisted in the caller's transaction. */
+export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
+
+/** For repository helpers that must be able to run *inside* someone else's
+ *  transaction as well as standalone. The order timeline is the reason it
+ *  exists: every `service_order_events` append has to share the transaction of
+ *  the state change it describes, or the audit trail can drift from reality
+ *  (19 §7). */
+export type DbOrTx = Db | Tx;

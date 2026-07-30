@@ -1,6 +1,6 @@
 # 20 — Quotations (cotizaciones)
 
-> **Status:** CP-1 + CP-2 built (backend + superadmin UI, minus the `/order` convergence — see CP-1) · **Depends on:** 07 (client + contacts), 18 (catalog + `taxRate`), `email/` + `pdf/` modules · **Feeds:** 19 (staff create a service order from an approved quote) · **Hooks:** 08 (CRM interaction), 09 (billing)
+> **Status:** CP-1 + CP-2 built (backend + superadmin UI; **`/order` convergence landed 2026-07-27** with 19 CP-1 — see CP-1) · **Depends on:** 07 (client + contacts), 18 (catalog + `taxRate`), `email/` + `pdf/` modules · **Feeds:** 19 (staff create a service order from an approved quote) · **Hooks:** 08 (CRM interaction), 09 (billing)
 > **Owner:** — · **Last updated:** 2026-07-27
 
 The **sales entry point** and the convergence of 18 and 19: a quotation is built from
@@ -254,9 +254,12 @@ is primary, not exclusive.
   recipients + tokens, mails PDF + link, status → `sent`
 - `POST /quotations/:id/revise` → new linked `draft`; the old one is **cancelled** with an
   auto-comment referencing the successor (`supersedesQuotationId` on the new)
-- `POST /quotations/:id/order` `{ comment }` — **creates the service order** (§6).
-  Enforces the gate: 403 for office at 0 approvals (owner/admin override); 409 past
-  `validUntil`. Comment mandatory → `order_created`.
+- `POST /quotations/:id/order` `{ comment, location?, assignments: [{ serviceId,
+  technicianId, reportType }] }` — **creates the service order** (§6; body amended
+  2026-07-27: the per-service assignments are 19 §2's explosion inputs, one per
+  distinct quoted service, coverage-checked). Enforces the gate: 403 for office at
+  0 approvals (owner/admin override); 409 past `validUntil`. Comment mandatory →
+  `order_created`.
 - `POST /quotations/:id/cancel` `{ comment }` — explicit abandonment; comment mandatory →
   `cancelled` (terminal).
 - **Public:** `GET /public/quotations/{token}` (view; reviewer tokens get the actions) ·
@@ -292,14 +295,22 @@ is primary, not exclusive.
 - [x] CRUD (draft) + `/send` + `/revise` + `/cancel`; snapshot resolution server-side —
       the client sends only `serviceId` + `quantity`, so a caller can never quote a price
       the catalog never held (asserted).
-- [ ] **`/order` deferred to 19** (owner 2026-07-26 — "defer, we will build quotations
-      first, then link them when building the service orders module"). It must open a
-      `service_order` in the same transaction and that table does not exist yet, so
-      `order_created` is currently an **unreachable status** — the honest representation,
-      since no order can exist to point at. Everything the conversion needs is already in
-      place: `quotations.serviceOrderId` (column, deliberately **no FK** until 19's DDL
-      adds it), `QuotationStatus.OrderCreated`, `QuotationEventType.OrderCreated`, the
-      `refKind: 'service_order'` enum member, and the §7 gate roles.
+- [x] ~~**`/order` deferred to 19**~~ — **landed 2026-07-27** (both CP-1s on main;
+      owner: "link them"). One transaction: order graph off the frozen line
+      snapshots (duplicate-service quote lines **merge** into one order line,
+      quantities summed — same-instant snapshots make this lossless), quote
+      flipped to `order_created` (guarded on liveness inside the tx, so a
+      convert can't race a cancel), `serviceOrderId` + `resolutionReason` +
+      both timeline events written. FKs now real both ways (DDL 0027;
+      `service_orders.quotationId` + partial unique = one order per quote).
+      **Body shape amended from the `{ comment }` sketch:** 19 §2's report
+      invariants make per-service **`assignments`** (`technicianId` +
+      `reportType`) mandatory — the skeletons must be born complete, and the
+      quote knows neither. Gates as §7: office needs ≥1 approval, owner/admin
+      override from 0 is flagged in the event `changes`; 409 past `validUntil`;
+      the ≤50-exploded-reports bound applies (409 `explosion_too_large`).
+      A soft-deleted service does NOT block conversion — the client accepted
+      the frozen snapshot (asserted in the suite).
 - [x] Public `GET /public/quotations/{token}` + `/respond` (reviewer-only, **mutable**,
       `validUntil`-guarded) → **re-derives the tally status**. CP-1 answers JSON; CP-3
       replaces the `GET` with the server-rendered page on the same route, so links already
