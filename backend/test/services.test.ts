@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from 'vitest';
-import { and, isNull, like } from 'drizzle-orm';
+import { and, asc, eq, isNull, like } from 'drizzle-orm';
 import { env, json, jsonHeaders, request } from './helpers/request';
 import {
   seedAdminAndLogin,
@@ -10,8 +10,13 @@ import {
   uniqueServiceName,
 } from './helpers/fixtures';
 import { createDb } from '../src/modules/database/client';
-import { services } from '../src/modules/database/schema';
-import { ServiceTaxRate, ServiceUom } from '../src/modules/services/enums/services.enum';
+import { serviceEvents, services } from '../src/modules/database/schema';
+import {
+  ServiceCreatedVia,
+  ServiceEventType,
+  ServiceTaxRate,
+  ServiceUom,
+} from '../src/modules/services/enums/services.enum';
 
 type WorkerEnv = { DATABASE_URL: string; IMAGES_CDN_BASE_URL?: string };
 
@@ -40,6 +45,16 @@ type PublicService = {
   imageUrl?: string;
   uom: ServiceUom;
   price?: string;
+};
+
+type ServiceEvent = {
+  id: string;
+  type: ServiceEventType;
+  actorId: string;
+  actorName?: string;
+  changes?: Record<string, unknown>;
+  note?: string;
+  createdAt: string;
 };
 
 // The catalog has no fixture-email column, so rows are tagged by the `test+`
@@ -477,5 +492,105 @@ describe('DELETE /services/:id', () => {
       body: JSON.stringify({ deleteComment: 'nope' }),
     });
     expect(res.status).toBe(403);
+  });
+});
+
+describe('GET /services/:id/timeline (18 §6.1)', () => {
+  const timeline = (token: string, id: string) =>
+    request(`/services/${id}/timeline`, { headers: jsonHeaders(token) });
+
+  test('creation opens the trail: service_created, via form, actor resolved', async () => {
+    const svc = await seedService();
+    const { token } = await seedAdminAndLogin();
+
+    const res = await timeline(token, svc.id);
+    expect(res.status).toBe(200);
+
+    const events = await json<ServiceEvent[]>(res);
+    expect(events).toHaveLength(1);
+    expect(events[0]!.type).toBe(ServiceEventType.Created);
+    expect(events[0]!.changes).toEqual({ via: ServiceCreatedVia.Form });
+    // Resolved at read time — the UI renders "quién" without a lookup table.
+    expect(events[0]!.actorName).toBeTruthy();
+  });
+
+  test('an edit appends per-field old→new; a no-op edit appends nothing', async () => {
+    const svc = await seedService({ price: 100 });
+    const { token } = await seedOwnerAndLogin();
+
+    expect((await patchService(token, svc.id, { price: 175.25 })).status).toBe(200);
+
+    let events = await json<ServiceEvent[]>(await timeline(token, svc.id));
+    expect(events).toHaveLength(2);
+    expect(events[1]!.type).toBe(ServiceEventType.Updated);
+    // Only the edited column, both sides as the fixed-2 strings money lives as.
+    expect(events[1]!.changes).toEqual({ price: { old: '100.00', new: '175.25' } });
+
+    // Re-sending the same price changes nothing — a trail row that says
+    // "nothing changed" would be noise, so none is written.
+    expect((await patchService(token, svc.id, { price: 175.25 })).status).toBe(200);
+    events = await json<ServiceEvent[]>(await timeline(token, svc.id));
+    expect(events).toHaveLength(2);
+  });
+
+  test('the trail returns in insertion order (seq, never created_at)', async () => {
+    const svc = await seedService({ price: 50 });
+    const { token } = await seedOwnerAndLogin();
+
+    await patchService(token, svc.id, { price: 60 });
+    await patchService(token, svc.id, { price: 70 });
+
+    const events = await json<ServiceEvent[]>(await timeline(token, svc.id));
+    expect(events.map((e) => e.type)).toEqual([
+      ServiceEventType.Created,
+      ServiceEventType.Updated,
+      ServiceEventType.Updated,
+    ]);
+    expect((events[1]!.changes as { price: { new: string } }).price.new).toBe('60.00');
+    expect((events[2]!.changes as { price: { new: string } }).price.new).toBe('70.00');
+  });
+
+  test('delete writes service_deleted with the comment; the trail goes unreachable with the row', async () => {
+    const svc = await seedService();
+    const { token } = await seedOwnerAndLogin();
+
+    await request(`/services/${svc.id}`, {
+      method: 'DELETE',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ deleteComment: 'obsoleto' }),
+    });
+
+    // The API path 404s like every other read of a tombstoned service…
+    expect((await timeline(token, svc.id)).status).toBe(404);
+
+    // …but the row is the record: the event exists, stamped with the comment.
+    const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
+    const rows = await db
+      .select()
+      .from(serviceEvents)
+      .where(eq(serviceEvents.serviceId, svc.id))
+      .orderBy(asc(serviceEvents.seq));
+    const last = rows.at(-1)!;
+    expect(last.type).toBe(ServiceEventType.Deleted);
+    expect(last.note).toBe('obsoleto');
+    expect(last.actorId).toBeTruthy();
+  });
+
+  test('admin-tier only: office and technician get 403, not a redacted trail', async () => {
+    const svc = await seedService();
+
+    // The trail carries cost old→new diffs and delete comments — management
+    // audit, so office reads the catalog but never who repriced what.
+    const { token: officeToken } = await seedOfficeAndLogin();
+    expect((await timeline(officeToken, svc.id)).status).toBe(403);
+
+    const { token: techToken } = await seedTechnicianAndLogin();
+    expect((await timeline(techToken, svc.id)).status).toBe(403);
+  });
+
+  test('404s on an unknown id', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const res = await timeline(token, '00000000-0000-4000-8000-000000000000');
+    expect(res.status).toBe(404);
   });
 });

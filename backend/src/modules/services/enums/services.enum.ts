@@ -15,6 +15,32 @@ export enum ServiceTaxRate {
   Exento = 'exento',
 }
 
+// Append-only timeline entry types (18 §6.1). Mirrors `quotation_events` /
+// `customer_interactions`: no updates, no deletes — the timeline IS the
+// catalog's price-change record.
+export enum ServiceEventType {
+  // `changes.via` says how the row came to exist; a clone also carries
+  // `changes.sourceServiceId`.
+  Created = 'service_created',
+  // `changes` = per-field `{ old, new }` for every edited column — recording
+  // all of them costs nothing and spares a curated list going stale.
+  Updated = 'service_updated',
+  // Audited soft delete; `note` carries the mandatory delete comment. Written
+  // even though the timeline becomes unreachable through the API once the
+  // service is tombstoned — the row is the record, and a deletion with no
+  // trail is exactly the gap an audit trail exists to close.
+  Deleted = 'service_deleted',
+}
+
+// How a `service_created` row came to exist. Declared whole now — `Clone`
+// (CP-5) and `Import` (CP-6) are the contract those checkpoints fill, same
+// posture as `QuotationEventRefKind.ServiceOrder`.
+export enum ServiceCreatedVia {
+  Form = 'form',
+  Clone = 'clone',
+  Import = 'import',
+}
+
 // Unit of measure a service is priced by (18 §1, decided 2026-07-26 — supersedes
 // the free-text v1 posture). A closed list rather than free text so the same
 // unit can't arrive as 'hr' / 'Hora' / 'horas' and split reporting later; kept

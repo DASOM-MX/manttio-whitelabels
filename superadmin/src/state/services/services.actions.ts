@@ -16,6 +16,13 @@ export class LoadService {
   constructor(public id: string) {}
 }
 
+/** The detail page's audit trail (18 §6.1) — dispatched only for owner/admin;
+ *  the endpoint 403s every other role. */
+export class LoadServiceTimeline {
+  static readonly type = '[Services] Load Timeline';
+  constructor(public id: string) {}
+}
+
 export class CreateService {
   static readonly type = '[Services] Create';
   constructor(public payload: SaveServiceRequest) {}
