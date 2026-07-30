@@ -1,7 +1,7 @@
 # 19 — Service orders
 
-> **Status:** CP-1 in progress (`feature/backend-service-orders`) · **Depends on:** 07 (client), 18 (catalog ✓ landed #102–#105), 20 (born from accepted quotations — *not yet built*), 06 (report explosion), 12 (visits — *not on main*) · **Hooks:** 08 (timeline), 09 (billing), 13 (contracts likely generate orders — ask)
-> **Owner:** — · **Last updated:** 2026-07-26
+> **Status:** CP-1 merged (#107) · CP-2 built on `feature/superadmin-service-orders-ui` (PR open) · CP-2b planned 2026-07-29 · **Depends on:** 07 (client), 18 (catalog ✓ landed #102–#105), 20 (born from accepted quotations — *not yet built*), 06 (report explosion), 12 (visits — *not on main*) · **Hooks:** 08 (timeline), 09 (billing), 13 (contracts likely generate orders — ask)
+> **Owner:** — · **Last updated:** 2026-07-29
 
 The **commercial job**: what was sold to whom, and everything operational that hangs
 off it. One order composes 1..n catalog services (18) for one client, **owns 1..n
@@ -71,9 +71,15 @@ ServiceOrder {             // near-immutable — see mutability rules below
                            //   (one order per quote, ever).
   location?,               // service site/address (free text v1) — MUTABLE, but
                            //   owner/admin only (decided 2026-07-23)
+  priority,                // 'normal' | 'urgent' (CP-2b, decided 2026-07-29) —
+                           //   MUTABLE, any staff; the dispatch jump-the-queue
+                           //   flag. Two levels only, no severity ladder
+  promisedDate?,           // date-only "fecha compromiso" (CP-2b, decided
+                           //   2026-07-29) — MUTABLE, any staff; drives the
+                           //   `overdue` list filter
   status: 'open' | 'completed' | 'cancelled',
-  comments?,               // the ONLY freely-mutable field (staff; decided
-                           //   2026-07-23) — everything else is fixed at creation
+  comments?,               // freely-mutable (staff; decided 2026-07-23) — the
+                           //   commercial core is fixed at creation
   createdBy, createdAt, updatedAt   // deletedAt: soft delete only. Contracts link via
                            //   contracts.serviceOrderId (0..n, 13 §1) — no contractId here
 }
@@ -94,14 +100,17 @@ ServiceOrderLine {         // table: service_order_services
 }
 ```
 
-**Mutability (decided 2026-07-23).** A service order is fixed at creation except two
-fields: `comments` (any staff role) and `location` (**owner/admin only**). Customer,
-lines, folio, and status-by-endpoint are immutable through `PATCH`. Both mutations
-append an event to the order timeline (§7). **And only while `open` (decided
-2026-07-29, CP-1 review):** at complete/cancel even the mutable pair freezes —
-a closed order is history and the handoff document (CP-5) has already composed
-from it. `PATCH` on a closed order is a 409 `order_closed`, matching the UI,
-which only offers Editar on open orders.
+**Mutability (decided 2026-07-23; extended 2026-07-29, CP-2b).** The **commercial
+core** — customer, lines, money, folio, status-by-endpoint — is immutable through
+`PATCH`, forever. The **logistics metadata** is editable: `comments` (any staff),
+`location` (**owner/admin only** — it's where the crew gets sent), and from CP-2b
+`priority` + `promisedDate` (any staff — dispatch escalation and promise
+rescheduling are office work). Every mutation appends its own event to the order
+timeline (§7). **And only while `open` (decided 2026-07-29, CP-1 review):** at
+complete/cancel even the mutable fields freeze — a closed order is history and
+the handoff document (CP-5) has already composed from it. `PATCH` on a closed
+order is a 409 `order_closed`, matching the UI, which only offers Editar on open
+orders.
 
 **Contracts — orders generate them, 0..n (direction decided 2026-07-23; model settled
 2026-07-24).** An order **may generate 0..n contracts** (13) — a guarantee, a
@@ -171,6 +180,8 @@ Lifecycle notes:
 | Create orders (explosion included) | ✓ | ✓ | ✓ | — |
 | Edit **comments** · change status | ✓ | ✓ | ✓ | — |
 | Edit **location** | ✓ | ✓ | — | — |
+| Edit **priority** / **promise date** (CP-2b) | ✓ | ✓ | ✓ | — |
+| Reopen a `completed` order (CP-2b) | ✓ | ✓ | — | — |
 | Generate a contract from an order (13) | ✓ | ✓ | — | — |
 | See line prices | ✓ | ✓ | ✓ | hidden (decided 2026-07-23) |
 
@@ -180,7 +191,10 @@ a. Technicians reach orders through their assigned visits/reports (context heade
 
 ## 4. Expected API surface
 
-- `GET /service-orders?customerId&status&page&limit` → paged `{ items, total }`
+- `GET /service-orders?customerId&status&q&priority&overdue&page&limit` → paged
+  `{ items, total }`; items carry `reportsTotal`/`reportsFinished` (CP-2b — not
+  money, so technicians get them too). `overdue=true` = `open` with
+  `promisedDate` before today
 - `GET /service-orders/:id` → order + lines (snapshot columns) only (decided
   2026-07-27 — reports lazy-load, visits join in CP-3)
 - `GET /service-orders/:id/reports` → the exploded reports
@@ -195,10 +209,13 @@ a. Technicians reach orders through their assigned visits/reports (context heade
   quantity, technicianId, reportType }] }` → the §2 transaction. Caps (decided
   2026-07-27, sized to real usage of ≤~10 services/order): ≤20 lines, quantity
   ≤20, ≤50 exploded reports total; duplicate `serviceId` lines are a 400
-- `PATCH /service-orders/:id` — `comments` (any staff) and/or `location` (**owner/admin
-  only** — 403 for office); both audited to the timeline. No other field is patchable.
+- `PATCH /service-orders/:id` — `comments`/`priority`/`promisedDate` (any staff,
+  CP-2b) and/or `location` (**owner/admin only** — 403 for office); each audited
+  to the timeline. No other field is patchable.
 - `POST /service-orders/:id/status` — `{ status }` (complete/cancel, confirm-heavy);
-  `completed` yields the client handoff document (§7)
+  `completed` yields the client handoff document (§7). From CP-2b it also accepts
+  `open`: the **owner/admin-only reopen** of a `completed` order (`cancelled` is
+  terminal), emitting the reserved `order_status_changed` event
 - Contract generation is **`POST /contracts` (13)** carrying this order's id (0..n per
   order); the order view's **Generar contrato** launches it and it logs
   `order_contract_generated` (refId → the contract) on this order's timeline. No
@@ -322,10 +339,70 @@ visits (2026-07-26 scope decision above).*
       visits order-bound and writing to `service_order_events` from the start
 
 ### CP-2 — Superadmin: orders UI
-- [ ] DTOs + `ServiceOrdersState` + http service
-- [ ] Orders list (URL filters) + **order-builder page** (lines builder, `/new`) +
+- [x] DTOs + `ServiceOrdersState` + http service
+- [x] Orders list (URL filters) + **order-builder page** (lines builder, `/new`) +
       order view with the **activity timeline feed** (§7)
-- [ ] Nav + module keys; customer-view card (07 ask)
+- [x] Nav + module keys; customer-view card (07 ask) — built 2026-07-28 on
+      `feature/superadmin-service-orders-ui`, PR pending
+
+### CP-2b — Dispatch polish (decided 2026-07-29): priority · promise dates · progress · reopen · duplicate
+*Branch `feature/fullstack-service-orders-dispatch`, stacked on CP-2's UI branch; one
+fullstack PR. The customer-facing tracking link raised the same day is **deferred**
+until after CP-5 (it will reuse the handoff token machinery).*
+
+**Schema (DDL 0028, additive + idempotence-guarded, applied straight to the shared DB):**
+- `service_orders.priority` text NOT NULL default `'normal'` — TS enum
+  `ServiceOrderPriority { Normal = 'normal', Urgent = 'urgent' }`. Two levels only:
+  dispatch needs "jump the queue", not a severity ladder.
+- `service_orders.promised_date` **date**, nullable — the "fecha compromiso" told to
+  the client. Date-only on purpose: promises are day-granular, and a timestamptz
+  would drag timezone math into every compare. Overdue = `open` AND
+  `promised_date < CURRENT_DATE` (the UTC day flip fires a few hours early on
+  Monterrey evenings — acceptable v1, revisit only if it annoys).
+
+**Progress counts.** List items + detail gain `reportsTotal` / `reportsFinished`
+(finished = `finished` | `mailed`; **cancelled reports excluded from both** — the
+denominator is real work, not voided rows). One grouped-count query per list page,
+same round-trip shape as `listLinesForOrders`. Not money, so technicians see it.
+UI: an "Avance" column (`3/5`) + a header chip on the order view; the Completar
+confirm warns when unfinished reports remain ("quedan N reportes sin terminar") —
+which also feeds the still-open auto-complete decision with real data.
+
+**Reopen — `completed → open`, owner/admin only.** `POST /:id/status` accepts
+`open`: a guarded UPDATE (`where status = 'completed'`) emitting the **reserved
+`order_status_changed`** event (`{ completed → open }` + optional motivo) — exactly
+what that member was reserved for. `cancelled` stays terminal: its cascade voided
+children, and un-voiding cannot be done honestly (an `in-progress` report would
+come back `pending`). Office gets a 403 on the `open` target — this is a safety
+valve for a fat-fingered Completar, not a flow. CP-5 note: reopening after the
+handoff was mailed leaves the trail showing exactly that; whether the mailed link
+also gets revoked is CP-5's call.
+
+**Duplicar orden — frontend only.** Order view (staff): "Duplicar" →
+`/service-orders/new?from=<id>`; the builder fetches the source order (plain http
+read, not the store) and prefills client + location + comments + lines
+(service + quantity). `technicianId`/`reportType` are **deliberately not copied** —
+they are explosion inputs owned by the exploded reports (19 §1), and the source
+order's assignments are stale by design; prices resolve fresh from today's catalog
+(what the builder already does). Lines whose service has left the catalog are
+skipped with a toast naming how many. Directly serves 13's "future programmed
+maintenance = new orders".
+
+- [ ] DDL 0028 + model/enum/validator legs: `priority` + `promisedDate` on create,
+      PATCH (any-staff role split kept: `location` stays owner/admin) and the list
+      filters `priority` / `overdue=true`; new event members
+      `order_priority_changed` / `order_promise_changed` (TS-only — no DB CHECK)
+- [ ] Progress counts in the list + detail repository reads + DTOs
+- [ ] Reopen leg of the status endpoint (validator widens to `open`, service gates
+      the role, repository emits `order_status_changed`)
+- [ ] Superadmin: builder fields (priority select + fecha compromiso), list
+      ("Urgente"/"Vencida" tags, Avance column, popover filters in the URL),
+      edit-dialog fields, Reabrir (completed, owner/admin, confirm + motivo) and
+      Duplicar actions, Completar-confirm warning
+- [ ] Tests: create defaults + roundtrip, PATCH events + closed-order 409
+      unchanged, `priority`/`overdue` filters, counts (explode → finish one →
+      `1/3`), reopen matrix (admin ok + PATCH works again / office 403 /
+      cancelled 409 / double-reopen 409)
 
 ### CP-3 — Calendar (closes 12 CP-1/CP-2 UI, immutable-record model)
 *Not a "rewire" any more (2026-07-26): PR #97 was closed unmerged, so CP-3 **builds** the
@@ -357,6 +434,13 @@ visits backend — `scheduled_visits` with `serviceOrderId` NOT NULL from birth,
 - [ ] 09 asks: bill from line snapshots
 
 ## Open decisions / asks
+- **Decided 2026-07-29 — CP-2b dispatch polish** (full spec in the CP-2b checkpoint):
+  two-level `priority`; date-only `promisedDate` + `overdue=true` filter; list/detail
+  progress counts with cancelled reports excluded from the denominator; reopen
+  `completed → open` (owner/admin, via the reserved `order_status_changed`;
+  `cancelled` stays terminal); frontend-only Duplicar prefill that deliberately
+  drops technician/reportType. The **customer-facing tracking link** raised the
+  same day is deferred until after CP-5.
 - **Decided 2026-07-26 — CP-1 build scope (see the scope blockquote up top):** CP-1 is
   backend-only and standalone. **No `quotationId`** (20 adds it with the accept flow),
   **no `scheduled_visits` touch** (#97 closed unmerged → CP-3 builds visits order-bound;
