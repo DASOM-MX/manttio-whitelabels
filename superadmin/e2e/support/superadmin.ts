@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import type { MeResponse } from '../../src/app/data/dtos/auth';
 import type { Customer, SaveCustomerRequest } from '../../src/app/data/dtos/customer';
 import type { Notification } from '../../src/app/data/dtos/notification';
+import type { SaveServiceRequest, Service } from '../../src/app/data/dtos/service';
 
 /**
  * The NGXS storage plugin (app.config `keys: ['auth.token', 'app']`) persists
@@ -92,6 +93,85 @@ export async function mockCustomersApi(page: Page): Promise<CustomersApiMock> {
   return {
     lastCreate: () => lastCreateBody,
     created: () => store,
+  };
+}
+
+export interface ServicesApiMock {
+  /** Body of the most recent `POST /services`, or null if none yet. */
+  lastCreate(): SaveServiceRequest | null;
+  /** Services created via POST this test — seed rows excluded. */
+  created(): Service[];
+}
+
+/**
+ * Stub the `/services` catalog surface, seeded with the rows a test starts
+ * from. `GET` (list and single) serves the store; `POST` records the payload
+ * and echoes a materialized DTO (money numbers come back as the fixed-2
+ * strings the API answers with). The timeline answers empty — a spec that
+ * asserts on the trail registers its own route afterwards; later routes win.
+ *
+ * Document requests fall through: `/services` and `/services/:id` are also
+ * SPA URLs on :4200, and fulfilling a page navigation with JSON white-screens
+ * the test.
+ */
+export async function mockServicesApi(page: Page, seed: Service[] = []): Promise<ServicesApiMock> {
+  const store: Service[] = [...seed];
+  let lastCreateBody: SaveServiceRequest | null = null;
+
+  await page.route(/\/services\/[^/?]+\/timeline$/, (route) => route.fulfill({ json: [] }));
+
+  await page.route(/\/services\/[^/?]+$/, async (route) => {
+    const request = route.request();
+    if (request.resourceType() === 'document' || request.method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    const id = new URL(request.url()).pathname.split('/').pop();
+    const found = store.find((s) => s.id === id);
+    if (!found) {
+      await route.fulfill({ status: 404, json: { error: 'not_found' } });
+      return;
+    }
+    await route.fulfill({ json: found });
+  });
+
+  await page.route(/\/services(\?.*)?$/, async (route) => {
+    const request = route.request();
+    if (request.resourceType() === 'document') {
+      await route.fallback();
+      return;
+    }
+
+    if (request.method() === 'POST') {
+      lastCreateBody = request.postDataJSON() as SaveServiceRequest;
+      const now = new Date().toISOString();
+      const service: Service = {
+        id: `svc-created-${store.length + 1}`,
+        name: lastCreateBody.name,
+        price: lastCreateBody.price.toFixed(2),
+        cost: lastCreateBody.cost == null ? undefined : lastCreateBody.cost.toFixed(2),
+        uom: lastCreateBody.uom,
+        description: lastCreateBody.description || undefined,
+        websiteDescription: lastCreateBody.websiteDescription || undefined,
+        websiteImageKey: lastCreateBody.websiteImageKey || undefined,
+        internalServiceCode: lastCreateBody.internalServiceCode || undefined,
+        taxRate: lastCreateBody.taxRate,
+        isListableInWebsite: lastCreateBody.isListableInWebsite,
+        isPriceVisibleInWebsite: lastCreateBody.isPriceVisibleInWebsite,
+        createdAt: now,
+        updatedAt: now,
+      };
+      store.push(service);
+      await route.fulfill({ status: 201, json: service });
+      return;
+    }
+
+    await route.fulfill({ json: { services: [...store] } });
+  });
+
+  return {
+    lastCreate: () => lastCreateBody,
+    created: () => store.slice(seed.length),
   };
 }
 
