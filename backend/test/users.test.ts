@@ -5,6 +5,7 @@ import {
   loginAs,
   seedAdmin,
   seedAdminAndLogin,
+  seedOfficeAndLogin,
   seedOwner,
   seedOwnerAndLogin,
   seedTechnician,
@@ -21,9 +22,12 @@ type PublicUser = {
   name: string;
   email: string;
   role: 'admin' | 'technician';
+  active: boolean;
   createdAt: string;
   updatedAt: string;
 };
+
+type PagedUsers = { items: PublicUser[]; total: number; page: number; limit: number };
 
 const headersWith = (token: string) => ({ ...jsonHeaders(token) });
 
@@ -59,28 +63,66 @@ describe('GET /users/me', () => {
   });
 });
 
-describe('GET /users/list', () => {
-  test('admin gets a list including the seeded admin', async () => {
+describe('GET /users (paged roster)', () => {
+  test('admin gets the paged envelope; search pins the seeded row', async () => {
     const { admin, token } = await seedAdminAndLogin();
-    const res = await request('/users/list', { headers: authHeader(token) });
+    const res = await request(`/users?search=${encodeURIComponent(admin.email)}`, {
+      headers: authHeader(token),
+    });
     expect(res.status).toBe(200);
-    const body = await json<{ users: PublicUser[] }>(res);
-    expect(Array.isArray(body.users)).toBe(true);
-    expect(body.users.some((u) => u.id === admin.id)).toBe(true);
-    body.users.forEach((u) => expect(u).not.toHaveProperty('passwordHash'));
+    const body = await json<PagedUsers>(res);
+    expect(body.page).toBe(1);
+    expect(body.total).toBe(1);
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0]!.id).toBe(admin.id);
+    expect(body.items[0]!.active).toBe(true);
+    body.items.forEach((u) => expect(u).not.toHaveProperty('passwordHash'));
   });
 
-  test('owner passes the admin gate via the role hierarchy', async () => {
-    const { token } = await seedOwnerAndLogin();
-    const res = await request('/users/list', { headers: authHeader(token) });
+  test('role filter + limit are honored', async () => {
+    const { token } = await seedAdminAndLogin();
+    const res = await request('/users?role=technician&limit=1', { headers: authHeader(token) });
     expect(res.status).toBe(200);
+    const body = await json<PagedUsers>(res);
+    expect(body.limit).toBe(1);
+    expect(body.items.length).toBeLessThanOrEqual(1);
+    body.items.forEach((u) => expect(u.role).toBe('technician'));
+  });
+
+  test('active=false matches nothing until the deactivation column lands', async () => {
+    const { token } = await seedAdminAndLogin();
+    const res = await request('/users?active=false', { headers: authHeader(token) });
+    expect(res.status).toBe(200);
+    expect(await json<PagedUsers>(res)).toEqual({ items: [], total: 0, page: 1, limit: 25 });
+  });
+
+  test('limit above the cap is rejected', async () => {
+    const { token } = await seedAdminAndLogin();
+    const res = await request('/users?limit=1000', { headers: authHeader(token) });
+    expect(res.status).toBe(400);
+  });
+
+  test('owner and office pass the roster gate', async () => {
+    const { token: ownerToken } = await seedOwnerAndLogin();
+    expect((await request('/users?limit=1', { headers: authHeader(ownerToken) })).status).toBe(200);
+    const { token: officeToken } = await seedOfficeAndLogin();
+    expect((await request('/users?limit=1', { headers: authHeader(officeToken) })).status).toBe(
+      200,
+    );
   });
 
   test('technician is rejected with 403 forbidden', async () => {
     const { token } = await seedTechnicianAndLogin();
-    const res = await request('/users/list', { headers: authHeader(token) });
+    const res = await request('/users?limit=1', { headers: authHeader(token) });
     expect(res.status).toBe(403);
     expect(await json(res)).toEqual({ error: 'forbidden' });
+  });
+
+  test('the retired /users/list path 404s instead of matching :id', async () => {
+    const { token } = await seedAdminAndLogin();
+    const res = await request('/users/list', { headers: authHeader(token) });
+    expect(res.status).toBe(404);
+    expect(await json(res)).toEqual({ error: 'not_found' });
   });
 });
 

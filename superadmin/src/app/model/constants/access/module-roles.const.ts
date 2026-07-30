@@ -19,6 +19,10 @@ export const MODULE_ROLES: Record<ModuleKey, readonly Role[]> = {
   // commercial information, and the field app never needs them. Delete stays
   // admin-tier, gated in-page.
   quotations: ['owner', 'admin', 'office'],
+  // Read-wide (19 §3): technicians reach an order as context from their
+  // assigned reports — the route admits them, the nav never shows it (their
+  // TECH_NAV has no entry) and the API strips money from what they see.
+  'service-orders': ['owner', 'admin', 'office', 'technician'],
   calendar: ['owner', 'admin', 'office', 'technician'],
   contracts: ['owner', 'admin', 'office'],
   billing: ['owner', 'admin', 'office'],

@@ -1,0 +1,44 @@
+import {
+  LucideCalendarCheck,
+  LucideCalendarClock,
+  LucideCalendarDays,
+  LucideCalendarX,
+  LucideCheck,
+  LucideClipboardPlus,
+  LucideFileCheck,
+  LucideFilePlus,
+  LucideFileText,
+  LucideMail,
+  LucideMapPin,
+  LucideMessageSquare,
+  LucidePencil,
+  LucideRefreshCw,
+  LucideUsers,
+  LucideWrench,
+  LucideX,
+  type LucideIcon,
+} from '@lucide/angular';
+import { ServiceOrderEventType } from '../../enums/service-order/service-order-event-type.enum';
+
+/** Feed glyph per event type (19 §7) — every entry gets its own icon, so a
+ *  scan of the trail reads by shape before it reads by text. */
+export const SERVICE_ORDER_EVENT_ICONS: Record<ServiceOrderEventType, LucideIcon> = {
+  [ServiceOrderEventType.OrderCreated]: LucideClipboardPlus,
+  [ServiceOrderEventType.OrderLineAdded]: LucideWrench,
+  [ServiceOrderEventType.OrderCommentUpdated]: LucideMessageSquare,
+  [ServiceOrderEventType.OrderLocationChanged]: LucideMapPin,
+  [ServiceOrderEventType.OrderStatusChanged]: LucideRefreshCw,
+  [ServiceOrderEventType.OrderCompleted]: LucideCheck,
+  [ServiceOrderEventType.OrderCancelled]: LucideX,
+  [ServiceOrderEventType.OrderContractGenerated]: LucideFileText,
+  [ServiceOrderEventType.OrderMailed]: LucideMail,
+  [ServiceOrderEventType.VisitCreated]: LucideCalendarDays,
+  [ServiceOrderEventType.VisitReassigned]: LucideUsers,
+  [ServiceOrderEventType.VisitCorrected]: LucidePencil,
+  [ServiceOrderEventType.VisitCompleted]: LucideCalendarCheck,
+  [ServiceOrderEventType.VisitClosed]: LucideCalendarX,
+  [ServiceOrderEventType.VisitRescheduled]: LucideCalendarClock,
+  [ServiceOrderEventType.ReportExploded]: LucideFilePlus,
+  [ServiceOrderEventType.ReportStatusChanged]: LucideRefreshCw,
+  [ServiceOrderEventType.ReportFinished]: LucideFileCheck,
+};

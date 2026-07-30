@@ -1,0 +1,253 @@
+<app-page-header
+  title="Nueva orden de servicio"
+  description="Compón la orden con los servicios del catálogo; cada unidad genera su reporte."
+  backLink="/service-orders"
+/>
+
+@if (!reviewing()) {
+  <form [formGroup]="form" class="flex flex-col gap-6">
+    <!-- Cliente + sitio -->
+    <section class="card p-6">
+      <h2 class="micro-label mb-4">Cliente</h2>
+      <div class="grid gap-5 sm:grid-cols-2">
+        <div class="field-group">
+          <label class="field-label" for="order-customer">
+            Cliente<span aria-hidden="true"> *</span>
+          </label>
+          <!-- The customer roster is 1000+ rows — virtual scroll keeps the
+               overlay light; the filter is how anyone actually picks. -->
+          <p-select
+            inputId="order-customer"
+            formControlName="customerId"
+            [options]="customers()"
+            optionLabel="name"
+            optionValue="id"
+            [filter]="true"
+            filterBy="name"
+            [virtualScroll]="true"
+            [virtualScrollItemSize]="40"
+            placeholder="Selecciona un cliente"
+          />
+          @if (form.controls.customerId.touched && form.controls.customerId.errors?.['required']) {
+            <p class="field-error" role="alert">Selecciona el cliente de la orden.</p>
+          }
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="order-location">Ubicación</label>
+          <input
+            id="order-location"
+            pInputText
+            formControlName="location"
+            placeholder="Sitio del servicio"
+          />
+          <p class="field-hint">Opcional — dónde se realiza el trabajo.</p>
+        </div>
+        <div class="field-group sm:col-span-2">
+          <label class="field-label" for="order-comments">Comentarios</label>
+          <textarea
+            id="order-comments"
+            pTextarea
+            formControlName="comments"
+            rows="2"
+            placeholder="Notas internas de la orden"
+          ></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lines builder -->
+    <section class="card p-6">
+      <div class="mb-4 flex items-center justify-between">
+        <h2 class="micro-label">Servicios</h2>
+        <button type="button" class="link-action" (click)="addLine()">
+          <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+          Agregar servicio
+        </button>
+      </div>
+
+      <!-- One surface: rows separate with hairline dividers, never a second
+           background inside the card (owner 2026-07-27). -->
+      <div class="flex flex-col gap-5" formArrayName="lines">
+        @for (line of lines.controls; track line; let i = $index) {
+          <div
+            class="grid gap-4 border-b border-surface-200 pb-5 last:border-b-0 last:pb-0 dark:border-surface-700 sm:grid-cols-2 lg:grid-cols-5"
+            [formGroupName]="i"
+          >
+            <div class="field-group lg:col-span-2">
+              <label class="field-label" [for]="'line-service-' + i">
+                Servicio<span aria-hidden="true"> *</span>
+              </label>
+              <p-select
+                [inputId]="'line-service-' + i"
+                formControlName="serviceId"
+                [options]="services()"
+                optionLabel="name"
+                optionValue="id"
+                [filter]="true"
+                filterBy="name"
+                placeholder="Del catálogo"
+              />
+            </div>
+            <div class="field-group">
+              <label class="field-label" [for]="'line-quantity-' + i">
+                Cantidad<span aria-hidden="true"> *</span>
+              </label>
+              <p-inputnumber
+                [inputId]="'line-quantity-' + i"
+                formControlName="quantity"
+                [min]="1"
+                [max]="20"
+                [showButtons]="true"
+              />
+            </div>
+            <div class="field-group">
+              <label class="field-label" [for]="'line-technician-' + i">
+                Técnico<span aria-hidden="true"> *</span>
+              </label>
+              <p-select
+                [inputId]="'line-technician-' + i"
+                formControlName="technicianId"
+                [options]="technicians()"
+                optionLabel="fullName"
+                optionValue="id"
+                [filter]="true"
+                filterBy="fullName"
+                [virtualScroll]="true"
+                [virtualScrollItemSize]="40"
+                placeholder="Asignar a"
+              />
+            </div>
+            <div class="field-group">
+              <label class="field-label" [for]="'line-report-type-' + i">
+                Tipo de reporte<span aria-hidden="true"> *</span>
+              </label>
+              <div class="flex items-center gap-2">
+                <p-select
+                  class="grow"
+                  [inputId]="'line-report-type-' + i"
+                  formControlName="reportType"
+                  [options]="reportTypeOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                />
+                <button
+                  type="button"
+                  class="row-action row-action--danger"
+                  [disabled]="lines.length === 1"
+                  (click)="removeLine(i)"
+                  aria-label="Quitar servicio"
+                >
+                  <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
+                </button>
+              </div>
+            </div>
+            <p class="font-data text-right text-sm text-surface-500 dark:text-surface-400 sm:col-span-2 lg:col-span-5">
+              Importe: {{ lineAmounts()[i] | money }}
+            </p>
+          </div>
+        }
+      </div>
+
+      @if (hasDuplicateServices()) {
+        <p class="callout callout--warn mt-4" role="alert">
+          Hay un servicio repetido — la cantidad es la forma de vender más de uno.
+        </p>
+      }
+
+      <!-- Running total -->
+      <dl class="mt-5 flex flex-col items-end gap-1 border-t border-surface-200 pt-4 text-sm dark:border-surface-700">
+        <div class="flex gap-6">
+          <dt class="text-surface-500 dark:text-surface-400">Subtotal</dt>
+          <dd class="font-data w-28 text-right">{{ totals().subtotal | money }}</dd>
+        </div>
+        <div class="flex gap-6">
+          <dt class="text-surface-500 dark:text-surface-400">IVA</dt>
+          <dd class="font-data w-28 text-right">{{ totals().tax | money }}</dd>
+        </div>
+        <div class="flex gap-6 font-medium">
+          <dt>Total</dt>
+          <dd class="font-data w-28 text-right">{{ totals().total | money }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <div class="flex items-center justify-end gap-3">
+      <a routerLink="/service-orders" class="btn-secondary">Cancelar</a>
+      <button type="button" class="btn-primary" [disabled]="!canReview()" (click)="review()">
+        Revisar
+      </button>
+    </div>
+  </form>
+} @else {
+  <!-- Review / confirm (19 §5) — read-only summary before the transaction. -->
+  <section class="card p-6">
+    <h2 class="micro-label mb-4">Revisa la orden</h2>
+    <dl class="mb-5 grid gap-4 sm:grid-cols-3">
+      <div>
+        <dt class="micro-label">Cliente</dt>
+        <dd class="mt-1 text-sm font-medium">{{ customerName() }}</dd>
+      </div>
+      <div>
+        <dt class="micro-label">Ubicación</dt>
+        <dd class="mt-1 text-sm">{{ form.getRawValue().location || '—' }}</dd>
+      </div>
+      <div>
+        <dt class="micro-label">Reportes a generar</dt>
+        <dd class="font-data mt-1 text-sm">{{ totalUnits() }}</dd>
+      </div>
+    </dl>
+
+    <div class="card-flush-table">
+      <p-table [value]="reviewRows()">
+        <ng-template #header>
+          <tr>
+            <th scope="col">Servicio</th>
+            <th scope="col">Cantidad</th>
+            <th scope="col">Técnico</th>
+            <th scope="col">Tipo de reporte</th>
+            <th scope="col" class="text-right">Importe</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-row>
+          <tr>
+            <td class="font-medium">{{ row.serviceName }}</td>
+            <td class="font-data">{{ row.quantity }} {{ row.uom | serviceUomShort }}</td>
+            <td>{{ row.technicianName }}</td>
+            <td>{{ row.reportType }}</td>
+            <td class="font-data text-right">{{ row.amount | money }}</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+
+    <dl class="mt-5 flex flex-col items-end gap-1 text-sm">
+      <div class="flex gap-6">
+        <dt class="text-surface-500 dark:text-surface-400">Subtotal</dt>
+        <dd class="font-data w-28 text-right">{{ totals().subtotal | money }}</dd>
+      </div>
+      <div class="flex gap-6">
+        <dt class="text-surface-500 dark:text-surface-400">IVA</dt>
+        <dd class="font-data w-28 text-right">{{ totals().tax | money }}</dd>
+      </div>
+      <div class="flex gap-6 font-medium">
+        <dt>Total</dt>
+        <dd class="font-data w-28 text-right">{{ totals().total | money }}</dd>
+      </div>
+    </dl>
+
+    <p class="callout callout--info mt-5">
+      Al crear la orden se generará un reporte pendiente por cada unidad, asignado al técnico
+      elegido.
+    </p>
+
+    <div class="mt-6 flex items-center justify-end gap-3">
+      <button type="button" class="btn-secondary" (click)="backToEdit()">
+        <svg lucideArrowLeft class="size-4" aria-hidden="true"></svg>
+        Editar
+      </button>
+      <button type="button" class="btn-primary" [disabled]="submitting()" (click)="submit()">
+        {{ submitting() ? 'Creando…' : 'Crear orden' }}
+      </button>
+    </div>
+  </section>
+}

@@ -1,8 +1,9 @@
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
 import type { PagedResponse } from '../../data/dtos/paged-response';
 import type {
+  AssignableUser,
   CreateUserRequest,
   CreateUserResponse,
   DeleteUserRequest,
@@ -24,6 +25,23 @@ export class UsersService {
       role: query.role,
       active: query.active === '' || query.active === undefined ? undefined : String(query.active),
     });
+  }
+
+  /** The roster for assignment pickers, name-sorted with display names
+   *  precomposed — one page of 100 covers any real tenant's staff. */
+  listAssignable(): Observable<AssignableUser[]> {
+    return this.list({ limit: 100 }).pipe(
+      map((res) =>
+        res.items
+          .map((u) => ({
+            id: u.id,
+            name: u.name,
+            paternalLastName: u.paternalLastName,
+            fullName: [u.name, u.paternalLastName].filter(Boolean).join(' '),
+          }))
+          .sort((a, b) => a.fullName.localeCompare(b.fullName, 'es')),
+      ),
+    );
   }
 
   get(id: string): Observable<User> {

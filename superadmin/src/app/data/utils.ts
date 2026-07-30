@@ -23,3 +23,14 @@ export const errorMessage = (err: unknown, fallback: string): string => {
   if (err instanceof Error) return err.message;
   return fallback;
 };
+
+/** The stable snake_case `error` code of a backend error envelope
+ *  (`{ error: 'code', message? }`), when the thrown value carries one —
+ *  for branching on *behavior* (copy stays `errorMessage`-verbatim). */
+export const errorCode = (err: unknown): string | undefined => {
+  if (err && typeof err === 'object' && 'error' in err) {
+    const inner = (err as { error?: { error?: string } }).error;
+    if (typeof inner?.error === 'string') return inner.error;
+  }
+  return undefined;
+};

@@ -1,13 +1,8 @@
-/** Reports DTOs (06-reports.md §1) — status enum confirmed against
- *  `backend/src/modules/reports/models/reports.model.ts` (2026-07-06);
- *  `folio` has no backend column yet — recorded as a backend ask. */
+/** Reports DTOs (06-reports.md §1) — interfaces only; the `ReportStatus` enum
+ *  lives in `model/enums/report/report-status.enum.ts` (moved 2026-07-27,
+ *  enums-in-model rule). `folio` has no backend column yet — a backend ask. */
 
-export enum ReportStatus {
-  Created = 'created',
-  InProgress = 'in-progress',
-  Finished = 'finished',
-  Mailed = 'mailed',
-}
+import type { ReportStatus } from '../../model/enums/report/report-status.enum';
 
 export interface ReportSummary {
   id: string;

@@ -1,0 +1,108 @@
+<app-page-header
+  title="Órdenes de servicio"
+  description="El trabajo vendido a tus clientes y todo lo que se desprende de él."
+>
+  <app-filters-popover [params]="['q', 'status', 'customer']">
+    <div class="field-group">
+      <label class="field-label" for="orders-search">Buscar</label>
+      <input
+        id="orders-search"
+        pInputText
+        type="search"
+        [formControl]="search"
+        placeholder="Folio (OS-…)"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="orders-status">Estado</label>
+      <p-select
+        inputId="orders-status"
+        [formControl]="statusFilter"
+        [options]="statusOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
+  </app-filters-popover>
+  @if (canCreate()) {
+    <a routerLink="/service-orders/new" class="btn-primary">
+      <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+      Nueva orden
+    </a>
+  }
+</app-page-header>
+
+<div>
+  <p-table
+    [value]="orders()"
+    [lazy]="true"
+    (onLazyLoad)="list.onLazyLoad($event)"
+    [paginator]="true"
+    [rows]="list.PAGE_SIZE"
+    [first]="list.first()"
+    [totalRecords]="total()"
+    [loading]="loading()"
+    [showLoader]="false"
+    [rowHover]="true"
+    dataKey="id"
+  >
+    <ng-template #header>
+      <tr>
+        <th scope="col">Folio</th>
+        <th scope="col">Cliente</th>
+        <th scope="col">Servicios</th>
+        <th scope="col">Estado</th>
+        @if (showsMoney()) {
+          <th scope="col" class="text-right">Total</th>
+        }
+        <th scope="col">Creada</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-order>
+      <tr class="cursor-pointer" (click)="openOrder(order)">
+        <td class="font-data font-medium">{{ order.folio }}</td>
+        <td>{{ order.customerName }}</td>
+        <td class="font-data">{{ order.servicesCount }}</td>
+        <td>
+          <p-tag
+            [severity]="order.status | serviceOrderStatusSeverity"
+            [value]="order.status | serviceOrderStatusLabel"
+          />
+        </td>
+        @if (showsMoney()) {
+          <td class="font-data text-right">{{ order.amounts?.total | money }}</td>
+        }
+        <td>{{ order.createdAt | date: 'dd/MM/yyyy' }}</td>
+      </tr>
+    </ng-template>
+    <ng-template #loadingbody>
+      @for (row of skeletonRows; track row) {
+        <tr>
+          @for (col of [0, 1, 2, 3, 4, 5]; track col) {
+            <td><div class="skeleton h-4"></div></td>
+          }
+        </tr>
+      }
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="6">
+          <div class="flex flex-col items-center gap-3 py-10 text-center">
+            <span class="empty-icon">
+              <svg lucideClipboardList class="size-5" aria-hidden="true"></svg>
+            </span>
+            <p class="text-sm text-surface-500 dark:text-surface-400">
+              Aún no hay órdenes de servicio.
+            </p>
+            @if (canCreate()) {
+              <a routerLink="/service-orders/new" class="btn-primary">
+                <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+                Nueva orden
+              </a>
+            }
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
