@@ -3,6 +3,7 @@ import type { AppBindings } from '../../../env';
 import type {
   InvalidRecipientError,
   QuotationClosedError,
+  QuotationDiscountTooLargeError,
   QuotationServiceNotFoundError,
 } from './quotations.error';
 
@@ -43,6 +44,21 @@ export const serviceGoneResponse = (
       error: 'service_not_found',
       message: 'Una de las partidas referencia un servicio que ya no existe.',
       serviceId: err.serviceId,
+    },
+    400,
+  );
+
+/** A discount can reach at most the line's own importe — past it the IVA base
+ *  goes negative. Names the line so the builder can mark that row. */
+export const discountTooLargeResponse = (
+  c: Context<AppBindings>,
+  err: QuotationDiscountTooLargeError,
+) =>
+  c.json(
+    {
+      error: 'discount_too_large',
+      message: `El descuento de "${err.serviceName}" es mayor que el importe de la partida.`,
+      serviceName: err.serviceName,
     },
     400,
   );

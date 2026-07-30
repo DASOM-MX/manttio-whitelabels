@@ -1,7 +1,7 @@
 # 20 — Quotations (cotizaciones)
 
 > **Status:** CP-1 + CP-2 built (backend + superadmin UI; **`/order` convergence landed 2026-07-27** with 19 CP-1 — see CP-1) · **Depends on:** 07 (client + contacts), 18 (catalog + `taxRate`), `email/` + `pdf/` modules · **Feeds:** 19 (staff create a service order from an approved quote) · **Hooks:** 08 (CRM interaction), 09 (billing)
-> **Owner:** — · **Last updated:** 2026-07-27
+> **Owner:** — · **Last updated:** 2026-07-29
 
 The **sales entry point** and the convergence of 18 and 19: a quotation is built from
 catalog services (18), mailed to the client's reviewer-contacts (07) who approve/decline
@@ -49,14 +49,24 @@ Quotation {
 }
 QuotationLine {             // FROZEN snapshot — the quote never re-reads the catalog
   id, quotationId,
-  serviceId,                // ref → services (restrict; the service may later be
-                            //   renamed/soft-deleted — the snapshot stays intact)
+  serviceId?,               // ref → services (restrict; the service may later be
+                            //   renamed/soft-deleted — the snapshot stays intact).
+                            //   NULL = OFF-CATALOG line (decided 2026-07-29): staff
+                            //   typed the whole line; name/price/uom/taxRate ARE its
+                            //   snapshot, no catalog row to trace back to
   serviceName,              // snapshot of services.name at creation
   description?,             // snapshot (or a per-line override)
   unitPrice,                // numeric(12,2) SNAPSHOT of services.price
   uom,                      // snapshot of services.uom
-  quantity,                 // int >= 1
+  quantity,                 // numeric(12,3) > 0 (decided 2026-07-29 — decimal
+                            //   quantities: 1.5 h, 12.75 m²); a STRING end-to-end,
+                            //   like money, so no JSON float ever touches it
   taxRate,                  // SNAPSHOT of services.taxRate (§3) — Mexican IVA rate
+  discountAmount,           // numeric(12,2) ≥ 0, ≤ importe (decided 2026-07-29) —
+                            //   frozen AMOUNT, never a %: CFDI's per-concepto
+                            //   Descuento is an amount, and freezing it means no
+                            //   percent re-rounding can make quote and invoice
+                            //   disagree. The builder's % entry converts ONCE.
   // lineSubtotal = unitPrice * quantity (computed; not stored)
   createdAt
 }
@@ -85,11 +95,17 @@ quotes. When the quote converts to an order (§6), the **order lines inherit the
 snapshots** — so the order (and eventually the invoice) charges exactly what the client
 accepted.
 
-**Totals** are computed from the frozen lines, never stored redundantly. IVA rates vary per
-line, so IVA is a **per-line** sum: `subtotal = Σ lineSubtotal`;
-`iva = Σ (lineSubtotal × rate(taxRate))` with `rate(iva_16)=0.16, rate(iva_8)=0.08,
-rate(iva_0)=0, rate(exento)=0`; `total = subtotal + iva`. `iva_0` and `exento` both add 0
-but stay distinct for CFDI.
+**Totals** are computed from the frozen lines, never stored redundantly, and mirror
+**CFDI 4.0** (revised 2026-07-29 for decimal quantities + discounts): per line,
+`importe = round(unitPrice × quantity)` — the ONE rounding a line gets, half-up to the
+centavo, needed because cents × thousandths lands between centavos — then
+`iva = round((importe − discountAmount) × rate)` per line (rates vary per line; CFDI
+rounds per concepto). `subtotal = Σ importe` (pre-discount), `descuento = Σ
+discountAmount` (exact amounts, no rounding), `total = subtotal − descuento + iva`.
+All arithmetic in scaled integers (cents / quantity-thousandths; the cross product in
+BigInt — it can pass 2⁵³), duplicated verbatim in the superadmin preview
+(`services/quotations/quotation-totals.service.ts`) — any change lands in both in the
+same PR. `iva_0` and `exento` both add 0 but stay distinct for CFDI.
 
 ## 2. Lifecycle & statuses (decided 2026-07-24)
 
@@ -348,11 +364,30 @@ is primary, not exclusive.
 so no button is rendered (a button that 404s is worse than none). Lands in CP-4 with the
 gate + override.
 
-### CP-3 — Backend approval page + PDF
-- [ ] Cotización PDF (`pdf/` module, brand-themed); email template
+### CP-3 — Suite (PR-A/B/C, one PR each — decided 2026-07-29)
+**PR-A — line model v2 (fullstack)** — [x] built 2026-07-29:
+- [x] Per-line **discount as a frozen amount** + builder % quick-entry (converts once);
+      `≤ importe` guarded (400 `discount_too_large`; revise clamps instead — a reprice
+      below the old discount must not hard-fail a body-less endpoint)
+- [x] **Off-catalog lines**: `service_id` nullable; staff-supplied name/price/uom/taxRate
+      are the snapshot; catalog lines still reject caller-priced fields (now a 400, no
+      longer silently ignored)
+- [x] **Decimal quantities** `numeric(12,3)`, string end-to-end, scaled-integer
+      arithmetic (BigInt cross product, one half-up rounding per derived figure);
+      superadmin totals mirror updated in the same PR; migration `0026`; 38 tests green
+**PR-B — approval page + PDF (CP-3 as originally scoped):**
+- [ ] Cotización PDF (`pdf/` module, brand-themed); email template — rendering
+      discounts, off-catalog lines and decimal quantities from day one
 - [ ] **Backend-rendered** approval page (`quotations/templates/` + `helpers/`, public
       route): view → approve/decline (+ reason); overdue/resolved/non-reviewer states —
       no SPA
+**PR-C — sales follow-through:**
+- [ ] Default terms & conditions (tenant-level, prefilled into the builder — storage
+      design in-PR)
+- [ ] Duplicar (clone as a fresh independent draft — revise cancels, duplicate doesn't)
+- [ ] Reviewer reminder (same token, reminder email, timeline event)
+- [ ] "Por vencer / vencidas" list filter
+- [ ] CRM hook (08): sent/responded auto-log a `customer_interaction`
 
 ### CP-4 — Polish
 - [ ] Revise chain UI; Crear orden (comment + gate) / Cancelar (comment) from the view;
@@ -363,6 +398,19 @@ gate + override.
       all-decline → office blocked, owner creates the order
 
 ## Open decisions / asks
+- **Convergence vs line model v2 (2026-07-29, PR-A rebase over 19 CP-1):** `/order`
+  predates v2 and **refuses** quotes it cannot represent — off-catalog lines (order
+  lines are keyed by service), fractional quantities (the explosion counts whole
+  report skeletons; what 1.5 h explodes into is an **owner call**), per-line
+  discounts (order lines carry none) — with `409 quotation_line_not_convertible`
+  naming the line. Full support = a 19-side follow-up (order line model v2 +
+  explosion semantics), targeted alongside PR-B/C.
+- **Line model v2 (decided 2026-07-29, CP-3 PR-A):** per-line **discounts stored as a
+  frozen amount** (CFDI's Descuento; the % is a builder-side helper that converts once —
+  supersedes "no discounts"); **off-catalog lines allowed** (`service_id` NULL,
+  staff-typed snapshot — supersedes the implicit catalog-only stance); **decimal
+  quantities** (`numeric(12,3)`, string end-to-end — supersedes `int >= 1`). Totals
+  re-shaped to CFDI 4.0 (§1); IVA base is the per-line net (importe − descuento).
 - **Send scope (decided 2026-07-26):** CP-1's `/send` mints the per-recipient tokens,
   moves the status and mails a **branded link email** (markup in
   `quotations/templates/quotation-email.html.ts`, renderer in `helpers/`, dispatched

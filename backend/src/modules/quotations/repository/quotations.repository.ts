@@ -92,6 +92,7 @@ const insertQuotationWithLines = async (
         serviceName: line.serviceName,
         quantity: line.quantity,
         unitPrice: line.unitPrice,
+        discountAmount: line.discountAmount,
       },
     })),
   ]);

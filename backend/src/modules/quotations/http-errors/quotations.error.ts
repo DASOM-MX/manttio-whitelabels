@@ -33,6 +33,16 @@ export class QuotationServiceNotFoundError extends Error {
   }
 }
 
+/** A line's discount exceeds its own importe (`unitPrice × quantity`) — past
+ *  that the IVA base goes negative. Named by line so the builder can mark the
+ *  offending row. Controller maps it to `400 discount_too_large`. */
+export class QuotationDiscountTooLargeError extends Error {
+  constructor(public serviceName: string) {
+    super(`discount exceeds line importe: ${serviceName}`);
+    this.name = 'QuotationDiscountTooLargeError';
+  }
+}
+
 /** A recipient contact doesn't exist, or belongs to a different customer than
  *  the quote. The second case is the one that matters: it would mail one
  *  client's prices to another's inbox, so it fails closed rather than silently

@@ -23,13 +23,14 @@ type WorkerEnv = { DATABASE_URL: string };
 
 type Line = {
   id: string;
-  serviceId: string;
+  serviceId?: string;
   serviceName: string;
   description?: string;
   unitPrice: string;
   uom: ServiceUom;
   taxRate: ServiceTaxRate;
-  quantity: number;
+  quantity: string;
+  discountAmount: string;
   lineSubtotal: string;
 };
 
@@ -63,7 +64,7 @@ type Quotation = {
   serviceOrderId?: string;
   lines: Line[];
   recipients: Recipient[];
-  totals: { subtotal: string; iva: string; total: string };
+  totals: { subtotal: string; discount: string; iva: string; total: string };
 };
 
 type TimelineEvent = {
@@ -79,7 +80,7 @@ type PublicView = {
   status: QuotationStatus;
   isOverdue: boolean;
   lines: Line[];
-  totals: { subtotal: string; iva: string; total: string };
+  totals: { subtotal: string; discount: string; iva: string; total: string };
   viewer: { isReviewer: boolean; response?: QuotationResponse; responseReason?: string };
   canRespond: boolean;
 };
@@ -133,7 +134,7 @@ const post = (token: string, path: string, body: object) =>
   request(path, { method: 'POST', headers: jsonHeaders(token), body: JSON.stringify(body) });
 
 /** A customer + one contact + one service + a draft quote for one unit. */
-const scenario = async (opts: { price?: number; taxRate?: ServiceTaxRate; quantity?: number } = {}) => {
+const scenario = async (opts: { price?: number; taxRate?: ServiceTaxRate; quantity?: string } = {}) => {
   const { owner, token } = await seedOwnerAndLogin();
   const customer = await seedCustomer();
   const contact = await seedContact(customer.id, { isDefault: true });
@@ -142,7 +143,7 @@ const scenario = async (opts: { price?: number; taxRate?: ServiceTaxRate; quanti
     customerId: customer.id,
     validUntil: dayOffset(30),
     comments: 'Condiciones de prueba',
-    lines: [{ serviceId: service.id, quantity: opts.quantity ?? 1 }],
+    lines: [{ serviceId: service.id, quantity: opts.quantity ?? '1' }],
   });
   expect(res.status).toBe(201);
   const quote = await json<Quotation>(res);
@@ -170,7 +171,7 @@ const sendAndGetTokens = async (
 
 describe('quotations — draft + snapshots (20 §1)', () => {
   test('resolves catalog snapshots server-side and computes per-line totals', async () => {
-    const { quote, service } = await scenario({ price: 1500, quantity: 2 });
+    const { quote, service } = await scenario({ price: 1500, quantity: '2' });
 
     expect(quote.folio).toMatch(/^COT-\d{8}-\d{4}$/);
     expect(quote.status).toBe(QuotationStatus.Draft);
@@ -188,10 +189,10 @@ describe('quotations — draft + snapshots (20 §1)', () => {
     // The catalog description is snapshotted when no override is given.
     expect(line?.description).toBe('Descripción de catálogo');
 
-    expect(quote.totals).toEqual({ subtotal: '3000.00', iva: '480.00', total: '3480.00' });
+    expect(quote.totals).toEqual({ subtotal: '3000.00', discount: '0.00', iva: '480.00', total: '3480.00' });
   });
 
-  test('a client cannot dictate price, uom or tax rate', async () => {
+  test('a client cannot dictate price, uom or tax rate on a catalog line', async () => {
     const { owner, token } = await seedOwnerAndLogin();
     void owner;
     const customer = await seedCustomer();
@@ -200,15 +201,13 @@ describe('quotations — draft + snapshots (20 §1)', () => {
       customerId: customer.id,
       validUntil: dayOffset(15),
       lines: [
-        { serviceId: service.id, quantity: 1, unitPrice: '1.00', taxRate: ServiceTaxRate.Exento },
+        { serviceId: service.id, quantity: '1', unitPrice: '1.00', taxRate: ServiceTaxRate.Exento },
       ],
     });
-    expect(res.status).toBe(201);
-    const quote = await json<Quotation>(res);
-    created.push(quote.id);
-    // The injected fields are simply not part of the schema — the catalog wins.
-    expect(quote.lines[0]?.unitPrice).toBe('800.00');
-    expect(quote.lines[0]?.taxRate).toBe(ServiceTaxRate.Iva16);
+    // Rejected outright since line model v2 (before it, the fields were
+    // silently ignored): the same fields ARE the snapshot on an off-catalog
+    // line, so on a catalog line they now collide instead of vanishing.
+    expect(res.status).toBe(400);
   });
 
   test('sums IVA per line, so a mixed-rate quote is exact', async () => {
@@ -221,15 +220,15 @@ describe('quotations — draft + snapshots (20 §1)', () => {
       customerId: customer.id,
       validUntil: dayOffset(10),
       lines: [
-        { serviceId: taxed.id, quantity: 1 },
-        { serviceId: exempt.id, quantity: 2 },
-        { serviceId: border.id, quantity: 3 },
+        { serviceId: taxed.id, quantity: '1' },
+        { serviceId: exempt.id, quantity: '2' },
+        { serviceId: border.id, quantity: '3' },
       ],
     });
     const quote = await json<Quotation>(res);
     created.push(quote.id);
     // 1000@16% = 160 · 1000@exento = 0 · 600@8% = 48  →  subtotal 2600, iva 208
-    expect(quote.totals).toEqual({ subtotal: '2600.00', iva: '208.00', total: '2808.00' });
+    expect(quote.totals).toEqual({ subtotal: '2600.00', discount: '0.00', iva: '208.00', total: '2808.00' });
   });
 
   test('a later catalog price change never rewrites an existing quote', async () => {
@@ -262,7 +261,7 @@ describe('quotations — draft + snapshots (20 §1)', () => {
     const res = await createQuote(token, {
       customerId: customer.id,
       validUntil: dayOffset(10),
-      lines: [{ serviceId: service.id, quantity: 1 }],
+      lines: [{ serviceId: service.id, quantity: '1' }],
     });
     expect(res.status).toBe(400);
     const body = await json<{ error: string; serviceId: string }>(res);
@@ -290,14 +289,14 @@ describe('quotations — draft-only edits (20 §9)', () => {
       headers: jsonHeaders(token),
       body: JSON.stringify({
         comments: 'Actualizado',
-        lines: [{ serviceId: service.id, quantity: 4, description: 'Nota por partida' }],
+        lines: [{ serviceId: service.id, quantity: '4', description: 'Nota por partida' }],
       }),
     });
     expect(res.status).toBe(200);
     const updated = await json<Quotation>(res);
     expect(updated.comments).toBe('Actualizado');
     expect(updated.lines).toHaveLength(1);
-    expect(updated.lines[0]?.quantity).toBe(4);
+    expect(updated.lines[0]?.quantity).toBe('4.000');
     // The per-line override wins over the catalog description.
     expect(updated.lines[0]?.description).toBe('Nota por partida');
     expect(updated.totals.subtotal).toBe('4000.00');
@@ -548,7 +547,7 @@ describe('quotations — token page + reviewer tally (20 §2, §4)', () => {
       customerId: customer.id,
       // Yesterday — `validUntil` is a guard, not a status (20 §2).
       validUntil: dayOffset(-1),
-      lines: [{ serviceId: service.id, quantity: 1 }],
+      lines: [{ serviceId: service.id, quantity: '1' }],
     });
     const quote = await json<Quotation>(res);
     created.push(quote.id);
@@ -699,7 +698,7 @@ describe('quotations — access (20 §7)', () => {
     const res = await createQuote(officeToken, {
       customerId: customer.id,
       validUntil: dayOffset(7),
-      lines: [{ serviceId: service.id, quantity: 1 }],
+      lines: [{ serviceId: service.id, quantity: '1' }],
     });
     expect(res.status).toBe(201);
     created.push((await json<Quotation>(res)).id);
@@ -776,7 +775,7 @@ describe('quotations → service order (20 §6)', () => {
   });
 
   /** Draft → sent to one reviewer → approved via their token. */
-  const approvedScenario = async (opts: { price?: number; quantity?: number } = {}) => {
+  const approvedScenario = async (opts: { price?: number; quantity?: string } = {}) => {
     const base = await scenario(opts);
     const { tokenFor } = await sendAndGetTokens(base.token, base.quote.id, [
       { contactId: base.contact.id, isReviewer: true },
@@ -792,7 +791,7 @@ describe('quotations → service order (20 §6)', () => {
   test('converts an approved quote — snapshots inherited, quote flipped, both timelines written', async () => {
     const { token, quote, service, customer, tech } = await approvedScenario({
       price: 1500,
-      quantity: 2,
+      quantity: '2',
     });
 
     // Between approval and conversion the catalog moves on: the service is
@@ -874,8 +873,8 @@ describe('quotations → service order (20 §6)', () => {
       customerId: customer.id,
       validUntil: dayOffset(10),
       lines: [
-        { serviceId: service.id, quantity: 1, description: 'Turno matutino' },
-        { serviceId: service.id, quantity: 2, description: 'Turno vespertino' },
+        { serviceId: service.id, quantity: '1', description: 'Turno matutino' },
+        { serviceId: service.id, quantity: '2', description: 'Turno vespertino' },
       ],
     });
     expect(res.status).toBe(201);
@@ -920,7 +919,7 @@ describe('quotations → service order (20 §6)', () => {
     const res = await createQuote(ownerToken, {
       customerId: customer.id,
       validUntil: dayOffset(-1),
-      lines: [{ serviceId: service.id, quantity: 1 }],
+      lines: [{ serviceId: service.id, quantity: '1' }],
     });
     const stale = await json<Quotation>(res);
     created.push(stale.id);
@@ -984,7 +983,7 @@ describe('quotations — customer-scoped list (20 §9)', () => {
     const otherRes = await createQuote(token, {
       customerId: other.id,
       validUntil: dayOffset(15),
-      lines: [{ serviceId: service.id, quantity: 1 }],
+      lines: [{ serviceId: service.id, quantity: '1' }],
     });
     expect(otherRes.status).toBe(201);
     const otherQuote = await json<Quotation>(otherRes);
@@ -1018,5 +1017,134 @@ describe('quotations — customer-scoped list (20 §9)', () => {
       (await request(`/customers/${customer.id}/quotations`, { headers: jsonHeaders(techToken) }))
         .status,
     ).toBe(403);
+  });
+});
+
+describe('quotations — line model v2 (20 CP-3 PR-A)', () => {
+  test('a decimal quantity rounds the importe once, half-up, per line', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const customer = await seedCustomer();
+    const service = await makeService(token, { price: 333.33 });
+    const res = await createQuote(token, {
+      customerId: customer.id,
+      validUntil: dayOffset(10),
+      lines: [{ serviceId: service.id, quantity: '1.5' }],
+    });
+    expect(res.status).toBe(201);
+    const quote = await json<Quotation>(res);
+    created.push(quote.id);
+    // 333.33 × 1.5 = 499.995 → one half-up rounding to 500.00, THEN the IVA —
+    // never a float in between (the drift this suite exists to forbid).
+    expect(quote.lines[0]?.quantity).toBe('1.500');
+    expect(quote.lines[0]?.lineSubtotal).toBe('500.00');
+    expect(quote.totals).toEqual({
+      subtotal: '500.00',
+      discount: '0.00',
+      iva: '80.00',
+      total: '580.00',
+    });
+  });
+
+  test('an off-catalog line freezes the staff-typed snapshot with no serviceId', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const customer = await seedCustomer();
+    const res = await createQuote(token, {
+      customerId: customer.id,
+      validUntil: dayOffset(10),
+      lines: [
+        {
+          name: 'Grúa para izaje (renta por evento)',
+          unitPrice: '4500.00',
+          uom: ServiceUom.Servicio,
+          taxRate: ServiceTaxRate.Iva16,
+          quantity: '1',
+          description: 'Concepto único, fuera de catálogo',
+        },
+      ],
+    });
+    expect(res.status).toBe(201);
+    const quote = await json<Quotation>(res);
+    created.push(quote.id);
+    const [line] = quote.lines;
+    expect(line?.serviceId).toBeUndefined();
+    expect(line?.serviceName).toBe('Grúa para izaje (renta por evento)');
+    expect(line?.unitPrice).toBe('4500.00');
+    expect(quote.totals.total).toBe('5220.00');
+  });
+
+  test('an off-catalog line missing its snapshot fields is rejected', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const customer = await seedCustomer();
+    const res = await createQuote(token, {
+      customerId: customer.id,
+      validUntil: dayOffset(10),
+      lines: [{ name: 'Sin precio', quantity: '1' }],
+    });
+    expect(res.status).toBe(400);
+  });
+
+  test('a per-line discount lowers the IVA base; subtotal keeps the pre-discount importe', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const customer = await seedCustomer();
+    const service = await makeService(token, { price: 1000 });
+    const res = await createQuote(token, {
+      customerId: customer.id,
+      validUntil: dayOffset(10),
+      lines: [{ serviceId: service.id, quantity: '1', discountAmount: '100.00' }],
+    });
+    expect(res.status).toBe(201);
+    const quote = await json<Quotation>(res);
+    created.push(quote.id);
+    // CFDI shape: SubTotal 1000 (pre-discount), Descuento 100, IVA on the net
+    // base 900 @16% = 144, Total 1044.
+    expect(quote.lines[0]?.discountAmount).toBe('100.00');
+    expect(quote.totals).toEqual({
+      subtotal: '1000.00',
+      discount: '100.00',
+      iva: '144.00',
+      total: '1044.00',
+    });
+  });
+
+  test('a discount above the line importe is a 400 naming the line', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const customer = await seedCustomer();
+    const service = await makeService(token, { price: 1000 });
+    const res = await createQuote(token, {
+      customerId: customer.id,
+      validUntil: dayOffset(10),
+      lines: [{ serviceId: service.id, quantity: '1', discountAmount: '1200.00' }],
+    });
+    expect(res.status).toBe(400);
+    const body = await json<{ error: string; serviceName: string }>(res);
+    expect(body.error).toBe('discount_too_large');
+    expect(body.serviceName).toBeTruthy();
+  });
+});
+
+describe('quotations — line model v2 vs the convergence (20 CP-3 PR-A)', () => {
+  test('a discounted quote refuses conversion until orders learn line model v2', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const customer = await seedCustomer();
+    const service = await makeService(token, { price: 1000 });
+    const res = await createQuote(token, {
+      customerId: customer.id,
+      validUntil: dayOffset(10),
+      lines: [{ serviceId: service.id, quantity: '1', discountAmount: '100.00' }],
+    });
+    expect(res.status).toBe(201);
+    const quote = await json<Quotation>(res);
+    created.push(quote.id);
+    const { tech } = await seedTechnicianAndLogin();
+
+    // Owner + draft = the approval override admits them; the LINE is what
+    // refuses — an order line carries no discount, and converting would
+    // silently charge the pre-discount price.
+    const denied = await post(token, `/quotations/${quote.id}/order`, {
+      comment: 'conversión directa',
+      assignments: [{ serviceId: service.id, technicianId: tech.id, reportType: 'minisplit' }],
+    });
+    expect(denied.status).toBe(409);
+    expect((await json<{ error: string }>(denied)).error).toBe('quotation_line_not_convertible');
   });
 });

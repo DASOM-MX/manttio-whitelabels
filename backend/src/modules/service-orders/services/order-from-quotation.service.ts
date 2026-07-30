@@ -18,6 +18,7 @@ import {
   ExplosionTooLargeError,
   QuotationApprovalGateError,
   QuotationExpiredError,
+  QuotationLineNotConvertibleError,
 } from '../http-errors/order-from-quotation.error';
 import type { ConvertQuotationInput } from '../../quotations/validators/quotations.validator';
 import type { FrozenOrderLine, ServiceOrderDetailDTO } from '../types/service-orders.types';
@@ -26,6 +27,12 @@ import type { FrozenOrderLine, ServiceOrderDetailDTO } from '../types/service-or
  *  path inherits its quantities from the quotation, so the same bound is
  *  enforced here instead (19 §2 caps, 2026-07-27). */
 const MAX_EXPLODED_REPORTS = 50;
+
+/** String-exact integrality for a `numeric(12,3)` quantity — `"2.000"` is
+ *  integral, `"1.500"` is not. No float parse: the whole point of the string
+ *  is that no double ever touches it. */
+const isIntegralQuantity = (quantity: string): boolean =>
+  !/[1-9]/.test(quantity.split('.')[1] ?? '');
 
 /** A quote may carry several lines for one service (same snapshot moment,
  *  different description) — the order model may not (one line per service,
@@ -39,18 +46,21 @@ const mergeQuoteLines = (
 ): FrozenOrderLine[] => {
   const merged = new Map<string, FrozenOrderLine>();
   for (const line of quoteLines) {
-    const existing = merged.get(line.serviceId);
+    // The convertibility guard has already run: serviceId is non-null and the
+    // quantity integral, so `Number()` is exact.
+    const serviceId = line.serviceId!;
+    const existing = merged.get(serviceId);
     if (existing) {
-      existing.quantity += line.quantity;
+      existing.quantity += Number(line.quantity);
       continue;
     }
-    const assignment = assignments.get(line.serviceId)!;
-    merged.set(line.serviceId, {
-      serviceId: line.serviceId,
+    const assignment = assignments.get(serviceId)!;
+    merged.set(serviceId, {
+      serviceId,
       serviceName: line.serviceName,
       uom: line.uom,
       taxRate: line.taxRate,
-      quantity: line.quantity,
+      quantity: Number(line.quantity),
       unitPrice: line.unitPrice,
       technicianId: assignment.technicianId,
       reportType: assignment.reportType,
@@ -92,7 +102,19 @@ export const createOrderFromQuotation = async (
   // Coverage: one assignment per distinct quoted service — exactly (19 §2, the
   // explosion inputs are captured up front so the skeletons are born complete).
   const quoteLines = await listLinesForQuotations(db, [quotationId]);
-  const quotedServiceIds = new Set(quoteLines.map((l) => l.serviceId));
+
+  // Line model v2 (2026-07-29) can shape a quote the ORDER model cannot yet
+  // represent: an off-catalog line has no service to key an assignment on,
+  // a fractional quantity does not explode into whole report skeletons, and
+  // order lines carry no discount — converting one would silently charge the
+  // pre-discount price. Refused whole, by name, until 19 grows line model v2
+  // (20 "Open decisions").
+  const unconvertible = quoteLines.find(
+    (l) => !l.serviceId || !isIntegralQuantity(l.quantity) || l.discountAmount !== '0.00',
+  );
+  if (unconvertible) throw new QuotationLineNotConvertibleError(unconvertible.serviceName);
+
+  const quotedServiceIds = new Set(quoteLines.map((l) => l.serviceId!));
   const assignments = new Map(
     input.assignments.map((a) => [a.serviceId, { technicianId: a.technicianId, reportType: a.reportType }]),
   );

@@ -48,3 +48,17 @@ export class ExplosionTooLargeError extends Error {
     this.name = 'ExplosionTooLargeError';
   }
 }
+
+/** The quote carries a line shape the ORDER model cannot represent yet (line
+ *  model v2, 2026-07-29): an off-catalog line (order lines are keyed by
+ *  service), a fractional quantity (the explosion counts whole report
+ *  skeletons), or a per-line discount (order lines carry none — converting
+ *  would silently charge the pre-discount price). Refused whole rather than
+ *  converted wrong; 19-side support is the follow-up (20 "Open decisions").
+ *  Maps to 409 `quotation_line_not_convertible`. */
+export class QuotationLineNotConvertibleError extends Error {
+  constructor(public serviceName: string) {
+    super(`quotation line cannot convert to an order line yet: ${serviceName}`);
+    this.name = 'QuotationLineNotConvertibleError';
+  }
+}

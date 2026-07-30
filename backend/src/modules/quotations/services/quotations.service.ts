@@ -17,6 +17,7 @@ import {
   InvalidRecipientError,
   NotAReviewerError,
   QuotationClosedError,
+  QuotationDiscountTooLargeError,
   QuotationNotDraftError,
   QuotationNotLiveError,
   QuotationServiceNotFoundError,
@@ -39,7 +40,7 @@ import {
   upsertRecipients,
 } from '../repository/quotations.repository';
 import { deriveStatus, tallyOf } from '../utils/quotation-status';
-import { lineSubtotal, quotationTotals } from '../utils/quotation-totals';
+import { discountExceedsLine, lineSubtotal, quotationTotals } from '../utils/quotation-totals';
 import {
   renderQuotationEmailHTML,
   renderQuotationEmailSubject,
@@ -78,13 +79,14 @@ export const isOverdue = (validUntil: string): boolean =>
 
 const toLineDTO = (row: QuotationLineRow): QuotationLineDTO => ({
   id: row.id,
-  serviceId: row.serviceId,
+  serviceId: opt(row.serviceId),
   serviceName: row.serviceName,
   description: opt(row.description),
   unitPrice: row.unitPrice,
   uom: row.uom,
   taxRate: row.taxRate,
   quantity: row.quantity,
+  discountAmount: row.discountAmount,
   lineSubtotal: lineSubtotal(row),
 });
 
@@ -151,30 +153,62 @@ const toDetailDTO = (
   totals: quotationTotals(lines),
 });
 
-/** Resolves every line's snapshot from the catalog in **one** query (18 → 20).
- *  The client sends only `serviceId` + `quantity`: price, uom and tax rate are
- *  server-resolved, because accepting them from the caller would let a quote
- *  carry a price the catalog never held — which defeats the freeze the whole
- *  module is built on. */
+/** Resolves every line's snapshot (18 → 20) — catalog lines from `services` in
+ *  **one** query, off-catalog lines (decided 2026-07-29, no `serviceId`) from
+ *  the staff-typed fields, which ARE their snapshot. For a catalog line the
+ *  client still sends only `serviceId` + `quantity`: accepting a price there
+ *  would let a quote carry one the catalog never held, which defeats the freeze
+ *  the whole module is built on.
+ *
+ *  `clampDiscount` is the **revise** path only: re-resolving can land a new
+ *  catalog price *below* a frozen discount, and revise has no body to fix it
+ *  with — so the discount clamps to the new importe (a visibly free line on an
+ *  editable draft) instead of the whole revise hard-failing. Create/update
+ *  throw instead: there the builder can fix the row. */
 const resolveLines = async (
   db: Db,
   inputs: QuotationLineInput[],
+  opts: { clampDiscount?: boolean } = {},
 ): Promise<Omit<NewQuotationLine, 'quotationId'>[]> => {
-  const rows = await findServicesByIds(db, [...new Set(inputs.map((l) => l.serviceId))]);
+  const catalogIds = [...new Set(inputs.flatMap((l) => (l.serviceId ? [l.serviceId] : [])))];
+  const rows = catalogIds.length ? await findServicesByIds(db, catalogIds) : [];
   const byId = new Map(rows.map((s) => [s.id, s]));
   return inputs.map((input) => {
-    const service = byId.get(input.serviceId);
-    // Missing means absent or soft-deleted — either way it can't be quoted.
-    if (!service) throw new QuotationServiceNotFoundError(input.serviceId);
-    return {
-      serviceId: service.id,
-      serviceName: service.name,
-      description: input.description ?? service.description,
-      unitPrice: service.price,
-      uom: service.uom,
-      taxRate: service.taxRate,
+    let snapshot: Omit<NewQuotationLine, 'quotationId' | 'quantity' | 'discountAmount'>;
+    if (input.serviceId) {
+      const service = byId.get(input.serviceId);
+      // Missing means absent or soft-deleted — either way it can't be quoted.
+      if (!service) throw new QuotationServiceNotFoundError(input.serviceId);
+      snapshot = {
+        serviceId: service.id,
+        serviceName: service.name,
+        description: input.description ?? service.description,
+        unitPrice: service.price,
+        uom: service.uom,
+        taxRate: service.taxRate,
+      };
+    } else {
+      // The validator has already required all four; the non-null assertions
+      // restate its contract, they don't extend it.
+      snapshot = {
+        serviceId: null,
+        serviceName: input.name!,
+        description: input.description ?? null,
+        unitPrice: input.unitPrice!,
+        uom: input.uom!,
+        taxRate: input.taxRate!,
+      };
+    }
+    const line = {
+      ...snapshot,
       quantity: input.quantity,
+      discountAmount: input.discountAmount ?? '0.00',
     };
+    if (discountExceedsLine(line)) {
+      if (!opts.clampDiscount) throw new QuotationDiscountTooLargeError(line.serviceName);
+      line.discountAmount = lineSubtotal(line);
+    }
+    return line;
   });
 };
 
@@ -451,13 +485,29 @@ export const reviseQuotation = async (
     throw new QuotationNotLiveError(found.quotation.status);
   }
   const lines = await listLinesForQuotations(db, [id]);
+  // Off-catalog lines have no catalog price to refresh — their snapshot carries
+  // over verbatim. Catalog lines re-resolve, which is the point of revising.
   const resolved = await resolveLines(
     db,
-    lines.map((l) => ({
-      serviceId: l.serviceId,
-      quantity: l.quantity,
-      description: opt(l.description),
-    })),
+    lines.map((l) =>
+      l.serviceId
+        ? {
+            serviceId: l.serviceId,
+            quantity: l.quantity,
+            description: opt(l.description),
+            discountAmount: l.discountAmount,
+          }
+        : {
+            name: l.serviceName,
+            unitPrice: l.unitPrice,
+            uom: l.uom,
+            taxRate: l.taxRate,
+            quantity: l.quantity,
+            description: opt(l.description),
+            discountAmount: l.discountAmount,
+          },
+    ),
+    { clampDiscount: true },
   );
   const { quotation } = await reviseQuotationRows(db, {
     previousId: id,
