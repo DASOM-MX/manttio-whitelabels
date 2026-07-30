@@ -1,7 +1,7 @@
 # 18 — Services (catalog)
 
-> **Status:** CP-1 built (backend) · **Depends on:** 02 · **Consumed by:** 20 (quotation lines), 19 (order lines), 06 (template link), 15 (website listing), 09 (billing)
-> **Owner:** — · **Last updated:** 2026-07-25
+> **Status:** CP-1–CP-3 built (backend + superadmin UI + website); QA'd 2026-07-29 (PR #112 — dialog → view-first page, §3); **enhancements CP-4–CP-7 planned 2026-07-29** (§6) · **Depends on:** 02 · **Consumed by:** 20 (quotation lines), 19 (order lines), 06 (template link), 15 (website listing), 09 (billing)
+> **Owner:** — · **Last updated:** 2026-07-29
 
 The tenant's **service catalog** — what the business sells (mantenimiento preventivo,
 instalación, diagnóstico…), priced per unit of measure. Quotations (20) feed from this
@@ -114,6 +114,18 @@ pages can't live there. The route stays `/services` and `ModuleKey` stays `'serv
 only the folder differs, mirroring the same stutter dodge §5 applied to the http
 service. Freeing the name would mean moving every injectable, a large unrelated refactor.
 
+**QA 2026-07-29 (PR #112) — the dialog became a routed page.** The catalog was the last
+module editing through a dialog; it now follows the users/customers idiom:
+`service-catalog/pages/service-form/` serves `/services/new` (straight form) and
+`/services/:id` (**view-first detail** — static display rows until an explicit Editar,
+per the never-values-in-disabled-inputs rule; only admin tier sees Editar), both behind
+`pendingChangesGuard`. `LoadService` hydrates by id so deep links survive refresh; error
+toasts surface the backend's own message verbatim. The list row opens the detail for
+every role (eye link as the read-only keyboard path), and the revealed website block in
+the form is collapsible behind a chevron (re-opens whenever the listable checkbox turns
+on). The `service-form-dialog` bullets below describe the pre-QA shape and stay for
+history; the field inventory and disclosure rules they document carried over unchanged.
+
 - `service-catalog/pages/services-list/` — p-table catalog (name + description, price
   `font-data`, **costo** (back-office only), uom, **IVA**, website pill, updated) —
   customers-list idiom, URL-persisted filter (`q`). Primary action **Registrar
@@ -173,6 +185,104 @@ service. Freeing the name would mean moving every injectable, a large unrelated 
 - `src/app/services/http/services-catalog.service.ts` (avoid the `services.service.ts`
   stutter).
 
+## 6. Catalog enhancements (planned 2026-07-29)
+
+Four owner-approved additions, one PR per checkpoint (CP-4 → CP-7). Order matters only
+where noted: CP-6's import events need CP-4's table; everything else is independent.
+
+### 6.1 Price-change audit trail — `service_events` (CP-4)
+
+The catalog is where the money *comes from*, yet price edits are silent overwrites —
+every other money-bearing module already carries an append-only timeline
+(`quotation_events`, `service_order_events`, `customer_interactions`). Same shape here:
+
+```
+ServiceEvent { id, serviceId, type, actorId, changes?, note?, seq, createdAt }
+```
+
+- **Append-only, forever** — no updates, no deletes, no cascades (global rule). Events
+  are written **inside the same transaction** as the mutation, one multi-row insert
+  (the quotations CP-1 performance rule).
+- **Ordering is `seq` (bigserial), never `created_at`** — batch rows share one `now()`
+  (quotations CP-1 review precedent); `seq` is the only sort key.
+- Types: `service_created` (`changes.via: 'form' | 'clone' | 'import'`, clone carries
+  `changes.sourceServiceId`), `service_updated` (`changes` = per-field `{ old, new }`
+  for every edited column — price/cost/taxRate/uom/name/code are the ones that matter,
+  but recording all edited fields costs nothing and spares a curated list going stale),
+  `service_deleted` (`note` = the mandatory `deleteComment`). `actorId` is always a
+  staff user — this module has no public actors.
+- `GET /services/:id/timeline` → resolved events, **owner/admin only**: the trail
+  contains `cost` old→new diffs and delete comments — management audit, not commercial
+  visibility, so it rides `ADMIN_TIER`, not `BACK_OFFICE_TIER`.
+- UI: timeline card on `/services/:id` (view mode, below the detail card), house
+  timeline idiom; rendered only for admin tier.
+
+### 6.2 Clone / duplicate (CP-5)
+
+Catalogs fill with near-identical rows (the same service per tonnage / zone / duración).
+**Frontend-only flow — no new backend surface:** a **Duplicar** action (list row +
+detail view) navigates to `/services/new?from=<id>`; the form hydrates from the source
+via `LoadService` (queryParamMap is the single load path, per the list-filter
+convention) with two deltas: `internalServiceCode` **cleared** (unique across the live
+catalog — a copy can't reuse it) and the photo **key copied as-is** (same R2 object;
+"Quitar" later only clears the row's key, never deletes the object, so sharing is
+safe). Everything else copies verbatim; saving is the normal `POST /services`. With
+CP-4 in place the created event notes `via: 'clone'` + the source id.
+
+### 6.3 Excel import/export — CSV (CP-6)
+
+The whitelabel onboarding path: every new tenant arrives with a price list in Excel and
+today that means hand-typing the catalog.
+
+- **Format is CSV (UTF-8), not `.xlsx` — decided 2026-07-29.** Excel opens and saves
+  CSV natively; parsing real xlsx on Workers means a heavy dependency for no gain.
+  Revisit only on real demand. Columns: `name, price, cost, uom, taxRate,
+  internalServiceCode, description, websiteDescription, satProdServCode, satUnitCode,
+  isListableInWebsite, isPriceVisibleInWebsite` — codes are the wire enums
+  (`servicio`, `iva_16`…), not labels.
+- **Export** is client-side — the catalog ships whole (`GET /services`, no pagination),
+  so an **Exportar CSV** toolbar action on the list serializes the loaded rows;
+  admin-tier action, file includes `cost`. No backend surface.
+- **Import** is a dedicated page (`/services/import`, admin tier,
+  `pendingChangesGuard`): upload → client-side parse → **field mapper** → **preview
+  p-table with per-row validation** (unknown uom/taxRate codes, non-numeric price,
+  duplicate códigos in-file or against the live catalog) → confirm →
+  `POST /services/import { rows }`. The backend **re-validates every row** (the client
+  is never trusted) and the insert is **transactional, all-or-nothing** — a 422 names
+  each failing row; a partial import that silently skipped rows would read as
+  "imported everything" (no-silent-caps rule). **Create-only in v1** — no
+  upsert-by-código (open ask below). Each row's `service_created` event carries
+  `via: 'import'` (needs CP-4).
+- **Field mapper (owner ask 2026-07-29):** tenant price lists never arrive with our
+  canonical headers ("Concepto", "P.V.", "Clave SAT"…), so between parse and preview
+  sits a mapping step: one row per catalog field, each with a **source-column select**
+  populated from the file's headers plus a few sample values so the owner can see what
+  they're pointing at. Auto-match preselects by normalized header (lowercase,
+  accent-folded, space/punctuation-stripped) against the canonical names **and an alias
+  list** (`concepto`/`servicio`/`nombre` → name · `precio`/`precio de venta`/`pv` →
+  price · `costo` → cost · `unidad`/`um`/`u.m.` → uom · `iva`/`tasa` → taxRate ·
+  `codigo`/`clave`/`sku` → internalServiceCode · `clave sat`/`claveprodserv` →
+  satProdServCode · `clave unidad` → satUnitCode …). **`name` and `price` must map to a
+  column**; every other field may map to a column, a **fixed value for all rows** (the
+  escape hatch for lists with no unidad/IVA column — the selects offer the enum
+  options, defaults `servicio`/`iva_16`), or *Omitir*. Enum cells accept the wire code
+  **or** the Spanish label (accent-folded match against the label constants) — anything
+  else is a per-row error in the preview, never a silent guess. The mapper is entirely
+  client-side: it resolves before submit, so `POST /services/import` still receives
+  canonical rows and the backend contract doesn't change.
+
+### 6.4 SAT code fields UI (CP-7)
+
+Supersedes the "no v1 UI" line of the 2026-07-25 SAT decision — the columns, validator
+fields (`services.validator.ts` already accepts both) and DTO fields all exist, so this
+is form + detail wiring: two optional text inputs (`satProdServCode` c_ClaveProdServ,
+`satUnitCode` c_ClaveUnidad) in the service form under a **Facturación (SAT)** group,
+plus their static rows on the detail view (rendered with — when unset). **Still no
+format validation** — the SAT versions its catalogs and a stale local copy would reject
+valid keys; 09 owns real validation (unchanged). Verify the write path round-trips both
+fields end-to-end (validator → repository → DTO); `/public/services` keeps omitting
+them. CP-6's CSV columns already include both, so an import can seed them.
+
 ---
 
 ## Checkpoints
@@ -228,7 +338,53 @@ service. Freeing the name would mean moving every injectable, a large unrelated 
       `cdn.` / `logos.dasom.com`, which is why the field degrades to no-image rather than
       a broken one.
 
+### CP-4 — Price-change audit trail (§6.1)
+- [ ] `service_events` table (append-only, `seq` bigserial ordering, no CHECK
+      constraints — house posture), additive DDL applied per the shared-DB rule
+- [ ] Events written inside every mutation transaction (create/update/delete), single
+      multi-row insert; `service_updated` carries per-field `{ old, new }`
+- [ ] `GET /services/:id/timeline` — owner/admin only (`ADMIN_TIER`), resolved actors
+- [ ] Timeline card on `/services/:id` view mode, admin tier only
+- [ ] Tests: events per mutation, tier gate, `seq` ordering; fixtures soft-deleted
+
+### CP-5 — Clone / duplicate (§6.2)
+- [ ] **Duplicar** action on list row + detail view → `/services/new?from=<id>`
+- [ ] Form hydrates from the source: `internalServiceCode` cleared, photo key copied,
+      everything else verbatim; normal `POST /services` on save
+- [ ] `service_created` event notes `via: 'clone'` + `sourceServiceId` (CP-4)
+- [ ] Build green; manual pass: clone → tweak → save → both rows independent
+
+### CP-6 — CSV import/export (§6.3)
+- [ ] **Exportar CSV** list toolbar action (admin tier, client-side, wire-enum codes)
+- [ ] `/services/import` page: upload → parse → field mapper → preview p-table with
+      per-row validation → confirm; `pendingChangesGuard`
+- [ ] Field mapper: source-column selects with sample values, alias-based auto-match,
+      fixed-value option for uom/taxRate/flags, *Omitir* for optionals; `name` +
+      `price` must map to a column; enum cells accept wire code or Spanish label
+      (accent-folded), unknowns → per-row preview errors
+- [ ] `POST /services/import { rows }` — backend re-validates every row, transactional
+      all-or-nothing, 422 names each failing row; create-only v1
+- [ ] Per-row `service_created` events with `via: 'import'` (needs CP-4)
+- [ ] Tests: happy path, duplicate código (in-file + against live catalog), bad
+      uom/taxRate code, all-or-nothing rollback
+
+### CP-7 — SAT code fields UI (§6.4)
+- [ ] `satProdServCode` + `satUnitCode` inputs in the form (**Facturación (SAT)**
+      group) + static rows on the detail view
+- [ ] Round-trip verified end-to-end (validator → repository → DTO); no format
+      validation (09 owns it); `/public/services` still omits both
+- [ ] CSV columns confirmed (CP-6); tests for persist + public omission
+
 ## Open decisions / asks
+- **Import upsert (open, deferred from CP-6):** v1 import is create-only. An
+  upsert-by-`internalServiceCode` mode (update price/copy for rows whose código already
+  exists) is the natural v2 — decide when a tenant actually re-imports a revised list.
+- **Timeline visibility (decided 2026-07-29):** the service timeline is
+  owner/admin only — it carries `cost` diffs and delete comments (management audit),
+  so it rides `ADMIN_TIER` rather than the `BACK_OFFICE_TIER` that gates `cost` itself.
+- **CSV, not xlsx (decided 2026-07-29):** import/export speak Excel-compatible
+  UTF-8 CSV; real `.xlsx` parsing on Workers is a heavy dependency for no gain.
+  Revisit on real demand.
 - **Money representation — decided 2026-07-23:** `numeric(12,2)`, MXN implicit,
   single currency in v1.
 - **Tax — decided 2026-07-24 (supersedes the `taxable` boolean):** each service carries a
@@ -248,7 +404,9 @@ service. Freeing the name would mean moving every injectable, a large unrelated 
   `GET /services` omits `cost` for technicians only, and it never reaches
   `/public/services` at all.
 - **SAT catalog keys — decided 2026-07-25:** `satProdServCode` (c_ClaveProdServ) +
-  `satUnitCode` (c_ClaveUnidad) live on the catalog now, optional and with no v1 UI.
+  `satUnitCode` (c_ClaveUnidad) live on the catalog now, optional ~~and with no v1 UI~~
+  — **the no-UI half superseded 2026-07-29 by CP-7 (§6.4)**, which adds the form
+  fields; the no-format-validation posture is unchanged.
   They're catalog attributes, not invoice attributes, so putting them here spares 09 a
   hand-backfill of every service. Not format-validated — the SAT versions its catalogs
   and a stale local copy would reject valid keys; **09 owns real validation.**

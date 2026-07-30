@@ -16,6 +16,7 @@ import { notifications } from './modules/notifications/controllers/notifications
 import { services } from './modules/services/controllers/services.controller';
 import { quotations } from './modules/quotations/controllers/quotations.controller';
 import { serviceOrders } from './modules/service-orders/controllers/service-orders.controller';
+import { customerQuotations } from './modules/quotations/controllers/customer-quotations.controller';
 import { publicCms } from './modules/cms/controllers/public-cms.controller';
 import { publicLeads } from './modules/customers/controllers/public-leads.controller';
 import { publicServices } from './modules/services/controllers/public-services.controller';
@@ -79,6 +80,10 @@ app.use('/service-orders/*', jwtMiddleware);
 
 app.route('/users', users);
 app.route('/customers', customers);
+// `GET /customers/:id/quotations` — owned by the quotations module (see its
+// controller), mounted here so it sits under the customer it belongs to and
+// inherits the `/customers/*` JWT middleware above.
+app.route('/customers', customerQuotations);
 app.route('/reports', reports);
 app.route('/equipment', equipment);
 app.route('/report-templates', reportTemplates);

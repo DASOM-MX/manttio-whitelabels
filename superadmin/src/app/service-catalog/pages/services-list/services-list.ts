@@ -1,9 +1,16 @@
 import { Component, computed, inject, viewChild } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
-import { LucidePencil, LucidePlus, LucideTrash2, LucideWrench } from '@lucide/angular';
+import {
+  LucideEye,
+  LucidePencil,
+  LucidePlus,
+  LucideTrash2,
+  LucideWrench,
+} from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { ServicesState } from '../../../../state/services/services.state';
 import { LoadServices } from '../../../../state/services/services.actions';
@@ -14,7 +21,6 @@ import { MoneyPipe } from '../../../pipes/money.pipe';
 import { RelativeTimePipe } from '../../../pipes/relative-time.pipe';
 import { ServiceTaxRateShortPipe } from '../../../pipes/service-tax-rate.pipe';
 import { ServiceUomShortPipe } from '../../../pipes/service-uom.pipe';
-import { ServiceFormDialog } from '../../components/service-form-dialog/service-form-dialog';
 import { DeleteServiceDialog } from '../../components/delete-service-dialog/delete-service-dialog';
 import { FiltersPopover } from '../../../shared/components/filters-popover/filters-popover';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
@@ -24,9 +30,11 @@ import type { Service, ServiceListQuery } from '../../../data/dtos/service';
  *  unit of measure.
  *
  *  Read-wide, write-narrow (18 §2): office and technician both reach this page
- *  and see prices, so the create button and row actions are gated in-page on
- *  admin tier rather than the route. `cost` is redacted by the API itself, not
- *  hidden here — the column simply renders an em dash for technicians.
+ *  and see prices, so the create button and the edit/delete row actions are
+ *  gated in-page on admin tier rather than the route. The whole row opens the
+ *  view-first detail (`/services/:id`) for every role — read-only until its
+ *  own Editar, which only admins see. `cost` is redacted by the API itself,
+ *  not hidden here — the column simply renders an em dash for technicians.
  *
  *  Paging is client-side: `GET /services` returns the whole catalog (no
  *  pagination — it's tens of rows), so the table isn't `[lazy]` and only `q`
@@ -34,6 +42,7 @@ import type { Service, ServiceListQuery } from '../../../data/dtos/service';
 @Component({
   selector: 'app-services-list',
   imports: [
+    RouterLink,
     ReactiveFormsModule,
     TableModule,
     InputTextModule,
@@ -42,10 +51,10 @@ import type { Service, ServiceListQuery } from '../../../data/dtos/service';
     RelativeTimePipe,
     ServiceTaxRateShortPipe,
     ServiceUomShortPipe,
-    ServiceFormDialog,
     DeleteServiceDialog,
     FiltersPopover,
     PageHeader,
+    LucideEye,
     LucidePlus,
     LucidePencil,
     LucideTrash2,
@@ -56,6 +65,7 @@ import type { Service, ServiceListQuery } from '../../../data/dtos/service';
 })
 export class ServicesList {
   private store = inject(Store);
+  private router = inject(Router);
   protected list = inject(ListQueryService);
 
   protected services = select(ServicesState.items);
@@ -70,9 +80,9 @@ export class ServicesList {
   protected showsCost = computed(() => this.services().some((s) => s.cost !== undefined));
 
   protected columnCount = computed(() => {
-    let count = 7; // servicio, código, precio, unidad, IVA, sitio web, actualizado
+    // servicio, código, precio, unidad, IVA, sitio web, actualizado, acciones
+    let count = 8;
     if (this.showsCost()) count += 1;
-    if (this.canManage()) count += 1; // row actions
     return count;
   });
 
@@ -86,7 +96,6 @@ export class ServicesList {
 
   protected search = new FormControl('', { nonNullable: true });
 
-  protected formDialog = viewChild<ServiceFormDialog>('formDialog');
   protected deleteDialog = viewChild<DeleteServiceDialog>('deleteDialog');
 
   constructor() {
@@ -102,17 +111,13 @@ export class ServicesList {
     return { q: this.search.value || undefined };
   }
 
-  /** Refetch after a create/edit/delete through a dialog. */
+  /** Refetch after a delete through the dialog. */
   protected refresh(): void {
     this.store.dispatch(new LoadServices(this.query()));
   }
 
-  protected openCreate(): void {
-    this.formDialog()?.open();
-  }
-
-  protected openEdit(service: Service): void {
-    this.formDialog()?.open(service);
+  protected openService(service: Service): void {
+    this.router.navigate(['/services', service.id]);
   }
 
   protected openDelete(service: Service): void {

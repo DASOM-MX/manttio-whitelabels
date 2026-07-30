@@ -974,3 +974,49 @@ describe('quotations → service order (20 §6)', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('quotations — customer-scoped list (20 §9)', () => {
+  test("returns only that client's quotes", async () => {
+    const { quote, customer, token, service } = await scenario();
+    // A second client with its own quote, to prove the scoping actually filters
+    // rather than the assertion passing because there is nothing else to see.
+    const other = await seedCustomer();
+    const otherRes = await createQuote(token, {
+      customerId: other.id,
+      validUntil: dayOffset(15),
+      lines: [{ serviceId: service.id, quantity: 1 }],
+    });
+    expect(otherRes.status).toBe(201);
+    const otherQuote = await json<Quotation>(otherRes);
+    created.push(otherQuote.id);
+
+    const res = await request(`/customers/${customer.id}/quotations`, {
+      headers: jsonHeaders(token),
+    });
+    expect(res.status).toBe(200);
+    const page = await json<{ items: Quotation[]; total: number }>(res);
+    const ids = page.items.map((q) => q.id);
+    expect(ids).toContain(quote.id);
+    expect(ids).not.toContain(otherQuote.id);
+    expect(page.items.every((q) => q.customerId === customer.id)).toBe(true);
+  });
+
+  test('404s on an unknown client rather than returning an empty page', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const res = await request('/customers/00000000-0000-4000-8000-000000000000/quotations', {
+      headers: jsonHeaders(token),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  test('is closed to technicians and to anonymous callers', async () => {
+    const { customer } = await scenario();
+    const { token: techToken } = await seedTechnicianAndLogin();
+
+    expect((await request(`/customers/${customer.id}/quotations`)).status).toBe(401);
+    expect(
+      (await request(`/customers/${customer.id}/quotations`, { headers: jsonHeaders(techToken) }))
+        .status,
+    ).toBe(403);
+  });
+});

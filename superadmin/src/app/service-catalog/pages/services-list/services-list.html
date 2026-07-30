@@ -15,10 +15,10 @@
     </div>
   </app-filters-popover>
   @if (canManage()) {
-    <button type="button" class="btn-primary" (click)="openCreate()">
+    <a routerLink="/services/new" class="btn-primary">
       <svg lucidePlus class="size-4" aria-hidden="true"></svg>
       Registrar servicio
-    </button>
+    </a>
   }
 </app-page-header>
 
@@ -44,14 +44,14 @@
         <th scope="col">IVA</th>
         <th scope="col">Sitio web</th>
         <th scope="col">Actualizado</th>
-        @if (canManage()) {
-          <th scope="col"><span class="sr-only">Acciones</span></th>
-        }
+        <th scope="col"><span class="sr-only">Acciones</span></th>
       </tr>
     </ng-template>
 
     <ng-template #body let-svc>
-      <tr>
+      <!-- Whole row opens the view-first detail (users-list idiom); the
+           action links stay as the keyboard path. -->
+      <tr class="cursor-pointer" (click)="openService(svc)">
         <td>
           <span class="font-medium">{{ svc.name }}</span>
           @if (svc.description) {
@@ -80,28 +80,38 @@
           }
         </td>
         <td class="font-data tabular-nums">{{ svc.updatedAt | relativeTime }}</td>
-        @if (canManage()) {
-          <td class="w-24">
+        <td class="w-24" (click)="$event.stopPropagation()">
+          @if (canManage()) {
             <div class="flex justify-end gap-1">
-              <button
-                type="button"
+              <a
+                [routerLink]="['/services', svc.id]"
                 class="row-action"
                 [attr.aria-label]="'Editar servicio ' + svc.name"
-                (click)="openEdit(svc)"
               >
                 <svg lucidePencil class="size-4" aria-hidden="true"></svg>
-              </button>
+              </a>
               <button
                 type="button"
-                class="row-action row-action--danger"
+                class="row-action--danger"
                 [attr.aria-label]="'Eliminar servicio ' + svc.name"
                 (click)="openDelete(svc)"
               >
                 <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
               </button>
             </div>
-          </td>
-        }
+          } @else {
+            <!-- Read-only roles: the view link keeps a keyboard path. -->
+            <div class="flex justify-end gap-1">
+              <a
+                [routerLink]="['/services', svc.id]"
+                class="row-action"
+                [attr.aria-label]="'Ver servicio ' + svc.name"
+              >
+                <svg lucideEye class="size-4" aria-hidden="true"></svg>
+              </a>
+            </div>
+          }
+        </td>
       </tr>
     </ng-template>
 
@@ -130,5 +140,4 @@
   </p-table>
 </div>
 
-<app-service-form-dialog #formDialog (saved)="refresh()" />
 <app-delete-service-dialog #deleteDialog (deleted)="refresh()" />

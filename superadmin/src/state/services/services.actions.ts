@@ -9,6 +9,13 @@ export class LoadServices {
   constructor(public query: ServiceListQuery = {}) {}
 }
 
+/** Hydrates the edit form page by id — the list ships whole, but a deep link
+ *  or refresh on `/services/:id/edit` has no list to read from. */
+export class LoadService {
+  static readonly type = '[Services] Load One';
+  constructor(public id: string) {}
+}
+
 export class CreateService {
   static readonly type = '[Services] Create';
   constructor(public payload: SaveServiceRequest) {}

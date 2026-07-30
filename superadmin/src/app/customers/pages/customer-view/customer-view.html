@@ -123,6 +123,7 @@
         <p-tab value="contactos">Contactos</p-tab>
         <p-tab value="fiscal">Datos fiscales</p-tab>
         <p-tab value="equipos">Equipos</p-tab>
+        <p-tab value="cotizaciones">Cotizaciones</p-tab>
         <p-tab value="servicios">Servicios</p-tab>
         <p-tab value="actividad">Actividad</p-tab>
       </p-tablist>
@@ -347,6 +348,12 @@
         <!-- The client's installed units (11): compact list + add. Service
              history per unit lives on the equipment view. -->
         <app-customer-equipment-card [customerId]="c.id" />
+      </p-tabpanel>
+
+      <p-tabpanel value="cotizaciones">
+        <!-- Pre-sale (20 §8): the client's proposals and where each one stands.
+             Reads the dedicated `GET /customers/:id/quotations` (20 §9). -->
+        <app-customer-quotations-card [customerId]="c.id" />
       </p-tabpanel>
 
       <p-tabpanel value="servicios">

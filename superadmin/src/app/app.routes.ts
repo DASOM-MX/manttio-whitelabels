@@ -75,6 +75,12 @@ export const routes: Routes = [
         loadChildren: () => import('./service-catalog/service-catalog.routes'),
       },
       {
+        path: 'quotations',
+        canMatch: [accessGuard],
+        data: { module: 'quotations', roles: ['owner', 'admin', 'office'] },
+        loadChildren: () => import('./quotations/quotations.routes'),
+      },
+      {
         path: 'contracts',
         canMatch: [accessGuard],
         data: { module: 'contracts', roles: ['owner', 'admin', 'office'] },
