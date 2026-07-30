@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { QuotationResponse, QuotationStatus } from '../enums/quotations.enum';
 import { reportTypes } from '../../reports/enums/reports.enum';
+import { ServiceTaxRate, ServiceUom } from '../../services/enums/services.enum';
 
 // A calendar date (YYYY-MM-DD) for the `date` column. Kept as a string rather
 // than coerced through `Date`: parsing "2026-08-01" as a Date lands on UTC
@@ -11,17 +12,71 @@ const calendarDate = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)')
   .refine((v) => !Number.isNaN(Date.parse(`${v}T00:00:00Z`)), 'Fecha inexistente');
 
-// A line asks for a service and a quantity; every priced field is a snapshot
-// the server resolves from the catalog (20 §9). The client cannot send
-// `unitPrice`/`taxRate`/`uom` — accepting them would let a caller quote a price
-// the catalog never held, which defeats the entire freeze.
-const quotationLineInput = z.object({
-  serviceId: z.string().uuid(),
-  quantity: z.number().int().min(1),
-  // The only line field the builder may override: a per-line note replacing
-  // the catalog description.
-  description: z.string().trim().optional(),
-});
+// Money travels as an exact decimal string, never a JSON float — the same
+// discipline as every `numeric(12,2)` column (see `quotation-totals.ts`).
+const moneyAmount = z
+  .string()
+  .regex(/^\d{1,10}(\.\d{1,2})?$/, 'Monto inválido (hasta dos decimales, sin signo)');
+
+// Decimal quantity (decided 2026-07-29): numeric(12,3), a string end-to-end for
+// the same reason money is — `1.005` as a JSON float is already not 1.005.
+const decimalQuantity = z
+  .string()
+  .regex(/^\d{1,9}(\.\d{1,3})?$/, 'Cantidad inválida (hasta tres decimales)')
+  .refine((v) => Number(v) > 0, 'La cantidad debe ser mayor a cero');
+
+// A line is either **catalog** (a `serviceId`; every priced field is a snapshot
+// the server resolves — accepting a price from the caller would let a quote
+// carry one the catalog never held, which defeats the freeze) or
+// **off-catalog** (decided 2026-07-29: no `serviceId`; the staff-typed
+// name/price/uom/taxRate ARE the snapshot). One object + superRefine rather
+// than a union so each missing field gets its own message instead of a
+// unionwide "invalid input".
+const quotationLineInput = z
+  .object({
+    serviceId: z.string().uuid().optional(),
+    name: z.string().trim().min(1).optional(),
+    unitPrice: moneyAmount.optional(),
+    uom: z.nativeEnum(ServiceUom).optional(),
+    taxRate: z.nativeEnum(ServiceTaxRate).optional(),
+    quantity: decimalQuantity,
+    // A per-line note replacing the catalog description (or, off-catalog, just
+    // the line's note).
+    description: z.string().trim().optional(),
+    // Frozen amount, never a percent (decided 2026-07-29) — the % entry is a
+    // builder-side helper that converts once. `≤ importe` is enforced in the
+    // service layer, where the catalog price is known.
+    discountAmount: moneyAmount.optional(),
+  })
+  .superRefine((line, ctx) => {
+    const owned: [keyof typeof line, string][] = [
+      ['name', 'nombre'],
+      ['unitPrice', 'precio'],
+      ['uom', 'unidad'],
+      ['taxRate', 'IVA'],
+    ];
+    if (line.serviceId) {
+      for (const [key, label] of owned) {
+        if (line[key] !== undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `Una partida de catálogo no puede traer ${label} propio — se toma del catálogo.`,
+          });
+        }
+      }
+    } else {
+      for (const [key, label] of owned) {
+        if (line[key] === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `Una partida fuera de catálogo necesita ${label}.`,
+          });
+        }
+      }
+    }
+  });
 
 export const createQuotationSchema = z.object({
   customerId: z.string().uuid(),

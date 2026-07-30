@@ -1,4 +1,5 @@
 import type { QuotationStatus } from '../../../model/enums/quotation/quotation-status.enum';
+import type { ServiceTaxRate, ServiceUom } from '../service';
 import type { QuotationDetail } from './quotation';
 
 export interface QuotationListQuery {
@@ -10,14 +11,21 @@ export interface QuotationListQuery {
   limit?: number;
 }
 
-/** What the builder sends per line — deliberately **not** the priced fields.
- *  The server resolves name/price/uom/taxRate from the catalog; accepting them
- *  here would let the client quote a price the catalog never held. */
+/** What the builder sends per line. **Catalog** lines carry only `serviceId` —
+ *  the server resolves name/price/uom/taxRate, so a client can never quote a
+ *  price the catalog never held. **Off-catalog** lines (decided 2026-07-29)
+ *  carry no `serviceId` and must supply all four: the typed fields ARE the
+ *  snapshot. `quantity` is a decimal string (≤3 decimals) and `discountAmount`
+ *  an exact money string — never JSON floats. */
 export interface QuotationLineRequest {
-  serviceId: string;
-  quantity: number;
-  /** The only line field the builder may override. */
+  serviceId?: string;
+  name?: string;
+  unitPrice?: string;
+  uom?: ServiceUom;
+  taxRate?: ServiceTaxRate;
+  quantity: string;
   description?: string;
+  discountAmount?: string;
 }
 
 export interface CreateQuotationRequest {

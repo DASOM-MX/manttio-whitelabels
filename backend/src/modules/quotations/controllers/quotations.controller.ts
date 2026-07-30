@@ -6,12 +6,14 @@ import { createDb } from '../../database/client';
 import { requireRole } from '../../auth/middleware/roles.middleware';
 import {
   InvalidRecipientError,
+  QuotationDiscountTooLargeError,
   QuotationNotDraftError,
   QuotationNotLiveError,
   QuotationServiceNotFoundError,
 } from '../http-errors/quotations.error';
 import {
   badRecipientResponse,
+  discountTooLargeResponse,
   notDraftResponse,
   notLiveResponse,
   serviceGoneResponse,
@@ -31,6 +33,7 @@ import {
   ExplosionTooLargeError,
   QuotationApprovalGateError,
   QuotationExpiredError,
+  QuotationLineNotConvertibleError,
 } from '../../service-orders/http-errors/order-from-quotation.error';
 import { InvalidOrderReferenceError } from '../../service-orders/http-errors/service-orders.error';
 import {
@@ -96,6 +99,7 @@ quotations.post(
       return c.json(row, 201);
     } catch (err) {
       if (err instanceof QuotationServiceNotFoundError) return serviceGoneResponse(c, err);
+      if (err instanceof QuotationDiscountTooLargeError) return discountTooLargeResponse(c, err);
       throw err;
     }
   },
@@ -114,6 +118,7 @@ quotations.patch(
     } catch (err) {
       if (err instanceof QuotationNotDraftError) return notDraftResponse(c);
       if (err instanceof QuotationServiceNotFoundError) return serviceGoneResponse(c, err);
+      if (err instanceof QuotationDiscountTooLargeError) return discountTooLargeResponse(c, err);
       throw err;
     }
   },
@@ -218,6 +223,16 @@ quotations.post(
               'La cotización no tiene aprobaciones; solo el propietario o un administrador puede convertirla.',
           },
           403,
+        );
+      }
+      if (err instanceof QuotationLineNotConvertibleError) {
+        return c.json(
+          {
+            error: 'quotation_line_not_convertible',
+            message: `La partida "${err.serviceName}" aún no puede convertirse en orden (fuera de catálogo, cantidad fraccionaria o descuento).`,
+            serviceName: err.serviceName,
+          },
+          409,
         );
       }
       if (err instanceof AssignmentCoverageError) {

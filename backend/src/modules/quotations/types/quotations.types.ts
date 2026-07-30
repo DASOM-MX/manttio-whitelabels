@@ -29,16 +29,21 @@ export type NewQuotationEvent = typeof quotationEvents.$inferInsert;
 export type UpdateQuotationFields = Partial<Pick<QuotationRow, 'validUntil' | 'comments'>>;
 
 /** A line as the API renders it. `lineSubtotal` is computed on read — the
- *  column deliberately does not exist (see `quotation-totals.ts`). */
+ *  column deliberately does not exist (see `quotation-totals.ts`). No
+ *  `serviceId` = an off-catalog line (decided 2026-07-29); `quantity` is a
+ *  decimal string (numeric(12,3)) and `discountAmount` a frozen amount, same
+ *  date. */
 export interface QuotationLineDTO {
   id: string;
-  serviceId: string;
+  serviceId?: string;
   serviceName: string;
   description?: string;
   unitPrice: string;
   uom: ServiceUom;
   taxRate: ServiceTaxRate;
-  quantity: number;
+  quantity: string;
+  discountAmount: string;
+  /** The line's Importe (`unitPrice × quantity`, pre-discount — CFDI's meaning). */
   lineSubtotal: string;
 }
 

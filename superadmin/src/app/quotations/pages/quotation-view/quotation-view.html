@@ -119,6 +119,7 @@
             <th scope="col">Cantidad</th>
             <th scope="col">Unidad</th>
             <th scope="col">Precio unitario</th>
+            <th scope="col">Descuento</th>
             <th scope="col">IVA</th>
             <th scope="col">Importe</th>
           </tr>
@@ -127,15 +128,27 @@
           <tr>
             <td>
               <span class="font-medium">{{ line.serviceName }}</span>
+              @if (!line.serviceId) {
+                <span class="block text-xs text-surface-500 dark:text-surface-400">
+                  Fuera de catálogo
+                </span>
+              }
               @if (line.description) {
                 <span class="block text-xs text-surface-500 dark:text-surface-400">
                   {{ line.description }}
                 </span>
               }
             </td>
-            <td class="font-data tabular-nums">{{ line.quantity }}</td>
+            <td class="font-data tabular-nums">{{ line.quantity | quantity }}</td>
             <td>{{ line.uom | serviceUomShort }}</td>
             <td class="font-data tabular-nums">{{ line.unitPrice | money }}</td>
+            <td class="font-data tabular-nums">
+              @if (line.discountAmount !== '0.00') {
+                −{{ line.discountAmount | money }}
+              } @else {
+                —
+              }
+            </td>
             <td class="font-data tabular-nums">{{ line.taxRate | serviceTaxRateShort }}</td>
             <td class="font-data font-medium tabular-nums">{{ line.lineSubtotal | money }}</td>
           </tr>
@@ -148,6 +161,12 @@
         <dt class="text-surface-600 dark:text-surface-400">Subtotal</dt>
         <dd class="font-data tabular-nums">{{ q.totals.subtotal | money }}</dd>
       </div>
+      @if (q.totals.discount !== '0.00') {
+        <div class="flex items-baseline justify-between gap-4">
+          <dt class="text-surface-600 dark:text-surface-400">Descuento</dt>
+          <dd class="font-data tabular-nums">−{{ q.totals.discount | money }}</dd>
+        </div>
+      }
       <div class="flex items-baseline justify-between gap-4">
         <dt class="text-surface-600 dark:text-surface-400">IVA</dt>
         <dd class="font-data tabular-nums">{{ q.totals.iva | money }}</dd>

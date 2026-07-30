@@ -25,6 +25,7 @@ import { hasRole } from '../../../guards/has-role.guard';
 import { QUOTATION_LIVE_STATUSES } from '../../../model/constants/quotation/quotation-live-statuses.const';
 import { QuotationStatus } from '../../../model/enums/quotation/quotation-status.enum';
 import { MoneyPipe } from '../../../pipes/money.pipe';
+import { QuantityPipe } from '../../../pipes/quantity.pipe';
 import { RelativeTimePipe } from '../../../pipes/relative-time.pipe';
 import { ServiceTaxRateShortPipe } from '../../../pipes/service-tax-rate.pipe';
 import { ServiceUomShortPipe } from '../../../pipes/service-uom.pipe';
@@ -68,6 +69,7 @@ import { errorMessage } from '../../../data/utils';
     TagModule,
     LucideDynamicIcon,
     MoneyPipe,
+    QuantityPipe,
     RelativeTimePipe,
     ServiceTaxRateShortPipe,
     ServiceUomShortPipe,

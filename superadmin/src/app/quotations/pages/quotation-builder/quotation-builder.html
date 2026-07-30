@@ -91,23 +91,49 @@
             [formGroupName]="row.index"
             class="grid gap-3 rounded-control border border-surface-200 p-3 sm:grid-cols-12 dark:border-surface-700"
           >
-            <div class="field-group sm:col-span-5">
-              <label class="field-label" [attr.for]="'line-service-' + row.index">Servicio</label>
-              <p-select
-                [inputId]="'line-service-' + row.index"
-                formControlName="serviceId"
-                [options]="serviceOptions()"
-                optionLabel="label"
-                optionValue="value"
-                [filter]="true"
-                filterBy="label"
-                placeholder="Elige un servicio"
-                appendTo="body"
+            <label
+              class="flex cursor-pointer items-center gap-2 text-sm text-surface-600 sm:col-span-12 dark:text-surface-400"
+              [attr.for]="'line-kind-' + row.index"
+            >
+              <p-checkbox
+                formControlName="offCatalog"
+                [binary]="true"
+                [inputId]="'line-kind-' + row.index"
+                (onChange)="onLineKindChange(row.index)"
               />
-              @if (row.missing) {
-                <p class="field-error">Este servicio ya no existe en el catálogo.</p>
-              }
-            </div>
+              Fuera de catálogo — concepto único, se captura completo aquí
+            </label>
+
+            @if (!row.offCatalog) {
+              <div class="field-group sm:col-span-5">
+                <label class="field-label" [attr.for]="'line-service-' + row.index">Servicio</label>
+                <p-select
+                  [inputId]="'line-service-' + row.index"
+                  formControlName="serviceId"
+                  [options]="serviceOptions()"
+                  optionLabel="label"
+                  optionValue="value"
+                  [filter]="true"
+                  filterBy="label"
+                  placeholder="Elige un servicio"
+                  appendTo="body"
+                />
+                @if (row.missing) {
+                  <p class="field-error">Este servicio ya no existe en el catálogo.</p>
+                }
+              </div>
+            } @else {
+              <div class="field-group sm:col-span-5">
+                <label class="field-label" [attr.for]="'line-name-' + row.index">Concepto</label>
+                <input
+                  [id]="'line-name-' + row.index"
+                  pInputText
+                  type="text"
+                  formControlName="name"
+                  placeholder="Grúa para izaje, flete especial…"
+                />
+              </div>
+            }
 
             <div class="field-group sm:col-span-2">
               <label class="field-label" [attr.for]="'line-qty-' + row.index">Cantidad</label>
@@ -116,7 +142,8 @@
               <p-inputnumber
                 [inputId]="'line-qty-' + row.index"
                 formControlName="quantity"
-                [min]="1"
+                [min]="0.001"
+                [maxFractionDigits]="3"
                 [showButtons]="true"
                 buttonLayout="horizontal"
               />
@@ -143,6 +170,85 @@
               >
                 <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
               </button>
+            </div>
+
+            @if (row.offCatalog) {
+              <div class="field-group sm:col-span-4">
+                <label class="field-label" [attr.for]="'line-price-' + row.index">
+                  Precio unitario<span aria-hidden="true"> *</span>
+                </label>
+                <p-inputnumber
+                  [inputId]="'line-price-' + row.index"
+                  formControlName="unitPrice"
+                  mode="currency"
+                  currency="MXN"
+                  locale="es-MX"
+                  [min]="0"
+                />
+              </div>
+              <div class="field-group sm:col-span-4">
+                <label class="field-label" [attr.for]="'line-uom-' + row.index">
+                  Unidad<span aria-hidden="true"> *</span>
+                </label>
+                <p-select
+                  [inputId]="'line-uom-' + row.index"
+                  formControlName="uom"
+                  [options]="uomGroups"
+                  [group]="true"
+                  optionGroupLabel="label"
+                  optionGroupChildren="items"
+                  optionLabel="label"
+                  optionValue="value"
+                  [filter]="true"
+                  filterBy="label"
+                  placeholder="Elige la unidad"
+                  appendTo="body"
+                />
+              </div>
+              <div class="field-group sm:col-span-4">
+                <label class="field-label" [attr.for]="'line-tax-' + row.index">
+                  IVA<span aria-hidden="true"> *</span>
+                </label>
+                <p-select
+                  [inputId]="'line-tax-' + row.index"
+                  formControlName="taxRate"
+                  [options]="taxRateOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Elige la tasa"
+                  appendTo="body"
+                />
+              </div>
+            }
+
+            <div class="field-group sm:col-span-4">
+              <label class="field-label" [attr.for]="'line-discount-' + row.index">Descuento</label>
+              <p-inputnumber
+                [inputId]="'line-discount-' + row.index"
+                formControlName="discountAmount"
+                mode="currency"
+                currency="MXN"
+                locale="es-MX"
+                [min]="0"
+              />
+              @if (row.discountTooLarge) {
+                <p class="field-error" role="alert">
+                  El descuento es mayor que el importe de la partida.
+                </p>
+              }
+            </div>
+            <div class="field-group sm:col-span-2">
+              <label class="field-label" [attr.for]="'line-discount-pct-' + row.index">%</label>
+              <p-inputnumber
+                [inputId]="'line-discount-pct-' + row.index"
+                formControlName="discountPercent"
+                suffix="%"
+                [min]="0"
+                [max]="100"
+                [maxFractionDigits]="2"
+                (onBlur)="applyDiscountPercent(row.index)"
+              />
+              <p class="field-hint">Se convierte a monto al salir del campo.</p>
             </div>
 
             @if (row.serviceId && !row.missing) {
@@ -192,6 +298,12 @@
           <dt class="text-surface-600 dark:text-surface-400">Subtotal</dt>
           <dd class="font-data tabular-nums">{{ totals().subtotal | money }}</dd>
         </div>
+        @if (totals().discount !== '0.00') {
+          <div class="flex items-baseline justify-between gap-4">
+            <dt class="text-surface-600 dark:text-surface-400">Descuento</dt>
+            <dd class="font-data tabular-nums">−{{ totals().discount | money }}</dd>
+          </div>
+        }
         <div class="flex items-baseline justify-between gap-4">
           <dt class="text-surface-600 dark:text-surface-400">IVA</dt>
           <dd class="font-data tabular-nums">{{ totals().iva | money }}</dd>
