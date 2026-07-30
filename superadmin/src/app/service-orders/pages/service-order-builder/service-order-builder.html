@@ -42,6 +42,32 @@
           />
           <p class="field-hint">Opcional — dónde se realiza el trabajo.</p>
         </div>
+        <div class="field-group">
+          <label class="field-label" for="order-priority">Prioridad</label>
+          <p-select
+            inputId="order-priority"
+            formControlName="priority"
+            [options]="priorityOptions"
+            optionLabel="label"
+            optionValue="value"
+          />
+          <p class="field-hint">Urgente adelanta la orden en el despacho.</p>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="order-promised-date">Fecha compromiso</label>
+          <p-datepicker
+            inputId="order-promised-date"
+            formControlName="promisedDate"
+            dateFormat="yy-mm-dd"
+            [readonlyInput]="true"
+            [showIcon]="true"
+            [iconDisplay]="'input'"
+            [showClear]="true"
+            placeholder="Sin compromiso"
+            appendTo="body"
+          />
+          <p class="field-hint">Opcional — la fecha prometida al cliente.</p>
+        </div>
         <div class="field-group sm:col-span-2">
           <label class="field-label" for="order-comments">Comentarios</label>
           <textarea
@@ -194,6 +220,20 @@
       <div>
         <dt class="micro-label">Reportes a generar</dt>
         <dd class="font-data mt-1 text-sm">{{ totalUnits() }}</dd>
+      </div>
+      <div>
+        <dt class="micro-label">Prioridad</dt>
+        <dd class="mt-1 text-sm">{{ priorityLabel() }}</dd>
+      </div>
+      <div>
+        <dt class="micro-label">Fecha compromiso</dt>
+        <dd class="mt-1 text-sm">
+          @if (promisedDateValue(); as promised) {
+            {{ promised | date: 'dd/MM/yyyy' }}
+          } @else {
+            —
+          }
+        </dd>
       </div>
     </dl>
 

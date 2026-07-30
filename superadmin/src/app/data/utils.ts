@@ -12,6 +12,21 @@ export const toParams = (q?: Query): HttpParams | undefined => {
   return p;
 };
 
+/** `YYYY-MM-DD` from local calendar fields — deliberately **not**
+ *  `toISOString().slice(0, 10)`, which converts to UTC first and lands a date
+ *  picked at local midnight on the previous day for any tenant east of
+ *  Greenwich. Calendar dates (fecha compromiso, vigencia) must not shift with
+ *  the viewer. */
+export const toCalendarDate = (date: Date): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate(),
+  ).padStart(2, '0')}`;
+
+/** Whether a `YYYY-MM-DD` calendar date is strictly before today (local).
+ *  Lexicographic compare is exact for the fixed-width format — no Date parsing,
+ *  no timezone drift. */
+export const isCalendarDatePast = (date: string): boolean => date < toCalendarDate(new Date());
+
 /** Extract a human-readable message from a thrown value. Tries the Angular
  *  `HttpErrorResponse` shape (`err.error.message`) first, then `Error.message`,
  *  then falls back to the supplied default. */

@@ -1,5 +1,6 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, computed, effect, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
   FormBuilder,
@@ -13,19 +14,23 @@ import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TextareaModule } from 'primeng/textarea';
+import { DatePickerModule } from 'primeng/datepicker';
 import { MessageService } from 'primeng/api';
 import { LucideArrowLeft, LucidePlus, LucideTrash2 } from '@lucide/angular';
 import { Store } from '@ngxs/store';
 import { CreateServiceOrder } from '../../../../state/service-orders/service-orders.actions';
 import { CustomersService } from '../../../services/http/customers.service';
 import { ServicesCatalogService } from '../../../services/http/services-catalog.service';
+import { ServiceOrdersService } from '../../../services/http/service-orders.service';
 import { UsersService } from '../../../services/http/users.service';
 import { REPORT_TYPE_OPTIONS } from '../../../model/constants/service-order/report-type-options.const';
+import { SERVICE_ORDER_PRIORITY_LABELS } from '../../../model/constants/service-order/service-order-priority-labels.const';
 import { TAX_RATE_MULTIPLIERS } from '../../../model/constants/service-order/tax-rate-multipliers.const';
+import { ServiceOrderPriority } from '../../../model/enums/service-order/service-order-priority.enum';
 import { MoneyPipe } from '../../../pipes/money.pipe';
 import { ServiceUomShortPipe } from '../../../pipes/service-uom.pipe';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
-import { errorMessage } from '../../../data/utils';
+import { errorMessage, toCalendarDate } from '../../../data/utils';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
 import type { Customer } from '../../../data/dtos/customer';
 import type { Service } from '../../../data/dtos/service';
@@ -58,6 +63,7 @@ const fromCents = (cents: number): string => (cents / 100).toFixed(2);
 @Component({
   selector: 'app-service-order-builder',
   imports: [
+    DatePipe,
     RouterLink,
     ReactiveFormsModule,
     TableModule,
@@ -65,6 +71,7 @@ const fromCents = (cents: number): string => (cents / 100).toFixed(2);
     InputTextModule,
     InputNumberModule,
     TextareaModule,
+    DatePickerModule,
     MoneyPipe,
     ServiceUomShortPipe,
     PageHeader,
@@ -115,10 +122,16 @@ export class ServiceOrderBuilder implements HasPendingChanges {
 
   protected readonly reportTypeOptions = REPORT_TYPE_OPTIONS;
 
+  protected priorityOptions = (
+    Object.entries(SERVICE_ORDER_PRIORITY_LABELS) as [ServiceOrderPriority, string][]
+  ).map(([value, label]) => ({ label, value }));
+
   protected form = this.fb.nonNullable.group({
     customerId: ['', Validators.required],
     location: [''],
     comments: [''],
+    priority: [ServiceOrderPriority.Normal],
+    promisedDate: this.fb.control<Date | null>(null),
     lines: this.fb.nonNullable.array([this.buildLine()]),
   });
 
@@ -131,6 +144,68 @@ export class ServiceOrderBuilder implements HasPendingChanges {
   protected reviewing = signal(false);
   protected submitting = signal(false);
   private created = false;
+
+  /** Duplicar (CP-2b): `?from=<id>` prefills from the source order — a plain
+   *  http read, never the store. Held here until the catalog arrives, because
+   *  the prefill must know which source lines still exist to keep. */
+  private sourceOrder = signal<ServiceOrderDetail | null>(null);
+  private ordersHttp = inject(ServiceOrdersService);
+
+  constructor() {
+    const from = inject(ActivatedRoute).snapshot.queryParamMap.get('from');
+    if (from) {
+      this.ordersHttp.get(from).subscribe({
+        next: ({ order }) => this.sourceOrder.set(order),
+        error: (err) =>
+          this.messages.add({
+            severity: 'error',
+            summary: 'No se pudo cargar la orden a duplicar',
+            detail: errorMessage(err, 'Puedes crear la orden desde cero.'),
+          }),
+      });
+    }
+    effect(() => {
+      const source = this.sourceOrder();
+      const catalog = this.servicesById();
+      if (!source || catalog.size === 0) return;
+      this.sourceOrder.set(null);
+      this.prefillFrom(source, catalog);
+    });
+  }
+
+  /** Client + location + comments + lines (service, quantity). Technician and
+   *  report type are deliberately NOT copied — they are explosion inputs owned
+   *  by the exploded reports (19 §1), and the source order's assignments are
+   *  stale by design; prices resolve fresh from today's catalog. Neither are
+   *  priority/promise — a new job negotiates its own. */
+  private prefillFrom(source: ServiceOrderDetail, catalog: Map<string, Service>): void {
+    this.form.patchValue({
+      customerId: source.customerId,
+      location: source.location ?? '',
+      comments: source.comments ?? '',
+    });
+
+    const kept = source.lines.filter((line) => catalog.has(line.serviceId));
+    this.lines.clear();
+    for (const line of kept) {
+      const control = this.buildLine();
+      control.patchValue({ serviceId: line.serviceId, quantity: line.quantity });
+      this.lines.push(control);
+    }
+    if (kept.length === 0) this.lines.push(this.buildLine());
+
+    const skipped = source.lines.length - kept.length;
+    if (skipped > 0) {
+      this.messages.add({
+        severity: 'warn',
+        summary: 'Servicios omitidos',
+        detail:
+          skipped === 1
+            ? '1 servicio de la orden original ya no está en el catálogo.'
+            : `${skipped} servicios de la orden original ya no están en el catálogo.`,
+      });
+    }
+  }
 
   private formValue = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
   private formStatus = toSignal(this.form.statusChanges, { initialValue: this.form.status });
@@ -205,6 +280,12 @@ export class ServiceOrderBuilder implements HasPendingChanges {
     () => this.customers().find((c) => c.id === this.formValue().customerId)?.name ?? '',
   );
 
+  protected priorityLabel = computed(
+    () => SERVICE_ORDER_PRIORITY_LABELS[this.formValue().priority ?? ServiceOrderPriority.Normal],
+  );
+
+  protected promisedDateValue = computed(() => this.formValue().promisedDate ?? null);
+
   hasPendingChanges(): boolean {
     return this.form.dirty && !this.created;
   }
@@ -259,6 +340,8 @@ export class ServiceOrderBuilder implements HasPendingChanges {
           customerId: value.customerId,
           location: value.location || undefined,
           comments: value.comments || undefined,
+          priority: value.priority,
+          promisedDate: value.promisedDate ? toCalendarDate(value.promisedDate) : undefined,
           lines: (value.lines as BuilderLineValue[]).map((line) => ({
             serviceId: line.serviceId,
             quantity: line.quantity,

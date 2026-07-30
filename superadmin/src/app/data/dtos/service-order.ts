@@ -6,6 +6,7 @@
 
 import type { ServiceUom, ServiceTaxRate } from './service';
 import type { ReportStatus } from '../../model/enums/report/report-status.enum';
+import type { ServiceOrderPriority } from '../../model/enums/service-order/service-order-priority.enum';
 import type { ServiceOrderStatus } from '../../model/enums/service-order/service-order-status.enum';
 import type { ServiceOrderEventType } from '../../model/enums/service-order/service-order-event-type.enum';
 import type { ServiceOrderEventRefKind } from '../../model/enums/service-order/service-order-event-ref-kind.enum';
@@ -37,9 +38,17 @@ export interface ServiceOrder {
    *  directly-created orders. */
   quotationId?: string;
   location?: string;
+  priority: ServiceOrderPriority;
+  /** Date-only `YYYY-MM-DD` "fecha compromiso" (CP-2b); absent when no promise
+   *  was made. Overdue = open + promised before today. */
+  promisedDate?: string;
   status: ServiceOrderStatus;
   comments?: string;
   servicesCount: number;
+  /** Progress counts (CP-2b): finished = finished | mailed, cancelled reports
+   *  excluded from both — the denominator is real work, not voided rows. */
+  reportsTotal: number;
+  reportsFinished: number;
   amounts?: MoneyBreakdown;
   createdBy: string;
   createdByName?: string;
@@ -83,6 +92,9 @@ export interface ServiceOrderListQuery {
   q?: string;
   customerId?: string;
   status?: ServiceOrderStatus | '';
+  priority?: ServiceOrderPriority | '';
+  /** `true` narrows to open orders whose promise already broke (CP-2b). */
+  overdue?: boolean;
 }
 
 /** One builder line as `POST /service-orders` takes it: the catalog reference
@@ -99,17 +111,26 @@ export interface CreateServiceOrderRequest {
   customerId: string;
   location?: string;
   comments?: string;
+  priority?: ServiceOrderPriority;
+  /** Date-only `YYYY-MM-DD` (CP-2b). */
+  promisedDate?: string;
   lines: CreateServiceOrderLineRequest[];
 }
 
-/** The only two mutable fields (19 §1); `location` is owner/admin-only. */
+/** The mutable logistics metadata (19 §1 + CP-2b); `location` is
+ *  owner/admin-only, the rest any staff. A null `promisedDate` withdraws the
+ *  promise. */
 export interface UpdateServiceOrderRequest {
   comments?: string | null;
   location?: string | null;
+  priority?: ServiceOrderPriority;
+  promisedDate?: string | null;
 }
 
+/** Complete, cancel, or — CP-2b — reopen: `open` moves a completed order back
+ *  (owner/admin only; `cancelled` is terminal). */
 export interface SetServiceOrderStatusRequest {
-  status: ServiceOrderStatus.Completed | ServiceOrderStatus.Cancelled;
+  status: ServiceOrderStatus;
   /** Recorded on the timeline event — the "why" the handoff document reads. */
   note?: string;
 }

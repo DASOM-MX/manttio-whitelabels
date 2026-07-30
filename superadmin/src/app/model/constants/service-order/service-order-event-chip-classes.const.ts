@@ -18,6 +18,8 @@ export const SERVICE_ORDER_EVENT_CHIP_CLASSES: Record<ServiceOrderEventType, str
   [ServiceOrderEventType.OrderLineAdded]: PRIMARY,
   [ServiceOrderEventType.OrderCommentUpdated]: AMBER,
   [ServiceOrderEventType.OrderLocationChanged]: AMBER,
+  [ServiceOrderEventType.OrderPriorityChanged]: AMBER,
+  [ServiceOrderEventType.OrderPromiseChanged]: AMBER,
   [ServiceOrderEventType.OrderStatusChanged]: AMBER,
   [ServiceOrderEventType.OrderCompleted]: EMERALD,
   [ServiceOrderEventType.OrderCancelled]: RED,

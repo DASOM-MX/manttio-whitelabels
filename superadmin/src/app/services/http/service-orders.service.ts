@@ -24,6 +24,8 @@ export class ServiceOrdersService {
       q: query.q,
       customerId: query.customerId,
       status: query.status || undefined,
+      priority: query.priority || undefined,
+      overdue: query.overdue ? 'true' : undefined,
     });
   }
 

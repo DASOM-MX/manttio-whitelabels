@@ -2,7 +2,7 @@
   title="Órdenes de servicio"
   description="El trabajo vendido a tus clientes y todo lo que se desprende de él."
 >
-  <app-filters-popover [params]="['q', 'status', 'customer']">
+  <app-filters-popover [params]="['q', 'status', 'priority', 'overdue', 'customer']">
     <div class="field-group">
       <label class="field-label" for="orders-search">Buscar</label>
       <input
@@ -23,6 +23,26 @@
         optionValue="value"
       />
     </div>
+    <div class="field-group">
+      <label class="field-label" for="orders-priority">Prioridad</label>
+      <p-select
+        inputId="orders-priority"
+        [formControl]="priorityFilter"
+        [options]="priorityOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="orders-overdue">Vencimiento</label>
+      <p-select
+        inputId="orders-overdue"
+        [formControl]="overdueFilter"
+        [options]="overdueOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
   </app-filters-popover>
   @if (canCreate()) {
     <a routerLink="/service-orders/new" class="btn-primary">
@@ -34,7 +54,7 @@
 
 <div>
   <p-table
-    [value]="orders()"
+    [value]="rows()"
     [lazy]="true"
     (onLazyLoad)="list.onLazyLoad($event)"
     [paginator]="true"
@@ -51,6 +71,7 @@
         <th scope="col">Folio</th>
         <th scope="col">Cliente</th>
         <th scope="col">Servicios</th>
+        <th scope="col">Avance</th>
         <th scope="col">Estado</th>
         @if (showsMoney()) {
           <th scope="col" class="text-right">Total</th>
@@ -63,11 +84,20 @@
         <td class="font-data font-medium">{{ order.folio }}</td>
         <td>{{ order.customerName }}</td>
         <td class="font-data">{{ order.servicesCount }}</td>
+        <td class="font-data">{{ order.progress }}</td>
         <td>
-          <p-tag
-            [severity]="order.status | serviceOrderStatusSeverity"
-            [value]="order.status | serviceOrderStatusLabel"
-          />
+          <div class="flex flex-wrap items-center gap-1">
+            <p-tag
+              [severity]="order.status | serviceOrderStatusSeverity"
+              [value]="order.status | serviceOrderStatusLabel"
+            />
+            @if (order.urgent) {
+              <p-tag severity="warn" value="Urgente" />
+            }
+            @if (order.overdue) {
+              <p-tag severity="danger" value="Vencida" />
+            }
+          </div>
         </td>
         @if (showsMoney()) {
           <td class="font-data text-right">{{ order.amounts?.total | money }}</td>
@@ -78,7 +108,7 @@
     <ng-template #loadingbody>
       @for (row of skeletonRows; track row) {
         <tr>
-          @for (col of [0, 1, 2, 3, 4, 5]; track col) {
+          @for (col of [0, 1, 2, 3, 4, 5, 6]; track col) {
             <td><div class="skeleton h-4"></div></td>
           }
         </tr>
@@ -86,7 +116,7 @@
     </ng-template>
     <ng-template #emptymessage>
       <tr>
-        <td colspan="6">
+        <td colspan="7">
           <div class="flex flex-col items-center gap-3 py-10 text-center">
             <span class="empty-icon">
               <svg lucideClipboardList class="size-5" aria-hidden="true"></svg>
