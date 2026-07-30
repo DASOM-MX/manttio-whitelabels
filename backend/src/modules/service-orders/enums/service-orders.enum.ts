@@ -12,6 +12,14 @@ export enum ServiceOrderStatus {
   Cancelled = 'cancelled',
 }
 
+/** Dispatch priority (CP-2b, decided 2026-07-29). Two levels only — the flag
+ *  means "jump the queue", not a severity ladder; any staff may flip it while
+ *  the order is open. */
+export enum ServiceOrderPriority {
+  Normal = 'normal',
+  Urgent = 'urgent',
+}
+
 /** Every event that lands on the order timeline (19 §7). The service order is
  *  the **single audit aggregate**: lines, reports and (from CP-3) visits all
  *  append here rather than to per-child audit tables.
@@ -27,7 +35,12 @@ export enum ServiceOrderEventType {
   OrderLineAdded = 'order_line_added',
   OrderCommentUpdated = 'order_comment_updated',
   OrderLocationChanged = 'order_location_changed',
-  /** Reserved for non-terminal transitions (e.g. a future reopen). The two
+  /** The dispatch flags (CP-2b) — logistics metadata edits, same family as
+   *  comments/location. TS-only additions: the events table has no type CHECK. */
+  OrderPriorityChanged = 'order_priority_changed',
+  OrderPromiseChanged = 'order_promise_changed',
+  /** Non-terminal transitions — since CP-2b, the owner/admin reopen
+   *  (`completed → open`), exactly what this member was reserved for. The two
    *  terminal moves emit `OrderCompleted`/`OrderCancelled` instead — they carry
    *  the same `changes.status` diff, and double-logging both would only make
    *  the handoff document noisier. */

@@ -6,6 +6,7 @@ import type { serviceOrderEvents } from '../models/service-order-events.model';
 import type {
   ServiceOrderEventRefKind,
   ServiceOrderEventType,
+  ServiceOrderPriority,
   ServiceOrderStatus,
 } from '../enums/service-orders.enum';
 import type { ServiceTaxRate, ServiceUom } from '../../services/enums/services.enum';
@@ -17,10 +18,13 @@ export type ServiceOrderLineRow = typeof serviceOrderServices.$inferSelect;
 export type NewServiceOrderEvent = typeof serviceOrderEvents.$inferInsert;
 
 /** List filters (19 §4). `search` matches the folio — the one thing people
- *  paste in to find one order. */
+ *  paste in to find one order. `overdue` narrows to open orders whose promise
+ *  is already broken (CP-2b — the dispatch-board read). */
 export interface ServiceOrderFilters {
   customerId?: string;
   status?: ServiceOrderStatus;
+  priority?: ServiceOrderPriority;
+  overdue?: boolean;
   search?: string;
 }
 
@@ -84,9 +88,17 @@ export interface ServiceOrderDTO {
    *  directly-created orders. */
   quotationId?: string;
   location?: string;
+  priority: ServiceOrderPriority;
+  /** Date-only `YYYY-MM-DD` (CP-2b); absent when no promise was made. */
+  promisedDate?: string;
   status: ServiceOrderStatus;
   comments?: string;
   servicesCount: number;
+  /** Progress counts (CP-2b): finished = finished | mailed, and cancelled
+   *  reports are excluded from BOTH — the denominator is real work, not voided
+   *  rows. Not money, so technicians get them too. */
+  reportsTotal: number;
+  reportsFinished: number;
   /** Omitted for technicians (19 §3). */
   amounts?: MoneyBreakdown;
   createdBy: string;
@@ -122,6 +134,8 @@ export interface CreateOrderCommand {
   customerId: string;
   location: string | null;
   comments: string | null;
+  priority: ServiceOrderPriority;
+  promisedDate: string | null;
   lines: OrderLineInput[];
   actorId: string;
 }

@@ -14,7 +14,7 @@ import { users } from '../../users/models/users.model';
 import { customers } from '../../customers/models/customers.model';
 import { services } from '../../services/models/services.model';
 import { quotations } from '../../quotations/models/quotations.model';
-import { ServiceOrderStatus } from '../enums/service-orders.enum';
+import { ServiceOrderPriority, ServiceOrderStatus } from '../enums/service-orders.enum';
 import type { ServiceTaxRate, ServiceUom } from '../../services/enums/services.enum';
 
 // The commercial job (19 §1): what was sold to whom. One order composes 1..n
@@ -51,6 +51,16 @@ export const serviceOrders = pgTable(
     // Service site. Free text in v1; owner/admin may edit it after creation,
     // office may not (19 §3).
     location: text('location'),
+    // Dispatch flag (CP-2b): normal | urgent, any staff may flip it while the
+    // order is open. Logistics metadata, not commercial core.
+    priority: text('priority')
+      .$type<ServiceOrderPriority>()
+      .notNull()
+      .default(ServiceOrderPriority.Normal),
+    // The "fecha compromiso" told to the client (CP-2b). Date-only on purpose:
+    // promises are day-granular, and a timestamptz would drag timezone math
+    // into every compare. Overdue = open AND promised_date < CURRENT_DATE.
+    promisedDate: date('promised_date'),
     status: text('status')
       .$type<ServiceOrderStatus>()
       .notNull()
