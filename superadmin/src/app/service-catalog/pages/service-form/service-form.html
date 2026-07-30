@@ -101,7 +101,13 @@
       }
 
       @if (canManage()) {
-        <div class="flex justify-end">
+        <div class="flex justify-end gap-2">
+          <!-- Duplicar (18 §6.2): opens a prefilled create — nothing is
+               written until the copy is saved. -->
+          <a class="btn-neutral" [routerLink]="['/services/new']" [queryParams]="{ from: svc.id }">
+            <svg lucideCopy class="size-4" aria-hidden="true"></svg>
+            Duplicar
+          </a>
           <button type="button" class="btn-primary" (click)="startEdit()">
             <svg lucidePencil class="size-4" aria-hidden="true"></svg>
             Editar

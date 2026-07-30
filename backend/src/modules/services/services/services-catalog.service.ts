@@ -200,14 +200,17 @@ export const createService = async (
     isPriceVisibleInWebsite: clean.isPriceVisibleInWebsite,
   };
   // Writes are admin-tier only, so the creator always sees the cost back.
-  // CP-4 only ever writes `via: form` — clone (CP-5) and import (CP-6) fill
-  // the other `ServiceCreatedVia` members when they land.
+  // Provenance is derived, never claimed: a `sourceServiceId` riding along
+  // makes this a clone (18 §6.2); import (CP-6) writes its own events through
+  // its own endpoint.
   const row = await asCodeConflict(
     () =>
       insertService(db, values, {
         type: ServiceEventType.Created,
         actorId,
-        changes: { via: ServiceCreatedVia.Form },
+        changes: clean.sourceServiceId
+          ? { via: ServiceCreatedVia.Clone, sourceServiceId: clean.sourceServiceId }
+          : { via: ServiceCreatedVia.Form },
       }),
     clean.internalServiceCode,
   );

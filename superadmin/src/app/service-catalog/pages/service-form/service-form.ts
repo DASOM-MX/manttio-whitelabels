@@ -14,6 +14,7 @@ import { MessageService } from 'primeng/api';
 import {
   LucideChevronDown,
   LucideChevronUp,
+  LucideCopy,
   LucideDynamicIcon,
   LucideImage,
   LucideImageUp,
@@ -85,6 +86,7 @@ import type { ServiceWebsiteImage } from '../../../data/types/services/service-w
     PageHeader,
     LucideChevronDown,
     LucideChevronUp,
+    LucideCopy,
     LucideDynamicIcon,
     LucideImage,
     LucideImageUp,
@@ -112,6 +114,13 @@ export class ServiceForm implements HasPendingChanges {
 
   protected serviceId: string | null = this.route.snapshot.paramMap.get('id');
   protected isEdit = !!this.serviceId;
+  /** Clone source (18 §6.2): `/services/new?from=<id>` prefills the create
+   *  from that service. Snapshot read — there is no in-page navigation that
+   *  changes it. Only meaningful on the create route. */
+  private cloneSourceId: string | null = this.isEdit
+    ? null
+    : this.route.snapshot.queryParamMap.get('from');
+  protected isClone = !!this.cloneSourceId;
   /** View-first: the form only renders after an explicit "Editar" click. */
   protected editing = signal(false);
   protected busy = signal(false);
@@ -120,7 +129,11 @@ export class ServiceForm implements HasPendingChanges {
   protected canManage = computed(() => hasRole(this.me(), ['owner', 'admin']));
 
   protected pageTitle = computed(() =>
-    this.isEdit ? (this.selected()?.name ?? 'Servicio') : 'Registrar servicio',
+    this.isEdit
+      ? (this.selected()?.name ?? 'Servicio')
+      : this.isClone
+        ? 'Duplicar servicio'
+        : 'Registrar servicio',
   );
 
   /** Website card photo — the key is committed on save, the url previews it.
@@ -169,11 +182,12 @@ export class ServiceForm implements HasPendingChanges {
       if (this.listable()) this.websiteSectionOpen.set(true);
     });
 
-    if (this.serviceId) {
-      this.store.dispatch(new LoadService(this.serviceId)).subscribe({
-        // The page is useless without the service → back to the list either
-        // way. The toast detail is whatever the backend answered — never
-        // overridden here.
+    // Detail and clone share the load: either way the page needs one service
+    // fetched, and it's useless without it → back to the list on failure. The
+    // toast detail is whatever the backend answered — never overridden here.
+    const loadId = this.serviceId ?? this.cloneSourceId;
+    if (loadId) {
+      this.store.dispatch(new LoadService(loadId)).subscribe({
         error: (err) => {
           this.messages.add({
             severity: 'error',
@@ -187,7 +201,9 @@ export class ServiceForm implements HasPendingChanges {
 
     effect(() => {
       const svc = this.selected();
-      if (svc && svc.id === this.serviceId) this.hydrate(svc);
+      if (!svc) return;
+      if (svc.id === this.serviceId) this.hydrate(svc);
+      else if (svc.id === this.cloneSourceId) this.hydrateClone(svc);
     });
 
     // The trail is admin-tier only (the endpoint 403s the rest), and `me()`
@@ -210,6 +226,30 @@ export class ServiceForm implements HasPendingChanges {
       cost: svc.cost === undefined ? null : Number(svc.cost),
       uom: svc.uom,
       internalServiceCode: svc.internalServiceCode ?? '',
+      description: svc.description ?? '',
+      taxRate: svc.taxRate,
+      isListableInWebsite: svc.isListableInWebsite,
+      isPriceVisibleInWebsite: svc.isPriceVisibleInWebsite,
+      websiteDescription: svc.websiteDescription ?? '',
+    });
+    this.image.set({ key: svc.websiteImageKey, url: svc.websiteImageUrl, uploading: false });
+    this.savedImageKey = svc.websiteImageKey;
+  }
+
+  /** Prefill from the clone source (18 §6.2) with exactly two deltas: the
+   *  catalog code is cleared (unique across the live catalog — a copy can't
+   *  reuse it) and the photo key copies as-is (same R2 object; "Quitar" only
+   *  ever clears a row's key, never deletes the object, so sharing is safe).
+   *  Everything else verbatim. The form stays pristine and `savedImageKey`
+   *  mirrors the copied key — an untouched clone abandons nothing, so the
+   *  pending-changes guard shouldn't ask. */
+  private hydrateClone(svc: Service): void {
+    this.form.reset({
+      name: svc.name,
+      price: Number(svc.price),
+      cost: svc.cost === undefined ? null : Number(svc.cost),
+      uom: svc.uom,
+      internalServiceCode: '',
       description: svc.description ?? '',
       taxRate: svc.taxRate,
       isListableInWebsite: svc.isListableInWebsite,
@@ -293,6 +333,10 @@ export class ServiceForm implements HasPendingChanges {
       // reasoning as the copy, the photo survives an unlist so no re-upload on
       // relist. The backend maps '' → null.
       websiteImageKey: this.image().key ?? '',
+      // Clone provenance — presence alone marks the created event
+      // `via: 'clone'` server-side. Harmlessly ignored on updates (the PATCH
+      // schema omits it), but only ever set on the create path anyway.
+      ...(this.cloneSourceId ? { sourceServiceId: this.cloneSourceId } : {}),
     };
     this.busy.set(true);
 

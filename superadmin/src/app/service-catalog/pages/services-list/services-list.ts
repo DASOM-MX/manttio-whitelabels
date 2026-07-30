@@ -5,6 +5,7 @@ import { TableModule } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
 import {
+  LucideCopy,
   LucideEye,
   LucidePencil,
   LucidePlus,
@@ -54,6 +55,7 @@ import type { Service, ServiceListQuery } from '../../../data/dtos/service';
     DeleteServiceDialog,
     FiltersPopover,
     PageHeader,
+    LucideCopy,
     LucideEye,
     LucidePlus,
     LucidePencil,
