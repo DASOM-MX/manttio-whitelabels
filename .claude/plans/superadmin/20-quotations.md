@@ -375,12 +375,20 @@ gate + override.
 - [x] **Decimal quantities** `numeric(12,3)`, string end-to-end, scaled-integer
       arithmetic (BigInt cross product, one half-up rounding per derived figure);
       superadmin totals mirror updated in the same PR; migration `0026`; 38 tests green
-**PR-B — approval page + PDF (CP-3 as originally scoped):**
-- [ ] Cotización PDF (`pdf/` module, brand-themed); email template — rendering
-      discounts, off-catalog lines and decimal quantities from day one
-- [ ] **Backend-rendered** approval page (`quotations/templates/` + `helpers/`, public
-      route): view → approve/decline (+ reason); overdue/resolved/non-reviewer states —
-      no SPA
+**PR-B — approval page + PDF (CP-3 as originally scoped)** — [x] built 2026-07-30:
+- [x] Cotización PDF (`quotation-pdf.helpers.ts` composing the `pdf/` toolkit,
+      brand-themed via `pdfThemeFromBrand`) — renders discounts, off-catalog lines and
+      decimal quantities from day one; **generated per request, never stored** (totals
+      are computed, so the document cannot drift from the data). `/send` now attaches
+      it (`email/` transport grew `attachments`); `GET /public/quotations/{token}/pdf`
+      serves the same document from the page's "Descargar PDF".
+- [x] **Backend-rendered** approval page (`templates/quotation-approval-page.html.ts` +
+      `helpers/quotation-approval-page.helpers.ts`): view → approve/decline (+ reason);
+      answered / overdue / resolved / informational states all say why — no SPA, **no
+      scripts at all**: the form posts form-data and is answered with a PRG redirect
+      (`?e=` codes render the banner). Refinement over "replaces the GET": the same
+      route **content-negotiates** — browsers (`Accept: text/html`) get the page, API
+      callers keep the CP-1 JSON — so mailed links upgraded without breaking either.
 **PR-C — sales follow-through:**
 - [ ] Default terms & conditions (tenant-level, prefilled into the builder — storage
       design in-PR)
@@ -416,7 +424,8 @@ gate + override.
   `quotations/templates/quotation-email.html.ts`, renderer in `helpers/`, dispatched
   through the generic `email/` transport). The **cotización PDF attachment stays CP-3** —
   the two checkpoints contradicted each other on this and the endpoint is honest as
-  written rather than a `/send` that sends nothing. Delivery is per-recipient and
+  written rather than a `/send` that sends nothing. **Done 2026-07-30 (PR-B):** `/send`
+  attaches the PDF. Delivery is per-recipient and
   `allSettled`: one bad address cannot cancel the rest, the send still commits, and the
   response body names every failure so staff see who did receive it.
 - **Re-send (decided 2026-07-26):** `/send` may be called again on any live quote. It

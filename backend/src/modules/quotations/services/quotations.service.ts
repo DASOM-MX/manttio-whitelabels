@@ -46,6 +46,7 @@ import {
   renderQuotationEmailSubject,
   renderQuotationEmailText,
 } from '../helpers/quotation-email.helpers';
+import { renderQuotationPDF } from '../helpers/quotation-pdf.helpers';
 import type {
   NewQuotationLine,
   PublicQuotationDTO,
@@ -68,6 +69,16 @@ import type {
 } from '../validators/quotations.validator';
 
 const opt = <T>(v: T | null | undefined): T | undefined => v ?? undefined;
+
+/** Uint8Array → base64 without Buffer, chunked so a multi-page PDF can't blow
+ *  the argument-spread limit. */
+const toBase64 = (bytes: Uint8Array): string => {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
+};
 
 /** Overdue is computed, never stored (owner 2026-07-26): a column would be
  *  stale for up to a day and there is no cron to refresh it. Both operands are
@@ -431,6 +442,21 @@ export const sendQuotation = async (
   ]);
   if (!detail) return null;
 
+  // One PDF per send, shared by every recipient's mail (20 §4 — the email
+  // carries the document, not just the link). Generated fresh from the frozen
+  // lines: nothing is stored, so it cannot drift from what the page shows.
+  const pdf = toBase64(
+    await renderQuotationPDF({
+      brand,
+      folio: detail.folio,
+      customerName: detail.customerName,
+      validUntil: detail.validUntil,
+      comments: detail.comments,
+      lines: detail.lines,
+      totals: detail.totals,
+    }),
+  );
+
   // Mails go out concurrently, and `allSettled` because one bad address must
   // not cancel the rest of the send.
   const results = await Promise.allSettled(
@@ -455,6 +481,7 @@ export const sendQuotation = async (
         subject: renderQuotationEmailSubject(params),
         html: renderQuotationEmailHTML(params),
         text: renderQuotationEmailText(params),
+        attachments: [{ filename: `${detail.folio}.pdf`, content: pdf }],
       });
       return recipient.email;
     }),
@@ -625,6 +652,31 @@ export const getQuotationByToken = async (
     found.recipient,
     lines,
   );
+};
+
+/** The same document the send attaches, fetched from the token page's
+ *  "Descargar PDF" link. Reuses `getQuotationByToken`, so visibility rules and
+ *  first-open viewed-marking live in one place. */
+export const getQuotationPdfByToken = async (
+  db: Db,
+  env: Env,
+  token: string,
+): Promise<{ filename: string; bytes: Uint8Array } | null> => {
+  const view = await getQuotationByToken(db, token);
+  if (!view) return null;
+  const brand = await getBrand(db, env.LOGOS_CDN_BASE_URL);
+  return {
+    filename: `${view.folio}.pdf`,
+    bytes: await renderQuotationPDF({
+      brand,
+      folio: view.folio,
+      customerName: view.customerName,
+      validUntil: view.validUntil,
+      comments: view.comments,
+      lines: view.lines,
+      totals: view.totals,
+    }),
+  };
 };
 
 export const respondToQuotation = async (
