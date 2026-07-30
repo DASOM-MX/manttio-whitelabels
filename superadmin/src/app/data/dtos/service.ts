@@ -1,3 +1,5 @@
+import type { ServiceEventType } from '../../model/enums/services/service-event-type.enum';
+
 /** Service catalog DTOs (18-services.md §1) — what the business sells, priced
  *  per unit of measure. Flat catalog: no categories or variants in v1. */
 
@@ -114,4 +116,19 @@ export interface SaveServiceRequest {
 
 export interface DeleteServiceRequest {
   deleteComment: string;
+}
+
+/** A resolved trail entry of `GET /services/:id/timeline` (18 §6.1) — the
+ *  catalog's append-only audit. Admin tier only: the API 403s office and
+ *  technician, so the detail page never even asks for it below that tier.
+ *  `actorName` comes resolved from the server; `changes` is per-type
+ *  (`via` on a create, per-field `{ old, new }` on an update). */
+export interface ServiceEvent {
+  id: string;
+  type: ServiceEventType;
+  actorId: string;
+  actorName?: string;
+  changes?: Record<string, unknown>;
+  note?: string;
+  createdAt: string;
 }

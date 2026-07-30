@@ -15,6 +15,7 @@ import { reportEmails } from '../reports/models/report-emails.model';
 import { equipment, equipmentReports } from '../equipment/models/equipment.model';
 import { notifications } from '../notifications/models/notifications.model';
 import { services } from '../services/models/services.model';
+import { serviceEvents } from '../services/models/service-events.model';
 import { quotations } from '../quotations/models/quotations.model';
 import { quotationLines } from '../quotations/models/quotation-lines.model';
 import { quotationRecipients } from '../quotations/models/quotation-recipients.model';
@@ -35,6 +36,7 @@ export { reportTemplates } from '../report-templates/models/report-templates.mod
 export { brand } from '../brand/models/brand.model';
 export { notifications } from '../notifications/models/notifications.model';
 export { services } from '../services/models/services.model';
+export { serviceEvents } from '../services/models/service-events.model';
 export { quotations, quotationCounters } from '../quotations/models/quotations.model';
 export { quotationLines } from '../quotations/models/quotation-lines.model';
 export { quotationRecipients } from '../quotations/models/quotation-recipients.model';
@@ -203,6 +205,24 @@ export const equipmentReportsRelations = relations(equipmentReports, ({ one }) =
   report: one(reports, {
     fields: [equipmentReports.reportId],
     references: [reports.id],
+  }),
+}));
+
+// Services catalog (18). The audit trail (§6.1) hangs off the catalog row the
+// same way quotation events hang off their quote.
+export const servicesRelations = relations(services, ({ many }) => ({
+  lines: many(quotationLines),
+  events: many(serviceEvents),
+}));
+
+export const serviceEventsRelations = relations(serviceEvents, ({ one }) => ({
+  service: one(services, {
+    fields: [serviceEvents.serviceId],
+    references: [services.id],
+  }),
+  actor: one(users, {
+    fields: [serviceEvents.actorId],
+    references: [users.id],
   }),
 }));
 

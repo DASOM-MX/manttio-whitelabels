@@ -1,8 +1,16 @@
 import type { services } from '../models/services.model';
-import type { ServiceTaxRate, ServiceUom } from '../enums/services.enum';
+import type { serviceEvents } from '../models/service-events.model';
+import type { ServiceEventType, ServiceTaxRate, ServiceUom } from '../enums/services.enum';
 
 export type ServiceRow = typeof services.$inferSelect;
 export type NewService = typeof services.$inferInsert;
+
+export type ServiceEventRow = typeof serviceEvents.$inferSelect;
+export type NewServiceEvent = typeof serviceEvents.$inferInsert;
+
+/** An event as composed by the service layer, before the repository stamps the
+ *  `serviceId` — on create the id doesn't exist until the row does. */
+export type ServiceEventDraft = Omit<NewServiceEvent, 'serviceId'>;
 
 export type UpdateServiceFields = Partial<
   Pick<
@@ -91,4 +99,20 @@ export interface ServiceDTO {
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
+}
+
+/** One timeline row of `GET /services/:id/timeline` (18 §6.1). Admin-tier
+ *  only — `changes` carries `cost` old→new diffs and `note` carries delete
+ *  comments, so this is management audit, never commercial visibility. Order
+ *  is the array order (`seq`); the DTO doesn't expose the counter itself. */
+export interface ServiceEventDTO {
+  id: string;
+  type: ServiceEventType;
+  actorId: string;
+  /** Resolved at read time so the UI renders a sentence per row without a
+   *  lookup table. Absent only if the user row is somehow gone. */
+  actorName?: string;
+  changes?: Record<string, unknown>;
+  note?: string;
+  createdAt: string;
 }

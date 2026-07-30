@@ -8,11 +8,13 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { CheckboxModule } from 'primeng/checkbox';
+import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import {
   LucideChevronDown,
   LucideChevronUp,
+  LucideDynamicIcon,
   LucideImage,
   LucideImageUp,
   LucidePencil,
@@ -24,12 +26,19 @@ import { ServicesState } from '../../../../state/services/services.state';
 import {
   CreateService,
   LoadService,
+  LoadServiceTimeline,
   UpdateService,
 } from '../../../../state/services/services.actions';
 import { hasRole } from '../../../guards/has-role.guard';
 import { SERVICE_TAX_RATE_LABELS } from '../../../model/constants/services/service-tax-rate-labels.const';
 import { SERVICE_UOM_GROUPS } from '../../../model/constants/services/service-uom-groups.const';
 import { MoneyPipe } from '../../../pipes/money.pipe';
+import { RelativeTimePipe } from '../../../pipes/relative-time.pipe';
+import {
+  ServiceEventDetailPipe,
+  ServiceEventIconPipe,
+  ServiceEventLabelPipe,
+} from '../../../pipes/service-event.pipe';
 import { ServiceTaxRateLabelPipe } from '../../../pipes/service-tax-rate.pipe';
 import { ServiceUomLabelPipe } from '../../../pipes/service-uom.pipe';
 import { UploadService } from '../../../services/http/upload.service';
@@ -64,13 +73,19 @@ import type { ServiceWebsiteImage } from '../../../data/types/services/service-w
     SelectModule,
     TextareaModule,
     CheckboxModule,
+    TableModule,
     TagModule,
     MoneyPipe,
+    RelativeTimePipe,
+    ServiceEventDetailPipe,
+    ServiceEventIconPipe,
+    ServiceEventLabelPipe,
     ServiceTaxRateLabelPipe,
     ServiceUomLabelPipe,
     PageHeader,
     LucideChevronDown,
     LucideChevronUp,
+    LucideDynamicIcon,
     LucideImage,
     LucideImageUp,
     LucidePencil,
@@ -88,6 +103,12 @@ export class ServiceForm implements HasPendingChanges {
 
   private me = select(AuthState.me);
   protected selected = select(ServicesState.selected);
+  protected timeline = select(ServicesState.timeline);
+  protected timelineLoading = select(ServicesState.timelineLoading);
+  protected readonly skeletonRows = [0, 1, 2];
+  /** One dispatch per visit — the effect below re-runs whenever `me()`
+   *  hydrates, and the trail shouldn't reload on every auth-state tick. */
+  private timelineRequested = false;
 
   protected serviceId: string | null = this.route.snapshot.paramMap.get('id');
   protected isEdit = !!this.serviceId;
@@ -167,6 +188,16 @@ export class ServiceForm implements HasPendingChanges {
     effect(() => {
       const svc = this.selected();
       if (svc && svc.id === this.serviceId) this.hydrate(svc);
+    });
+
+    // The trail is admin-tier only (the endpoint 403s the rest), and `me()`
+    // may hydrate after construction — so the dispatch rides an effect
+    // gated on the role rather than the constructor body.
+    effect(() => {
+      if (this.serviceId && this.canManage() && !this.timelineRequested) {
+        this.timelineRequested = true;
+        this.store.dispatch(new LoadServiceTimeline(this.serviceId));
+      }
     });
   }
 
@@ -266,7 +297,8 @@ export class ServiceForm implements HasPendingChanges {
     this.busy.set(true);
 
     if (this.serviceId) {
-      this.store.dispatch(new UpdateService(this.serviceId, payload)).subscribe({
+      const id = this.serviceId;
+      this.store.dispatch(new UpdateService(id, payload)).subscribe({
         // Stay on the detail: state carries the fresh service, view mode
         // shows it (and the hydrate effect re-syncs the form).
         next: () => {
@@ -274,6 +306,9 @@ export class ServiceForm implements HasPendingChanges {
           this.form.markAsPristine();
           this.savedImageKey = this.image().key;
           this.editing.set(false);
+          // The save just appended its service_updated row — refresh the
+          // trail so the card shows it without a reload.
+          this.store.dispatch(new LoadServiceTimeline(id));
           this.messages.add({ severity: 'success', summary: 'Servicio actualizado' });
         },
         error: (err) => this.onSaveError(err),

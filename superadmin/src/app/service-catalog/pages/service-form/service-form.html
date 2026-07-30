@@ -111,6 +111,69 @@
       <p class="text-sm text-surface-600 dark:text-surface-400">Cargando servicio…</p>
     }
   </section>
+
+  <!-- Append-only and in insertion order (18 §6.1): nothing here is ever
+       edited or removed — who repriced what, and when. Admin tier only; the
+       endpoint 403s office and technician, so it's never even requested. -->
+  @if (canManage()) {
+    <section class="card-section mt-4 max-w-2xl">
+      <h2 class="section-heading">Bitácora</h2>
+      <p class="mb-3 text-sm text-surface-600 dark:text-surface-400">
+        Todo lo que ha pasado con este servicio, en orden y sin ediciones.
+      </p>
+      <div class="card-flush-table">
+        <p-table
+          [value]="timeline()"
+          [loading]="timelineLoading()"
+          [showLoader]="false"
+          dataKey="id"
+        >
+          <ng-template #header>
+            <tr>
+              <th scope="col">Evento</th>
+              <th scope="col">Quién</th>
+              <th scope="col">Detalle</th>
+              <th scope="col">Cuándo</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-event>
+            <tr>
+              <td>
+                <span class="inline-flex items-center gap-2 font-medium">
+                  <svg
+                    lucideIcon
+                    [lucideIcon]="event.type | serviceEventIcon"
+                    class="size-4 text-surface-500 dark:text-surface-400"
+                    aria-hidden="true"
+                  ></svg>
+                  {{ event.type | serviceEventLabel }}
+                </span>
+              </td>
+              <td>{{ event.actorName || '—' }}</td>
+              <td class="text-sm text-surface-600 dark:text-surface-400">
+                {{ event | serviceEventDetail }}
+              </td>
+              <td class="font-data tabular-nums">{{ event.createdAt | relativeTime }}</td>
+            </tr>
+          </ng-template>
+          <ng-template #loadingbody>
+            @for (r of skeletonRows; track r) {
+              <tr>
+                @for (c of [0, 1, 2, 3]; track c) {
+                  <td><span class="skeleton"></span></td>
+                }
+              </tr>
+            }
+          </ng-template>
+          <ng-template #emptymessage>
+            <tr class="p-datatable-emptymessage">
+              <td colspan="4">Sin movimientos.</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    </section>
+  }
 } @else {
   <form
     [formGroup]="form"

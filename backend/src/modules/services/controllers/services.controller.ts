@@ -16,6 +16,7 @@ import {
   editService,
   getServiceById,
   getServices,
+  getServiceTimeline,
   removeService,
 } from '../services/services-catalog.service';
 
@@ -58,11 +59,30 @@ services.get('/:id', async (c) => {
   return c.json(row);
 });
 
+// The audit trail is admin-tier, tighter than the catalog reads above: it
+// carries `cost` old→new diffs and delete comments — management audit, not
+// commercial visibility (18 §6.1). Office quotes from the catalog; it has no
+// business in who repriced what.
+services.get('/:id/timeline', requireRole(['owner', 'admin']), async (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  const id = c.req.param('id');
+  // Existence gate so an unknown id 404s rather than answering []. An empty
+  // timeline is impossible for a live service (creation writes one row), and
+  // a soft-deleted one is unreachable here like everywhere else — its trail
+  // stays in the DB as the record.
+  const row = await getServiceById(db, id, true);
+  if (!row) return c.json({ error: 'not_found' }, 404);
+  return c.json(await getServiceTimeline(db, id));
+});
+
 // Writes are admin-tier (owner/admin) — office never edits the catalog.
 services.post('/', requireRole(['owner', 'admin']), zValidator('json', createServiceSchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   try {
-    return c.json(await createService(db, c.req.valid('json'), c.env.IMAGES_CDN_BASE_URL), 201);
+    return c.json(
+      await createService(db, c.req.valid('json'), c.get('user').id, c.env.IMAGES_CDN_BASE_URL),
+      201,
+    );
   } catch (err) {
     if (err instanceof ServiceCodeInUseError) return codeInUse(c, err);
     throw err;
@@ -76,7 +96,13 @@ services.patch(
   async (c) => {
     const db = createDb(c.env.DATABASE_URL);
     try {
-      const row = await editService(db, c.req.param('id'), c.req.valid('json'), c.env.IMAGES_CDN_BASE_URL);
+      const row = await editService(
+        db,
+        c.req.param('id'),
+        c.req.valid('json'),
+        c.get('user').id,
+        c.env.IMAGES_CDN_BASE_URL,
+      );
       if (!row) return c.json({ error: 'not_found' }, 404);
       return c.json(row);
     } catch (err) {

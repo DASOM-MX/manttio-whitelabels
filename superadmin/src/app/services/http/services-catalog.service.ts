@@ -5,6 +5,7 @@ import type {
   DeleteServiceRequest,
   SaveServiceRequest,
   Service,
+  ServiceEvent,
   ServiceListQuery,
 } from '../../data/dtos/service';
 
@@ -21,6 +22,12 @@ export class ServicesCatalogService {
 
   get(id: string): Observable<Service> {
     return this.remote.get<Service>(`/services/${id}`);
+  }
+
+  /** The append-only trail (18 §6.1). Admin tier — the API 403s office and
+   *  technician, so callers gate on role before asking. */
+  timeline(id: string): Observable<ServiceEvent[]> {
+    return this.remote.get<ServiceEvent[]>(`/services/${id}/timeline`);
   }
 
   create(body: SaveServiceRequest): Observable<Service> {

@@ -2,10 +2,12 @@ import type { Db } from '../../database/client';
 import { isUniqueViolation } from '../../database/db-errors';
 import { cdnUrl } from '../../storage/services/storage.service';
 import { ServiceCodeInUseError } from '../http-errors/services.error';
+import { ServiceCreatedVia, ServiceEventType } from '../enums/services.enum';
 import {
   findServiceById,
   insertService,
   listPublishedServices,
+  listServiceEvents,
   listServices,
   softDeleteService,
   updateService,
@@ -19,6 +21,7 @@ import type {
   NewService,
   PublicServiceDTO,
   ServiceDTO,
+  ServiceEventDTO,
   ServiceRow,
   UpdateServiceFields,
 } from '../types/services.types';
@@ -113,6 +116,24 @@ const collectUpdate = (input: UpdateServiceInput): UpdateServiceFields => {
   return f;
 };
 
+/** Per-field `{ old, new }` for the `service_updated` event (18 §6.1) —
+ *  computed over the *collected* update, so an omitted field never registers
+ *  and money compares as the fixed-2 strings both sides already are. Every
+ *  edited column is recorded, not a curated list: price/cost/taxRate are the
+ *  ones that matter, but the rest cost nothing and a list would go stale. */
+const diffChanges = (
+  current: ServiceRow,
+  fields: UpdateServiceFields,
+): Record<string, { old: unknown; new: unknown }> => {
+  const changes: Record<string, { old: unknown; new: unknown }> = {};
+  for (const key of Object.keys(fields) as (keyof UpdateServiceFields)[]) {
+    const prev = current[key];
+    const next = fields[key];
+    if (prev !== next) changes[key] = { old: prev, new: next };
+  }
+  return changes;
+};
+
 export const getServices = async (
   db: Db,
   q: ListServicesQuery,
@@ -159,6 +180,7 @@ export const getServiceById = async (
 export const createService = async (
   db: Db,
   input: CreateServiceInput,
+  actorId: string,
   imagesCdnBase?: string,
 ): Promise<ServiceDTO> => {
   const clean = normalizeWebsiteFlags(input, false);
@@ -178,8 +200,15 @@ export const createService = async (
     isPriceVisibleInWebsite: clean.isPriceVisibleInWebsite,
   };
   // Writes are admin-tier only, so the creator always sees the cost back.
+  // CP-4 only ever writes `via: form` — clone (CP-5) and import (CP-6) fill
+  // the other `ServiceCreatedVia` members when they land.
   const row = await asCodeConflict(
-    () => insertService(db, values),
+    () =>
+      insertService(db, values, {
+        type: ServiceEventType.Created,
+        actorId,
+        changes: { via: ServiceCreatedVia.Form },
+      }),
     clean.internalServiceCode,
   );
   return toDTO(row, true, imagesCdnBase);
@@ -189,13 +218,22 @@ export const editService = async (
   db: Db,
   id: string,
   input: UpdateServiceInput,
+  actorId: string,
   imagesCdnBase?: string,
 ): Promise<ServiceDTO | null> => {
   const current = await findServiceById(db, id);
   if (!current) return null;
   const clean = normalizeWebsiteFlags(input, current.isListableInWebsite);
+  const fields = collectUpdate(clean);
+  // A no-op edit (every sent field equals the stored one) still runs the
+  // UPDATE but writes no event — a trail row that says "nothing changed"
+  // would be noise, not audit.
+  const changes = diffChanges(current, fields);
+  const events = Object.keys(changes).length
+    ? [{ type: ServiceEventType.Updated, actorId, changes }]
+    : [];
   const row = await asCodeConflict(
-    () => updateService(db, id, collectUpdate(clean)),
+    () => updateService(db, id, fields, events),
     clean.internalServiceCode,
   );
   return row ? toDTO(row, true, imagesCdnBase) : null;
@@ -207,3 +245,19 @@ export const removeService = async (
   deleteComment: string,
   actorId: string,
 ): Promise<{ id: string } | null> => softDeleteService(db, id, deleteComment, actorId);
+
+/** The trail in insertion order (18 §6.1). Admin-tier only at the controller:
+ *  `changes` carries cost old→new diffs and `note` carries delete comments —
+ *  management audit, not commercial visibility. */
+export const getServiceTimeline = async (db: Db, id: string): Promise<ServiceEventDTO[]> => {
+  const rows = await listServiceEvents(db, id);
+  return rows.map(({ event, actorName }) => ({
+    id: event.id,
+    type: event.type,
+    actorId: event.actorId,
+    actorName: opt(actorName),
+    changes: opt(event.changes),
+    note: opt(event.note),
+    createdAt: event.createdAt.toISOString(),
+  }));
+};
