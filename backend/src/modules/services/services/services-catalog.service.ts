@@ -1,19 +1,28 @@
+import { z } from 'zod';
 import type { Db } from '../../database/client';
 import { isUniqueViolation } from '../../database/db-errors';
 import { cdnUrl } from '../../storage/services/storage.service';
-import { ServiceCodeInUseError } from '../http-errors/services.error';
+import {
+  ServiceCodeInUseError,
+  ServiceImportError,
+  type ServiceImportRowError,
+} from '../http-errors/services.error';
 import { ServiceCreatedVia, ServiceEventType } from '../enums/services.enum';
 import {
   findServiceById,
+  findServiceCodesInUse,
   insertService,
+  insertServicesWithEvents,
   listPublishedServices,
   listServiceEvents,
   listServices,
   softDeleteService,
   updateService,
 } from '../repository/services.repository';
+import { importServiceRowSchema } from '../validators/services.validator';
 import type {
   CreateServiceInput,
+  ImportServiceRowInput,
   ListServicesQuery,
   UpdateServiceInput,
 } from '../validators/services.validator';
@@ -177,6 +186,24 @@ export const getServiceById = async (
   return row ? toDTO(row, includeCost, imagesCdnBase) : null;
 };
 
+/** Validated input → row values. Shared by the single create and the CSV
+ *  import so the two can never disagree on '' → null normalization. */
+const toNewService = (clean: ImportServiceRowInput): NewService => ({
+  name: clean.name,
+  price: clean.price,
+  cost: clean.cost ?? null,
+  uom: clean.uom,
+  description: clean.description ?? null,
+  websiteDescription: clean.websiteDescription || null,
+  websiteImageKey: clean.websiteImageKey || null,
+  internalServiceCode: clean.internalServiceCode || null,
+  taxRate: clean.taxRate,
+  satProdServCode: clean.satProdServCode ?? null,
+  satUnitCode: clean.satUnitCode ?? null,
+  isListableInWebsite: clean.isListableInWebsite,
+  isPriceVisibleInWebsite: clean.isPriceVisibleInWebsite,
+});
+
 export const createService = async (
   db: Db,
   input: CreateServiceInput,
@@ -184,21 +211,7 @@ export const createService = async (
   imagesCdnBase?: string,
 ): Promise<ServiceDTO> => {
   const clean = normalizeWebsiteFlags(input, false);
-  const values: NewService = {
-    name: clean.name,
-    price: clean.price,
-    cost: clean.cost ?? null,
-    uom: clean.uom,
-    description: clean.description ?? null,
-    websiteDescription: clean.websiteDescription || null,
-    websiteImageKey: clean.websiteImageKey || null,
-    internalServiceCode: clean.internalServiceCode || null,
-    taxRate: clean.taxRate,
-    satProdServCode: clean.satProdServCode ?? null,
-    satUnitCode: clean.satUnitCode ?? null,
-    isListableInWebsite: clean.isListableInWebsite,
-    isPriceVisibleInWebsite: clean.isPriceVisibleInWebsite,
-  };
+  const values = toNewService(clean);
   // Writes are admin-tier only, so the creator always sees the cost back.
   // Provenance is derived, never claimed: a `sourceServiceId` riding along
   // makes this a clone (18 §6.2); import (CP-6) writes its own events through
@@ -263,4 +276,90 @@ export const getServiceTimeline = async (db: Db, id: string): Promise<ServiceEve
     note: opt(event.note),
     createdAt: event.createdAt.toISOString(),
   }));
+};
+
+/** One per-row line the 422 carries. Spanish because it's displayed verbatim
+ *  in the import preview — the client never rewrites backend errors. */
+const rowIssueText = (issue: z.ZodIssue): string => {
+  const field = issue.path.join('.') || 'fila';
+  if (issue.code === z.ZodIssueCode.invalid_enum_value) {
+    return `${field}: valor desconocido "${String(issue.received)}"`;
+  }
+  if (issue.code === z.ZodIssueCode.invalid_type && issue.received === 'undefined') {
+    return `${field}: requerido`;
+  }
+  return `${field}: inválido`;
+};
+
+/** CSV import (18 §6.3): every row re-validated here — the client's mapper
+ *  and preview are conveniences, never trust — and the whole file lands in
+ *  one transaction or not at all. A 422 names each failing row; per-row
+ *  `service_created` events carry `via: 'import'`. Create-only in v1 (no
+ *  upsert-by-código — open ask in the plan). */
+export const importServices = async (
+  db: Db,
+  rawRows: unknown[],
+  actorId: string,
+): Promise<{ imported: number }> => {
+  const errors: ServiceImportRowError[] = [];
+  const parsed: ImportServiceRowInput[] = [];
+
+  rawRows.forEach((raw, index) => {
+    const result = importServiceRowSchema.safeParse(raw);
+    if (result.success) parsed[index] = result.data;
+    else errors.push({ index, message: result.error.issues.map(rowIssueText).join(' · ') });
+  });
+
+  // Duplicate códigos, both flavors (18 §6.3): within the file, then against
+  // the live catalog — each reported on its exact row. The first in-file
+  // occurrence keeps the code; repeats are the errors.
+  const seen = new Map<string, number>();
+  parsed.forEach((row, index) => {
+    const code = row.internalServiceCode;
+    if (!code) return;
+    if (seen.has(code)) {
+      errors.push({
+        index,
+        message: `internalServiceCode: el código "${code}" se repite en el archivo`,
+      });
+    } else {
+      seen.set(code, index);
+    }
+  });
+  const inUse = await findServiceCodesInUse(db, [...seen.keys()]);
+  for (const code of inUse) {
+    errors.push({
+      index: seen.get(code)!,
+      message: `internalServiceCode: el código "${code}" ya existe en el catálogo`,
+    });
+  }
+
+  if (errors.length > 0) {
+    throw new ServiceImportError(errors.sort((a, b) => a.index - b.index));
+  }
+
+  const values = rawRows.map((_, index) => toNewService(normalizeWebsiteFlags(parsed[index]!, false)));
+
+  try {
+    const rows = await insertServicesWithEvents(db, values, (serviceId) => ({
+      serviceId,
+      type: ServiceEventType.Created,
+      actorId,
+      changes: { via: ServiceCreatedVia.Import },
+    }));
+    return { imported: rows.length };
+  } catch (err) {
+    // The race the pre-check can't close: a code registered between check and
+    // insert. Same 422 shape; index -1 = file-level, not row-level.
+    if (isUniqueViolation(err)) {
+      throw new ServiceImportError([
+        {
+          index: -1,
+          message:
+            'Un código del archivo acaba de registrarse en el catálogo. Revisa e intenta de nuevo.',
+        },
+      ]);
+    }
+    throw err;
+  }
 };

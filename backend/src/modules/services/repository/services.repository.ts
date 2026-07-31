@@ -100,6 +100,35 @@ export const findServicesByIds = async (db: Db, ids: string[]): Promise<ServiceR
     .where(and(inArray(services.id, ids), activeFilter));
 };
 
+/** Which of these catalog codes are already taken by a live service — the
+ *  import's dup-vs-catalog check (18 §6.3). One query for the whole file. */
+export const findServiceCodesInUse = async (db: Db, codes: string[]): Promise<string[]> => {
+  if (codes.length === 0) return [];
+  const rows = await db
+    .select({ code: services.internalServiceCode })
+    .from(services)
+    .where(and(inArray(services.internalServiceCode, codes), activeFilter));
+  return rows.map((r) => r.code).filter((c): c is string => c !== null);
+};
+
+/** The CSV import (18 §6.3): every row and every `service_created` event in
+ *  ONE transaction, two multi-row inserts total — all-or-nothing by
+ *  construction, and no per-row round trips. RETURNING preserves the VALUES
+ *  order, so events pair with their rows by position. */
+export const insertServicesWithEvents = async (
+  db: Db,
+  values: NewService[],
+  event: (serviceId: string) => NewServiceEvent,
+): Promise<ServiceRow[]> =>
+  db.transaction(async (tx) => {
+    const rows = await tx.insert(services).values(values).returning();
+    await appendServiceEvents(
+      tx,
+      rows.map((row) => event(row.id)),
+    );
+    return rows;
+  });
+
 /** Atomic create: the row and its `service_created` event, one transaction —
  *  a service can never exist without the first line of its trail (18 §6.1).
  *  The event arrives as a draft because the id doesn't exist until the row

@@ -8,6 +8,7 @@ import type {
   ServiceEvent,
   ServiceListQuery,
 } from '../../data/dtos/service';
+import type { ServiceImportRow } from '../../data/types/services/service-import';
 
 /** Named `services-catalog` rather than `services.service` to dodge the
  *  stutter (18 §5) — `app/services/http/` already means "injectables". */
@@ -32,6 +33,12 @@ export class ServicesCatalogService {
 
   create(body: SaveServiceRequest): Observable<Service> {
     return this.remote.post<Service>('/services', body);
+  }
+
+  /** CSV import (18 §6.3) — all-or-nothing on the server: a 422 names each
+   *  failing row, a 201 means every row landed. */
+  importRows(rows: ServiceImportRow[]): Observable<{ imported: number }> {
+    return this.remote.post<{ imported: number }>('/services/import', { rows });
   }
 
   update(id: string, body: Partial<SaveServiceRequest>): Observable<Service> {

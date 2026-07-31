@@ -496,6 +496,102 @@ describe('DELETE /services/:id', () => {
   });
 });
 
+describe('POST /services/import (18 §6.3)', () => {
+  type ImportErrorBody = {
+    error: string;
+    message: string;
+    rows: { index: number; message: string }[];
+  };
+
+  const importRows = (token: string, rows: unknown[]) =>
+    request('/services/import', {
+      method: 'POST',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ rows }),
+    });
+
+  const listNames = async (token: string): Promise<string[]> => {
+    const body = await json<{ services: Service[] }>(
+      await request('/services', { headers: jsonHeaders(token) }),
+    );
+    return body.services.map((s) => s.name);
+  };
+
+  test('imports the file whole; every row gets its via-import event', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const a = serviceBody({ price: 100 });
+    const b = serviceBody({ price: 200, cost: 90, taxRate: ServiceTaxRate.Iva8 });
+
+    const res = await importRows(token, [a, b]);
+    expect(res.status).toBe(201);
+    expect(await json<{ imported: number }>(res)).toEqual({ imported: 2 });
+
+    const list = await json<{ services: Service[] }>(
+      await request('/services', { headers: jsonHeaders(token) }),
+    );
+    const rowA = list.services.find((s) => s.name === a.name);
+    const rowB = list.services.find((s) => s.name === b.name);
+    expect(rowA).toBeDefined();
+    expect(rowB!.cost).toBe('90.00');
+
+    const events = await json<ServiceEvent[]>(
+      await request(`/services/${rowA!.id}/timeline`, { headers: jsonHeaders(token) }),
+    );
+    expect(events).toHaveLength(1);
+    expect(events[0]!.type).toBe(ServiceEventType.Created);
+    expect(events[0]!.changes).toEqual({ via: ServiceCreatedVia.Import });
+  });
+
+  test('422 names each failing row, and nothing is created (all-or-nothing)', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const good = serviceBody({ price: 100 });
+    const badUom = { name: uniqueServiceName('svc'), price: 10, uom: 'kilometro' };
+    const badTax = serviceBody({ taxRate: 'iva_99' as ServiceTaxRate });
+
+    const res = await importRows(token, [good, badUom, badTax]);
+    expect(res.status).toBe(422);
+
+    const body = await json<ImportErrorBody>(res);
+    expect(body.error).toBe('import_invalid');
+    expect(body.rows.map((r) => r.index)).toEqual([1, 2]);
+    expect(body.rows[0]!.message).toContain('uom');
+    expect(body.rows[1]!.message).toContain('taxRate');
+
+    // The good row must NOT have slipped in — a partial import that silently
+    // skipped rows would read as "imported everything".
+    expect(await listNames(token)).not.toContain(good.name);
+  });
+
+  test('422 on duplicate códigos — repeated in-file and taken by the live catalog', async () => {
+    const live = uniqueServiceCode();
+    await seedService({ internalServiceCode: live });
+    const { token } = await seedOwnerAndLogin();
+
+    const repeated = uniqueServiceCode();
+    const res = await importRows(token, [
+      serviceBody({ internalServiceCode: repeated }),
+      serviceBody({ internalServiceCode: repeated }),
+      serviceBody({ internalServiceCode: live }),
+    ]);
+    expect(res.status).toBe(422);
+
+    const body = await json<ImportErrorBody>(res);
+    expect(body.rows).toHaveLength(2);
+    expect(body.rows[0]).toMatchObject({ index: 1 });
+    expect(body.rows[0]!.message).toContain('se repite en el archivo');
+    expect(body.rows[1]).toMatchObject({ index: 2 });
+    expect(body.rows[1]!.message).toContain('ya existe en el catálogo');
+  });
+
+  test('an empty file is a 400, and office cannot import at all', async () => {
+    const { token } = await seedOwnerAndLogin();
+    expect((await importRows(token, [])).status).toBe(400);
+
+    const { token: officeToken } = await seedOfficeAndLogin();
+    expect((await importRows(officeToken, [serviceBody()])).status).toBe(403);
+  });
+});
+
 describe('GET /services/:id/timeline (18 §6.1)', () => {
   const timeline = (token: string, id: string) =>
     request(`/services/${id}/timeline`, { headers: jsonHeaders(token) });

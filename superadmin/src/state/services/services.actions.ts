@@ -3,6 +3,7 @@ import type {
   SaveServiceRequest,
   ServiceListQuery,
 } from '../../app/data/dtos/service';
+import type { ServiceImportRow } from '../../app/data/types/services/service-import';
 
 export class LoadServices {
   static readonly type = '[Services] Load List';
@@ -26,6 +27,13 @@ export class LoadServiceTimeline {
 export class CreateService {
   static readonly type = '[Services] Create';
   constructor(public payload: SaveServiceRequest) {}
+}
+
+/** CSV import (18 §6.3) — canonical rows, already resolved by the mapper.
+ *  All-or-nothing on the server; the page reads the 422 rows on failure. */
+export class ImportServices {
+  static readonly type = '[Services] Import';
+  constructor(public rows: ServiceImportRow[]) {}
 }
 
 export class UpdateService {

@@ -5,6 +5,7 @@ import { ServicesCatalogService } from '../../app/services/http/services-catalog
 import {
   CreateService,
   DeleteService,
+  ImportServices,
   LoadService,
   LoadServices,
   LoadServiceTimeline,
@@ -92,6 +93,13 @@ export class ServicesState {
   @Action(CreateService)
   create(_ctx: StateContext<ServicesStateModel>, { payload }: CreateService) {
     return this.api.create(payload);
+  }
+
+  /** Same posture as create: the import page navigates back to the list,
+   *  which refetches — no optimistic state here. */
+  @Action(ImportServices)
+  import(_ctx: StateContext<ServicesStateModel>, { rows }: ImportServices) {
+    return this.api.importRows(rows);
   }
 
   @Action(UpdateService)
