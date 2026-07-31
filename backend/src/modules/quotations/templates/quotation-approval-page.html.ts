@@ -49,6 +49,11 @@ export const approvalPageHTML = (s: ApprovalPageSlots): string => `<!doctype htm
   textarea { width: 100%; box-sizing: border-box; border: 1px solid #d0d5dd; border-radius: 8px; padding: 10px; font: inherit; margin-top: 6px; min-height: 72px; }
   .pill { display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 13px; font-weight: 600; background: #eef0f3; }
   a.pdf { color: ${s.accent}; font-weight: 600; text-decoration: none; font-size: 14px; }
+  /* Script-free decline gate: while the reason textarea is empty
+     (:placeholder-shown), Rechazar greys out and stops taking clicks. Browsers
+     without :has() simply keep the server's reason_required bounce as the
+     guard — same rule, enforced one hop later. */
+  form:has(textarea:placeholder-shown) .decline { opacity: 0.45; pointer-events: none; }
 </style>
 </head>
 <body>

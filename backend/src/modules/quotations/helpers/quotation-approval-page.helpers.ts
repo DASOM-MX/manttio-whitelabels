@@ -83,7 +83,7 @@ export const renderQuotationApprovalPage = (
   const actionBlock = view.canRespond
     ? `<div class="card"><form method="post" action="${tokenPath}/respond">
 <p style="margin:0 0 4px;font-weight:600">¿Apruebas esta cotización?</p>
-<p class="muted" style="margin:0">Si la rechazas, cuéntanos el motivo — nos ayuda a corregirla.</p>
+<p class="muted" style="margin:0">Antes de rechazar, ayúdanos a saber cómo mejorar esta cotización.</p>
 <textarea name="reason" placeholder="Motivo (obligatorio al rechazar)"></textarea>
 <div class="actions">
 <button class="approve" type="submit" name="response" value="${QuotationResponse.Approved}">Aprobar</button>
