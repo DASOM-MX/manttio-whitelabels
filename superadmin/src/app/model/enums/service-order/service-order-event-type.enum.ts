@@ -6,6 +6,8 @@ export enum ServiceOrderEventType {
   OrderLineAdded = 'order_line_added',
   OrderCommentUpdated = 'order_comment_updated',
   OrderLocationChanged = 'order_location_changed',
+  OrderPriorityChanged = 'order_priority_changed',
+  OrderPromiseChanged = 'order_promise_changed',
   OrderStatusChanged = 'order_status_changed',
   OrderCompleted = 'order_completed',
   OrderCancelled = 'order_cancelled',

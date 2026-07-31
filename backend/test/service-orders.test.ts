@@ -22,6 +22,7 @@ import { ServiceTaxRate, ServiceUom } from '../src/modules/services/enums/servic
 import { ReportStatus } from '../src/modules/reports/enums/reports.enum';
 import {
   ServiceOrderEventType,
+  ServiceOrderPriority,
   ServiceOrderStatus,
 } from '../src/modules/service-orders/enums/service-orders.enum';
 
@@ -58,9 +59,13 @@ type Order = {
   customerId: string;
   customerName: string;
   location?: string;
+  priority: ServiceOrderPriority;
+  promisedDate?: string;
   status: ServiceOrderStatus;
   comments?: string;
   servicesCount: number;
+  reportsTotal: number;
+  reportsFinished: number;
   amounts?: Money;
   createdBy: string;
   createdByName?: string;
@@ -235,6 +240,34 @@ describe('POST /service-orders', () => {
     expect(new Set(exploded.map((r) => r.folio)).size).toBe(3);
   });
 
+  test('defaults the dispatch fields and round-trips them when sent (CP-2b)', async () => {
+    const { token, customer, tech, service } = await scenario();
+
+    // Omitted → normal queue, no promise made.
+    const plain = await createOrder(token, {
+      customerId: customer.id,
+      lines: [lineFor(service, tech)],
+    });
+    expect(plain.status).toBe(201);
+    const { order: defaulted } = await json<{ order: Order }>(plain);
+    expect(defaulted.priority).toBe(ServiceOrderPriority.Normal);
+    expect(defaulted.promisedDate).toBeUndefined();
+
+    const second = await seedService(token);
+    const withFlags = await createOrder(token, {
+      customerId: customer.id,
+      priority: ServiceOrderPriority.Urgent,
+      promisedDate: '2026-12-01',
+      lines: [lineFor(second, tech)],
+    });
+    expect(withFlags.status).toBe(201);
+    const { order } = await json<{ order: Order }>(withFlags);
+    expect(order.priority).toBe(ServiceOrderPriority.Urgent);
+    // Date-only string, byte-identical on the way back — no timezone drift.
+    expect(order.promisedDate).toBe('2026-12-01');
+    expect((await getOrder(token, order.id)).promisedDate).toBe('2026-12-01');
+  });
+
   test('rejects two lines for the same service with 400', async () => {
     const { token, customer, tech, service } = await scenario();
     const res = await createOrder(token, {
@@ -387,6 +420,89 @@ describe('GET /service-orders', () => {
     expect(body.items[0]!.servicesCount).toBe(1);
   });
 
+  test('filters by priority and by overdue (CP-2b)', async () => {
+    const { token, customer, tech, service } = await scenario();
+    const second = await seedService(token);
+    const third = await seedService(token);
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    const urgent = await json<{ order: Order }>(
+      await createOrder(token, {
+        customerId: customer.id,
+        priority: ServiceOrderPriority.Urgent,
+        lines: [lineFor(service, tech)],
+      }),
+    );
+    const broken = await json<{ order: Order }>(
+      await createOrder(token, {
+        customerId: customer.id,
+        promisedDate: yesterday,
+        lines: [lineFor(second, tech)],
+      }),
+    );
+    // A broken promise on a COMPLETED order is not overdue — the filter is
+    // about work still owed, so it must drop out below.
+    const done = await json<{ order: Order }>(
+      await createOrder(token, {
+        customerId: customer.id,
+        promisedDate: yesterday,
+        lines: [lineFor(third, tech)],
+      }),
+    );
+    await setStatus(token, done.order.id, { status: ServiceOrderStatus.Completed });
+
+    const listIds = async (params: string) => {
+      const res = await request(`/service-orders?customerId=${customer.id}&${params}`, {
+        headers: jsonHeaders(token),
+      });
+      expect(res.status).toBe(200);
+      return (await json<{ items: Order[] }>(res)).items.map((o) => o.id);
+    };
+
+    const urgentIds = await listIds(`priority=${ServiceOrderPriority.Urgent}`);
+    expect(urgentIds).toEqual([urgent.order.id]);
+
+    const overdueIds = await listIds('overdue=true');
+    expect(overdueIds).toEqual([broken.order.id]);
+  });
+
+  test('counts report progress per order, excluding cancelled reports (CP-2b)', async () => {
+    const { token, customer, tech, service } = await scenario();
+    const created = await createOrder(token, {
+      customerId: customer.id,
+      lines: [lineFor(service, tech, { quantity: 3 })],
+    });
+    const { order } = await json<{ order: Order }>(created);
+    expect(order.reportsTotal).toBe(3);
+    expect(order.reportsFinished).toBe(0);
+
+    // Finish one of the three exploded reports directly — the sign-off flow
+    // needs a signature upload this suite has no business faking.
+    const exploded = await getReports(token, order.id);
+    await db()
+      .update(reports)
+      .set({ status: ReportStatus.Finished, finishedAt: new Date() })
+      .where(eq(reports.id, exploded[0]!.id));
+
+    const detail = await getOrder(token, order.id);
+    expect(detail.reportsTotal).toBe(3);
+    expect(detail.reportsFinished).toBe(1);
+
+    // The list carries the same counts (one grouped query per page).
+    const listed = await request(`/service-orders?customerId=${customer.id}`, {
+      headers: jsonHeaders(token),
+    });
+    const { items } = await json<{ items: Order[] }>(listed);
+    expect(items.find((o) => o.id === order.id)!.reportsFinished).toBe(1);
+
+    // Cancelling voids the two unfinished reports, and voided rows leave BOTH
+    // counts — the denominator is real work, so progress reads 1/1, not 1/3.
+    await setStatus(token, order.id, { status: ServiceOrderStatus.Cancelled });
+    const after = await getOrder(token, order.id);
+    expect(after.reportsTotal).toBe(1);
+    expect(after.reportsFinished).toBe(1);
+  });
+
   test('hides every money field from technicians', async () => {
     const { token, customer, tech, service } = await scenario();
     const created = await createOrder(token, {
@@ -503,6 +619,37 @@ describe('PATCH /service-orders/:id', () => {
     expect(moved!.changes!.location).toEqual({ from: 'Planta A', to: 'Planta B' });
   });
 
+  test('office may edit priority and promise date, and both land on the timeline (CP-2b)', async () => {
+    const { token, customer, tech, service } = await scenario();
+    const created = await createOrder(token, {
+      customerId: customer.id,
+      lines: [lineFor(service, tech)],
+    });
+    const { order } = await json<{ order: Order }>(created);
+
+    // Any-staff fields — office is the dispatch desk (19 §3).
+    const { token: officeToken } = await seedOfficeAndLogin();
+    const res = await patchOrder(officeToken, order.id, {
+      priority: ServiceOrderPriority.Urgent,
+      promisedDate: '2026-12-15',
+    });
+    expect(res.status).toBe(200);
+    const { order: updated } = await json<{ order: Order }>(res);
+    expect(updated.priority).toBe(ServiceOrderPriority.Urgent);
+    expect(updated.promisedDate).toBe('2026-12-15');
+
+    const events = await getTimeline(token, order.id);
+    const escalated = events.find((e) => e.type === ServiceOrderEventType.OrderPriorityChanged);
+    expect(escalated!.changes!.priority).toEqual({ from: 'normal', to: 'urgent' });
+    const promised = events.find((e) => e.type === ServiceOrderEventType.OrderPromiseChanged);
+    expect(promised!.changes!.promisedDate).toEqual({ from: null, to: '2026-12-15' });
+
+    // null withdraws the promise.
+    const cleared = await patchOrder(officeToken, order.id, { promisedDate: null });
+    expect(cleared.status).toBe(200);
+    expect((await json<{ order: Order }>(cleared)).order.promisedDate).toBeUndefined();
+  });
+
   test('rejects an attempt to patch an immutable field', async () => {
     const { token, customer, tech, service } = await scenario();
     const created = await createOrder(token, {
@@ -611,7 +758,7 @@ describe('POST /service-orders/:id/status', () => {
     expect((await json<{ error: string }>(second)).error).toBe('invalid_status_transition');
   });
 
-  test('rejects reopening an order', async () => {
+  test('reopen matrix (CP-2b): admin reopens a completed order, office 403s, terminal states 409', async () => {
     const { token, customer, tech, service } = await scenario();
     const created = await createOrder(token, {
       customerId: customer.id,
@@ -619,8 +766,43 @@ describe('POST /service-orders/:id/status', () => {
     });
     const { order } = await json<{ order: Order }>(created);
 
-    const res = await setStatus(token, order.id, { status: ServiceOrderStatus.Open });
-    expect(res.status).toBe(400);
+    // Reopening an OPEN order is a 409, not a validation error — the target is
+    // legal now, the state refuses it.
+    const early = await setStatus(token, order.id, { status: ServiceOrderStatus.Open });
+    expect(early.status).toBe(409);
+
+    await setStatus(token, order.id, { status: ServiceOrderStatus.Completed });
+
+    // Office may complete/cancel but not reopen — the safety valve is
+    // owner/admin only (19 §3).
+    const { token: officeToken } = await seedOfficeAndLogin();
+    const denied = await setStatus(officeToken, order.id, { status: ServiceOrderStatus.Open });
+    expect(denied.status).toBe(403);
+    expect((await json<{ error: string }>(denied)).error).toBe('forbidden_reopen');
+
+    const reopened = await setStatus(token, order.id, {
+      status: ServiceOrderStatus.Open,
+      note: 'se completó por error',
+    });
+    expect(reopened.status).toBe(200);
+    expect((await json<{ order: Order }>(reopened)).order.status).toBe(ServiceOrderStatus.Open);
+
+    // The reserved event, with the diff and the motivo.
+    const events = await getTimeline(token, order.id);
+    const moved = events.find((e) => e.type === ServiceOrderEventType.OrderStatusChanged);
+    expect(moved!.changes!.status).toEqual({ from: 'completed', to: 'open' });
+    expect(moved!.note).toBe('se completó por error');
+
+    // A reopened order is open again for real: the frozen fields thaw.
+    const patched = await patchOrder(token, order.id, { comments: 'reabierta' });
+    expect(patched.status).toBe(200);
+
+    // Cancelled stays terminal — its cascade voided children and un-voiding
+    // cannot be done honestly.
+    await setStatus(token, order.id, { status: ServiceOrderStatus.Cancelled });
+    const undead = await setStatus(token, order.id, { status: ServiceOrderStatus.Open });
+    expect(undead.status).toBe(409);
+    expect((await json<{ error: string }>(undead)).error).toBe('invalid_status_transition');
   });
 });
 

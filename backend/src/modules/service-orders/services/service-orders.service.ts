@@ -4,20 +4,23 @@ import { isAdminTier, isBackOfficeTier } from '../../auth/utils/role-tier';
 import {
   cancelServiceOrder,
   completeServiceOrder,
+  countReportsForOrders,
   createServiceOrder,
   findServiceOrderById,
   listLinesForOrders,
   listOrderLines,
   listOrderReports,
   listServiceOrders,
+  reopenServiceOrder,
   updateServiceOrder,
   type OrderHeaderRow,
 } from '../repository/service-orders.repository';
 import { listOrderEvents } from '../repository/service-order-events.repository';
-import { ServiceOrderStatus } from '../enums/service-orders.enum';
+import { ServiceOrderPriority, ServiceOrderStatus } from '../enums/service-orders.enum';
 import {
   InvalidOrderTransitionError,
   LocationEditForbiddenError,
+  ReopenForbiddenError,
 } from '../http-errors/service-orders.error';
 import { lineAmounts, orderAmounts } from '../utils/order-money';
 import type {
@@ -59,9 +62,14 @@ const toLineDTO = (row: ServiceOrderLineRow, showMoney: boolean): ServiceOrderLi
     : undefined,
 });
 
+/** Progress counts as `countReportsForOrders` hands them back. An order absent
+ *  from the grouped result has no live non-cancelled reports — both counts 0. */
+type ReportCounts = { total: number; finished: number };
+
 const toOrderDTO = (
   header: OrderHeaderRow,
   lines: ServiceOrderLineRow[],
+  counts: ReportCounts | undefined,
   showMoney: boolean,
 ): ServiceOrderDTO => ({
   id: header.id,
@@ -70,9 +78,13 @@ const toOrderDTO = (
   customerName: header.customerName,
   quotationId: opt(header.quotationId),
   location: opt(header.location),
+  priority: header.priority,
+  promisedDate: opt(header.promisedDate),
   status: header.status,
   comments: opt(header.comments),
   servicesCount: lines.length,
+  reportsTotal: counts?.total ?? 0,
+  reportsFinished: counts?.finished ?? 0,
   amounts: showMoney ? orderAmounts(lines) : undefined,
   createdBy: header.createdBy,
   createdByName: header.createdByName || undefined,
@@ -87,23 +99,35 @@ export const getServiceOrders = async (
 ): Promise<{ items: ServiceOrderDTO[]; total: number }> => {
   const { items, total } = await listServiceOrders(
     db,
-    { customerId: q.customerId, status: q.status, search: q.q },
+    {
+      customerId: q.customerId,
+      status: q.status,
+      priority: q.priority,
+      overdue: q.overdue === 'true',
+      search: q.q,
+    },
     q.page,
     q.limit,
   );
   // One follow-up query for the whole page's lines, then count and total in TS
-  // — exact cents, and no CASE ladder over tax rates in SQL.
-  const lines = await listLinesForOrders(db, items.map((o) => o.id));
+  // — exact cents, and no CASE ladder over tax rates in SQL. The progress
+  // counts ride the same pattern: one grouped query per page (CP-2b).
+  const orderIds = items.map((o) => o.id);
+  const lines = await listLinesForOrders(db, orderIds);
   const byOrder = new Map<string, ServiceOrderLineRow[]>();
   for (const line of lines) {
     const bucket = byOrder.get(line.serviceOrderId);
     if (bucket) bucket.push(line);
     else byOrder.set(line.serviceOrderId, [line]);
   }
+  const counts = await countReportsForOrders(db, orderIds);
+  const countsByOrder = new Map(counts.map((c) => [c.serviceOrderId, c]));
 
   const showMoney = canSeeMoney(user);
   return {
-    items: items.map((header) => toOrderDTO(header, byOrder.get(header.id) ?? [], showMoney)),
+    items: items.map((header) =>
+      toOrderDTO(header, byOrder.get(header.id) ?? [], countsByOrder.get(header.id), showMoney),
+    ),
     total,
   };
 };
@@ -117,13 +141,14 @@ export const getServiceOrderById = async (
   if (!header) return null;
 
   const lines = await listOrderLines(db, id);
+  const [counts] = await countReportsForOrders(db, [id]);
   const showMoney = canSeeMoney(user);
 
   // Lines only. The exploded reports are lazy-loaded via GET /:id/reports
   // (decided 2026-07-27), and no `visits` key in CP-1 — the visits table
   // doesn't exist yet (PR #97 closed unmerged); CP-3 adds it order-bound.
   return {
-    ...toOrderDTO(header, lines, showMoney),
+    ...toOrderDTO(header, lines, counts, showMoney),
     lines: lines.map((line) => toLineDTO(line, showMoney)),
   };
 };
@@ -163,6 +188,8 @@ export const addServiceOrder = async (
     customerId: input.customerId,
     location: input.location || null,
     comments: input.comments || null,
+    priority: input.priority,
+    promisedDate: input.promisedDate ?? null,
     lines: input.lines,
     actorId: user.id,
   });
@@ -185,11 +212,20 @@ export const editServiceOrder = async (
     throw new LocationEditForbiddenError();
   }
 
-  const fields: { comments?: string | null; location?: string | null } = {};
+  const fields: {
+    comments?: string | null;
+    location?: string | null;
+    priority?: ServiceOrderPriority;
+    promisedDate?: string | null;
+  } = {};
   // Empty string clears the field rather than storing '' — the editor's
   // "remove" sends '' and a stored '' would render as a present-but-blank note.
   if (input.comments !== undefined) fields.comments = input.comments || null;
   if (input.location !== undefined) fields.location = input.location || null;
+  // The dispatch pair (CP-2b) is any-staff — no extra gate beyond the route's
+  // role list. A null promisedDate withdraws the promise.
+  if (input.priority !== undefined) fields.priority = input.priority;
+  if (input.promisedDate !== undefined) fields.promisedDate = input.promisedDate;
 
   const updated = await updateServiceOrder(db, id, fields, user.id);
   if (!updated) return null;
@@ -205,14 +241,23 @@ export const setServiceOrderStatus = async (
   const current = await findServiceOrderById(db, id);
   if (!current) return null;
 
-  const updated =
-    input.status === ServiceOrderStatus.Completed
-      ? await completeServiceOrder(db, id, user.id, input.note)
-      : await cancelServiceOrder(db, id, user.id, input.note);
+  // The `open` target is the CP-2b reopen — owner/admin only (a safety valve
+  // for a fat-fingered Completar, not a back-office flow), and its repository
+  // move is guarded on `completed`, so `cancelled` stays terminal.
+  if (input.status === ServiceOrderStatus.Open && !isAdminTier(user)) {
+    throw new ReopenForbiddenError();
+  }
 
-  // Both repository moves are guarded on `open` inside the UPDATE, so a null
-  // here means the order was already closed — including the double-submit case
-  // where it was open when we read it a moment ago.
+  const updated =
+    input.status === ServiceOrderStatus.Open
+      ? await reopenServiceOrder(db, id, user.id, input.note)
+      : input.status === ServiceOrderStatus.Completed
+        ? await completeServiceOrder(db, id, user.id, input.note)
+        : await cancelServiceOrder(db, id, user.id, input.note);
+
+  // Every repository move is guarded on its valid source state inside the
+  // UPDATE, so a null here means the order wasn't in it — including the
+  // double-submit case where it was a moment ago.
   if (!updated) throw new InvalidOrderTransitionError(current.status, input.status);
 
   return getServiceOrderById(db, user, id);

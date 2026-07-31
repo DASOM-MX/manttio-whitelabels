@@ -1,6 +1,16 @@
 import { z } from 'zod';
-import { ServiceOrderStatus } from '../enums/service-orders.enum';
+import { ServiceOrderPriority, ServiceOrderStatus } from '../enums/service-orders.enum';
 import { reportTypes } from '../../reports/enums/reports.enum';
+
+// A calendar date (YYYY-MM-DD) for the `promised_date` column — same shape as
+// the quotations validator's `validUntil`. Kept as a string rather than coerced
+// through `Date`: parsing "2026-08-01" as a Date lands on UTC midnight, which in
+// a negative-offset timezone is the day before — and a promise that silently
+// shifts a day is exactly the bug a "fecha compromiso" can't have.
+const calendarDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)')
+  .refine((v) => !Number.isNaN(Date.parse(`${v}T00:00:00Z`)), 'Fecha inexistente');
 
 // One sold line. Note what is *absent*: price and tax rate. Both are
 // snapshotted from the catalog inside the create transaction (19 §1), so a
@@ -23,6 +33,10 @@ export const createServiceOrderSchema = z.object({
   customerId: z.string().uuid(),
   location: z.string().trim().optional(),
   comments: z.string().trim().optional(),
+  // The dispatch flags (CP-2b) — both optional at birth: an order defaults to
+  // the normal queue with no promise made yet.
+  priority: z.nativeEnum(ServiceOrderPriority).default(ServiceOrderPriority.Normal),
+  promisedDate: calendarDate.optional(),
   // At least one line: an order with nothing sold is not an order.
   lines: z
     .array(orderLineSchema)
@@ -41,9 +55,11 @@ export const createServiceOrderSchema = z.object({
     }),
 });
 
-// The only two mutable fields (19 §1). `location` carries its own role gate in
-// the service layer — owner/admin only, 403 for office — because it is the one
-// field that changes where the crew is sent.
+// The mutable logistics metadata (19 §1, extended by CP-2b): comments, priority
+// and promisedDate for any staff; `location` carries its own role gate in the
+// service layer — owner/admin only, 403 for office — because it is the one
+// field that changes where the crew is sent. A null `promisedDate` withdraws
+// the promise.
 //
 // `.strict()` matters here: everything else on an order is immutable, and a
 // silently-ignored `customerId` in the body would read like it worked.
@@ -51,17 +67,25 @@ export const updateServiceOrderSchema = z
   .object({
     comments: z.string().trim().nullable().optional(),
     location: z.string().trim().nullable().optional(),
+    priority: z.nativeEnum(ServiceOrderPriority).optional(),
+    promisedDate: calendarDate.nullable().optional(),
   })
   .strict()
-  .refine((v) => v.comments !== undefined || v.location !== undefined, {
-    message: 'at least one field must be provided',
-  });
+  .refine(
+    (v) =>
+      v.comments !== undefined ||
+      v.location !== undefined ||
+      v.priority !== undefined ||
+      v.promisedDate !== undefined,
+    { message: 'at least one field must be provided' },
+  );
 
-// Status is moved by its own endpoint, never by PATCH. `open` is excluded: it
-// is the birth state, and reopening a closed order is not a v1 flow (19 §2 —
-// the auto-complete rule is still open, and reopen has no decided semantics).
+// Status is moved by its own endpoint, never by PATCH. `open` is the CP-2b
+// reopen target: owner/admin only (the service gates the role), valid solely
+// from `completed` — `cancelled` stays terminal because its cascade voided
+// children and un-voiding cannot be done honestly.
 export const setServiceOrderStatusSchema = z.object({
-  status: z.enum([ServiceOrderStatus.Completed, ServiceOrderStatus.Cancelled]),
+  status: z.nativeEnum(ServiceOrderStatus),
   // Recorded on the timeline event — "why was this cancelled" is exactly the
   // question the handoff document has to answer later.
   note: z.string().trim().optional(),
@@ -70,6 +94,10 @@ export const setServiceOrderStatusSchema = z.object({
 export const listServiceOrdersQuerySchema = z.object({
   customerId: z.string().uuid().optional(),
   status: z.nativeEnum(ServiceOrderStatus).optional(),
+  priority: z.nativeEnum(ServiceOrderPriority).optional(),
+  /** `overdue=true` narrows to open orders whose promise is already broken
+   *  (promised_date < today) — the dispatch-board filter (CP-2b). */
+  overdue: z.enum(['true', 'false']).optional(),
   /** Folio search — a prefix match on `OS-…`. */
   q: z.string().trim().optional(),
   page: z.coerce.number().int().min(1).default(1),

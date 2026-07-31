@@ -26,6 +26,16 @@ export class LocationEditForbiddenError extends Error {
   }
 }
 
+// Thrown when office posts the `open` status target (CP-2b): reopening a
+// completed order is the owner/admin safety valve for a fat-fingered
+// Completar, not a back-office flow. Maps to 403.
+export class ReopenForbiddenError extends Error {
+  constructor() {
+    super('reopening a completed order requires the owner or admin role');
+    this.name = 'ReopenForbiddenError';
+  }
+}
+
 // Thrown when a PATCH lands on a completed/cancelled order (decided
 // 2026-07-29): the mutable pair is mutable only while the order is open — a
 // closed order is history, and the handoff document has already composed from

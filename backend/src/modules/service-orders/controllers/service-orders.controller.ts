@@ -25,6 +25,7 @@ import {
   InvalidOrderTransitionError,
   LocationEditForbiddenError,
   OrderClosedError,
+  ReopenForbiddenError,
 } from '../http-errors/service-orders.error';
 
 export const serviceOrders = new Hono<AppBindings>();
@@ -100,9 +101,10 @@ serviceOrders.post(
   },
 );
 
-// `comments` and/or `location` only — everything else is fixed at creation
-// (19 §1), and only while the order is open (decided 2026-07-29). `location`
-// is owner/admin-only and the service enforces it.
+// The mutable logistics metadata only — comments, priority, promisedDate (any
+// staff) and/or location (owner/admin, the service enforces it); everything
+// else is fixed at creation (19 §1), and only while the order is open (decided
+// 2026-07-29).
 serviceOrders.patch(
   '/:id',
   requireRole(['owner', 'admin', 'office']),
@@ -127,8 +129,9 @@ serviceOrders.patch(
   },
 );
 
-// Complete or cancel (19 §2). Cancelling voids the order's unfinished reports;
-// both moves are one-way in v1.
+// Complete, cancel, or — since CP-2b — reopen (19 §2). Cancelling voids the
+// order's unfinished reports and is terminal; `open` moves a completed order
+// back (owner/admin only, gated in the service).
 serviceOrders.post(
   '/:id/status',
   requireRole(['owner', 'admin', 'office']),
@@ -144,6 +147,9 @@ serviceOrders.post(
     } catch (err) {
       if (err instanceof InvalidOrderTransitionError) {
         return c.json({ error: 'invalid_status_transition', message: err.message }, 409);
+      }
+      if (err instanceof ReopenForbiddenError) {
+        return c.json({ error: 'forbidden_reopen', message: err.message }, 403);
       }
       throw err;
     }

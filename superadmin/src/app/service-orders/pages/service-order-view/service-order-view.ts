@@ -9,12 +9,17 @@ import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
+import { SelectModule } from 'primeng/select';
+import { DatePickerModule } from 'primeng/datepicker';
 import { MessageService } from 'primeng/api';
 import {
   LucideCheck,
+  LucideCopy,
   LucideDynamicIcon,
   LucideFileText,
+  LucideFlag,
   LucidePencil,
+  LucideRotateCcw,
   LucideSearchX,
   LucideX,
 } from '@lucide/angular';
@@ -30,10 +35,16 @@ import {
 import { AuthState } from '../../../../state/auth/auth.state';
 import { hasRole } from '../../../guards/has-role.guard';
 import { ServiceOrderStatus } from '../../../model/enums/service-order/service-order-status.enum';
+import { ServiceOrderPriority } from '../../../model/enums/service-order/service-order-priority.enum';
+import { ReportStatus } from '../../../model/enums/report/report-status.enum';
+import { SERVICE_ORDER_PRIORITY_LABELS } from '../../../model/constants/service-order/service-order-priority-labels.const';
 import {
   ServiceOrderEventChipClassPipe,
   ServiceOrderEventIconPipe,
   ServiceOrderEventLabelPipe,
+  ServiceOrderPriorityFlagClassPipe,
+  ServiceOrderPriorityLabelClassPipe,
+  ServiceOrderPriorityLabelPipe,
   ServiceOrderStatusLabelPipe,
   ServiceOrderStatusSeverityPipe,
   ReportTypeLabelPipe,
@@ -44,7 +55,7 @@ import { ServiceTaxRateShortPipe } from '../../../pipes/service-tax-rate.pipe';
 import { RelativeTimePipe } from '../../../pipes/relative-time.pipe';
 import { ServiceUomShortPipe } from '../../../pipes/service-uom.pipe';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
-import { errorCode, errorMessage } from '../../../data/utils';
+import { errorCode, errorMessage, isCalendarDatePast, toCalendarDate } from '../../../data/utils';
 import type { ServiceOrderReport } from '../../../data/dtos/service-order';
 
 /** Order view (19 §5): header with folio + status actions, lines card,
@@ -67,8 +78,13 @@ import type { ServiceOrderReport } from '../../../data/dtos/service-order';
     DialogModule,
     InputTextModule,
     TextareaModule,
+    SelectModule,
+    DatePickerModule,
     ServiceOrderStatusLabelPipe,
     ServiceOrderStatusSeverityPipe,
+    ServiceOrderPriorityFlagClassPipe,
+    ServiceOrderPriorityLabelClassPipe,
+    ServiceOrderPriorityLabelPipe,
     ServiceOrderEventChipClassPipe,
     ServiceOrderEventIconPipe,
     ServiceOrderEventLabelPipe,
@@ -81,9 +97,12 @@ import type { ServiceOrderReport } from '../../../data/dtos/service-order';
     ServiceUomShortPipe,
     PageHeader,
     LucideCheck,
+    LucideCopy,
     LucideDynamicIcon,
     LucideFileText,
+    LucideFlag,
     LucidePencil,
+    LucideRotateCcw,
     LucideSearchX,
     LucideX,
   ],
@@ -106,8 +125,48 @@ export class ServiceOrderView {
   protected isStaff = computed(() => hasRole(this.me(), ['owner', 'admin', 'office']));
   protected canEditLocation = computed(() => hasRole(this.me(), ['owner', 'admin']));
   protected isOpen = computed(() => this.order()?.status === ServiceOrderStatus.Open);
+  /** Reopen is the owner/admin safety valve for a fat-fingered Completar
+   *  (CP-2b) — completed orders only; cancelled is terminal. */
+  protected canReopen = computed(
+    () =>
+      hasRole(this.me(), ['owner', 'admin']) &&
+      this.order()?.status === ServiceOrderStatus.Completed,
+  );
   protected showsMoney = computed(() => this.order()?.amounts !== undefined);
   protected hasMoreEvents = computed(() => this.timeline().length < this.timelineTotal());
+
+  protected isUrgent = computed(() => this.order()?.priority === ServiceOrderPriority.Urgent);
+  protected isOverdue = computed(() => {
+    const order = this.order();
+    return (
+      order?.status === ServiceOrderStatus.Open &&
+      !!order.promisedDate &&
+      isCalendarDatePast(order.promisedDate)
+    );
+  });
+  /** Header progress chip (CP-2b) — hidden while the order has no live
+   *  reports at all (every unit voided by a cancel). */
+  protected progressChip = computed(() => {
+    const order = this.order();
+    return order && order.reportsTotal > 0
+      ? `Avance ${order.reportsFinished}/${order.reportsTotal}`
+      : '';
+  });
+  /** The Completar warning (CP-2b): how many live reports aren't finished yet.
+   *  Empty while the lazy reports read is still in flight — the confirm just
+   *  shows no warning rather than a wrong number. */
+  protected unfinishedWarning = computed(() => {
+    const pending = (this.reports() ?? []).filter(
+      (r) =>
+        r.status !== ReportStatus.Finished &&
+        r.status !== ReportStatus.Mailed &&
+        r.status !== ReportStatus.Cancelled,
+    ).length;
+    if (pending === 0) return '';
+    return pending === 1
+      ? 'Queda 1 reporte sin terminar.'
+      : `Quedan ${pending} reportes sin terminar.`;
+  });
 
   /** Which detail tab is showing — the activity feed lives in its own tab
    *  (owner 2026-07-27), mirroring the customer-view idiom. */
@@ -117,10 +176,21 @@ export class ServiceOrderView {
   protected editOpen = signal(false);
   protected cancelOpen = signal(false);
   protected completeOpen = signal(false);
+  protected reopenOpen = signal(false);
   private timelinePage = signal(1);
 
-  protected editForm = this.fb.nonNullable.group({ comments: [''], location: [''] });
+  protected editForm = this.fb.nonNullable.group({
+    comments: [''],
+    location: [''],
+    priority: [ServiceOrderPriority.Normal],
+    promisedDate: this.fb.control<Date | null>(null),
+  });
   protected cancelNote = this.fb.nonNullable.control('');
+  protected reopenNote = this.fb.nonNullable.control('');
+
+  protected priorityOptions = (
+    Object.entries(SERVICE_ORDER_PRIORITY_LABELS) as [ServiceOrderPriority, string][]
+  ).map(([value, label]) => ({ label, value }));
 
   private id = toSignal(this.route.paramMap, { initialValue: this.route.snapshot.paramMap });
 
@@ -153,7 +223,14 @@ export class ServiceOrderView {
   protected openEdit(): void {
     const order = this.order();
     if (!order) return;
-    this.editForm.reset({ comments: order.comments ?? '', location: order.location ?? '' });
+    this.editForm.reset({
+      comments: order.comments ?? '',
+      location: order.location ?? '',
+      priority: order.priority,
+      // Local-midnight parse — `new Date('YYYY-MM-DD')` alone would read as UTC
+      // and show the previous day west of Greenwich.
+      promisedDate: order.promisedDate ? new Date(`${order.promisedDate}T00:00:00`) : null,
+    });
     this.editOpen.set(true);
   }
 
@@ -161,9 +238,13 @@ export class ServiceOrderView {
     if (this.saving()) return;
     this.saving.set(true);
     const value = this.editForm.getRawValue();
-    const payload = this.canEditLocation()
-      ? { comments: value.comments, location: value.location }
-      : { comments: value.comments };
+    const payload = {
+      comments: value.comments,
+      priority: value.priority,
+      // null withdraws the promise (CP-2b).
+      promisedDate: value.promisedDate ? toCalendarDate(value.promisedDate) : null,
+      ...(this.canEditLocation() ? { location: value.location } : {}),
+    };
     this.store.dispatch(new UpdateServiceOrder(this.orderId(), payload)).subscribe({
       next: () => {
         this.saving.set(false);
@@ -186,10 +267,21 @@ export class ServiceOrderView {
     this.setStatus(ServiceOrderStatus.Cancelled, this.cancelNote.value || undefined);
   }
 
-  private setStatus(
-    status: ServiceOrderStatus.Completed | ServiceOrderStatus.Cancelled,
-    note?: string,
-  ): void {
+  /** The CP-2b reopen — `open` as a status target, owner/admin only. */
+  protected confirmReopen(): void {
+    this.setStatus(ServiceOrderStatus.Open, this.reopenNote.value || undefined);
+  }
+
+  protected duplicate(): void {
+    // Frontend-only Duplicar (CP-2b): the builder prefills from the source
+    // order — client, location, comments and lines; never technicians or
+    // report types (explosion inputs, stale by design).
+    void this.router.navigate(['/service-orders/new'], {
+      queryParams: { from: this.orderId() },
+    });
+  }
+
+  private setStatus(status: ServiceOrderStatus, note?: string): void {
     if (this.saving()) return;
     this.saving.set(true);
     this.store.dispatch(new SetServiceOrderStatus(this.orderId(), { status, note })).subscribe({
@@ -197,6 +289,7 @@ export class ServiceOrderView {
         this.saving.set(false);
         this.completeOpen.set(false);
         this.cancelOpen.set(false);
+        this.reopenOpen.set(false);
         // The status move rewrote children (a cancel voids unfinished
         // reports) — refetch what the cards show.
         this.store.dispatch(new LoadServiceOrderReports(this.orderId()));
@@ -221,6 +314,7 @@ export class ServiceOrderView {
     this.editOpen.set(false);
     this.completeOpen.set(false);
     this.cancelOpen.set(false);
+    this.reopenOpen.set(false);
     this.store.dispatch(new LoadServiceOrderDetail(this.orderId()));
   }
 

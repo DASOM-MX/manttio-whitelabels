@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, inArray, isNull, lt, sql } from 'drizzle-orm';
 import type { Db, Tx } from '../../database/client';
 import { customers } from '../../customers/models/customers.model';
 import { customerInteractions } from '../../customers/models/customer-interactions.model';
@@ -8,7 +8,7 @@ import { displayName } from '../../users/utils/display-name';
 import { services } from '../../services/models/services.model';
 import { reportCounters, reportDetails, reports } from '../../reports/models/reports.model';
 import { ReportStatus } from '../../reports/enums/reports.enum';
-import { isVoidableByOrderCancel } from '../../reports/utils/report-lifecycle';
+import { isFinishedOrMailed, isVoidableByOrderCancel } from '../../reports/utils/report-lifecycle';
 import { formatReportId } from '../../reports/utils/report-id';
 import {
   serviceOrderCounters,
@@ -28,6 +28,7 @@ import { appendOrderEvent, appendOrderEvents } from './service-order-events.repo
 import {
   ServiceOrderEventRefKind,
   ServiceOrderEventType,
+  ServiceOrderPriority,
   ServiceOrderStatus,
 } from '../enums/service-orders.enum';
 import { InvalidOrderReferenceError, OrderClosedError } from '../http-errors/service-orders.error';
@@ -57,6 +58,8 @@ const orderColumns = {
   customerId: serviceOrders.customerId,
   quotationId: serviceOrders.quotationId,
   location: serviceOrders.location,
+  priority: serviceOrders.priority,
+  promisedDate: serviceOrders.promisedDate,
   status: serviceOrders.status,
   comments: serviceOrders.comments,
   createdBy: serviceOrders.createdBy,
@@ -75,6 +78,8 @@ export type OrderHeaderRow = {
   customerName: string;
   quotationId: string | null;
   location: string | null;
+  priority: ServiceOrderPriority;
+  promisedDate: string | null;
   status: ServiceOrderStatus;
   comments: string | null;
   createdBy: string;
@@ -89,6 +94,8 @@ const toHeader = (row: {
   customerId: string;
   quotationId: string | null;
   location: string | null;
+  priority: ServiceOrderPriority;
+  promisedDate: string | null;
   status: ServiceOrderStatus;
   comments: string | null;
   createdBy: string;
@@ -105,6 +112,8 @@ const toHeader = (row: {
   customerName: row.customerName ?? '',
   quotationId: row.quotationId,
   location: row.location,
+  priority: row.priority,
+  promisedDate: row.promisedDate,
   status: row.status,
   comments: row.comments,
   createdBy: row.createdBy,
@@ -121,6 +130,16 @@ const buildFilters = (filters: ServiceOrderFilters) => {
   const conds = [activeFilter];
   if (filters.customerId) conds.push(eq(serviceOrders.customerId, filters.customerId));
   if (filters.status) conds.push(eq(serviceOrders.status, filters.status));
+  if (filters.priority) conds.push(eq(serviceOrders.priority, filters.priority));
+  // Overdue = open AND the promise already broke (CP-2b). Compared against the
+  // server's CURRENT_DATE — the UTC day flip fires a few hours early on
+  // Monterrey evenings, accepted in v1. A null promised_date never matches.
+  if (filters.overdue) {
+    conds.push(
+      eq(serviceOrders.status, ServiceOrderStatus.Open),
+      lt(serviceOrders.promisedDate, sql`CURRENT_DATE`),
+    );
+  }
   // Folio prefix match — `OS-2026` narrows to a year, a full folio finds one
   // order. Same shape as the reports list's folio filter.
   if (filters.search) conds.push(ilike(serviceOrders.folio, `${filters.search}%`));
@@ -196,6 +215,36 @@ export const listLinesForOrders = async (
     .where(inArray(serviceOrderServices.serviceOrderId, orderIds));
 };
 
+/** Progress counts for a page of orders in one grouped round trip (CP-2b) —
+ *  the same shape as `listLinesForOrders`. Finished = finished | mailed;
+ *  cancelled reports are excluded from BOTH counts: the denominator is real
+ *  work, not the rows a cancellation voided. */
+export const countReportsForOrders = async (
+  db: Db,
+  orderIds: string[],
+): Promise<{ serviceOrderId: string; total: number; finished: number }[]> => {
+  if (orderIds.length === 0) return [];
+  const finishedStatuses = Object.values(ReportStatus).filter(isFinishedOrMailed);
+  const rows = await db
+    .select({
+      serviceOrderId: reports.serviceOrderId,
+      total: sql<number>`count(*)::int`,
+      finished: sql<number>`count(*) filter (where ${inArray(reports.status, finishedStatuses)})::int`,
+    })
+    .from(reports)
+    .where(
+      and(
+        inArray(reports.serviceOrderId, orderIds),
+        sql`${reports.status} <> ${ReportStatus.Cancelled}`,
+        isNull(reports.deletedAt),
+      ),
+    )
+    .groupBy(reports.serviceOrderId);
+  // The FK column is nullable in the model (standalone reports), but every row
+  // here matched the inArray — narrow it for the caller.
+  return rows.map((r) => ({ ...r, serviceOrderId: r.serviceOrderId! }));
+};
+
 /** The exploded reports hanging off one order (19 §4). Soft-deleted reports
  *  drop out; `cancelled` ones stay, because "this was voided when the order was
  *  cancelled" is exactly what the order view needs to show. */
@@ -251,6 +300,8 @@ type OrderGraphInput = {
   customerId: string;
   location: string | null;
   comments: string | null;
+  priority: ServiceOrderPriority;
+  promisedDate: string | null;
   /** Set only on the quote path — stamps the birth link (19 §1). */
   quotationId?: string;
   lines: FrozenOrderLine[];
@@ -293,6 +344,8 @@ const insertOrderGraph = async (
       customerId: input.customerId,
       quotationId: input.quotationId ?? null,
       location: input.location,
+      priority: input.priority,
+      promisedDate: input.promisedDate,
       comments: input.comments,
       status: ServiceOrderStatus.Open,
       createdBy: input.actorId,
@@ -465,6 +518,8 @@ export const createServiceOrder = async (
         customerId: command.customerId,
         location: command.location,
         comments: command.comments,
+        priority: command.priority,
+        promisedDate: command.promisedDate,
         actorId: command.actorId,
         lines: command.lines.map((line) => {
           const service = catalog.get(line.serviceId)!;
@@ -513,6 +568,10 @@ export const createServiceOrderFromQuotation = async (
         customerId: command.customerId,
         location: command.location,
         comments: null,
+        // The conversion carries no dispatch inputs — a converted order joins
+        // the normal queue with no promise yet; staff set both via PATCH after.
+        priority: ServiceOrderPriority.Normal,
+        promisedDate: null,
         quotationId: command.quotationId,
         actorId: command.actorId,
         lines: command.lines,
@@ -566,18 +625,23 @@ export const createServiceOrderFromQuotation = async (
 
 // --- MUTATIONS ---
 
-/** `comments` and/or `location` — the only patchable fields (19 §1), and only
- *  while the order is `open` (decided 2026-07-29): a closed order is history
- *  and the handoff document has already composed from it, so even the mutable
- *  pair freezes at complete/cancel. Both mutations audit to the timeline in
- *  the same transaction. Returns null when the order doesn't exist (or is
- *  tombstoned), which the service maps to 404; a closed order throws instead
- *  (409), checked inside the transaction so a racing complete can't slip an
- *  edit through. */
+/** The mutable logistics metadata (19 §1, extended by CP-2b): `comments`,
+ *  `location`, `priority` and/or `promisedDate` — and only while the order is
+ *  `open` (decided 2026-07-29): a closed order is history and the handoff
+ *  document has already composed from it, so even the mutable fields freeze at
+ *  complete/cancel. Every mutation audits to the timeline in the same
+ *  transaction. Returns null when the order doesn't exist (or is tombstoned),
+ *  which the service maps to 404; a closed order throws instead (409), checked
+ *  inside the transaction so a racing complete can't slip an edit through. */
 export const updateServiceOrder = async (
   db: Db,
   id: string,
-  fields: { comments?: string | null; location?: string | null },
+  fields: {
+    comments?: string | null;
+    location?: string | null;
+    priority?: ServiceOrderPriority;
+    promisedDate?: string | null;
+  },
   actorId: string,
 ): Promise<ServiceOrderRow | null> =>
   db.transaction(async (tx) => {
@@ -615,6 +679,22 @@ export const updateServiceOrder = async (
         changes: { location: { from: current.location, to: fields.location } },
       });
     }
+    if (fields.priority !== undefined && fields.priority !== current.priority) {
+      events.push({
+        serviceOrderId: id,
+        type: ServiceOrderEventType.OrderPriorityChanged,
+        actorId,
+        changes: { priority: { from: current.priority, to: fields.priority } },
+      });
+    }
+    if (fields.promisedDate !== undefined && fields.promisedDate !== current.promisedDate) {
+      events.push({
+        serviceOrderId: id,
+        type: ServiceOrderEventType.OrderPromiseChanged,
+        actorId,
+        changes: { promisedDate: { from: current.promisedDate, to: fields.promisedDate } },
+      });
+    }
     await appendOrderEvents(tx, events);
 
     return updated;
@@ -646,6 +726,43 @@ export const completeServiceOrder = async (
       type: ServiceOrderEventType.OrderCompleted,
       actorId,
       changes: { status: { from: ServiceOrderStatus.Open, to: ServiceOrderStatus.Completed } },
+      note: note ?? null,
+    });
+
+    return updated;
+  });
+
+/** Reopen a completed order (CP-2b) — the safety valve for a fat-fingered
+ *  Completar, not a flow. Guarded on `completed` in the UPDATE itself, so only
+ *  that exact state can move back; `cancelled` stays terminal (its cascade
+ *  voided children, and un-voiding cannot be done honestly). Emits the
+ *  reserved `order_status_changed` event — exactly what that member was
+ *  reserved for. The caller (service) gates the role to owner/admin. */
+export const reopenServiceOrder = async (
+  db: Db,
+  id: string,
+  actorId: string,
+  note?: string,
+): Promise<ServiceOrderRow | null> =>
+  db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(serviceOrders)
+      .set({ status: ServiceOrderStatus.Open, updatedAt: new Date() })
+      .where(
+        and(
+          eq(serviceOrders.id, id),
+          eq(serviceOrders.status, ServiceOrderStatus.Completed),
+          activeFilter,
+        ),
+      )
+      .returning();
+    if (!updated) return null;
+
+    await appendOrderEvent(tx, {
+      serviceOrderId: id,
+      type: ServiceOrderEventType.OrderStatusChanged,
+      actorId,
+      changes: { status: { from: ServiceOrderStatus.Completed, to: ServiceOrderStatus.Open } },
       note: note ?? null,
     });
 

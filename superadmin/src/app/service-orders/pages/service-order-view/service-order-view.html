@@ -5,7 +5,39 @@
         [severity]="order.status | serviceOrderStatusSeverity"
         [value]="order.status | serviceOrderStatusLabel"
       />
+      @if (isUrgent()) {
+        <span
+          class="inline-flex items-center gap-1.5 text-sm font-medium"
+          [class]="order.priority | serviceOrderPriorityLabelClass"
+        >
+          <svg
+            lucideFlag
+            class="size-4 shrink-0 fill-current"
+            [class]="order.priority | serviceOrderPriorityFlagClass"
+            aria-hidden="true"
+          ></svg>
+          {{ order.priority | serviceOrderPriorityLabel }}
+        </span>
+      }
+      @if (isOverdue()) {
+        <p-tag severity="danger" value="Vencida" />
+      }
+      @if (progressChip()) {
+        <p-tag severity="secondary" [value]="progressChip()" />
+      }
     </ng-container>
+    @if (isStaff()) {
+      <button type="button" class="btn-secondary" (click)="duplicate()">
+        <svg lucideCopy class="size-4" aria-hidden="true"></svg>
+        Duplicar
+      </button>
+    }
+    @if (canReopen()) {
+      <button type="button" class="btn-secondary" (click)="reopenOpen.set(true)">
+        <svg lucideRotateCcw class="size-4" aria-hidden="true"></svg>
+        Reabrir
+      </button>
+    }
     @if (isStaff() && isOpen()) {
       <button type="button" class="btn-secondary" (click)="openEdit()">
         <svg lucidePencil class="size-4" aria-hidden="true"></svg>
@@ -46,6 +78,36 @@
         <div>
           <dt class="micro-label">Fecha</dt>
           <dd class="mt-1 text-sm">{{ order.createdAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+        </div>
+        <div>
+          <dt class="micro-label">Prioridad</dt>
+          <dd class="mt-1">
+            <span
+              class="inline-flex items-center gap-1.5 text-sm font-medium"
+              [class]="order.priority | serviceOrderPriorityLabelClass"
+            >
+              <svg
+                lucideFlag
+                class="size-4 shrink-0 fill-current"
+                [class]="order.priority | serviceOrderPriorityFlagClass"
+                aria-hidden="true"
+              ></svg>
+              {{ order.priority | serviceOrderPriorityLabel }}
+            </span>
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Fecha compromiso</dt>
+          <dd class="mt-1 text-sm">
+            @if (order.promisedDate) {
+              {{ order.promisedDate | date: 'dd/MM/yyyy' }}
+              @if (isOverdue()) {
+                <span class="ml-1 align-middle"><p-tag severity="danger" value="Vencida" /></span>
+              }
+            } @else {
+              —
+            }
+          </dd>
         </div>
         @if (order.comments) {
           <div class="sm:col-span-2 lg:col-span-4">
@@ -229,7 +291,8 @@
     </section>
   </div>
 
-  <!-- Editar comentarios / ubicación (19 §1: los únicos campos mutables) -->
+  <!-- Editar la metadata logística (19 §1 + CP-2b): comentarios, prioridad y
+       fecha compromiso para todo el staff; ubicación solo owner/admin. -->
   <p-dialog
     header="Editar orden"
     [modal]="true"
@@ -241,6 +304,31 @@
       <div class="field-group">
         <label class="field-label" for="edit-comments">Comentarios</label>
         <textarea id="edit-comments" pTextarea formControlName="comments" rows="3"></textarea>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="edit-priority">Prioridad</label>
+        <p-select
+          inputId="edit-priority"
+          formControlName="priority"
+          [options]="priorityOptions"
+          optionLabel="label"
+          optionValue="value"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="edit-promised-date">Fecha compromiso</label>
+        <p-datepicker
+          inputId="edit-promised-date"
+          formControlName="promisedDate"
+          dateFormat="yy-mm-dd"
+          [readonlyInput]="true"
+          [showIcon]="true"
+          [iconDisplay]="'input'"
+          [showClear]="true"
+          placeholder="Sin compromiso"
+          appendTo="body"
+        />
+        <p class="field-hint">Quitarla retira el compromiso; el cambio queda en la actividad.</p>
       </div>
       @if (canEditLocation()) {
         <div class="field-group">
@@ -264,15 +352,47 @@
     (visibleChange)="completeOpen.set($event)"
     [style]="{ width: '26rem' }"
   >
-    <p class="text-sm">
-      La orden {{ order.folio }} se marcará como completada. Esta acción no se puede deshacer.
-    </p>
+    <p class="text-sm">La orden {{ order.folio }} se marcará como completada.</p>
+    @if (unfinishedWarning()) {
+      <p class="callout callout--warn mt-4">{{ unfinishedWarning() }}</p>
+    }
     <div class="mt-6 flex items-center justify-end gap-3">
       <button type="button" class="btn-secondary" (click)="completeOpen.set(false)">
         Cancelar
       </button>
       <button type="button" class="btn-primary" [disabled]="saving()" (click)="confirmComplete()">
         Completar
+      </button>
+    </div>
+  </p-dialog>
+
+  <!-- Reabrir (CP-2b) — la válvula de seguridad owner/admin para un Completar
+       equivocado; una orden cancelada es terminal y no aparece aquí. -->
+  <p-dialog
+    header="Reabrir orden"
+    [modal]="true"
+    [visible]="reopenOpen()"
+    (visibleChange)="reopenOpen.set($event)"
+    [style]="{ width: '28rem' }"
+  >
+    <p class="text-sm">
+      La orden {{ order.folio }} volverá a estar abierta y sus campos podrán editarse de nuevo.
+      Quedará registrado en la actividad.
+    </p>
+    <div class="field-group mt-4">
+      <label class="field-label" for="reopen-note">Motivo</label>
+      <textarea
+        id="reopen-note"
+        pTextarea
+        [formControl]="reopenNote"
+        rows="2"
+        placeholder="Opcional — queda en la actividad de la orden"
+      ></textarea>
+    </div>
+    <div class="mt-6 flex items-center justify-end gap-3">
+      <button type="button" class="btn-secondary" (click)="reopenOpen.set(false)">Volver</button>
+      <button type="button" class="btn-primary" [disabled]="saving()" (click)="confirmReopen()">
+        Reabrir
       </button>
     </div>
   </p-dialog>

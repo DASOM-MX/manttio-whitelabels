@@ -1,6 +1,6 @@
 # 19 — Service orders
 
-> **Status:** CP-1 merged (#107) · CP-2 built on `feature/superadmin-service-orders-ui` (PR open) · CP-2b planned 2026-07-29 · **Depends on:** 07 (client), 18 (catalog ✓ landed #102–#105), 20 (born from accepted quotations — *not yet built*), 06 (report explosion), 12 (visits — *not on main*) · **Hooks:** 08 (timeline), 09 (billing), 13 (contracts likely generate orders — ask)
+> **Status:** CP-1 merged (#107) · CP-2 merged (#114) · CP-2b built 2026-07-30 on `feature/fullstack-service-orders-dispatch` (DDL applied, PR pending) · **Depends on:** 07 (client), 18 (catalog ✓ landed #102–#105), 20 (born from accepted quotations — *not yet built*), 06 (report explosion), 12 (visits — *not on main*) · **Hooks:** 08 (timeline), 09 (billing), 13 (contracts likely generate orders — ask)
 > **Owner:** — · **Last updated:** 2026-07-29
 
 The **commercial job**: what was sold to whom, and everything operational that hangs
@@ -71,9 +71,10 @@ ServiceOrder {             // near-immutable — see mutability rules below
                            //   (one order per quote, ever).
   location?,               // service site/address (free text v1) — MUTABLE, but
                            //   owner/admin only (decided 2026-07-23)
-  priority,                // 'normal' | 'urgent' (CP-2b, decided 2026-07-29) —
-                           //   MUTABLE, any staff; the dispatch jump-the-queue
-                           //   flag. Two levels only, no severity ladder
+  priority,                // 'low'|'normal'|'medium'|'high'|'urgent' (CP-2b;
+                           //   ladder widened 2026-07-31, superseding the
+                           //   2026-07-29 two-level call) — MUTABLE, any
+                           //   staff; ranked low → urgent, default 'normal'
   promisedDate?,           // date-only "fecha compromiso" (CP-2b, decided
                            //   2026-07-29) — MUTABLE, any staff; drives the
                            //   `overdue` list filter
@@ -350,10 +351,13 @@ visits (2026-07-26 scope decision above).*
 fullstack PR. The customer-facing tracking link raised the same day is **deferred**
 until after CP-5 (it will reuse the handoff token machinery).*
 
-**Schema (DDL 0028, additive + idempotence-guarded, applied straight to the shared DB):**
+**Schema (DDL 0029 — planned as 0028, renumbered after #116 took that slot;
+additive + idempotence-guarded, applied to the shared DB 2026-07-30):**
 - `service_orders.priority` text NOT NULL default `'normal'` — TS enum
-  `ServiceOrderPriority { Normal = 'normal', Urgent = 'urgent' }`. Two levels only:
-  dispatch needs "jump the queue", not a severity ladder.
+  `ServiceOrderPriority`. ~~Two levels only~~ **Superseded 2026-07-31 (owner):**
+  a five-step ClickUp-style ladder `low | normal | medium | high | urgent`
+  (filled flag icons, baby-blue → red). No CHECK on the column, so the widening
+  was validator-only — no DDL beyond 0029.
 - `service_orders.promised_date` **date**, nullable — the "fecha compromiso" told to
   the client. Date-only on purpose: promises are day-granular, and a timestamptz
   would drag timezone math into every compare. Overdue = `open` AND
@@ -388,21 +392,22 @@ order's assignments are stale by design; prices resolve fresh from today's catal
 skipped with a toast naming how many. Directly serves 13's "future programmed
 maintenance = new orders".
 
-- [ ] DDL 0028 + model/enum/validator legs: `priority` + `promisedDate` on create,
+- [x] DDL 0029 + model/enum/validator legs: `priority` + `promisedDate` on create,
       PATCH (any-staff role split kept: `location` stays owner/admin) and the list
       filters `priority` / `overdue=true`; new event members
       `order_priority_changed` / `order_promise_changed` (TS-only — no DB CHECK)
-- [ ] Progress counts in the list + detail repository reads + DTOs
-- [ ] Reopen leg of the status endpoint (validator widens to `open`, service gates
-      the role, repository emits `order_status_changed`)
-- [ ] Superadmin: builder fields (priority select + fecha compromiso), list
+- [x] Progress counts in the list + detail repository reads + DTOs
+- [x] Reopen leg of the status endpoint (validator widens to `open`, service gates
+      the role, repository emits `order_status_changed`; office 403
+      `forbidden_reopen`)
+- [x] Superadmin: builder fields (priority select + fecha compromiso), list
       ("Urgente"/"Vencida" tags, Avance column, popover filters in the URL),
       edit-dialog fields, Reabrir (completed, owner/admin, confirm + motivo) and
       Duplicar actions, Completar-confirm warning
-- [ ] Tests: create defaults + roundtrip, PATCH events + closed-order 409
+- [x] Tests: create defaults + roundtrip, PATCH events + closed-order 409
       unchanged, `priority`/`overdue` filters, counts (explode → finish one →
-      `1/3`), reopen matrix (admin ok + PATCH works again / office 403 /
-      cancelled 409 / double-reopen 409)
+      `1/3`, cancel → voided rows leave both counts), reopen matrix (admin ok +
+      PATCH works again / office 403 / cancelled 409 / reopen-an-open-order 409)
 
 ### CP-3 — Calendar (closes 12 CP-1/CP-2 UI, immutable-record model)
 *Not a "rewire" any more (2026-07-26): PR #97 was closed unmerged, so CP-3 **builds** the
@@ -435,7 +440,8 @@ visits backend — `scheduled_visits` with `serviceOrderId` NOT NULL from birth,
 
 ## Open decisions / asks
 - **Decided 2026-07-29 — CP-2b dispatch polish** (full spec in the CP-2b checkpoint):
-  two-level `priority`; date-only `promisedDate` + `overdue=true` filter; list/detail
+  two-level `priority` (**widened 2026-07-31** to the five-step
+  `low`–`urgent` ladder — see the CP-2b schema note); date-only `promisedDate` + `overdue=true` filter; list/detail
   progress counts with cancelled reports excluded from the denominator; reopen
   `completed → open` (owner/admin, via the reserved `order_status_changed`;
   `cancelled` stays terminal); frontend-only Duplicar prefill that deliberately
