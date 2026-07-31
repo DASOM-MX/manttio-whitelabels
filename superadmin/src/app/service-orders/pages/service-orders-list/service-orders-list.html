@@ -72,6 +72,7 @@
         <th scope="col">Cliente</th>
         <th scope="col">Servicios</th>
         <th scope="col">Avance</th>
+        <th scope="col">Prioridad</th>
         <th scope="col">Estado</th>
         @if (showsMoney()) {
           <th scope="col" class="text-right">Total</th>
@@ -86,14 +87,25 @@
         <td class="font-data">{{ order.servicesCount }}</td>
         <td class="font-data">{{ order.progress }}</td>
         <td>
+          <span
+            class="inline-flex items-center gap-1.5 font-medium"
+            [class]="order.priority | serviceOrderPriorityLabelClass"
+          >
+            <svg
+              lucideFlag
+              class="size-4 shrink-0 fill-current"
+              [class]="order.priority | serviceOrderPriorityFlagClass"
+              aria-hidden="true"
+            ></svg>
+            {{ order.priority | serviceOrderPriorityLabel }}
+          </span>
+        </td>
+        <td>
           <div class="flex flex-wrap items-center gap-1">
             <p-tag
               [severity]="order.status | serviceOrderStatusSeverity"
               [value]="order.status | serviceOrderStatusLabel"
             />
-            @if (order.urgent) {
-              <p-tag severity="warn" value="Urgente" />
-            }
             @if (order.overdue) {
               <p-tag severity="danger" value="Vencida" />
             }
@@ -108,7 +120,7 @@
     <ng-template #loadingbody>
       @for (row of skeletonRows; track row) {
         <tr>
-          @for (col of [0, 1, 2, 3, 4, 5, 6]; track col) {
+          @for (col of [0, 1, 2, 3, 4, 5, 6, 7]; track col) {
             <td><div class="skeleton h-4"></div></td>
           }
         </tr>
@@ -116,7 +128,7 @@
     </ng-template>
     <ng-template #emptymessage>
       <tr>
-        <td colspan="7">
+        <td colspan="8">
           <div class="flex flex-col items-center gap-3 py-10 text-center">
             <span class="empty-icon">
               <svg lucideClipboardList class="size-5" aria-hidden="true"></svg>

@@ -3,6 +3,8 @@ import type { LucideIcon } from '@lucide/angular';
 import { SERVICE_ORDER_STATUS_LABELS } from '../model/constants/service-order/service-order-status-labels.const';
 import { SERVICE_ORDER_STATUS_SEVERITIES } from '../model/constants/service-order/service-order-status-severities.const';
 import { SERVICE_ORDER_PRIORITY_LABELS } from '../model/constants/service-order/service-order-priority-labels.const';
+import { SERVICE_ORDER_PRIORITY_FLAG_CLASSES } from '../model/constants/service-order/service-order-priority-flag-classes.const';
+import { SERVICE_ORDER_PRIORITY_LABEL_CLASSES } from '../model/constants/service-order/service-order-priority-label-classes.const';
 import { SERVICE_ORDER_EVENT_LABELS } from '../model/constants/service-order/service-order-event-labels.const';
 import { SERVICE_ORDER_EVENT_ICONS } from '../model/constants/service-order/service-order-event-icons.const';
 import { SERVICE_ORDER_EVENT_CHIP_CLASSES } from '../model/constants/service-order/service-order-event-chip-classes.const';
@@ -31,6 +33,20 @@ export class ServiceOrderStatusSeverityPipe implements PipeTransform {
 export class ServiceOrderPriorityLabelPipe implements PipeTransform {
   transform(priority: ServiceOrderPriority): string {
     return SERVICE_ORDER_PRIORITY_LABELS[priority];
+  }
+}
+
+@Pipe({ name: 'serviceOrderPriorityFlagClass' })
+export class ServiceOrderPriorityFlagClassPipe implements PipeTransform {
+  transform(priority: ServiceOrderPriority): string {
+    return SERVICE_ORDER_PRIORITY_FLAG_CLASSES[priority];
+  }
+}
+
+@Pipe({ name: 'serviceOrderPriorityLabelClass' })
+export class ServiceOrderPriorityLabelClassPipe implements PipeTransform {
+  transform(priority: ServiceOrderPriority): string {
+    return SERVICE_ORDER_PRIORITY_LABEL_CLASSES[priority];
   }
 }
 

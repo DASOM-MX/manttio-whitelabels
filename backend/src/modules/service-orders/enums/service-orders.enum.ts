@@ -12,11 +12,16 @@ export enum ServiceOrderStatus {
   Cancelled = 'cancelled',
 }
 
-/** Dispatch priority (CP-2b, decided 2026-07-29). Two levels only — the flag
- *  means "jump the queue", not a severity ladder; any staff may flip it while
- *  the order is open. */
+/** Dispatch priority (CP-2b; widened 2026-07-31 from the original two-level
+ *  flag to this five-step ladder — owner call, ClickUp-style scale). Ranked
+ *  low → urgent; `normal` stays the birth default, and the column carries no
+ *  CHECK, so the widening is validator-only — no DDL. Any staff may move it
+ *  while the order is open. */
 export enum ServiceOrderPriority {
+  Low = 'low',
   Normal = 'normal',
+  Medium = 'medium',
+  High = 'high',
   Urgent = 'urgent',
 }
 

@@ -6,7 +6,7 @@ import { TableModule } from 'primeng/table';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
-import { LucideClipboardList, LucidePlus } from '@lucide/angular';
+import { LucideClipboardList, LucideFlag, LucidePlus } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { ServiceOrdersState } from '../../../../state/service-orders/service-orders.state';
 import { LoadServiceOrders } from '../../../../state/service-orders/service-orders.actions';
@@ -16,6 +16,9 @@ import { hasRole } from '../../../guards/has-role.guard';
 import { SERVICE_ORDER_STATUS_LABELS } from '../../../model/constants/service-order/service-order-status-labels.const';
 import { SERVICE_ORDER_PRIORITY_LABELS } from '../../../model/constants/service-order/service-order-priority-labels.const';
 import {
+  ServiceOrderPriorityFlagClassPipe,
+  ServiceOrderPriorityLabelClassPipe,
+  ServiceOrderPriorityLabelPipe,
   ServiceOrderStatusLabelPipe,
   ServiceOrderStatusSeverityPipe,
 } from '../../../pipes/service-order.pipe';
@@ -45,12 +48,16 @@ import { ServiceOrderStatus } from '../../../model/enums/service-order/service-o
     SelectModule,
     InputTextModule,
     TagModule,
+    ServiceOrderPriorityFlagClassPipe,
+    ServiceOrderPriorityLabelClassPipe,
+    ServiceOrderPriorityLabelPipe,
     ServiceOrderStatusLabelPipe,
     ServiceOrderStatusSeverityPipe,
     MoneyPipe,
     FiltersPopover,
     PageHeader,
     LucideClipboardList,
+    LucideFlag,
     LucidePlus,
   ],
   providers: [ListQueryService],
@@ -72,12 +79,11 @@ export class ServiceOrdersList {
   protected showsMoney = computed(() => this.orders().some((o) => o.amounts !== undefined));
 
   /** Per-row dispatch decorations (CP-2b), resolved once per load so the
-   *  template reads plain fields: the Urgente/Vencida tags and the Avance
-   *  column (`—` when the order has no live reports at all). */
+   *  template reads plain fields: the Vencida tag and the Avance column
+   *  (`—` when the order has no live reports at all). */
   protected rows = computed(() =>
     this.orders().map((order) => ({
       ...order,
-      urgent: order.priority === ServiceOrderPriority.Urgent,
       overdue:
         order.status === ServiceOrderStatus.Open &&
         !!order.promisedDate &&

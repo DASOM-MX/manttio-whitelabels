@@ -71,9 +71,10 @@ ServiceOrder {             // near-immutable — see mutability rules below
                            //   (one order per quote, ever).
   location?,               // service site/address (free text v1) — MUTABLE, but
                            //   owner/admin only (decided 2026-07-23)
-  priority,                // 'normal' | 'urgent' (CP-2b, decided 2026-07-29) —
-                           //   MUTABLE, any staff; the dispatch jump-the-queue
-                           //   flag. Two levels only, no severity ladder
+  priority,                // 'low'|'normal'|'medium'|'high'|'urgent' (CP-2b;
+                           //   ladder widened 2026-07-31, superseding the
+                           //   2026-07-29 two-level call) — MUTABLE, any
+                           //   staff; ranked low → urgent, default 'normal'
   promisedDate?,           // date-only "fecha compromiso" (CP-2b, decided
                            //   2026-07-29) — MUTABLE, any staff; drives the
                            //   `overdue` list filter
@@ -353,8 +354,10 @@ until after CP-5 (it will reuse the handoff token machinery).*
 **Schema (DDL 0029 — planned as 0028, renumbered after #116 took that slot;
 additive + idempotence-guarded, applied to the shared DB 2026-07-30):**
 - `service_orders.priority` text NOT NULL default `'normal'` — TS enum
-  `ServiceOrderPriority { Normal = 'normal', Urgent = 'urgent' }`. Two levels only:
-  dispatch needs "jump the queue", not a severity ladder.
+  `ServiceOrderPriority`. ~~Two levels only~~ **Superseded 2026-07-31 (owner):**
+  a five-step ClickUp-style ladder `low | normal | medium | high | urgent`
+  (filled flag icons, baby-blue → red). No CHECK on the column, so the widening
+  was validator-only — no DDL beyond 0029.
 - `service_orders.promised_date` **date**, nullable — the "fecha compromiso" told to
   the client. Date-only on purpose: promises are day-granular, and a timestamptz
   would drag timezone math into every compare. Overdue = `open` AND
@@ -437,7 +440,8 @@ visits backend — `scheduled_visits` with `serviceOrderId` NOT NULL from birth,
 
 ## Open decisions / asks
 - **Decided 2026-07-29 — CP-2b dispatch polish** (full spec in the CP-2b checkpoint):
-  two-level `priority`; date-only `promisedDate` + `overdue=true` filter; list/detail
+  two-level `priority` (**widened 2026-07-31** to the five-step
+  `low`–`urgent` ladder — see the CP-2b schema note); date-only `promisedDate` + `overdue=true` filter; list/detail
   progress counts with cancelled reports excluded from the denominator; reopen
   `completed → open` (owner/admin, via the reserved `order_status_changed`;
   `cancelled` stays terminal); frontend-only Duplicar prefill that deliberately

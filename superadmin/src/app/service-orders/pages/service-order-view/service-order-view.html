@@ -6,7 +6,18 @@
         [value]="order.status | serviceOrderStatusLabel"
       />
       @if (isUrgent()) {
-        <p-tag severity="warn" value="Urgente" />
+        <span
+          class="inline-flex items-center gap-1.5 text-sm font-medium"
+          [class]="order.priority | serviceOrderPriorityLabelClass"
+        >
+          <svg
+            lucideFlag
+            class="size-4 shrink-0 fill-current"
+            [class]="order.priority | serviceOrderPriorityFlagClass"
+            aria-hidden="true"
+          ></svg>
+          {{ order.priority | serviceOrderPriorityLabel }}
+        </span>
       }
       @if (isOverdue()) {
         <p-tag severity="danger" value="Vencida" />
@@ -70,7 +81,20 @@
         </div>
         <div>
           <dt class="micro-label">Prioridad</dt>
-          <dd class="mt-1 text-sm">{{ order.priority | serviceOrderPriorityLabel }}</dd>
+          <dd class="mt-1">
+            <span
+              class="inline-flex items-center gap-1.5 text-sm font-medium"
+              [class]="order.priority | serviceOrderPriorityLabelClass"
+            >
+              <svg
+                lucideFlag
+                class="size-4 shrink-0 fill-current"
+                [class]="order.priority | serviceOrderPriorityFlagClass"
+                aria-hidden="true"
+              ></svg>
+              {{ order.priority | serviceOrderPriorityLabel }}
+            </span>
+          </dd>
         </div>
         <div>
           <dt class="micro-label">Fecha compromiso</dt>

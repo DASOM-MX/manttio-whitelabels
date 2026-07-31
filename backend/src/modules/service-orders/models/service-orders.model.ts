@@ -51,8 +51,9 @@ export const serviceOrders = pgTable(
     // Service site. Free text in v1; owner/admin may edit it after creation,
     // office may not (19 §3).
     location: text('location'),
-    // Dispatch flag (CP-2b): normal | urgent, any staff may flip it while the
-    // order is open. Logistics metadata, not commercial core.
+    // Dispatch priority (CP-2b; ladder widened 2026-07-31): low → urgent, any
+    // staff may move it while the order is open. Logistics metadata, not
+    // commercial core.
     priority: text('priority')
       .$type<ServiceOrderPriority>()
       .notNull()
