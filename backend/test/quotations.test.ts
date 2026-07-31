@@ -1148,3 +1148,66 @@ describe('quotations — line model v2 vs the convergence (20 CP-3 PR-A)', () =>
     expect((await json<{ error: string }>(denied)).error).toBe('quotation_line_not_convertible');
   });
 });
+
+describe('quotations — approval page + PDF (20 CP-3 PR-B)', () => {
+  test('a browser gets the approval page on the same route; API callers keep the JSON', async () => {
+    const { quote, token, contact } = await scenario();
+    const { tokenFor } = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: true },
+    ]);
+    const t = tokenFor(contact.id);
+
+    const html = await request(`/public/quotations/${t}`, { headers: { accept: 'text/html' } });
+    expect(html.status).toBe(200);
+    expect(html.headers.get('content-type')).toContain('text/html');
+    const page = await html.text();
+    expect(page).toContain(quote.folio);
+    // A reviewer on a live quote gets the form…
+    expect(page).toContain('Aprobar');
+
+    // …and the CP-1 JSON contract survives on the same URL.
+    const asJson = await json<PublicView>(await request(`/public/quotations/${t}`));
+    expect(asJson.folio).toBe(quote.folio);
+  });
+
+  test('the form path records a response and redirects (PRG); a decline without reason bounces', async () => {
+    const { quote, token, contact } = await scenario();
+    const { tokenFor } = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: true },
+    ]);
+    const t = tokenFor(contact.id);
+    const form = (fields: Record<string, string>) =>
+      request(`/public/quotations/${t}/respond`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(fields).toString(),
+      });
+
+    const missing = await form({ response: QuotationResponse.Declined });
+    expect(missing.status).toBe(303);
+    expect(missing.headers.get('location')).toContain('e=reason_required');
+
+    const ok = await form({ response: QuotationResponse.Approved });
+    expect(ok.status).toBe(303);
+    const after = await json<PublicView>(await request(`/public/quotations/${t}`));
+    expect(after.viewer.response).toBe(QuotationResponse.Approved);
+  });
+
+  test('sends attach the cotización PDF and the token serves the same document', async () => {
+    const { quote, token, contact } = await scenario({ price: 1500, quantity: '2' });
+    const { tokenFor } = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: true },
+    ]);
+
+    // The mailed payload carries the document, not just the link (20 §4).
+    const mailed = allResendSends().find((s) => s.subject.includes(quote.folio));
+    expect(mailed?.attachments?.[0]?.filename).toBe(`${quote.folio}.pdf`);
+    expect((mailed?.attachments?.[0]?.content ?? '').length).toBeGreaterThan(1000);
+
+    const res = await request(`/public/quotations/${tokenFor(contact.id)}/pdf`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('application/pdf');
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    expect(String.fromCharCode(...bytes.slice(0, 5))).toBe('%PDF-');
+  });
+});
