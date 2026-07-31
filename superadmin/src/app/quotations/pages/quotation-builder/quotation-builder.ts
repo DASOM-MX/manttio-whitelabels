@@ -23,6 +23,7 @@ import { LoadCustomers } from '../../../../state/customers/customers.actions';
 import { ServicesState } from '../../../../state/services/services.state';
 import { LoadServices } from '../../../../state/services/services.actions';
 import { QuotationTotalsService } from '../../../services/quotations/quotation-totals.service';
+import { QuotationsService } from '../../../services/http/quotations.service';
 import { QuotationStatus } from '../../../model/enums/quotation/quotation-status.enum';
 import { SERVICE_TAX_RATE_LABELS } from '../../../model/constants/services/service-tax-rate-labels.const';
 import { SERVICE_UOM_GROUPS } from '../../../model/constants/services/service-uom-groups.const';
@@ -92,12 +93,18 @@ export class QuotationBuilder implements HasPendingChanges {
   private router = inject(Router);
   private messages = inject(MessageService);
   private totalsService = inject(QuotationTotalsService);
+  private quotationsService = inject(QuotationsService);
 
   private customers = select(CustomersState.items);
   private services = select(ServicesState.items);
   protected quotation = select(QuotationsState.selected);
 
   protected readonly editingId = this.route.snapshot.paramMap.get('id');
+  /** Duplicar (PR-C, order-builder precedent): `?from=<id>` prefills from the
+   *  source quote — a plain create afterwards, so the copy is born independent
+   *  and catalog lines re-price server-side on save. */
+  private readonly duplicateFromId = this.route.snapshot.queryParamMap.get('from');
+  protected sourceFolio = signal<string | null>(null);
   protected submitting = signal(false);
   /** The draft was loaded and turned out not to be a draft. */
   protected notEditable = signal(false);
@@ -200,7 +207,69 @@ export class QuotationBuilder implements HasPendingChanges {
     this.store.dispatch(new LoadCustomers({ page: 1, limit: 100 }));
     this.store.dispatch(new LoadServices({}));
     if (this.editingId) this.loadDraft(this.editingId);
-    else this.addLine(true);
+    else if (this.duplicateFromId) this.loadFrom(this.duplicateFromId);
+    else {
+      this.addLine(true);
+      this.prefillDefaultTerms();
+    }
+  }
+
+  /** Tenant default terms (PR-C) — prefilled only into a blank new quote;
+   *  programmatic setValue keeps the form pristine, so the guard stays quiet. */
+  private prefillDefaultTerms(): void {
+    this.quotationsService.getSettings().subscribe({
+      next: ({ defaultComments }) => {
+        if (defaultComments && !this.form.controls.comments.value) {
+          this.form.controls.comments.setValue(defaultComments, { emitEvent: false });
+        }
+      },
+      // Best-effort: a blank Términos is not worth an error toast.
+      error: () => {},
+    });
+  }
+
+  /** Duplicar prefill: client stays editable (a clone may target another
+   *  client), a past validity comes back empty so a stale date can't ship by
+   *  inertia, and the whole prefill stays pristine — scaffolding, not work. */
+  private loadFrom(id: string): void {
+    this.quotationsService.get(id).subscribe({
+      next: (source) => {
+        this.sourceFolio.set(source.folio);
+        const today = new Date();
+        const validUntil = new Date(`${source.validUntil}T00:00:00`);
+        this.form.patchValue({
+          customerId: source.customerId,
+          validUntil: validUntil >= today ? validUntil : null,
+          comments: source.comments ?? '',
+        });
+        this.lines.clear();
+        for (const line of source.lines) {
+          const offCatalog = !line.serviceId;
+          this.lines.push(
+            this.buildLineGroup({
+              offCatalog,
+              serviceId: line.serviceId ?? '',
+              name: offCatalog ? line.serviceName : '',
+              unitPrice: offCatalog ? Number(line.unitPrice) : null,
+              uom: offCatalog ? line.uom : null,
+              taxRate: offCatalog ? line.taxRate : null,
+              quantity: Number(line.quantity),
+              description: line.description ?? '',
+              discountAmount: Number(line.discountAmount),
+            }),
+          );
+        }
+        this.form.markAsPristine();
+      },
+      error: (err) => {
+        this.addLine(true);
+        this.messages.add({
+          severity: 'error',
+          summary: 'No se pudo cargar la cotización a duplicar',
+          detail: errorMessage(err, 'Se abrió una cotización en blanco.'),
+        });
+      },
+    });
   }
 
   hasPendingChanges(): boolean {

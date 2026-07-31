@@ -10,5 +10,7 @@ export enum QuotationEventType {
   StatusDerived = 'quotation_status_derived',
   OrderCreated = 'quotation_order_created',
   Cancelled = 'quotation_cancelled',
+  /** A pending reviewer was nudged — same token, reminder email (PR-C). */
+  ReminderSent = 'quotation_reminder_sent',
   Deleted = 'quotation_deleted',
 }

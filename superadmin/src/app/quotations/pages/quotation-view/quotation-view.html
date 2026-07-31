@@ -36,6 +36,10 @@
         Cancelar
       </button>
     }
+    <a [routerLink]="['/quotations', 'new']" [queryParams]="{ from: q.id }" class="btn-neutral">
+      <svg lucideCopy class="size-4" aria-hidden="true"></svg>
+      Duplicar
+    </a>
     @if (canDelete()) {
       <button type="button" class="btn-danger" (click)="openDelete()">
         <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
@@ -206,6 +210,7 @@
                   <th scope="col">Abrió</th>
                   <th scope="col">Respondió</th>
                   <th scope="col">Motivo</th>
+                  <th scope="col"><span class="sr-only">Acciones</span></th>
                 </tr>
               </ng-template>
               <ng-template #body let-recipient>
@@ -227,11 +232,27 @@
                   <td class="text-sm text-surface-600 dark:text-surface-400">
                     {{ recipient.responseReason || '—' }}
                   </td>
+                  <td>
+                    <!-- Same token, reminder email — only while an answer can
+                         still land and only for reviewers who haven't. -->
+                    @if (canRemind() && recipient.isReviewer && !recipient.response) {
+                      <button
+                        type="button"
+                        class="row-action"
+                        [disabled]="remindingId() === recipient.contactId"
+                        (click)="remind(recipient.contactId)"
+                        [attr.aria-label]="'Recordar a ' + recipient.email"
+                        [attr.title]="'Enviar recordatorio'"
+                      >
+                        <svg lucideBellRing class="size-4" aria-hidden="true"></svg>
+                      </button>
+                    }
+                  </td>
                 </tr>
               </ng-template>
               <ng-template #emptymessage>
                 <tr class="p-datatable-emptymessage">
-                  <td colspan="6">Todavía no se ha enviado a nadie.</td>
+                  <td colspan="7">Todavía no se ha enviado a nadie.</td>
                 </tr>
               </ng-template>
             </p-table>

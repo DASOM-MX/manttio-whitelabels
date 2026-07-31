@@ -2,6 +2,7 @@ import type { Context } from 'hono';
 import type { AppBindings } from '../../../env';
 import type {
   InvalidRecipientError,
+  QuotationReminderNotApplicableError,
   QuotationClosedError,
   QuotationDiscountTooLargeError,
   QuotationServiceNotFoundError,
@@ -75,6 +76,23 @@ export const badRecipientResponse = (c: Context<AppBindings>, err: InvalidRecipi
       contactId: err.contactId,
     },
     400,
+  );
+
+/** A reminder only makes sense at a pending reviewer. */
+export const reminderNotApplicableResponse = (
+  c: Context<AppBindings>,
+  err: QuotationReminderNotApplicableError,
+) =>
+  c.json(
+    {
+      error: 'reminder_not_applicable',
+      message:
+        err.reason === 'responded'
+          ? 'Ese contacto ya respondió; no hay nada que recordarle.'
+          : 'Ese contacto recibió una copia informativa; no tiene nada que aprobar.',
+      reason: err.reason,
+    },
+    409,
   );
 
 // --- public token surface (20 §4) -----------------------------------------

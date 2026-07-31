@@ -1,0 +1,43 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!saving()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="dialog-md"
+  header="Términos predeterminados"
+>
+  <form [formGroup]="form" (ngSubmit)="save()" class="grid gap-4">
+    <div class="field-group">
+      <label class="field-label" for="quotation-default-terms">Términos y condiciones</label>
+      @if (loading()) {
+        <span class="skeleton !min-h-24"></span>
+      } @else {
+        <textarea
+          id="quotation-default-terms"
+          pTextarea
+          formControlName="defaultComments"
+          rows="6"
+          placeholder="Tiempos de entrega, forma de pago, qué incluye y qué no…"
+        ></textarea>
+      }
+      <p class="field-hint">
+        Se precargan en cada cotización nueva; siempre puedes ajustarlos por cotización.
+      </p>
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <button type="button" class="btn-neutral" (click)="close()" [disabled]="saving()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn-primary" [disabled]="saving() || loading()">
+        @if (saving()) {
+          Guardando…
+        } @else {
+          Guardar
+        }
+      </button>
+    </div>
+  </form>
+</p-dialog>

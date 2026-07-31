@@ -1,7 +1,7 @@
 # 20 — Quotations (cotizaciones)
 
 > **Status:** CP-1 + CP-2 built (backend + superadmin UI; **`/order` convergence landed 2026-07-27** with 19 CP-1 — see CP-1) · **Depends on:** 07 (client + contacts), 18 (catalog + `taxRate`), `email/` + `pdf/` modules · **Feeds:** 19 (staff create a service order from an approved quote) · **Hooks:** 08 (CRM interaction), 09 (billing)
-> **Owner:** — · **Last updated:** 2026-07-29
+> **Owner:** — · **Last updated:** 2026-07-31
 
 The **sales entry point** and the convergence of 18 and 19: a quotation is built from
 catalog services (18), mailed to the client's reviewer-contacts (07) who approve/decline
@@ -389,13 +389,22 @@ gate + override.
       (`?e=` codes render the banner). Refinement over "replaces the GET": the same
       route **content-negotiates** — browsers (`Accept: text/html`) get the page, API
       callers keep the CP-1 JSON — so mailed links upgraded without breaking either.
-**PR-C — sales follow-through:**
-- [ ] Default terms & conditions (tenant-level, prefilled into the builder — storage
-      design in-PR)
-- [ ] Duplicar (clone as a fresh independent draft — revise cancels, duplicate doesn't)
-- [ ] Reviewer reminder (same token, reminder email, timeline event)
-- [ ] "Por vencer / vencidas" list filter
-- [ ] CRM hook (08): sent/responded auto-log a `customer_interaction`
+**PR-C — sales follow-through** — [x] built 2026-07-31:
+- [x] Default terms & conditions: `quotation_settings` singleton (migration `0030`),
+      `GET`/`PUT /quotations/settings` (read office+, write owner/admin, registered
+      before `/:id`), owner/admin "Términos" dialog on the list, prefilled into a blank
+      new quote (programmatic set — the dirty guard stays quiet)
+- [x] Duplicar — **no endpoint** (order-builder precedent, 19 CP-2b): the view's button
+      opens `/quotations/new?from=<id>`; the builder prefills (client editable, past
+      validity cleared, lines incl. off-catalog + discounts) and a plain create births
+      an independent quote with today's catalog prices
+- [x] Reviewer reminder: `POST /:id/remind {contactId}` — same token, "Recordatorio:"
+      subject, `quotation_reminder_sent` event; named 409s for informational/answered
+      recipients, expired or resolved quotes; per-row bell on the recipients tab
+- [x] "Por vencer / vencidas": `due=soon|overdue` (live quotes only — an expired
+      cancelled quote is trivia), Vigencia select in the filters popover, URL-persisted
+- [x] CRM hook (08): send + reviewer response insert `customer_interactions` `system`
+      rows (`refKind: quotation`) **inside the same transaction** as the mutation
 
 ### CP-4 — Polish
 - [ ] Revise chain UI; Crear orden (comment + gate) / Cancelar (comment) from the view;

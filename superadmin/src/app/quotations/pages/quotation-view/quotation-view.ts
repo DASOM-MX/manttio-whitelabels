@@ -6,6 +6,8 @@ import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import {
+  LucideBellRing,
+  LucideCopy,
   LucideDynamicIcon,
   LucidePencil,
   LucideRefreshCw,
@@ -45,6 +47,7 @@ import {
   QuotationEventIconPipe,
   QuotationEventLabelPipe,
 } from '../../../pipes/quotation-event.pipe';
+import { QuotationsService } from '../../../services/http/quotations.service';
 import { SendQuotationDialog } from '../../components/send-quotation-dialog/send-quotation-dialog';
 import { CancelQuotationDialog } from '../../components/cancel-quotation-dialog/cancel-quotation-dialog';
 import { DeleteQuotationDialog } from '../../components/delete-quotation-dialog/delete-quotation-dialog';
@@ -87,6 +90,8 @@ import { errorMessage } from '../../../data/utils';
     CancelQuotationDialog,
     DeleteQuotationDialog,
     PageHeader,
+    LucideBellRing,
+    LucideCopy,
     LucidePencil,
     LucideRefreshCw,
     LucideSend,
@@ -101,6 +106,7 @@ export class QuotationView {
   private router = inject(Router);
   private messages = inject(MessageService);
   private confirmation = inject(ConfirmationService);
+  private quotationsService = inject(QuotationsService);
 
   protected quotation = select(QuotationsState.selected);
   protected loadFailed = select(QuotationsState.selectedError);
@@ -128,6 +134,22 @@ export class QuotationView {
   /** Delete is admin-tier: office can retire a quote with Cancelar (a decision
    *  the client may still be shown) but not remove it from the tenant's lists. */
   protected canDelete = computed(() => hasRole(this.me(), ['owner', 'admin']));
+
+  /** Reminders only make sense while an answer can still land: sent (not a
+   *  draft), still live, not past its date. Per-row eligibility (pending
+   *  reviewer) is checked in the template off the recipient itself. */
+  protected canRemind = computed(() => {
+    const quotation = this.quotation();
+    return (
+      !!quotation &&
+      quotation.status !== QuotationStatus.Draft &&
+      QUOTATION_LIVE_STATUSES.includes(quotation.status) &&
+      !quotation.isOverdue
+    );
+  });
+
+  /** The contact whose reminder is in flight — disables just that row's bell. */
+  protected remindingId = signal<string | null>(null);
 
   protected readonly skeletonRows = [0, 1, 2];
 
@@ -191,6 +213,27 @@ export class QuotationView {
               summary: 'No se pudo revisar',
               detail: errorMessage(err, 'Inténtalo de nuevo.'),
             }),
+        });
+      },
+    });
+  }
+
+  protected remind(contactId: string): void {
+    const quotation = this.quotation();
+    if (!quotation || this.remindingId()) return;
+    this.remindingId.set(contactId);
+    this.quotationsService.remind(quotation.id, contactId).subscribe({
+      next: ({ email }) => {
+        this.remindingId.set(null);
+        this.messages.add({ severity: 'success', summary: `Recordatorio enviado a ${email}` });
+        this.store.dispatch(new LoadQuotationTimeline(quotation.id));
+      },
+      error: (err) => {
+        this.remindingId.set(null);
+        this.messages.add({
+          severity: 'error',
+          summary: 'No se pudo enviar el recordatorio',
+          detail: errorMessage(err, 'Inténtalo de nuevo.'),
         });
       },
     });

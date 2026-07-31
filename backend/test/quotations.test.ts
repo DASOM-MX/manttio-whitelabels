@@ -9,7 +9,7 @@ import {
   seedTechnicianAndLogin,
   uniqueServiceName,
 } from './helpers/fixtures';
-import { allResendSends, mockResend } from './helpers/resend';
+import { allResendSends, lastResendSend, mockResend } from './helpers/resend';
 import { createDb } from '../src/modules/database/client';
 import { quotations, reports, serviceOrders } from '../src/modules/database/schema';
 import { ServiceTaxRate, ServiceUom } from '../src/modules/services/enums/services.enum';
@@ -1209,5 +1209,122 @@ describe('quotations — approval page + PDF (20 CP-3 PR-B)', () => {
     expect(res.headers.get('content-type')).toBe('application/pdf');
     const bytes = new Uint8Array(await res.arrayBuffer());
     expect(String.fromCharCode(...bytes.slice(0, 5))).toBe('%PDF-');
+  });
+});
+
+describe('quotations — sales follow-through (20 CP-3 PR-C)', () => {
+  test('tenant default terms round-trip; office reads but cannot write', async () => {
+    const { token } = await seedOwnerAndLogin();
+    // Shared demo DB: capture whatever the tenant had and put it back after.
+    const before = await json<{ defaultComments: string }>(
+      await request('/quotations/settings', { headers: jsonHeaders(token) }),
+    );
+    try {
+      const put = await request('/quotations/settings', {
+        method: 'PUT',
+        headers: jsonHeaders(token),
+        body: JSON.stringify({ defaultComments: 'Precios en MXN. Anticipo del 50%.' }),
+      });
+      expect(put.status).toBe(200);
+      const read = await json<{ defaultComments: string }>(
+        await request('/quotations/settings', { headers: jsonHeaders(token) }),
+      );
+      expect(read.defaultComments).toBe('Precios en MXN. Anticipo del 50%.');
+
+      const { token: officeToken } = await seedOfficeAndLogin();
+      expect(
+        (
+          await request('/quotations/settings', {
+            method: 'PUT',
+            headers: jsonHeaders(officeToken),
+            body: JSON.stringify({ defaultComments: 'x' }),
+          })
+        ).status,
+      ).toBe(403);
+      expect((await request('/quotations/settings', { headers: jsonHeaders(officeToken) })).status).toBe(
+        200,
+      );
+    } finally {
+      await request('/quotations/settings', {
+        method: 'PUT',
+        headers: jsonHeaders(token),
+        body: JSON.stringify({ defaultComments: before.defaultComments }),
+      });
+    }
+  });
+
+  test('reminder: pending reviewer gets a Recordatorio; informational and answered refuse', async () => {
+    const { quote, token, contact, customer } = await scenario();
+    const other = await seedContact(customer.id, {});
+    const { tokenFor } = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: true },
+      { contactId: other.id, isReviewer: false },
+    ]);
+
+    const remind = (contactId: string) =>
+      post(token, `/quotations/${quote.id}/remind`, { contactId });
+
+    expect((await remind(contact.id)).status).toBe(200);
+    expect(lastResendSend()?.subject).toContain('Recordatorio');
+    const events = await json<TimelineEvent[]>(
+      await request(`/quotations/${quote.id}/timeline`, { headers: jsonHeaders(token) }),
+    );
+    expect(events.some((e) => e.type === QuotationEventType.ReminderSent)).toBe(true);
+
+    // Nothing to answer / nothing pending — both named 409s.
+    expect((await remind(other.id)).status).toBe(409);
+    const answer = await post('', `/public/quotations/${tokenFor(contact.id)}/respond`, {
+      response: QuotationResponse.Approved,
+    });
+    expect(answer.status).toBe(200);
+    expect((await remind(contact.id)).status).toBe(409);
+  });
+
+  test('due filter: overdue and soon are live-only vigencia lenses', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const customer = await seedCustomer();
+    const service = await makeService(token);
+    const mk = async (validUntil: string) => {
+      const res = await createQuote(token, {
+        customerId: customer.id,
+        validUntil,
+        lines: [{ serviceId: service.id, quantity: '1' }],
+      });
+      const quote = await json<Quotation>(res);
+      created.push(quote.id);
+      return quote;
+    };
+    const overdue = await mk(dayOffset(-2));
+    const fresh = await mk(dayOffset(3));
+
+    const list = async (due: string) =>
+      (
+        await json<{ items: Quotation[] }>(
+          await request(`/quotations?due=${due}&customerId=${customer.id}`, {
+            headers: jsonHeaders(token),
+          }),
+        )
+      ).items.map((q) => q.id);
+    expect(await list('overdue')).toContain(overdue.id);
+    expect(await list('overdue')).not.toContain(fresh.id);
+    expect(await list('soon')).toContain(fresh.id);
+    expect(await list('soon')).not.toContain(overdue.id);
+  });
+
+  test('send and reviewer response write system entries on the client timeline (08 hook)', async () => {
+    const { quote, token, contact, customer } = await scenario();
+    const { tokenFor } = await sendAndGetTokens(token, quote.id, [
+      { contactId: contact.id, isReviewer: true },
+    ]);
+    await post('', `/public/quotations/${tokenFor(contact.id)}/respond`, {
+      response: QuotationResponse.Approved,
+    });
+
+    const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
+    const rows = await db.query.customerInteractions.findMany({
+      where: (i, { and: all, eq }) => all(eq(i.customerId, customer.id), eq(i.refId, quote.id)),
+    });
+    expect(rows.some((r) => r.body.includes('enviada'))).toBe(true);
+    expect(rows.some((r) => r.body.includes('aprobó'))).toBe(true);
   });
 });

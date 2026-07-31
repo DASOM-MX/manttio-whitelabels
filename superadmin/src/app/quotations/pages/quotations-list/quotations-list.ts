@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -6,9 +6,12 @@ import { TableModule } from 'primeng/table';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
-import { LucideFileSpreadsheet, LucidePlus } from '@lucide/angular';
+import { LucideFileSpreadsheet, LucidePlus, LucideSettings2 } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { QuotationsState } from '../../../../state/quotations/quotations.state';
+import { AuthState } from '../../../../state/auth/auth.state';
+import { hasRole } from '../../../guards/has-role.guard';
+import { QuotationSettingsDialog } from '../../components/quotation-settings-dialog/quotation-settings-dialog';
 import { LoadQuotations } from '../../../../state/quotations/quotations.actions';
 import { CustomersState } from '../../../../state/customers/customers.state';
 import { LoadCustomers } from '../../../../state/customers/customers.actions';
@@ -51,8 +54,10 @@ import type { QuotationSummary } from '../../../data/dtos/quotation/quotation';
     QuotationTallyPipe,
     FiltersPopover,
     PageHeader,
+    QuotationSettingsDialog,
     LucidePlus,
     LucideFileSpreadsheet,
+    LucideSettings2,
   ],
   providers: [ListQueryService],
   templateUrl: './quotations-list.html',
@@ -70,6 +75,18 @@ export class QuotationsList {
   protected search = new FormControl('', { nonNullable: true });
   protected statusFilter = new FormControl<QuotationStatus | ''>('', { nonNullable: true });
   protected customerFilter = new FormControl('', { nonNullable: true });
+  protected dueFilter = new FormControl<'' | 'soon' | 'overdue'>('', { nonNullable: true });
+
+  private me = select(AuthState.me);
+  /** The default terms speak for the tenant — owner/admin edit them. */
+  protected canEditSettings = computed(() => hasRole(this.me(), ['owner', 'admin']));
+  protected settingsDialog = viewChild<QuotationSettingsDialog>('settingsDialog');
+
+  protected readonly dueOptions = [
+    { label: 'Todas las vigencias', value: '' },
+    { label: 'Por vencer (7 días)', value: 'soon' },
+    { label: 'Vencidas', value: 'overdue' },
+  ];
 
   protected statusOptions = [
     { label: 'Todos los estados', value: '' },
@@ -95,17 +112,22 @@ export class QuotationsList {
           emitEvent: false,
         });
         this.customerFilter.setValue(params.get('customerId') ?? '', { emitEvent: false });
+        const due = params.get('due');
+        this.dueFilter.setValue(due === 'soon' || due === 'overdue' ? due : '', {
+          emitEvent: false,
+        });
       },
       write: () => ({
         q: this.search.value || null,
         status: this.statusFilter.value || null,
         customerId: this.customerFilter.value || null,
+        due: this.dueFilter.value || null,
       }),
       load: (page) => this.store.dispatch(new LoadQuotations(this.query(page))),
     });
     this.list.bindFilters({
       debounced: [this.search],
-      instant: [this.statusFilter, this.customerFilter],
+      instant: [this.statusFilter, this.customerFilter, this.dueFilter],
     });
   }
 
@@ -116,7 +138,12 @@ export class QuotationsList {
       q: this.search.value || undefined,
       status: this.statusFilter.value || undefined,
       customerId: this.customerFilter.value || undefined,
+      due: this.dueFilter.value || undefined,
     };
+  }
+
+  protected openSettings(): void {
+    this.settingsDialog()?.open();
   }
 
   protected openQuotation(quotation: QuotationSummary): void {

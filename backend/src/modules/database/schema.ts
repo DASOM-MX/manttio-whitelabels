@@ -38,6 +38,7 @@ export { notifications } from '../notifications/models/notifications.model';
 export { services } from '../services/models/services.model';
 export { serviceEvents } from '../services/models/service-events.model';
 export { quotations, quotationCounters } from '../quotations/models/quotations.model';
+export { quotationSettings } from '../quotations/models/quotation-settings.model';
 export { quotationLines } from '../quotations/models/quotation-lines.model';
 export { quotationRecipients } from '../quotations/models/quotation-recipients.model';
 export { quotationEvents } from '../quotations/models/quotation-events.model';

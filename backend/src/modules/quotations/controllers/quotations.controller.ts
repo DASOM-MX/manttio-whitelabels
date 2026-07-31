@@ -6,9 +6,11 @@ import { createDb } from '../../database/client';
 import { requireRole } from '../../auth/middleware/roles.middleware';
 import {
   InvalidRecipientError,
+  QuotationClosedError,
   QuotationDiscountTooLargeError,
   QuotationNotDraftError,
   QuotationNotLiveError,
+  QuotationReminderNotApplicableError,
   QuotationServiceNotFoundError,
 } from '../http-errors/quotations.error';
 import {
@@ -16,6 +18,7 @@ import {
   discountTooLargeResponse,
   notDraftResponse,
   notLiveResponse,
+  reminderNotApplicableResponse,
   serviceGoneResponse,
 } from '../http-errors/quotations.responses';
 import {
@@ -24,6 +27,8 @@ import {
   createQuotationSchema,
   deleteQuotationSchema,
   listQuotationsQuerySchema,
+  quotationSettingsSchema,
+  remindQuotationSchema,
   sendQuotationSchema,
   updateQuotationSchema,
 } from '../validators/quotations.validator';
@@ -43,7 +48,10 @@ import {
   getQuotationById,
   getQuotationTimeline,
   getQuotations,
+  getSettings,
+  remindReviewer,
   removeQuotation,
+  saveSettings,
   reviseQuotation,
   sendQuotation,
 } from '../services/quotations.service';
@@ -66,6 +74,26 @@ quotations.get(
   async (c) => {
     const db = createDb(c.env.DATABASE_URL);
     return c.json(await getQuotations(db, c.req.valid('query')));
+  },
+);
+
+// Registered before '/:id': 'settings' is a literal segment and must never be
+// read as a quotation id (Hono's trie prefers statics, but explicit order
+// keeps that true under any router).
+quotations.get('/settings', requireRole(['owner', 'admin', 'office']), async (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  return c.json(await getSettings(db));
+});
+
+// Writes are owner/admin: the default terms speak for the tenant on every
+// quote that leaves the building.
+quotations.put(
+  '/settings',
+  requireRole(['owner', 'admin']),
+  zValidator('json', quotationSettingsSchema),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    return c.json(await saveSettings(db, c.req.valid('json').defaultComments, c.get('user').id));
   },
 );
 
@@ -146,6 +174,44 @@ quotations.post(
     } catch (err) {
       if (err instanceof QuotationNotLiveError) return notLiveResponse(c);
       if (err instanceof InvalidRecipientError) return badRecipientResponse(c, err);
+      throw err;
+    }
+  },
+);
+
+// Nudge one pending reviewer (PR-C) — same token, reminder email, own
+// timeline entry. 409s name what's wrong instead of pretending it went out.
+quotations.post(
+  '/:id/remind',
+  requireRole(['owner', 'admin', 'office']),
+  zValidator('json', remindQuotationSchema),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    try {
+      const result = await remindReviewer(
+        db,
+        c.env,
+        c.req.param('id'),
+        c.req.valid('json').contactId,
+        c.get('user').id,
+      );
+      if (!result) return c.json({ error: 'not_found' }, 404);
+      return c.json(result);
+    } catch (err) {
+      if (err instanceof QuotationNotLiveError) return notLiveResponse(c);
+      if (err instanceof QuotationClosedError) {
+        return c.json(
+          {
+            error: 'quotation_closed',
+            message: 'La cotización ya venció — revísala para poder recordar a los revisores.',
+          },
+          409,
+        );
+      }
+      if (err instanceof InvalidRecipientError) return badRecipientResponse(c, err);
+      if (err instanceof QuotationReminderNotApplicableError) {
+        return reminderNotApplicableResponse(c, err);
+      }
       throw err;
     }
   },

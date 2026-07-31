@@ -4,10 +4,13 @@ import { customers } from '../../customers/models/customers.model';
 import { customerContacts } from '../../customers/models/customer-contacts.model';
 import { users } from '../../users/models/users.model';
 import { quotationCounters, quotations } from '../models/quotations.model';
+import { quotationSettings } from '../models/quotation-settings.model';
+import { customerInteractions } from '../../customers/models/customer-interactions.model';
+import { InteractionRefKind, InteractionType } from '../../customers/enums/interactions.enum';
 import { quotationLines } from '../models/quotation-lines.model';
 import { quotationRecipients } from '../models/quotation-recipients.model';
 import { quotationEvents } from '../models/quotation-events.model';
-import { QuotationEventRefKind, QuotationEventType, QuotationStatus } from '../enums/quotations.enum';
+import { LIVE_STATUSES, QuotationEventRefKind, QuotationEventType, QuotationStatus } from '../enums/quotations.enum';
 import { folioDayKey, formatQuotationFolio } from '../utils/quotation-folio';
 import type { QuotationTally } from '../utils/quotation-status';
 import type {
@@ -240,13 +243,32 @@ export const listRecipientsForQuotations = async (
 
 export const listQuotations = async (
   db: Db,
-  filters: { search?: string; customerId?: string; status?: QuotationStatus },
+  filters: {
+    search?: string;
+    customerId?: string;
+    status?: QuotationStatus;
+    due?: 'soon' | 'overdue';
+  },
   page: number,
   limit: number,
 ): Promise<{ items: { quotation: QuotationRow; customerName: string }[]; total: number }> => {
   const conds = [activeFilter];
   if (filters.customerId) conds.push(eq(quotations.customerId, filters.customerId));
   if (filters.status) conds.push(eq(quotations.status, filters.status));
+  if (filters.due) {
+    // Vigencia lens (PR-C): only LIVE quotes — an expired cancelled quote is
+    // trivia, the same reasoning as the list's Vencida tag. Calendar-date
+    // strings compare lexicographically = chronologically.
+    const today = new Date().toISOString().slice(0, 10);
+    conds.push(inArray(quotations.status, LIVE_STATUSES));
+    if (filters.due === 'overdue') {
+      conds.push(sql`${quotations.validUntil} < ${today}`);
+    } else {
+      const horizon = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+      conds.push(sql`${quotations.validUntil} >= ${today}`);
+      conds.push(sql`${quotations.validUntil} <= ${horizon}`);
+    }
+  }
   if (filters.search) {
     const q = `%${filters.search}%`;
     // Folio or client name — the two things anyone actually has to hand when
@@ -341,6 +363,27 @@ export const markRecipientViewed = async (db: Db, recipientId: string): Promise<
  *  in the same transaction, appending one event per response — mind-changes
  *  included — plus a status-derive event when the tally actually moves. Both
  *  events go in a single insert. */
+/** The CRM hook (08, PR-C): a `system` entry on the CLIENT's timeline written
+ *  in the same transaction as the quote mutation it narrates. Complementary to
+ *  `quotation_events`, not a duplicate — one answers "what happened with this
+ *  client", the other "what happened on this quote". */
+export interface QuotationInteraction {
+  customerId: string;
+  body: string;
+  refId: string;
+  userId: string | null;
+}
+
+const insertQuotationInteraction = (tx: Parameters<Parameters<Db['transaction']>[0]>[0], i: QuotationInteraction) =>
+  tx.insert(customerInteractions).values({
+    customerId: i.customerId,
+    type: InteractionType.System,
+    body: i.body,
+    refKind: InteractionRefKind.Quotation,
+    refId: i.refId,
+    userId: i.userId,
+  });
+
 export const recordResponseAndDeriveStatus = async (
   db: Db,
   args: {
@@ -350,9 +393,11 @@ export const recordResponseAndDeriveStatus = async (
     nextStatus: QuotationStatus;
     previousStatus: QuotationStatus;
     tally: QuotationTally;
+    interaction?: QuotationInteraction;
   },
 ): Promise<QuotationRow | null> =>
   db.transaction(async (tx) => {
+    if (args.interaction) await insertQuotationInteraction(tx, args.interaction);
     await tx
       .update(quotationRecipients)
       .set({ response: args.response, responseReason: args.reason, respondedAt: new Date() })
@@ -394,6 +439,7 @@ export const setQuotationStatus = async (
   id: string,
   fields: Partial<QuotationRow>,
   events: Omit<NewQuotationEvent, 'quotationId'>[],
+  interaction?: QuotationInteraction,
 ): Promise<QuotationRow | null> =>
   db.transaction(async (tx) => {
     const [row] = await tx
@@ -406,8 +452,32 @@ export const setQuotationStatus = async (
       tx,
       events.map((event) => ({ ...event, quotationId: id })),
     );
+    if (interaction) await insertQuotationInteraction(tx, interaction);
     return row;
   });
+
+/** Tenant defaults (PR-C). Read tolerates the row not existing yet — the
+ *  defaults of the defaults are empty strings. */
+export const getQuotationSettings = async (db: Db): Promise<{ defaultComments: string }> => {
+  const [row] = await db.select().from(quotationSettings).limit(1);
+  return { defaultComments: row?.defaultComments ?? '' };
+};
+
+export const saveQuotationSettings = async (
+  db: Db,
+  defaultComments: string,
+  userId: string,
+): Promise<{ defaultComments: string }> => {
+  const [row] = await db
+    .insert(quotationSettings)
+    .values({ id: 'default', defaultComments, updatedBy: userId })
+    .onConflictDoUpdate({
+      target: quotationSettings.id,
+      set: { defaultComments, updatedAt: new Date(), updatedBy: userId },
+    })
+    .returning();
+  return { defaultComments: row?.defaultComments ?? '' };
+};
 
 /** The timeline in **insertion order** (`seq`, never `created_at` — a batch
  *  shares one timestamp), with actor and contact names resolved so the UI
