@@ -59,6 +59,12 @@ test.describe('SAT code fields (18 §6.4)', () => {
     await page.locator('#svc-sat-unit').fill('XYZ');
     await selectOption(page, 'svc-uom', 'Litro (L)');
     await expect(page.locator('#svc-sat-unit')).toHaveValue('XYZ');
+
+    // The units the SAT catalog has no entry for still suggest something:
+    // a visita is billed as a service line (E48), like servicio itself.
+    await page.locator('#svc-sat-unit').fill('');
+    await selectOption(page, 'svc-uom', 'Visita');
+    await expect(page.locator('#svc-sat-unit')).toHaveValue('E48');
   });
 
   test('new service: keys reach the create payload, and clearing sends empty strings', async ({

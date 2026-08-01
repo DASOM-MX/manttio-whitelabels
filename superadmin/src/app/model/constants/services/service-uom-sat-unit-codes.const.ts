@@ -4,33 +4,41 @@ import { ServiceUom } from '../../../data/dtos/service';
  *  the owner can overwrite**, never a validation rule: the form only prefills
  *  an empty field, and 09 owns real SAT validation when it lands.
  *
- *  Deliberately partial. Only units with an unambiguous UN/ECE code (the
- *  standard `c_ClaveUnidad` draws from) are mapped; `visita`, `viaje` and
- *  `pallet` have no obvious equivalent, so their field stays empty for the
- *  owner to fill rather than seeding a key that could reach a CFDI wrong.
- *  Verify against the current SAT catalog before relying on any of these. */
-export const SERVICE_UOM_SAT_UNIT_CODES: Partial<Record<ServiceUom, string>> = {
-  // Trabajo
+ *  Exhaustive by type: `Record`, not `Partial<Record>`, so adding a unit to
+ *  `ServiceUom` without deciding its SAT key is a build error rather than a
+ *  field that silently stops suggesting.
+ *
+ *  Codes verified against the CFDI 4.0 `c_ClaveUnidad` catalog on 2026-07-31.
+ *  The SAT reissues this catalog, so re-check before trusting it in anger —
+ *  and note the catalog is **coarser than our unit list**: it has no entry for
+ *  a visit or a trip, so those ride `E48 Unidad de servicio` like `servicio`
+ *  itself. That collapse is deliberate, not an oversight. */
+export const SERVICE_UOM_SAT_UNIT_CODES: Record<ServiceUom, string> = {
+  // Trabajo — the catalog has no visita/viaje unit; E48 is the standard
+  // service line-item key (ACT "Actividades generales" is the alternative).
   [ServiceUom.Servicio]: 'E48', // Unidad de servicio
+  [ServiceUom.Visita]: 'E48',
+  [ServiceUom.Viaje]: 'E48',
   // Tiempo
   [ServiceUom.Hora]: 'HUR',
   [ServiceUom.Dia]: 'DAY',
   [ServiceUom.Mes]: 'MON',
   // Cantidad
   [ServiceUom.Unidad]: 'C62', // Uno
-  [ServiceUom.Pieza]: 'H87',
+  [ServiceUom.Pieza]: 'H87', // Pieza
+  [ServiceUom.Pallet]: 'XPX', // Pallet (X8A is the wood-specific variant)
   // Longitud
   [ServiceUom.Metro]: 'MTR',
   [ServiceUom.Yarda]: 'YRD',
-  [ServiceUom.Pulgada]: 'INH',
+  [ServiceUom.Pulgada]: 'INH', // Pulgada
   // Superficie
   [ServiceUom.MetroCuadrado]: 'MTK',
-  [ServiceUom.Hectarea]: 'HAR',
+  [ServiceUom.Hectarea]: 'HAR', // Hectárea (hectómetro cuadrado)
   // Volumen
   [ServiceUom.MetroCubico]: 'MTQ',
   [ServiceUom.Litro]: 'LTR',
   [ServiceUom.Mililitro]: 'MLT',
-  [ServiceUom.Galon]: 'GLL', // Galón estadounidense
+  [ServiceUom.Galon]: 'GLL', // Galón (EUA)
   // Peso
   [ServiceUom.Kilogramo]: 'KGM',
 };
