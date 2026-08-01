@@ -8,6 +8,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { CheckboxModule } from 'primeng/checkbox';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
@@ -74,6 +75,7 @@ import type { ServiceWebsiteImage } from '../../../data/types/services/service-w
     SelectModule,
     TextareaModule,
     CheckboxModule,
+    ToggleSwitchModule,
     TableModule,
     TagModule,
     MoneyPipe,
@@ -160,6 +162,7 @@ export class ServiceForm implements HasPendingChanges {
     internalServiceCode: [''],
     description: [''],
     taxRate: [ServiceTaxRate.Iva16, Validators.required],
+    isReportSource: [true],
     isListableInWebsite: [false],
     isPriceVisibleInWebsite: [false],
     websiteDescription: [''],
@@ -228,6 +231,7 @@ export class ServiceForm implements HasPendingChanges {
       internalServiceCode: svc.internalServiceCode ?? '',
       description: svc.description ?? '',
       taxRate: svc.taxRate,
+      isReportSource: svc.isReportSource,
       isListableInWebsite: svc.isListableInWebsite,
       isPriceVisibleInWebsite: svc.isPriceVisibleInWebsite,
       websiteDescription: svc.websiteDescription ?? '',
@@ -252,6 +256,7 @@ export class ServiceForm implements HasPendingChanges {
       internalServiceCode: '',
       description: svc.description ?? '',
       taxRate: svc.taxRate,
+      isReportSource: svc.isReportSource,
       isListableInWebsite: svc.isListableInWebsite,
       isPriceVisibleInWebsite: svc.isPriceVisibleInWebsite,
       websiteDescription: svc.websiteDescription ?? '',
@@ -322,6 +327,7 @@ export class ServiceForm implements HasPendingChanges {
       internalServiceCode: raw.internalServiceCode.trim() || undefined,
       description: raw.description.trim() || undefined,
       taxRate: raw.taxRate,
+      isReportSource: raw.isReportSource,
       isListableInWebsite: listed,
       // Mirrors the server invariant: an unlisted service can't carry a
       // price-visible flag, so we never send a stale true.

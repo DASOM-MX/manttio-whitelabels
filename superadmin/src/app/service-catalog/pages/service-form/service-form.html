@@ -1,8 +1,4 @@
-<app-page-header
-  [title]="pageTitle()"
-  backLink="/services"
-  backLabel="Volver a servicios"
-/>
+<app-page-header [title]="pageTitle()" backLink="/services" backLabel="Volver a servicios" />
 
 <!-- View-first detail: static labels until "Editar" is clicked (QA 2026-07-09) —
      no live inputs, no accidental requests. -->
@@ -19,14 +15,18 @@
         </div>
         <div>
           <p class="field-label">Precio</p>
-          <p class="mt-1 font-data text-sm font-medium tabular-nums text-surface-900 dark:text-surface-100">
+          <p
+            class="mt-1 font-data text-sm font-medium tabular-nums text-surface-900 dark:text-surface-100"
+          >
             {{ svc.price | money }}
           </p>
         </div>
         @if (svc.cost !== undefined) {
           <div>
             <p class="field-label">Costo interno</p>
-            <p class="mt-1 font-data text-sm font-medium tabular-nums text-surface-900 dark:text-surface-100">
+            <p
+              class="mt-1 font-data text-sm font-medium tabular-nums text-surface-900 dark:text-surface-100"
+            >
               {{ svc.cost | money }}
             </p>
           </div>
@@ -45,8 +45,19 @@
         </div>
         <div>
           <p class="field-label">Código interno</p>
-          <p class="mt-1 font-data text-sm font-medium tabular-nums text-surface-900 dark:text-surface-100">
+          <p
+            class="mt-1 font-data text-sm font-medium tabular-nums text-surface-900 dark:text-surface-100"
+          >
             {{ svc.internalServiceCode || '—' }}
+          </p>
+        </div>
+        <div>
+          <p class="field-label">Genera reporte</p>
+          <p class="mt-1">
+            <p-tag
+              [severity]="svc.isReportSource ? 'success' : 'secondary'"
+              [value]="svc.isReportSource ? 'Sí, uno por unidad' : 'No, solo se cobra'"
+            />
           </p>
         </div>
         <div>
@@ -292,6 +303,25 @@
 
     <hr class="border-surface-100 dark:border-surface-800" />
 
+    <!-- Operational, not commercial: this decides whether an order made of this
+         service explodes report skeletons for a technician to fill (19 §2), or
+         is merely something the order charges for. -->
+    <div>
+      <div class="flex items-center gap-3">
+        <p-toggleswitch formControlName="isReportSource" inputId="svc-report-source" />
+        <label class="field-label !mb-0" for="svc-report-source">
+          Genera un reporte de servicio por unidad
+        </label>
+      </div>
+      <p class="mt-1 field-hint">
+        Actívalo para trabajos que un técnico realiza y documenta. Déjalo apagado para lo que solo
+        se cobra — mano de obra por hora, refrigerante, fletes: esas partidas no generan reportes al
+        crear la orden.
+      </p>
+    </div>
+
+    <hr class="border-surface-100 dark:border-surface-800" />
+
     <div class="flex items-center justify-between gap-2">
       <div class="flex items-center gap-2">
         <p-checkbox formControlName="isListableInWebsite" [binary]="true" inputId="svc-listable" />
@@ -358,8 +388,8 @@
             placeholder="Cómo quieres que se lea este servicio para un cliente nuevo."
           ></textarea>
           <p class="field-hint">
-            Es el único texto que se publica. Si lo dejas vacío, el sitio muestra sólo el
-            nombre del servicio.
+            Es el único texto que se publica. Si lo dejas vacío, el sitio muestra sólo el nombre del
+            servicio.
           </p>
         </div>
 
