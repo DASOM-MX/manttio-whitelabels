@@ -1,0 +1,241 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="dialog-lg"
+  [header]="isCreate() ? 'Nueva visita' : 'Visita'"
+>
+  <div class="grid gap-4">
+    @if (target(); as visit) {
+      <!-- The record's identity — fixed at creation, immutable-record model. -->
+      <div class="flex flex-wrap items-center gap-2">
+        <p-tag
+          [severity]="visit.status | visitStatusSeverity"
+          [value]="visit.status | visitStatusLabel"
+        />
+        @if (visit.rescheduledFromId) {
+          <span class="text-xs text-surface-500 dark:text-surface-400">
+            Reemplaza a una visita cerrada
+          </span>
+        }
+      </div>
+      <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+        @if (visit.serviceOrderId) {
+          <div>
+            <dt class="micro-label">Orden</dt>
+            <dd class="mt-0.5 text-sm font-medium">
+              <a [routerLink]="['/service-orders', visit.serviceOrderId]" class="link-action">
+                {{ visit.serviceOrderFolio || 'Ver orden' }}
+              </a>
+            </dd>
+          </div>
+        }
+        <div>
+          <dt class="micro-label">Cliente</dt>
+          <dd class="mt-0.5 text-sm font-medium">
+            <a [routerLink]="['/customers', visit.customerId]" class="link-action">
+              {{ visit.customerName || '—' }}
+            </a>
+          </dd>
+        </div>
+        @if (equipmentNames()) {
+          <div class="sm:col-span-2">
+            <dt class="micro-label">Equipos</dt>
+            <dd class="mt-0.5 text-sm">{{ equipmentNames() }}</dd>
+          </div>
+        }
+      </dl>
+    }
+
+    @if (isEditable()) {
+      <form [formGroup]="form" (ngSubmit)="confirm()" class="grid gap-4">
+        @if (isCreate()) {
+          @if (lockedOrder(); as order) {
+            <div>
+              <p class="micro-label">Orden</p>
+              <p class="mt-0.5 text-sm font-medium">{{ order.folio }} — {{ order.customerName }}</p>
+            </div>
+          } @else {
+            <div class="field-group">
+              <label class="field-label" for="visit-order">
+                Orden de servicio<span aria-hidden="true"> *</span>
+              </label>
+              <p-select
+                inputId="visit-order"
+                formControlName="orderId"
+                [options]="orderOptions()"
+                optionLabel="label"
+                optionValue="value"
+                [filter]="true"
+                filterBy="label"
+                [loading]="ordersLoading()"
+                placeholder="Busca por folio o cliente"
+              />
+              <p class="field-hint">
+                Toda visita pertenece a una orden abierta; el cliente sale de ahí.
+              </p>
+            </div>
+          }
+        }
+
+        <div class="grid gap-4 sm:grid-cols-3">
+          <div class="field-group">
+            <label class="field-label" for="visit-date">
+              Fecha<span aria-hidden="true"> *</span>
+            </label>
+            <p-datepicker inputId="visit-date" formControlName="fecha" [showIcon]="true" />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="visit-start">
+              Hora<span aria-hidden="true"> *</span>
+            </label>
+            <p-datepicker
+              inputId="visit-start"
+              formControlName="horaInicio"
+              [timeOnly]="true"
+            />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="visit-end">Hora fin</label>
+            <p-datepicker inputId="visit-end" formControlName="horaFin" [timeOnly]="true" />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="visit-technician">Técnico</label>
+          <p-select
+            inputId="visit-technician"
+            formControlName="technicianId"
+            [options]="technicianOptions()"
+            optionLabel="label"
+            optionValue="value"
+            [filter]="true"
+            filterBy="label"
+          />
+          @if (!isCreate()) {
+            <p class="field-hint">Cambiarlo reasigna la visita; queda en la bitácora de la orden.</p>
+          }
+        </div>
+
+        @if (isCreate() && equipmentOptions().length > 0) {
+          <div class="field-group">
+            <label class="field-label" for="visit-equipment">Equipos del cliente</label>
+            <p-multiselect
+              inputId="visit-equipment"
+              formControlName="equipmentIds"
+              [options]="equipmentOptions()"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Unidades a atender (opcional)"
+              [showToggleAll]="false"
+            />
+          </div>
+        }
+
+        <div class="field-group">
+          <label class="field-label" for="visit-title">Título</label>
+          <input
+            id="visit-title"
+            pInputText
+            formControlName="title"
+            placeholder="Mantenimiento preventivo… (opcional, el cliente es el default)"
+          />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="visit-notes">Notas</label>
+          <textarea
+            id="visit-notes"
+            pTextarea
+            formControlName="notes"
+            rows="2"
+            class="!min-h-16"
+            placeholder="Acceso, contacto en sitio, materiales…"
+          ></textarea>
+        </div>
+
+        <div class="flex flex-wrap justify-end gap-2">
+          @if (!isCreate()) {
+            <button
+              type="button"
+              class="btn-danger mr-auto"
+              (click)="requestClose()"
+              [disabled]="submitting()"
+            >
+              Cerrar visita
+            </button>
+            <button type="button" class="btn-secondary" (click)="respond()" [disabled]="submitting()">
+              Marcar realizada
+            </button>
+          }
+          <button type="button" class="btn-neutral" (click)="close()" [disabled]="submitting()">
+            Volver
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="!canConfirm()">
+            @if (submitting()) {
+              Guardando…
+            } @else {
+              {{ isCreate() ? 'Programar' : 'Guardar' }}
+            }
+          </button>
+        </div>
+      </form>
+    } @else if (target(); as visit) {
+      <!-- Terminal (or read-only role): the record as it happened. -->
+      <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+        <div>
+          <dt class="micro-label">Fecha</dt>
+          <dd class="mt-0.5 text-sm font-medium">
+            {{ visit.scheduledStart | date: 'dd/MM/yyyy HH:mm' }}
+            @if (visit.scheduledEnd) {
+              – {{ visit.scheduledEnd | date: 'HH:mm' }}
+            }
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Técnico</dt>
+          <dd class="mt-0.5 text-sm">{{ visit.technicianName || 'Sin asignar' }}</dd>
+        </div>
+        @if (visit.title) {
+          <div>
+            <dt class="micro-label">Título</dt>
+            <dd class="mt-0.5 text-sm">{{ visit.title }}</dd>
+          </div>
+        }
+        @if (visit.reportId) {
+          <div>
+            <dt class="micro-label">Reporte</dt>
+            <dd class="mt-0.5 font-data text-sm">{{ visit.reportId }}</dd>
+          </div>
+        }
+        @if (visit.notes) {
+          <div class="sm:col-span-2">
+            <dt class="micro-label">Notas</dt>
+            <dd class="mt-0.5 text-sm whitespace-pre-line">{{ visit.notes }}</dd>
+          </div>
+        }
+      </dl>
+
+      @if (isClosed() && visit.closeReason) {
+        <div class="callout callout--warn">
+          <span class="font-medium">Cerrada:</span>
+          {{ visit.closeReason | visitCloseReasonLabel }}
+          @if (visit.closeNote) {
+            — {{ visit.closeNote }}
+          }
+        </div>
+      }
+
+      <p class="text-xs text-surface-500 dark:text-surface-400">
+        La historia completa de esta visita vive en la bitácora de su orden.
+      </p>
+
+      <div class="flex justify-end">
+        <button type="button" class="btn-neutral" (click)="close()">Cerrar</button>
+      </div>
+    }
+  </div>
+</p-dialog>

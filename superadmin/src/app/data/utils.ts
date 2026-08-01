@@ -27,6 +27,20 @@ export const toCalendarDate = (date: Date): string =>
  *  no timezone drift. */
 export const isCalendarDatePast = (date: string): boolean => date < toCalendarDate(new Date());
 
+/** The local Monday that opens `date`'s week (the calendar's unit of view),
+ *  at local midnight. `getDay()` is 0-Sunday, so Sunday belongs to the week
+ *  that started six days earlier. */
+export const startOfWeek = (date: Date): Date => {
+  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  return monday;
+};
+
+/** Local-field day arithmetic — never millisecond math, which a DST boundary
+ *  would put an hour off local midnight. */
+export const addDays = (date: Date, days: number): Date =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+
 /** Extract a human-readable message from a thrown value. Tries the Angular
  *  `HttpErrorResponse` shape (`err.error.message`) first, then `Error.message`,
  *  then falls back to the supplied default. */
