@@ -38,7 +38,7 @@ import {
   ExplosionTooLargeError,
   QuotationApprovalGateError,
   QuotationExpiredError,
-  QuotationLineNotConvertibleError,
+  MissingExplosionInputsError,
 } from '../../service-orders/http-errors/order-from-quotation.error';
 import { InvalidOrderReferenceError } from '../../service-orders/http-errors/service-orders.error';
 import {
@@ -291,14 +291,14 @@ quotations.post(
           403,
         );
       }
-      if (err instanceof QuotationLineNotConvertibleError) {
+      if (err instanceof MissingExplosionInputsError) {
         return c.json(
           {
-            error: 'quotation_line_not_convertible',
-            message: `La partida "${err.serviceName}" aún no puede convertirse en orden (fuera de catálogo, cantidad fraccionaria o descuento).`,
+            error: 'missing_explosion_inputs',
+            message: `La partida "${err.serviceName}" genera reportes: asigna técnico y tipo de reporte.`,
             serviceName: err.serviceName,
           },
-          409,
+          422,
         );
       }
       if (err instanceof AssignmentCoverageError) {

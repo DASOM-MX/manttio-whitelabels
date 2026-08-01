@@ -119,16 +119,27 @@ export const serviceOrderServices = pgTable(
     serviceOrderId: uuid('service_order_id')
       .notNull()
       .references(() => serviceOrders.id, { onDelete: 'restrict' }),
-    serviceId: uuid('service_id')
-      .notNull()
-      .references(() => services.id, { onDelete: 'restrict' }),
+    // NULL = an OFF-CATALOG line (line model v2, 2026-07-31): a one-off concept
+    // typed in full, mirroring `quotation_lines`. The unique index below still
+    // holds — Postgres treats NULLs as distinct, so off-catalog lines never
+    // collide with each other.
+    serviceId: uuid('service_id').references(() => services.id, { onDelete: 'restrict' }),
     serviceName: text('service_name').notNull(),
     uom: text('uom').$type<ServiceUom>().notNull(),
     taxRate: text('tax_rate').$type<ServiceTaxRate>().notNull(),
-    // Units sold. Each unit explodes its own report (19 §2, decided
-    // 2026-07-23), so a `quantity: 3` line is 3 independently-assignable jobs.
-    quantity: integer('quantity').notNull().default(1),
+    // Units sold — `numeric(12,3)`, so 1.5 h and 12.75 m² are sellable (line
+    // model v2). This is a MONEY multiplier only: how many reports a line
+    // explodes is a separate, explicit count (19 §2, owner 2026-07-31), because
+    // 1.5 hours is one job that takes 1.5 hours, not 1.5 jobs. The count is not
+    // a column for the same reason `technicianId` isn't — it is an explosion
+    // input, and the exploded report rows are its record.
+    quantity: numeric('quantity', { precision: 12, scale: 3 }).notNull().default('1.000'),
     unitPrice: numeric('unit_price', { precision: 12, scale: 2 }).notNull(),
+    // Frozen amount, never a percent — CFDI's per-concepto Descuento, inherited
+    // verbatim from the quotation line when the order is born from a quote.
+    discountAmount: numeric('discount_amount', { precision: 12, scale: 2 })
+      .notNull()
+      .default('0.00'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [

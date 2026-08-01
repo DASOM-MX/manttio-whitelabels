@@ -218,6 +218,20 @@
       "when": 1785486627059,
       "tag": "0030_quotation_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1785548748142,
+      "tag": "0031_service_is_report_source",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1785549166614,
+      "tag": "0032_order_line_model_v2",
+      "breakpoints": true
     }
   ]
 }

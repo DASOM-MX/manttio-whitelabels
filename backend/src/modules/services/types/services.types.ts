@@ -26,6 +26,7 @@ export type UpdateServiceFields = Partial<
     | 'taxRate'
     | 'satProdServCode'
     | 'satUnitCode'
+    | 'isReportSource'
     | 'isListableInWebsite'
     | 'isPriceVisibleInWebsite'
   >
@@ -94,6 +95,9 @@ export interface ServiceDTO {
   taxRate: ServiceTaxRate;
   satProdServCode?: string;
   satUnitCode?: string;
+  /** A unit of this service produces its own report skeleton (19 §2). False
+   *  for what an order only charges — labor, consumables, freight. */
+  isReportSource: boolean;
   isListableInWebsite: boolean;
   isPriceVisibleInWebsite: boolean;
   createdAt: string;

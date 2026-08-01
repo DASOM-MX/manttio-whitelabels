@@ -66,6 +66,7 @@ const toDTO = (row: ServiceRow, includeCost: boolean, imagesCdnBase?: string): S
   taxRate: row.taxRate,
   satProdServCode: opt(row.satProdServCode),
   satUnitCode: opt(row.satUnitCode),
+  isReportSource: row.isReportSource,
   isListableInWebsite: row.isListableInWebsite,
   isPriceVisibleInWebsite: row.isPriceVisibleInWebsite,
   createdAt: row.createdAt.toISOString(),
@@ -109,6 +110,7 @@ const collectUpdate = (input: UpdateServiceInput): UpdateServiceFields => {
   if (input.taxRate !== undefined) f.taxRate = input.taxRate;
   if (input.satProdServCode !== undefined) f.satProdServCode = input.satProdServCode ?? null;
   if (input.satUnitCode !== undefined) f.satUnitCode = input.satUnitCode ?? null;
+  if (input.isReportSource !== undefined) f.isReportSource = input.isReportSource;
   if (input.isListableInWebsite !== undefined) f.isListableInWebsite = input.isListableInWebsite;
   if (input.isPriceVisibleInWebsite !== undefined) {
     f.isPriceVisibleInWebsite = input.isPriceVisibleInWebsite;
@@ -196,6 +198,7 @@ export const createService = async (
     taxRate: clean.taxRate,
     satProdServCode: clean.satProdServCode ?? null,
     satUnitCode: clean.satUnitCode ?? null,
+    isReportSource: clean.isReportSource,
     isListableInWebsite: clean.isListableInWebsite,
     isPriceVisibleInWebsite: clean.isPriceVisibleInWebsite,
   };

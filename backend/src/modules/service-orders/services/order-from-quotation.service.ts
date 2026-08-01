@@ -11,14 +11,18 @@ import { QuotationNotLiveError } from '../../quotations/http-errors/quotations.e
 import { isOverdue } from '../../quotations/services/quotations.service';
 import type { QuotationLineRow } from '../../quotations/types/quotations.types';
 import type { ReportType } from '../../reports/enums/reports.enum';
-import { createServiceOrderFromQuotation } from '../repository/service-orders.repository';
+import {
+  createServiceOrderFromQuotation,
+  defaultReportCount,
+} from '../repository/service-orders.repository';
+import { findServicesByIds } from '../../services/repository/services.repository';
 import { getServiceOrderById } from './service-orders.service';
 import {
   AssignmentCoverageError,
   ExplosionTooLargeError,
+  MissingExplosionInputsError,
   QuotationApprovalGateError,
   QuotationExpiredError,
-  QuotationLineNotConvertibleError,
 } from '../http-errors/order-from-quotation.error';
 import type { ConvertQuotationInput } from '../../quotations/validators/quotations.validator';
 import type { FrozenOrderLine, ServiceOrderDetailDTO } from '../types/service-orders.types';
@@ -28,45 +32,73 @@ import type { FrozenOrderLine, ServiceOrderDetailDTO } from '../types/service-or
  *  enforced here instead (19 §2 caps, 2026-07-27). */
 const MAX_EXPLODED_REPORTS = 50;
 
-/** String-exact integrality for a `numeric(12,3)` quantity — `"2.000"` is
- *  integral, `"1.500"` is not. No float parse: the whole point of the string
- *  is that no double ever touches it. */
-const isIntegralQuantity = (quantity: string): boolean =>
-  !/[1-9]/.test(quantity.split('.')[1] ?? '');
+
+
+/** An assignment as the caller sends it, keyed by service (catalog lines, which
+ *  merge per service) or by quotation line (off-catalog ones, which never do). */
+type Assignment = {
+  technicianId?: string;
+  reportType?: ReportType;
+  reportCount?: number;
+};
 
 /** A quote may carry several lines for one service (same snapshot moment,
  *  different description) — the order model may not (one line per service,
- *  quantity is how you sell more). Merging sums the quantities and keeps the
- *  first line's snapshot: all lines of one quote freeze the catalog in the same
- *  transaction (create and PATCH both write the set wholesale), so the money
- *  fields are identical across the group by construction. */
+ *  quantity is how you sell more). Merging sums the quantities, the discounts
+ *  and the report counts, and keeps the first line's snapshot: all lines of one
+ *  quote freeze the catalog in the same transaction (create and PATCH both
+ *  write the set wholesale), so the money fields are identical across the group
+ *  by construction.
+ *
+ *  **Off-catalog lines never merge** — they carry no service to merge on, and
+ *  the unique index tolerates them because Postgres treats NULLs as distinct. */
 const mergeQuoteLines = (
   quoteLines: QuotationLineRow[],
-  assignments: Map<string, { technicianId: string; reportType: ReportType }>,
+  assignmentFor: (line: QuotationLineRow) => Assignment,
+  reportSourceOf: (serviceId: string) => boolean | undefined,
 ): FrozenOrderLine[] => {
   const merged = new Map<string, FrozenOrderLine>();
   for (const line of quoteLines) {
-    // The convertibility guard has already run: serviceId is non-null and the
-    // quantity integral, so `Number()` is exact.
-    const serviceId = line.serviceId!;
-    const existing = merged.get(serviceId);
+    const assignment = assignmentFor(line);
+    const reportCount =
+      assignment.reportCount ?? defaultReportCount(
+        line.serviceId ? reportSourceOf(line.serviceId) : false,
+        line.quantity,
+      );
+    // Off-catalog lines key on their own id so they stay separate rows.
+    const key = line.serviceId ?? `line:${line.id}`;
+    const existing = merged.get(key);
     if (existing) {
-      existing.quantity += Number(line.quantity);
+      existing.quantity = addDecimal(existing.quantity, line.quantity);
+      existing.discountAmount = addDecimal(existing.discountAmount, line.discountAmount);
+      existing.reportCount += reportCount;
       continue;
     }
-    const assignment = assignments.get(serviceId)!;
-    merged.set(serviceId, {
-      serviceId,
+    merged.set(key, {
+      serviceId: line.serviceId,
       serviceName: line.serviceName,
       uom: line.uom,
       taxRate: line.taxRate,
-      quantity: Number(line.quantity),
+      quantity: line.quantity,
       unitPrice: line.unitPrice,
-      technicianId: assignment.technicianId,
-      reportType: assignment.reportType,
+      discountAmount: line.discountAmount,
+      reportCount,
+      technicianId: assignment.technicianId ?? null,
+      reportType: assignment.reportType ?? null,
     });
   }
   return [...merged.values()];
+};
+
+/** Sums two exact-decimal strings without ever touching a float — the merge is
+ *  the one place order quantities and discounts are added. */
+const addDecimal = (a: string, b: string): string => {
+  const scale = (v: string) => {
+    const [whole = '0', frac = ''] = v.trim().split('.');
+    return Number(whole) * 1000 + Number(`${frac}000`.slice(0, 3));
+  };
+  const sum = scale(a) + scale(b);
+  return `${Math.trunc(sum / 1000)}.${String(sum % 1000).padStart(3, '0')}`;
 };
 
 /** The convergence (20 §6): gates first against a plain read — live status,
@@ -99,33 +131,44 @@ export const createOrderFromQuotation = async (
   const override = approvedCount === 0;
   if (override && !isAdminTier(user)) throw new QuotationApprovalGateError();
 
-  // Coverage: one assignment per distinct quoted service — exactly (19 §2, the
+  // Coverage: one assignment per distinct quoted service, plus one per
+  // off-catalog line (which has no service to key on) — exactly (19 §2, the
   // explosion inputs are captured up front so the skeletons are born complete).
   const quoteLines = await listLinesForQuotations(db, [quotationId]);
-
-  // Line model v2 (2026-07-29) can shape a quote the ORDER model cannot yet
-  // represent: an off-catalog line has no service to key an assignment on,
-  // a fractional quantity does not explode into whole report skeletons, and
-  // order lines carry no discount — converting one would silently charge the
-  // pre-discount price. Refused whole, by name, until 19 grows line model v2
-  // (20 "Open decisions").
-  const unconvertible = quoteLines.find(
-    (l) => !l.serviceId || !isIntegralQuantity(l.quantity) || l.discountAmount !== '0.00',
+  const quotedKeys = new Set(
+    quoteLines.map((l) => l.serviceId ?? `line:${l.id}`),
   );
-  if (unconvertible) throw new QuotationLineNotConvertibleError(unconvertible.serviceName);
-
-  const quotedServiceIds = new Set(quoteLines.map((l) => l.serviceId!));
   const assignments = new Map(
-    input.assignments.map((a) => [a.serviceId, { technicianId: a.technicianId, reportType: a.reportType }]),
+    input.assignments.map((a) => [
+      a.serviceId ?? `line:${a.lineId}`,
+      { technicianId: a.technicianId, reportType: a.reportType, reportCount: a.reportCount },
+    ]),
   );
-  const missing = [...quotedServiceIds].filter((id) => !assignments.has(id));
-  const unknown = [...assignments.keys()].filter((id) => !quotedServiceIds.has(id));
+  const missing = [...quotedKeys].filter((key) => !assignments.has(key));
+  const unknown = [...assignments.keys()].filter((key) => !quotedKeys.has(key));
   if (missing.length > 0 || unknown.length > 0) {
     throw new AssignmentCoverageError(missing, unknown);
   }
 
-  const lines = mergeQuoteLines(quoteLines, assignments);
-  const totalUnits = lines.reduce((sum, l) => sum + l.quantity, 0);
+  // `isReportSource` decides the DEFAULT count per line (owner 2026-07-31); an
+  // explicit `reportCount` on the assignment overrides it in either direction.
+  const catalogIds = [...new Set(quoteLines.flatMap((l) => (l.serviceId ? [l.serviceId] : [])))];
+  const catalogRows = catalogIds.length ? await findServicesByIds(db, catalogIds) : [];
+  const reportSource = new Map(catalogRows.map((r) => [r.id, r.isReportSource]));
+
+  const lines = mergeQuoteLines(
+    quoteLines,
+    (line) => assignments.get(line.serviceId ?? `line:${line.id}`) ?? {},
+    (serviceId) => reportSource.get(serviceId),
+  );
+
+  // A line that explodes reports must name who does them and what kind — the
+  // report invariants 19 §2 keeps. A line that explodes none needs neither,
+  // which is exactly what makes a materials-only line convertible.
+  const unassigned = lines.find((l) => l.reportCount > 0 && (!l.technicianId || !l.reportType));
+  if (unassigned) throw new MissingExplosionInputsError(unassigned.serviceName);
+
+  const totalUnits = lines.reduce((sum, l) => sum + l.reportCount, 0);
   if (totalUnits > MAX_EXPLODED_REPORTS) throw new ExplosionTooLargeError(totalUnits);
 
   const { order } = await createServiceOrderFromQuotation(db, {

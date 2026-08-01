@@ -51,14 +51,21 @@ const canSeeMoney = (user: AuthUser) => isBackOfficeTier(user);
 
 const toLineDTO = (row: ServiceOrderLineRow, showMoney: boolean): ServiceOrderLineDTO => ({
   id: row.id,
-  serviceId: row.serviceId,
+  // Absent = off-catalog (line model v2) — no catalog row to link back to.
+  serviceId: row.serviceId ?? undefined,
   serviceName: row.serviceName,
   uom: row.uom,
   taxRate: row.taxRate,
   quantity: row.quantity,
+  discountAmount: row.discountAmount,
   unitPrice: showMoney ? row.unitPrice : undefined,
   amounts: showMoney
-    ? lineAmounts({ unitPrice: row.unitPrice, quantity: row.quantity, taxRate: row.taxRate })
+    ? lineAmounts({
+        unitPrice: row.unitPrice,
+        quantity: row.quantity,
+        taxRate: row.taxRate,
+        discountAmount: row.discountAmount,
+      })
     : undefined,
 });
 

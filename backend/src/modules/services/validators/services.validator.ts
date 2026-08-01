@@ -29,6 +29,9 @@ export const createServiceSchema = z.object({
   // (09) owns real validation when it lands.
   satProdServCode: z.string().trim().optional(),
   satUnitCode: z.string().trim().optional(),
+  // Defaults true: a catalog service is a job unless the tenant says it is
+  // only a charge (19 §2, owner 2026-07-31).
+  isReportSource: z.boolean().default(true),
   isListableInWebsite: z.boolean().default(false),
   isPriceVisibleInWebsite: z.boolean().default(false),
   // Clone provenance (18 §6.2): present only when the form was opened as

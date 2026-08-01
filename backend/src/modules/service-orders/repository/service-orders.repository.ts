@@ -323,7 +323,10 @@ const insertOrderGraph = async (
   input: OrderGraphInput,
   day: Date,
 ): Promise<{ order: ServiceOrderRow; lines: ServiceOrderLineRow[]; reportIds: string[] }> => {
-  const totalUnits = input.lines.reduce((sum, l) => sum + l.quantity, 0);
+  // The explosion is driven by each line's explicit report count, NOT its
+  // money quantity (owner 2026-07-31): 1.5 hours of labor is one job that takes
+  // 1.5 hours — or none at all, if the service only bills.
+  const totalUnits = input.lines.reduce((sum, l) => sum + l.reportCount, 0);
   const count = input.lines.length;
   const countLabel = `${count} ${count === 1 ? 'servicio' : 'servicios'}`;
 
@@ -366,6 +369,7 @@ const insertOrderGraph = async (
         taxRate: line.taxRate,
         quantity: line.quantity,
         unitPrice: line.unitPrice,
+        discountAmount: line.discountAmount,
       })),
     )
     .returning();
@@ -388,19 +392,23 @@ const insertOrderGraph = async (
   const explodedReportIds: string[] = [];
 
   for (const line of input.lines) {
-    for (let unit = 0; unit < line.quantity; unit += 1) {
+    // `reportCount` is 0 for billing-only lines — the loop simply doesn't run,
+    // and an order of nothing but consumables explodes no reports at all.
+    for (let unit = 0; unit < line.reportCount; unit += 1) {
       const id = formatReportId(day, sequence);
       sequence += 1;
       explodedReportIds.push(id);
       reportRows.push({
         id,
-        reportType: line.reportType,
+        // Non-null inside this loop: a line with `reportCount > 0` carries its
+        // explosion inputs (the service layer refuses one that doesn't).
+        reportType: line.reportType!,
         // Not on site yet — `dateArrival` is stamped when the technician
         // actually opens the report, unlike the manual path which defaults it
         // to now() precisely because opening one *is* arriving.
         dateArrival: null,
         createdBy: input.actorId,
-        assignedTo: line.technicianId,
+        assignedTo: line.technicianId!,
         clientId: input.customerId,
         status: ReportStatus.Pending,
         serviceOrderId: order.id,
@@ -487,8 +495,13 @@ export const createServiceOrder = async (
   command: CreateOrderCommand,
   day: Date = new Date(),
 ): Promise<{ order: ServiceOrderRow; lines: ServiceOrderLineRow[]; reportIds: string[] }> => {
-  const serviceIds = [...new Set(command.lines.map((l) => l.serviceId))];
-  const technicianIds = [...new Set(command.lines.map((l) => l.technicianId))];
+  const serviceIds = [
+    ...new Set(command.lines.flatMap((l) => (l.serviceId ? [l.serviceId] : []))),
+  ];
+  // Billing-only lines (reportCount 0) name no technician — nothing to assert.
+  const technicianIds = [
+    ...new Set(command.lines.flatMap((l) => (l.technicianId ? [l.technicianId] : []))),
+  ];
 
   return db.transaction(async (tx) => {
     await assertCustomerExists(tx, command.customerId);
@@ -505,6 +518,7 @@ export const createServiceOrder = async (
         uom: services.uom,
         taxRate: services.taxRate,
         price: services.price,
+        isReportSource: services.isReportSource,
       })
       .from(services)
       .where(and(inArray(services.id, serviceIds), isNull(services.deletedAt)));
@@ -521,23 +535,43 @@ export const createServiceOrder = async (
         priority: command.priority,
         promisedDate: command.promisedDate,
         actorId: command.actorId,
+        // Catalog lines freeze the live catalog; off-catalog ones carry their
+        // own snapshot. `reportCount` defaults from the service's
+        // `isReportSource` (owner 2026-07-31) — a job explodes per unit, a
+        // charge explodes nothing — and an explicit count from the caller wins.
         lines: command.lines.map((line) => {
-          const service = catalog.get(line.serviceId)!;
+          const service = line.serviceId ? catalog.get(line.serviceId)! : undefined;
           return {
-            serviceId: line.serviceId,
-            serviceName: service.name,
-            uom: service.uom,
-            taxRate: service.taxRate,
+            serviceId: line.serviceId ?? null,
+            serviceName: service?.name ?? line.name!,
+            uom: service?.uom ?? line.uom!,
+            taxRate: service?.taxRate ?? line.taxRate!,
             quantity: line.quantity,
-            unitPrice: service.price,
-            technicianId: line.technicianId,
-            reportType: line.reportType,
+            unitPrice: service?.price ?? line.unitPrice!,
+            discountAmount: line.discountAmount ?? '0.00',
+            reportCount: line.reportCount ?? defaultReportCount(service?.isReportSource, line.quantity),
+            technicianId: line.technicianId ?? null,
+            reportType: line.reportType ?? null,
           };
         }),
       },
       day,
     );
   });
+};
+
+/** The explosion count a line takes when the caller doesn't say (owner
+ *  2026-07-31). A catalog service that IS a report source explodes one report
+ *  per whole unit — and a single report for a fractional quantity, because half
+ *  a job is still one job. Everything else (a billing-only service, an
+ *  off-catalog concept) explodes nothing until staff ask for it. */
+export const defaultReportCount = (
+  isReportSource: boolean | undefined,
+  quantity: string,
+): number => {
+  if (!isReportSource) return 0;
+  const units = Number(quantity);
+  return Number.isInteger(units) ? units : 1;
 };
 
 /** The convergence (20 §6): one transaction that opens the order off the
@@ -553,7 +587,10 @@ export const createServiceOrderFromQuotation = async (
   command: ConvertQuotationCommand,
   day: Date = new Date(),
 ): Promise<{ order: ServiceOrderRow; lines: ServiceOrderLineRow[]; reportIds: string[] }> => {
-  const technicianIds = [...new Set(command.lines.map((l) => l.technicianId))];
+  // Billing-only lines (reportCount 0) name no technician — nothing to assert.
+  const technicianIds = [
+    ...new Set(command.lines.flatMap((l) => (l.technicianId ? [l.technicianId] : []))),
+  ];
 
   return db.transaction(async (tx) => {
     await assertCustomerExists(tx, command.customerId);
@@ -574,6 +611,8 @@ export const createServiceOrderFromQuotation = async (
         promisedDate: null,
         quotationId: command.quotationId,
         actorId: command.actorId,
+        // Already frozen by the conversion service — inherited verbatim, no
+        // catalog read (19 §1 / 20 §6).
         lines: command.lines,
         openingRef: { kind: ServiceOrderEventRefKind.Quotation, id: command.quotationId },
         openingNote: `Orden creada desde la cotización ${command.quotationFolio}`,
