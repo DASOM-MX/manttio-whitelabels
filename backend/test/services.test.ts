@@ -268,6 +268,33 @@ describe('PATCH /services/:id', () => {
     const res = await patchService(token, '00000000-0000-4000-8000-000000000000', { price: 1 });
     expect(res.status).toBe(404);
   });
+
+  // The write path the CP-7 form drives (18 §6.4). No format assertion — the
+  // SAT versions its catalogs and 09 owns real validation.
+  test('SAT keys round-trip on edit, and an empty string clears them', async () => {
+    const svc = await seedService();
+    const { token } = await seedOwnerAndLogin();
+    expect(svc.satProdServCode).toBeUndefined();
+
+    const set = await patchService(token, svc.id, {
+      satProdServCode: '72101500',
+      satUnitCode: 'E48',
+    });
+    expect(set.status).toBe(200);
+    const withKeys = await json<Service>(set);
+    expect(withKeys.satProdServCode).toBe('72101500');
+    expect(withKeys.satUnitCode).toBe('E48');
+
+    // Cleared to null, not stored as '' — the form always sends both fields,
+    // so '' has to mean "erased".
+    const cleared = await patchService(token, svc.id, {
+      satProdServCode: '',
+      satUnitCode: '',
+    });
+    const withoutKeys = await json<Service>(cleared);
+    expect(withoutKeys.satProdServCode).toBeUndefined();
+    expect(withoutKeys.satUnitCode).toBeUndefined();
+  });
 });
 
 describe('GET /public/services', () => {

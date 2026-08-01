@@ -110,6 +110,11 @@ export interface SaveServiceRequest {
   websiteImageKey?: string;
   internalServiceCode?: string;
   taxRate: ServiceTaxRate;
+  /** SAT CFDI catalog keys (18 §6.4). Sent as `''` when the owner erases one —
+   *  the backend maps that to null, same as the website copy. No format
+   *  validation on either side; 09 owns that. */
+  satProdServCode?: string;
+  satUnitCode?: string;
   isListableInWebsite: boolean;
   isPriceVisibleInWebsite: boolean;
   /** Clone provenance (18 §6.2): the id the form was prefilled from
