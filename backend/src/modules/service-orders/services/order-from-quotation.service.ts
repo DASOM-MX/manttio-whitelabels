@@ -14,8 +14,9 @@ import type { ReportType } from '../../reports/enums/reports.enum';
 import {
   createServiceOrderFromQuotation,
   defaultReportCount,
+  MAX_EXPLODED_REPORTS,
 } from '../repository/service-orders.repository';
-import { findServicesByIds } from '../../services/repository/services.repository';
+import { findReportSourceFlags } from '../../services/repository/services.repository';
 import { getServiceOrderById } from './service-orders.service';
 import {
   AssignmentCoverageError,
@@ -26,11 +27,6 @@ import {
 } from '../http-errors/order-from-quotation.error';
 import type { ConvertQuotationInput } from '../../quotations/validators/quotations.validator';
 import type { FrozenOrderLine, ServiceOrderDetailDTO } from '../types/service-orders.types';
-
-/** The direct path's validator caps an order at 50 exploded reports; the quote
- *  path inherits its quantities from the quotation, so the same bound is
- *  enforced here instead (19 §2 caps, 2026-07-27). */
-const MAX_EXPLODED_REPORTS = 50;
 
 
 
@@ -153,8 +149,8 @@ export const createOrderFromQuotation = async (
   // `isReportSource` decides the DEFAULT count per line (owner 2026-07-31); an
   // explicit `reportCount` on the assignment overrides it in either direction.
   const catalogIds = [...new Set(quoteLines.flatMap((l) => (l.serviceId ? [l.serviceId] : [])))];
-  const catalogRows = catalogIds.length ? await findServicesByIds(db, catalogIds) : [];
-  const reportSource = new Map(catalogRows.map((r) => [r.id, r.isReportSource]));
+  const flags = await findReportSourceFlags(db, catalogIds);
+  const reportSource = new Map(flags.map((r) => [r.id, r.isReportSource]));
 
   const lines = mergeQuoteLines(
     quoteLines,

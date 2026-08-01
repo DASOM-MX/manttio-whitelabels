@@ -100,6 +100,21 @@ export const findServicesByIds = async (db: Db, ids: string[]): Promise<ServiceR
     .where(and(inArray(services.id, ids), activeFilter));
 };
 
+/** `isReportSource` per id, **including soft-deleted services** (19 §2). The
+ *  quote path deliberately honors a service dropped from the catalog since the
+ *  client accepted it, so the flag has to remain readable for it — otherwise a
+ *  since-deleted job would silently stop exploding its reports. */
+export const findReportSourceFlags = async (
+  db: Db,
+  ids: string[],
+): Promise<{ id: string; isReportSource: boolean }[]> => {
+  if (ids.length === 0) return [];
+  return db
+    .select({ id: services.id, isReportSource: services.isReportSource })
+    .from(services)
+    .where(inArray(services.id, ids));
+};
+
 /** Atomic create: the row and its `service_created` event, one transaction —
  *  a service can never exist without the first line of its trail (18 §6.1).
  *  The event arrives as a draft because the id doesn't exist until the row

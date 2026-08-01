@@ -32,6 +32,7 @@ import {
   ServiceOrderStatus,
 } from '../enums/service-orders.enum';
 import { InvalidOrderReferenceError, OrderClosedError } from '../http-errors/service-orders.error';
+import { ExplosionTooLargeError } from '../http-errors/order-from-quotation.error';
 import { formatServiceOrderFolio } from '../utils/service-order-folio';
 import type {
   ConvertQuotationCommand,
@@ -377,17 +378,21 @@ const insertOrderGraph = async (
   // One report per sold unit (19 §2, decided 2026-07-23). Sequence numbers are
   // reserved in a single counter bump rather than one upsert per report: same
   // atomicity, one round trip, and no chance of a partial reservation.
-  const [reportCounter] = await tx
-    .insert(reportCounters)
-    .values({ day: dayString(day), lastNumber: totalUnits })
-    .onConflictDoUpdate({
-      target: reportCounters.day,
-      set: { lastNumber: sql`${reportCounters.lastNumber} + ${totalUnits}` },
-    })
-    .returning({ lastNumber: reportCounters.lastNumber });
-  if (!reportCounter) throw new Error('insertOrderGraph: report counter returned no row');
-
-  let sequence = reportCounter.lastNumber - totalUnits + 1;
+  // A materials-only order explodes nothing (owner 2026-07-31): no counter
+  // bump — reserving zero sequence numbers would just churn the day's row.
+  let sequence = 0;
+  if (totalUnits > 0) {
+    const [reportCounter] = await tx
+      .insert(reportCounters)
+      .values({ day: dayString(day), lastNumber: totalUnits })
+      .onConflictDoUpdate({
+        target: reportCounters.day,
+        set: { lastNumber: sql`${reportCounters.lastNumber} + ${totalUnits}` },
+      })
+      .returning({ lastNumber: reportCounters.lastNumber });
+    if (!reportCounter) throw new Error('insertOrderGraph: report counter returned no row');
+    sequence = reportCounter.lastNumber - totalUnits + 1;
+  }
   const reportRows: (typeof reports.$inferInsert)[] = [];
   const explodedReportIds: string[] = [];
 
@@ -417,14 +422,23 @@ const insertOrderGraph = async (
     }
   }
 
-  await tx.insert(reports).values(reportRows);
-  // Skeleton content rows: `data: {}` with `contentFilledAt` left null is the
-  // "nothing filled in yet" state. They exist from birth because every
-  // downstream read (`findReportWithDetails`) and every content write assumes
-  // the row is there.
-  await tx
-    .insert(reportDetails)
-    .values(reportRows.map((r) => ({ reportId: r.id, data: {}, pictures: [] })));
+  // The transaction-size backstop, applied where the RESOLVED counts are known
+  // — the schema refine can only see what the caller sent, and a line that omits
+  // `reportCount` takes a server-derived default.
+  if (totalUnits > MAX_EXPLODED_REPORTS) throw new ExplosionTooLargeError(totalUnits);
+
+  // Guarded: an order of nothing but charges has no skeletons, and the driver
+  // rejects `values()` with an empty array.
+  if (reportRows.length > 0) {
+    await tx.insert(reports).values(reportRows);
+    // Skeleton content rows: `data: {}` with `contentFilledAt` left null is the
+    // "nothing filled in yet" state. They exist from birth because every
+    // downstream read (`findReportWithDetails`) and every content write assumes
+    // the row is there.
+    await tx
+      .insert(reportDetails)
+      .values(reportRows.map((r) => ({ reportId: r.id, data: {}, pictures: [] })));
+  }
 
   // The timeline opens with the creation (19 §2 step 3).
   const events: NewServiceOrderEvent[] = [
@@ -565,6 +579,10 @@ export const createServiceOrder = async (
  *  per whole unit — and a single report for a fractional quantity, because half
  *  a job is still one job. Everything else (a billing-only service, an
  *  off-catalog concept) explodes nothing until staff ask for it. */
+/** The transaction-size cap on exploded reports (19 §2 caps, 2026-07-27),
+ *  enforced here because only the resolved counts are the real ones. */
+export const MAX_EXPLODED_REPORTS = 50;
+
 export const defaultReportCount = (
   isReportSource: boolean | undefined,
   quantity: string,

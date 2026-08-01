@@ -761,8 +761,15 @@ describe('quotations → service order (20 §6)', () => {
     status: string;
     location?: string;
     servicesCount: number;
-    amounts?: { subtotal: string; tax: string; total: string };
-    lines: { serviceId: string; serviceName: string; unitPrice?: string; quantity: number }[];
+    amounts?: { subtotal: string; discount: string; tax: string; total: string };
+    lines: {
+      id: string;
+      serviceId?: string;
+      serviceName: string;
+      unitPrice?: string;
+      quantity: string;
+      discountAmount: string;
+    }[];
   };
 
   const convert = (token: string, quotationId: string, body: object) =>
@@ -824,8 +831,13 @@ describe('quotations → service order (20 §6)', () => {
     // The frozen snapshot, not the (now tombstoned) catalog row.
     expect(order.lines[0]!.serviceName).toBe(service.name);
     expect(order.lines[0]!.unitPrice).toBe('1500.00');
-    expect(order.lines[0]!.quantity).toBe(2);
-    expect(order.amounts).toEqual({ subtotal: '3000.00', tax: '480.00', total: '3480.00' });
+    expect(order.lines[0]!.quantity).toBe('2.000');
+    expect(order.amounts).toEqual({
+      subtotal: '3000.00',
+      discount: '0.00',
+      tax: '480.00',
+      total: '3480.00',
+    });
 
     // One pending report per unit, born assigned.
     const reportsRes = await request(`/service-orders/${order.id}/reports`, {
@@ -902,7 +914,7 @@ describe('quotations → service order (20 §6)', () => {
     convertedOrders.push(order.id);
 
     expect(order.lines).toHaveLength(1);
-    expect(order.lines[0]!.quantity).toBe(3);
+    expect(order.lines[0]!.quantity).toBe('3.000');
     expect(order.amounts?.subtotal).toBe('600.00');
 
     const qEvents = await json<TimelineEvent[]>(
@@ -971,6 +983,60 @@ describe('quotations → service order (20 §6)', () => {
       assignments: [assignmentFor('00000000-0000-4000-8000-000000000000', '00000000-0000-4000-8000-000000000001')],
     });
     expect(res.status).toBe(404);
+  });
+
+  test('a discounted, off-catalog, fractional quote converts whole (19 follow-up)', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const customer = await seedCustomer();
+    const service = await makeService(token, { price: 1000 });
+    const res = await createQuote(token, {
+      customerId: customer.id,
+      validUntil: dayOffset(10),
+      lines: [
+        // A discounted catalog job…
+        { serviceId: service.id, quantity: '1', discountAmount: '100.00' },
+        // …and an off-catalog charge with a fractional quantity. Every one of
+        // these three shapes was refused outright before 2026-07-31.
+        {
+          name: 'Mano de obra especializada',
+          unitPrice: '800.00',
+          uom: ServiceUom.Hora,
+          taxRate: ServiceTaxRate.Iva16,
+          quantity: '1.5',
+        },
+      ],
+    });
+    expect(res.status).toBe(201);
+    const quote = await json<Quotation>(res);
+    created.push(quote.id);
+    const offCatalogLineId = quote.lines.find((l) => !l.serviceId)!.id;
+    const { tech } = await seedTechnicianAndLogin();
+
+    const converted = await convert(token, quote.id, {
+      comment: 'conversión directa',
+      assignments: [
+        // The catalog job explodes its report…
+        { serviceId: service.id, technicianId: tech.id, reportType: 'minisplit' },
+        // …the off-catalog charge is keyed by LINE, explodes nothing, and so
+        // needs no technician at all.
+        { lineId: offCatalogLineId, reportCount: 0 },
+      ],
+    });
+    expect(converted.status).toBe(201);
+    const { order } = await json<{ order: OrderDetail }>(converted);
+    convertedOrders.push(order.id);
+
+    // Both lines inherited, discount and decimal quantity intact.
+    expect(order.lines).toHaveLength(2);
+    expect(order.lines.find((l) => l.serviceId === service.id)!.discountAmount).toBe('100.00');
+    expect(order.lines.find((l) => !l.serviceId)!.quantity).toBe('1.500');
+    // 900 net @16% = 144 · 1200 @16% = 192 → subtotal 2200, desc 100, IVA 336
+    expect(order.amounts).toEqual({
+      subtotal: '2200.00',
+      discount: '100.00',
+      tax: '336.00',
+      total: '2436.00',
+    });
   });
 });
 
@@ -1119,33 +1185,6 @@ describe('quotations — line model v2 (20 CP-3 PR-A)', () => {
     const body = await json<{ error: string; serviceName: string }>(res);
     expect(body.error).toBe('discount_too_large');
     expect(body.serviceName).toBeTruthy();
-  });
-});
-
-describe('quotations — line model v2 vs the convergence (20 CP-3 PR-A)', () => {
-  test('a discounted quote refuses conversion until orders learn line model v2', async () => {
-    const { token } = await seedOwnerAndLogin();
-    const customer = await seedCustomer();
-    const service = await makeService(token, { price: 1000 });
-    const res = await createQuote(token, {
-      customerId: customer.id,
-      validUntil: dayOffset(10),
-      lines: [{ serviceId: service.id, quantity: '1', discountAmount: '100.00' }],
-    });
-    expect(res.status).toBe(201);
-    const quote = await json<Quotation>(res);
-    created.push(quote.id);
-    const { tech } = await seedTechnicianAndLogin();
-
-    // Owner + draft = the approval override admits them; the LINE is what
-    // refuses — an order line carries no discount, and converting would
-    // silently charge the pre-discount price.
-    const denied = await post(token, `/quotations/${quote.id}/order`, {
-      comment: 'conversión directa',
-      assignments: [{ serviceId: service.id, technicianId: tech.id, reportType: 'minisplit' }],
-    });
-    expect(denied.status).toBe(409);
-    expect((await json<{ error: string }>(denied)).error).toBe('quotation_line_not_convertible');
   });
 });
 
