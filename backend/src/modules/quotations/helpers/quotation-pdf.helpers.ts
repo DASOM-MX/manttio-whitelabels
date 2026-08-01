@@ -7,6 +7,7 @@ import {
 } from '../../pdf/services/pdf.service';
 import { CONTENT_WIDTH, MARGIN } from '../../pdf/constants/pdf-layout';
 import { pdfThemeFromBrand } from '../../reports/helpers/report-pdf.helpers';
+import { formatMoney as money } from './quotation-email.helpers';
 import { ServiceTaxRate } from '../../services/enums/services.enum';
 import type { Brand } from '../../brand/dtos/brand.dto';
 import type { QuotationLineDTO } from '../types/quotations.types';
@@ -34,7 +35,9 @@ const TAX_LABEL: Record<ServiceTaxRate, string> = {
 /** `numeric(12,3)` renders "2.000" — trim the phantom decimals for print. */
 const trimQuantity = (q: string): string => (q.includes('.') ? q.replace(/\.?0+$/, '') : q);
 
-const money = (amount: string): string => `$${amount}`;
+// The email's formatter (Intl es-MX): "$18,500.00", not "$18500.00" — one
+// formatter for every client-facing surface, so they can never disagree.
+
 
 // Servicio · Cant. · Unidad · P. unitario · Desc. · IVA · Importe
 const LINE_WIDTHS = [170, 42, 55, 76, 66, 47, 76];

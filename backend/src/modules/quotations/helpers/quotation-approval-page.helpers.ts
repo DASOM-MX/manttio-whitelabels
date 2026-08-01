@@ -1,5 +1,6 @@
 import { QuotationResponse, QuotationStatus } from '../enums/quotations.enum';
 import { approvalPageHTML } from '../templates/quotation-approval-page.html';
+import { formatMoney as money } from './quotation-email.helpers';
 import type { Brand } from '../../brand/dtos/brand.dto';
 import type { PublicQuotationDTO } from '../types/quotations.types';
 
@@ -17,7 +18,9 @@ const esc = (value: string): string =>
 
 const trimQuantity = (q: string): string => (q.includes('.') ? q.replace(/\.?0+$/, '') : q);
 
-const money = (amount: string): string => `$${amount}`;
+// The email's formatter (Intl es-MX): thousands separators — one formatter
+// for every client-facing surface, so they can never disagree.
+
 
 const ERROR_COPY: Record<ApprovalPageError, string> = {
   reason_required: 'Para rechazar, cuéntanos brevemente el motivo.',
