@@ -7,8 +7,16 @@ export interface QuotationListQuery {
   q?: string;
   customerId?: string;
   status?: QuotationStatus;
+  /** Vigencia lens: live quotes past their date, or expiring within 7 days. */
+  due?: 'soon' | 'overdue';
   page?: number;
   limit?: number;
+}
+
+/** Tenant-level defaults (PR-C) — what the builder prefills into a new
+ *  quote's terms. */
+export interface QuotationSettings {
+  defaultComments: string;
 }
 
 /** What the builder sends per line. **Catalog** lines carry only `serviceId` —

@@ -11,6 +11,7 @@ export const QUOTATION_EVENT_LABELS: Record<QuotationEventType, string> = {
   [QuotationEventType.ReviewerResponded]: 'Respuesta del revisor',
   [QuotationEventType.StatusDerived]: 'Cambio de estado',
   [QuotationEventType.OrderCreated]: 'Orden creada',
+  [QuotationEventType.ReminderSent]: 'Recordatorio enviado',
   [QuotationEventType.Cancelled]: 'Cancelada',
   [QuotationEventType.Deleted]: 'Eliminada',
 };

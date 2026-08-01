@@ -5,6 +5,7 @@ import type { QuotationDetail, QuotationSummary } from '../../data/dtos/quotatio
 import type { QuotationEvent } from '../../data/dtos/quotation/quotation-event';
 import type {
   CancelQuotationRequest,
+  QuotationSettings,
   CreateQuotationRequest,
   DeleteQuotationRequest,
   QuotationListQuery,
@@ -25,6 +26,7 @@ export class QuotationsService {
       q: query.q,
       customerId: query.customerId,
       status: query.status,
+      due: query.due,
       page: query.page,
       limit: query.limit,
     });
@@ -42,6 +44,20 @@ export class QuotationsService {
       `/customers/${customerId}/quotations`,
       { page: query.page, limit: query.limit },
     );
+  }
+
+  getSettings(): Observable<QuotationSettings> {
+    return this.remote.get<QuotationSettings>('/quotations/settings');
+  }
+
+  /** Owner/admin — the default terms speak for the tenant. */
+  saveSettings(body: QuotationSettings): Observable<QuotationSettings> {
+    return this.remote.put<QuotationSettings>('/quotations/settings', body);
+  }
+
+  /** Nudge one pending reviewer — same token, reminder email. */
+  remind(id: string, contactId: string): Observable<{ email: string }> {
+    return this.remote.post<{ email: string }>(`/quotations/${id}/remind`, { contactId });
   }
 
   get(id: string): Observable<QuotationDetail> {

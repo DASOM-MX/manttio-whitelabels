@@ -1,5 +1,6 @@
 import {
   LucideBan,
+  LucideBellRing,
   LucideEye,
   LucideFilePlus,
   LucideGitCommitHorizontal,
@@ -21,6 +22,7 @@ export const QUOTATION_EVENT_ICONS: Record<QuotationEventType, LucideIcon> = {
   [QuotationEventType.ReviewerResponded]: LucideMessageSquareReply,
   [QuotationEventType.StatusDerived]: LucideGitCommitHorizontal,
   [QuotationEventType.OrderCreated]: LucideWrench,
+  [QuotationEventType.ReminderSent]: LucideBellRing,
   [QuotationEventType.Cancelled]: LucideBan,
   [QuotationEventType.Deleted]: LucideTrash2,
 };

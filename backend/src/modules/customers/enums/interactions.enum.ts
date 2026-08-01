@@ -29,4 +29,8 @@ export enum InteractionRefKind {
    *  timeline, not a duplicate of it: this one answers "what happened with this
    *  client", the order timeline answers "what happened on this job". */
   ServiceOrder = 'service_order',
+  /** Pre-sale touches (20 PR-C): quote sent / reviewer answered. Same
+   *  complementary posture as ServiceOrder — the client timeline answers
+   *  "what happened with this client", the quote's own timeline the rest. */
+  Quotation = 'quotation',
 }

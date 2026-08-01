@@ -2,7 +2,7 @@
   title="Cotizaciones"
   description="Las propuestas que has enviado a tus clientes y en qué van."
 >
-  <app-filters-popover [params]="['q', 'status', 'customerId']">
+  <app-filters-popover [params]="['q', 'status', 'customerId', 'due']">
     <div class="field-group">
       <label class="field-label" for="quotations-search">Buscar</label>
       <input
@@ -35,7 +35,23 @@
         filterBy="label"
       />
     </div>
+    <div class="field-group">
+      <label class="field-label" for="quotations-due">Vigencia</label>
+      <p-select
+        inputId="quotations-due"
+        [formControl]="dueFilter"
+        [options]="dueOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
   </app-filters-popover>
+  @if (canEditSettings()) {
+    <button type="button" class="btn-neutral" (click)="openSettings()">
+      <svg lucideSettings2 class="size-4" aria-hidden="true"></svg>
+      Términos
+    </button>
+  }
   <a routerLink="/quotations/new" class="btn-primary">
     <svg lucidePlus class="size-4" aria-hidden="true"></svg>
     Nueva cotización
@@ -119,3 +135,5 @@
     </ng-template>
   </p-table>
 </div>
+
+<app-quotation-settings-dialog #settingsDialog />

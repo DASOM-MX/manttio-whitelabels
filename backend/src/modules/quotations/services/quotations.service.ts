@@ -17,6 +17,7 @@ import {
   InvalidRecipientError,
   NotAReviewerError,
   QuotationClosedError,
+  QuotationReminderNotApplicableError,
   QuotationDiscountTooLargeError,
   QuotationNotDraftError,
   QuotationNotLiveError,
@@ -27,6 +28,7 @@ import {
   createQuotation,
   findQuotationWithCustomer,
   findRecipientByToken,
+  getQuotationSettings,
   listLinesForQuotations,
   listQuotationEvents,
   listQuotations,
@@ -34,6 +36,7 @@ import {
   markRecipientViewed,
   recordResponseAndDeriveStatus,
   reviseQuotation as reviseQuotationRows,
+  saveQuotationSettings,
   setQuotationStatus,
   softDeleteQuotation,
   updateQuotationDraft,
@@ -241,7 +244,7 @@ export const getQuotations = async (
 ): Promise<{ items: QuotationSummaryDTO[]; total: number }> => {
   const { items, total } = await listQuotations(
     db,
-    { search: query.q, customerId: query.customerId, status: query.status },
+    { search: query.q, customerId: query.customerId, status: query.status, due: query.due },
     query.page,
     query.limit,
   );
@@ -433,6 +436,14 @@ export const sendQuotation = async (
       ...(found.quotation.sentAt ? {} : { sentAt: new Date() }),
     },
     events,
+    // The CRM hook (08, PR-C): the client's own timeline gets the pre-sale
+    // touch, in the same transaction as the send it narrates.
+    {
+      customerId: found.quotation.customerId,
+      body: `Cotización ${found.quotation.folio} enviada a ${saved.length} contacto(s)`,
+      refId: id,
+      userId: actorId,
+    },
   );
   if (!updated) return null;
 
@@ -590,6 +601,85 @@ export const removeQuotation = async (
   actorId: string,
 ): Promise<{ id: string } | null> => softDeleteQuotation(db, id, deleteComment, actorId);
 
+/** Tenant defaults (PR-C): what the builder prefills into a new quote's
+ *  terms. Read is open to every quotation role; writes are owner/admin at the
+ *  controller. */
+export const getSettings = (db: Db): Promise<{ defaultComments: string }> =>
+  getQuotationSettings(db);
+
+export const saveSettings = (
+  db: Db,
+  defaultComments: string,
+  actorId: string,
+): Promise<{ defaultComments: string }> => saveQuotationSettings(db, defaultComments, actorId);
+
+/** Nudge ONE pending reviewer (PR-C): same token — the link already in their
+ *  inbox keeps working — reminder-subject email, its own timeline entry.
+ *  Refused when there is nothing to remind: informational recipients have
+ *  nothing to answer, answered reviewers nothing pending; an overdue or
+ *  resolved quote can no longer be answered at all. */
+export const remindReviewer = async (
+  db: Db,
+  env: Env,
+  id: string,
+  contactId: string,
+  actorId: string,
+): Promise<{ email: string } | null> => {
+  const found = await findQuotationWithCustomer(db, id);
+  if (!found) return null;
+  if (!isTallyStatus(found.quotation.status)) {
+    throw new QuotationNotLiveError(found.quotation.status);
+  }
+  if (isOverdue(found.quotation.validUntil)) throw new QuotationClosedError('expired');
+
+  const all = await listRecipientsForQuotations(db, [id]);
+  const match = all.find((r) => r.recipient.contactId === contactId);
+  if (!match) throw new InvalidRecipientError(contactId);
+  if (!match.recipient.isReviewer) throw new QuotationReminderNotApplicableError('not_reviewer');
+  if (match.recipient.response) throw new QuotationReminderNotApplicableError('responded');
+
+  const [detail, brand] = await Promise.all([
+    loadDetail(db, id),
+    getBrand(db, env.LOGOS_CDN_BASE_URL),
+  ]);
+  if (!detail) return null;
+
+  const params = {
+    brand: { name: brand.name, logoUrl: brand.logoUrl, colors: brand.colors },
+    apiBaseUrl: env.API_BASE_URL,
+    folio: detail.folio,
+    customerName: detail.customerName,
+    contactName: match.contactName ?? undefined,
+    validUntil: detail.validUntil,
+    total: detail.totals.total,
+    lineCount: detail.lines.length,
+    token: match.recipient.token,
+    isReviewer: true,
+  };
+  await sendEmail({
+    apiKey: env.RESEND_API_KEY,
+    from: env.RESEND_FROM,
+    to: match.recipient.email,
+    subject: `Recordatorio: ${renderQuotationEmailSubject(params)}`,
+    html: renderQuotationEmailHTML(params),
+    text: renderQuotationEmailText(params),
+  });
+
+  await appendEvents(db, [
+    {
+      quotationId: id,
+      type: QuotationEventType.ReminderSent,
+      actorId,
+      contactId,
+      refKind: QuotationEventRefKind.Recipient,
+      refId: match.recipient.id,
+      changes: { email: match.recipient.email },
+    },
+  ]);
+
+  return { email: match.recipient.email };
+};
+
 // ---------------------------------------------------------------------------
 // Public token surface (20 §4)
 // ---------------------------------------------------------------------------
@@ -711,6 +801,15 @@ export const respondToQuotation = async (
     nextStatus,
     previousStatus: found.quotation.status,
     tally: tallyOf(reviewers),
+    // The CRM hook (08, PR-C) — a reviewer's answer is a client touch too.
+    interaction: {
+      customerId: found.quotation.customerId,
+      body: `Cotización ${found.quotation.folio}: ${found.contactName ?? found.recipient.email} ${
+        input.response === QuotationResponse.Approved ? 'aprobó' : 'rechazó'
+      }`,
+      refId: found.quotation.id,
+      userId: null,
+    },
   });
   if (!updated) return null;
 

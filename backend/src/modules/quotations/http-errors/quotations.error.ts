@@ -73,3 +73,13 @@ export class QuotationClosedError extends Error {
     this.name = 'QuotationClosedError';
   }
 }
+
+/** A reminder aimed at a recipient it cannot help: not a reviewer (nothing to
+ *  answer), or one who already answered (nothing pending). Controller maps it
+ *  to `409 reminder_not_applicable`. */
+export class QuotationReminderNotApplicableError extends Error {
+  constructor(public reason: 'not_reviewer' | 'responded') {
+    super(`reminder not applicable (${reason})`);
+    this.name = 'QuotationReminderNotApplicableError';
+  }
+}

@@ -69,6 +69,8 @@ export enum QuotationEventType {
   OrderCreated = 'quotation_order_created',
   // Staff abandonment; a revise-cancel notes the successor quote.
   Cancelled = 'quotation_cancelled',
+  /** A pending reviewer was nudged (PR-C) — same token, reminder email. */
+  ReminderSent = 'quotation_reminder_sent',
   // Audited soft delete. Written even though the timeline becomes unreachable
   // through the API once the quote is tombstoned — the row is the record, and
   // a deletion with no trail is exactly the gap an audit trail exists to close.

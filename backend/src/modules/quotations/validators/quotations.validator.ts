@@ -164,6 +164,9 @@ export const customerQuotationsQuerySchema = z.object({
 export const listQuotationsQuerySchema = z.object({
   q: z.string().optional(),
   customerId: z.string().uuid().optional(),
+  // Vigencia lens (PR-C): 'overdue' = past validUntil and still live; 'soon' =
+  // expiring within 7 days. A guard-derived filter, deliberately not a status.
+  due: z.enum(['soon', 'overdue']).optional(),
   status: z.nativeEnum(QuotationStatus).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -189,5 +192,15 @@ export type CancelQuotationInput = z.infer<typeof cancelQuotationSchema>;
 export type ConvertQuotationInput = z.infer<typeof createOrderFromQuotationSchema>;
 export type DeleteQuotationInput = z.infer<typeof deleteQuotationSchema>;
 export type ListQuotationsQuery = z.infer<typeof listQuotationsQuerySchema>;
+
+/** PUT /quotations/settings — the tenant's default terms (PR-C). */
+export const quotationSettingsSchema = z.object({
+  defaultComments: z.string().max(5000).default(''),
+});
+export type QuotationSettingsInput = z.infer<typeof quotationSettingsSchema>;
+
+/** POST /quotations/:id/remind — nudge one pending reviewer (PR-C). */
+export const remindQuotationSchema = z.object({ contactId: z.string().uuid() });
+export type RemindQuotationInput = z.infer<typeof remindQuotationSchema>;
 export type RespondQuotationInput = z.infer<typeof respondQuotationSchema>;
 export type QuotationLineInput = z.infer<typeof quotationLineInput>;
