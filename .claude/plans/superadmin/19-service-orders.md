@@ -414,10 +414,22 @@ maintenance = new orders".
 visits backend — `scheduled_visits` with `serviceOrderId` NOT NULL from birth, no
 `visit_events` table ever, visit mutations appending straight to `service_order_events`.*
 
+**Rescoped 2026-07-31 (owner): visits gained plan-vs-actual time tracking, so the work
+ships as three PRs owned by `12-calendar.md`'s CP-1b (backend duration/actuals) → CP-2
+(superadmin time-axis calendar) → CP-3 (field-app technician module + offline queue).
+The order-side obligations below are unchanged; the calendar itself is 12's to build.**
+
+- [x] Visits backend built (PR #110 — `scheduled_visits`, lifecycle, order-timeline audit)
 - [ ] Visit dialog gains the required **order** select (client-scoped); order-view
       "Programar visita" pre-locks it
 - [ ] Respond / close (categorized reason) / reschedule (new record) flows; open-visit
       correction + reassign; every action lands on the order timeline
+- [ ] **Two new `Visit*` members in `ServiceOrderEventType`** (12 CP-1b): `visit_started`
+      and `visit_actuals_corrected`. The exhaustive `Record<VisitEventType, …>` map in
+      `visit-audit.service.ts` makes an unmapped member a compile error, so this cannot
+      silently drift
+- [ ] **CP-5 consequence:** with actuals on the timeline, the client handoff document
+      reports **real on-site times**, not just what was booked
 - [ ] Week grid ships (12 §3) with order folio on the chip hover/dialog
 
 ### CP-4 — Templates prefilter (06 rewire)

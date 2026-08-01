@@ -116,7 +116,7 @@ Rules for agents:
 | 09 billing | not-started | — |
 | 10 wms | not-started (plan expanded 2026-07-19 → `10-wms/` suite) | — |
 | 11 equipment | **done** (frontend side; branch `feature/superadmin-equipment`) | CP-3 |
-| 12 calendar | not-started | — |
+| 12 calendar | in-progress (CP-1 backend on PR #110; CP-1b/CP-2/CP-3 planned 2026-07-31) | — |
 | 13 contracts | not-started | — |
 | 14 access-control | done (doc) | — |
 | 15 website | in-progress · PR #44 | CP-2 |
