@@ -21,9 +21,11 @@ const ORDER_EVENT_TYPE: Record<VisitEventType, ServiceOrderEventType> = {
   [VisitEventType.Created]: ServiceOrderEventType.VisitCreated,
   [VisitEventType.Reassigned]: ServiceOrderEventType.VisitReassigned,
   [VisitEventType.Corrected]: ServiceOrderEventType.VisitCorrected,
+  [VisitEventType.Started]: ServiceOrderEventType.VisitStarted,
   [VisitEventType.Completed]: ServiceOrderEventType.VisitCompleted,
   [VisitEventType.Closed]: ServiceOrderEventType.VisitClosed,
   [VisitEventType.Rescheduled]: ServiceOrderEventType.VisitRescheduled,
+  [VisitEventType.ActualsCorrected]: ServiceOrderEventType.VisitActualsCorrected,
 };
 
 /** Append a visit event to its parent order's timeline.

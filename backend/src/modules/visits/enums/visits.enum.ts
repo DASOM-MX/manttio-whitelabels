@@ -6,15 +6,32 @@
 // close + reschedule, which mints a new linked record rather than mutating this
 // one.
 export enum VisitStatus {
-  // Open. The only state that accepts correction, reassignment or a tech action.
+  // Booked, untouched. The only state that accepts a scheduling **correction**.
   Scheduled = 'scheduled',
-  // Served. Set when the technician responds, or manually by staff; carries the
-  // produced report via `reportId` when there is one.
+  // The technician tapped Iniciar in the field app: work is happening right now
+  // and `actualStart` is stamped (12 §1, owner 2026-07-31). Added deliberately
+  // — it supersedes "scheduled is the only open state", because office needs to
+  // see who is on site. **Frozen for planning:** a correction is refused here
+  // (moving the date of a visit being performed is nonsense), but
+  // **reassignment stays open** so a genuine mid-job handoff is possible.
+  InProgress = 'in_progress',
+  // Served. Set when the technician responds/terminates, or manually by staff;
+  // carries the produced report via `reportId` when there is one.
   Completed = 'completed',
   // Not served, for a categorized reason. Terminal — the successor visit, if
   // any, is a separate row pointing back through `rescheduledFromId`.
   Closed = 'closed',
 }
+
+/** The two live states. A visit here can still be reassigned or ended; both
+ *  terminal states refuse everything but an admin-tier actuals correction. */
+export const OPEN_VISIT_STATUSES: VisitStatus[] = [VisitStatus.Scheduled, VisitStatus.InProgress];
+
+/** Terminal — the only states where the actuals may be corrected (12 §1). */
+export const TERMINAL_VISIT_STATUSES: VisitStatus[] = [
+  VisitStatus.Completed,
+  VisitStatus.Closed,
+];
 
 // Why a visit was closed (12 §1, decided 2026-07-23). A single `closed` status
 // plus a required category beats one status per outcome: the reasons are
@@ -50,7 +67,13 @@ export enum VisitEventType {
   Created = 'visit_created',
   Reassigned = 'visit_reassigned',
   Corrected = 'visit_corrected',
+  /** Iniciar — work began; `actualStart` stamped (2026-07-31). */
+  Started = 'visit_started',
   Completed = 'visit_completed',
   Closed = 'visit_closed',
   Rescheduled = 'visit_rescheduled',
+  /** An owner/admin fixed a mis-tapped or mis-synced actual time on a terminal
+   *  visit (2026-07-31). Carries the before/after diff — the correction is
+   *  auditable precisely because the original value stays readable. */
+  ActualsCorrected = 'visit_actuals_corrected',
 }

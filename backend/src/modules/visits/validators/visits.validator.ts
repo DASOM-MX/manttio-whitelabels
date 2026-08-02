@@ -12,29 +12,64 @@ const isoDate = z.string().datetime({ offset: true }).transform((s) => new Date(
 const UNASSIGNED = 'unassigned' as const;
 const technicianFilter = z.union([z.string().uuid(), z.literal(UNASSIGNED)]);
 
-// `from`/`to` are **required**: the calendar always reads a bounded window
-// (12 §5) and an unbounded visits scan has no legitimate caller.
+// The code filter reaches the repository as a `LIKE '<term>%'` pattern, so the
+// term is confined to the alphabet a code is actually made of. That is not
+// cosmetic: `%` and `_` are LIKE wildcards, and without this a caller could send
+// `internalCode=%` and get **every visit in the database**, unpaginated —
+// walking straight through the "no unbounded scan" rule the filter below is half
+// of. The upper-casing lets the repository use case-sensitive `LIKE`, which is
+// the only form that gets a prefix seek out of the unique index.
+//
+// Capped at the length of a whole code: a prefix can never be longer than the
+// thing it is a prefix of.
+const VISIT_CODE_MAX_LENGTH = 'V-YYYYMMDD-NNNN'.length;
+const internalCodePrefix = z
+  .string()
+  .trim()
+  .min(1)
+  .max(VISIT_CODE_MAX_LENGTH)
+  .regex(/^[A-Za-z0-9-]+$/, 'internalCode may only contain letters, digits and hyphens')
+  .transform((s) => s.toUpperCase());
+
+// The read is always narrowed by **either** a bounded window (the calendar's
+// viewport, 12 §5) **or** an `internalCode` prefix (owner 2026-08-02). One of
+// the two is required: an unbounded visits scan still has no legitimate caller,
+// but "paste a code and find the visit" is one — and it cannot be made to work
+// if the caller has to already know which week the visit is in.
 export const listVisitsQuerySchema = z
   .object({
-    from: isoDate,
-    to: isoDate,
+    from: isoDate.optional(),
+    to: isoDate.optional(),
+    internalCode: internalCodePrefix.optional(),
     technicianId: technicianFilter.optional(),
     customerId: z.string().uuid().optional(),
     status: z.nativeEnum(VisitStatus).optional(),
   })
-  .refine((q) => q.to >= q.from, {
+  .refine((q) => (q.from && q.to) || q.internalCode, {
+    message: 'supply either from+to or internalCode',
+    path: ['from'],
+  })
+  .refine((q) => !q.from || !q.to || q.to >= q.from, {
     message: 'to must be at or after from',
     path: ['to'],
   });
 
-// An end before its start is the one scheduling error worth rejecting outright;
-// everything else about *when* is the office's business.
-const endAfterStart = (v: { scheduledStart: Date; scheduledEnd?: Date }) =>
-  !v.scheduledEnd || v.scheduledEnd > v.scheduledStart;
-const endAfterStartMessage = {
-  message: 'scheduledEnd must be after scheduledStart',
-  path: ['scheduledEnd'],
-};
+// The planned length (12 §1, owner 2026-07-31). Required with a 60-minute
+// default: the calendar draws a visit as a block and a block needs a height, so
+// a booking made without thinking about duration is an hour long — not
+// undefined. Bounded at 24h because a longer "visit" is a multi-day job, which
+// is several visits on one order, not one enormous block.
+//
+// `scheduledEnd` is deliberately **not** an input anywhere: the service derives
+// it from start + duration on every write, which is the only way the two can
+// never disagree. That supersedes the `scheduledEnd?` still listed for
+// create/reschedule in 12 §5.
+const MAX_EXPECTED_DURATION_MINUTES = 24 * 60;
+const expectedDurationMinutes = z
+  .number()
+  .int()
+  .positive()
+  .max(MAX_EXPECTED_DURATION_MINUTES);
 
 export const createVisitSchema = z
   .object({
@@ -52,25 +87,23 @@ export const createVisitSchema = z
     // the service layer — a unit from another client is a 409, not a 400.
     equipmentIds: z.array(z.string().uuid()).optional(),
     scheduledStart: isoDate,
-    scheduledEnd: isoDate.optional(),
+    expectedDurationMinutes: expectedDurationMinutes.default(60),
     title: z.string().trim().min(1).optional(),
     notes: z.string().optional(),
-  })
-  .refine(endAfterStart, endAfterStartMessage);
+  });
 
-// Correction of an **open** visit (12 §4) — scheduling fields only. There is
+// Correction of a **scheduled** visit (12 §4) — scheduling fields only. There is
 // deliberately no `technicianId` (that is `/assign`), no `status`, no
 // `customerId` and no `equipmentIds`: a visit's *what* and *who for* are fixed
 // at creation, and changing them is a close + reschedule.
 //
-// `scheduledEnd` accepts an explicit `null` to clear a previously set end time;
-// omitting the key leaves it untouched. Start/end coherence can't be checked
-// here (the other half may be unchanged and live in the DB) — the service
-// re-validates against the merged row.
+// Only reachable while `scheduled`: once a technician has tapped Iniciar the
+// visit is `in_progress` and moving the date of a job being physically performed
+// is nonsense (owner 2026-07-31) — the service 409s.
 export const correctVisitSchema = z
   .object({
     scheduledStart: isoDate.optional(),
-    scheduledEnd: isoDate.nullable().optional(),
+    expectedDurationMinutes: expectedDurationMinutes.optional(),
     title: z.string().trim().min(1).nullable().optional(),
     notes: z.string().nullable().optional(),
   })
@@ -82,12 +115,36 @@ export const assignVisitSchema = z.object({
   technicianId: z.string().uuid().nullable(),
 });
 
-// The report is optional: staff may mark a visit served without one, and the
-// field app may link it afterwards. When present it is a report folio (`text`
-// PK), not a uuid.
+// Iniciar (12 §5, owner 2026-07-31) — the field app's "I'm starting". The
+// timestamp is **client-supplied**, not `now()`: the field app queues this in
+// IndexedDB and syncs on reconnect, so a technician who starts at 09:15 in a
+// basement must not record 11:40 when the truck regains signal. Same trusted-
+// field posture as `created_by` on synced offline reports — validated against
+// the visit's own history in the service, then believed.
+export const startVisitSchema = z.object({
+  actualStart: isoDate,
+});
+
+// Terminar (12 §5). Both fields optional, for different reasons: the report
+// because staff may mark a visit served without one and the field app may link
+// it afterwards; `actualEnd` because office completing a visit from the admin
+// has no tap to report, and inventing one would fabricate billing data.
+// When present it is a report folio (`text` PK), not a uuid.
 export const respondVisitSchema = z.object({
+  actualEnd: isoDate.optional(),
   reportId: z.string().trim().min(1).optional(),
 });
+
+// Correcting the actuals on a terminal visit (12 §2, owner/admin only). This is
+// the one edit that reaches past a terminal state, and it exists because a
+// mis-tapped Iniciar would otherwise bill wrong forever. Neither field is
+// nullable: this endpoint fixes a stamp, it does not erase one.
+export const correctActualsSchema = z
+  .object({
+    actualStart: isoDate.optional(),
+    actualEnd: isoDate.optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: 'no actual times supplied' });
 
 // Category required, note optional — except on `other`, where a bare category
 // would tell the client handoff nothing. That escape hatch has to carry its
@@ -104,20 +161,22 @@ export const closeVisitSchema = z
 
 // The successor of a closed visit. `technicianId` omitted = inherit the closed
 // visit's assignee (the common case: same tech, new date); explicit `null`
-// sends it back to the backlog.
-export const rescheduleVisitSchema = z
-  .object({
-    scheduledStart: isoDate,
-    scheduledEnd: isoDate.optional(),
-    technicianId: z.string().uuid().nullable().optional(),
-  })
-  .refine(endAfterStart, endAfterStartMessage);
+// sends it back to the backlog. `expectedDurationMinutes` omitted likewise
+// inherits — the same job on a new date takes the same time unless told
+// otherwise.
+export const rescheduleVisitSchema = z.object({
+  scheduledStart: isoDate,
+  expectedDurationMinutes: expectedDurationMinutes.optional(),
+  technicianId: z.string().uuid().nullable().optional(),
+});
 
 export type ListVisitsQuery = z.infer<typeof listVisitsQuerySchema>;
 export type CreateVisitInput = z.infer<typeof createVisitSchema>;
 export type CorrectVisitInput = z.infer<typeof correctVisitSchema>;
 export type AssignVisitInput = z.infer<typeof assignVisitSchema>;
+export type StartVisitInput = z.infer<typeof startVisitSchema>;
 export type RespondVisitInput = z.infer<typeof respondVisitSchema>;
+export type CorrectActualsInput = z.infer<typeof correctActualsSchema>;
 export type CloseVisitInput = z.infer<typeof closeVisitSchema>;
 export type RescheduleVisitInput = z.infer<typeof rescheduleVisitSchema>;
 

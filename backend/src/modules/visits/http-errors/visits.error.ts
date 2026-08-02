@@ -1,13 +1,62 @@
 import type { VisitStatus } from '../enums/visits.enum';
 
-/** A visit is immutable once a technician has acted (12 §1). Correction,
- *  reassignment, respond and close all require the `scheduled` state, so acting
- *  on a terminal record is a conflict — the request is well-formed, the record
- *  has simply moved on. Controller maps it to `409 visit_not_open`. */
+/** A visit is immutable once it goes terminal (12 §1). Reassignment, start,
+ *  respond and close all require an **open** state (`scheduled` or, since
+ *  2026-07-31, `in_progress`), so acting on a completed or closed record is a
+ *  conflict — the request is well-formed, the record has simply moved on.
+ *  Controller maps it to `409 visit_not_open`. */
 export class VisitNotOpenError extends Error {
   constructor(public status: VisitStatus) {
     super(`visit is not open: ${status}`);
     this.name = 'VisitNotOpenError';
+  }
+}
+
+/** Scheduling correction is narrower than "open" (owner, 2026-07-31): it needs
+ *  the visit to still be `scheduled`. Moving the date of a job a technician is
+ *  physically performing is nonsense, so `in_progress` refuses it — while
+ *  reassignment deliberately stays available there, because a mid-job handoff
+ *  is real. Controller maps it to `409 visit_not_correctable`. */
+export class VisitNotCorrectableError extends Error {
+  constructor(public status: VisitStatus) {
+    super(`visit can no longer be corrected: ${status}`);
+    this.name = 'VisitNotCorrectableError';
+  }
+}
+
+/** Iniciar starts a visit that has not started yet. Asking for it on an
+ *  `in_progress` visit means someone already tapped it (a duplicate offline
+ *  queue entry, most likely), and on a terminal one the job is over.
+ *  Controller maps it to `409 visit_not_startable`. */
+export class VisitNotStartableError extends Error {
+  constructor(public status: VisitStatus) {
+    super(`visit cannot be started: ${status}`);
+    this.name = 'VisitNotStartableError';
+  }
+}
+
+/** The actuals correction is the one edit that reaches past a terminal state
+ *  (12 §1) — which means it *requires* one. There is nothing to correct on a
+ *  visit whose technician has not finished it; the honest fix there is to let
+ *  Terminar record the real time. Controller maps it to
+ *  `409 visit_not_terminal`. */
+export class VisitNotTerminalError extends Error {
+  constructor(public status: VisitStatus) {
+    super(`visit is not terminal: ${status}`);
+    this.name = 'VisitNotTerminalError';
+  }
+}
+
+/** A client-supplied actual timestamp that cannot be true (12 §5). The stamps
+ *  are *trusted* — the field app records the tap, not the sync — but trusted is
+ *  not unchecked: a time in the future or before the visit existed is a broken
+ *  device clock or a mangled queue entry, and letting it through would bill a
+ *  job that never took that long. Controller maps it to
+ *  `400 invalid_actual_time`. */
+export class InvalidActualTimeError extends Error {
+  constructor(public reason: string) {
+    super(reason);
+    this.name = 'InvalidActualTimeError';
   }
 }
 
@@ -71,6 +120,27 @@ export class VisitNotFoundError extends Error {
   constructor(public visitId: string) {
     super(`visit not found: ${visitId}`);
     this.name = 'VisitNotFoundError';
+  }
+}
+
+/** A visit was written and committed, and then could not be read back to build
+ *  the response. Both creation paths — `createVisit` and the successor minted by
+ *  `rescheduleVisit` — assert this, because `null` from a visits service means
+ *  "the visit you named does not exist" and the controller turns that into a
+ *  404. Answering a committed write with `not_found` would be a lie, and on the
+ *  reschedule path it would name the *source* visit for a fault in the new one.
+ *
+ *  **Deliberately unmapped in `visits.error-response.ts`.** Every other class
+ *  here is a rule the request broke; this one is the module's own invariant
+ *  breaking, so it falls through to the global handler as a `500` and gets
+ *  logged. Mapping it would turn a bug into a tidy response and hide it. */
+export class VisitReadBackFailedError extends Error {
+  constructor(
+    public visitId: string,
+    public operation: string,
+  ) {
+    super(`${operation}: committed visit ${visitId} could not be read back`);
+    this.name = 'VisitReadBackFailedError';
   }
 }
 

@@ -2,6 +2,7 @@ import type { Context } from 'hono';
 import type { AppBindings } from '../../../env';
 import {
   EquipmentCustomerMismatchError,
+  InvalidActualTimeError,
   OrderCustomerMismatchError,
   ReportCustomerMismatchError,
   ServiceOrderNotOpenError,
@@ -10,8 +11,11 @@ import {
   VisitCustomerNotFoundError,
   VisitNotAssignedToUserError,
   VisitNotClosedError,
+  VisitNotCorrectableError,
   VisitNotFoundError,
   VisitNotOpenError,
+  VisitNotStartableError,
+  VisitNotTerminalError,
   VisitServiceOrderNotFoundError,
 } from './visits.error';
 
@@ -38,6 +42,33 @@ export const visitErrorResponse = (c: Context<AppBindings>, err: unknown) => {
       },
       409,
     );
+  }
+  if (err instanceof VisitNotCorrectableError) {
+    return c.json(
+      {
+        error: 'visit_not_correctable',
+        message: 'Esta visita ya está en curso o finalizada y su programación no puede moverse.',
+      },
+      409,
+    );
+  }
+  if (err instanceof VisitNotStartableError) {
+    return c.json(
+      { error: 'visit_not_startable', message: 'Esta visita ya fue iniciada o finalizada.' },
+      409,
+    );
+  }
+  if (err instanceof VisitNotTerminalError) {
+    return c.json(
+      {
+        error: 'visit_not_terminal',
+        message: 'Solo pueden corregirse los tiempos de una visita ya finalizada o cerrada.',
+      },
+      409,
+    );
+  }
+  if (err instanceof InvalidActualTimeError) {
+    return c.json({ error: 'invalid_actual_time', message: err.message }, 400);
   }
   if (err instanceof VisitNotClosedError) {
     return c.json(
@@ -104,11 +135,6 @@ export const visitErrorResponse = (c: Context<AppBindings>, err: unknown) => {
   }
   if (err instanceof TechnicianNotFoundError) {
     return c.json({ error: 'technician_not_found', message: 'El técnico no existe.' }, 400);
-  }
-  // The start/end coherence check, which can only be made once a correction is
-  // laid over the stored row — so it can't live in the zod schema.
-  if (err instanceof RangeError) {
-    return c.json({ error: 'invalid_schedule_range', message: err.message }, 400);
   }
   throw err;
 };

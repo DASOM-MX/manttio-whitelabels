@@ -43,7 +43,7 @@ export { quotationSettings } from '../quotations/models/quotation-settings.model
 export { quotationLines } from '../quotations/models/quotation-lines.model';
 export { quotationRecipients } from '../quotations/models/quotation-recipients.model';
 export { quotationEvents } from '../quotations/models/quotation-events.model';
-export { scheduledVisits, visitEquipment } from '../visits/models/visits.model';
+export { scheduledVisits, visitCounters, visitEquipment } from '../visits/models/visits.model';
 export {
   serviceOrders,
   serviceOrderServices,

@@ -1,6 +1,7 @@
-import { and, asc, eq, gte, inArray, isNull, lte, type SQL } from 'drizzle-orm';
-import type { Db, DbOrTx } from '../../database/client';
-import { scheduledVisits, visitEquipment } from '../models/visits.model';
+import { and, asc, eq, gte, inArray, isNull, like, lte, sql, type SQL } from 'drizzle-orm';
+import type { Db, DbOrTx, Tx } from '../../database/client';
+import { scheduledVisits, visitCounters, visitEquipment } from '../models/visits.model';
+import { formatVisitCode } from '../utils/visit-code';
 import { customers } from '../../customers/models/customers.model';
 import { users } from '../../users/models/users.model';
 import { equipment } from '../../equipment/models/equipment.model';
@@ -8,7 +9,7 @@ import { serviceOrders } from '../../service-orders/models/service-orders.model'
 import { VisitStatus } from '../enums/visits.enum';
 import type {
   CorrectVisitFields,
-  NewVisit,
+  NewVisitFields,
   VisitEquipmentLink,
   VisitLifecycleFields,
   VisitRow,
@@ -16,6 +17,28 @@ import type {
 } from '../types/visits.types';
 
 const activeFilter = isNull(scheduledVisits.deletedAt);
+
+const dayString = (d: Date) => d.toISOString().slice(0, 10);
+
+/** Reserve the next code for `day` and format it. Runs on the caller's
+ *  transaction so the number and the row it belongs to commit together — a
+ *  counter bumped outside the transaction would burn codes on every rollback.
+ *
+ *  The upsert-and-read-back is what makes it concurrency-safe: the row is locked
+ *  for the rest of the transaction, so a second booking blocks rather than
+ *  reading the same `lastNumber`. */
+const nextVisitCode = async (tx: Tx, day: Date): Promise<string> => {
+  const [counter] = await tx
+    .insert(visitCounters)
+    .values({ day: dayString(day), lastNumber: 1 })
+    .onConflictDoUpdate({
+      target: visitCounters.day,
+      set: { lastNumber: sql`${visitCounters.lastNumber} + 1` },
+    })
+    .returning({ lastNumber: visitCounters.lastNumber });
+  if (!counter) throw new Error('nextVisitCode: counter upsert returned no row');
+  return formatVisitCode(day, counter.lastNumber);
+};
 
 // The three joined labels every chip renders. Selected together so the week
 // view costs one query rather than one per visit.
@@ -32,22 +55,43 @@ const metaColumns = {
 export const listVisitsInRange = async (
   db: Db,
   filters: {
-    from: Date;
-    to: Date;
+    from?: Date;
+    to?: Date;
+    internalCode?: string;
     technicianId?: string;
     unassigned?: boolean;
     customerId?: string;
     status?: VisitStatus;
   },
 ): Promise<VisitWithMeta[]> => {
-  const conds: SQL[] = [
-    activeFilter,
-    // A visit is in range when it *starts* in it. Deliberately not an overlap
-    // test: `scheduledEnd` is optional, so an overlap rule would silently treat
-    // open-ended visits differently from timed ones.
-    gte(scheduledVisits.scheduledStart, filters.from),
-    lte(scheduledVisits.scheduledStart, filters.to),
-  ];
+  const conds: SQL[] = [activeFilter];
+  // A visit is in range when it *starts* in it. Deliberately not an overlap
+  // test: an overlap rule would treat the (still nullable) `scheduledEnd`
+  // differently from a derived one, and the range is a calendar viewport, not a
+  // query about coverage.
+  //
+  // The bounds are optional **only** because a code lookup replaces them: the
+  // validator requires either a range or a code, so there is still no way to
+  // ask for an unbounded scan (12 §5).
+  if (filters.from) conds.push(gte(scheduledVisits.scheduledStart, filters.from));
+  if (filters.to) conds.push(lte(scheduledVisits.scheduledStart, filters.to));
+  // Prefix match, not `%fragment%` (owner 2026-08-02): `V-2026` narrows to a
+  // year, `V-20260802` to a day, a full code finds the one visit.
+  //
+  // `like`, **not** `ilike`: only case-sensitive LIKE gets a prefix seek out of
+  // `scheduled_visits_internal_code_uidx`. Verified on this database
+  // (`C.UTF-8`, so the default opclass is enough) —
+  //   like  → Index Only Scan, Index Cond: code >= 'V-2026' AND code < 'V-2027'
+  //   ilike → full index scan, no Index Cond, ~180× the cost
+  // The validator upper-cases the term, so case-sensitivity costs the caller
+  // nothing and the index actually does the narrowing it exists for.
+  //
+  // The term is also restricted there to the code alphabet: `%` and `_` are LIKE
+  // wildcards, and `internalCode=%` would otherwise return every visit ever —
+  // straight through the "no unbounded scan" rule this filter helps enforce.
+  if (filters.internalCode) {
+    conds.push(like(scheduledVisits.internalCode, `${filters.internalCode}%`));
+  }
   if (filters.unassigned) conds.push(isNull(scheduledVisits.technicianId));
   else if (filters.technicianId) conds.push(eq(scheduledVisits.technicianId, filters.technicianId));
   if (filters.customerId) conds.push(eq(scheduledVisits.customerId, filters.customerId));
@@ -112,6 +156,31 @@ export const equipmentForVisit = async (
     .where(eq(visitEquipment.visitId, visitId))
     .orderBy(asc(equipment.name));
 
+/** The same links for a whole page of visits, in **one** query, grouped by
+ *  visit. The list read is unpaginated by design (a calendar viewport, or a code
+ *  prefix), so asking per visit is a round trip per chip — hundreds for a week,
+ *  and unbounded for a `V-2026` prefix. Visits with no linked unit are simply
+ *  absent from the map; callers default to `[]`. */
+export const equipmentForVisits = async (
+  db: Db,
+  visitIds: string[],
+): Promise<Map<string, VisitEquipmentLink[]>> => {
+  const grouped = new Map<string, VisitEquipmentLink[]>();
+  if (!visitIds.length) return grouped;
+  const rows = await db
+    .select({ visitId: visitEquipment.visitId, id: equipment.id, name: equipment.name })
+    .from(visitEquipment)
+    .innerJoin(equipment, eq(equipment.id, visitEquipment.equipmentId))
+    .where(inArray(visitEquipment.visitId, visitIds))
+    .orderBy(asc(equipment.name));
+  for (const { visitId, id, name } of rows) {
+    const links = grouped.get(visitId);
+    if (links) links.push({ id, name });
+    else grouped.set(visitId, [{ id, name }]);
+  }
+  return grouped;
+};
+
 /** Which of these equipment ids actually belong to the customer. The service
  *  diffs this against what was asked for, so the error can name the offenders. */
 export const equipmentIdsForCustomer = async (
@@ -138,12 +207,19 @@ export const equipmentIdsForCustomer = async (
  *  (19 §7). Returns the created row; the service composes the DTO. */
 export const insertVisit = async (
   db: Db,
-  values: NewVisit,
+  values: NewVisitFields,
   equipmentIds: string[],
   audit: (tx: DbOrTx, visit: VisitRow) => Promise<void>,
 ): Promise<VisitRow> =>
   db.transaction(async (tx) => {
-    const [visit] = await tx.insert(scheduledVisits).values(values).returning();
+    // The code is minted here rather than by the service: it must come from the
+    // same transaction as the row, and nothing above this layer should be able
+    // to author one.
+    const internalCode = await nextVisitCode(tx, new Date());
+    const [visit] = await tx
+      .insert(scheduledVisits)
+      .values({ ...values, internalCode })
+      .returning();
     if (!visit) throw new Error('insertVisit returned no row');
     if (equipmentIds.length) {
       await tx
@@ -155,18 +231,24 @@ export const insertVisit = async (
   });
 
 /** The single write path for every mutation after creation — correction,
- *  reassignment, respond and close all funnel through here so none of them can
- *  skip the audit append or the open-state guard.
+ *  reassignment, start, respond, close and the actuals correction all funnel
+ *  through here so none of them can skip the audit append or the state guard.
  *
- *  `guardStatus` re-checks the state **inside** the transaction: the service
+ *  `guardStatuses` re-checks the state **inside** the transaction: the service
  *  already read the row, but between that read and this write another request
- *  could have closed it. The `where` makes the update itself the guard, so the
- *  loser of a race gets no row back rather than clobbering a terminal record. */
+ *  could have moved it on. The `where` makes the update itself the guard, so the
+ *  loser of a race gets no row back rather than clobbering a record that has
+ *  since changed state.
+ *
+ *  It takes a **list** rather than a single status because the states each
+ *  endpoint accepts stopped being singletons when `in_progress` landed (12 §1,
+ *  2026-07-31): reassign/respond/close accept either open state, and the actuals
+ *  correction accepts either terminal one. */
 export const updateVisit = async (
   db: Db,
   id: string,
   fields: CorrectVisitFields & VisitLifecycleFields,
-  guardStatus: VisitStatus,
+  guardStatuses: VisitStatus[],
   audit: (tx: DbOrTx, visit: VisitRow) => Promise<void>,
 ): Promise<VisitRow | null> =>
   db.transaction(async (tx) => {
@@ -174,7 +256,11 @@ export const updateVisit = async (
       .update(scheduledVisits)
       .set({ ...fields, updatedAt: new Date() })
       .where(
-        and(eq(scheduledVisits.id, id), eq(scheduledVisits.status, guardStatus), activeFilter),
+        and(
+          eq(scheduledVisits.id, id),
+          inArray(scheduledVisits.status, guardStatuses),
+          activeFilter,
+        ),
       )
       .returning();
     if (!visit) return null;
@@ -189,7 +275,7 @@ export const updateVisit = async (
 export const insertRescheduledVisit = async (
   db: Db,
   sourceId: string,
-  values: NewVisit,
+  values: NewVisitFields,
   audit: (tx: DbOrTx, visit: VisitRow) => Promise<void>,
 ): Promise<VisitRow | null> =>
   db.transaction(async (tx) => {
@@ -206,7 +292,13 @@ export const insertRescheduledVisit = async (
       .limit(1);
     if (!source) return null;
 
-    const [visit] = await tx.insert(scheduledVisits).values(values).returning();
+    // The successor is a new visit, so it gets its own code — the chain is
+    // readable through `rescheduledFromId`, never by reusing an identifier.
+    const internalCode = await nextVisitCode(tx, new Date());
+    const [visit] = await tx
+      .insert(scheduledVisits)
+      .values({ ...values, internalCode })
+      .returning();
     if (!visit) throw new Error('insertRescheduledVisit returned no row');
 
     // The successor covers the same units as the visit it replaces — it is the
