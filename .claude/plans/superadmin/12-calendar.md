@@ -20,7 +20,12 @@ completion) but neither replaces the other.
 
 ```
 ScheduledVisit {                // IMMUTABLE record (decided 2026-07-23) — see below
-  id, customerId,
+  id,
+  internalCode,                 // `V-YYYYMMDD-NNNN` (owner 2026-08-02) — backend-minted
+                                //   from a daily counter, NOT NULL, unique among live
+                                //   rows, never staff-authored. The human handle: what
+                                //   people read out, paste into search, write on a slip
+  customerId,
   serviceOrderId,               // REQUIRED (2026-07-23, 19 §1) — every visit belongs
                                 //   to exactly one service order; the client derives
                                 //   from the order
@@ -228,15 +233,24 @@ module there, not two buttons:
 
 ## 5. Expected API surface
 
-- `GET /visits?from&to&technicianId&customerId&status` → list for the visible range
-  (calendar loads by week; no pagination, range-bounded)
+- `GET /visits?from&to&internalCode&technicianId&customerId&status` → list for the
+  visible range (calendar loads by week; no pagination). **Either** `from`+`to` **or**
+  `internalCode` is required (owner 2026-08-02): the range is the calendar's viewport,
+  and the code is the one legitimate unbounded selector — you cannot be made to know
+  which week a visit is in before you can look it up. `internalCode` is a **prefix**
+  match (`V-2026` = a year, `V-20260802` = a day, a full code = one visit), all served
+  by the unique btree; a `%fragment%` search was rejected because it would require
+  `pg_trgm` in every tenant database
 - `GET /visits/:id` — the immutable record + its close/reschedule chain (audit trail is
   on the order, not here — 19 §7)
 - `POST /visits` — create (staff); takes `expectedDurationMinutes` (default 60) and
-  derives `scheduledEnd` from it
+  derives `scheduledEnd` from it. **`scheduledEnd` is never an input on any endpoint**
+  (2026-07-31): the service writes it as `scheduledStart + expectedDurationMinutes` on
+  every path that touches either, which is the only way the two cannot drift apart
 - `PATCH /visits/:id` — **scheduled-only correction** (date/duration/title/notes; **not**
-  technicianId, **not** once `in_progress` or terminal) → 409 otherwise; logs a
-  `visit_corrected` event to the order timeline
+  technicianId, **not** once `in_progress` or terminal) → 409 `visit_not_correctable`
+  otherwise; logs a `visit_corrected` event to the order timeline carrying only the
+  *authored* fields, since `scheduledEnd` is derived and would double-report the move
 - `POST /visits/:id/assign` `{ technicianId }` — reassignment while **scheduled or
   in_progress** (2026-07-31: a mid-job handoff is real); backend enforces the tech-swap
   rule (requester is tech ⇒ current assignee must be requester) → logs
@@ -254,9 +268,11 @@ module there, not two buttons:
   `actualDurationMinutes`, logs `visit_actuals_corrected` with the before/after diff
 - `POST /visits/:id/close` `{ reason, note? }` — categorized close → `closed` → logs
   `visit_closed`
-- `POST /visits/:id/reschedule` `{ scheduledStart, scheduledEnd?, technicianId? }` →
-  new `scheduled` record from a **closed** visit (`rescheduledFromId` set) → logs
-  `visit_rescheduled` (→ new visit); techs may do this for their own visit
+- `POST /visits/:id/reschedule` `{ scheduledStart, expectedDurationMinutes?,
+  technicianId? }` → new `scheduled` record from a **closed** visit
+  (`rescheduledFromId` set, its own fresh `internalCode`, duration inherited unless
+  overridden, actuals deliberately *not* copied) → logs `visit_rescheduled` (→ new
+  visit); techs may do this for their own visit
 - All mutation endpoints append to the **parent order's activity timeline** (19 §7) —
   there is no visit-level audit table
 - `GET /customers/:id/visits` — upcoming visits on the customer view (07 slot — ask)
@@ -341,23 +357,39 @@ then the two consumers independently. The calendar must not wait on the field ap
 - [x] List (bounded range) / detail / create / correct / assign / respond / close /
       reschedule + role guards
 
-### CP-1b — Backend: duration + actuals (amends PR #110) — **PR 1 of 3**
-- [ ] **Columns:** `expected_duration_minutes` (NOT NULL, default 60), `actual_start`,
+### CP-1b — Backend: duration + actuals (amends PR #110) — **PR 1 of 3** — [x] built
+- [x] **Columns:** `expected_duration_minutes` (NOT NULL, default 60), `actual_start`,
       `actual_end`, `actual_duration_minutes`; `scheduled_end` **kept** as the fast
-      reference and written together with the expected duration. DDL applied directly
-      to the shared Neon DB, the way the visits table itself shipped
-- [ ] **`VisitStatus.InProgress`** + `POST /:id/start` (Iniciar, client-supplied
+      reference and written together with the expected duration.
+      ~~DDL applied directly to the shared Neon DB, the way the visits table itself
+      shipped~~ — **superseded 2026-08-01 (owner)**: that rule is revoked. Everything
+      ships as `0031_visits_duration_actuals.sql`, which also **backfills CP-1**: the
+      shared database never actually received the CP-1 DDL and still carried the
+      pre-pivot table, so the migration reconciles it additively (nine missing columns,
+      `visit_equipment` created, `status_reason` + the orphan `visit_assignments` left
+      alone — no destructive statements in a file every tenant runs)
+- [x] **`internal_code`** (`V-YYYYMMDD-NNNN`, owner 2026-08-02) — backend-minted from a
+      `visit_counters` daily sequence inside the create transaction, NOT NULL, unique on
+      live rows. Searched by **equality or prefix** against a btree, never `%fragment%`
+      (which would have meant `pg_trgm` in every tenant DB); `GET /visits` accepts
+      `internalCode` **instead of** a date range, so a code finds its visit without the
+      caller knowing which week it is in
+- [x] **`VisitStatus.InProgress`** + `POST /:id/start` (Iniciar, client-supplied
       `actualStart`); `/respond` extended with `actualEnd` → stamps
       `actual_duration_minutes`
-- [ ] **Guards:** correction 409s once `in_progress`; **reassignment stays open** on
+- [x] **Guards:** correction 409s once `in_progress`; **reassignment stays open** on
       `in_progress` (audited); close still reachable from `in_progress`
-- [ ] **`PATCH /:id/actuals`** — owner/admin, terminal visits, recomputes the duration
-- [ ] **Timeline:** `visit_started` + `visit_actuals_corrected` in `VisitEventType` and
+- [x] **`PATCH /:id/actuals`** — owner/admin, terminal visits, recomputes the duration
+- [x] **Timeline:** `visit_started` + `visit_actuals_corrected` in `VisitEventType` and
       the matching `ServiceOrderEventType` members (the `Record<>` map in
       `visit-audit.service.ts` makes an unmapped member a compile error)
-- [ ] **`test/visits.test.ts` — the module has none today**, which breaks
-      `backend/CLAUDE.md`'s one-suite-per-resource rule. Full lifecycle + the new
-      actuals, `test+` fixture markers, soft-deleted in `afterAll`
+- [x] **`test/visits.test.ts`** — the module had none, which broke `backend/CLAUDE.md`'s
+      one-suite-per-resource rule. Full lifecycle + the new actuals, fixture rows
+      soft-deleted in `afterAll`
+- [x] **Snapshot-chain repair.** `meta/` had no snapshots for `0028`–`0030`, so
+      `db:generate` proposed re-creating tables that exist and emitted three unguarded
+      `ADD COLUMN`s that would have failed. `0031`'s snapshot is regenerated from the
+      real models, and `db:generate` now reports no pending changes
 
 ### CP-2 — Superadmin: time-axis calendar — **PR 2 of 3**
 - [ ] DTOs + `VisitsState` + http service + pipes/constants (`model/enums/visit/`,
