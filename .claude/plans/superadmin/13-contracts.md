@@ -1,7 +1,7 @@
 # 13 — Contracts (contratos / pólizas)
 
-> **Status:** not-started · **Depends on:** 07 (client), 19 (service orders — the generating path), `storage/` (R2 signed URLs); 11 optional (equipment link) · **Reworked 2026-07-24** (owner: document-artifact model — supersedes the recurring-póliza / visit-generator model)
-> **Owner:** — · **Last updated:** 2026-07-24
+> **Status:** in-progress — **CP-1 partial: the document-filing core is built** (table + CRUD + R2 upload); the order link, contract types, role-scoped visibility, signed URLs and the audit trail are **not** (see CP-1) · **Depends on:** 07 (client), 19 (service orders — the generating path), `storage/` (R2 signed URLs); 11 optional (equipment link) · **Reworked 2026-07-24** (owner: document-artifact model — supersedes the recurring-póliza / visit-generator model)
+> **Owner:** — · **Last updated:** 2026-08-02
 
 A **contract is a stored document** — the signed pdf/docx/odt/xls/xlsx — plus typed
 metadata and validity dates. **Service orders generate contracts (0..n):** a job may
@@ -194,14 +194,36 @@ reconciliation is 09's).
 ## Checkpoints
 
 ### CP-1 — Backend: contracts + file store + audit
-- [ ] `contracts` table + `contract_counters` + hand-written additive DDL;
-      `ContractType` / `ContractFileType` CHECKs; `serviceOrderId?` FK (restrict);
-      `visibleToRoles`; `InteractionRefKind.Contract`
-- [ ] CRUD + multipart upload to R2 (type allowlist) + `GET /:id/file-url` (short-lived
-      **signed** URL, 1 h) + **role-scoped list/read** (`visibleToRoles`; owner/admin-only
-      to set it) + soft delete
+**Partially built (2026-08-02).** The branch that implemented this was written against
+the *superseded* 2026-07-22 "plain document filing" spec and predates the 2026-07-24
+document-artifact rework, so it delivers the filing core and none of the model's links.
+Split accordingly:
+
+**Built:**
+- [x] `contracts` table — `customerId?` (nullable: imported paper needs no client),
+      `description`, `fileUrl`/`fileName`/`fileMime`/`fileSize`, `validationDate`,
+      `expiryDate`, `tags text[]`, audited soft delete. Migration `0032_contracts.sql`
+      (renumbered from the branch's stale `0023`, which main had already used for
+      quotations)
+- [x] CRUD — list (tag/customer/validity filters) + read + create + patch + soft delete,
+      `requireRole(['owner','admin','office'])`
+- [x] `POST /upload/contract` — multipart into the dedicated `manttio-contracts` R2
+      bucket with a file-type allowlist (415 `unsupported_file_type`)
+
+**Not built — the document-artifact model's own requirements:**
+- [ ] **`serviceOrderId?` FK** — the generating path *is* the model ("service orders
+      generate contracts 0..n"), and 19 §1 already documents `contracts.serviceOrderId`.
+      Without it a contract cannot be traced to the job that produced it
+- [ ] `contract_counters`; `ContractType` / `ContractFileType` CHECKs
+- [ ] **`visibleToRoles`** + role-scoped list/read (owner/admin-only to set)
+- [ ] **`GET /:id/file-url` — short-lived signed URL (1 h).** What shipped instead
+      persists a **public CDN URL** in `contracts.file_url`. A signed contract is a
+      sensitive document: a public bucket URL is readable by anyone who ever sees the
+      link, forever, with no revocation. Treat this as the checkpoint's blocking item,
+      not a nicety
 - [ ] Audit to `customer_interactions` (create / update / file-replace / delete);
-      order-generated also logs `order_contract_generated` to the order timeline (19 §7)
+      order-generated also logs `order_contract_generated` to the order timeline (19 §7);
+      `InteractionRefKind.Contract`
 
 ### CP-2 — Superadmin: contracts UI
 - [ ] DTOs + `ContractsState` + http service
