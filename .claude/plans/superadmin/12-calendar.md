@@ -385,7 +385,27 @@ then the two consumers independently. The calendar must not wait on the field ap
       `visit-audit.service.ts` makes an unmapped member a compile error)
 - [x] **`test/visits.test.ts`** — the module had none, which broke `backend/CLAUDE.md`'s
       one-suite-per-resource rule. Full lifecycle + the new actuals, fixture rows
-      soft-deleted in `afterAll`
+      soft-deleted in `afterAll`. **33/33 green** against the shared DB, but only after
+      it found the defect below — the suite earned its keep on its first run
+- [x] **`0032_visits_drop_stale_status_check.sql`** — the shared table still carried
+      PR #97's `CHECK (status = ANY (ARRAY['scheduled','completed','cancelled','missed',
+      'rescheduled']))`, the **pre-pivot vocabulary**. `in_progress` and `closed` are not
+      in it, so every Iniciar and every Cerrar came back `23514 → 500` (14 tests). Dropped
+      rather than corrected: the drizzle model declares no check, so a tenant provisioned
+      from the migrations never had one, and correcting the array would have left the
+      shared DB enforcing a contract no other tenant has — the exact divergence the
+      never-hand-apply rule exists to prevent. Every migration-era table
+      (`service_orders`, `quotations`, `service_order_events`, `services`, `equipment`)
+      carries zero check constraints; only the legacy tables still do
+  - **Note the limit this exposes in transactional dry-runs:** `0031` was verified by
+        executing all 32 statements inside `BEGIN … ROLLBACK`, and that proved the DDL
+        *runs* while saying nothing about what rows the table would then **accept**. Only
+        the suite could catch this. Dry-run the DDL, then exercise the endpoints
+  - **Open, wider than 12:** the same orphan-constraint problem sits on `customers`,
+        `reports`, `users`, `notifications`, `cms_documents`, `report_templates` and
+        `brand` — live CHECKs in **no** drizzle model, so a fresh tenant gets none of
+        them. `customers_source_check` and `notifications_type_check` enumerate values
+        that will drift and will fail exactly this way. Wants its own branch
 - [x] **Snapshot-chain repair.** `meta/` had no snapshots for `0028`–`0030`, so
       `db:generate` proposed re-creating tables that exist and emitted three unguarded
       `ADD COLUMN`s that would have failed. `0031`'s snapshot is regenerated from the
