@@ -6,6 +6,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { catchError, concat, of, type Observable } from 'rxjs';
 import { DialogModule } from 'primeng/dialog';
 import { DatePickerModule } from 'primeng/datepicker';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { MultiSelectModule } from 'primeng/multiselect';
@@ -13,7 +14,12 @@ import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Store, select } from '@ngxs/store';
-import { AssignVisit, CorrectVisit, CreateVisit, RespondVisit } from '../../../../state/visits/visits.actions';
+import {
+  AssignVisit,
+  CorrectVisit,
+  CreateVisit,
+  RespondVisit,
+} from '../../../../state/visits/visits.actions';
 import { AuthState } from '../../../../state/auth/auth.state';
 import { hasRole } from '../../../guards/has-role.guard';
 import { ServiceOrdersService } from '../../../services/http/service-orders.service';
@@ -26,7 +32,12 @@ import {
   VisitStatusLabelPipe,
   VisitStatusSeverityPipe,
 } from '../../../pipes/visit.pipe';
-import { errorMessage } from '../../../data/utils';
+import { errorMessage, formatDurationMinutes } from '../../../data/utils';
+import {
+  DEFAULT_VISIT_DURATION_MINUTES,
+  MAX_VISIT_DURATION_MINUTES,
+} from '../../../model/constants/visit/visit-duration.const';
+import type { VisitTimeSummary } from '../../../data/types/calendar/visit-time-summary.type';
 import type { AssignableUser } from '../../../data/dtos/user';
 import type { CorrectVisitRequest, Visit, VisitOrderContext } from '../../../data/dtos/visit';
 
@@ -45,12 +56,22 @@ interface EquipmentOption {
 
 /** The shape-3 visit dialog (12 §4). Create: the REQUIRED service-order select
  *  (client derives from the order; the order view opens it locked), optional
- *  technician (omitted = backlog), the client's units, date + optional time
- *  range, title, notes. On an **open** visit it becomes the correction form
- *  (scheduling fields + reassignment — the only mutations the immutable-record
- *  model permits) plus the staff actions: Responder (served) and Cerrar (hands
- *  off to the categorized-close dialog). Once terminal it is read-only — the
- *  full history lives on the parent order's timeline, not here. */
+ *  technician (omitted = backlog), the client's units, date + start time +
+ *  **duration**, title, notes.
+ *
+ *  On an existing visit the surface narrows with the lifecycle, which is the
+ *  immutable-record model made visible:
+ *  - `scheduled` — full correction (date, duration, title, notes) + reassignment.
+ *  - `in_progress` — **reassignment only**. Moving the date of a job a technician
+ *    is physically performing is nonsense (the API 409s), but a mid-job handoff
+ *    is real, so the technician select survives while everything else goes read-only.
+ *  - terminal — read-only, apart from the owner/admin **actuals correction**,
+ *    which this dialog hands off to its own dialog rather than inlining: it is a
+ *    billing-grade edit and deserves its own confirmation.
+ *
+ *  Iniciar/Terminar are the field app's (CP-3); what shows here is what they
+ *  recorded — Planeado vs Real with the variance. The full history is **not**
+ *  here: it lives on the parent order's activity timeline (19 §7). */
 @Component({
   selector: 'app-visit-dialog',
   imports: [
@@ -59,6 +80,7 @@ interface EquipmentOption {
     ReactiveFormsModule,
     DialogModule,
     DatePickerModule,
+    InputNumberModule,
     InputTextModule,
     SelectModule,
     MultiSelectModule,
@@ -71,10 +93,12 @@ interface EquipmentOption {
   templateUrl: './visit-dialog.html',
 })
 export class VisitDialog {
-  /** A mutation landed — the calendar reloads its week. */
+  /** A mutation landed — the calendar reloads its window. */
   readonly changed = output<void>();
   /** Cerrar chosen — the parent opens the categorized-close dialog. */
   readonly closeRequested = output<Visit>();
+  /** Corregir tiempos chosen — the parent opens the actuals dialog. */
+  readonly actualsRequested = output<Visit>();
 
   private fb = inject(FormBuilder);
   private store = inject(Store);
@@ -85,6 +109,9 @@ export class VisitDialog {
 
   private me = select(AuthState.me);
   protected isStaff = computed(() => hasRole(this.me(), ['owner', 'admin', 'office']));
+  /** Rewriting what a technician recorded as done is admin-tier (12 §2) —
+   *  office schedules work, it does not restate the invoice. */
+  private isAdminTier = computed(() => hasRole(this.me(), ['owner', 'admin']));
 
   protected dialogOpen = signal(false);
   protected target = signal<Visit | null>(null);
@@ -101,7 +128,10 @@ export class VisitDialog {
     equipmentIds: [[] as string[]],
     fecha: this.fb.control<Date | null>(null, Validators.required),
     horaInicio: this.fb.control<Date | null>(null, Validators.required),
-    horaFin: this.fb.control<Date | null>(null),
+    duracion: [
+      DEFAULT_VISIT_DURATION_MINUTES,
+      [Validators.required, Validators.min(1), Validators.max(MAX_VISIT_DURATION_MINUTES)],
+    ],
     title: [''],
     notes: [''],
   });
@@ -122,18 +152,74 @@ export class VisitDialog {
   protected canConfirm = computed(() => this.formStatus() === 'VALID' && !this.submitting());
 
   protected isCreate = computed(() => this.target() === null);
-  /** Correction window: staff, and the visit still open (12 §1). */
-  protected isEditable = computed(() => {
+  protected isClosed = computed(() => this.target()?.status === VisitStatus.Closed);
+  /** A missing `actualEnd` means two different things, and only the status can
+   *  tell them apart: the job is still being performed, or it was completed from
+   *  the admin and no end was ever recorded. Reading "en curso" on a visit
+   *  someone already marked served would be plainly wrong. */
+  protected isInProgress = computed(() => this.target()?.status === VisitStatus.InProgress);
+
+  /** The visit's own code is the title — it is the handle people carry around,
+   *  and a dialog headed "Visita" tells the reader nothing they didn't know. */
+  protected dialogTitle = computed(() => this.target()?.internalCode ?? 'Nueva visita');
+
+  /** Scheduling correction: staff, and no technician has touched it yet. */
+  protected canCorrectSchedule = computed(() => {
     const visit = this.target();
     return this.isStaff() && (visit === null || visit.status === VisitStatus.Scheduled);
   });
-  protected isClosed = computed(() => this.target()?.status === VisitStatus.Closed);
+
+  /** Reassignment survives into `in_progress` — a mid-job handoff is real. */
+  protected canReassign = computed(() => {
+    const visit = this.target();
+    if (!this.isStaff()) return false;
+    return (
+      visit === null ||
+      visit.status === VisitStatus.Scheduled ||
+      visit.status === VisitStatus.InProgress
+    );
+  });
+
+  /** Responder / Cerrar — while the visit is still live. */
+  protected canAct = computed(() => !this.isCreate() && this.canReassign());
+
+  /** The form is worth rendering at all only if something in it can change. */
+  protected hasForm = computed(() => this.isCreate() || this.canReassign());
+
+  protected canCorrectActuals = computed(() => {
+    const visit = this.target();
+    if (!visit || !this.isAdminTier()) return false;
+    return visit.status === VisitStatus.Completed || visit.status === VisitStatus.Closed;
+  });
+
+  /** Planeado vs Real (12 §4) — the one place the numbers are read per visit. */
+  protected timeSummary = computed<VisitTimeSummary | null>(() => {
+    const visit = this.target();
+    if (!visit) return null;
+    const planned = visit.expectedDurationMinutes;
+    const actual = visit.actualDurationMinutes;
+    if (actual === undefined) {
+      return {
+        plannedDuration: formatDurationMinutes(planned),
+        over: false,
+        onEstimate: false,
+      };
+    }
+    const diff = actual - planned;
+    return {
+      plannedDuration: formatDurationMinutes(planned),
+      actualDuration: formatDurationMinutes(actual),
+      // The minus is U+2212, not a hyphen: it aligns with digits in the
+      // tabular `font-data` stack instead of sitting high and short.
+      variance: diff === 0 ? undefined : `${diff > 0 ? '+' : '−'}${formatDurationMinutes(Math.abs(diff))}`,
+      over: diff > 0,
+      onEstimate: diff === 0,
+    };
+  });
 
   /** Read-only equipment names for a loaded visit. */
   protected equipmentNames = computed(() =>
-    (this.target()?.equipment ?? [])
-      .map((link) => link.name || 'Equipo')
-      .join(', '),
+    (this.target()?.equipment ?? []).map((link) => link.name || 'Equipo').join(', '),
   );
 
   constructor() {
@@ -158,7 +244,7 @@ export class VisitDialog {
       equipmentIds: [],
       fecha: null,
       horaInicio: defaultStartTime(),
-      horaFin: null,
+      duracion: DEFAULT_VISIT_DURATION_MINUTES,
       title: '',
       notes: '',
     });
@@ -169,7 +255,7 @@ export class VisitDialog {
     this.dialogOpen.set(true);
   }
 
-  /** Existing visit — correction form while open, read-only once terminal. */
+  /** Existing visit — the form narrows to whatever its status still allows. */
   openVisit(visit: Visit): void {
     this.target.set(visit);
     this.lockedOrder.set(null);
@@ -181,7 +267,7 @@ export class VisitDialog {
       equipmentIds: visit.equipment.map((link) => link.id),
       fecha: start,
       horaInicio: start,
-      horaFin: visit.scheduledEnd ? new Date(visit.scheduledEnd) : null,
+      duracion: visit.expectedDurationMinutes,
       title: visit.title ?? '',
       notes: visit.notes ?? '',
     });
@@ -200,14 +286,16 @@ export class VisitDialog {
     else this.saveCorrections();
   }
 
-  /** Responder — the visit was served (12 §1); the report links later from the
-   *  field side. Staff shortcut for marking it manually. */
+  /** Responder — the visit was served (12 §1). No `actualEnd`: office marking a
+   *  visit served has no tap to report, and a stamp it invented would be
+   *  indistinguishable from one a technician recorded. */
   protected respond(): void {
     const visit = this.target();
     if (!visit || this.submitting()) return;
     this.confirmation.confirm({
       header: 'Marcar como realizada',
-      message: 'La visita queda como realizada y ya no podrá editarse. El reporte se vincula desde el reporte mismo.',
+      message:
+        'La visita queda como realizada y ya no podrá editarse. No se registra una hora de fin: eso lo hace el técnico al terminar desde la app.',
       acceptLabel: 'Marcar realizada',
       rejectLabel: 'Volver',
       acceptButtonStyleClass: 'btn-primary',
@@ -238,6 +326,14 @@ export class VisitDialog {
     this.closeRequested.emit(visit);
   }
 
+  /** Corregir tiempos — likewise its own dialog. */
+  protected requestActuals(): void {
+    const visit = this.target();
+    if (!visit) return;
+    this.dialogOpen.set(false);
+    this.actualsRequested.emit(visit);
+  }
+
   private create(): void {
     const raw = this.form.getRawValue();
     const order = this.lockedOrder() ?? null;
@@ -254,7 +350,7 @@ export class VisitDialog {
           technicianId: raw.technicianId || undefined,
           equipmentIds: raw.equipmentIds.length ? raw.equipmentIds : undefined,
           scheduledStart: atTime(raw.fecha, raw.horaInicio).toISOString(),
-          scheduledEnd: raw.horaFin ? atTime(raw.fecha, raw.horaFin).toISOString() : undefined,
+          expectedDurationMinutes: raw.duracion,
           title: raw.title.trim() || undefined,
           notes: raw.notes.trim() || undefined,
         }),
@@ -273,8 +369,9 @@ export class VisitDialog {
       });
   }
 
-  /** Correction + reassignment are separate endpoints (each audits its own
-   *  order-timeline event); one Guardar dispatches whichever changed. */
+  /** Correction and reassignment are separate endpoints (each appends its own
+   *  event to the order's timeline); one Guardar dispatches whichever changed —
+   *  and on an `in_progress` visit only the reassignment is even offered. */
   private saveCorrections(): void {
     const visit = this.target();
     if (!visit) return;
@@ -282,20 +379,25 @@ export class VisitDialog {
     if (!raw.fecha || !raw.horaInicio) return;
 
     const patch: CorrectVisitRequest = {};
-    const start = atTime(raw.fecha, raw.horaInicio).toISOString();
-    if (start !== visit.scheduledStart) patch.scheduledStart = start;
-    const end = raw.horaFin ? atTime(raw.fecha, raw.horaFin).toISOString() : null;
-    if ((end ?? undefined) !== visit.scheduledEnd) patch.scheduledEnd = end;
-    const title = raw.title.trim() || null;
-    if ((title ?? undefined) !== visit.title) patch.title = title;
-    const notes = raw.notes.trim() || null;
-    if ((notes ?? undefined) !== visit.notes) patch.notes = notes;
+    if (this.canCorrectSchedule()) {
+      const start = atTime(raw.fecha, raw.horaInicio).toISOString();
+      if (start !== visit.scheduledStart) patch.scheduledStart = start;
+      // The end is derived server-side from start + duration, so this one field
+      // is what moves it — there is no end to send and nothing to keep in step.
+      if (raw.duracion !== visit.expectedDurationMinutes) patch.expectedDurationMinutes = raw.duracion;
+      const title = raw.title.trim() || null;
+      if ((title ?? undefined) !== visit.title) patch.title = title;
+      const notes = raw.notes.trim() || null;
+      if ((notes ?? undefined) !== visit.notes) patch.notes = notes;
+    }
 
     const technicianId = raw.technicianId || null;
     const techChanged = (technicianId ?? undefined) !== visit.technicianId;
 
     const ops: Observable<unknown>[] = [];
-    if (Object.keys(patch).length > 0) ops.push(this.store.dispatch(new CorrectVisit(visit.id, patch)));
+    if (Object.keys(patch).length > 0) {
+      ops.push(this.store.dispatch(new CorrectVisit(visit.id, patch)));
+    }
     if (techChanged) ops.push(this.store.dispatch(new AssignVisit(visit.id, technicianId)));
     if (ops.length === 0) {
       this.dialogOpen.set(false);
@@ -355,7 +457,11 @@ export class VisitDialog {
   }
 
   private toastError(summary: string, err: unknown): void {
-    this.messages.add({ severity: 'error', summary, detail: errorMessage(err, 'Inténtalo de nuevo.') });
+    this.messages.add({
+      severity: 'error',
+      summary,
+      detail: errorMessage(err, 'Inténtalo de nuevo.'),
+    });
   }
 }
 

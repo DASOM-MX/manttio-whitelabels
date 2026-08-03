@@ -412,18 +412,40 @@ then the two consumers independently. The calendar must not wait on the field ap
       real models, and `db:generate` now reports no pending changes
 
 ### CP-2 — Superadmin: time-axis calendar — **PR 2 of 3**
-- [ ] DTOs + `VisitsState` + http service + pipes/constants (`model/enums/visit/`,
-      `model/constants/visit/`)
-- [ ] **24h scrollable time grid** opening at 00:00; blocks positioned/sized by time;
-      overlap splits the day column; **planned ghost + actual solid** overlay
-- [ ] Visit dialog (create with locked-order support, duration field, correction,
+- [x] DTOs + `VisitsState` + http service + pipes/constants (`model/enums/visit/`,
+      `model/constants/visit/`). The data layer written for CP-1 knew nothing of
+      CP-1b — no `internalCode`, no duration, no actuals, no `in_progress` — so this
+      was a catch-up, not an addition: `scheduledEnd` left every request shape (it is
+      derived server-side), `PATCH /:id/actuals` and its action arrived
+- [x] **24h scrollable time grid** opening at 00:00; blocks positioned/sized by time;
+      overlap splits the day column; **planned ghost + actual solid** overlay.
+      Geometry is a pure module (`data/calendar-layout.ts`) rather than page code —
+      greedy lane packing per *overlap cluster*, so one busy morning doesn't narrow an
+      empty afternoon, and the packing spans planned ∪ actual because a job that ran
+      long competes for the same width
+  - **The open-ended block.** A block whose length is a projection rather than a
+        record is drawn with its bottom edge faded. Keyed on the missing
+        `actualDurationMinutes`, **not** on `in_progress`: office completing a visit
+        from the admin stamps no `actualEnd` either, and a closed rectangle there would
+        report a finish time nobody recorded
+- [x] Visit dialog (create with locked-order support, duration field, correction,
       reassignment, Responder) + close dialog (categorized + reschedule now/later) +
-      reschedule dialog + **correct-actuals dialog** (owner/admin)
-- [ ] Order view "Programar visita" (order pre-locked); week + tech filter in the URL
-- [ ] Route + **Calendar** sidebar entry; mobile day-agenda collapse
-- [ ] Build green; manual pass: schedule → reassign → start → terminar → block shows
-      ghost + actual; close → reschedule → linked successor; every action on the order
-      timeline (19 §7)
+      reschedule dialog + **correct-actuals dialog** (owner/admin). The dialog's surface
+      now narrows with the lifecycle — full correction while `scheduled`, **reassignment
+      only** while `in_progress`, read-only once terminal apart from the admin-tier
+      actuals fix — which is the immutable-record model made visible
+- [x] Order view "Programar visita" (order pre-locked); week + tech filter in the URL
+- [x] Route + **Calendar** sidebar entry; mobile day-agenda collapse.
+      **Calendario returned to the staff nav**, superseding the 2026-07-22 owner
+      regroup that dropped it: it had no page worth linking to then
+- [x] **`internalCode` search** (beyond the list above — added because CP-1b built the
+      prefix filter for exactly this, and nothing else consumes it). `?code=` swaps the
+      grid for a result list, since a code match can land in any week; the term is
+      checked against the code alphabet client-side so a `%` never becomes a failed
+      round trip
+- [ ] Manual pass: schedule → reassign → start → terminar → block shows ghost + actual;
+      close → reschedule → linked successor; every action on the order timeline (19 §7).
+      Build is green
 
 ### CP-3 — Field app: technician visits + offline — **PR 3 of 3**
 - [ ] `visits/` module in `frontend/` (none exists today): "Mis visitas" list +

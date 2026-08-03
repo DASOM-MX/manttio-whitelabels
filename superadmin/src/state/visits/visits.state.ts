@@ -6,6 +6,7 @@ import {
   AssignVisit,
   CloseVisit,
   CorrectVisit,
+  CorrectVisitActuals,
   CreateVisit,
   LoadVisits,
   RescheduleVisit,
@@ -65,6 +66,11 @@ export class VisitsState {
   @Action(AssignVisit)
   assign(ctx: StateContext<VisitsStateModel>, { id, technicianId }: AssignVisit) {
     return this.api.assign(id, { technicianId }).pipe(tap((visit) => this.patchItem(ctx, visit)));
+  }
+
+  @Action(CorrectVisitActuals)
+  correctActuals(ctx: StateContext<VisitsStateModel>, { id, payload }: CorrectVisitActuals) {
+    return this.api.correctActuals(id, payload).pipe(tap((visit) => this.patchItem(ctx, visit)));
   }
 
   @Action(RespondVisit)

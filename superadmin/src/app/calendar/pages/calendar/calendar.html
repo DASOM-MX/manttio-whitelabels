@@ -1,7 +1,53 @@
 <app-page-header
   title="Calendario"
-  description="La agenda del equipo: quién va con qué cliente y cuándo."
+  description="La agenda del equipo: quién va con qué cliente, cuándo, y cuánto duró de verdad."
 >
+  <!-- Filters collapse behind the trigger, same as every list page: a week grid
+       needs its width for the grid, and these are occasional refinements. What
+       stays on the page is the week navigation — that is the steering wheel. -->
+  <app-filters-popover [params]="filterParams">
+    <div class="field-group">
+      <label class="field-label" for="calendar-code">Buscar visita</label>
+      <input
+        id="calendar-code"
+        pInputText
+        type="search"
+        [formControl]="codeControl"
+        placeholder="V-20260803-0001"
+      />
+      @if (codeError(); as error) {
+        <p class="field-hint text-red-600 dark:text-red-400">{{ error }}</p>
+      } @else {
+        <p class="field-hint">Código completo o prefijo: V-2026 busca todo el año.</p>
+      }
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="calendar-jump">Ir a fecha</label>
+      <p-datepicker
+        inputId="calendar-jump"
+        [formControl]="jumpControl"
+        (onSelect)="onJump(jumpControl.value)"
+        [showIcon]="true"
+        [readonlyInput]="true"
+        placeholder="Cualquier día"
+      />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="calendar-tech">Técnico</label>
+      <p-multiselect
+        inputId="calendar-tech"
+        [formControl]="techFilter"
+        [options]="techOptions()"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Todo el equipo"
+        [showToggleAll]="false"
+      />
+    </div>
+  </app-filters-popover>
+
   @if (canSchedule()) {
     <button type="button" class="btn-primary" (click)="openCreate()">
       <svg lucidePlus class="size-4" aria-hidden="true"></svg>
@@ -10,112 +56,392 @@
   }
 </app-page-header>
 
-<!-- Week toolbar: navigation left, filters right. Not the filters-popover —
-     a calendar's controls are its steering wheel, not an occasional refinement. -->
-<div class="mb-4 flex flex-wrap items-center gap-3">
-  <div class="flex items-center gap-1">
-    <button type="button" class="btn-neutral !px-2" (click)="prevWeek()" aria-label="Semana anterior">
-      <svg lucideChevronLeft class="size-4" aria-hidden="true"></svg>
-    </button>
-    <button type="button" class="btn-neutral" (click)="goToday()">Hoy</button>
-    <button type="button" class="btn-neutral !px-2" (click)="nextWeek()" aria-label="Semana siguiente">
-      <svg lucideChevronRight class="size-4" aria-hidden="true"></svg>
-    </button>
-  </div>
-  <p class="text-sm font-medium text-surface-1000 dark:text-surface-0">{{ rangeLabel() }}</p>
-
-  <div class="ml-auto flex flex-wrap items-center gap-2">
-    <p-datepicker
-      [formControl]="jumpControl"
-      (onSelect)="onJump(jumpControl.value)"
-      [showIcon]="true"
-      [readonlyInput]="true"
-      placeholder="Ir a fecha"
-      inputStyleClass="!w-32"
-    />
-    <p-multiselect
-      [formControl]="techFilter"
-      (onChange)="onTechFilterChange()"
-      [options]="techOptions()"
-      optionLabel="label"
-      optionValue="value"
-      placeholder="Todo el equipo"
-      [showToggleAll]="false"
-      class="w-56"
-    />
-  </div>
-</div>
-
-@if (weekIsEmpty()) {
-  <div class="mb-3 rounded-lg border border-dashed border-surface-300 p-4 text-center dark:border-surface-600">
+@if (searching()) {
+  <!-- Search mode: a code match can be in any week, so the grid steps aside for
+       a plain result list. Picking one goes to its week and opens it. -->
+  <div class="mb-3 flex items-center gap-2">
     <p class="text-sm text-surface-500 dark:text-surface-400">
-      Nada programado esta semana.
+      Resultados para <span class="font-data font-medium">{{ codeQuery() }}</span>
     </p>
+    <button type="button" class="btn-neutral !px-2" (click)="clearSearch()">
+      <svg lucideX class="size-4" aria-hidden="true"></svg>
+      Volver al calendario
+    </button>
   </div>
-}
 
-<!-- The grid: 7 columns on desktop, a stacked day agenda on mobile (12 §3). -->
-<div class="grid grid-cols-1 gap-2 md:grid-cols-7">
-  @if (loading()) {
-    @for (day of skeletonDays; track day) {
-      <div class="min-h-40 rounded-lg border border-surface-200 p-2 dark:border-surface-700">
-        <div class="skeleton mb-2 h-4 w-16"></div>
-        <div class="skeleton h-10"></div>
-      </div>
-    }
-  } @else {
-    @for (day of days(); track day.label) {
-      <div
-        class="flex min-h-40 flex-col gap-1.5 rounded-lg border p-2"
-        [class.border-surface-200]="!day.isToday"
-        [class.dark:border-surface-700]="!day.isToday"
-        [class.border-primary-400]="day.isToday"
-        [class.dark:border-primary-500]="day.isToday"
-      >
-        <p class="micro-label flex items-baseline justify-between">
-          {{ day.label }}
-          <span
-            class="font-data text-sm"
-            [class.text-primary-600]="day.isToday"
-            [class.dark:text-primary-400]="day.isToday"
+  <div class="card p-0">
+    <p-table [value]="results()" [loading]="loading()" rowHover [scrollable]="true" scrollHeight="28rem">
+      <ng-template #header>
+        <tr>
+          <th class="w-40">Código</th>
+          <th class="w-44">Programada</th>
+          <th>Cliente</th>
+          <th class="w-32">Orden</th>
+          <th class="w-44">Técnico</th>
+          <th class="w-32">Estado</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-visit>
+        <tr class="cursor-pointer" (click)="openResult(visit)">
+          <td class="font-data">{{ visit.internalCode }}</td>
+          <td>{{ visit.scheduledStart | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td>{{ visit.title || visit.customerName }}</td>
+          <td class="font-data">{{ visit.serviceOrderFolio }}</td>
+          <td>{{ visit.technicianName || 'Sin asignar' }}</td>
+          <td>
+            <p-tag
+              [value]="visit.status | visitStatusLabel"
+              [severity]="visit.status | visitStatusSeverity"
+            />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="6" class="py-10 text-center text-sm text-surface-500 dark:text-surface-400">
+            Ninguna visita con ese código.
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+} @else {
+  <!-- The period control, defined once and placed by whichever view is open:
+       inside the grid's corner cell where there is one, in a compact row where
+       there is not. The label is the view switch (owner 2026-08-03) — each
+       click zooms out one step and year wraps back to day. -->
+  <ng-template #periodControl>
+    <div class="flex items-center gap-0.5">
+      <button type="button" class="calendar-nav-button" (click)="prev()" aria-label="Anterior">
+        <svg lucideChevronLeft class="size-4" aria-hidden="true"></svg>
+      </button>
+      <button type="button" class="calendar-nav-button text-xs font-medium" (click)="goToday()">
+        Hoy
+      </button>
+      <button type="button" class="calendar-nav-button" (click)="next()" aria-label="Siguiente">
+        <svg lucideChevronRight class="size-4" aria-hidden="true"></svg>
+      </button>
+    </div>
+    <button
+      type="button"
+      class="calendar-period-label"
+      (click)="cycleView()"
+      title="Cambiar vista: día · semana · mes · año"
+    >
+      {{ periodLabel() }}
+    </button>
+  </ng-template>
+
+  @if (isTimeAxis()) {
+    <!-- Desktop: the 24-hour time axis (12 §3). The grid stays mounted while a
+         period loads and only dims, so the scroll position survives navigation. -->
+    <div class="card hidden p-0 md:block" [class.opacity-60]="loading()">
+      <div class="calendar-scroll">
+        <div class="calendar-grid" [class.calendar-grid--single]="isDayView()">
+          <!-- The corner cell earns its keep: the period control lives in the
+               one square the grid can never use, so no toolbar row costs the
+               calendar vertical space it would rather spend on hours. -->
+          <div
+            class="calendar-sticky flex flex-col items-center justify-center gap-1 border-b border-surface-200 bg-surface-0 px-1 py-1.5 dark:border-surface-700 dark:bg-surface-900"
           >
-            {{ day.dayOfMonth }}
-          </span>
+            <ng-container *ngTemplateOutlet="periodControl" />
+          </div>
+          @for (day of columns(); track day.key) {
+            <div
+              class="calendar-sticky border-b border-l border-surface-200 bg-surface-0 px-2 py-1.5 dark:border-surface-700 dark:bg-surface-900"
+            >
+              <p class="micro-label flex items-baseline justify-between">
+                {{ day.label }}
+                <span
+                  class="font-data text-sm"
+                  [class.text-primary-600]="day.isToday"
+                  [class.dark:text-primary-400]="day.isToday"
+                >
+                  {{ day.dayOfMonth }}
+                </span>
+              </p>
+            </div>
+          }
+
+          <div class="calendar-day">
+            @for (label of hourLabels; track label) {
+              <div class="calendar-hour text-right">
+                <span
+                  class="calendar-axis-label block pr-2 font-data text-xs text-surface-400 dark:text-surface-500"
+                >
+                  {{ label }}
+                </span>
+              </div>
+            }
+          </div>
+
+          @for (day of columns(); track day.key) {
+            <!-- Today reads as a neutral tint, not a primary one: the scheduled
+                 blocks are already primary, and tinting the column the same hue
+                 would hide them in the one place people look first. -->
+            <div
+              class="calendar-day border-l border-surface-200 dark:border-surface-700"
+              [class.bg-surface-100]="day.isToday"
+              [class.dark:bg-surface-900]="day.isToday"
+            >
+              @for (label of hourLabels; track label) {
+                <div class="calendar-hour border-t border-surface-100 dark:border-surface-800"></div>
+              }
+
+              @for (block of day.blocks; track block.visit.id) {
+                @if (block.ghost) {
+                  <!-- Where the visit was booked, kept as a faint outline so the
+                       over- or under-run reads without opening anything. -->
+                  <div
+                    class="calendar-ghost rounded border border-dashed border-surface-400 dark:border-surface-500"
+                    [style.top.%]="block.ghost.top"
+                    [style.height.%]="block.ghost.height"
+                    [style.left.%]="block.left"
+                    [style.width.%]="block.width"
+                    aria-hidden="true"
+                  ></div>
+                }
+                <button
+                  type="button"
+                  class="calendar-block rounded border px-1.5 py-0.5 text-left text-xs"
+                  [class]="block.visit.status | visitBlockClass"
+                  [class.calendar-block-open]="block.openEnded"
+                  [style.top.%]="block.solid.top"
+                  [style.height.%]="block.solid.height"
+                  [style.left.%]="block.left"
+                  [style.width.%]="block.width"
+                  [title]="block.visit | visitTooltip"
+                  (click)="openVisit(block.visit)"
+                >
+                  <span class="flex items-center gap-1">
+                    <span
+                      class="size-2 shrink-0 rounded-full"
+                      [class]="block.visit.technicianId | technicianDotClass"
+                    ></span>
+                    <!-- The time the block is drawn at: the real start once
+                         there is one, the booking until then. -->
+                    <span class="font-data font-medium">
+                      {{ (block.visit.actualStart || block.visit.scheduledStart) | date: 'HH:mm' }}
+                    </span>
+                  </span>
+                  @if (block.laneCount === 1) {
+                    <span class="block truncate">
+                      {{ block.visit.title || block.visit.customerName }}
+                    </span>
+                  }
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Phone: a single day as a list. A 24-hour axis in a 375px column is
+         unreadable, and on site what is wanted is "what's on today", in order. -->
+    <div class="md:hidden" [class.opacity-60]="loading()">
+      <!-- The phone view gets the control in a row: the desktop one lives in
+           the grid's corner cell, and the grid is not rendered here. -->
+      <div class="mb-3 flex items-center gap-2">
+        <ng-container *ngTemplateOutlet="periodControl" />
+      </div>
+
+      @if (!isDayView()) {
+        <div class="mb-3 flex gap-1 overflow-x-auto">
+          @for (day of columns(); track day.key) {
+            <button
+              type="button"
+              class="flex shrink-0 flex-col items-center rounded-lg border px-3 py-1.5"
+              [class.border-primary-400]="day.key === agendaDay().key"
+              [class.bg-primary-100]="day.key === agendaDay().key"
+              [class.dark:bg-primary-1000]="day.key === agendaDay().key"
+              [class.border-surface-200]="day.key !== agendaDay().key"
+              [class.dark:border-surface-700]="day.key !== agendaDay().key"
+              (click)="selectAgendaDay(day.key)"
+            >
+              <span class="micro-label">{{ day.label }}</span>
+              <span class="font-data text-sm">{{ day.dayOfMonth }}</span>
+            </button>
+          }
+        </div>
+      }
+
+      @if (agendaDay().blocks.length) {
+        <ul class="flex flex-col gap-2">
+          @for (block of agendaDay().blocks; track block.visit.id) {
+            <li>
+              <button
+                type="button"
+                class="w-full rounded-lg border px-3 py-2 text-left"
+                [class]="block.visit.status | visitBlockClass"
+                (click)="openVisit(block.visit)"
+              >
+                <span class="flex items-center gap-2">
+                  <span
+                    class="size-2 shrink-0 rounded-full"
+                    [class]="block.visit.technicianId | technicianDotClass"
+                  ></span>
+                  <span class="font-data text-sm font-medium">
+                    {{ (block.visit.actualStart || block.visit.scheduledStart) | date: 'HH:mm' }}
+                  </span>
+                  <span class="truncate text-sm">
+                    {{ block.visit.title || block.visit.customerName }}
+                  </span>
+                  <span class="ml-auto shrink-0 font-data text-xs">
+                    {{
+                      (block.visit.actualDurationMinutes || block.visit.expectedDurationMinutes)
+                        | visitDuration
+                    }}
+                  </span>
+                </span>
+                <span class="mt-0.5 block truncate text-xs opacity-80">
+                  {{ block.visit.internalCode }} · {{ block.visit.technicianName || 'Sin asignar' }}
+                </span>
+              </button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="py-8 text-center text-sm text-surface-500 dark:text-surface-400">
+          Nada programado este día.
         </p>
-        @for (visit of day.visits; track visit.id) {
+      }
+    </div>
+  } @else if (isMonthView()) {
+    <!-- Month: six weeks of day cells. No time axis — a month of 24-hour
+         columns is unreadable, and at this zoom the question is "how full is
+         the 14th", not "at what time". -->
+    <div class="mb-3 flex items-center gap-2">
+      <ng-container *ngTemplateOutlet="periodControl" />
+    </div>
+
+    <div class="card p-0" [class.opacity-60]="loading()">
+      <div class="grid grid-cols-7">
+        @for (label of weekdayLabels; track label) {
+          <div
+            class="border-b border-surface-200 px-2 py-1.5 text-center dark:border-surface-700"
+          >
+            <span class="micro-label">{{ label }}</span>
+          </div>
+        }
+      </div>
+      <div class="grid grid-cols-7">
+        @for (cell of monthCells(); track cell.key) {
+          <div
+            class="calendar-month-cell border-b border-l border-surface-200 p-1 dark:border-surface-700"
+            [class.bg-surface-100]="cell.isToday"
+            [class.dark:bg-surface-900]="cell.isToday"
+            [class.opacity-50]="!cell.inMonth"
+          >
+            <button
+              type="button"
+              class="calendar-month-daynum"
+              [class.text-primary-600]="cell.isToday"
+              [class.dark:text-primary-400]="cell.isToday"
+              (click)="openDay(cell.key)"
+              [attr.aria-label]="'Ver el día ' + cell.key"
+            >
+              {{ cell.dayOfMonth }}
+            </button>
+
+            @for (visit of cell.shown; track visit.id) {
+              <button
+                type="button"
+                class="mt-0.5 block w-full truncate rounded border px-1 text-left text-xs"
+                [class]="visit.status | visitBlockClass"
+                [title]="visit | visitTooltip"
+                (click)="openVisit(visit)"
+              >
+                <span class="font-data">{{ visit.scheduledStart | date: 'HH:mm' }}</span>
+                {{ visit.title || visit.customerName }}
+              </button>
+            }
+            @if (cell.overflow) {
+              <button
+                type="button"
+                class="mt-0.5 block w-full text-left text-xs text-surface-500 hover:underline dark:text-surface-400"
+                (click)="openDay(cell.key)"
+              >
+                +{{ cell.overflow }} más
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  } @else {
+    <!-- Year: the question a month cannot answer — which parts of the year are
+         heavy. Counts, not visits: twelve months of blocks would be a wall. -->
+    <div class="mb-3 flex items-center gap-2">
+      <ng-container *ngTemplateOutlet="periodControl" />
+    </div>
+
+    <!-- `.card` carries no padding of its own (it is opt-in, see styles.scss),
+         so without this the twelve mini-months sit flush against its edges. -->
+    <div class="card p-2.5" [class.opacity-60]="loading()">
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        @for (cell of yearCells(); track cell.key) {
+          <!-- Elevation, not outlines: twelve bordered boxes inside a bordered
+               card is a lot of lines for a page whose content is a grid of
+               numbers. The current month is the one that sits highest. -->
           <button
             type="button"
-            class="w-full rounded-md border px-2 py-1.5 text-left text-xs transition-colors"
-            [class]="visit.status | visitChipClass"
-            [title]="
-              (visit.serviceOrderFolio || '') +
-              (visit.technicianName ? ' · ' + visit.technicianName : ' · Sin asignar')
-            "
-            (click)="openVisit(visit)"
+            class="calendar-year-card rounded-lg bg-surface-0 p-2 text-left transition dark:bg-surface-800"
+            [class.shadow-sm]="!cell.isCurrentMonth"
+            [class.shadow-md]="cell.isCurrentMonth"
+            (click)="openMonth(cell)"
           >
-            <span class="flex items-center gap-1.5">
-              <span
-                class="size-2 shrink-0 rounded-full"
-                [class]="visit.technicianId | technicianDotClass"
-              ></span>
-              <span class="font-data font-medium">{{ visit.scheduledStart | date: 'HH:mm' }}</span>
-              <span class="truncate">{{ visit.title || visit.customerName }}</span>
+            <span
+              class="block px-1 text-sm font-medium capitalize"
+              [class.text-primary-600]="cell.isCurrentMonth"
+              [class.dark:text-primary-300]="cell.isCurrentMonth"
+            >
+              {{ cell.label }}
+            </span>
+
+            <span class="mt-1.5 grid grid-cols-7">
+              @for (initial of weekdayInitials; track $index) {
+                <span class="micro-label text-center">{{ initial }}</span>
+              }
+              @for (day of cell.days; track day.key) {
+                <!-- Days from the neighbouring months are dimmed with a gray
+                     rather than `opacity-40`: transparency thins the glyph
+                     toward whatever is behind it, which on a dark card means
+                     fading toward black — the one direction that costs
+                     contrast. A stated color dims the same amount to the eye
+                     and stays legible in both themes. -->
+                <span
+                  class="calendar-year-day"
+                  [class.text-surface-400]="!day.inMonth"
+                  [class.bg-primary-200]="day.hasVisits && day.inMonth"
+                  [class.text-primary-900]="day.hasVisits && day.inMonth"
+                  [class.font-medium]="day.hasVisits && day.inMonth"
+                  [class.dark:bg-primary-800]="day.hasVisits && day.inMonth"
+                  [class.dark:text-primary-100]="day.hasVisits && day.inMonth"
+                  [class.ring-1]="day.isToday"
+                  [class.ring-primary-500]="day.isToday"
+                >
+                  {{ day.dayOfMonth }}
+                </span>
+              }
             </span>
           </button>
         }
       </div>
-    }
+    </div>
   }
-</div>
+}
 
 <app-visit-dialog
   #visitDialog
-  (changed)="reloadWeek()"
+  (changed)="reload()"
   (closeRequested)="onCloseRequested($event)"
+  (actualsRequested)="onActualsRequested($event)"
 />
 <app-close-visit-dialog
   #closeDialog
-  (changed)="reloadWeek()"
+  (changed)="reload()"
   (rescheduleRequested)="onRescheduleRequested($event)"
 />
-<app-reschedule-visit-dialog #rescheduleDialog (rescheduled)="reloadWeek()" />
+<app-reschedule-visit-dialog #rescheduleDialog (rescheduled)="reload()" />
+<app-correct-actuals-dialog #actualsDialog (corrected)="reload()" />

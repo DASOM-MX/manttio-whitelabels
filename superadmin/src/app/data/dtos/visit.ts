@@ -1,9 +1,11 @@
 /** Scheduled-visit DTOs (12 §1) — interfaces only; the enums live under
  *  `model/enums/visit/`. A visit is an IMMUTABLE record: while `scheduled`,
- *  office may correct its scheduling fields and reassign the technician —
- *  nothing else, ever. Datetimes are ISO-8601 instants (a visit happens at a
- *  moment, unlike the calendar-date fields elsewhere); every lifecycle action
- *  audits to the parent service order's timeline (19 §7), never to the visit. */
+ *  office may correct its scheduling fields and reassign the technician; once
+ *  `in_progress` only the reassignment survives; once terminal the sole edit is
+ *  the admin-tier actuals correction. Datetimes are ISO-8601 instants (a visit
+ *  happens at a moment, unlike the calendar-date fields elsewhere); every
+ *  lifecycle action audits to the parent service order's timeline (19 §7),
+ *  never to the visit. */
 
 import type { VisitCloseReason } from '../../model/enums/visit/visit-close-reason.enum';
 import type { VisitStatus } from '../../model/enums/visit/visit-status.enum';
@@ -26,19 +28,41 @@ export interface VisitOrderContext {
 
 export interface Visit {
   id: string;
+  /** `V-YYYYMMDD-NNNN`, backend-minted and immutable — the human handle people
+   *  read out, write on a slip and paste into the calendar's search. */
+  internalCode: string;
   customerId: string;
   customerName?: string;
   /** Present on every visit the UI creates (order-bound, 19 §1); optional only
    *  because the transition-era API still allows unbound rows. */
   serviceOrderId?: string;
-  /** The parent order's display folio — the chip names its job without a
+  /** The parent order's display folio — the block names its job without a
    *  second fetch. */
   serviceOrderFolio?: string;
   technicianId?: string;
   technicianName?: string;
   equipment: VisitEquipmentLink[];
+
+  // --- PLANNED: what office booked ---
   scheduledStart: string;
+  /** Derived by the backend from `scheduledStart + expectedDurationMinutes` and
+   *  written with it, so the two can never disagree — never sent by a caller.
+   *  Optional because visits booked before CP-1b have none. */
   scheduledEnd?: string;
+  /** The planned length. Required with a 60-minute default: the calendar draws a
+   *  visit as a block and a block needs a height. */
+  expectedDurationMinutes: number;
+
+  // --- ACTUAL: what happened (12 §1, owner 2026-07-31) ---
+  /** Stamped by the field app's Iniciar; absent until a technician starts. */
+  actualStart?: string;
+  /** Stamped by Terminar; absent when office completed the visit from the admin,
+   *  which has no tap to report. */
+  actualEnd?: string;
+  /** Recomputed by the backend from the pair, so plan-vs-actual reads without
+   *  the client doing date arithmetic. */
+  actualDurationMinutes?: number;
+
   status: VisitStatus;
   closeReason?: VisitCloseReason;
   closeNote?: string;
@@ -55,11 +79,18 @@ export interface Visit {
   updatedAt: string;
 }
 
-/** The calendar always reads a bounded window — `from`/`to` are required.
+/** The read is narrowed by **either** a bounded window (`from` + `to`, the
+ *  calendar's viewport) **or** an `internalCode` prefix — the API refuses an
+ *  unbounded scan and 400s when neither is supplied. Two shapes rather than one:
+ *  the calendar asks for a week, the search box asks for a code, and a code
+ *  search that had to guess the week first would not be a search.
  *  `technicianId` takes a user id or the `'unassigned'` backlog sentinel. */
 export interface VisitListQuery {
-  from: string;
-  to: string;
+  from?: string;
+  to?: string;
+  /** Prefix, not fragment: `V-2026` narrows to a year, a whole code finds the
+   *  one visit. Letters, digits and hyphens only — the API rejects the rest. */
+  internalCode?: string;
   technicianId?: string;
   customerId?: string;
   status?: VisitStatus;
@@ -74,17 +105,19 @@ export interface CreateVisitRequest {
   technicianId?: string;
   equipmentIds?: string[];
   scheduledStart: string;
-  scheduledEnd?: string;
+  /** Always sent — the dialog's field is required and pre-filled at 60. */
+  expectedDurationMinutes: number;
   title?: string;
   notes?: string;
 }
 
 /** Open-visit correction — scheduling fields only (12 §4). `null` clears an
  *  optional field; omitting a key leaves it untouched. Reassignment is its own
- *  endpoint. */
+ *  endpoint, and `scheduledEnd` is absent because it is derived: correcting the
+ *  duration is what moves the end. */
 export interface CorrectVisitRequest {
   scheduledStart?: string;
-  scheduledEnd?: string | null;
+  expectedDurationMinutes?: number;
   title?: string | null;
   notes?: string | null;
 }
@@ -94,9 +127,20 @@ export interface AssignVisitRequest {
   technicianId: string | null;
 }
 
+/** Responder from the admin. Deliberately carries no `actualEnd`: office marking
+ *  a visit served has no tap to report, and inventing a stamp would fabricate
+ *  billing data. The field app's Terminar sends one (CP-3, `frontend/`). */
 export interface RespondVisitRequest {
   /** Report folio, when the served visit already has its report. */
   reportId?: string;
+}
+
+/** Fixing a mis-tapped or mis-synced stamp on a terminal visit — owner/admin
+ *  only (12 §2). Neither field is nullable: this repairs a time, it never erases
+ *  one, and the correction appends its own event to the order timeline. */
+export interface CorrectVisitActualsRequest {
+  actualStart?: string;
+  actualEnd?: string;
 }
 
 export interface CloseVisitRequest {
@@ -106,9 +150,11 @@ export interface CloseVisitRequest {
 }
 
 /** The successor of a closed visit. `technicianId` omitted = inherit the
- *  closed visit's assignee; explicit `null` sends it to the backlog. */
+ *  closed visit's assignee; explicit `null` sends it to the backlog.
+ *  `expectedDurationMinutes` omitted likewise inherits — the same job on a new
+ *  date takes the same time unless told otherwise. */
 export interface RescheduleVisitRequest {
   scheduledStart: string;
-  scheduledEnd?: string;
+  expectedDurationMinutes?: number;
   technicianId?: string | null;
 }

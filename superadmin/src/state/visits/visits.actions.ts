@@ -1,5 +1,6 @@
 import type {
   CloseVisitRequest,
+  CorrectVisitActualsRequest,
   CorrectVisitRequest,
   CreateVisitRequest,
   RescheduleVisitRequest,
@@ -7,6 +8,9 @@ import type {
   VisitListQuery,
 } from '../../app/data/dtos/visit';
 
+/** One load path for both narrowings the API accepts — a week (`from`+`to`) or
+ *  an `internalCode` prefix. They differ only in the query, so they are the same
+ *  action rather than two that would have to keep one `items` list in step. */
 export class LoadVisits {
   static readonly type = '[Visits] Load Range';
   constructor(public query: VisitListQuery) {}
@@ -32,6 +36,15 @@ export class AssignVisit {
   constructor(
     public id: string,
     public technicianId: string | null,
+  ) {}
+}
+
+/** Owner/admin fix of a recorded stamp on a terminal visit (12 §2). */
+export class CorrectVisitActuals {
+  static readonly type = '[Visits] Correct Actuals';
+  constructor(
+    public id: string,
+    public payload: CorrectVisitActualsRequest,
   ) {}
 }
 

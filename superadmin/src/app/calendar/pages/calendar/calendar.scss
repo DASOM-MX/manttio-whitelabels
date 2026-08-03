@@ -1,0 +1,156 @@
+/* Why this sheet exists (superadmin CLAUDE.md — sheets are for layout
+   integration, never looks): the time grid runs on exact metrics. An hour is a
+   fixed height, a day column is exactly 24 of them, and a visit block is
+   absolutely positioned at a percentage of that height. Sizes that must be
+   exact belong here rather than in arbitrary Tailwind bracket values, which the
+   conventions forbid in templates.
+
+   Everything visible — borders, surfaces, status colors — stays in the template
+   as utilities, so dark mode and the runtime brand scales keep working. */
+
+.calendar-scroll {
+  /* The grid claims the rest of the window. A day is 24 fixed-height hours —
+     more than any screen — so the only question is how much of it you see at
+     once, and the answer should be "everything left over", not a number someone
+     picked.
+
+     Why `calc` against the viewport rather than a percentage chain: the shell's
+     `<main>` is the single scroll region and does have a definite height, but
+     the page container inside it is auto-height, so `height: 100%` here would
+     resolve against nothing. Making that chain definite means editing the
+     shell's layout for one page's sizing, which the conventions rule out —
+     so the page measures itself instead, in its own sheet.
+
+     `--cal-chrome` is everything stacked above the grid: the app header, the
+     main gutters and the page header. There is no week toolbar to count — the
+     control moved into the grid's own corner cell. It is a measured
+     constant and it is allowed to be one — it only has to hold on `md` and up,
+     where this grid is the only thing rendered (below that the agenda list
+     takes over and this rule never applies). `dvh` so mobile browser chrome
+     collapsing doesn't leave a gap. */
+  --cal-chrome: 10rem;
+  height: calc(100dvh - var(--cal-chrome));
+  /* Below this the grid stops being readable and may as well scroll the page. */
+  min-height: 24rem;
+  overflow-y: auto;
+}
+
+.calendar-grid {
+  --cal-hour: 3rem;
+  display: grid;
+  /* Gutter for the hour axis, then one equal column per weekday. The gutter is
+     wider than the hour labels need because it also holds the week control in
+     the corner cell — 40px more than the labels alone, spread across seven
+     columns, is about six pixels each. A cheap trade for a whole toolbar row. */
+  grid-template-columns: 6rem repeat(7, minmax(0, 1fr));
+  grid-template-rows: auto 1fr;
+}
+
+/* One column instead of seven — the day view is the same grid, narrowed. */
+.calendar-grid--single {
+  grid-template-columns: 6rem minmax(0, 1fr);
+}
+
+/* Compact chrome for the corner cell's three controls — deliberately not
+   `btn-neutral`, whose 40/44px touch height is half the header row. */
+.calendar-nav-button {
+  @apply rounded px-1.5 py-1 text-surface-700 transition-colors;
+  @apply hover:bg-surface-200 dark:text-surface-300 dark:hover:bg-surface-800;
+}
+
+/* The label is a button (it cycles the view), so it has to look like one on
+   hover without looking like one at rest — at rest it is just the caption that
+   says what you are looking at. */
+.calendar-period-label {
+  @apply rounded px-1 text-center font-data text-xs leading-tight transition-colors;
+  @apply text-surface-500 hover:bg-surface-200 hover:text-surface-800;
+  @apply dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100;
+}
+
+/* Month cells are a fixed height so all six rows match and the grid does not
+   jolt as you page through months with different loads. Three visits plus the
+   overflow line is what fits. */
+.calendar-month-cell {
+  height: 6.5rem;
+  overflow: hidden;
+}
+
+.calendar-month-daynum {
+  @apply rounded px-1 font-data text-xs transition-colors;
+  @apply hover:bg-surface-200 dark:hover:bg-surface-800;
+}
+
+/* Year cards are roughly square and all the same size, so the twelve read as
+   one shape rather than twelve differently-proportioned boxes. Fixed rather
+   than `aspect-square`: at four columns a true square is ~270px tall, which
+   makes three rows taller than the window for no extra information. */
+.calendar-year-card {
+  height: 13rem;
+}
+
+/* Lifting on hover is the whole affordance now that there is no border to
+   brighten — the card has to answer the pointer somehow. */
+.calendar-year-card:hover {
+  @apply shadow-md;
+}
+
+/* One day of a mini-month. `leading-6` is what makes six rows plus the initials
+   fit the card — the number is the cell, there is no room for padding. */
+.calendar-year-day {
+  @apply rounded text-center font-data text-xs leading-6;
+}
+
+/* Day names stay put while the hours scroll under them. */
+.calendar-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.calendar-day {
+  position: relative;
+  height: calc(var(--cal-hour) * 24);
+  /* Blocks position against the padding box, so this keeps them off the
+     column's own borders without any per-block offset math. */
+  padding-inline: 0.125rem;
+}
+
+.calendar-hour {
+  height: var(--cal-hour);
+}
+
+/* Each label sits at the top of the band it names — `07:00` labels the
+   07:00–08:00 row. It used to straddle the line with a -50% translate, which
+   read well until you reached the top of the axis and half of `00:00` was cut
+   off outside the scroll box. Sitting inside the band cannot clip. */
+.calendar-axis-label {
+  line-height: 1;
+  padding-top: 0.125rem;
+}
+
+.calendar-block {
+  position: absolute;
+  /* A 15-minute visit is 1% of the day — still has to be readable and hittable. */
+  min-height: 1.125rem;
+  overflow: hidden;
+}
+
+.calendar-ghost {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* The block's length is a projection: the visit has a real start but no real
+   duration — still being performed, or completed from the admin, which stamps no
+   end. Fading the bottom edge open says so; a closed rectangle would claim the
+   job ended at a time nobody reported. */
+.calendar-block-open {
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .calendar-block {
+    transition: background-color 150ms ease;
+  }
+}

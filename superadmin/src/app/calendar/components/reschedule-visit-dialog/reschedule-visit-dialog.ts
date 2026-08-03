@@ -4,12 +4,17 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { catchError, of } from 'rxjs';
 import { DialogModule } from 'primeng/dialog';
 import { DatePickerModule } from 'primeng/datepicker';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { MessageService } from 'primeng/api';
 import { Store } from '@ngxs/store';
 import { RescheduleVisit } from '../../../../state/visits/visits.actions';
 import { UsersService } from '../../../services/http/users.service';
 import { errorMessage } from '../../../data/utils';
+import {
+  DEFAULT_VISIT_DURATION_MINUTES,
+  MAX_VISIT_DURATION_MINUTES,
+} from '../../../model/constants/visit/visit-duration.const';
 import type { AssignableUser } from '../../../data/dtos/user';
 import type { Visit } from '../../../data/dtos/visit';
 
@@ -19,7 +24,13 @@ import type { Visit } from '../../../data/dtos/visit';
  *  visit's and is overridable (or cleared back to the backlog). */
 @Component({
   selector: 'app-reschedule-visit-dialog',
-  imports: [ReactiveFormsModule, DialogModule, DatePickerModule, SelectModule],
+  imports: [
+    ReactiveFormsModule,
+    DialogModule,
+    DatePickerModule,
+    InputNumberModule,
+    SelectModule,
+  ],
   templateUrl: './reschedule-visit-dialog.html',
 })
 export class RescheduleVisitDialog {
@@ -37,7 +48,11 @@ export class RescheduleVisitDialog {
   protected form = this.fb.group({
     fecha: this.fb.control<Date | null>(null, Validators.required),
     horaInicio: this.fb.control<Date | null>(null, Validators.required),
-    horaFin: this.fb.control<Date | null>(null),
+    duracion: this.fb.nonNullable.control(DEFAULT_VISIT_DURATION_MINUTES, [
+      Validators.required,
+      Validators.min(1),
+      Validators.max(MAX_VISIT_DURATION_MINUTES),
+    ]),
     technicianId: this.fb.nonNullable.control(''),
   });
 
@@ -56,15 +71,16 @@ export class RescheduleVisitDialog {
   private formStatus = toSignal(this.form.statusChanges, { initialValue: this.form.status });
   protected canConfirm = computed(() => this.formStatus() === 'VALID' && !this.submitting());
 
-  /** Pre-fills from the closed visit: same time-of-day, its technician —
-   *  the date is the one thing that always changes, so it starts empty. */
+  /** Pre-fills from the closed visit: same time-of-day, same planned length, its
+   *  technician — the date is the one thing that always changes, so it starts
+   *  empty. */
   open(target: Visit): void {
     this.target.set(target);
     const start = new Date(target.scheduledStart);
     this.form.reset({
       fecha: null,
       horaInicio: start,
-      horaFin: target.scheduledEnd ? new Date(target.scheduledEnd) : null,
+      duracion: target.expectedDurationMinutes,
       technicianId: target.technicianId ?? '',
     });
     this.submitting.set(false);
@@ -85,7 +101,7 @@ export class RescheduleVisitDialog {
       .dispatch(
         new RescheduleVisit(target.id, {
           scheduledStart: atTime(raw.fecha, raw.horaInicio).toISOString(),
-          scheduledEnd: raw.horaFin ? atTime(raw.fecha, raw.horaFin).toISOString() : undefined,
+          expectedDurationMinutes: raw.duracion,
           technicianId: raw.technicianId || null,
         }),
       )

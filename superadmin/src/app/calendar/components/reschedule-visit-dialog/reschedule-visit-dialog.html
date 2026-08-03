@@ -29,8 +29,20 @@
           <p-datepicker inputId="reschedule-start" formControlName="horaInicio" [timeOnly]="true" />
         </div>
         <div class="field-group">
-          <label class="field-label" for="reschedule-end">Hora fin</label>
-          <p-datepicker inputId="reschedule-end" formControlName="horaFin" [timeOnly]="true" />
+          <label class="field-label" for="reschedule-duration">
+            Duración<span aria-hidden="true"> *</span>
+          </label>
+          <p-inputnumber
+            inputId="reschedule-duration"
+            formControlName="duracion"
+            [min]="1"
+            [max]="1440"
+            [step]="15"
+            [showButtons]="true"
+            buttonLayout="horizontal"
+            suffix=" min"
+          />
+          <p class="field-hint">Hereda la de la visita cerrada; cámbiala si el trabajo cambió.</p>
         </div>
       </div>
 

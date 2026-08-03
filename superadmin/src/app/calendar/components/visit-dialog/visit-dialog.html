@@ -6,7 +6,7 @@
   [draggable]="false"
   [resizable]="false"
   styleClass="dialog-lg"
-  [header]="isCreate() ? 'Nueva visita' : 'Visita'"
+  [header]="dialogTitle()"
 >
   <div class="grid gap-4">
     @if (target(); as visit) {
@@ -48,9 +48,70 @@
           </div>
         }
       </dl>
+
+      <!-- Planeado vs Real (12 §4): the per-visit read of what the actuals are
+           captured for. Shown from the start, so an unstarted visit says
+           "sin registro" rather than the section appearing out of nowhere. -->
+      @if (timeSummary(); as summary) {
+        <div class="rounded-lg border border-surface-200 p-3 dark:border-surface-700">
+          <p class="section-heading">Planeado vs real</p>
+          <dl class="mt-2 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+            <div>
+              <dt class="micro-label">Planeado</dt>
+              <dd class="mt-0.5 font-data text-sm">
+                {{ visit.scheduledStart | date: 'dd/MM/yyyy HH:mm' }}
+                @if (visit.scheduledEnd) {
+                  – {{ visit.scheduledEnd | date: 'HH:mm' }}
+                }
+                <span class="text-surface-500 dark:text-surface-400">
+                  · {{ summary.plannedDuration }}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt class="micro-label">Real</dt>
+              <dd class="mt-0.5 font-data text-sm">
+                @if (visit.actualStart || visit.actualEnd) {
+                  {{ visit.actualStart ? (visit.actualStart | date: 'dd/MM/yyyy HH:mm') : 'sin inicio' }}
+                  –
+                  @if (visit.actualEnd) {
+                    {{ visit.actualEnd | date: 'HH:mm' }}
+                  } @else if (isInProgress()) {
+                    en curso
+                  } @else {
+                    sin fin
+                  }
+                  @if (summary.actualDuration) {
+                    <span class="text-surface-500 dark:text-surface-400">
+                      · {{ summary.actualDuration }}
+                    </span>
+                  }
+                } @else {
+                  <span class="text-surface-500 dark:text-surface-400">Sin registro</span>
+                }
+              </dd>
+            </div>
+          </dl>
+          @if (summary.variance) {
+            <p
+              class="mt-2 text-sm font-medium"
+              [class.text-amber-600]="summary.over"
+              [class.dark:text-amber-400]="summary.over"
+              [class.text-green-600]="!summary.over"
+              [class.dark:text-green-400]="!summary.over"
+            >
+              {{ summary.variance }} {{ summary.over ? 'sobre lo estimado' : 'bajo lo estimado' }}
+            </p>
+          } @else if (summary.onEstimate) {
+            <p class="mt-2 text-sm text-surface-500 dark:text-surface-400">
+              Justo en el estimado.
+            </p>
+          }
+        </div>
+      }
     }
 
-    @if (isEditable()) {
+    @if (hasForm()) {
       <form [formGroup]="form" (ngSubmit)="confirm()" class="grid gap-4">
         @if (isCreate()) {
           @if (lockedOrder(); as order) {
@@ -81,44 +142,63 @@
           }
         }
 
-        <div class="grid gap-4 sm:grid-cols-3">
-          <div class="field-group">
-            <label class="field-label" for="visit-date">
-              Fecha<span aria-hidden="true"> *</span>
-            </label>
-            <p-datepicker inputId="visit-date" formControlName="fecha" [showIcon]="true" />
+        @if (canCorrectSchedule()) {
+          <div class="grid gap-4 sm:grid-cols-3">
+            <div class="field-group">
+              <label class="field-label" for="visit-date">
+                Fecha<span aria-hidden="true"> *</span>
+              </label>
+              <p-datepicker inputId="visit-date" formControlName="fecha" [showIcon]="true" />
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="visit-start">
+                Hora<span aria-hidden="true"> *</span>
+              </label>
+              <p-datepicker inputId="visit-start" formControlName="horaInicio" [timeOnly]="true" />
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="visit-duration">
+                Duración<span aria-hidden="true"> *</span>
+              </label>
+              <p-inputnumber
+                inputId="visit-duration"
+                formControlName="duracion"
+                [min]="1"
+                [max]="1440"
+                [step]="15"
+                [showButtons]="true"
+                buttonLayout="horizontal"
+                suffix=" min"
+              />
+              <p class="field-hint">La hora de fin se calcula sola; es la altura del bloque.</p>
+            </div>
           </div>
-          <div class="field-group">
-            <label class="field-label" for="visit-start">
-              Hora<span aria-hidden="true"> *</span>
-            </label>
-            <p-datepicker
-              inputId="visit-start"
-              formControlName="horaInicio"
-              [timeOnly]="true"
-            />
+        } @else if (target(); as visit) {
+          <!-- `in_progress`: the schedule is frozen — a technician is on the job
+               and moving its date would be a fiction. Reassignment survives. -->
+          <div class="callout callout--info">
+            La visita está en curso: solo puede reasignarse. Para mover la fecha hay que cerrarla y
+            reprogramarla.
           </div>
-          <div class="field-group">
-            <label class="field-label" for="visit-end">Hora fin</label>
-            <p-datepicker inputId="visit-end" formControlName="horaFin" [timeOnly]="true" />
-          </div>
-        </div>
+        }
 
-        <div class="field-group">
-          <label class="field-label" for="visit-technician">Técnico</label>
-          <p-select
-            inputId="visit-technician"
-            formControlName="technicianId"
-            [options]="technicianOptions()"
-            optionLabel="label"
-            optionValue="value"
-            [filter]="true"
-            filterBy="label"
-          />
-          @if (!isCreate()) {
-            <p class="field-hint">Cambiarlo reasigna la visita; queda en la bitácora de la orden.</p>
-          }
-        </div>
+        @if (canReassign()) {
+          <div class="field-group">
+            <label class="field-label" for="visit-technician">Técnico</label>
+            <p-select
+              inputId="visit-technician"
+              formControlName="technicianId"
+              [options]="technicianOptions()"
+              optionLabel="label"
+              optionValue="value"
+              [filter]="true"
+              filterBy="label"
+            />
+            @if (!isCreate()) {
+              <p class="field-hint">Cambiarlo reasigna la visita; queda en la bitácora de la orden.</p>
+            }
+          </div>
+        }
 
         @if (isCreate() && equipmentOptions().length > 0) {
           <div class="field-group">
@@ -135,30 +215,32 @@
           </div>
         }
 
-        <div class="field-group">
-          <label class="field-label" for="visit-title">Título</label>
-          <input
-            id="visit-title"
-            pInputText
-            formControlName="title"
-            placeholder="Mantenimiento preventivo… (opcional, el cliente es el default)"
-          />
-        </div>
+        @if (canCorrectSchedule()) {
+          <div class="field-group">
+            <label class="field-label" for="visit-title">Título</label>
+            <input
+              id="visit-title"
+              pInputText
+              formControlName="title"
+              placeholder="Mantenimiento preventivo… (opcional, el cliente es el default)"
+            />
+          </div>
 
-        <div class="field-group">
-          <label class="field-label" for="visit-notes">Notas</label>
-          <textarea
-            id="visit-notes"
-            pTextarea
-            formControlName="notes"
-            rows="2"
-            class="!min-h-16"
-            placeholder="Acceso, contacto en sitio, materiales…"
-          ></textarea>
-        </div>
+          <div class="field-group">
+            <label class="field-label" for="visit-notes">Notas</label>
+            <textarea
+              id="visit-notes"
+              pTextarea
+              formControlName="notes"
+              rows="2"
+              class="!min-h-16"
+              placeholder="Acceso, contacto en sitio, materiales…"
+            ></textarea>
+          </div>
+        }
 
         <div class="flex flex-wrap justify-end gap-2">
-          @if (!isCreate()) {
+          @if (canAct()) {
             <button
               type="button"
               class="btn-danger mr-auto"
@@ -184,17 +266,8 @@
         </div>
       </form>
     } @else if (target(); as visit) {
-      <!-- Terminal (or read-only role): the record as it happened. -->
+      <!-- Terminal (or a read-only role): the record as it happened. -->
       <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-        <div>
-          <dt class="micro-label">Fecha</dt>
-          <dd class="mt-0.5 text-sm font-medium">
-            {{ visit.scheduledStart | date: 'dd/MM/yyyy HH:mm' }}
-            @if (visit.scheduledEnd) {
-              – {{ visit.scheduledEnd | date: 'HH:mm' }}
-            }
-          </dd>
-        </div>
         <div>
           <dt class="micro-label">Técnico</dt>
           <dd class="mt-0.5 text-sm">{{ visit.technicianName || 'Sin asignar' }}</dd>
@@ -233,7 +306,12 @@
         La historia completa de esta visita vive en la bitácora de su orden.
       </p>
 
-      <div class="flex justify-end">
+      <div class="flex flex-wrap justify-end gap-2">
+        @if (canCorrectActuals()) {
+          <button type="button" class="btn-secondary mr-auto" (click)="requestActuals()">
+            Corregir tiempos
+          </button>
+        }
         <button type="button" class="btn-neutral" (click)="close()">Cerrar</button>
       </div>
     }
