@@ -1,7 +1,7 @@
 # 12 — Calendar (scheduled visits)
 
-> **Status:** planned (clean restart 2026-07-24 — the pre-pivot backend entity on `feature/fullstack-calendar-module` was set aside) · **Depends on:** 02 (CP-3), 05 (tech roster), 07 (CP-1), 19 (visits are order-bound)
-> **Owner:** — · **Last updated:** 2026-07-24
+> **Status:** in-progress (CP-1 backend built — PR #110; CP-1b duration/actuals + CP-2 calendar + CP-3 field app in flight) · **Depends on:** 02 (CP-3), 05 (tech roster), 07 (CP-1), 19 (visits are order-bound)
+> **Owner:** — · **Last updated:** 2026-07-31
 
 Team scheduling: who goes where, when. Owns the **`ScheduledVisit`** entity (order-bound,
 19 §1) and the calendar views. **Immutable-record model (decided 2026-07-23):** office
@@ -20,7 +20,12 @@ completion) but neither replaces the other.
 
 ```
 ScheduledVisit {                // IMMUTABLE record (decided 2026-07-23) — see below
-  id, customerId,
+  id,
+  internalCode,                 // `V-YYYYMMDD-NNNN` (owner 2026-08-02) — backend-minted
+                                //   from a daily counter, NOT NULL, unique among live
+                                //   rows, never staff-authored. The human handle: what
+                                //   people read out, paste into search, write on a slip
+  customerId,
   serviceOrderId,               // REQUIRED (2026-07-23, 19 §1) — every visit belongs
                                 //   to exactly one service order; the client derives
                                 //   from the order
@@ -29,9 +34,24 @@ ScheduledVisit {                // IMMUTABLE record (decided 2026-07-23) — see
   equipmentIds?: string[],      // units to service (11), optional
   technicianId?,                // null = unassigned (backlog lane) — mutable while
                                 //   `scheduled` (reassignment); audited at order level
+
+  // --- PLANNED (what office booked) ---
   scheduledStart,               // datetime
-  scheduledEnd?,                // optional — many SMB visits are "morning-ish"
-  status: 'scheduled' | 'completed' | 'closed',   // terminal once completed/closed
+  scheduledEnd?,                // kept as a fast reference (owner 2026-07-31) — the
+                                //   expected end, denormalized from start+expected
+                                //   duration so a range read needs no arithmetic
+  expectedDurationMinutes,      // REQUIRED, default 60 (owner 2026-07-31) — the
+                                //   planned length; drives the calendar block height
+
+  // --- ACTUAL (what happened) — plan-vs-actual, owner 2026-07-31 ---
+  actualStart?,                 // stamped by the field app's Iniciar
+  actualEnd?,                   // stamped by the field app's Terminar
+  actualDurationMinutes?,       // stored, not derived: a tech may report a length
+                                //   whose exact stamps never made it (offline gap)
+
+  status: 'scheduled' | 'in_progress' | 'completed' | 'closed',
+                                //   in_progress added 2026-07-31 (see below);
+                                //   terminal once completed/closed
   closeReason?,                 // category enum, REQUIRED on close (2026-07-23):
                                 //   client_cancelled | client_absent | no_access
                                 //   | tech_unavailable | other
@@ -48,11 +68,43 @@ ScheduledVisit {                // IMMUTABLE record (decided 2026-07-23) — see
   still `scheduled` (open, no tech action yet) office may correct scheduling fields
   (date/title/notes) and reassign the technician — the *only* permitted mutations. Once
   a tech acts, the record is terminal: no edits, no reopen.
+  **Amended 2026-07-31 (owner)** on two points: (a) `in_progress` freezes **scheduling
+  correction** — office must not move the date of a visit a technician is physically
+  performing (409) — but **reassignment stays open and audited**, because a mid-job
+  handoff is real: a tech falls ill and a colleague takes the job over. (b) The
+  **actuals are correctable** by owner/admin on a terminal visit — see the
+  plan-vs-actual bullet.
+- **Plan vs actual (decided 2026-07-31, owner).** A visit carries what was *booked*
+  (`scheduledStart` / `scheduledEnd` / `expectedDurationMinutes`) alongside what
+  *happened* (`actualStart` / `actualEnd` / `actualDurationMinutes`). The contrast is
+  the point: it measures how well the shop estimates, and it is the raw material for
+  **billing by real time** later. `expectedDurationMinutes` is **required with a
+  60-minute default** — which **supersedes** the "many SMB visits are morning-ish, an
+  optional end invents no precision" rationale below: every visit now has a planned
+  length, because the calendar renders it as a block and a block needs a height.
+  `scheduledEnd` is **kept** rather than derived, as a fast reference for range reads;
+  the service writes both together so they can never disagree.
+  **Correcting actuals (2026-07-31, owner):** owner/admin may fix `actualStart` /
+  `actualEnd` on a terminal visit, each correction appending its own event to the
+  order timeline. This narrowly supersedes "no edits once terminal" — a mis-tapped
+  Iniciar would otherwise bill wrong forever, and the audited correction keeps the
+  trail honest about both the original value and the fix.
 - **Respond or close (decided 2026-07-23).** The assigned technician either **responds**
   — serves it → `completed`, producing/linking the report — or **closes** it with a
   **categorized reason** (`client_cancelled | client_absent | no_access |
   tech_unavailable | other`) + optional note. There is no in-place cancel/miss edit and
   no reopen; a closed visit is done.
+- **Iniciar / Terminar live in the field app (decided 2026-07-31, owner).** The
+  technician starts and ends the job from `frontend/` (the field app), not the admin:
+  **Iniciar** stamps `actualStart` and moves `scheduled → in_progress`; **Terminar**
+  *is* the existing `/respond` — it stamps `actualEnd` + `actualDurationMinutes` and
+  completes the visit. `in_progress` **supersedes** "`scheduled` is the only open
+  state": office needs to see who is on site right now.
+  Both actions are **offline-first**: the field app queues them in IndexedDB and syncs
+  on reconnect, so the API takes a **client-supplied timestamp** (the trusted-field
+  posture already used for `created_by` on synced reports) instead of stamping
+  `now()`. A tech in a basement at 09:15 must not record 11:40 when the truck regains
+  signal — that would bill a job that took minutes.
 - **Reschedule = a new record, prompted now/later (decided 2026-07-23).** After closing,
   the tech is asked through a dialog whether to reschedule **now or later**. Rescheduling
   **creates a new `scheduled` record** (never edits the closed one): `rescheduledFromId`
@@ -77,12 +129,18 @@ ScheduledVisit {                // IMMUTABLE record (decided 2026-07-23) — see
 |---|---|---|---|---|
 | See the full team calendar | ✓ | ✓ | ✓ | ✓ (read-only) |
 | Create visits | ✓ | ✓ | ✓ | — |
-| Correct an **open** visit (date/title/notes) | ✓ | ✓ | ✓ | — |
-| Reassign an **open** visit | ✓ | ✓ | ✓ | — |
+| Correct a **scheduled** visit (date/title/notes) | ✓ | ✓ | ✓ | — |
+| Reassign a **scheduled or in-progress** visit | ✓ | ✓ | ✓ | — |
 | **Swap own** open visit to another tech | — | — | — | ✓ᵃ |
-| **Respond** (serve → completed) | ✓ | ✓ | ✓ | ✓ (own) |
+| **Iniciar** (start work → in_progress) | ✓ | ✓ | ✓ | ✓ (own) |
+| **Terminar / Respond** (serve → completed) | ✓ | ✓ | ✓ | ✓ (own) |
 | **Close** with categorized reason | ✓ | ✓ | ✓ | ✓ (own) |
 | **Reschedule** a closed visit (new record) | ✓ | ✓ | ✓ | ✓ (own) |
+| **Correct the actuals** on a terminal visit | ✓ | ✓ | — | — |
+
+Correcting actuals is admin-tier only (2026-07-31): office schedules work, but rewriting
+what a technician recorded as *done* is a billing-grade edit — it belongs with the roles
+that answer for the invoice. Every correction is audited to the order timeline.
 
 a. **Tech swap:** a technician can hand off an *open* visit currently assigned to *them*
    to another technician (mutual coverage — "take my Tuesday"). It goes through the same
@@ -95,10 +153,22 @@ a. **Tech swap:** a technician can hand off an *open* visit currently assigned t
 
 **No FullCalendar in v1.** Start with a custom Tailwind-built **week grid + day agenda**:
 
-- `calendar/pages/calendar/` — week view: one column per day; visit chips (time, client,
-  tech color-dot) stacked per day; a technician `<p-multiselect>` filter + "unassigned"
-  toggle; month `<p-datepicker>` jump; prev/today/next. Mobile collapses to a single-day
-  agenda list.
+- **Time-axis grid (decided 2026-07-31, owner — supersedes the stacked-chip week view
+  below).** `calendar/pages/calendar/` renders a real **24-hour scrollable time axis**:
+  hour rows down the left, one column per day, and each visit as a **block positioned
+  and sized by its times**. The grid **opens at 00:00, not at business hours** — the
+  shop takes emergency calls at midnight and a view that hides them is worse than one
+  with dead space at the top. Overlapping visits split their day column side by side.
+  - **Planned ghost + actual solid.** A visit that has actuals draws **twice**: the
+    booked slot as a faint dashed outline, the real one as the solid block on top. The
+    over- or under-run is then readable across the whole week without opening anything
+    — which is the entire reason the actuals are captured.
+  - Blocks color by status (scheduled = primary, **in_progress = live accent**,
+    completed = green, closed = muted/struck).
+- ~~week view: one column per day; visit chips (time, client, tech color-dot) stacked
+  per day~~ — **superseded 2026-07-31** by the time-axis grid above. The filter chrome
+  survives unchanged: a technician `<p-multiselect>` + "unassigned" toggle, month
+  `<p-datepicker>` jump, prev/today/next. Mobile collapses to a single-day agenda list.
 - Clicking a chip opens the **visit dialog** (§4); moving a visit is dialog-driven
   (change date/tech) — **no drag-and-drop in v1**. If drag/drop becomes a real ask,
   evaluate FullCalendar's Angular adapter then (compat with Angular 21 + zoneless
@@ -116,11 +186,18 @@ a. **Tech swap:** a technician can hand off an *open* visit currently assigned t
   (searchable, required — 2026-07-23 amendment, supersedes the client select: the
   client derives from the order; order view opens the dialog with the order locked),
   equipment multiselect (scoped to client, from 11 — hidden until 11 lands), technician
-  select (with "unassigned"), date + optional time range, title, notes. Edit mode adds
+  select (with "unassigned"), date + start time + **duration** (2026-07-31: required,
+  defaults to 60 min — it sizes the calendar block), title, notes. Edit mode adds
   the tech action buttons — **Responder** (serve → completed) and **Cerrar** (close with
-  a categorized reason) — plus, on an *open* visit, office correction (date/title/notes)
-  and reassignment. Once completed/closed the dialog is read-only. The full history is
-  **not** shown here — it lives on the parent order's activity timeline (19 §7).
+  a categorized reason) — plus office correction (date/duration/title/notes) while
+  `scheduled`, and reassignment while `scheduled` **or** `in_progress`. Once
+  completed/closed the dialog is read-only apart from the admin-tier actuals
+  correction. A visit with actuals shows **Planeado vs Real** side by side with the
+  variance (`+25 min`) — the one place the numbers are read per visit. The full history
+  is **not** shown here — it lives on the parent order's activity timeline (19 §7).
+- `calendar/components/correct-actuals-dialog/` — owner/admin only, terminal visits
+  (2026-07-31): edits `actualStart` / `actualEnd`, shows the recomputed duration before
+  saving, and states plainly that the change lands on the order's timeline.
 - `calendar/components/close-visit-dialog/` — the categorized close: reason select
   (`client_cancelled | client_absent | no_access | tech_unavailable | other`) + optional
   note; on confirm, prompts **reschedule now / later** (now → opens the reschedule dialog
@@ -133,26 +210,69 @@ a. **Tech swap:** a technician can hand off an *open* visit currently assigned t
 - Dashboard hook: a "today's visits" card on the Dashboard stub (count + first few,
   link to calendar) — small, do it here since the data is this module's.
 
+### Field app (`frontend/`) — decided 2026-07-31
+
+The technician's half of this module lives in the **field app**, which today has no
+visit surface at all (its features are auth, customers, reports, users). It is a new
+module there, not two buttons:
+
+- `visits/pages/my-visits/` — the tech's own visits, today first: order folio, client,
+  address, time, and the primary action for the visit's state (**Iniciar** while
+  `scheduled`, **Terminar** while `in_progress`, nothing once terminal).
+- `visits/pages/visit-detail/` — what the job is: order + client + equipment + notes,
+  with Iniciar / Terminar / Cerrar. Kept deliberately thin — the field app is used
+  one-handed on a phone in a plant room.
+- **Offline queue (`src/offline/`).** The existing store is reports-only
+  (`pendingReports`, Dexie v1). Visit actions get their **own store** at **Dexie v2**
+  (`pendingVisitActions: { visitId, action, at, syncedAt }`) and their own sync pass in
+  `offline-sync.service`, reusing the reconnect watcher the reports queue already has.
+  Each queued action carries the **local timestamp of the tap**, which is what the API
+  records — the whole point of queueing rather than replaying.
+  - **Conflict rule (open — see below):** two Iniciar taps on one visit, or a Terminar
+    that syncs before its Iniciar, must resolve deterministically.
+
 ## 5. Expected API surface
 
-- `GET /visits?from&to&technicianId&customerId&status` → list for the visible range
-  (calendar loads by week; no pagination, range-bounded)
+- `GET /visits?from&to&internalCode&technicianId&customerId&status` → list for the
+  visible range (calendar loads by week; no pagination). **Either** `from`+`to` **or**
+  `internalCode` is required (owner 2026-08-02): the range is the calendar's viewport,
+  and the code is the one legitimate unbounded selector — you cannot be made to know
+  which week a visit is in before you can look it up. `internalCode` is a **prefix**
+  match (`V-2026` = a year, `V-20260802` = a day, a full code = one visit), all served
+  by the unique btree; a `%fragment%` search was rejected because it would require
+  `pg_trgm` in every tenant database
 - `GET /visits/:id` — the immutable record + its close/reschedule chain (audit trail is
   on the order, not here — 19 §7)
-- `POST /visits` — create (staff)
-- `PATCH /visits/:id` — **open-visit correction only** (date/title/notes; **not**
-  technicianId, **not** if completed/closed) → 409 if terminal; logs a `visit_corrected`
-  event to the order timeline
-- `POST /visits/:id/assign` `{ technicianId }` — reassignment on an **open** visit; backend
-  enforces the tech-swap rule (requester is tech ⇒ current assignee must be requester) →
-  logs `visit_reassigned` (`from → to, by whom`) to the order timeline
-- `POST /visits/:id/respond` — serve → `completed` (links the report) → logs
-  `visit_completed`
+- `POST /visits` — create (staff); takes `expectedDurationMinutes` (default 60) and
+  derives `scheduledEnd` from it. **`scheduledEnd` is never an input on any endpoint**
+  (2026-07-31): the service writes it as `scheduledStart + expectedDurationMinutes` on
+  every path that touches either, which is the only way the two cannot drift apart
+- `PATCH /visits/:id` — **scheduled-only correction** (date/duration/title/notes; **not**
+  technicianId, **not** once `in_progress` or terminal) → 409 `visit_not_correctable`
+  otherwise; logs a `visit_corrected` event to the order timeline carrying only the
+  *authored* fields, since `scheduledEnd` is derived and would double-report the move
+- `POST /visits/:id/assign` `{ technicianId }` — reassignment while **scheduled or
+  in_progress** (2026-07-31: a mid-job handoff is real); backend enforces the tech-swap
+  rule (requester is tech ⇒ current assignee must be requester) → logs
+  `visit_reassigned` (`from → to, by whom`) to the order timeline
+- `POST /visits/:id/start` `{ actualStart }` — **Iniciar** (field app): stamps
+  `actualStart`, `scheduled → in_progress` → logs `visit_started`. The timestamp is
+  **client-supplied** so an offline start records when it happened, not when it synced;
+  validated (not in the future, not before the visit was created) but trusted, the same
+  posture as `created_by` on synced reports
+- `POST /visits/:id/respond` `{ actualEnd?, reportId? }` — **Terminar**: serve →
+  `completed`, stamping `actualEnd` + `actualDurationMinutes` (links the report) → logs
+  `visit_completed`. Same client-supplied-timestamp rule as `/start`
+- `PATCH /visits/:id/actuals` `{ actualStart?, actualEnd? }` — **owner/admin only**,
+  terminal visits: corrects a mis-tapped or mis-synced stamp, recomputes
+  `actualDurationMinutes`, logs `visit_actuals_corrected` with the before/after diff
 - `POST /visits/:id/close` `{ reason, note? }` — categorized close → `closed` → logs
   `visit_closed`
-- `POST /visits/:id/reschedule` `{ scheduledStart, scheduledEnd?, technicianId? }` →
-  new `scheduled` record from a **closed** visit (`rescheduledFromId` set) → logs
-  `visit_rescheduled` (→ new visit); techs may do this for their own visit
+- `POST /visits/:id/reschedule` `{ scheduledStart, expectedDurationMinutes?,
+  technicianId? }` → new `scheduled` record from a **closed** visit
+  (`rescheduledFromId` set, its own fresh `internalCode`, duration inherited unless
+  overridden, actuals deliberately *not* copied) → logs `visit_rescheduled` (→ new
+  visit); techs may do this for their own visit
 - All mutation endpoints append to the **parent order's activity timeline** (19 §7) —
   there is no visit-level audit table
 - `GET /customers/:id/visits` — upcoming visits on the customer view (07 slot — ask)
@@ -168,8 +288,10 @@ a. **Tech swap:** a technician can hand off an *open* visit currently assigned t
 - `VisitsState`: `range`, `visits`, `externalEvents`, `loading`, `selected`,
   `googleStatus` (own connection). Actions: `LoadVisits(from, to, filters)` (also loads
   external events for the range), `LoadVisit(id)`, `CreateVisit`, `CorrectVisit(id,
-  fields)` (open only), `AssignVisit(id, technicianId)`, `RespondVisit(id)`,
-  `CloseVisit(id, reason, note?)`, `RescheduleVisit(id, whenFields)`, `LoadGoogleStatus`,
+  fields)` (scheduled only), `AssignVisit(id, technicianId)` (scheduled or in_progress),
+  `StartVisit(id, actualStart)`, `RespondVisit(id, actualEnd?)`,
+  `CloseVisit(id, reason, note?)`, `RescheduleVisit(id, whenFields)`,
+  `CorrectVisitActuals(id, fields)` (owner/admin), `LoadGoogleStatus`,
   `DisconnectGoogle` (connect is a redirect, not an action).
 - `src/app/services/http/visits.service.ts` (per the app's real layout — not `src/http/`).
 
@@ -226,32 +348,98 @@ roles. External chips show full title to their **owner**; other users see "Ocupa
 
 ## Checkpoints
 
-### CP-1 — Visit entity + week view
-- [ ] DTOs + service + `VisitsState`
-- [ ] Week grid page (range loading, day columns, visit chips, tech filter)
-- [ ] Route + **Calendar** sidebar entry (owner/admin/office + technician)
+**Sequencing (decided 2026-07-31, owner): three PRs, one per module** — backend first,
+then the two consumers independently. The calendar must not wait on the field app.
 
-### CP-2 — Scheduling flows (immutable-record model)
-- [ ] Visit dialog: create (staff) + open-visit correction (date/title/notes) + read-only
-      once terminal
-- [ ] Reassignment via `/assign` (open only) + toasts
-- [ ] Respond (`/respond`) + Close dialog (`/close`, categorized reason) + reschedule
-      now/later prompt → reschedule dialog (`/reschedule`, new linked record)
-- [ ] Mobile day-agenda collapse
+### CP-1 — Backend: visit entity + lifecycle — [x] built (PR #110)
+- [x] `scheduled_visits` + `visit_equipment`, order-bound with the audit routed to the
+      order timeline (no visit-level event table)
+- [x] List (bounded range) / detail / create / correct / assign / respond / close /
+      reschedule + role guards
 
-### CP-3 — Technician mode + swap
-- [ ] "My visits" pre-filter + read-only team toggle (route `data` per 10 §4)
-- [ ] Tech actions on own visits: respond / close / reschedule; swap dialog (open own
-      visits only)
-- [ ] Manual pass as tech: see own week → close one with a reason → reschedule → new
-      record appears; swap an open visit → colleague sees it
+### CP-1b — Backend: duration + actuals (amends PR #110) — **PR 1 of 3** — [x] built
+- [x] **Columns:** `expected_duration_minutes` (NOT NULL, default 60), `actual_start`,
+      `actual_end`, `actual_duration_minutes`; `scheduled_end` **kept** as the fast
+      reference and written together with the expected duration.
+      ~~DDL applied directly to the shared Neon DB, the way the visits table itself
+      shipped~~ — **superseded 2026-08-01 (owner)**: that rule is revoked. Everything
+      ships as `0031_visits_duration_actuals.sql`, which also **backfills CP-1**: the
+      shared database never actually received the CP-1 DDL and still carried the
+      pre-pivot table, so the migration reconciles it additively (nine missing columns,
+      `visit_equipment` created, `status_reason` + the orphan `visit_assignments` left
+      alone — no destructive statements in a file every tenant runs)
+- [x] **`internal_code`** (`V-YYYYMMDD-NNNN`, owner 2026-08-02) — backend-minted from a
+      `visit_counters` daily sequence inside the create transaction, NOT NULL, unique on
+      live rows. Searched by **equality or prefix** against a btree, never `%fragment%`
+      (which would have meant `pg_trgm` in every tenant DB); `GET /visits` accepts
+      `internalCode` **instead of** a date range, so a code finds its visit without the
+      caller knowing which week it is in
+- [x] **`VisitStatus.InProgress`** + `POST /:id/start` (Iniciar, client-supplied
+      `actualStart`); `/respond` extended with `actualEnd` → stamps
+      `actual_duration_minutes`
+- [x] **Guards:** correction 409s once `in_progress`; **reassignment stays open** on
+      `in_progress` (audited); close still reachable from `in_progress`
+- [x] **`PATCH /:id/actuals`** — owner/admin, terminal visits, recomputes the duration
+- [x] **Timeline:** `visit_started` + `visit_actuals_corrected` in `VisitEventType` and
+      the matching `ServiceOrderEventType` members (the `Record<>` map in
+      `visit-audit.service.ts` makes an unmapped member a compile error)
+- [x] **`test/visits.test.ts`** — the module had none, which broke `backend/CLAUDE.md`'s
+      one-suite-per-resource rule. Full lifecycle + the new actuals, fixture rows
+      soft-deleted in `afterAll`. **33/33 green** against the shared DB, but only after
+      it found the defect below — the suite earned its keep on its first run
+- [x] **`0032_visits_drop_stale_status_check.sql`** — the shared table still carried
+      PR #97's `CHECK (status = ANY (ARRAY['scheduled','completed','cancelled','missed',
+      'rescheduled']))`, the **pre-pivot vocabulary**. `in_progress` and `closed` are not
+      in it, so every Iniciar and every Cerrar came back `23514 → 500` (14 tests). Dropped
+      rather than corrected: the drizzle model declares no check, so a tenant provisioned
+      from the migrations never had one, and correcting the array would have left the
+      shared DB enforcing a contract no other tenant has — the exact divergence the
+      never-hand-apply rule exists to prevent. Every migration-era table
+      (`service_orders`, `quotations`, `service_order_events`, `services`, `equipment`)
+      carries zero check constraints; only the legacy tables still do
+  - **Note the limit this exposes in transactional dry-runs:** `0031` was verified by
+        executing all 32 statements inside `BEGIN … ROLLBACK`, and that proved the DDL
+        *runs* while saying nothing about what rows the table would then **accept**. Only
+        the suite could catch this. Dry-run the DDL, then exercise the endpoints
+  - **Open, wider than 12:** the same orphan-constraint problem sits on `customers`,
+        `reports`, `users`, `notifications`, `cms_documents`, `report_templates` and
+        `brand` — live CHECKs in **no** drizzle model, so a fresh tenant gets none of
+        them. `customers_source_check` and `notifications_type_check` enumerate values
+        that will drift and will fail exactly this way. Wants its own branch
+- [x] **Snapshot-chain repair.** `meta/` had no snapshots for `0028`–`0030`, so
+      `db:generate` proposed re-creating tables that exist and emitted three unguarded
+      `ADD COLUMN`s that would have failed. `0031`'s snapshot is regenerated from the
+      real models, and `db:generate` now reports no pending changes
+
+### CP-2 — Superadmin: time-axis calendar — **PR 2 of 3**
+- [ ] DTOs + `VisitsState` + http service + pipes/constants (`model/enums/visit/`,
+      `model/constants/visit/`)
+- [ ] **24h scrollable time grid** opening at 00:00; blocks positioned/sized by time;
+      overlap splits the day column; **planned ghost + actual solid** overlay
+- [ ] Visit dialog (create with locked-order support, duration field, correction,
+      reassignment, Responder) + close dialog (categorized + reschedule now/later) +
+      reschedule dialog + **correct-actuals dialog** (owner/admin)
+- [ ] Order view "Programar visita" (order pre-locked); week + tech filter in the URL
+- [ ] Route + **Calendar** sidebar entry; mobile day-agenda collapse
+- [ ] Build green; manual pass: schedule → reassign → start → terminar → block shows
+      ghost + actual; close → reschedule → linked successor; every action on the order
+      timeline (19 §7)
+
+### CP-3 — Field app: technician visits + offline — **PR 3 of 3**
+- [ ] `visits/` module in `frontend/` (none exists today): "Mis visitas" list +
+      visit detail, phone-first
+- [ ] **Iniciar / Terminar** actions; Cerrar with categorized reason
+- [ ] **Offline queue at Dexie v2**: `pendingVisitActions` store + sync pass in
+      `offline-sync.service`, local tap timestamp preserved through the sync
+- [ ] Manual pass: airplane mode → Iniciar → Terminar → reconnect → both land with the
+      *field* times, not the sync times
 
 ### CP-4 — Polish
-- [ ] Status colors + closed muted/strike style + reschedule-chain link; dark-mode audit
+- [ ] Status colors incl. `in_progress`; closed muted/strike; reschedule-chain link;
+      dark-mode audit of the ghost/solid block pair
 - [ ] Dashboard "today's visits" card
-- [ ] Empty states ("nothing scheduled this week"); build green; manual pass: schedule →
-      reassign → respond → shows green; close → reschedule → linked successor; unassigned
-      lane filters correctly; every action lands on the order timeline (19 §7)
+- [ ] Empty states ("nothing scheduled this week"); estimate-accuracy read (planned vs
+      actual across a range) — the first payoff of the actuals
 
 ### CP-5 — Google Calendar (§7; blocked on backend integration endpoints + Google
 ### verification)
@@ -266,6 +454,26 @@ roles. External chips show full title to their **owner**; other users see "Ocupa
       overwrites; disconnect → overlay gone
 
 ## Open decisions / asks
+- **Mid-job handoff attribution (raised 2026-07-31).** Reassignment stays open while
+  `in_progress`, but a visit carries exactly **one** `technicianId` — so if Ana starts
+  at 09:15 and Beto is handed the job and finishes it, the record credits *Beto* with
+  Ana's `actualStart`. The timeline has the truth (`visit_reassigned`, from → to, with
+  its timestamp); the visit row does not. Harmless until performance reporting or
+  time-based billing actually reads these numbers, at which point the choice is: split
+  the visit at handoff, add a per-technician time-segment child table, or accept
+  last-assignee-takes-all. **Decide when the reporting is built, not before.**
+- **Offline conflict rule (raised 2026-07-31, needed for CP-3).** The queue can deliver
+  visit actions out of order or twice: two Iniciar taps on one visit, or a Terminar
+  that reaches the server before the Iniciar it followed. Candidate rule — **first
+  Iniciar wins, later ones are no-ops; a Terminar arriving without an `actualStart`
+  is accepted and backfills the start from its own queued Iniciar when that lands.**
+  Confirm before building the sync pass.
+- **Does the superadmin keep a technician mode now that the field app has one?
+  (raised 2026-07-31.)** §3's "My visits pre-filter + read-only team toggle" and the
+  `swap-visit-dialog` (§2a) were designed when the admin was a technician's only
+  surface. With CP-3 giving techs a real field-app module, the swap may belong there
+  instead — or in both. Unassigned pending a call; the swap dialog is currently
+  **in no checkpoint**.
 - ~~Free-standing visits~~ — **superseded 2026-07-23:** visits are strictly
   order-bound (`serviceOrderId` NOT NULL, 19 §1). Non-job appointments (sales,
   courtesy calls) live as CRM `visit` interactions (08); a diagnostic visit is a
