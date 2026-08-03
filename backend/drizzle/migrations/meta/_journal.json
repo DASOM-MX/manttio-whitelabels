@@ -218,6 +218,20 @@
       "when": 1785486627059,
       "tag": "0030_quotation_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1785701567020,
+      "tag": "0031_visits_duration_actuals",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1785736118455,
+      "tag": "0032_visits_drop_stale_status_check",
+      "breakpoints": true
     }
   ]
 }
