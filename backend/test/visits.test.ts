@@ -460,6 +460,92 @@ describe('POST /visits/:id/start', () => {
   });
 });
 
+// --- the late half of the offline conflict rule (12 CP-3) -----------------
+//
+// The field app syncs queued taps in tap order, but a crash mid-sync can land a
+// Terminar whose Iniciar is still queued. When that Iniciar finally arrives the
+// visit is terminal with an actualEnd and no actualStart — and refusing it
+// would throw away the only record of when the work began.
+
+describe('a late Iniciar on a terminal visit', () => {
+  test('backfills the missing actualStart and derives the duration', async () => {
+    const ctx = await scenario();
+    const visit = await bookVisit(ctx);
+    const startedAt = minutesAgo(80);
+    const endedAt = minutesAgo(20);
+
+    // The Terminar outran its Iniciar: completed, end stamped, start missing.
+    expect(
+      (await post(ctx.token, `${visit.id}/respond`, { actualEnd: endedAt })).status,
+    ).toBe(200);
+
+    const res = await post(ctx.token, `${visit.id}/start`, { actualStart: startedAt });
+    expect(res.status).toBe(200);
+    const backfilled = await json<Visit>(res);
+
+    // The stamp lands without reopening the visit.
+    expect(backfilled.status).toBe(VisitStatus.Completed);
+    expect(backfilled.actualStart).toBe(startedAt);
+    expect(backfilled.actualEnd).toBe(endedAt);
+    expect(backfilled.actualDurationMinutes).toBe(60);
+
+    // The trail says what happened: a Started event after the Completed one,
+    // carrying the backfilled stamp so it reads as a late sync, not a restart.
+    const events = await getTimeline(ctx.token, ctx.order.id);
+    const started = events.find(
+      (e) => e.type === ServiceOrderEventType.VisitStarted && e.ref?.id === visit.id,
+    );
+    expect(started?.changes?.['actualStart']?.from).toBeNull();
+  });
+
+  test('also lands on a closed visit — the abandoned attempt stays visible', async () => {
+    const ctx = await scenario();
+    const visit = await bookVisit(ctx);
+    expect(
+      (
+        await post(ctx.token, `${visit.id}/close`, { reason: VisitCloseReason.ClientAbsent })
+      ).status,
+    ).toBe(200);
+
+    const res = await post(ctx.token, `${visit.id}/start`, { actualStart: minutesAgo(15) });
+    expect(res.status).toBe(200);
+    const backfilled = await json<Visit>(res);
+    expect(backfilled.status).toBe(VisitStatus.Closed);
+    expect(backfilled.actualStart).toBeDefined();
+    // No end on a closed visit, so no duration materializes.
+    expect(backfilled.actualDurationMinutes).toBeUndefined();
+  });
+
+  test('a start already on the record still wins — the late tap is a duplicate', async () => {
+    const ctx = await scenario();
+    const visit = await bookVisit(ctx);
+    const first = minutesAgo(90);
+    expect((await post(ctx.token, `${visit.id}/start`, { actualStart: first })).status).toBe(200);
+    expect(
+      (await post(ctx.token, `${visit.id}/respond`, { actualEnd: minutesAgo(30) })).status,
+    ).toBe(200);
+
+    const res = await post(ctx.token, `${visit.id}/start`, { actualStart: minutesAgo(10) });
+    expect(res.status).toBe(409);
+    expect((await json<{ error: string }>(res)).error).toBe('visit_not_startable');
+
+    const detail = await request(`/visits/${visit.id}`, { headers: jsonHeaders(ctx.token) });
+    expect((await json<Visit>(detail)).actualStart).toBe(first);
+  });
+
+  test('a backfilled start after the recorded end is refused', async () => {
+    const ctx = await scenario();
+    const visit = await bookVisit(ctx);
+    expect(
+      (await post(ctx.token, `${visit.id}/respond`, { actualEnd: minutesAgo(60) })).status,
+    ).toBe(200);
+
+    const res = await post(ctx.token, `${visit.id}/start`, { actualStart: minutesAgo(5) });
+    expect(res.status).toBe(400);
+    expect((await json<{ error: string }>(res)).error).toBe('invalid_actual_time');
+  });
+});
+
 // --- what in_progress freezes, and what it does not ----------------------
 
 describe('an in_progress visit', () => {

@@ -119,6 +119,7 @@ const toDTO = (
     internalCode: row.internalCode,
     customerId: row.customerId,
     customerName: opt(meta.customerName),
+    customerAddress: opt(meta.customerAddress),
     serviceOrderId: opt(row.serviceOrderId),
     serviceOrderFolio: opt(meta.serviceOrderFolio),
     serviceOrderPriority: opt(meta.serviceOrderPriority),
@@ -178,13 +179,6 @@ const assertOpen = (row: VisitRow): void => {
  *  because a mid-job handoff is real. */
 const assertCorrectable = (row: VisitRow): void => {
   if (row.status !== VisitStatus.Scheduled) throw new VisitNotCorrectableError(row.status);
-};
-
-/** Iniciar starts a visit that has not started. An `in_progress` visit was
- *  already tapped — most plausibly a duplicate entry from the offline queue,
- *  which must not restart the clock and lose the original `actualStart`. */
-const assertStartable = (row: VisitRow): void => {
-  if (row.status !== VisitStatus.Scheduled) throw new VisitNotStartableError(row.status);
 };
 
 /** The actuals correction is the one edit that reaches past a terminal state
@@ -449,7 +443,7 @@ export const startVisit = async (
 ): Promise<VisitDTO | null> => {
   const row = await findVisitById(db, id);
   if (!row) return null;
-  assertStartable(row);
+  if (row.status !== VisitStatus.Scheduled) return backfillStart(db, row, input, user);
   assertMayAct(row, user);
   assertPlausibleActual(row, input.actualStart, 'inicio');
 
@@ -468,6 +462,59 @@ export const startVisit = async (
   );
   if (!updated) return throwRaceLost(db, id, (status) => new VisitNotStartableError(status));
   return detailDTO(db, id);
+};
+
+/** The late half of the offline conflict rule (12 CP-3, owner 2026-08-04):
+ *  **first Iniciar wins, and a Terminar that outran its Iniciar backfills.**
+ *
+ *  The field app queues taps per device and syncs them in tap order, but a
+ *  crash mid-sync can deliver a Terminar whose Iniciar is still queued — the
+ *  visit is then `completed` with an `actualEnd` and **no `actualStart`**. When
+ *  that Iniciar finally lands here, refusing it would throw away the one record
+ *  of when the work began, so it backfills the stamp (and the duration the pair
+ *  now makes derivable) without touching the terminal status.
+ *
+ *  Everything else stays a conflict: a visit `in_progress` or already carrying
+ *  an `actualStart` was started once already, and a second tap must not restart
+ *  the clock — the sync pass drops the duplicate on this 409. */
+const backfillStart = async (
+  db: Db,
+  row: VisitRow,
+  input: StartVisitInput,
+  user: AuthUser,
+): Promise<VisitDTO | null> => {
+  if (!TERMINAL_VISIT_STATUSES.includes(row.status) || row.actualStart) {
+    throw new VisitNotStartableError(row.status);
+  }
+  assertMayAct(row, user);
+  assertPlausibleActual(row, input.actualStart, 'inicio');
+  if (row.actualEnd && input.actualStart > row.actualEnd) {
+    throw new InvalidActualTimeError('La hora de inicio no puede ser posterior a la de fin.');
+  }
+
+  const updated = await updateVisit(
+    db,
+    row.id,
+    {
+      actualStart: input.actualStart,
+      actualDurationMinutes: row.actualEnd
+        ? minutesBetween(input.actualStart, row.actualEnd)
+        : row.actualDurationMinutes,
+    },
+    TERMINAL_VISIT_STATUSES,
+    (tx, visit) =>
+      appendVisitEvent(tx, {
+        serviceOrderId: visit.serviceOrderId,
+        type: VisitEventType.Started,
+        actorId: user.id,
+        visitId: visit.id,
+        // A Started event landing after Completed reads as corruption unless it
+        // says what it did — the diff marks it as a late sync, not a restart.
+        changes: diffFields({ actualStart: row.actualStart }, { actualStart: input.actualStart }),
+      }),
+  );
+  if (!updated) return throwRaceLost(db, row.id, (status) => new VisitNotStartableError(status));
+  return detailDTO(db, row.id);
 };
 
 /** Respond — **Terminar**: the visit was served (12 §5). Links the produced

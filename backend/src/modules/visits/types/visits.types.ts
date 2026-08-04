@@ -57,6 +57,7 @@ export type VisitLifecycleFields = Partial<
 export interface VisitWithMeta {
   row: VisitRow;
   customerName: string | null;
+  customerAddress: string | null;
   technicianName: string | null;
   serviceOrderFolio: string | null;
   serviceOrderPriority: ServiceOrderPriority | null;
@@ -79,6 +80,9 @@ export interface VisitDTO {
   internalCode: string;
   customerId: string;
   customerName?: string;
+  /** Where the job is — the field app's visit card is a technician's dispatch
+   *  slip, and the address is what they navigate to (12 §4, CP-3). */
+  customerAddress?: string;
   /** Absent on an unbound visit. Becomes always-present once the column is
    *  flipped to NOT NULL (19 §1). */
   serviceOrderId?: string;

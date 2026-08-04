@@ -47,6 +47,9 @@ const nextVisitCode = async (tx: Tx, day: Date): Promise<string> => {
 const metaColumns = {
   row: scheduledVisits,
   customerName: customers.name,
+  // The field app's visit card names where the job is (12 §4) — a technician
+  // navigates to the address, so it rides the same join as the name.
+  customerAddress: customers.address,
   technicianName: users.name,
   serviceOrderFolio: serviceOrders.folio,
   serviceOrderPriority: serviceOrders.priority,
