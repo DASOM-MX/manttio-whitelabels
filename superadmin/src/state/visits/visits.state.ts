@@ -39,7 +39,11 @@ export class VisitsState {
     return s.loading;
   }
 
-  @Action(LoadVisits)
+  /** `cancelUncompleted`: arrow-spamming the calendar dispatches overlapping
+   *  loads, and without cancellation the last *response* wins — which can be
+   *  the older window arriving late, leaving the grid showing last week under
+   *  this week's label. */
+  @Action(LoadVisits, { cancelUncompleted: true })
   load(ctx: StateContext<VisitsStateModel>, { query }: LoadVisits) {
     ctx.patchState({ loading: true });
     return this.api.list(query).pipe(

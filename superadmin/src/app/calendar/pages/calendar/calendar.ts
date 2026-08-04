@@ -370,29 +370,40 @@ export class Calendar {
       );
   }
 
+  /** What the last dispatch asked the API for. `queryParamMap` is the single
+   *  load path and fires for *every* param — including `tech`, whose filtering
+   *  is client-side, and a `date` that stays inside the loaded week — so an
+   *  identical window is not fetched twice. `reload()` bypasses this: same
+   *  window, deliberately fresh data. */
+  private loadedKey = '';
+
   /** The single load. Either narrowing satisfies the API — it 400s when given
    *  neither — and a code search deliberately drops the period, because the
    *  visit it finds may be in any of them. That is the point of a code. */
-  private load(): void {
+  private load(force = false): void {
     const code = this.codeQuery();
     const { from, to } = rangeForView(this.view(), this.anchor());
-    this.store
-      .dispatch(
-        new LoadVisits(
-          code ? { internalCode: code } : { from: from.toISOString(), to: to.toISOString() },
-        ),
-      )
-      .subscribe({
-        // Without this the failure is swallowed and the page just sits on stale
-        // blocks — the one reading that is worse than an empty period, because
-        // it is indistinguishable from a correct one.
-        error: (err) =>
-          this.messages.add({
-            severity: 'error',
-            summary: 'No se pudo cargar el calendario',
-            detail: errorMessage(err, 'Inténtalo de nuevo.'),
-          }),
-      });
+    const query = code
+      ? { internalCode: code }
+      : { from: from.toISOString(), to: to.toISOString() };
+    const key = JSON.stringify(query);
+    if (!force && key === this.loadedKey) return;
+    this.loadedKey = key;
+    this.store.dispatch(new LoadVisits(query)).subscribe({
+      // Without this the failure is swallowed and the page just sits on stale
+      // blocks — the one reading that is worse than an empty period, because
+      // it is indistinguishable from a correct one.
+      error: (err) => {
+        // A failed window must not be remembered as loaded, or the next
+        // navigation back to it would skip the retry.
+        this.loadedKey = '';
+        this.messages.add({
+          severity: 'error',
+          summary: 'No se pudo cargar el calendario',
+          detail: errorMessage(err, 'Inténtalo de nuevo.'),
+        });
+      },
+    });
   }
 
   /** Each view's arrows step by its own unit, so "next" always means the next
@@ -506,7 +517,7 @@ export class Calendar {
    *  may enter or leave it, and membership is this page's call, not the
    *  state's. */
   protected reload(): void {
-    this.load();
+    this.load(true);
   }
 
   /** Every navigation merges — the view, the anchor, the filter and the search

@@ -3,7 +3,7 @@ import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { catchError, concat, of, type Observable } from 'rxjs';
+import { catchError, concat, defer, of, type Observable } from 'rxjs';
 import { DialogModule } from 'primeng/dialog';
 import { DatePickerModule } from 'primeng/datepicker';
 import { InputNumberModule } from 'primeng/inputnumber';
@@ -238,6 +238,9 @@ export class VisitDialog {
     this.target.set(null);
     this.lockedOrder.set(order ?? null);
     this.equipmentOptions.set([]);
+    // Required on create only — see `openVisit` for why it comes off there.
+    // Set before the reset so the reset's own validity pass already uses it.
+    this.form.controls.orderId.setValidators(Validators.required);
     this.form.reset({
       orderId: order?.id ?? '',
       technicianId: '',
@@ -260,6 +263,11 @@ export class VisitDialog {
     this.target.set(visit);
     this.lockedOrder.set(null);
     this.equipmentOptions.set([]);
+    // The order select is create-only, but the control stays in the group — and
+    // a required validator on a field the form never renders would leave a
+    // transition-era visit without an order (the DTO allows it) with a Guardar
+    // that can never enable.
+    this.form.controls.orderId.clearValidators();
     const start = new Date(visit.scheduledStart);
     this.form.reset({
       orderId: visit.serviceOrderId ?? '',
@@ -371,7 +379,12 @@ export class VisitDialog {
 
   /** Correction and reassignment are separate endpoints (each appends its own
    *  event to the order's timeline); one Guardar dispatches whichever changed —
-   *  and on an `in_progress` visit only the reassignment is even offered. */
+   *  and on an `in_progress` visit only the reassignment is even offered.
+   *
+   *  Each dispatch is wrapped in `defer` because NGXS dispatches at *call*
+   *  time, not at subscribe time — bare dispatches in a `concat` would already
+   *  be running in parallel, leaving the two timeline events in arbitrary order
+   *  and letting the reassignment land even after the correction failed. */
   private saveCorrections(): void {
     const visit = this.target();
     if (!visit) return;
@@ -396,9 +409,11 @@ export class VisitDialog {
 
     const ops: Observable<unknown>[] = [];
     if (Object.keys(patch).length > 0) {
-      ops.push(this.store.dispatch(new CorrectVisit(visit.id, patch)));
+      ops.push(defer(() => this.store.dispatch(new CorrectVisit(visit.id, patch))));
     }
-    if (techChanged) ops.push(this.store.dispatch(new AssignVisit(visit.id, technicianId)));
+    if (techChanged) {
+      ops.push(defer(() => this.store.dispatch(new AssignVisit(visit.id, technicianId))));
+    }
     if (ops.length === 0) {
       this.dialogOpen.set(false);
       return;
@@ -418,6 +433,10 @@ export class VisitDialog {
     });
   }
 
+  /** The order select's options: open orders, capped at the first 100 — past
+   *  that the rest silently vanish from the list. The day a tenant runs that
+   *  many open orders at once, this becomes a server-side search like the
+   *  customers lookup, not a bigger cap. */
   private loadOpenOrders(): void {
     this.ordersLoading.set(true);
     this.serviceOrders.list({ status: ServiceOrderStatus.Open, limit: 100 }).subscribe({

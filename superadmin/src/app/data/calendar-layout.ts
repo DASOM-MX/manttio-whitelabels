@@ -1,4 +1,4 @@
-import { toCalendarDate } from './utils';
+import { startOfDay, toCalendarDate } from './utils';
 import type { Visit } from './dtos/visit';
 import type { VisitBlock, VisitRect } from './types/calendar/visit-block.type';
 
@@ -17,14 +17,34 @@ export const MINUTES_PER_DAY = 24 * 60;
  *  "09:00" regardless. */
 const minutesOfDay = (date: Date): number => date.getHours() * 60 + date.getMinutes();
 
-/** A rectangle from a start instant and a length, clamped at the bottom of the
- *  day. A visit booked at 23:00 for two hours is drawn to midnight and no
- *  further — the remainder belongs to a day this column is not showing. */
-const rect = (start: Date, durationMinutes: number): VisitRect => {
-  const top = minutesOfDay(start);
+/** Whole calendar days from `day` to `instant`'s day. The midnights are
+ *  differenced in milliseconds, but the round makes it calendar arithmetic: a
+ *  DST day is 23 or 25 hours, which is ±1/24 off an integer, never enough to
+ *  move the count. */
+const daysAfter = (day: Date, instant: Date): number =>
+  Math.round((startOfDay(instant).getTime() - startOfDay(day).getTime()) / 86_400_000);
+
+/** An instant's position on `day`'s axis — negative before the day opens, past
+ *  1440 after it ends. A visit stays in the column of the day it was *booked*
+ *  for (see `visitDayKey`), so without the day offset a technician's Iniciar
+ *  tapped at 00:30 the next morning would draw at dawn of the booked day —
+ *  22 hours before its own ghost — and its span would swallow the whole column
+ *  into one overlap cluster. With it, `rect` clamps the block to the day's
+ *  bottom edge instead. */
+const axisMinutes = (day: Date, instant: Date): number =>
+  daysAfter(day, instant) * MINUTES_PER_DAY + minutesOfDay(instant);
+
+/** A rectangle on the day's axis, clamped into it at both ends. A visit booked
+ *  at 23:00 for two hours draws to midnight and no further — the remainder
+ *  belongs to a day this column is not showing; real times that fall outside
+ *  the booked day entirely collapse to a sliver pinned at the day's edge, which
+ *  the block's CSS `min-height` keeps visible. */
+const rect = (topMinutes: number, durationMinutes: number): VisitRect => {
+  const top = Math.min(Math.max(topMinutes, 0), MINUTES_PER_DAY);
+  const bottom = Math.min(Math.max(topMinutes + durationMinutes, top), MINUTES_PER_DAY);
   return {
     top: (top / MINUTES_PER_DAY) * 100,
-    height: (Math.min(durationMinutes, MINUTES_PER_DAY - top) / MINUTES_PER_DAY) * 100,
+    height: ((bottom - top) / MINUTES_PER_DAY) * 100,
   };
 };
 
@@ -41,14 +61,18 @@ const toSpan = (visit: Visit): Span => {
   // `expectedDurationMinutes` is the authority, not `scheduledEnd`: the backend
   // derives the end from the duration and writes the pair together, so reading
   // the duration skips a parse and cannot disagree with itself.
-  const planned = rect(new Date(visit.scheduledStart), visit.expectedDurationMinutes);
+  const bookedStart = new Date(visit.scheduledStart);
+  const planned = rect(minutesOfDay(bookedStart), visit.expectedDurationMinutes);
 
   // An `actualEnd` with no `actualStart` is a real state — office may complete a
   // visit no technician ever started — but it is an instant, not a span, so
   // there is nothing to draw. The dialog reports it; the grid stays honest.
   const actualStart = visit.actualStart ? new Date(visit.actualStart) : undefined;
   const actual = actualStart
-    ? rect(actualStart, visit.actualDurationMinutes ?? visit.expectedDurationMinutes)
+    ? rect(
+        axisMinutes(bookedStart, actualStart),
+        visit.actualDurationMinutes ?? visit.expectedDurationMinutes,
+      )
     : undefined;
 
   const block: VisitBlock = {
