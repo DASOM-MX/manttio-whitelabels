@@ -420,17 +420,20 @@ ships as three PRs owned by `12-calendar.md`'s CP-1b (backend duration/actuals) 
 The order-side obligations below are unchanged; the calendar itself is 12's to build.**
 
 - [x] Visits backend built (PR #110 — `scheduled_visits`, lifecycle, order-timeline audit)
-- [ ] Visit dialog gains the required **order** select (client-scoped); order-view
-      "Programar visita" pre-locks it
-- [ ] Respond / close (categorized reason) / reschedule (new record) flows; open-visit
-      correction + reassign; every action lands on the order timeline
-- [ ] **Two new `Visit*` members in `ServiceOrderEventType`** (12 CP-1b): `visit_started`
+- [x] Visit dialog gains the required **order** select (client-scoped); order-view
+      "Programar visita" pre-locks it (12 CP-2, PR #128)
+- [x] Respond / close (categorized reason) / reschedule (new record) flows; open-visit
+      correction + reassign (12 CP-2, PR #128). The backend appends every action to the
+      order timeline (PR #110); the end-to-end manual pass of that trail is the one 12
+      CP-2 box still open
+- [x] **Two new `Visit*` members in `ServiceOrderEventType`** (12 CP-1b): `visit_started`
       and `visit_actuals_corrected`. The exhaustive `Record<VisitEventType, …>` map in
       `visit-audit.service.ts` makes an unmapped member a compile error, so this cannot
       silently drift
 - [ ] **CP-5 consequence:** with actuals on the timeline, the client handoff document
       reports **real on-site times**, not just what was booked
-- [ ] Week grid ships (12 §3) with order folio on the chip hover/dialog
+- [x] Week grid ships (12 §3) with order folio on the chip hover/dialog (12 CP-2,
+      PR #128 — the folio rides the block tooltip and links from the visit dialog)
 
 ### CP-4 — Templates prefilter (06 rewire)
 - [ ] `report_templates.serviceId` + builder field ("Servicio asociado")

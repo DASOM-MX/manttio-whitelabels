@@ -63,7 +63,7 @@ import type { ServiceOrderReport } from '../../../data/dtos/service-order';
 /** Order view (19 §5): header with folio + status actions, lines card,
  *  lazy-loaded exploded-reports card, and the activity timeline (§7 — the
  *  newest-first feed the CP-5 handoff document will be composed from).
- *  Visits schedule from here via **Programar visita** (CP-3 — the dialog
+ *  Visits schedule from here via **Programar visita** (19 CP-3 — the dialog
  *  opens with this order locked) and their lifecycle shows in the timeline;
  *  the week view lives in the calendar. The contracts card arrives with 13's
  *  backend.
@@ -229,8 +229,9 @@ export class ServiceOrderView {
 
   protected visitDialog = viewChild<VisitDialog>('visitDialog');
 
-  /** Programar visita (CP-3): the dialog opens with this order locked — the
-   *  client derives from it, no order select to get wrong. */
+  /** Programar visita (19 CP-3 — plan 12's CP-3 is the *field app*): the
+   *  dialog opens with this order locked — the client derives from it, no
+   *  order select to get wrong. */
   protected scheduleVisit(): void {
     const order = this.order();
     if (!order) return;
