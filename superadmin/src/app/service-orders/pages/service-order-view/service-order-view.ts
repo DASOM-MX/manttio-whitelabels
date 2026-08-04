@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -13,6 +13,7 @@ import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { MessageService } from 'primeng/api';
 import {
+  LucideCalendarPlus,
   LucideCheck,
   LucideCopy,
   LucideDynamicIcon,
@@ -55,13 +56,17 @@ import { ServiceTaxRateShortPipe } from '../../../pipes/service-tax-rate.pipe';
 import { RelativeTimePipe } from '../../../pipes/relative-time.pipe';
 import { ServiceUomShortPipe } from '../../../pipes/service-uom.pipe';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
+import { VisitDialog } from '../../../calendar/components/visit-dialog/visit-dialog';
 import { errorCode, errorMessage, isCalendarDatePast, toCalendarDate } from '../../../data/utils';
 import type { ServiceOrderReport } from '../../../data/dtos/service-order';
 
 /** Order view (19 §5): header with folio + status actions, lines card,
  *  lazy-loaded exploded-reports card, and the activity timeline (§7 — the
- *  newest-first feed the CP-5 handoff document will be composed from). The
- *  visits card arrives with CP-3; the contracts card with 13's backend.
+ *  newest-first feed the CP-5 handoff document will be composed from).
+ *  Visits schedule from here via **Programar visita** (19 CP-3 — the dialog
+ *  opens with this order locked) and their lifecycle shows in the timeline;
+ *  the week view lives in the calendar. The contracts card arrives with 13's
+ *  backend.
  *
  *  Mutability mirrors the API (19 §1): comments for any staff, location for
  *  owner/admin only, status one-way with a confirm dialog — cancel warns that
@@ -96,6 +101,8 @@ import type { ServiceOrderReport } from '../../../data/dtos/service-order';
     RelativeTimePipe,
     ServiceUomShortPipe,
     PageHeader,
+    VisitDialog,
+    LucideCalendarPlus,
     LucideCheck,
     LucideCopy,
     LucideDynamicIcon,
@@ -218,6 +225,27 @@ export class ServiceOrderView {
 
   protected openReport(report: ServiceOrderReport): void {
     void this.router.navigate(['/reports', report.id]);
+  }
+
+  protected visitDialog = viewChild<VisitDialog>('visitDialog');
+
+  /** Programar visita (19 CP-3 — plan 12's CP-3 is the *field app*): the
+   *  dialog opens with this order locked — the client derives from it, no
+   *  order select to get wrong. */
+  protected scheduleVisit(): void {
+    const order = this.order();
+    if (!order) return;
+    this.visitDialog()?.openCreate({
+      id: order.id,
+      folio: order.folio,
+      customerId: order.customerId,
+      customerName: order.customerName,
+    });
+  }
+
+  /** Visit mutations audit to THIS order's timeline — refresh the feed. */
+  protected onVisitChanged(): void {
+    this.refreshTimeline();
   }
 
   protected openEdit(): void {

@@ -1,5 +1,6 @@
 import type { scheduledVisits, visitEquipment } from '../models/visits.model';
 import type { VisitCloseReason, VisitStatus } from '../enums/visits.enum';
+import type { ServiceOrderPriority } from '../../service-orders/enums/service-orders.enum';
 
 export type VisitRow = typeof scheduledVisits.$inferSelect;
 export type NewVisit = typeof scheduledVisits.$inferInsert;
@@ -58,6 +59,7 @@ export interface VisitWithMeta {
   customerName: string | null;
   technicianName: string | null;
   serviceOrderFolio: string | null;
+  serviceOrderPriority: ServiceOrderPriority | null;
 }
 
 /** One linked unit, flattened for the DTO. Name is whatever identifies the unit
@@ -83,6 +85,9 @@ export interface VisitDTO {
   /** The parent order's display folio, so a chip can name its job without a
    *  second fetch. */
   serviceOrderFolio?: string;
+  /** The parent order's dispatch priority — a visit inherits urgency from the
+   *  order it serves (the calendar draws it on the block). */
+  serviceOrderPriority?: ServiceOrderPriority;
   technicianId?: string;
   technicianName?: string;
   equipment: VisitEquipmentLink[];
