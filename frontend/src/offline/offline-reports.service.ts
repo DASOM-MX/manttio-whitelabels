@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import type { CreateReportFields } from '../app/data/dtos/report';
-import { OfflineReportsDb } from './offline-reports.db';
+import { OfflineDb } from './offline.db';
 import { PendingReportStatus } from './pending-report.model';
 import type { PendingReport, PendingReportCreator } from './pending-report.model';
 
@@ -9,7 +9,7 @@ import type { PendingReport, PendingReportCreator } from './pending-report.model
  *  mirror this for the UI and drive the upload/sync flow. */
 @Injectable({ providedIn: 'root' })
 export class OfflineReportsService {
-  private readonly db = new OfflineReportsDb();
+  private readonly db = inject(OfflineDb);
 
   /** Persist a finished offline report and return the stored record. */
   async enqueue(fields: CreateReportFields, createdBy: PendingReportCreator): Promise<PendingReport> {
