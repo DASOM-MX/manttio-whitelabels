@@ -11,7 +11,13 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
-import { LucideChevronLeft, LucideChevronRight, LucidePlus, LucideX } from '@lucide/angular';
+import {
+  LucideChevronLeft,
+  LucideChevronRight,
+  LucideFlag,
+  LucidePlus,
+  LucideX,
+} from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { VisitsState } from '../../../../state/visits/visits.state';
 import { LoadVisits } from '../../../../state/visits/visits.actions';
@@ -32,6 +38,7 @@ import {
   VisitBlockClassPipe,
   VisitDurationPipe,
   VisitHoverCardPipe,
+  VisitPriorityFlagClassPipe,
   VisitStatusLabelPipe,
   VisitStatusSeverityPipe,
 } from '../../../pipes/visit.pipe';
@@ -104,6 +111,7 @@ const MONTH_GRID_DAYS = 42;
     VisitBlockClassPipe,
     VisitDurationPipe,
     VisitHoverCardPipe,
+    VisitPriorityFlagClassPipe,
     VisitStatusLabelPipe,
     VisitStatusSeverityPipe,
     VisitDialog,
@@ -114,6 +122,7 @@ const MONTH_GRID_DAYS = 42;
     FiltersPopover,
     LucideChevronLeft,
     LucideChevronRight,
+    LucideFlag,
     LucidePlus,
     LucideX,
   ],

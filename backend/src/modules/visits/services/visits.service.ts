@@ -121,6 +121,7 @@ const toDTO = (
     customerName: opt(meta.customerName),
     serviceOrderId: opt(row.serviceOrderId),
     serviceOrderFolio: opt(meta.serviceOrderFolio),
+    serviceOrderPriority: opt(meta.serviceOrderPriority),
     technicianId: opt(row.technicianId),
     technicianName: opt(meta.technicianName),
     equipment,

@@ -40,13 +40,16 @@ const nextVisitCode = async (tx: Tx, day: Date): Promise<string> => {
   return formatVisitCode(day, counter.lastNumber);
 };
 
-// The three joined labels every chip renders. Selected together so the week
-// view costs one query rather than one per visit.
+// The joined labels every chip renders. Selected together so the week view
+// costs one query rather than one per visit. Priority rides along because the
+// calendar marks urgent work on the block itself (owner 2026-08-04) — and a
+// visit inherits urgency from the order it serves, it has none of its own.
 const metaColumns = {
   row: scheduledVisits,
   customerName: customers.name,
   technicianName: users.name,
   serviceOrderFolio: serviceOrders.folio,
+  serviceOrderPriority: serviceOrders.priority,
 };
 
 /** The calendar's range read (12 §5). Bounded by `from`/`to` and sorted the way

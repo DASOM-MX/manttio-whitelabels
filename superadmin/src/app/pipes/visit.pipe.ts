@@ -4,7 +4,10 @@ import { VISIT_STATUS_SEVERITIES } from '../model/constants/visit/visit-status-s
 import { VISIT_CLOSE_REASON_LABELS } from '../model/constants/visit/visit-close-reason-labels.const';
 import { VISIT_BLOCK_CLASSES } from '../model/constants/visit/visit-block-classes.const';
 import { TECHNICIAN_DOT_PALETTE } from '../model/constants/visit/technician-dot-palette.const';
+import { SERVICE_ORDER_PRIORITY_LABELS } from '../model/constants/service-order/service-order-priority-labels.const';
+import { SERVICE_ORDER_PRIORITY_FLAG_CLASSES } from '../model/constants/service-order/service-order-priority-flag-classes.const';
 import { formatDurationMinutes } from '../data/utils';
+import { ServiceOrderPriority } from '../model/enums/service-order/service-order-priority.enum';
 import type { Visit } from '../data/dtos/visit';
 import type { VisitCloseReason } from '../model/enums/visit/visit-close-reason.enum';
 import type { VisitStatus } from '../model/enums/visit/visit-status.enum';
@@ -39,6 +42,27 @@ export class VisitBlockClassPipe implements PipeTransform {
   }
 }
 
+/** The rungs that mark the slot itself. `low`/`normal` draw nothing — marking
+ *  every slot would drown the one signal the marker exists for; the hover card
+ *  still names all five. */
+const SLOT_FLAG_PRIORITIES: readonly ServiceOrderPriority[] = [
+  ServiceOrderPriority.Medium,
+  ServiceOrderPriority.High,
+  ServiceOrderPriority.Urgent,
+];
+
+/** Color for the slot's corner flag (owner 2026-08-04): the same filled lucide
+ *  flag the orders list flies, same yellow → red ladder — one visual language
+ *  for priority everywhere it shows. Empty string below `medium`; the templates
+ *  guard on the result, so those slots render no marker element at all. */
+@Pipe({ name: 'visitPriorityFlagClass' })
+export class VisitPriorityFlagClassPipe implements PipeTransform {
+  transform(priority: ServiceOrderPriority | undefined): string {
+    if (!priority || !SLOT_FLAG_PRIORITIES.includes(priority)) return '';
+    return SERVICE_ORDER_PRIORITY_FLAG_CLASSES[priority];
+  }
+}
+
 @Pipe({ name: 'visitDuration' })
 export class VisitDurationPipe implements PipeTransform {
   transform(minutes: number): string {
@@ -70,6 +94,9 @@ export class VisitHoverCardPipe implements PipeTransform {
       '<div class="grid gap-1 text-xs">',
       row('Cliente', escapeHtml(visit.customerName ?? '—')),
       row('Servicio', escapeHtml(visit.title ?? '—')),
+      // The priority row only exists when the order carries one — a
+      // transition-era unbound visit has no order to inherit urgency from.
+      visit.serviceOrderPriority ? row('Prioridad', priorityFlag(visit.serviceOrderPriority)) : '',
       row('Hora esperada de llegada', clock(new Date(visit.scheduledStart))),
       row('Hora esperada de regreso', clock(back)),
       '</div>',
@@ -82,6 +109,19 @@ const row = (label: string, value: string): string =>
 
 const escapeHtml = (value: string): string =>
   value.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+
+/** The lucide `flag` outline, inlined: the hover card is an HTML string, so the
+ *  `lucideFlag` directive cannot reach it. Same filled-flag treatment and the
+ *  same baby-blue → red ladder as the orders list; the label itself stays in
+ *  the tooltip's own text color, the glyph does the signaling. */
+const FLAG_PATH =
+  'M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528';
+
+const priorityFlag = (priority: ServiceOrderPriority): string =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ` +
+  `stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ` +
+  `class="inline size-3.5 shrink-0 align-text-bottom fill-current ${SERVICE_ORDER_PRIORITY_FLAG_CLASSES[priority]}">` +
+  `<path d="${FLAG_PATH}"/></svg> ${SERVICE_ORDER_PRIORITY_LABELS[priority]}`;
 
 /** `1:00pm`, matching how the schedule reads out loud — no locale registered,
  *  so the `date` pipe's meridiem would come out in English anyway. */

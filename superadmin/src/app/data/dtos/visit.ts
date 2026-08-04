@@ -7,6 +7,7 @@
  *  lifecycle action audits to the parent service order's timeline (19 §7),
  *  never to the visit. */
 
+import type { ServiceOrderPriority } from '../../model/enums/service-order/service-order-priority.enum';
 import type { VisitCloseReason } from '../../model/enums/visit/visit-close-reason.enum';
 import type { VisitStatus } from '../../model/enums/visit/visit-status.enum';
 
@@ -39,6 +40,10 @@ export interface Visit {
   /** The parent order's display folio — the block names its job without a
    *  second fetch. */
   serviceOrderFolio?: string;
+  /** The parent order's dispatch priority — a visit inherits urgency from the
+   *  order it serves. Drives the block's priority border and the hover card's
+   *  Prioridad row. */
+  serviceOrderPriority?: ServiceOrderPriority;
   technicianId?: string;
   technicianName?: string;
   equipment: VisitEquipmentLink[];
