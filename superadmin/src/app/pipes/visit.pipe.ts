@@ -46,23 +46,50 @@ export class VisitDurationPipe implements PipeTransform {
   }
 }
 
-/** The block's hover text. A block in a busy column may be too narrow to show
- *  more than a time, so everything needed to recognize the visit — its code, the
- *  order it serves, who is on it — lives one hover away. */
-@Pipe({ name: 'visitTooltip' })
-export class VisitTooltipPipe implements PipeTransform {
+/** The visit hover card (owner 2026-08-03): who the visit serves, what the job
+ *  is, and the expected window — labeled rows fed to `pTooltip` with
+ *  `[escape]="false"` wherever a visit renders as a hoverable item (week/day
+ *  blocks, month chips). An HTML string from a pure pipe rather than a
+ *  TemplateRef so the block loops stay free of per-item `ng-template`
+ *  boilerplate; the phone agenda skips the card — touch has no hover and a tap
+ *  already opens the dialog.
+ *
+ *  `escape=false` means every interpolated field MUST pass `escapeHtml` — the
+ *  labels are literals, the data is tenant input. */
+@Pipe({ name: 'visitHoverCard' })
+export class VisitHoverCardPipe implements PipeTransform {
   transform(visit: Visit): string {
+    // `scheduledEnd` is backend-derived but optional on pre-CP-1b rows; the
+    // projection start + duration is byte-identical to what the backend writes.
+    const back = visit.scheduledEnd
+      ? new Date(visit.scheduledEnd)
+      : new Date(
+          new Date(visit.scheduledStart).getTime() + visit.expectedDurationMinutes * 60_000,
+        );
     return [
-      visit.internalCode,
-      visit.serviceOrderFolio,
-      visit.customerName,
-      visit.technicianName ?? 'Sin asignar',
-      formatDurationMinutes(visit.actualDurationMinutes ?? visit.expectedDurationMinutes),
-    ]
-      .filter(Boolean)
-      .join(' · ');
+      '<div class="grid gap-1 text-xs">',
+      row('Cliente', escapeHtml(visit.customerName ?? '—')),
+      row('Servicio', escapeHtml(visit.title ?? '—')),
+      row('Hora esperada de llegada', clock(new Date(visit.scheduledStart))),
+      row('Hora esperada de regreso', clock(back)),
+      '</div>',
+    ].join('');
   }
 }
+
+const row = (label: string, value: string): string =>
+  `<p><span class="font-medium">${label}:</span> ${value}</p>`;
+
+const escapeHtml = (value: string): string =>
+  value.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+
+/** `1:00pm`, matching how the schedule reads out loud — no locale registered,
+ *  so the `date` pipe's meridiem would come out in English anyway. */
+const clock = (date: Date): string => {
+  const hours = ((date.getHours() + 11) % 12) + 1;
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `<span class="font-data">${hours}:${minutes}${date.getHours() < 12 ? 'am' : 'pm'}</span>`;
+};
 
 /** Stable per-technician identity dot, hash-picked from the fixed palette by
  *  user id (05 ask — hash-derived in v1). No id = unassigned = hollow dot. */

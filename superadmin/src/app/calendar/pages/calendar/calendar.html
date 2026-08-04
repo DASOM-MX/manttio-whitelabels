@@ -201,6 +201,10 @@
                     aria-hidden="true"
                   ></div>
                 }
+                <!-- The hover card replaces the native `title`: a block in a
+                     busy column may be too narrow to show more than a time, so
+                     recognition lives one hover away — in labeled rows, which
+                     a plain title string cannot carry. -->
                 <button
                   type="button"
                   class="calendar-block rounded border px-1.5 py-0.5 text-left text-xs"
@@ -210,7 +214,9 @@
                   [style.height.%]="block.solid.height"
                   [style.left.%]="block.left"
                   [style.width.%]="block.width"
-                  [title]="block.visit | visitTooltip"
+                  [pTooltip]="block.visit | visitHoverCard"
+                  [escape]="false"
+                  tooltipPosition="top"
                   (click)="openVisit(block.visit)"
                 >
                   <span class="flex items-center gap-1">
@@ -349,7 +355,9 @@
                 type="button"
                 class="mt-0.5 block w-full truncate rounded border px-1 text-left text-xs"
                 [class]="visit.status | visitBlockClass"
-                [title]="visit | visitTooltip"
+                [pTooltip]="visit | visitHoverCard"
+                [escape]="false"
+                tooltipPosition="top"
                 (click)="openVisit(visit)"
               >
                 <span class="font-data">{{ visit.scheduledStart | date: 'HH:mm' }}</span>

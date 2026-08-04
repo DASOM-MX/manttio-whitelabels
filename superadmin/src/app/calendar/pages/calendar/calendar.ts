@@ -9,6 +9,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { LucideChevronLeft, LucideChevronRight, LucidePlus, LucideX } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
@@ -30,9 +31,9 @@ import {
   TechnicianDotClassPipe,
   VisitBlockClassPipe,
   VisitDurationPipe,
+  VisitHoverCardPipe,
   VisitStatusLabelPipe,
   VisitStatusSeverityPipe,
-  VisitTooltipPipe,
 } from '../../../pipes/visit.pipe';
 import { VisitDialog } from '../../components/visit-dialog/visit-dialog';
 import { CloseVisitDialog } from '../../components/close-visit-dialog/close-visit-dialog';
@@ -98,12 +99,13 @@ const MONTH_GRID_DAYS = 42;
     MultiSelectModule,
     TableModule,
     TagModule,
+    TooltipModule,
     TechnicianDotClassPipe,
     VisitBlockClassPipe,
     VisitDurationPipe,
+    VisitHoverCardPipe,
     VisitStatusLabelPipe,
     VisitStatusSeverityPipe,
-    VisitTooltipPipe,
     VisitDialog,
     CloseVisitDialog,
     RescheduleVisitDialog,
