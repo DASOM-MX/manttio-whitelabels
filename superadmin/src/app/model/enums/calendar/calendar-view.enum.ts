@@ -6,7 +6,7 @@
  *  today in detail, how the month is filling up, and which months of the year
  *  are heavy.
  *
- *  Cycle order is the reading order of the label click: each step zooms out, and
+ *  Cycle order is the reading order of the corner toggle: each step zooms out, and
  *  `Year` wraps back to `Day`. */
 export enum CalendarView {
   Day = 'day',

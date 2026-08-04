@@ -39,16 +39,17 @@
   --cal-hour: 3rem;
   display: grid;
   /* Gutter for the hour axis, then one equal column per weekday. The gutter is
-     wider than the hour labels need because it also holds the week control in
-     the corner cell — 40px more than the labels alone, spread across seven
-     columns, is about six pixels each. A cheap trade for a whole toolbar row. */
-  grid-template-columns: 6rem repeat(7, minmax(0, 1fr));
+     wider than the hour labels need because it also holds the period control in
+     the corner cell — sized to `◄ Semana ►`, the widest view name between its
+     chevrons. ~50px more than the labels alone, spread across seven columns,
+     is about seven pixels each. A cheap trade for a whole toolbar row. */
+  grid-template-columns: 6.5rem repeat(7, minmax(0, 1fr));
   grid-template-rows: auto 1fr;
 }
 
 /* One column instead of seven — the day view is the same grid, narrowed. */
 .calendar-grid--single {
-  grid-template-columns: 6rem minmax(0, 1fr);
+  grid-template-columns: 6.5rem minmax(0, 1fr);
 }
 
 /* Compact chrome for the corner cell's three controls — deliberately not
@@ -58,13 +59,13 @@
   @apply hover:bg-surface-200 dark:text-surface-300 dark:hover:bg-surface-800;
 }
 
-/* The label is a button (it cycles the view), so it has to look like one on
-   hover without looking like one at rest — at rest it is just the caption that
-   says what you are looking at. */
+/* Plain caption since 2026-08-04 — the view switch is its own button now
+   (the corner toggle), so the label only says what period you are looking at.
+   `text-2xs` is what keeps "ago 2026" on one line beside Hoy in the 6.5rem
+   corner; a caption reads fine at micro size. */
 .calendar-period-label {
-  @apply rounded px-1 text-center font-data text-xs leading-tight transition-colors;
-  @apply text-surface-500 hover:bg-surface-200 hover:text-surface-800;
-  @apply dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100;
+  @apply px-1 text-center font-data text-2xs leading-tight;
+  @apply text-surface-500 dark:text-surface-400;
 }
 
 /* Month cells are a fixed height so all six rows match and the grid does not

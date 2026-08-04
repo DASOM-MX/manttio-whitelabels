@@ -24,6 +24,7 @@ import { LoadVisits } from '../../../../state/visits/visits.actions';
 import { AuthState } from '../../../../state/auth/auth.state';
 import { hasRole } from '../../../guards/has-role.guard';
 import { UsersService } from '../../../services/http/users.service';
+import { CALENDAR_VIEW_LABELS } from '../../../model/constants/calendar/calendar-view-labels.const';
 import { WEEKDAY_SHORT_LABELS } from '../../../model/constants/calendar/weekday-short-labels.const';
 import { WEEKDAY_INITIALS } from '../../../model/constants/calendar/weekday-initials.const';
 import { MONTH_SHORT_LABELS } from '../../../model/constants/calendar/month-short-labels.const';
@@ -75,7 +76,7 @@ const MONTH_CELL_VISIBLE = 3;
 const MONTH_GRID_DAYS = 42;
 
 /** The team calendar (12 §3). Four views over one visits read, chosen by
- *  clicking the corner label (owner 2026-08-03):
+ *  the corner toggle (owner 2026-08-04, superseding the label-as-switch):
  *
  *  - **Día / Semana** — the 24-hour time axis, one column or seven. Visits are
  *    blocks positioned and sized by their times, overlapping ones split the
@@ -185,10 +186,13 @@ export class Calendar {
   protected isMonthView = computed(() => this.view() === CalendarView.Month);
   protected isYearView = computed(() => this.view() === CalendarView.Year);
 
-  /** What the corner label reads, and what clicking it will show next. Each view
-   *  names the period it is actually showing — and no more: the day-of-month
-   *  numbers are already across the header row in day and week, so repeating
-   *  them there would spend the width saying what the columns say. */
+  /** What the corner toggle reads: the view currently on screen. */
+  protected viewLabel = computed(() => CALENDAR_VIEW_LABELS[this.view()]);
+
+  /** What the corner caption reads. Each view names the period it is actually
+   *  showing — and no more: the day-of-month numbers are already across the
+   *  header row in day and week, so repeating them there would spend the width
+   *  saying what the columns say. */
   protected periodLabel = computed(() => {
     const anchor = this.anchor();
     switch (this.view()) {
@@ -431,8 +435,9 @@ export class Calendar {
     this.setParams({ date: toCalendarDate(new Date()) });
   }
 
-  /** The label is the view switch (owner 2026-08-03): each click zooms out one
-   *  step, and year wraps back to day. The anchor never moves, so zooming out
+  /** The corner toggle (owner 2026-08-04, superseding the label-as-switch of
+   *  2026-08-03): each click zooms out one step through día → semana → mes →
+   *  año, and year wraps back to day. The anchor never moves, so zooming out
    *  and back in lands where you started. */
   protected cycleView(): void {
     const index = CALENDAR_VIEW_CYCLE.indexOf(this.view());

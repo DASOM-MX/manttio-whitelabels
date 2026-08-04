@@ -108,28 +108,34 @@
 } @else {
   <!-- The period control, defined once and placed by whichever view is open:
        inside the grid's corner cell where there is one, in a compact row where
-       there is not. The label is the view switch (owner 2026-08-03) — each
-       click zooms out one step and year wraps back to day. -->
+       there is not. -->
   <ng-template #periodControl>
+    <!-- The slot between the chevrons is the view toggle (owner 2026-08-04,
+         superseding the label-as-switch): it names the view you are ON and
+         each click cycles día → semana → mes → año. The chevrons still step
+         the period. Hoy sits below, beside the plain period caption. -->
     <div class="flex items-center gap-0.5">
       <button type="button" class="calendar-nav-button" (click)="prev()" aria-label="Anterior">
         <svg lucideChevronLeft class="size-4" aria-hidden="true"></svg>
       </button>
-      <button type="button" class="calendar-nav-button text-xs font-medium" (click)="goToday()">
-        Hoy
+      <button
+        type="button"
+        class="calendar-nav-button text-xs font-medium"
+        (click)="cycleView()"
+        title="Cambiar vista: día · semana · mes · año"
+      >
+        {{ viewLabel() }}
       </button>
       <button type="button" class="calendar-nav-button" (click)="next()" aria-label="Siguiente">
         <svg lucideChevronRight class="size-4" aria-hidden="true"></svg>
       </button>
     </div>
-    <button
-      type="button"
-      class="calendar-period-label"
-      (click)="cycleView()"
-      title="Cambiar vista: día · semana · mes · año"
-    >
-      {{ periodLabel() }}
-    </button>
+    <div class="flex items-center gap-1">
+      <button type="button" class="calendar-nav-button text-xs font-medium" (click)="goToday()">
+        Hoy
+      </button>
+      <p class="calendar-period-label">{{ periodLabel() }}</p>
+    </div>
   </ng-template>
 
   @if (isTimeAxis()) {
