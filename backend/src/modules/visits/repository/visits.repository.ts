@@ -256,6 +256,12 @@ export const updateVisit = async (
   fields: CorrectVisitFields & VisitLifecycleFields,
   guardStatuses: VisitStatus[],
   audit: (tx: DbOrTx, visit: VisitRow) => Promise<void>,
+  // Full replacement set for the visit's equipment links, applied inside the
+  // same transaction (a correction, owner 2026-08-06). Deleting `visit_
+  // equipment` rows does not breach the no-hard-delete rule: they are pure
+  // associations, not domain entities, and the before/after sets land in the
+  // audit entry this same transaction appends.
+  replaceEquipmentIds?: string[],
 ): Promise<VisitRow | null> =>
   db.transaction(async (tx) => {
     const [visit] = await tx
@@ -270,6 +276,14 @@ export const updateVisit = async (
       )
       .returning();
     if (!visit) return null;
+    if (replaceEquipmentIds) {
+      await tx.delete(visitEquipment).where(eq(visitEquipment.visitId, id));
+      if (replaceEquipmentIds.length) {
+        await tx
+          .insert(visitEquipment)
+          .values(replaceEquipmentIds.map((equipmentId) => ({ visitId: id, equipmentId })));
+      }
+    }
     await audit(tx, visit);
     return visit;
   });

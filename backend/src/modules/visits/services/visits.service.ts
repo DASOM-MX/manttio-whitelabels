@@ -26,6 +26,7 @@ import {
   updateVisit,
 } from '../repository/visits.repository';
 import { appendVisitEvent } from './visit-audit.service';
+import type { VisitFieldChanges } from '../types/visit-audit.types';
 import { diffFields } from '../utils/field-diff';
 import {
   EquipmentCustomerMismatchError,
@@ -319,9 +320,9 @@ export const createVisit = async (
   return dto;
 };
 
-/** Correction of a **scheduled** visit (12 §4) — scheduling fields only, staff
- *  only. Returns null when the visit doesn't exist; throws once it is
- *  `in_progress` or terminal. */
+/** Correction of a **scheduled** visit (12 §4) — scheduling fields and the
+ *  equipment links, staff only. Returns null when the visit doesn't exist;
+ *  throws once it is `in_progress` or terminal. */
 export const correctVisit = async (
   db: Db,
   id: string,
@@ -343,10 +344,26 @@ export const correctVisit = async (
   if (input.title !== undefined) authored.title = input.title;
   if (input.notes !== undefined) authored.notes = input.notes;
 
+  // Equipment replacement (owner 2026-08-06). Same rules as create: the units
+  // must be the customer's own. Compared as **sets** — resubmitting the same
+  // links in another order is not a change — and deduped so a repeated id
+  // can't trip the join table's composite key.
+  let replaceEquipmentIds: string[] | undefined;
+  let equipmentBefore: string[] | undefined;
+  if (input.equipmentIds !== undefined) {
+    const next = [...new Set(input.equipmentIds)].sort();
+    await assertEquipmentBelongsToCustomer(db, row.customerId, next);
+    const current = (await equipmentForVisit(db, id)).map((link) => link.id).sort();
+    if (current.join('\n') !== next.join('\n')) {
+      replaceEquipmentIds = next;
+      equipmentBefore = current;
+    }
+  }
+
   // Diff the authored fields only. `scheduledEnd` is deliberately absent from
   // the trail: it is derived from the two above, so recording it as well would
   // put the same move in the timeline twice.
-  const changes = diffFields(
+  const fieldChanges = diffFields(
     {
       scheduledStart: row.scheduledStart,
       expectedDurationMinutes: row.expectedDurationMinutes,
@@ -355,6 +372,12 @@ export const correctVisit = async (
     },
     authored,
   );
+  // Ids, not names, in the trail — same posture as `technicianId` on a
+  // reassignment: the id is the stable truth, names drift.
+  const changes: VisitFieldChanges | undefined =
+    replaceEquipmentIds !== undefined
+      ? { ...fieldChanges, equipmentIds: { from: equipmentBefore ?? [], to: replaceEquipmentIds } }
+      : fieldChanges;
   // A correction that changes nothing is a successful no-op, not a timeline
   // entry — the trail records what moved, never what was merely submitted.
   if (!changes) return detailDTO(db, id);
@@ -371,14 +394,20 @@ export const correctVisit = async (
     );
   }
 
-  const updated = await updateVisit(db, id, fields, [VisitStatus.Scheduled], (tx, visit) =>
-    appendVisitEvent(tx, {
-      serviceOrderId: visit.serviceOrderId,
-      type: VisitEventType.Corrected,
-      actorId,
-      visitId: visit.id,
-      changes,
-    }),
+  const updated = await updateVisit(
+    db,
+    id,
+    fields,
+    [VisitStatus.Scheduled],
+    (tx, visit) =>
+      appendVisitEvent(tx, {
+        serviceOrderId: visit.serviceOrderId,
+        type: VisitEventType.Corrected,
+        actorId,
+        visitId: visit.id,
+        changes,
+      }),
+    replaceEquipmentIds,
   );
   if (!updated) {
     return throwRaceLost(db, id, (status) => new VisitNotCorrectableError(status));
