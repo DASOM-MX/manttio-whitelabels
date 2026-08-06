@@ -1,0 +1,44 @@
+<button
+  type="button"
+  (click)="open.emit(vm().visit.id)"
+  class="w-full text-left rounded-2xl border-2 px-4 py-4 flex flex-col gap-3 transition-colors
+         border-granite-200 bg-white hover:bg-granite-100 active:bg-granite-200
+         dark:border-granite-700 dark:bg-granite-900 dark:hover:bg-granite-800"
+>
+  <div class="flex items-start justify-between gap-3">
+    <div class="flex flex-col gap-0.5 min-w-0">
+      <span class="font-data tabular-nums text-lg font-bold text-granite-1000 dark:text-granite-0">
+        {{ vm().visit.scheduledStart | visitTime }}
+        @if (vm().visit.scheduledEnd) {
+          – {{ vm().visit.scheduledEnd | visitTime }}
+        }
+      </span>
+      <span class="font-semibold text-granite-900 dark:text-granite-100 truncate">
+        {{ vm().visit.customerName ?? "Cliente" }}
+      </span>
+    </div>
+    <p-tag [severity]="statusSeverities[vm().status]" [value]="statusLabels[vm().status]"></p-tag>
+  </div>
+
+  @if (vm().visit.customerAddress; as address) {
+    <span class="flex items-start gap-2 text-sm text-granite-700 dark:text-granite-300">
+      <i class="pi pi-map-marker mt-0.5 shrink-0"></i>
+      <span class="min-w-0">{{ address }}</span>
+    </span>
+  }
+
+  <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+    <span class="font-data tabular-nums font-semibold text-granite-700 dark:text-granite-300">
+      {{ vm().visit.internalCode }}
+    </span>
+    @if (vm().visit.serviceOrderFolio; as folio) {
+      <span class="text-granite-600 dark:text-granite-400">Orden {{ folio }}</span>
+    }
+    @if (vm().hasPending) {
+      <span class="inline-flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-300">
+        <i class="pi pi-cloud-upload"></i>
+        Sin sincronizar
+      </span>
+    }
+  </div>
+</button>

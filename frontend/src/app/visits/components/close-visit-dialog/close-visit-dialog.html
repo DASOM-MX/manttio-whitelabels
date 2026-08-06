@@ -1,0 +1,82 @@
+<p-dialog
+  [(visible)]="dialogOpen"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '30rem' }"
+  styleClass="max-w-11/12"
+  appendTo="body"
+  header="Cerrar visita"
+>
+  @if (target(); as visit) {
+    <form [formGroup]="form" (ngSubmit)="confirm()" class="flex flex-col gap-5">
+      <div
+        class="flex items-start gap-3 rounded-lg px-4 py-3 bg-granite-100 dark:bg-granite-800"
+      >
+        <i class="pi pi-info-circle text-sky-800 dark:text-sky-300 text-xl mt-0.5"></i>
+        <div class="flex flex-col gap-0.5 min-w-0">
+          <span class="font-bold text-granite-1000 dark:text-granite-0 truncate">
+            {{ visit.customerName ?? "Cliente" }}
+          </span>
+          <span
+            class="font-data tabular-nums text-sm text-granite-700 dark:text-granite-300 truncate"
+          >
+            {{ visit.internalCode }}
+          </span>
+        </div>
+      </div>
+
+      <p class="text-sm text-granite-700 dark:text-granite-300">
+        Cerrar registra que la visita no se realizó. Es definitivo — para reprogramarla, la
+        oficina creará una nueva visita ligada a esta.
+      </p>
+
+      <div class="field-group">
+        <label for="closeReason" class="field-label">Motivo *</label>
+        <p-select
+          inputId="closeReason"
+          formControlName="reason"
+          [options]="reasonOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Selecciona un motivo"
+          [autoOptionFocus]="false"
+          styleClass="w-full"
+        ></p-select>
+      </div>
+
+      <div class="field-group">
+        <label for="closeNote" class="field-label">
+          Nota {{ noteRequired() ? "*" : "(opcional)" }}
+        </label>
+        <textarea
+          pTextarea
+          id="closeNote"
+          formControlName="note"
+          rows="3"
+          [autoResize]="true"
+          placeholder="¿Qué pasó en el sitio?"
+          class="!h-auto"
+        ></textarea>
+        @if (noteRequired()) {
+          <small class="text-sm text-granite-700 dark:text-granite-300">
+            "Otro motivo" necesita una explicación.
+          </small>
+        }
+      </div>
+
+      <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+        <button type="button" class="btn-neutral" (click)="cancel()" [disabled]="submitting()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-danger" [disabled]="!canConfirm()">
+          @if (submitting()) {
+            <i class="pi pi-spin pi-spinner mr-2"></i>
+          }
+          Cerrar visita
+        </button>
+      </div>
+    </form>
+  }
+</p-dialog>

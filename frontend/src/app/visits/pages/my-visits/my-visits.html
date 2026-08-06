@@ -1,0 +1,159 @@
+<div class="min-h-full bg-background dark:bg-granite-1000">
+  <div class="max-w-3xl mx-auto px-4 sm:px-8 py-8 sm:py-12 flex flex-col gap-8">
+    <!-- Header -->
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div class="flex flex-col gap-1">
+        <p class="text-sm font-bold uppercase tracking-wider text-sky-800 dark:text-sky-300">
+          Campo
+        </p>
+        <h1
+          class="text-3xl sm:text-4xl font-extrabold text-granite-1000 dark:text-granite-0 leading-tight tracking-tight"
+        >
+          Mis visitas
+        </h1>
+      </div>
+      <button
+        type="button"
+        (click)="refresh()"
+        class="inline-flex items-center gap-2 py-2 px-3 rounded-lg text-base font-bold transition-colors
+               text-sky-800 hover:bg-sky-0 dark:text-sky-300 dark:hover:bg-granite-800"
+      >
+        <i class="pi" [class.pi-refresh]="!loading()" [class.pi-spin]="loading()"
+           [class.pi-spinner]="loading()"></i>
+        Actualizar
+      </button>
+    </div>
+
+    @if (!isOnline()) {
+      <p
+        class="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold
+               bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
+      >
+        <i class="pi pi-wifi"></i>
+        Sin conexión — se muestra la última lista descargada. Tus acciones se guardan y se
+        envían al reconectar.
+      </p>
+    }
+
+    @if (empty() && loading()) {
+      <p class="flex items-center gap-2 text-base text-granite-700 dark:text-granite-300">
+        <i class="pi pi-spin pi-spinner"></i>
+        Cargando visitas…
+      </p>
+    } @else {
+      @if (thisWeekEmpty()) {
+        <div
+          class="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed px-6 py-12 text-center
+                 border-granite-300 dark:border-granite-700"
+        >
+          <i class="pi pi-calendar text-4xl text-granite-500 dark:text-granite-400"></i>
+          <p class="text-lg font-bold text-granite-900 dark:text-granite-100">
+            No tienes visitas esta semana
+          </p>
+          <p class="text-base text-granite-700 dark:text-granite-300">
+            Cuando la oficina te asigne una, aparecerá aquí.
+          </p>
+        </div>
+      } @else {
+        <!-- 1. Planeado para hoy -->
+        <section class="flex flex-col gap-3">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-granite-700 dark:text-granite-300">
+            Planeado para hoy
+          </h2>
+          <ul class="flex flex-col gap-3">
+            @for (vm of sections().today; track vm.visit.id) {
+              <li><app-visit-card [vm]="vm" (open)="openVisit($event)"></app-visit-card></li>
+            } @empty {
+              <li class="text-base text-granite-600 dark:text-granite-400">
+                Sin visitas programadas para hoy.
+              </li>
+            }
+          </ul>
+        </section>
+
+        <!-- 2. Planeado para mañana -->
+        <section class="flex flex-col gap-3">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-granite-700 dark:text-granite-300">
+            Planeado para mañana
+          </h2>
+          <ul class="flex flex-col gap-3">
+            @for (vm of sections().tomorrow; track vm.visit.id) {
+              <li><app-visit-card [vm]="vm" (open)="openVisit($event)"></app-visit-card></li>
+            } @empty {
+              <li class="text-base text-granite-600 dark:text-granite-400">
+                Sin visitas programadas para mañana.
+              </li>
+            }
+          </ul>
+        </section>
+
+        <!-- 3. Planeado para esta semana (después de mañana) -->
+        <section class="flex flex-col gap-4">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-granite-700 dark:text-granite-300">
+            Planeado para esta semana
+          </h2>
+          @for (group of sections().week; track group.key) {
+            <div class="flex flex-col gap-3">
+              <h3 class="text-sm font-semibold text-granite-600 dark:text-granite-400">
+                {{ group.at | visitDay }}
+              </h3>
+              <ul class="flex flex-col gap-3">
+                @for (vm of group.visits; track vm.visit.id) {
+                  <li><app-visit-card [vm]="vm" (open)="openVisit($event)"></app-visit-card></li>
+                }
+              </ul>
+            </div>
+          } @empty {
+            <p class="text-base text-granite-600 dark:text-granite-400">
+              Sin más visitas esta semana.
+            </p>
+          }
+        </section>
+      }
+
+      <!-- 4. Siguiente semana (lazy — nothing is requested until the tap) -->
+      <section class="flex flex-col gap-4">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-granite-700 dark:text-granite-300">
+          Siguiente semana
+        </h2>
+        @if (!nextWeekRequested()) {
+          <button
+            type="button"
+            (click)="loadNextWeek()"
+            class="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-6 py-5
+                   text-base font-bold transition-colors
+                   border-granite-300 text-sky-800 hover:bg-sky-0 active:bg-sky-100
+                   dark:border-granite-700 dark:text-sky-300 dark:hover:bg-granite-800"
+          >
+            <i class="pi pi-calendar-plus"></i>
+            Haz clic aquí para cargarla
+          </button>
+        } @else {
+          @for (group of sections().nextWeek; track group.key) {
+            <div class="flex flex-col gap-3">
+              <h3 class="text-sm font-semibold text-granite-600 dark:text-granite-400">
+                {{ group.at | visitDay }}
+              </h3>
+              <ul class="flex flex-col gap-3">
+                @for (vm of group.visits; track vm.visit.id) {
+                  <li><app-visit-card [vm]="vm" (open)="openVisit($event)"></app-visit-card></li>
+                }
+              </ul>
+            </div>
+          } @empty {
+            @if (loading()) {
+              <p class="flex items-center gap-2 text-base text-granite-600 dark:text-granite-400">
+                <i class="pi pi-spin pi-spinner"></i>
+                Cargando siguiente semana…
+              </p>
+            } @else {
+              <p class="text-base text-granite-600 dark:text-granite-400">
+                Sin visitas la siguiente semana.
+              </p>
+            }
+          }
+        }
+      </section>
+    }
+  </div>
+</div>
