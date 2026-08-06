@@ -41,7 +41,9 @@
             </a>
           </dd>
         </div>
-        @if (equipmentNames()) {
+        <!-- Editable while `scheduled` (the form's multiselect below); frozen
+             into this read-only row once a technician has touched the visit. -->
+        @if (equipmentNames() && !canCorrectSchedule()) {
           <div class="sm:col-span-2">
             <dt class="micro-label">Equipos</dt>
             <dd class="mt-0.5 text-sm">{{ equipmentNames() }}</dd>
@@ -200,7 +202,7 @@
           </div>
         }
 
-        @if (isCreate() && equipmentOptions().length > 0) {
+        @if ((isCreate() || canCorrectSchedule()) && equipmentOptions().length > 0) {
           <div class="field-group">
             <label class="field-label" for="visit-equipment">Equipos del cliente</label>
             <p-multiselect
@@ -212,6 +214,9 @@
               placeholder="Unidades a atender (opcional)"
               [showToggleAll]="false"
             />
+            @if (!isCreate()) {
+              <p class="field-hint">Cambiar las unidades queda en la bitácora de la orden.</p>
+            }
           </div>
         }
 

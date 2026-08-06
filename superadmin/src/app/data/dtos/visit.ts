@@ -116,15 +116,18 @@ export interface CreateVisitRequest {
   notes?: string;
 }
 
-/** Open-visit correction — scheduling fields only (12 §4). `null` clears an
- *  optional field; omitting a key leaves it untouched. Reassignment is its own
- *  endpoint, and `scheduledEnd` is absent because it is derived: correcting the
- *  duration is what moves the end. */
+/** Open-visit correction — scheduling fields plus the equipment links (12 §4;
+ *  links correctable since 2026-08-06). `null` clears an optional field;
+ *  omitting a key leaves it untouched. `equipmentIds` is the full replacement
+ *  set, validated against the visit's customer server-side. Reassignment is its
+ *  own endpoint, and `scheduledEnd` is absent because it is derived: correcting
+ *  the duration is what moves the end. */
 export interface CorrectVisitRequest {
   scheduledStart?: string;
   expectedDurationMinutes?: number;
   title?: string | null;
   notes?: string | null;
+  equipmentIds?: string[];
 }
 
 /** `null` unassigns — back to the backlog lane. */

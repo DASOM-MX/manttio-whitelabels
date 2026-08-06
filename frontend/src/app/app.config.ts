@@ -29,6 +29,9 @@ import { ReportsState } from '../state/reports/reports.state';
 import { ReportDraftState } from '../state/report-draft/report-draft.state';
 import { OfflineReportsState } from '../state/offline-reports/offline-reports.state';
 import { LoadPendingReports } from '../state/offline-reports/offline-reports.actions';
+import { VisitsState } from '../state/visits/visits.state';
+import { PendingVisitActionsState } from '../state/pending-visit-actions/pending-visit-actions.state';
+import { LoadPendingVisitActions } from '../state/pending-visit-actions/pending-visit-actions.actions';
 import { OfflineSyncService } from '../offline/offline-sync.service';
 
 export const appConfig: ApplicationConfig = {
@@ -60,7 +63,7 @@ export const appConfig: ApplicationConfig = {
     ConfirmationService,
     MessageService,
     provideStore(
-      [AppState, AuthState, BrandState, UsersState, CustomersState, ReportsState, ReportDraftState, OfflineReportsState],
+      [AppState, AuthState, BrandState, UsersState, CustomersState, ReportsState, ReportDraftState, OfflineReportsState, VisitsState, PendingVisitActionsState],
       // `brand` is persisted so the last-known tenant brand paints instantly on
       // the next boot; LoadBrand refreshes it in the background (plan 02 §1.1).
       withNgxsStoragePlugin({ keys: ['auth', 'reportDraft', 'app', 'brand'] }),
@@ -73,6 +76,7 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() => {
       const store = inject(Store);
       store.dispatch(new LoadPendingReports());
+      store.dispatch(new LoadPendingVisitActions());
       store.dispatch(new LoadBrand());
       inject(OfflineSyncService);
     }),

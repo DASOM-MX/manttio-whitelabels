@@ -92,10 +92,15 @@ export const createVisitSchema = z
     notes: z.string().optional(),
   });
 
-// Correction of a **scheduled** visit (12 §4) — scheduling fields only. There is
-// deliberately no `technicianId` (that is `/assign`), no `status`, no
-// `customerId` and no `equipmentIds`: a visit's *what* and *who for* are fixed
-// at creation, and changing them is a close + reschedule.
+// Correction of a **scheduled** visit (12 §4) — scheduling fields plus the
+// equipment links (owner 2026-08-06: office refining the unit list on a planned
+// job is a correction, not a new scope). There is deliberately no
+// `technicianId` (that is `/assign`), no `status` and no `customerId`: a
+// visit's *who for* is fixed at creation, and changing it is a close +
+// reschedule.
+//
+// `equipmentIds` is the **full replacement set**, same semantics as create —
+// ownership is validated against the visit's customer in the service layer.
 //
 // Only reachable while `scheduled`: once a technician has tapped Iniciar the
 // visit is `in_progress` and moving the date of a job being physically performed
@@ -106,6 +111,7 @@ export const correctVisitSchema = z
     expectedDurationMinutes: expectedDurationMinutes.optional(),
     title: z.string().trim().min(1).nullable().optional(),
     notes: z.string().nullable().optional(),
+    equipmentIds: z.array(z.string().uuid()).optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: 'no correctable fields supplied' });
 

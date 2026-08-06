@@ -26,6 +26,7 @@ import {
   updateVisit,
 } from '../repository/visits.repository';
 import { appendVisitEvent } from './visit-audit.service';
+import type { VisitFieldChanges } from '../types/visit-audit.types';
 import { diffFields } from '../utils/field-diff';
 import {
   EquipmentCustomerMismatchError,
@@ -119,6 +120,7 @@ const toDTO = (
     internalCode: row.internalCode,
     customerId: row.customerId,
     customerName: opt(meta.customerName),
+    customerAddress: opt(meta.customerAddress),
     serviceOrderId: opt(row.serviceOrderId),
     serviceOrderFolio: opt(meta.serviceOrderFolio),
     serviceOrderPriority: opt(meta.serviceOrderPriority),
@@ -178,13 +180,6 @@ const assertOpen = (row: VisitRow): void => {
  *  because a mid-job handoff is real. */
 const assertCorrectable = (row: VisitRow): void => {
   if (row.status !== VisitStatus.Scheduled) throw new VisitNotCorrectableError(row.status);
-};
-
-/** Iniciar starts a visit that has not started. An `in_progress` visit was
- *  already tapped — most plausibly a duplicate entry from the offline queue,
- *  which must not restart the clock and lose the original `actualStart`. */
-const assertStartable = (row: VisitRow): void => {
-  if (row.status !== VisitStatus.Scheduled) throw new VisitNotStartableError(row.status);
 };
 
 /** The actuals correction is the one edit that reaches past a terminal state
@@ -325,9 +320,9 @@ export const createVisit = async (
   return dto;
 };
 
-/** Correction of a **scheduled** visit (12 §4) — scheduling fields only, staff
- *  only. Returns null when the visit doesn't exist; throws once it is
- *  `in_progress` or terminal. */
+/** Correction of a **scheduled** visit (12 §4) — scheduling fields and the
+ *  equipment links, staff only. Returns null when the visit doesn't exist;
+ *  throws once it is `in_progress` or terminal. */
 export const correctVisit = async (
   db: Db,
   id: string,
@@ -349,10 +344,26 @@ export const correctVisit = async (
   if (input.title !== undefined) authored.title = input.title;
   if (input.notes !== undefined) authored.notes = input.notes;
 
+  // Equipment replacement (owner 2026-08-06). Same rules as create: the units
+  // must be the customer's own. Compared as **sets** — resubmitting the same
+  // links in another order is not a change — and deduped so a repeated id
+  // can't trip the join table's composite key.
+  let replaceEquipmentIds: string[] | undefined;
+  let equipmentBefore: string[] | undefined;
+  if (input.equipmentIds !== undefined) {
+    const next = [...new Set(input.equipmentIds)].sort();
+    await assertEquipmentBelongsToCustomer(db, row.customerId, next);
+    const current = (await equipmentForVisit(db, id)).map((link) => link.id).sort();
+    if (current.join('\n') !== next.join('\n')) {
+      replaceEquipmentIds = next;
+      equipmentBefore = current;
+    }
+  }
+
   // Diff the authored fields only. `scheduledEnd` is deliberately absent from
   // the trail: it is derived from the two above, so recording it as well would
   // put the same move in the timeline twice.
-  const changes = diffFields(
+  const fieldChanges = diffFields(
     {
       scheduledStart: row.scheduledStart,
       expectedDurationMinutes: row.expectedDurationMinutes,
@@ -361,6 +372,12 @@ export const correctVisit = async (
     },
     authored,
   );
+  // Ids, not names, in the trail — same posture as `technicianId` on a
+  // reassignment: the id is the stable truth, names drift.
+  const changes: VisitFieldChanges | undefined =
+    replaceEquipmentIds !== undefined
+      ? { ...fieldChanges, equipmentIds: { from: equipmentBefore ?? [], to: replaceEquipmentIds } }
+      : fieldChanges;
   // A correction that changes nothing is a successful no-op, not a timeline
   // entry — the trail records what moved, never what was merely submitted.
   if (!changes) return detailDTO(db, id);
@@ -377,14 +394,20 @@ export const correctVisit = async (
     );
   }
 
-  const updated = await updateVisit(db, id, fields, [VisitStatus.Scheduled], (tx, visit) =>
-    appendVisitEvent(tx, {
-      serviceOrderId: visit.serviceOrderId,
-      type: VisitEventType.Corrected,
-      actorId,
-      visitId: visit.id,
-      changes,
-    }),
+  const updated = await updateVisit(
+    db,
+    id,
+    fields,
+    [VisitStatus.Scheduled],
+    (tx, visit) =>
+      appendVisitEvent(tx, {
+        serviceOrderId: visit.serviceOrderId,
+        type: VisitEventType.Corrected,
+        actorId,
+        visitId: visit.id,
+        changes,
+      }),
+    replaceEquipmentIds,
   );
   if (!updated) {
     return throwRaceLost(db, id, (status) => new VisitNotCorrectableError(status));
@@ -449,7 +472,7 @@ export const startVisit = async (
 ): Promise<VisitDTO | null> => {
   const row = await findVisitById(db, id);
   if (!row) return null;
-  assertStartable(row);
+  if (row.status !== VisitStatus.Scheduled) return backfillStart(db, row, input, user);
   assertMayAct(row, user);
   assertPlausibleActual(row, input.actualStart, 'inicio');
 
@@ -468,6 +491,59 @@ export const startVisit = async (
   );
   if (!updated) return throwRaceLost(db, id, (status) => new VisitNotStartableError(status));
   return detailDTO(db, id);
+};
+
+/** The late half of the offline conflict rule (12 CP-3, owner 2026-08-04):
+ *  **first Iniciar wins, and a Terminar that outran its Iniciar backfills.**
+ *
+ *  The field app queues taps per device and syncs them in tap order, but a
+ *  crash mid-sync can deliver a Terminar whose Iniciar is still queued — the
+ *  visit is then `completed` with an `actualEnd` and **no `actualStart`**. When
+ *  that Iniciar finally lands here, refusing it would throw away the one record
+ *  of when the work began, so it backfills the stamp (and the duration the pair
+ *  now makes derivable) without touching the terminal status.
+ *
+ *  Everything else stays a conflict: a visit `in_progress` or already carrying
+ *  an `actualStart` was started once already, and a second tap must not restart
+ *  the clock — the sync pass drops the duplicate on this 409. */
+const backfillStart = async (
+  db: Db,
+  row: VisitRow,
+  input: StartVisitInput,
+  user: AuthUser,
+): Promise<VisitDTO | null> => {
+  if (!TERMINAL_VISIT_STATUSES.includes(row.status) || row.actualStart) {
+    throw new VisitNotStartableError(row.status);
+  }
+  assertMayAct(row, user);
+  assertPlausibleActual(row, input.actualStart, 'inicio');
+  if (row.actualEnd && input.actualStart > row.actualEnd) {
+    throw new InvalidActualTimeError('La hora de inicio no puede ser posterior a la de fin.');
+  }
+
+  const updated = await updateVisit(
+    db,
+    row.id,
+    {
+      actualStart: input.actualStart,
+      actualDurationMinutes: row.actualEnd
+        ? minutesBetween(input.actualStart, row.actualEnd)
+        : row.actualDurationMinutes,
+    },
+    TERMINAL_VISIT_STATUSES,
+    (tx, visit) =>
+      appendVisitEvent(tx, {
+        serviceOrderId: visit.serviceOrderId,
+        type: VisitEventType.Started,
+        actorId: user.id,
+        visitId: visit.id,
+        // A Started event landing after Completed reads as corruption unless it
+        // says what it did — the diff marks it as a late sync, not a restart.
+        changes: diffFields({ actualStart: row.actualStart }, { actualStart: input.actualStart }),
+      }),
+  );
+  if (!updated) return throwRaceLost(db, row.id, (status) => new VisitNotStartableError(status));
+  return detailDTO(db, row.id);
 };
 
 /** Respond — **Terminar**: the visit was served (12 §5). Links the produced

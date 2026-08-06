@@ -224,7 +224,11 @@ export class VisitDialog {
 
   constructor() {
     // The client — and therefore the offerable units — derives from the order.
+    // Create-mode only: on an existing visit the order select never renders and
+    // the client is fixed, so reacting to the reset's own `orderId` emission
+    // would just wipe the equipment prefill `openVisit` set.
     this.form.controls.orderId.valueChanges.pipe(takeUntilDestroyed()).subscribe((orderId) => {
+      if (this.target()) return;
       const customerId =
         this.lockedOrder()?.customerId ??
         this.orderOptions().find((option) => option.value === orderId)?.customerId;
@@ -279,6 +283,9 @@ export class VisitDialog {
       title: visit.title ?? '',
       notes: visit.notes ?? '',
     });
+    // Equipment links are correctable while `scheduled` (owner 2026-08-06) —
+    // offer the customer's units; past that state the links render read-only.
+    if (this.canCorrectSchedule()) this.loadEquipment(visit.customerId);
     this.submitting.set(false);
     this.dialogOpen.set(true);
   }
@@ -402,6 +409,11 @@ export class VisitDialog {
       if ((title ?? undefined) !== visit.title) patch.title = title;
       const notes = raw.notes.trim() || null;
       if ((notes ?? undefined) !== visit.notes) patch.notes = notes;
+      // Set comparison — reordering the same units is not a change. The backend
+      // replaces the full link set and audits from → to on the order timeline.
+      const currentEquipment = visit.equipment.map((link) => link.id).sort().join('\n');
+      const nextEquipment = [...raw.equipmentIds].sort().join('\n');
+      if (currentEquipment !== nextEquipment) patch.equipmentIds = raw.equipmentIds;
     }
 
     const technicianId = raw.technicianId || null;
