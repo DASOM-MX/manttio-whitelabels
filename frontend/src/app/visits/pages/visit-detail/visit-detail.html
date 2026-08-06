@@ -55,16 +55,33 @@
           <div class="card-section flex flex-col gap-2">
             <h2 class="field-label">Dirección</h2>
             <p class="text-base text-granite-900 dark:text-granite-100">{{ address }}</p>
-            <a
-              [href]="'https://www.google.com/maps/search/?api=1&query=' + encode(address)"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="self-start inline-flex items-center gap-2 py-2 text-base font-bold
-                     text-sky-800 dark:text-sky-300"
-            >
-              <i class="pi pi-map-marker"></i>
-              Abrir en Maps
-            </a>
+            @if (isOnline() && mapUrl(); as mapSrc) {
+              <!-- Full-bleed to the card's sides AND bottom: the negative
+                   margins cancel the card-section's p-6/sm:p-8 exactly, and
+                   the rounded-b clip follows the card's own corners. The
+                   embed carries its own "Abrir en Maps" link, so no separate
+                   link is rendered alongside it. -->
+              <div class="-mx-6 -mb-6 sm:-mx-8 sm:-mb-8 overflow-hidden rounded-b-2xl">
+                <iframe
+                  [src]="mapSrc"
+                  title="Ubicación de la visita"
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  class="w-full h-80 border-t border-granite-200 dark:border-granite-700"
+                ></iframe>
+              </div>
+            } @else {
+              <a
+                [href]="'https://www.google.com/maps/search/?api=1&query=' + encode(address)"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="self-start inline-flex items-center gap-2 py-2 text-base font-bold
+                       text-sky-800 dark:text-sky-300"
+              >
+                <i class="pi pi-map-marker"></i>
+                Abrir en Maps
+              </a>
+            }
           </div>
         </section>
       }

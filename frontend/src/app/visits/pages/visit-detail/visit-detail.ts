@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DomSanitizer, type SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Actions, Store, ofActionErrored, ofActionSuccessful, select } from '@ngxs/store';
 import { MessageService } from 'primeng/api';
@@ -32,6 +33,7 @@ export class VisitDetail {
   private router = inject(Router);
   private actions$ = inject(Actions);
   private messages = inject(MessageService);
+  private sanitizer = inject(DomSanitizer);
 
   private closeDialog = viewChild<CloseVisitDialog>('closeDialog');
 
@@ -54,6 +56,20 @@ export class VisitDetail {
     if (!visit || visit.id !== this.visitId()) return null;
     const mine = this.pendingTaps().filter((p) => p.visitId === visit.id);
     return toVisitVM(visit, mine);
+  });
+
+  /** Embedded map pin for the address — the **keyless** Maps embed
+   *  (`output=embed`), so no per-tenant API key exists to provision (whitelabel
+   *  rule: nothing tenant-specific hardcoded). Trust-safe: the user-entered
+   *  address only ever enters the URL percent-encoded. The template
+   *  additionally gates it on `isOnline` — offline the iframe would render a
+   *  gray error box where the address text already does the job. */
+  mapUrl = computed<SafeResourceUrl | null>(() => {
+    const address = this.vm()?.visit.customerAddress;
+    if (!address) return null;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      `https://maps.google.com/maps?q=${encodeURIComponent(address)}&z=15&hl=es&output=embed`,
+    );
   });
 
   /** Planned vs actual, the payoff of stamping tap times (12 CP-1b). */
