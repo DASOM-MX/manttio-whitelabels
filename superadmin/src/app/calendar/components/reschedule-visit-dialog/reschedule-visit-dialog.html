@@ -2,6 +2,7 @@
   [visible]="dialogOpen()"
   (visibleChange)="!$event && close()"
   [modal]="true"
+  [focusOnShow]="false"
   [closable]="!submitting()"
   [draggable]="false"
   [resizable]="false"
