@@ -1,0 +1,177 @@
+<app-page-header
+  title="Importar servicios"
+  description="Sube tu lista de precios en CSV, asigna sus columnas y revisa antes de importar."
+  backLink="/services"
+  backLabel="Volver a servicios"
+/>
+
+@if (canManage()) {
+  @if (!parsed()) {
+    <!-- Stage 1 — upload. Excel guarda cualquier lista como CSV. -->
+    <section class="card-section mt-4 flex max-w-2xl flex-col items-center gap-3 py-10 text-center">
+      <span class="empty-icon">
+        <svg lucideUpload class="size-5" aria-hidden="true"></svg>
+      </span>
+      <p class="text-sm text-surface-600 dark:text-surface-400">
+        Elige el archivo CSV con tu lista de precios. La primera fila debe tener los
+        encabezados de columna.
+      </p>
+      <label class="btn-primary cursor-pointer">
+        <svg lucideUpload class="size-4" aria-hidden="true"></svg>
+        Elegir archivo
+        <input type="file" class="sr-only" accept=".csv,text/csv" (change)="onFile($event)" />
+      </label>
+      <p class="field-hint">
+        En Excel: Archivo → Guardar como → CSV UTF-8. No importa cómo se llamen las
+        columnas — en el siguiente paso las asignas.
+      </p>
+    </section>
+  } @else {
+    <!-- Stage 2 — mapper + preview. -->
+    <section class="card-section mt-4 flex max-w-4xl items-center justify-between gap-4">
+      <div>
+        <p class="field-label">Archivo</p>
+        <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+          {{ fileName() }}
+          <span class="font-normal text-surface-500 dark:text-surface-400">
+            · {{ rowCount() }} filas
+          </span>
+        </p>
+      </div>
+      <button type="button" class="link-action" (click)="resetFile()">
+        <svg lucideRefreshCw class="size-4" aria-hidden="true"></svg>
+        Cambiar archivo
+      </button>
+    </section>
+
+    <section class="card-section mt-4 max-w-4xl">
+      <h2 class="section-heading">Columnas</h2>
+      <p class="mb-4 text-sm text-surface-600 dark:text-surface-400">
+        Indica de qué columna del archivo sale cada dato del catálogo. Donde tu lista no
+        tenga columna, puedes fijar un mismo valor para todas las filas u omitir el dato.
+      </p>
+      <div class="grid gap-3">
+        @for (row of mapperRows(); track row.field) {
+          <div class="grid items-center gap-2 sm:grid-cols-2">
+            <label class="field-label !mb-0" [for]="'map-' + row.field">
+              {{ row.label }}@if (row.requiresColumn) {<span aria-hidden="true"> *</span>}
+            </label>
+            <p-select
+              [inputId]="'map-' + row.field"
+              [options]="row.groups"
+              [group]="true"
+              optionGroupLabel="label"
+              optionGroupChildren="items"
+              optionLabel="label"
+              optionValue="value"
+              [ngModel]="row.value"
+              (ngModelChange)="onMappingChange(row.field, $event)"
+              placeholder="Elige una columna"
+              appendTo="body"
+            />
+          </div>
+        }
+      </div>
+      @if (missingRequired().length > 0) {
+        <p class="callout callout--warn mt-4" role="alert">
+          Falta asignar columna para: {{ missingRequiredText() }}.
+        </p>
+      }
+    </section>
+
+    @if (preview(); as p) {
+      <section class="card-section mt-4 max-w-4xl">
+        <h2 class="section-heading">Vista previa</h2>
+        <p class="mb-3 text-sm text-surface-600 dark:text-surface-400">
+          {{ rowCount() }} filas ·
+          @if (errorCount() > 0) {
+            <span class="font-medium text-red-600 dark:text-red-400">
+              {{ errorCount() }} con errores
+            </span>
+          } @else {
+            todas listas para importar
+          }
+        </p>
+        <div class="card-flush-table">
+          <p-table [value]="previewRows()" [scrollable]="true" scrollHeight="360px" dataKey="line">
+            <ng-template #header>
+              <tr>
+                <th scope="col">Línea</th>
+                <th scope="col">Nombre</th>
+                <th scope="col">Precio</th>
+                <th scope="col">Unidad</th>
+                <th scope="col">IVA</th>
+                <th scope="col">Código</th>
+                <th scope="col">Errores</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-r>
+              <tr>
+                <td class="font-data tabular-nums">{{ r.line }}</td>
+                <td>{{ r.row ? r.row.name : '—' }}</td>
+                <td class="font-data tabular-nums">{{ r.row ? (r.row.price | money) : '—' }}</td>
+                <td>{{ r.row ? (r.row.uom | serviceUomShort) : '—' }}</td>
+                <td class="font-data tabular-nums">
+                  {{ r.row ? (r.row.taxRate | serviceTaxRateShort) : '—' }}
+                </td>
+                <td class="font-data tabular-nums">
+                  {{ r.row ? (r.row.internalServiceCode ?? '—') : '—' }}
+                </td>
+                <td class="!whitespace-normal text-sm text-red-600 dark:text-red-400">
+                  {{ r.errorText || '—' }}
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+
+        @if (errorCount() > 0) {
+          <p class="callout callout--warn mt-4" role="alert">
+            No se importa nada mientras haya errores — corrige el archivo y súbelo de
+            nuevo, o ajusta las columnas.
+          </p>
+        }
+        @if (tooManyRows()) {
+          <p class="callout callout--warn mt-4" role="alert">
+            El archivo tiene {{ rowCount() }} filas y el máximo por importación es
+            {{ maxRows }}. Divide la lista en archivos más pequeños.
+          </p>
+        }
+        @if (serverErrorRows().length > 0) {
+          <!-- The backend re-validated and said no: its messages, verbatim. -->
+          <div class="callout callout--danger mt-4" role="alert">
+            <ul class="flex flex-col gap-1">
+              @for (err of serverErrorRows(); track $index) {
+                <li>
+                  @if (err.line !== null) {
+                    <span class="font-data tabular-nums">Línea {{ err.line }}:</span>
+                  }
+                  {{ err.message }}
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
+        <div class="mt-4 flex justify-end gap-2">
+          <a routerLink="/services" class="btn-neutral">Cancelar</a>
+          <button type="button" class="btn-primary" [disabled]="!canImport()" (click)="submit()">
+            @if (busy()) {
+              <span
+                class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+                aria-hidden="true"
+              ></span>
+              Importando…
+            } @else {
+              Importar {{ rowCount() }} servicios
+            }
+          </button>
+        </div>
+      </section>
+    }
+  }
+} @else {
+  <p class="callout callout--info mt-4 max-w-2xl">
+    Sólo el propietario o un administrador pueden importar el catálogo.
+  </p>
+}

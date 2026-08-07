@@ -1,13 +1,14 @@
 import { Hono, type Context } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import type { AppBindings } from '../../../env';
-import { ServiceCodeInUseError } from '../http-errors/services.error';
+import { ServiceCodeInUseError, ServiceImportError } from '../http-errors/services.error';
 import { createDb } from '../../database/client';
 import { requireRole } from '../../auth/middleware/roles.middleware';
 import { isBackOfficeTier } from '../../auth/utils/role-tier';
 import {
   createServiceSchema,
   deleteServiceSchema,
+  importServicesSchema,
   listServicesQuerySchema,
   updateServiceSchema,
 } from '../validators/services.validator';
@@ -17,6 +18,7 @@ import {
   getServiceById,
   getServices,
   getServiceTimeline,
+  importServices,
   removeService,
 } from '../services/services-catalog.service';
 
@@ -88,6 +90,36 @@ services.post('/', requireRole(['owner', 'admin']), zValidator('json', createSer
     throw err;
   }
 });
+
+// CSV import (18 §6.3): all-or-nothing — any bad row rejects the whole file
+// and the 422 names every failing row, so a partial import can never read as
+// "imported everything".
+services.post(
+  '/import',
+  requireRole(['owner', 'admin']),
+  zValidator('json', importServicesSchema),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    try {
+      return c.json(
+        await importServices(db, c.req.valid('json').rows, c.get('user').id),
+        201,
+      );
+    } catch (err) {
+      if (err instanceof ServiceImportError) {
+        return c.json(
+          {
+            error: 'import_invalid',
+            message: `El archivo tiene ${err.rows.length} fila(s) con errores.`,
+            rows: err.rows,
+          },
+          422,
+        );
+      }
+      throw err;
+    }
+  },
+);
 
 services.patch(
   '/:id',

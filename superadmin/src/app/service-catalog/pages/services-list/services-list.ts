@@ -6,10 +6,12 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
 import {
   LucideCopy,
+  LucideDownload,
   LucideEye,
   LucidePencil,
   LucidePlus,
   LucideTrash2,
+  LucideUpload,
   LucideWrench,
 } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
@@ -25,6 +27,8 @@ import { ServiceUomShortPipe } from '../../../pipes/service-uom.pipe';
 import { DeleteServiceDialog } from '../../components/delete-service-dialog/delete-service-dialog';
 import { FiltersPopover } from '../../../shared/components/filters-popover/filters-popover';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
+import { servicesToCsv } from '../../utils/services-csv-export.utils';
+import { downloadCsv } from '../../utils/csv.utils';
 import type { Service, ServiceListQuery } from '../../../data/dtos/service';
 
 /** The tenant's service catalog (18 §3) — what the business sells, priced per
@@ -56,10 +60,12 @@ import type { Service, ServiceListQuery } from '../../../data/dtos/service';
     FiltersPopover,
     PageHeader,
     LucideCopy,
+    LucideDownload,
     LucideEye,
     LucidePlus,
     LucidePencil,
     LucideTrash2,
+    LucideUpload,
     LucideWrench,
   ],
   providers: [ListQueryService],
@@ -124,5 +130,15 @@ export class ServicesList {
 
   protected openDelete(service: Service): void {
     this.deleteDialog()?.open(service);
+  }
+
+  /** Exportar CSV (18 §6.3): serializes the rows already on screen — the list
+   *  holds the whole catalog, so no request. Wire-enum codes, cost included
+   *  (the button only renders for admin tier). */
+  protected exportCsv(): void {
+    downloadCsv(
+      `servicios-${new Date().toISOString().slice(0, 10)}.csv`,
+      servicesToCsv(this.services()),
+    );
   }
 }
