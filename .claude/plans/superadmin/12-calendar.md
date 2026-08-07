@@ -1,7 +1,7 @@
 # 12 — Calendar (scheduled visits)
 
-> **Status:** in-progress (CP-1 backend built — PR #110; CP-1b duration/actuals + CP-2 calendar + CP-3 field app in flight) · **Depends on:** 02 (CP-3), 05 (tech roster), 07 (CP-1), 19 (visits are order-bound)
-> **Owner:** — · **Last updated:** 2026-07-31
+> **Status:** in-progress (CP-1/1b/2/3 built — PRs #110/#127/#128/#129 + QA fixes #130; manual passes for CP-2/CP-3 still open; CP-4 live-calendar SSE planned 2026-08-06) · **Depends on:** 02 (CP-3), 05 (tech roster), 07 (CP-1), 19 (visits are order-bound)
+> **Owner:** — · **Last updated:** 2026-08-06
 
 Team scheduling: who goes where, when. Owns the **`ScheduledVisit`** entity (order-bound,
 19 §1) and the calendar views. **Immutable-record model (decided 2026-07-23):** office
@@ -411,7 +411,7 @@ then the two consumers independently. The calendar must not wait on the field ap
       `ADD COLUMN`s that would have failed. `0031`'s snapshot is regenerated from the
       real models, and `db:generate` now reports no pending changes
 
-### CP-2 — Superadmin: time-axis calendar — **PR 2 of 3**
+### CP-2 — Superadmin: time-axis calendar — **PR 2 of 3** — [x] built (PR #128)
 - [x] DTOs + `VisitsState` + http service + pipes/constants (`model/enums/visit/`,
       `model/constants/visit/`). The data layer written for CP-1 knew nothing of
       CP-1b — no `internalCode`, no duration, no actuals, no `in_progress` — so this
@@ -447,16 +447,71 @@ then the two consumers independently. The calendar must not wait on the field ap
       close → reschedule → linked successor; every action on the order timeline (19 §7).
       Build is green
 
-### CP-3 — Field app: technician visits + offline — **PR 3 of 3**
-- [ ] `visits/` module in `frontend/` (none exists today): "Mis visitas" list +
-      visit detail, phone-first
-- [ ] **Iniciar / Terminar** actions; Cerrar with categorized reason
-- [ ] **Offline queue at Dexie v2**: `pendingVisitActions` store + sync pass in
-      `offline-sync.service`, local tap timestamp preserved through the sync
+### CP-3 — Field app: technician visits + offline — **PR 3 of 3** — [x] built (PR #129)
+- [x] `visits/` module in `frontend/`: "Mis visitas" list (hoy / mañana / esta semana +
+      lazy-loaded siguiente semana) + visit detail with the keyless Maps embed,
+      phone-first
+- [x] **Iniciar / Terminar** actions; Cerrar with categorized reason
+- [x] **Offline queue at Dexie v2**: `pendingVisitActions` store + sync pass in
+      `offline-sync.service`, local tap timestamp preserved through the sync; the
+      `VisitVM` overlay reads un-synced taps as applied state with a "Sin
+      sincronizar" chip
 - [ ] Manual pass: airplane mode → Iniciar → Terminar → reconnect → both land with the
       *field* times, not the sync times
 
-### CP-4 — Polish
+### CP-4 — Live calendar: visit lifecycle events over SSE (planned 2026-08-06)
+
+The field app writes what happens — Iniciar / Terminar / Cerrar sync in — but the
+calendar only reads its window when something makes it, so office watches a static
+grid while the day actually moves. PR #130 patched the sharpest edge (the visit
+dialog re-reads its target on open); CP-4 removes the class of bug: the calendar
+catches visit lifecycle events live.
+
+Everything rides existing rails — no new infrastructure:
+
+- **Transport: SSE, the notifications pattern verbatim** (notifications §2.2:
+  `streamSSE` + per-connection DB poll + comment heartbeat — Workers isolates share
+  no memory across the fleet, the row is the truth). New endpoint
+  `GET /visits/stream`, staff-gated (`owner/admin/office` — the field app stays
+  offline-first pull, techs don't subscribe in v1). Own
+  `visits/constants/stream-timing.ts` mirroring the notifications cadence
+  (2 s poll / 15 s heartbeat) so the two streams stay independently tunable.
+- **Source: the order timeline, not the visits table.** Every lifecycle action
+  already appends a typed `service_order_events` row — `visit_created`,
+  `visit_started`, `visit_completed`, `visit_closed`, `visit_rescheduled`,
+  `visit_reassigned`, `visit_corrected`, `visit_actuals_corrected` — an append-only
+  log with a natural `created_at` cursor, so nothing new has to remember to emit.
+  The poll reads events after the cursor filtered to the visit set, batch-reads the
+  distinct touched visits, and emits one frame per event: `event: visit`, data
+  `{ kind, visit }`, where `visit` is the same flattened DTO the single-visit GET
+  returns — the client merges without a second read. Inherited caveat: a write
+  that bypasses the service layer (manual SQL) appends no event and streams
+  nothing — accepted, that is not a product path.
+- **Cursor starts at connect time — no replay.** The subscriber refetches its
+  window on every (re)connect (the bell's posture: the one-shot read re-syncs,
+  the stream keeps it warm), so missed frames cost one window read, never a gap.
+- **Client: NGXS merge, no refetch storm.** The calendar page subscribes while
+  mounted through the shared `sseStream` reader (`services/sse.ts`); each frame
+  dispatches a `VisitEventReceived` action and `VisitsState` upserts by id into
+  the loaded window (frames outside the window drop). The open visit dialog
+  re-narrows when a frame matches its target; the on-open re-read (#130) stays as
+  catch-up for the subscription gap.
+
+- [ ] Backend: `GET /visits/stream` + stream service (cursor poll over
+      `service_order_events` filtered to the visit event types, batch visit read,
+      heartbeat) + timing constants + a partial index on
+      `service_order_events(created_at)` for the visit set — the existing index
+      leads with `service_order_id` and cannot serve a time-only scan
+- [ ] Superadmin: calendar-page subscription (connect on enter, abort on leave) +
+      `VisitEventReceived` upsert in `VisitsState` + dialog re-narrow on matching
+      frame + reconnect backoff that re-reads the window
+- [ ] Manual pass: two browsers (office calendar + field-app tech) — Iniciar,
+      Terminar and Cerrar each move the block and any open dialog within a poll
+      tick, no reload; kill the network mid-stream → reconnect re-syncs the window
+- Later consumers, out of v1: order-view visits card and the dashboard
+  "today's visits" card (CP-4b) read the same stream
+
+### CP-4b — Polish
 - [ ] Status colors incl. `in_progress`; closed muted/strike; reschedule-chain link;
       dark-mode audit of the ghost/solid block pair
 - [ ] Dashboard "today's visits" card
