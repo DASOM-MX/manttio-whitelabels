@@ -9,7 +9,9 @@ export class RemoteService {
   private readonly http = inject(HttpClient);
   private readonly base = environment.apiUrl.replace(/\/$/, '');
 
-  private url(path: string): string {
+  /** Absolute URL for an API path — public for the consumers that bypass
+   *  HttpClient (the fetch-based SSE reader needs a full URL). */
+  url(path: string): string {
     return `${this.base}${path.startsWith('/') ? path : `/${path}`}`;
   }
 

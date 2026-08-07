@@ -6,6 +6,7 @@ import type {
   RescheduleVisitRequest,
   RespondVisitRequest,
   VisitListQuery,
+  VisitStreamFrame,
 } from '../../app/data/dtos/visit';
 
 /** One load path for both narrowings the API accepts — a week (`from`+`to`) or
@@ -71,4 +72,23 @@ export class RescheduleVisit {
     public id: string,
     public payload: RescheduleVisitRequest,
   ) {}
+}
+
+/** Opens the live visit stream (12 CP-4) for as long as the calendar is on
+ *  screen; every (re)connect re-reads the loaded window first. */
+export class ListenVisits {
+  static readonly type = '[Visits] Listen';
+}
+
+/** Tears the stream down when the calendar page leaves. */
+export class StopListeningVisits {
+  static readonly type = '[Visits] Stop Listening';
+}
+
+/** One live frame, re-dispatched as an action so every interested surface —
+ *  the state's upsert, the open visit dialog — reacts through the Actions
+ *  stream instead of each holding its own subscription. */
+export class VisitEventReceived {
+  static readonly type = '[Visits] Event Received';
+  constructor(public frame: VisitStreamFrame) {}
 }

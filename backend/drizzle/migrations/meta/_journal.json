@@ -232,6 +232,13 @@
       "when": 1785736118455,
       "tag": "0032_visits_drop_stale_status_check",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1786084623602,
+      "tag": "0033_sticky_sumo",
+      "breakpoints": true
     }
   ]
 }

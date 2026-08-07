@@ -6,6 +6,9 @@ import { customers } from '../../customers/models/customers.model';
 import { users } from '../../users/models/users.model';
 import { equipment } from '../../equipment/models/equipment.model';
 import { serviceOrders } from '../../service-orders/models/service-orders.model';
+import { serviceOrderEvents } from '../../service-orders/models/service-order-events.model';
+import type { ServiceOrderEventType } from '../../service-orders/enums/service-orders.enum';
+import { VISIT_STREAM_EVENT_TYPES } from '../constants/stream-event-types';
 import { VisitStatus } from '../enums/visits.enum';
 import type {
   CorrectVisitFields,
@@ -335,3 +338,58 @@ export const insertRescheduledVisit = async (
     await audit(tx, visit);
     return visit;
   });
+
+/** One forwarded lifecycle event, as the stream needs it: which kind of thing
+ *  happened, to which visit, when. `createdAt` stays the DB's own `::text`
+ *  rendering at full microsecond precision — a JS `Date` truncates to
+ *  milliseconds, and a truncated cursor re-matches the newest row on every
+ *  poll, re-delivering it forever. */
+export interface VisitStreamEvent {
+  id: string;
+  type: ServiceOrderEventType;
+  visitId: string;
+  createdAt: string;
+}
+
+/** DB-clock start cursor for the stream (12 CP-4). The worker's clock may skew
+ *  from Postgres's, and the cursor compares against `created_at` values the DB
+ *  stamps — so the DB provides the starting point too, in the same `::text`
+ *  precision the poll rows carry. */
+export const visitStreamCursorStart = async (db: Db): Promise<string> => {
+  const result = await db.execute<{ now: string }>(sql`select now()::text as now`);
+  const row = result.rows[0];
+  if (!row) throw new Error('visitStreamCursorStart returned no row');
+  return row.now;
+};
+
+/** The stream's poll read (12 CP-4): visit-lifecycle events at-or-after the
+ *  cursor, oldest first. Reads the order timeline — an append-only log every
+ *  lifecycle write already lands in — so no write path has to remember the
+ *  stream exists. Inclusive (`>=`) on purpose: events sharing the cursor's
+ *  exact timestamp (same-transaction rows share `now()`) come back again and
+ *  the caller drops the ones it already forwarded by id — exclusive `>` would
+ *  skip a same-microsecond row that surfaced one poll later. `refId` carries
+ *  the visit uuid on every type in the set (the successor's for
+ *  `visit_rescheduled`, which is the block that appears). */
+export const listVisitEventsSince = async (db: Db, since: string): Promise<VisitStreamEvent[]> => {
+  const rows = await db
+    .select({
+      id: serviceOrderEvents.id,
+      type: serviceOrderEvents.type,
+      refId: serviceOrderEvents.refId,
+      createdAt: sql<string>`${serviceOrderEvents.createdAt}::text`,
+    })
+    .from(serviceOrderEvents)
+    .where(
+      and(
+        sql`${serviceOrderEvents.createdAt} >= ${since}::timestamptz`,
+        inArray(serviceOrderEvents.type, [...VISIT_STREAM_EVENT_TYPES]),
+      ),
+    )
+    .orderBy(asc(serviceOrderEvents.createdAt));
+  return rows.flatMap((row) =>
+    row.refId
+      ? [{ id: row.id, type: row.type, visitId: row.refId, createdAt: row.createdAt }]
+      : [],
+  );
+};

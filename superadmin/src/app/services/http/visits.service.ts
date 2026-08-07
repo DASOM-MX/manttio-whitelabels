@@ -1,6 +1,8 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
+import { sseStream } from '../sse';
+import type { SseEvent } from '../sse';
 import type {
   AssignVisitRequest,
   CloseVisitRequest,
@@ -11,6 +13,7 @@ import type {
   RespondVisitRequest,
   Visit,
   VisitListQuery,
+  VisitStreamFrame,
 } from '../../data/dtos/visit';
 
 @Injectable({ providedIn: 'root' })
@@ -33,6 +36,14 @@ export class VisitsService {
 
   get(id: string): Observable<Visit> {
     return this.remote.get<Visit>(`/visits/${id}`);
+  }
+
+  /** Live lifecycle frames (12 CP-4) — the calendar page's subscription. Same
+   *  posture as the notifications stream: the fetch-based reader takes the
+   *  absolute URL and the Bearer token explicitly, because EventSource can't
+   *  set headers and the interceptor never sees this request. */
+  stream(token: string): Observable<SseEvent<VisitStreamFrame>> {
+    return sseStream<VisitStreamFrame>(this.remote.url('/visits/stream'), token);
   }
 
   create(body: CreateVisitRequest): Observable<Visit> {

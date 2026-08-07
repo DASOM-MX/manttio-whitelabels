@@ -13,12 +13,13 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { Store, select } from '@ngxs/store';
+import { Actions, Store, ofActionDispatched, select } from '@ngxs/store';
 import {
   AssignVisit,
   CorrectVisit,
   CreateVisit,
   RespondVisit,
+  VisitEventReceived,
 } from '../../../../state/visits/visits.actions';
 import { AuthState } from '../../../../state/auth/auth.state';
 import { hasRole } from '../../../guards/has-role.guard';
@@ -103,6 +104,7 @@ export class VisitDialog {
 
   private fb = inject(FormBuilder);
   private store = inject(Store);
+  private actions$ = inject(Actions);
   private messages = inject(MessageService);
   private confirmation = inject(ConfirmationService);
   private serviceOrders = inject(ServiceOrdersService);
@@ -237,6 +239,18 @@ export class VisitDialog {
       this.form.controls.equipmentIds.setValue([]);
       this.loadEquipment(customerId);
     });
+
+    // Live re-narrow (12 CP-4): a stream frame for the visit this dialog has
+    // open is the on-open re-read arriving on its own — apply it the same way,
+    // so office watches "Programada" flip to "En curso" without reopening.
+    this.actions$
+      .pipe(ofActionDispatched(VisitEventReceived), takeUntilDestroyed())
+      .subscribe(({ frame }: VisitEventReceived) => {
+        const target = this.target();
+        if (!this.dialogOpen() || !target || frame.visit.id !== target.id) return;
+        if (frame.visit.updatedAt === target.updatedAt) return;
+        this.applyVisit(frame.visit);
+      });
   }
 
   /** New visit; `order` pins the selection (order view's "Programar visita"). */
