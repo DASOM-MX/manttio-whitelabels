@@ -6,12 +6,14 @@ import type { Service } from '../../src/app/data/dtos/service';
 
 /** Tenant-style price list: none of the headers are canonical — the alias
  *  auto-match has to resolve every one ("P.V." → price, "Clave" → código…),
- *  and the cells carry labels ("Servicio", "IVA 16% (general)") and formatted
- *  money, not wire values. */
+ *  and the cells carry labels ("Servicio", "IVA 16% (general)"), bare unit
+ *  symbols ("TR" — how a price list actually spells a thermal unit) and
+ *  formatted money, not wire values. */
 const TENANT_CSV = [
   'Concepto,P.V.,Costo,Unidad,IVA,Clave',
   'Mantenimiento preventivo,"$1,500.00",800,Servicio,IVA 16% (general),MP-001',
   'Recarga de gas,950.5,,Hora,Exento,',
+  'Renta de chiller por carga térmica,"$2,000.00",,TR,IVA 16% (general),',
 ].join('\r\n');
 
 /** No unidad/IVA columns (the fixed-value defaults must cover them), one bad
@@ -55,7 +57,7 @@ test.describe('CSV import — /services/import (18 §6.3)', () => {
     await expect(page.getByRole('cell', { name: '$1,500.00' })).toBeVisible();
     await expect(page.getByText('todas listas para importar')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Importar 2 servicios' }).click();
+    await page.getByRole('button', { name: 'Importar 3 servicios' }).click();
     await expect(page.getByText('Catálogo importado')).toBeVisible();
     await expect(page).toHaveURL(/\/services$/);
 
@@ -77,6 +79,14 @@ test.describe('CSV import — /services/import (18 §6.3)', () => {
         price: 950.5,
         uom: 'hora',
         taxRate: 'exento',
+        isListableInWebsite: false,
+        isPriceVisibleInWebsite: false,
+      },
+      {
+        name: 'Renta de chiller por carga térmica',
+        price: 2000,
+        uom: 'tonelada_refrigeracion',
+        taxRate: 'iva_16',
         isListableInWebsite: false,
         isPriceVisibleInWebsite: false,
       },

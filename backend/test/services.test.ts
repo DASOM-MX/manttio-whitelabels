@@ -293,6 +293,9 @@ describe('PATCH /services/:id', () => {
       satProdServCode: '',
       satUnitCode: '',
     });
+    // Status first: an error body also lacks the SAT fields, so without this
+    // the toBeUndefined() pair would pass vacuously on a 400.
+    expect(cleared.status).toBe(200);
     const withoutKeys = await json<Service>(cleared);
     expect(withoutKeys.satProdServCode).toBeUndefined();
     expect(withoutKeys.satUnitCode).toBeUndefined();

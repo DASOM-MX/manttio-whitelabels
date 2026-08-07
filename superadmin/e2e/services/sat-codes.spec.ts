@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { mockServicesApi, selectOption, signIn } from '../support/superadmin';
-import { ServiceTaxRate, ServiceUom, type Service } from '../../src/app/data/dtos/service';
+import {
+  ServiceTaxRate,
+  ServiceUom,
+  type SaveServiceRequest,
+  type Service,
+} from '../../src/app/data/dtos/service';
 
 /** A service with no SAT keys — the case where hydration must NOT invent one. */
 const NO_KEYS: Service = {
@@ -67,9 +72,7 @@ test.describe('SAT code fields (18 §6.4)', () => {
     await expect(page.locator('#svc-sat-unit')).toHaveValue('E48');
   });
 
-  test('new service: keys reach the create payload, and clearing sends empty strings', async ({
-    page,
-  }) => {
+  test('new service: keys reach the create payload', async ({ page }) => {
     const api = await mockServicesApi(page);
 
     await page.goto('/services/new');
@@ -86,5 +89,30 @@ test.describe('SAT code fields (18 §6.4)', () => {
       satProdServCode: '72101500',
       satUnitCode: 'HUR',
     });
+  });
+
+  test('clearing the keys on edit sends empty strings, never omits them', async ({ page }) => {
+    await mockServicesApi(page, [WITH_KEYS]);
+    // The shared mock has no PATCH branch — register one on top (later
+    // routes win; everything else falls back to the mock).
+    let patchBody: Partial<SaveServiceRequest> | null = null;
+    await page.route(/\/services\/svc-keys$/, (route) => {
+      if (route.request().method() !== 'PATCH') return route.fallback();
+      patchBody = route.request().postDataJSON() as Partial<SaveServiceRequest>;
+      return route.fulfill({
+        json: { ...WITH_KEYS, satProdServCode: undefined, satUnitCode: undefined },
+      });
+    });
+
+    await page.goto('/services/svc-keys');
+    await page.getByRole('button', { name: 'Editar' }).click();
+    await page.locator('#svc-sat-prod').fill('');
+    await page.locator('#svc-sat-unit').fill('');
+    await page.getByRole('button', { name: 'Guardar' }).click();
+    await expect(page.getByText('Servicio actualizado')).toBeVisible();
+
+    // '' — not an omitted key. Omitting would make the server keep the old
+    // value while the toast claims success (the internalServiceCode bug).
+    expect(patchBody!).toMatchObject({ satProdServCode: '', satUnitCode: '' });
   });
 });

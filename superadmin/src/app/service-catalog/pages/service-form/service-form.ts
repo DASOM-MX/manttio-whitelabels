@@ -149,7 +149,7 @@ export class ServiceForm implements HasPendingChanges {
     Object.entries(SERVICE_TAX_RATE_LABELS) as [ServiceTaxRate, string][]
   ).map(([value, label]) => ({ label, value }));
 
-  /** Pre-grouped by dimension (PrimeNG `SelectItemGroup[]`) — 19 units read as
+  /** Pre-grouped by dimension (PrimeNG `SelectItemGroup[]`) — 30 units read as
    *  a wall in a flat list. */
   protected uomGroups = SERVICE_UOM_GROUPS;
 
@@ -286,13 +286,13 @@ export class ServiceForm implements HasPendingChanges {
   /** Suggest the SAT unit key when the owner picks a unidad (18 §6.4).
    *  Bound to the select's `onChange`, which only fires on a real pick — a
    *  programmatic `reset()` during hydration must never invent a key for a
-   *  service that doesn't have one. Never overwrites a typed value, and
-   *  several units have no unambiguous code, so the field may stay empty. */
+   *  service that doesn't have one. Never overwrites a typed value; the map
+   *  is total (units the SAT has no entry for ride the E48 collapse), so an
+   *  empty field always gets a suggestion. */
   protected onUomSelected(): void {
     const control = this.form.controls.satUnitCode;
     if (control.value.trim()) return;
-    const suggested = SERVICE_UOM_SAT_UNIT_CODES[this.form.controls.uom.value];
-    if (suggested) control.setValue(suggested);
+    control.setValue(SERVICE_UOM_SAT_UNIT_CODES[this.form.controls.uom.value]);
   }
 
   protected startEdit(): void {

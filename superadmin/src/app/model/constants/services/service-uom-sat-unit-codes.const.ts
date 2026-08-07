@@ -50,12 +50,14 @@ export const SERVICE_UOM_SAT_UNIT_CODES: Record<ServiceUom, string> = {
   [ServiceUom.Kilogramo]: 'KGM',
   [ServiceUom.Onza]: 'ONZ', // Onza (avoirdupois)
   // Energía. The catalog splits its thermal units between the *tabla
-  // internacional* and *termoquímica* scales; we take the international ones
-  // (BTU / N58) — the termoquímica pair (J47 / N59) differs by ~0.03%, which
-  // no price list cares about, but swap them if an accountant asks.
+  // internacional* and *termoquímica* scales; we take the international pair
+  // (BTU / N58) — the termoquímica one (J47 / N59) differs by ~0.03%, which
+  // no price list cares about, but swap them if an accountant asks. B0 "Btu
+  // por pie cúbico" also exists (scale-unspecified, dropped upstream by the
+  // UNECE, retained by the SAT) — N58 is the one that names our scale.
   [ServiceUom.Btu]: 'BTU', // Unidad térmica británica (tabla internacional)
-  [ServiceUom.MillonBtu]: 'BZ', // Millones de BTUs
-  [ServiceUom.BtuPorPieCubico]: 'B0', // Btu por pie cúbico
+  [ServiceUom.MillonBtu]: 'BZ', // Millones de BTUs (not M9 — Btu per 1000 ft³)
+  [ServiceUom.BtuPorPieCubico]: 'N58', // BtuIT por pie cúbico
   // No `tonelada de refrigeración` exists in c_ClaveUnidad — a catalog search
   // for "refrigeraci" returns nothing — so a TR line invoices as a service
   // unit like any other. The UI still says TR, which is what the client reads.
