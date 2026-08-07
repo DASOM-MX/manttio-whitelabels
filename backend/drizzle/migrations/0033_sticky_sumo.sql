@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS "service_order_events_created_idx" ON "service_order_events" USING btree ("created_at");

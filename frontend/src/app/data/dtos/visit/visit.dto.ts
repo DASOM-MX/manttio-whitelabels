@@ -1,9 +1,19 @@
 import type { VisitCloseReason, VisitStatus } from '../../types/visit';
 
-/** One unit of the client's equipment linked to the visit. */
+/** One unit of the client's equipment linked to the visit. The nameplate
+ *  fields arrive on the single-visit read only (the list keeps names) — the
+ *  technician's visual reference for which unit the job is about. */
 export interface VisitEquipmentLink {
   id: string;
   name?: string;
+  brand?: string;
+  model?: string;
+  serialNumber?: string;
+  kind?: string;
+  capacity?: string;
+  location?: string;
+  /** Up to 3 CDN photo URLs (nameplate / install shot). */
+  photos?: string[];
 }
 
 /** Mirror of the backend's `VisitDTO` (modules/visits, 12 §1). Timestamps are

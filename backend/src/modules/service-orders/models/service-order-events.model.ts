@@ -46,5 +46,11 @@ export const serviceOrderEvents = pgTable(
     // Both read shapes — the paged newest-first UI feed and the CP-5 handoff's
     // full oldest-first pass — scan this one index in opposite directions.
     index('service_order_events_order_idx').on(table.serviceOrderId, table.createdAt),
+    // The visit stream's poll (12 CP-4) scans by time alone — created_at >
+    // cursor, filtered to the visit event types. Deliberately a plain index,
+    // not the plan's partial one: a partial predicate would have to mirror the
+    // stream's type list, and a type added to one but not the other would
+    // silently stop using the index. The cursor keeps the scanned slice tiny.
+    index('service_order_events_created_idx').on(table.createdAt),
   ],
 );

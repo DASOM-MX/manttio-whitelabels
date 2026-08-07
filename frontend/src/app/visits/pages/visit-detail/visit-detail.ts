@@ -4,6 +4,7 @@ import { DomSanitizer, type SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Actions, Store, ofActionErrored, ofActionSuccessful, select } from '@ngxs/store';
 import { MessageService } from 'primeng/api';
+import { CarouselModule } from 'primeng/carousel';
 import { TagModule } from 'primeng/tag';
 import { AppState } from '../../../../state/app/app.state';
 import { VisitsState } from '../../../../state/visits/visits.state';
@@ -20,11 +21,12 @@ import {
 } from '../../../data/constants';
 import { toVisitVM } from '../../visit-vm';
 import { CloseVisitDialog } from '../../components/close-visit-dialog/close-visit-dialog';
+import type { VisitEquipmentLink } from '../../../data/dtos/visit/visit.dto';
 
 @Component({
   selector: 'app-visit-detail',
   standalone: true,
-  imports: [TagModule, VisitDayPipe, VisitTimePipe, CloseVisitDialog],
+  imports: [CarouselModule, TagModule, VisitDayPipe, VisitTimePipe, CloseVisitDialog],
   templateUrl: './visit-detail.html',
 })
 export class VisitDetail {
@@ -152,5 +154,11 @@ export class VisitDetail {
    *  the Maps query string. */
   encode(value: string): string {
     return encodeURIComponent(value);
+  }
+
+  /** "Chiller · Carrier · 30XA-080 · 80 TR" — the nameplate in one line; every
+   *  field is optional, so absent ones just drop out of the join. */
+  unitSpecs(unit: VisitEquipmentLink): string {
+    return [unit.kind, unit.brand, unit.model, unit.capacity].filter(Boolean).join(' · ');
   }
 }
