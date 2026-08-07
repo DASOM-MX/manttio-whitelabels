@@ -24,6 +24,7 @@ import { AuthState } from '../../../../state/auth/auth.state';
 import { hasRole } from '../../../guards/has-role.guard';
 import { ServiceOrdersService } from '../../../services/http/service-orders.service';
 import { EquipmentService } from '../../../services/http/equipment.service';
+import { VisitsService } from '../../../services/http/visits.service';
 import { UsersService } from '../../../services/http/users.service';
 import { ServiceOrderStatus } from '../../../model/enums/service-order/service-order-status.enum';
 import { VisitStatus } from '../../../model/enums/visit/visit-status.enum';
@@ -106,6 +107,7 @@ export class VisitDialog {
   private confirmation = inject(ConfirmationService);
   private serviceOrders = inject(ServiceOrdersService);
   private equipmentApi = inject(EquipmentService);
+  private visitsApi = inject(VisitsService);
 
   private me = select(AuthState.me);
   protected isStaff = computed(() => hasRole(this.me(), ['owner', 'admin', 'office']));
@@ -262,8 +264,27 @@ export class VisitDialog {
     this.dialogOpen.set(true);
   }
 
-  /** Existing visit — the form narrows to whatever its status still allows. */
+  /** Existing visit — the form narrows to whatever its status still allows.
+   *  The row handed in comes from the parent's window read, which a field-app
+   *  sync (Iniciar/Terminar) does not touch — so render it for an instant
+   *  open, then re-read the single visit and re-narrow if the server knows
+   *  better. */
   openVisit(visit: Visit): void {
+    this.applyVisit(visit);
+    this.visitsApi.get(visit.id).subscribe({
+      next: (fresh) => {
+        if (!this.dialogOpen() || this.target()?.id !== fresh.id) return;
+        if (fresh.updatedAt === visit.updatedAt) return;
+        this.applyVisit(fresh);
+        // The stale row is the parent's too — let it refetch the window.
+        this.changed.emit();
+      },
+      // Unreachable read: keep showing the row we were handed.
+      error: () => undefined,
+    });
+  }
+
+  private applyVisit(visit: Visit): void {
     this.target.set(visit);
     this.lockedOrder.set(null);
     this.equipmentOptions.set([]);
