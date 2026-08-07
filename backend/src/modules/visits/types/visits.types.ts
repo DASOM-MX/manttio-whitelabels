@@ -68,6 +68,18 @@ export interface VisitWithMeta {
 export interface VisitEquipmentLink {
   id: string;
   name: string | null;
+  /** Unit nameplate for the technician's visual reference (owner ask,
+   *  2026-08-07) — populated by the SINGLE-visit read only. The range read
+   *  keeps name-only links: a week of calendar chips needs no nameplates,
+   *  and the field app reads the detail before it needs the details. */
+  brand?: string;
+  model?: string;
+  serialNumber?: string;
+  kind?: string;
+  capacity?: string;
+  location?: string;
+  /** R2 CDN URLs (max 3) — the visual reference itself. */
+  photos?: string[];
 }
 
 /** What the visits API returns (12 §1). Timestamps are ISO strings; nullable

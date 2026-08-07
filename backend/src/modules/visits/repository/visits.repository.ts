@@ -157,13 +157,36 @@ export const findSuccessorId = async (
 export const equipmentForVisit = async (
   db: DbOrTx,
   visitId: string,
-): Promise<VisitEquipmentLink[]> =>
-  db
-    .select({ id: equipment.id, name: equipment.name })
+): Promise<VisitEquipmentLink[]> => {
+  const rows = await db
+    .select({
+      id: equipment.id,
+      name: equipment.name,
+      brand: equipment.brand,
+      model: equipment.model,
+      serialNumber: equipment.serialNumber,
+      kind: equipment.kind,
+      capacity: equipment.capacity,
+      location: equipment.location,
+      photos: equipment.photos,
+    })
     .from(visitEquipment)
     .innerJoin(equipment, eq(equipment.id, visitEquipment.equipmentId))
     .where(eq(visitEquipment.visitId, visitId))
     .orderBy(asc(equipment.name));
+  // Nulls collapse to absent keys, per the DTO convention.
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    brand: row.brand ?? undefined,
+    model: row.model ?? undefined,
+    serialNumber: row.serialNumber ?? undefined,
+    kind: row.kind ?? undefined,
+    capacity: row.capacity ?? undefined,
+    location: row.location ?? undefined,
+    photos: row.photos.length ? row.photos : undefined,
+  }));
+};
 
 /** The same links for a whole page of visits, in **one** query, grouped by
  *  visit. The list read is unpaginated by design (a calendar viewport, or a code
