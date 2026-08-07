@@ -590,6 +590,33 @@ describe('POST /services/import (18 §6.3)', () => {
     const { token: officeToken } = await seedOfficeAndLogin();
     expect((await importRows(officeToken, [serviceBody()])).status).toBe(403);
   });
+
+  test('the 500-row ceiling is a 400 before any row validates', async () => {
+    const { token } = await seedOwnerAndLogin();
+    // Cheap stubs on purpose: the envelope cap must reject the request before
+    // per-row validation (or the DB) ever sees it.
+    const rows = Array.from({ length: 501 }, () => ({}));
+    expect((await importRows(token, rows)).status).toBe(400);
+  });
+
+  test('a soft-deleted service releases its código to the import', async () => {
+    // The dup pre-check filters tombstones and the unique index is partial
+    // (`deleted_at is null`) — this pins that the two agree, so re-importing a
+    // retired price list never trips the race-fallback 422.
+    const code = uniqueServiceCode();
+    const retired = await seedService({ internalServiceCode: code });
+    const { token } = await seedOwnerAndLogin();
+    const del = await request(`/services/${retired.id}`, {
+      method: 'DELETE',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ deleteComment: 'lista retirada' }),
+    });
+    expect(del.status).toBe(200);
+
+    const res = await importRows(token, [serviceBody({ internalServiceCode: code })]);
+    expect(res.status).toBe(201);
+    expect(await json<{ imported: number }>(res)).toEqual({ imported: 1 });
+  });
 });
 
 describe('GET /services/:id/timeline (18 §6.1)', () => {

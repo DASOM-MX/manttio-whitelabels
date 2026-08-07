@@ -74,7 +74,7 @@
       </div>
       @if (missingRequired().length > 0) {
         <p class="callout callout--warn mt-4" role="alert">
-          Falta asignar columna para: {{ missingRequired().join(', ') }}.
+          Falta asignar columna para: {{ missingRequiredText() }}.
         </p>
       }
     </section>
@@ -129,6 +129,12 @@
           <p class="callout callout--warn mt-4" role="alert">
             No se importa nada mientras haya errores — corrige el archivo y súbelo de
             nuevo, o ajusta las columnas.
+          </p>
+        }
+        @if (tooManyRows()) {
+          <p class="callout callout--warn mt-4" role="alert">
+            El archivo tiene {{ rowCount() }} filas y el máximo por importación es
+            {{ maxRows }}. Divide la lista en archivos más pequeños.
           </p>
         }
         @if (serverErrorRows().length > 0) {

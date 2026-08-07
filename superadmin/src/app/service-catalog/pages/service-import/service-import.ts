@@ -11,6 +11,7 @@ import { ServicesState } from '../../../../state/services/services.state';
 import { ImportServices, LoadServices } from '../../../../state/services/services.actions';
 import { hasRole } from '../../../guards/has-role.guard';
 import { SERVICE_IMPORT_FIELDS } from '../../../model/constants/services/service-import-fields.const';
+import { SERVICE_IMPORT_MAX_ROWS } from '../../../model/constants/services/service-import-max-rows.const';
 import { SERVICE_TAX_RATE_LABELS } from '../../../model/constants/services/service-tax-rate-labels.const';
 import { SERVICE_UOM_LABELS } from '../../../model/constants/services/service-uom-labels.const';
 import { MoneyPipe } from '../../../pipes/money.pipe';
@@ -103,6 +104,7 @@ export class ServiceImport implements HasPendingChanges {
     const missing = unmappedRequiredFields(mapping);
     return SERVICE_IMPORT_FIELDS.filter((s) => missing.includes(s.field)).map((s) => s.label);
   });
+  protected missingRequiredText = computed(() => this.missingRequired().join(', '));
 
   protected preview = computed(() => {
     const parsed = this.parsed();
@@ -121,21 +123,29 @@ export class ServiceImport implements HasPendingChanges {
   protected errorCount = computed(() => this.preview()?.errorCount ?? 0);
   protected rowCount = computed(() => this.preview()?.rows.length ?? 0);
 
+  /** Client mirror of the backend's 500-row ceiling — blocks with a callout
+   *  instead of letting the server answer a raw envelope 400. */
+  protected readonly maxRows = SERVICE_IMPORT_MAX_ROWS;
+  protected tooManyRows = computed(() => this.rowCount() > this.maxRows);
+
   protected canImport = computed(
     () =>
       this.rowCount() > 0 &&
       this.errorCount() === 0 &&
       this.missingRequired().length === 0 &&
+      !this.tooManyRows() &&
       !this.busy(),
   );
 
-  protected serverErrorRows = computed(() =>
-    this.serverErrors().map((err) => ({
-      // Same numbering the preview shows: header is file line 1.
-      line: err.index >= 0 ? err.index + 2 : null,
+  protected serverErrorRows = computed(() => {
+    // The submitted array is the preview in order, so the 422's 0-based index
+    // maps to that preview row's own file line (blank rows don't shift it).
+    const rows = this.preview()?.rows ?? [];
+    return this.serverErrors().map((err) => ({
+      line: err.index >= 0 ? (rows[err.index]?.line ?? null) : null,
       message: err.message,
-    })),
-  );
+    }));
+  });
 
   private static readonly UOM_FIXED_ITEMS: MapperSelectItem[] = Object.entries(
     SERVICE_UOM_LABELS,
@@ -211,7 +221,7 @@ export class ServiceImport implements HasPendingChanges {
   private sampleFor(header: string, parsed: ParsedCsv): string {
     const index = parsed.headers.indexOf(header);
     const cell =
-      parsed.rows.map((row) => row[index]?.trim() ?? '').find((value) => value !== '') ?? '';
+      parsed.rows.map((row) => row.cells[index]?.trim() ?? '').find((value) => value !== '') ?? '';
     return cell.length > 24 ? `${cell.slice(0, 24)}…` : cell;
   }
 
@@ -250,6 +260,9 @@ export class ServiceImport implements HasPendingChanges {
     if (encoded === 'omit') next = { kind: 'omit' };
     else if (encoded.startsWith('fixed:')) next = { kind: 'fixed', value: encoded.slice(6) };
     else next = { kind: 'column', header: encoded.slice(4) };
+    // A 422's row messages describe the mapping they were computed under —
+    // stale the moment it changes.
+    this.serverErrors.set([]);
     this.mapping.set({ ...mapping, [field]: next });
   }
 

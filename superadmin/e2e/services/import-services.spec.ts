@@ -1,5 +1,8 @@
-import { expect, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+import { expect, test, type Page } from '@playwright/test';
+import { ServiceTaxRate, ServiceUom } from '../../src/app/data/dtos/service';
 import { mockServicesApi, signIn } from '../support/superadmin';
+import type { Service } from '../../src/app/data/dtos/service';
 
 /** Tenant-style price list: none of the headers are canonical — the alias
  *  auto-match has to resolve every one ("P.V." → price, "Clave" → código…),
@@ -19,10 +22,7 @@ const BROKEN_CSV = [
   'Servicio B,abc,X-1',
 ].join('\r\n');
 
-const uploadCsv = async (
-  page: import('@playwright/test').Page,
-  content: string,
-): Promise<void> => {
+const uploadCsv = async (page: Page, content: string): Promise<void> => {
   await page.locator('input[type=file]').setInputFiles({
     name: 'lista-de-precios.csv',
     mimeType: 'text/csv',
@@ -99,5 +99,98 @@ test.describe('CSV import — /services/import (18 §6.3)', () => {
     // The valid row still previews fully — uom/IVA came from the fixed
     // defaults, not from any column.
     await expect(page.getByRole('cell', { name: 'Servicio A' })).toBeVisible();
+  });
+
+  test('an exported catalog re-imports with every column auto-matched', async ({ page }) => {
+    // Full-fat + minimal rows: accents and a comma in the name exercise the
+    // CSV quoting, wire-enum cells and fixed-2 money exercise the canonical
+    // round trip the export promises.
+    const now = new Date().toISOString();
+    const seed: Service[] = [
+      {
+        id: 'svc-1',
+        name: 'Instalación de chiller, arranque y pruebas',
+        price: '18500.00',
+        cost: '9250.50',
+        uom: ServiceUom.Servicio,
+        taxRate: ServiceTaxRate.Iva16,
+        internalServiceCode: 'INST-01',
+        description: 'Incluye pruebas de presión',
+        websiteDescription: 'Instalación profesional',
+        satProdServCode: '80101500',
+        satUnitCode: 'E48',
+        isListableInWebsite: true,
+        isPriceVisibleInWebsite: true,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'svc-2',
+        name: 'Recarga de gas R-410A',
+        price: '950.00',
+        uom: ServiceUom.Hora,
+        taxRate: ServiceTaxRate.Exento,
+        isListableInWebsite: false,
+        isPriceVisibleInWebsite: false,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ];
+    await mockServicesApi(page, seed);
+
+    await page.goto('/services');
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: 'Exportar CSV' }).click(),
+    ]);
+    const csv = await readFile(await download.path(), 'utf8');
+
+    // Re-import into an *empty* catalog (a fresh mock shadows the seeded
+    // routes — later registrations win), or the exported códigos would trip
+    // the dup-vs-catalog check against their own source rows.
+    await mockServicesApi(page);
+    let importBody: { rows: unknown[] } | null = null;
+    await page.route(/\/services\/import$/, (route) => {
+      if (route.request().method() !== 'POST') return route.fallback();
+      importBody = route.request().postDataJSON() as { rows: unknown[] };
+      return route.fulfill({ status: 201, json: { imported: importBody.rows.length } });
+    });
+
+    await page.goto('/services/import');
+    await uploadCsv(page, csv);
+
+    // Every column auto-matched: no missing-required callout, zero errors.
+    await expect(page.getByText('todas listas para importar')).toBeVisible();
+    await expect(page.getByText('Falta asignar columna')).not.toBeVisible();
+
+    await page.getByRole('button', { name: 'Importar 2 servicios' }).click();
+    await expect(page.getByText('Catálogo importado')).toBeVisible();
+
+    // The wire rows are exactly what a form create would send — the export's
+    // fixed-2 strings and booleans came back as numbers and flags, untouched.
+    expect(importBody!.rows).toEqual([
+      {
+        name: 'Instalación de chiller, arranque y pruebas',
+        price: 18500,
+        cost: 9250.5,
+        uom: 'servicio',
+        taxRate: 'iva_16',
+        internalServiceCode: 'INST-01',
+        description: 'Incluye pruebas de presión',
+        websiteDescription: 'Instalación profesional',
+        satProdServCode: '80101500',
+        satUnitCode: 'E48',
+        isListableInWebsite: true,
+        isPriceVisibleInWebsite: true,
+      },
+      {
+        name: 'Recarga de gas R-410A',
+        price: 950,
+        uom: 'hora',
+        taxRate: 'exento',
+        isListableInWebsite: false,
+        isPriceVisibleInWebsite: false,
+      },
+    ]);
   });
 });

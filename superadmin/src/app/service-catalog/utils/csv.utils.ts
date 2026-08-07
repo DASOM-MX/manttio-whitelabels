@@ -2,11 +2,21 @@
  *  are Excel "save as CSV" price lists, and a parsing dependency for quotes +
  *  CRLF handling wouldn't pull its weight. UTF-8 only, per the plan. */
 
+export interface CsvRecord {
+  /** 1-based record ordinal in the source file — blank records counted, so it
+   *  is exactly the row number Excel shows (embedded newlines in quoted cells
+   *  don't advance it, same as Excel). */
+  line: number;
+  cells: string[];
+}
+
 export interface ParsedCsv {
   headers: string[];
-  /** Data records, in file order — header row excluded, fully-empty lines
-   *  dropped. Cells are raw strings; interpretation is the mapper's job. */
-  rows: string[][];
+  /** Data records, in file order — header record excluded, fully-empty
+   *  records dropped (their ordinals are *not* reused: a price list's blank
+   *  section separators must never shift the line numbers the owner sees).
+   *  Cells are raw strings; interpretation is the mapper's job. */
+  rows: CsvRecord[];
 }
 
 /** Quote-aware split: `""` escapes a quote inside a quoted cell, CR/LF inside
@@ -53,9 +63,11 @@ export const parseCsv = (text: string): ParsedCsv => {
   }
   if (cell !== '' || record.length > 0) endRecord();
 
-  const nonEmpty = records.filter((r) => r.some((c) => c.trim() !== ''));
-  const [headers = [], ...rows] = nonEmpty;
-  return { headers: headers.map((h) => h.trim()), rows };
+  const nonEmpty = records
+    .map((cells, i) => ({ line: i + 1, cells }))
+    .filter((r) => r.cells.some((c) => c.trim() !== ''));
+  const [header, ...rows] = nonEmpty;
+  return { headers: (header?.cells ?? []).map((h) => h.trim()), rows };
 };
 
 const escapeCell = (value: string): string =>

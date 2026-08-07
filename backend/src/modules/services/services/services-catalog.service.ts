@@ -338,7 +338,8 @@ export const importServices = async (
     throw new ServiceImportError(errors.sort((a, b) => a.index - b.index));
   }
 
-  const values = rawRows.map((_, index) => toNewService(normalizeWebsiteFlags(parsed[index]!, false)));
+  // Zero errors ⇒ every index parsed, so `parsed` is dense here.
+  const values = parsed.map((row) => toNewService(normalizeWebsiteFlags(row, false)));
 
   try {
     const rows = await insertServicesWithEvents(db, values, (serviceId) => ({

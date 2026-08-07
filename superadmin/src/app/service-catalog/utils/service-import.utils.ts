@@ -77,12 +77,10 @@ export const autoMatchMapping = (headers: string[]): ServiceImportMapping => {
 /** `name` and `price` must read from a column (18 §6.3) — the fields still
  *  waiting for a pick, in mapper order. */
 export const unmappedRequiredFields = (mapping: ServiceImportMapping): ServiceImportField[] =>
-  SERVICE_IMPORT_FIELDS.filter(
-    (spec) =>
-      spec.requiresColumn &&
-      (mapping[spec.field].kind !== 'column' ||
-        (mapping[spec.field] as { header: string }).header === ''),
-  ).map((spec) => spec.field);
+  SERVICE_IMPORT_FIELDS.filter((spec) => {
+    const current = mapping[spec.field];
+    return spec.requiresColumn && (current.kind !== 'column' || current.header === '');
+  }).map((spec) => spec.field);
 
 /** Money cells as tenants type them: `$1,500.00`, `1500`, ` 1,500 `. */
 const parseMoney = (raw: string): number | null => {
@@ -114,10 +112,10 @@ export const resolveServiceImport = (
   existingCodes: ReadonlySet<string>,
 ): ServiceImportPreview => {
   const seenCodes = new Set<string>();
-  const rows: ServiceImportPreviewRow[] = parsed.rows.map((cells, i) => {
+  const rows: ServiceImportPreviewRow[] = parsed.rows.map((record) => {
     const errors: string[] = [];
     const raw = (field: ServiceImportField): string =>
-      cellFor(mapping[field], parsed.headers, cells).trim();
+      cellFor(mapping[field], parsed.headers, record.cells).trim();
 
     const name = raw('name');
     if (!name) errors.push('Nombre vacío');
@@ -178,9 +176,9 @@ export const resolveServiceImport = (
           isPriceVisibleInWebsite: isListable && isPriceVisible,
         };
 
-    // Header is line 1, so the first data row reads as line 2 — the number
-    // the owner sees in Excel.
-    return { line: i + 2, row, errors };
+    // The record's own source ordinal — blank separator rows in the file
+    // don't shift it, so it is the number the owner sees in Excel.
+    return { line: record.line, row, errors };
   });
 
   return { rows, errorCount: rows.filter((r) => r.errors.length > 0).length };

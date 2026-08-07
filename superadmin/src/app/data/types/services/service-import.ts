@@ -33,8 +33,9 @@ export interface ServiceImportRow {
 }
 
 export interface ServiceImportPreviewRow {
-  /** 1-based line in the file — the header is line 1, so data starts at 2.
-   *  This is what the owner sees, and what backend 422 indexes map back to. */
+  /** The record's 1-based ordinal in the source file (`CsvRecord.line`) —
+   *  blank rows counted, so it matches the row number Excel shows. This is
+   *  what the owner sees, and what backend 422 indexes map back to. */
   line: number;
   /** The canonical payload row, or null while `errors` is non-empty. */
   row: ServiceImportRow | null;
