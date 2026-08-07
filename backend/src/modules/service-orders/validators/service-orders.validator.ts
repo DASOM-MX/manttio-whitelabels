@@ -101,7 +101,9 @@ export const listServiceOrdersQuerySchema = z.object({
   /** Folio search — a prefix match on `OS-…`. */
   q: z.string().trim().optional(),
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(50).default(10),
+  // 100, not 50: the visit dialog loads every open order into its p-select in
+  // one read (same posture as the users/equipment rosters).
+  limit: z.coerce.number().int().min(1).max(100).default(10),
 });
 
 // Paged timeline read (decided 2026-07-27) — same shape as the customer
