@@ -1,7 +1,7 @@
 # 12 — Calendar (scheduled visits)
 
-> **Status:** in-progress (CP-1/1b/2/3 built — PRs #110/#127/#128/#129 + QA fixes #130; manual passes for CP-2/CP-3 still open; CP-4 live-calendar SSE planned 2026-08-06) · **Depends on:** 02 (CP-3), 05 (tech roster), 07 (CP-1), 19 (visits are order-bound)
-> **Owner:** — · **Last updated:** 2026-08-06
+> **Status:** in-progress (CP-1/1b/2/3/4/4b built — PRs #110/#127/#128/#129/#132 + QA fixes #130; manual passes for CP-2/CP-3 + CP-4's network-kill re-sync still open; next: CP-5 Google Calendar, blocked on Google verification) · **Depends on:** 02 (CP-3), 05 (tech roster), 07 (CP-1), 19 (visits are order-bound)
+> **Owner:** — · **Last updated:** 2026-08-07
 
 Team scheduling: who goes where, when. Owns the **`ScheduledVisit`** entity (order-bound,
 19 §1) and the calendar views. **Immutable-record model (decided 2026-07-23):** office
@@ -459,7 +459,7 @@ then the two consumers independently. The calendar must not wait on the field ap
 - [ ] Manual pass: airplane mode → Iniciar → Terminar → reconnect → both land with the
       *field* times, not the sync times
 
-### CP-4 — Live calendar: visit lifecycle events over SSE (planned 2026-08-06)
+### CP-4 — Live calendar: visit lifecycle events over SSE — [x] built (PR #132)
 
 The field app writes what happens — Iniciar / Terminar / Cerrar sync in — but the
 calendar only reads its window when something makes it, so office watches a static
@@ -497,26 +497,47 @@ Everything rides existing rails — no new infrastructure:
   re-narrows when a frame matches its target; the on-open re-read (#130) stays as
   catch-up for the subscription gap.
 
-- [ ] Backend: `GET /visits/stream` + stream service (cursor poll over
+- [x] Backend: `GET /visits/stream` + stream service (cursor poll over
       `service_order_events` filtered to the visit event types, batch visit read,
-      heartbeat) + timing constants + a partial index on
-      `service_order_events(created_at)` for the visit set — the existing index
-      leads with `service_order_id` and cannot serve a time-only scan
-- [ ] Superadmin: calendar-page subscription (connect on enter, abort on leave) +
+      heartbeat) + timing constants + index on `service_order_events(created_at)`
+      — shipped **plain, not partial** (build call, #132): a partial predicate
+      would have to mirror the stream's type list, and a type added to one but
+      not the other would silently stop using the index. The cursor rides the
+      DB's `::text` timestamp with id-dedupe — a JS `Date` truncates Postgres
+      microseconds and re-delivers the newest event forever (the notifications
+      stream carries the same latent bug, masked by its by-id upsert — open
+      follow-up)
+- [x] Superadmin: calendar-page subscription (connect on enter, abort on leave) +
       `VisitEventReceived` upsert in `VisitsState` + dialog re-narrow on matching
       frame + reconnect backoff that re-reads the window
 - [ ] Manual pass: two browsers (office calendar + field-app tech) — Iniciar,
       Terminar and Cerrar each move the block and any open dialog within a poll
-      tick, no reload; kill the network mid-stream → reconnect re-syncs the window
-- Later consumers, out of v1: order-view visits card and the dashboard
-  "today's visits" card (CP-4b) read the same stream
+      tick, no reload; kill the network mid-stream → reconnect re-syncs the
+      window. **Browser-verified 2026-08-07** (create appears live; open dialog
+      flips Programada → En curso on Iniciar); the network-kill re-sync is what
+      remains
+- Later consumers, out of v1: order-view visits card reads the same stream (the
+  dashboard card landed with CP-4b)
 
-### CP-4b — Polish
-- [ ] Status colors incl. `in_progress`; closed muted/strike; reschedule-chain link;
-      dark-mode audit of the ghost/solid block pair
-- [ ] Dashboard "today's visits" card
-- [ ] Empty states ("nothing scheduled this week"); estimate-accuracy read (planned vs
-      actual across a range) — the first payoff of the actuals
+### CP-4b — Polish — [x] built (2026-08-07)
+- [x] Status colors incl. `in_progress` (amber = live), closed muted/strike — already
+      shipped with CP-2's `VISIT_BLOCK_CLASSES`; **reschedule-chain link** landed
+      here: both hops navigable in the visit dialog (predecessor "verla" /
+      successor "ver la visita nueva"), each a single-visit read that swaps the
+      dialog's target instead of stacking dialogs. Dark-mode ghost/solid audited
+- [x] Dashboard "today's visits" card — first card into the 02 §4 slot grid
+      (`calendar/components/today-visits-card/`); rides the SAME LoadVisits +
+      ListenVisits machinery as the calendar page, so it is live off the CP-4
+      stream with zero new plumbing (safe: dashboard and calendar are separate
+      routes, never mounted together)
+- [x] Estimate-accuracy read (planned vs actual, 30 days) — the card's footer:
+      average signed variance across measured completed visits, read directly
+      from the API (routing it through `VisitsState` would clobber the today
+      window the same card renders)
+- ~~Empty states ("nothing scheduled this week")~~ — superseded by CP-2's
+      deliberate no-period-empty-state call (empty columns say it better; the
+      phone agenda keeps its per-day message). The dashboard card carries its
+      own "Sin visitas programadas para hoy"
 
 ### CP-5 — Google Calendar (§7; blocked on backend integration endpoints + Google
 ### verification)
