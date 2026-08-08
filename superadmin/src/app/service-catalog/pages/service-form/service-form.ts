@@ -33,6 +33,7 @@ import {
 import { hasRole } from '../../../guards/has-role.guard';
 import { SERVICE_TAX_RATE_LABELS } from '../../../model/constants/services/service-tax-rate-labels.const';
 import { SERVICE_UOM_GROUPS } from '../../../model/constants/services/service-uom-groups.const';
+import { SERVICE_UOM_SAT_UNIT_CODES } from '../../../model/constants/services/service-uom-sat-unit-codes.const';
 import { MoneyPipe } from '../../../pipes/money.pipe';
 import { RelativeTimePipe } from '../../../pipes/relative-time.pipe';
 import {
@@ -148,7 +149,7 @@ export class ServiceForm implements HasPendingChanges {
     Object.entries(SERVICE_TAX_RATE_LABELS) as [ServiceTaxRate, string][]
   ).map(([value, label]) => ({ label, value }));
 
-  /** Pre-grouped by dimension (PrimeNG `SelectItemGroup[]`) — 19 units read as
+  /** Pre-grouped by dimension (PrimeNG `SelectItemGroup[]`) — 30 units read as
    *  a wall in a flat list. */
   protected uomGroups = SERVICE_UOM_GROUPS;
 
@@ -160,6 +161,10 @@ export class ServiceForm implements HasPendingChanges {
     internalServiceCode: [''],
     description: [''],
     taxRate: [ServiceTaxRate.Iva16, Validators.required],
+    // Free text on purpose (18 §6.4): the SAT versions its catalogs, so a
+    // stale local format check would reject valid keys. 09 owns validation.
+    satProdServCode: [''],
+    satUnitCode: [''],
     isListableInWebsite: [false],
     isPriceVisibleInWebsite: [false],
     websiteDescription: [''],
@@ -228,6 +233,8 @@ export class ServiceForm implements HasPendingChanges {
       internalServiceCode: svc.internalServiceCode ?? '',
       description: svc.description ?? '',
       taxRate: svc.taxRate,
+      satProdServCode: svc.satProdServCode ?? '',
+      satUnitCode: svc.satUnitCode ?? '',
       isListableInWebsite: svc.isListableInWebsite,
       isPriceVisibleInWebsite: svc.isPriceVisibleInWebsite,
       websiteDescription: svc.websiteDescription ?? '',
@@ -252,6 +259,10 @@ export class ServiceForm implements HasPendingChanges {
       internalServiceCode: '',
       description: svc.description ?? '',
       taxRate: svc.taxRate,
+      // Catalog attributes of the same kind of work — a copy invoices the
+      // same way, and unlike the código these carry no uniqueness.
+      satProdServCode: svc.satProdServCode ?? '',
+      satUnitCode: svc.satUnitCode ?? '',
       isListableInWebsite: svc.isListableInWebsite,
       isPriceVisibleInWebsite: svc.isPriceVisibleInWebsite,
       websiteDescription: svc.websiteDescription ?? '',
@@ -270,6 +281,18 @@ export class ServiceForm implements HasPendingChanges {
 
   protected toggleWebsiteSection(): void {
     this.websiteSectionOpen.update((open) => !open);
+  }
+
+  /** Suggest the SAT unit key when the owner picks a unidad (18 §6.4).
+   *  Bound to the select's `onChange`, which only fires on a real pick — a
+   *  programmatic `reset()` during hydration must never invent a key for a
+   *  service that doesn't have one. Never overwrites a typed value; the map
+   *  is total (units the SAT has no entry for ride the E48 collapse), so an
+   *  empty field always gets a suggestion. */
+  protected onUomSelected(): void {
+    const control = this.form.controls.satUnitCode;
+    if (control.value.trim()) return;
+    control.setValue(SERVICE_UOM_SAT_UNIT_CODES[this.form.controls.uom.value]);
   }
 
   protected startEdit(): void {
@@ -322,6 +345,10 @@ export class ServiceForm implements HasPendingChanges {
       internalServiceCode: raw.internalServiceCode.trim() || undefined,
       description: raw.description.trim() || undefined,
       taxRate: raw.taxRate,
+      // Always sent (as '' when erased) so clearing a key persists — same
+      // reasoning as the photo, and the backend maps '' → null.
+      satProdServCode: raw.satProdServCode.trim(),
+      satUnitCode: raw.satUnitCode.trim(),
       isListableInWebsite: listed,
       // Mirrors the server invariant: an unlisted service can't carry a
       // price-visible flag, so we never send a stale true.

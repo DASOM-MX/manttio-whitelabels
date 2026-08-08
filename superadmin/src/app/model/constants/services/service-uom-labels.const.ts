@@ -15,13 +15,18 @@ export const SERVICE_UOM_LABELS: Record<ServiceUom, string> = {
 
   [ServiceUom.Hora]: 'Hora',
   [ServiceUom.Dia]: 'Día',
+  [ServiceUom.Semana]: 'Semana',
   [ServiceUom.Mes]: 'Mes',
+  [ServiceUom.Anio]: 'Año',
 
   [ServiceUom.Unidad]: 'Unidad',
   [ServiceUom.Pieza]: 'Pieza',
+  [ServiceUom.Caja]: 'Caja',
   [ServiceUom.Pallet]: 'Pallet',
+  [ServiceUom.Resma]: 'Resma',
 
   [ServiceUom.Metro]: 'Metro (m)',
+  [ServiceUom.Kilometro]: 'Kilómetro (km)',
   [ServiceUom.Yarda]: 'Yarda (yd)',
   [ServiceUom.Pulgada]: 'Pulgada (in)',
 
@@ -32,6 +37,13 @@ export const SERVICE_UOM_LABELS: Record<ServiceUom, string> = {
   [ServiceUom.Litro]: 'Litro (L)',
   [ServiceUom.Mililitro]: 'Mililitro (mL)',
   [ServiceUom.Galon]: 'Galón (gal)',
+  [ServiceUom.OnzaLiquida]: 'Onza líquida (fl oz)',
 
   [ServiceUom.Kilogramo]: 'Kilogramo (kg)',
+  [ServiceUom.Onza]: 'Onza (oz)',
+
+  [ServiceUom.Btu]: 'BTU',
+  [ServiceUom.MillonBtu]: 'Millón de BTU (MMBTU)',
+  [ServiceUom.BtuPorPieCubico]: 'BTU por pie cúbico (BTU/ft³)',
+  [ServiceUom.ToneladaRefrigeracion]: 'Tonelada de refrigeración (TR)',
 };

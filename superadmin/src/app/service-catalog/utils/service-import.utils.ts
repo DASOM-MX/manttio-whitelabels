@@ -3,6 +3,7 @@ import { SERVICE_CSV_HEADER_ALIASES } from '../../model/constants/services/servi
 import { SERVICE_IMPORT_FIELDS } from '../../model/constants/services/service-import-fields.const';
 import { SERVICE_TAX_RATE_LABELS } from '../../model/constants/services/service-tax-rate-labels.const';
 import { SERVICE_UOM_LABELS } from '../../model/constants/services/service-uom-labels.const';
+import { SERVICE_UOM_SHORT_LABELS } from '../../model/constants/services/service-uom-short-labels.const';
 import type { ParsedCsv } from './csv.utils';
 import type {
   ServiceFieldMapping,
@@ -26,18 +27,40 @@ export const normalizeCsvToken = (value: string): string =>
 /** Enum cells accept the wire code **or** the Spanish label, accent-folded.
  *  Labels register in both forms — with and without their parenthetical
  *  symbol — so "Metro cuadrado" and "Metro cuadrado (m²)" both land, same for
- *  "IVA 16%" vs "IVA 16% (general)". Built once per enum. */
-const tokenTable = <T extends string>(labels: Record<T, string>): Map<string, T> => {
+ *  "IVA 16%" vs "IVA 16% (general)". Built once per enum.
+ *
+ *  A token claimed by two different members is ambiguous and resolves to
+ *  neither — better a per-row "Unidad desconocida" than a silently wrong
+ *  unit. (The short labels make this real: "m²" and "m³" both fold to plain
+ *  "m", so "m" stays unclaimed rather than meaning whichever wrote last.) */
+const tokenTable = <T extends string>(...labelSets: Record<T, string>[]): Map<string, T> => {
   const table = new Map<string, T>();
-  for (const [code, label] of Object.entries(labels) as [T, string][]) {
-    table.set(normalizeCsvToken(code), code);
-    table.set(normalizeCsvToken(label), code);
-    table.set(normalizeCsvToken(label.replace(/\(.*?\)/g, '')), code);
+  const ambiguous = new Set<string>();
+  const claim = (raw: string, code: T): void => {
+    const key = normalizeCsvToken(raw);
+    if (key === '' || ambiguous.has(key)) return;
+    const prior = table.get(key);
+    if (prior !== undefined && prior !== code) {
+      table.delete(key);
+      ambiguous.add(key);
+      return;
+    }
+    table.set(key, code);
+  };
+  for (const labels of labelSets) {
+    for (const [code, label] of Object.entries(labels) as [T, string][]) {
+      claim(code, code);
+      claim(label, code);
+      claim(label.replace(/\(.*?\)/g, ''), code);
+    }
   }
   return table;
 };
 
-const UOM_TOKENS = tokenTable<ServiceUom>(SERVICE_UOM_LABELS);
+// Short labels register too: for the thermal units the symbol IS how a price
+// list spells them ("TR", "MMBTU", "BTU/ft³"), and a tenant CSV shouldn't
+// need the long form to be understood.
+const UOM_TOKENS = tokenTable<ServiceUom>(SERVICE_UOM_LABELS, SERVICE_UOM_SHORT_LABELS);
 const TAX_TOKENS = tokenTable<ServiceTaxRate>(SERVICE_TAX_RATE_LABELS);
 
 const TRUE_TOKENS = new Set(['true', 'si', '1', 'x', 'verdadero']);

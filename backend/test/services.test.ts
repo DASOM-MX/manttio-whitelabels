@@ -156,17 +156,19 @@ describe('POST /services', () => {
   test('uom is a closed list — an unlisted unit is rejected on create and update', async () => {
     const { token } = await seedOwnerAndLogin();
 
-    // Free text was the v1 posture; 'kilometro' is plausible but not a member,
-    // and accepting it is exactly what the enum exists to prevent.
+    // Free text was the v1 posture; 'barril' is plausible but not a member,
+    // and accepting it is exactly what the enum exists to prevent. (This was
+    // 'kilometro' until the 2026-07-31 unit expansion made that one real —
+    // the failure was the test doing its job, so pick another outsider.)
     const created = await createService(token, {
       name: uniqueServiceName('svc'),
       price: 10,
-      uom: 'kilometro',
+      uom: 'barril',
     });
     expect(created.status).toBe(400);
 
     const svc = await seedService();
-    const patched = await patchService(token, svc.id, { uom: 'kilometro' });
+    const patched = await patchService(token, svc.id, { uom: 'barril' });
     expect(patched.status).toBe(400);
 
     // Every member round-trips.
@@ -267,6 +269,36 @@ describe('PATCH /services/:id', () => {
     const { token } = await seedOwnerAndLogin();
     const res = await patchService(token, '00000000-0000-4000-8000-000000000000', { price: 1 });
     expect(res.status).toBe(404);
+  });
+
+  // The write path the CP-7 form drives (18 §6.4). No format assertion — the
+  // SAT versions its catalogs and 09 owns real validation.
+  test('SAT keys round-trip on edit, and an empty string clears them', async () => {
+    const svc = await seedService();
+    const { token } = await seedOwnerAndLogin();
+    expect(svc.satProdServCode).toBeUndefined();
+
+    const set = await patchService(token, svc.id, {
+      satProdServCode: '72101500',
+      satUnitCode: 'E48',
+    });
+    expect(set.status).toBe(200);
+    const withKeys = await json<Service>(set);
+    expect(withKeys.satProdServCode).toBe('72101500');
+    expect(withKeys.satUnitCode).toBe('E48');
+
+    // Cleared to null, not stored as '' — the form always sends both fields,
+    // so '' has to mean "erased".
+    const cleared = await patchService(token, svc.id, {
+      satProdServCode: '',
+      satUnitCode: '',
+    });
+    // Status first: an error body also lacks the SAT fields, so without this
+    // the toBeUndefined() pair would pass vacuously on a 400.
+    expect(cleared.status).toBe(200);
+    const withoutKeys = await json<Service>(cleared);
+    expect(withoutKeys.satProdServCode).toBeUndefined();
+    expect(withoutKeys.satUnitCode).toBeUndefined();
   });
 });
 
@@ -545,7 +577,7 @@ describe('POST /services/import (18 §6.3)', () => {
   test('422 names each failing row, and nothing is created (all-or-nothing)', async () => {
     const { token } = await seedOwnerAndLogin();
     const good = serviceBody({ price: 100 });
-    const badUom = { name: uniqueServiceName('svc'), price: 10, uom: 'kilometro' };
+    const badUom = { name: uniqueServiceName('svc'), price: 10, uom: 'barril' };
     const badTax = serviceBody({ taxRate: 'iva_99' as ServiceTaxRate });
 
     const res = await importRows(token, [good, badUom, badTax]);

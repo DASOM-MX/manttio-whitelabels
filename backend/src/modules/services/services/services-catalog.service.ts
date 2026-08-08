@@ -116,8 +116,11 @@ const collectUpdate = (input: UpdateServiceInput): UpdateServiceFields => {
     f.internalServiceCode = input.internalServiceCode || null;
   }
   if (input.taxRate !== undefined) f.taxRate = input.taxRate;
-  if (input.satProdServCode !== undefined) f.satProdServCode = input.satProdServCode ?? null;
-  if (input.satUnitCode !== undefined) f.satUnitCode = input.satUnitCode ?? null;
+  // Empty string clears, same as the código and the website copy — the form
+  // (CP-7) always sends these two, so `''` has to mean "the owner erased it"
+  // rather than persisting an empty string that reads as a set-but-blank key.
+  if (input.satProdServCode !== undefined) f.satProdServCode = input.satProdServCode || null;
+  if (input.satUnitCode !== undefined) f.satUnitCode = input.satUnitCode || null;
   if (input.isListableInWebsite !== undefined) f.isListableInWebsite = input.isListableInWebsite;
   if (input.isPriceVisibleInWebsite !== undefined) {
     f.isPriceVisibleInWebsite = input.isPriceVisibleInWebsite;
@@ -198,8 +201,8 @@ const toNewService = (clean: ImportServiceRowInput): NewService => ({
   websiteImageKey: clean.websiteImageKey || null,
   internalServiceCode: clean.internalServiceCode || null,
   taxRate: clean.taxRate,
-  satProdServCode: clean.satProdServCode ?? null,
-  satUnitCode: clean.satUnitCode ?? null,
+  satProdServCode: clean.satProdServCode || null,
+  satUnitCode: clean.satUnitCode || null,
   isListableInWebsite: clean.isListableInWebsite,
   isPriceVisibleInWebsite: clean.isPriceVisibleInWebsite,
 });
