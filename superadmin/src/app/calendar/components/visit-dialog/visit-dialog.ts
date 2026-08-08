@@ -298,6 +298,17 @@ export class VisitDialog {
     });
   }
 
+  /** Follow the reschedule chain (12 CP-4b) — predecessor or successor by id.
+   *  Only ids travel on the DTO, so the hop is a single-visit read; the dialog
+   *  stays open and re-narrows to whatever that visit's status allows. */
+  protected openVisitById(id: string): void {
+    if (this.submitting()) return;
+    this.visitsApi.get(id).subscribe({
+      next: (visit) => this.applyVisit(visit),
+      error: (err) => this.toastError('No se pudo abrir la visita', err),
+    });
+  }
+
   private applyVisit(visit: Visit): void {
     this.target.set(visit);
     this.lockedOrder.set(null);

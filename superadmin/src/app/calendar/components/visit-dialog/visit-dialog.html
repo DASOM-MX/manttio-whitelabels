@@ -17,10 +17,17 @@
           [severity]="visit.status | visitStatusSeverity"
           [value]="visit.status | visitStatusLabel"
         />
-        @if (visit.rescheduledFromId) {
-          <span class="text-xs text-surface-500 dark:text-surface-400">
-            Reemplaza a una visita cerrada
-          </span>
+        @if (visit.rescheduledFromId; as fromId) {
+          <!-- The chain is navigable (12 CP-4b): the hop swaps this dialog's
+               target, it does not stack dialogs. -->
+          <button type="button" class="link-action text-xs" (click)="openVisitById(fromId)">
+            Reemplaza a una visita cerrada — verla
+          </button>
+        }
+        @if (visit.rescheduledToId; as toId) {
+          <button type="button" class="link-action text-xs" (click)="openVisitById(toId)">
+            Reprogramada — ver la visita nueva
+          </button>
         }
       </div>
       <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">

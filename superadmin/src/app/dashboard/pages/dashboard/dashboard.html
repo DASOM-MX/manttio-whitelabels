@@ -3,24 +3,7 @@
 </app-page-header>
 
 <!-- Card-slot regions: modules register their cards here from their own
-     plans (08 lead-source counts, 12 today's visits, …). -->
+     plans (08 lead-source counts, 12 today's visits ✓, …). -->
 <div class="anim-stagger grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-  <section class="card-section md:col-span-2 xl:col-span-3" aria-labelledby="dashboard-empty-title">
-    <div class="flex flex-col items-center gap-3 py-10 text-center">
-      <span class="empty-icon">
-        <svg lucideInbox class="size-6" aria-hidden="true"></svg>
-      </span>
-      <div>
-        <h2
-          id="dashboard-empty-title"
-          class="text-base font-medium text-surface-900 dark:text-surface-100"
-        >
-          Aún no hay tarjetas
-        </h2>
-        <p class="mx-auto mt-1 max-w-sm text-sm text-surface-600 dark:text-surface-400">
-          Conforme se activen los módulos de tu instancia, sus resúmenes aparecerán aquí.
-        </p>
-      </div>
-    </div>
-  </section>
+  <app-today-visits-card class="md:col-span-2 xl:col-span-3" />
 </div>
