@@ -288,13 +288,35 @@ export class VisitDialog {
     this.visitsApi.get(visit.id).subscribe({
       next: (fresh) => {
         if (!this.dialogOpen() || this.target()?.id !== fresh.id) return;
-        if (fresh.updatedAt === visit.updatedAt) return;
+        // `updatedAt` alone can't spot a new successor: `rescheduledToId` is
+        // derived on the single read only, and minting one never touches the
+        // closed row — the window row lacks the link at the same `updatedAt`.
+        if (fresh.updatedAt === visit.updatedAt && fresh.rescheduledToId === visit.rescheduledToId)
+          return;
         this.applyVisit(fresh);
-        // The stale row is the parent's too — let it refetch the window.
-        this.changed.emit();
+        // The stale row is the parent's too — let it refetch the window; a
+        // derived-link fill-in changed nothing the window renders.
+        if (fresh.updatedAt !== visit.updatedAt) this.changed.emit();
       },
       // Unreachable read: keep showing the row we were handed.
       error: () => undefined,
+    });
+  }
+
+  /** Follow the reschedule chain (12 CP-4b) — predecessor or successor by id.
+   *  Only ids travel on the DTO, so the hop is a single-visit read; the dialog
+   *  stays open and re-narrows to whatever that visit's status allows. */
+  protected openVisitById(id: string): void {
+    if (this.submitting()) return;
+    const origin = this.target()?.id;
+    this.visitsApi.get(id).subscribe({
+      next: (visit) => {
+        // The hop may resolve after the dialog closed — or reopened on a
+        // different visit; a late apply would clobber what's on screen.
+        if (!this.dialogOpen() || this.target()?.id !== origin) return;
+        this.applyVisit(visit);
+      },
+      error: (err) => this.toastError('No se pudo abrir la visita', err),
     });
   }
 
