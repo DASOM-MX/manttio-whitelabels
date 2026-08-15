@@ -29,7 +29,6 @@ export const NAV: NavEntry[] = [
       { label: 'Marca', route: '/branding', module: 'branding' },
       { label: 'Usuarios', route: '/users', module: 'users' },
       { label: 'Servicios', route: '/services', module: 'services' },
-      { label: 'Calendario', route: '/calendar', module: 'calendar' },
       { label: 'Plantillas', route: '/templates', module: 'templates' },
     ],
   },
