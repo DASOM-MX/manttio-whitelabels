@@ -13,6 +13,7 @@ import {
 
 type ReportRow = {
   id: string;
+  templateId: string | null;
   reportType: string;
   workType: string | null;
   status: 'created' | 'in-progress' | 'finished' | 'mailed';
@@ -42,6 +43,38 @@ type ReportDetailRow = {
   };
   pictures: string[];
   signature: string | null;
+};
+
+type ReportListResponse = {
+  items: ReportRow[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+type ReportDetail = {
+  id: string;
+  templateId: string | null;
+  templateName: string;
+  reportType: string;
+  workType: string | null;
+  createdBy: string;
+  assignedTo: string;
+  clientId: string;
+  status: string;
+  sections: Array<{
+    title: string;
+    columns: 1 | 2 | 3;
+    answers: Array<{
+      questionId: string;
+      label: string;
+      datatype: string;
+      unit?: string;
+      value: unknown;
+    }>;
+  }>;
+  photos: string[];
+  signatureUrl: string | null;
 };
 
 const FOLIO_RE = /^R-\d{8}-\d{4}$/;
@@ -107,8 +140,11 @@ describe('GET /reports', () => {
 
     const res = await request('/reports', { headers: authHeader(token) });
     expect(res.status).toBe(200);
-    const body = await json<{ reports: ReportRow[] }>(res);
-    expect(body.reports.some((r) => r.id === seeded.id)).toBe(true);
+    const body = await json<{ items: ReportRow[]; total: number; page: number; limit: number }>(res);
+    expect(body.items.some((r) => r.id === seeded.id)).toBe(true);
+    expect(body.page).toBe(1);
+    expect(body.limit).toBe(10);
+    expect(body.total).toBeGreaterThan(0);
   });
 
   test('admin filter by status returns only matching status', async () => {
@@ -129,8 +165,8 @@ describe('GET /reports', () => {
       headers: authHeader(token),
     });
     expect(res.status).toBe(200);
-    const body = await json<{ reports: ReportRow[] }>(res);
-    const ids = body.reports.map((r) => r.id);
+    const body = await json<ReportListResponse>(res);
+    const ids = body.items.map((r) => r.id);
     expect(ids).toContain(finished.id);
     expect(ids).not.toContain(created.id);
   });
@@ -143,8 +179,8 @@ describe('GET /reports', () => {
 
     const res = await request(`/reports?client_id=${a.id}`, { headers: authHeader(token) });
     expect(res.status).toBe(200);
-    const body = await json<{ reports: ReportRow[] }>(res);
-    const ids = body.reports.map((r) => r.id);
+    const body = await json<ReportListResponse>(res);
+    const ids = body.items.map((r) => r.id);
     expect(ids).toContain(ra.id);
     expect(ids).not.toContain(rb.id);
   });
@@ -164,8 +200,8 @@ describe('GET /reports', () => {
       headers: authHeader(token),
     });
     expect(res.status).toBe(200);
-    const body = await json<{ reports: ReportRow[] }>(res);
-    const ids = body.reports.map((r) => r.id);
+    const body = await json<ReportListResponse>(res);
+    const ids = body.items.map((r) => r.id);
     expect(ids).toContain(theirs.id);
     expect(ids).not.toContain(mine.id);
   });
@@ -178,9 +214,9 @@ describe('GET /reports', () => {
 
     const res = await request(`/reports?folio=${prefix}`, { headers: authHeader(token) });
     expect(res.status).toBe(200);
-    const body = await json<{ reports: ReportRow[] }>(res);
-    expect(body.reports.every((r) => r.id.startsWith(prefix))).toBe(true);
-    expect(body.reports.some((r) => r.id === seeded.id)).toBe(true);
+    const body = await json<ReportListResponse>(res);
+    expect(body.items.every((r) => r.id.startsWith(prefix))).toBe(true);
+    expect(body.items.some((r) => r.id === seeded.id)).toBe(true);
   });
 
   test('technician sees only reports assigned to them (auto-scoped)', async () => {
@@ -196,8 +232,8 @@ describe('GET /reports', () => {
 
     const res = await request('/reports', { headers: authHeader(token) });
     expect(res.status).toBe(200);
-    const body = await json<{ reports: ReportRow[] }>(res);
-    const ids = body.reports.map((r) => r.id);
+    const body = await json<ReportListResponse>(res);
+    const ids = body.items.map((r) => r.id);
     expect(ids).toContain(mine.id);
     expect(ids).not.toContain(theirs.id);
   });
@@ -217,8 +253,8 @@ describe('GET /reports', () => {
       headers: authHeader(token),
     });
     expect(res.status).toBe(200);
-    const body = await json<{ reports: ReportRow[] }>(res);
-    const ids = body.reports.map((r) => r.id);
+    const body = await json<ReportListResponse>(res);
+    const ids = body.items.map((r) => r.id);
     expect(ids).toContain(mine.id);
     expect(ids).not.toContain(theirs.id);
   });
@@ -246,14 +282,11 @@ describe('GET /reports/:id', () => {
 
     const res = await request(`/reports/${seeded.id}`, { headers: authHeader(token) });
     expect(res.status).toBe(200);
-    const body = await json<{ report: ReportRow; details: ReportDetailRow }>(res);
-    expect(body.report.id).toBe(seeded.id);
-    expect(body.details.reportId).toBe(seeded.id);
-    expect(body.details.data).toMatchObject({
-      templateId: expect.any(String),
-      templateName: expect.any(String),
-      sections: expect.any(Array),
-    });
+    const body = await json<ReportDetail>(res);
+    expect(body.id).toBe(seeded.id);
+    expect(body.templateId).toBe(expect.any(String));
+    expect(body.templateName).toEqual(expect.any(String));
+    expect(body.sections).toEqual(expect.any(Array));
   });
 
   test('technician can fetch a report assigned to them', async () => {

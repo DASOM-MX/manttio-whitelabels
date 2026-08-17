@@ -59,6 +59,8 @@ export const removePicturesSchema = z.object({
 });
 
 export const listReportsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
   status: z.nativeEnum(ReportStatus).optional(),
   client_id: z.string().uuid().optional(),
   assigned_to: z.string().uuid().optional(),
@@ -70,6 +72,8 @@ export const listReportsQuerySchema = z.object({
   // Date range against `date_arrival`. Either bound is optional.
   date_from: z.string().datetime().optional(),
   date_to: z.string().datetime().optional(),
+  // Search across report id (folio), customer name, technician name
+  search: z.string().min(1).optional(),
 });
 
 export type CreateReportMeta = z.infer<typeof createReportMetaSchema>;
