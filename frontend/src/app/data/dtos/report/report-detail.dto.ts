@@ -1,6 +1,8 @@
 import type { ReportStatus, WorkType } from '../../types/report';
+import type { CapturedSection } from './report-capture.dto';
 
-export interface ReportRow {
+/** Flat detail of a submitted report, rendered from the stored snapshot. */
+export interface ReportDetail {
   id: string;
   templateId: string | null;
   templateName: string;
@@ -24,4 +26,8 @@ export interface ReportRow {
   mailedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  sections: CapturedSection[];
+  photos: string[];
+  signatureUrl: string | null;
+  comments?: string | null;
 }

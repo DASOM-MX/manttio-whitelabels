@@ -9,15 +9,14 @@ import {
   SendReportEmail, LoadReportEmails, RevokeReportEmail,
 } from './reports.actions';
 import type {
-  ReportRow, ReportDetailRow, ReportListQuery,
+  ReportRow, ReportDetail, ReportListQuery,
 } from '../../app/data/dtos/report';
 import type { ReportEmailRow } from '../../app/data/dtos/report-email';
 
 export interface ReportsStateModel {
   entities: Record<string, ReportRow>;
   ids: string[];
-  selected: ReportRow | null;
-  selectedDetails: ReportDetailRow | null;
+  selected: ReportDetail | null;
   query: ReportListQuery | null;
   loading: boolean;
   emails: Record<string, ReportEmailRow[]>;
@@ -29,7 +28,6 @@ export interface ReportsStateModel {
     entities: {},
     ids: [],
     selected: null,
-    selectedDetails: null,
     query: null,
     loading: false,
     emails: {},
@@ -42,8 +40,8 @@ export class ReportsState {
   @Selector() static list(s: ReportsStateModel): ReportRow[] {
     return s.ids.map((id) => s.entities[id]).filter(Boolean) as ReportRow[];
   }
-  @Selector() static selected(s: ReportsStateModel): { report: ReportRow; details: ReportDetailRow | null } | null {
-    return s.selected ? { report: s.selected, details: s.selectedDetails } : null;
+  @Selector() static selected(s: ReportsStateModel): ReportDetail | null {
+    return s.selected;
   }
   @Selector() static loading(s: ReportsStateModel): boolean { return s.loading; }
   @Selector() static query(s: ReportsStateModel): ReportListQuery | null { return s.query; }
@@ -60,10 +58,10 @@ export class ReportsState {
     const { query } = ctx.getState();
     ctx.patchState({ loading: true });
     return this.api.list(query ?? undefined).pipe(
-      tap(({ reports }) => {
+      tap(({ items }) => {
         const entities: Record<string, ReportRow> = {};
         const ids: string[] = [];
-        for (const r of reports) { entities[r.id] = r; ids.push(r.id); }
+        for (const r of items) { entities[r.id] = r; ids.push(r.id); }
         ctx.patchState({ entities, ids });
       }),
       finalize(() => ctx.patchState({ loading: false })),
@@ -73,14 +71,39 @@ export class ReportsState {
   @Action(LoadReport)
   loadOne(ctx: StateContext<ReportsStateModel>, { id }: LoadReport) {
     return this.api.get(id).pipe(
-      tap(({ report, details }) => {
+      tap((detail) => {
         const s = ctx.getState();
         const ids = s.ids.includes(id) ? s.ids : [...s.ids, id];
+        // Extract the list row from the detail by omitting sections/photos/signatureUrl
+        const row: ReportRow = {
+          id: detail.id,
+          templateId: detail.templateId,
+          templateName: detail.templateName,
+          reportType: detail.reportType,
+          workType: detail.workType,
+          dateArrival: detail.dateArrival,
+          dateDeparture: detail.dateDeparture,
+          createdBy: detail.createdBy,
+          assignedTo: detail.assignedTo,
+          clientId: detail.clientId,
+          serviceOrderId: detail.serviceOrderId,
+          serviceId: detail.serviceId,
+          signedBy: detail.signedBy,
+          status: detail.status,
+          state: detail.state,
+          signedAt: detail.signedAt,
+          signedLatitude: detail.signedLatitude,
+          signedLongitude: detail.signedLongitude,
+          signedAccuracy: detail.signedAccuracy,
+          finishedAt: detail.finishedAt,
+          mailedAt: detail.mailedAt,
+          createdAt: detail.createdAt,
+          updatedAt: detail.updatedAt,
+        };
         ctx.patchState({
-          entities: { ...s.entities, [id]: report },
+          entities: { ...s.entities, [id]: row },
           ids,
-          selected: report,
-          selectedDetails: details,
+          selected: detail,
         });
       }),
     );
@@ -88,11 +111,8 @@ export class ReportsState {
 
   @Action(SelectReport)
   select(ctx: StateContext<ReportsStateModel>, { report }: SelectReport) {
-    const s = ctx.getState();
-    const sameRow = !!report && s.selected?.id === report.id;
     ctx.patchState({
-      selected: report,
-      selectedDetails: sameRow ? s.selectedDetails : null,
+      selected: null,
     });
   }
 
@@ -104,13 +124,37 @@ export class ReportsState {
   @Action(CreateReport)
   create(ctx: StateContext<ReportsStateModel>, { fields }: CreateReport) {
     return this.api.create(fields).pipe(
-      tap(({ report, details }) => {
+      tap((detail) => {
         const s = ctx.getState();
+        const row: ReportRow = {
+          id: detail.id,
+          templateId: detail.templateId,
+          templateName: detail.templateName,
+          reportType: detail.reportType,
+          workType: detail.workType,
+          dateArrival: detail.dateArrival,
+          dateDeparture: detail.dateDeparture,
+          createdBy: detail.createdBy,
+          assignedTo: detail.assignedTo,
+          clientId: detail.clientId,
+          serviceOrderId: detail.serviceOrderId,
+          serviceId: detail.serviceId,
+          signedBy: detail.signedBy,
+          status: detail.status,
+          state: detail.state,
+          signedAt: detail.signedAt,
+          signedLatitude: detail.signedLatitude,
+          signedLongitude: detail.signedLongitude,
+          signedAccuracy: detail.signedAccuracy,
+          finishedAt: detail.finishedAt,
+          mailedAt: detail.mailedAt,
+          createdAt: detail.createdAt,
+          updatedAt: detail.updatedAt,
+        };
         ctx.patchState({
-          entities: { ...s.entities, [report.id]: report },
-          ids: s.ids.includes(report.id) ? s.ids : [...s.ids, report.id],
-          selected: report,
-          selectedDetails: details,
+          entities: { ...s.entities, [detail.id]: row },
+          ids: s.ids.includes(detail.id) ? s.ids : [...s.ids, detail.id],
+          selected: detail,
         });
       }),
     );
@@ -119,13 +163,37 @@ export class ReportsState {
   @Action(UpdateReport)
   update(ctx: StateContext<ReportsStateModel>, { id, payload }: UpdateReport) {
     return this.api.update(id, payload).pipe(
-      tap(({ report, details }) => {
+      tap((detail) => {
         const s = ctx.getState();
+        const row: ReportRow = {
+          id: detail.id,
+          templateId: detail.templateId,
+          templateName: detail.templateName,
+          reportType: detail.reportType,
+          workType: detail.workType,
+          dateArrival: detail.dateArrival,
+          dateDeparture: detail.dateDeparture,
+          createdBy: detail.createdBy,
+          assignedTo: detail.assignedTo,
+          clientId: detail.clientId,
+          serviceOrderId: detail.serviceOrderId,
+          serviceId: detail.serviceId,
+          signedBy: detail.signedBy,
+          status: detail.status,
+          state: detail.state,
+          signedAt: detail.signedAt,
+          signedLatitude: detail.signedLatitude,
+          signedLongitude: detail.signedLongitude,
+          signedAccuracy: detail.signedAccuracy,
+          finishedAt: detail.finishedAt,
+          mailedAt: detail.mailedAt,
+          createdAt: detail.createdAt,
+          updatedAt: detail.updatedAt,
+        };
         ctx.patchState({
-          entities: { ...s.entities, [id]: report },
+          entities: { ...s.entities, [id]: row },
           ids: s.ids.includes(id) ? s.ids : [...s.ids, id],
-          selected: s.selected?.id === id ? report : s.selected,
-          selectedDetails: s.selected?.id === id ? details : s.selectedDetails,
+          selected: s.selected?.id === id ? detail : s.selected,
         });
       }),
     );
@@ -134,12 +202,37 @@ export class ReportsState {
   @Action(SetAssignee)
   setAssignee(ctx: StateContext<ReportsStateModel>, { id, assignedTo }: SetAssignee) {
     return this.api.setAssignee(id, { assigned_to: assignedTo }).pipe(
-      tap(({ report }) => {
+      tap((detail) => {
         const s = ctx.getState();
+        const row: ReportRow = {
+          id: detail.id,
+          templateId: detail.templateId,
+          templateName: detail.templateName,
+          reportType: detail.reportType,
+          workType: detail.workType,
+          dateArrival: detail.dateArrival,
+          dateDeparture: detail.dateDeparture,
+          createdBy: detail.createdBy,
+          assignedTo: detail.assignedTo,
+          clientId: detail.clientId,
+          serviceOrderId: detail.serviceOrderId,
+          serviceId: detail.serviceId,
+          signedBy: detail.signedBy,
+          status: detail.status,
+          state: detail.state,
+          signedAt: detail.signedAt,
+          signedLatitude: detail.signedLatitude,
+          signedLongitude: detail.signedLongitude,
+          signedAccuracy: detail.signedAccuracy,
+          finishedAt: detail.finishedAt,
+          mailedAt: detail.mailedAt,
+          createdAt: detail.createdAt,
+          updatedAt: detail.updatedAt,
+        };
         ctx.patchState({
-          entities: { ...s.entities, [id]: report },
+          entities: { ...s.entities, [id]: row },
           ids: s.ids.includes(id) ? s.ids : [...s.ids, id],
-          selected: s.selected?.id === id ? report : s.selected,
+          selected: s.selected?.id === id ? detail : s.selected,
         });
       }),
     );
@@ -148,13 +241,37 @@ export class ReportsState {
   @Action(AddSignature)
   addSignature(ctx: StateContext<ReportsStateModel>, { id, fields }: AddSignature) {
     return this.api.addSignature(id, fields).pipe(
-      tap(({ report, details }) => {
+      tap((detail) => {
         const s = ctx.getState();
+        const row: ReportRow = {
+          id: detail.id,
+          templateId: detail.templateId,
+          templateName: detail.templateName,
+          reportType: detail.reportType,
+          workType: detail.workType,
+          dateArrival: detail.dateArrival,
+          dateDeparture: detail.dateDeparture,
+          createdBy: detail.createdBy,
+          assignedTo: detail.assignedTo,
+          clientId: detail.clientId,
+          serviceOrderId: detail.serviceOrderId,
+          serviceId: detail.serviceId,
+          signedBy: detail.signedBy,
+          status: detail.status,
+          state: detail.state,
+          signedAt: detail.signedAt,
+          signedLatitude: detail.signedLatitude,
+          signedLongitude: detail.signedLongitude,
+          signedAccuracy: detail.signedAccuracy,
+          finishedAt: detail.finishedAt,
+          mailedAt: detail.mailedAt,
+          createdAt: detail.createdAt,
+          updatedAt: detail.updatedAt,
+        };
         ctx.patchState({
-          entities: { ...s.entities, [id]: report },
+          entities: { ...s.entities, [id]: row },
           ids: s.ids.includes(id) ? s.ids : [...s.ids, id],
-          selected: s.selected?.id === id ? report : s.selected,
-          selectedDetails: s.selected?.id === id ? details : s.selectedDetails,
+          selected: s.selected?.id === id ? detail : s.selected,
         });
       }),
     );
@@ -163,10 +280,10 @@ export class ReportsState {
   @Action(AddPictures)
   addPictures(ctx: StateContext<ReportsStateModel>, { id, pictures }: AddPictures) {
     return this.api.addPictures(id, pictures).pipe(
-      tap(({ details }) => {
+      tap((detail) => {
         const s = ctx.getState();
         if (s.selected?.id !== id) return;
-        ctx.patchState({ selectedDetails: details });
+        ctx.patchState({ selected: detail });
       }),
     );
   }
@@ -174,10 +291,10 @@ export class ReportsState {
   @Action(RemovePictures)
   removePictures(ctx: StateContext<ReportsStateModel>, { id, payload }: RemovePictures) {
     return this.api.removePictures(id, payload).pipe(
-      tap(({ details }) => {
+      tap((detail) => {
         const s = ctx.getState();
         if (s.selected?.id !== id) return;
-        ctx.patchState({ selectedDetails: details });
+        ctx.patchState({ selected: detail });
       }),
     );
   }
@@ -193,7 +310,6 @@ export class ReportsState {
           entities: rest,
           ids: s.ids.filter((x) => x !== id),
           selected: wasSelected ? null : s.selected,
-          selectedDetails: wasSelected ? null : s.selectedDetails,
         });
       }),
     );

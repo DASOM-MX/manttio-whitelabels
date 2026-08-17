@@ -4,6 +4,7 @@ export type { UmaData } from './uma-data.dto';
 export type { ReportData } from './report-data.dto';
 export type { ReportCapture, CapturedSection, CapturedAnswer } from './report-capture.dto';
 export type { ReportRow } from './report-row.dto';
+export type { ReportDetail } from './report-detail.dto';
 export type { ReportDetailRow } from './report-detail-row.dto';
 export type { ReportListQuery } from './report-list-query.dto';
 export type { CreateReportFields } from './create-report-fields.dto';

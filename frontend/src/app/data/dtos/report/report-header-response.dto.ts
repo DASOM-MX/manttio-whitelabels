@@ -1,5 +1,4 @@
-import type { ReportRow } from './report-row.dto';
+import type { ReportDetail } from './report-detail.dto';
 
-export interface ReportHeaderResponse {
-  report: ReportRow;
-}
+/** The detail of a report after assignment (when only metadata changes). */
+export interface ReportHeaderResponse extends ReportDetail {}
