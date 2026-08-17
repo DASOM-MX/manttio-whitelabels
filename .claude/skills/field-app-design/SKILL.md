@@ -283,4 +283,8 @@ Reuse before re-implementing; add new general-purpose helpers here **and** to th
 - [ ] Submit button binds `[disabled]="form.invalid"`; read-only data is text, not disabled inputs
 - [ ] Renders and is usable at 360px wide, one column
 - [ ] Offline path considered: works from cache, or states what the technician must do
-- [ ] `pnpm build` green in `frontend/`
+- [ ] `npm run build` green in `frontend/`
+
+> **Package manager: `frontend/` is npm** (`package-lock.json`) — `npm ci` / `npm run build`.
+> Only `backend/` uses pnpm. Running `pnpm install` here generates a competing
+> `pnpm-lock.yaml`; never commit one.

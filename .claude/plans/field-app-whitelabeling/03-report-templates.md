@@ -328,11 +328,46 @@ Online/offline comes from `select(AppState.isOnline)` — never `navigator` dire
 non-destructively — unlisted stores carry forward, so v3 declares only what it adds:
 
 ```ts
-this.version(3).stores({ reportTemplates: 'id, updatedAt, status' });   // read cache
+this.version(3).stores({
+  reportTemplates: 'id, updatedAt, status, cachedAt',   // read cache
+  templateCacheMeta: 'key',                             // provenance, one row
+});
 ```
 
 New `src/offline/templates-cache.service.ts` (Promise-based, mirrors `OfflineReportsService`):
-`putAll` / `list` / `get` / `clear`.
+`putAll` / `list` / `get` / `count` / `getMeta` / `setMeta` / `clear`.
+
+**A cached row carries the whole template doc.** The store string lists only the *indexed*
+columns; Dexie persists the rest, so `sections` — every question's `datatype`, `options`, `unit`
+and `constraints` — is cached and the capture form renders offline on selection with no extra
+work. That is worth stating because the store string reads like the opposite.
+
+### 4.3a Cache provenance (owner ask, 2026-08-17)
+
+What is *not* derivable from the rows is whether the cache is **whole**, so
+`templateCacheMeta` records it (`TemplateCacheMeta` in `offline/template-cache-meta.model.ts`):
+
+| Field | Meaning |
+|---|---|
+| `serverTotal` | the backend's real active-template count at last sync |
+| `cachedCount` | rows actually in the store — **derived in `setMeta`**, never passed in |
+| `complete` | `cachedCount >= serverTotal` — **derived**, so no caller can assert it |
+| `lastSyncAt` | last successful page sync |
+| `lastError` | why a prefetch stopped short, when it did |
+
+Each row also gets `cachedAt` (indexed, so staleness is queryable without a scan).
+
+**Why it's required:** offline, `total` was `templates.length`, which reads as "this is
+everything" whether the technician prefetched all 47 templates or lost signal after 20. And
+`prefetchDone` was set on success *and* on failure — it means "we stopped trying", not "we have
+it all". So the picker could present a partial catalog as complete, and a technician would
+reasonably conclude a template had been deleted. `total` now restores from `serverTotal`, and
+`cachePartialOffline` drives an explicit "N de M descargadas" notice. Deriving `complete` inside
+`setMeta` rather than accepting it as an argument is the point: a cache cannot claim to be whole.
+
+Two latent bugs fixed while here: the page walk now stops on an empty page (a `total` it could
+never reach — rows deleted mid-walk — recursed forever), and a first-page failure no longer
+writes `serverTotal: 0`, which `setMeta` would have read as "complete".
 
 ### 4.4 Offline / PWA strategy
 
