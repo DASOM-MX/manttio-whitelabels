@@ -67,6 +67,8 @@ export interface ServiceOrderReport {
   id: string;
   folio: string;
   status: ReportStatus;
+  /** The template name frozen at report birth — a snapshot value, not a live
+   *  join, so it keeps reading correctly after the template is renamed. */
   reportType: string;
   serviceId: string | null;
   assignedTo: string;
@@ -104,7 +106,10 @@ export interface CreateServiceOrderLineRequest {
   serviceId: string;
   quantity: number;
   technicianId: string;
-  reportType: string;
+  /** The active report template the exploded report will be filled against
+   *  (03 §3.5). The backend validates it exists and is `active`, then writes
+   *  both `template_id` and `report_type = template.name` onto each skeleton. */
+  templateId: string;
 }
 
 export interface CreateServiceOrderRequest {

@@ -91,6 +91,16 @@
         </button>
       </div>
 
+      @if (hasNoActiveTemplates()) {
+        <p
+          class="mb-5 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
+        >
+          No hay plantillas de reporte activas. Cada servicio necesita una plantilla para poder
+          abrir la orden — crea y activa una en
+          <a routerLink="/templates" class="underline">Plantillas</a>.
+        </p>
+      }
+
       <!-- One surface: rows separate with hairline dividers, never a second
            background inside the card (owner 2026-07-27). -->
       <div class="flex flex-col gap-5" formArrayName="lines">
@@ -144,17 +154,18 @@
               />
             </div>
             <div class="field-group">
-              <label class="field-label" [for]="'line-report-type-' + i">
-                Tipo de reporte<span aria-hidden="true"> *</span>
+              <label class="field-label" [for]="'line-template-' + i">
+                Plantilla de reporte<span aria-hidden="true"> *</span>
               </label>
               <div class="flex items-center gap-2">
                 <p-select
                   class="grow"
-                  [inputId]="'line-report-type-' + i"
-                  formControlName="reportType"
-                  [options]="reportTypeOptions"
+                  [inputId]="'line-template-' + i"
+                  formControlName="templateId"
+                  [options]="templateOptions()"
                   optionLabel="label"
                   optionValue="value"
+                  placeholder="Selecciona una plantilla"
                 />
                 <button
                   type="button"
@@ -253,7 +264,7 @@
             <td class="font-medium">{{ row.serviceName }}</td>
             <td class="font-data">{{ row.quantity }} {{ row.uom | serviceUomShort }}</td>
             <td>{{ row.technicianName }}</td>
-            <td>{{ row.reportType }}</td>
+            <td>{{ row.templateName }}</td>
             <td class="font-data text-right">{{ row.amount | money }}</td>
           </tr>
         </ng-template>
