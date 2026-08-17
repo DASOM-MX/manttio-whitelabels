@@ -1,27 +1,39 @@
-# Whitelabel — De-brand + runtime tenant branding (master)
+# Whitelabel — Field-app tenant configuration (master)
 
-> **Status:** suite implemented 2026-07-12 — 01 (PR-A: **no seed**, manager shared-token push;
-> contract gained `siteUrl?`) · 02 CP-1 (PR-B: field-app runtime theming) · 02 CP-2 (PR-C:
+> **Status:** branding legs implemented 2026-07-12 — 01 (PR-A: **no seed**, manager shared-token
+> push; contract gained `siteUrl?`) · 02 CP-1 (PR-B: field-app runtime theming) · 02 CP-2 (PR-C:
 > dynamic manifest; **backend-generated icon set** in the dedicated `manttio-logos` bucket,
-> contract gained `icons?`) · **Last updated:** 2026-07-12
-> **Suite:** `.claude/plans/field-app-whitelabeling/` — this master + two build plans:
+> contract gained `icons?`). **03 (report templates → field app) is planned, not started.**
+> **Last updated:** 2026-08-16
+> **Suite:** `.claude/plans/field-app-whitelabeling/` — this master + three build plans:
 > **`01-brand-backend`** (backend brand source, PR-A) · **`02-brand-frontend`** (field-app
-> runtime theming + dynamic PWA manifest, PR-B + PR-C).
+> runtime theming + dynamic PWA manifest, PR-B + PR-C) · **`03-report-templates`** (template
+> module → field-app capture rework, one PR per checkpoint).
 > **Scope decisions (2026-07-10):** full-stack across the suite · one-deployment-per-tenant
 > (no `tenant_id`, no DO) · dynamic manifest route.
 > **References:** `website/` already implements the target pattern
 > (`website/src/lib/{api,types,theme}.ts`, `website/tailwind.config.mjs`) — its
 > `Brand`/`FontCatalogEntry` types are the canonical contract (§ Shared brand contract). Backend
 > design origin: `backend/manttio-whitelabeled-backend-plan.md` §3. Root `CLAUDE.md` →
-> "Whitelabel de-branding (fork rule)" governs.
+> "Whitelabel de-branding (fork rule)" governs. Template model + lifecycle decisions:
+> `.claude/plans/superadmin/06-reports.md` §5.
 > **Owner:** branch `feature/fullstack-whitelabel-branding` (worktree
-> `../manttio-whitelabeled-worktrees/whitelabel-branding`, off `main`).
+> `../manttio-whitelabeled-worktrees/whitelabel-branding`, off `main`) — 01/02.
+> 03 owns `feature/docs-report-templates-field-app` (worktree
+> `../manttio-whitelabeled-worktrees/report-templates-plan`).
 
-Two halves: **de-brand** (remove every hardcoded Peña Nevada literal from shipped code/config)
-and **re-brand at runtime** (each app pulls its identity from the backend brand object, the way
-`website/` already does). The website is the reference implementation and ~done; the **backend
-brand source (01)** and the **field-app consumption (02)** are net-new and hold the bulk of the
-work.
+Whitelabeling the field app has **two axes**: **how it looks** and **what it asks**.
+
+- **How it looks (01 + 02, done)** — two halves: **de-brand** (remove every hardcoded Peña
+  Nevada literal from shipped code/config) and **re-brand at runtime** (each app pulls its
+  identity from the backend brand object, the way `website/` already does). The website is the
+  reference implementation; the backend brand source (01) and the field-app consumption (02)
+  held the bulk of that work.
+- **What it asks (03, planned)** — the field app still captures against three **hardcoded HVAC
+  forms** (`minisplit | chiller | uma`) compiled into `report-add.ts`, while the tenant already
+  authors its own report templates in superadmin. A tenant that cannot change the questions its
+  technicians answer is re-skinned, not whitelabeled: `minisplit/chiller/uma` is the last
+  hardcoded piece of *the previous tenant's business* left in shipped app code.
 
 > **Guiding principle — Peña becomes *data*, not code (not deletion).** De-branding does not
 > erase Peña Nevada; it **moves** it out of source and into the brand table as the *current
@@ -38,16 +50,21 @@ work.
 |---|---|---|---|
 | **`01-brand-backend`** | `modules/brand/` (`GET /brand` + `/fonts`, owner `PUT /brand`), de-hardcode email/PDF, migrate `BRAND_*` → brand row, seed the Peña row, website residuals | **PR-A** | CP-1…CP-4 |
 | **`02-brand-frontend`** | field-app brand state + CSS-var theming + `app.ts` apply effect; dynamic PWA manifest route | **PR-B**, **PR-C** | CP-1…CP-2 |
+| **`03-report-templates`** | backend `reports` rework (snapshot storage + `template_id` + paged/flat API + snapshot PDF), `templateId` replaces `reportType` in 19/20, field-app template picker + sections renderer + Dexie cache, superadmin repoint | **one per CP** | CP-1…CP-7 |
 
 **Sequencing:** 01 (PR-A) is independently valuable and unblocks the website immediately. 02 can
 build in parallel (fail-soft against a missing `/brand`) but its "brand actually changes the app"
-verification depends on 01 being live.
+verification depends on 01 being live. **03 is independent of 01/02** — it touches the capture
+path, not the theme — and is ordered backend-first (CP-1…CP-3) because both the field app *and*
+superadmin's already-shipped reports browser consume what it produces.
 
 ---
 
 ## Branding rules (canonical)
 
-Settled invariants — they govern every plan in this suite; treat them as fixed, not per-PR choices.
+Settled invariants for the **branding legs (01 + 02)**; treat them as fixed, not per-PR choices.
+(03 is the *what it asks* axis — its settled invariants are the `06 §5` template decisions and
+its own Decisions block, not these.)
 
 1. **One shared brand contract.** Backend `GET /brand` + `GET /fonts` emit exactly the
    `Brand` / `FontCatalogEntry` types below; the website and field app both consume that shape.
@@ -74,7 +91,13 @@ Settled invariants — they govern every plan in this suite; treat them as fixed
 
 ---
 
-## Current reality (re-verified against `main` `5321e57`, 2026-07-11)
+## Current reality — branding legs (re-verified against `main` `5321e57`, 2026-07-11)
+
+> **03's current reality is tracked in its own file** (`03-report-templates` §1, verified against
+> `main` `0ff1545`, 2026-08-16) — the capture path has moved a lot since this section was
+> written. Headline: `modules/report-templates/` is shipped and complete, `modules/reports/` has
+> no `template_id` and no snapshot, and superadmin's reports browser is already written against
+> a contract the backend does not serve.
 
 Nothing of `01`/`02` has landed — the plan is fully pending. Already on `main`: website brand
 *consumption* (#44), the CMS module (#54), report-templates (#50), status enums as TS enums (#57);
@@ -133,6 +156,13 @@ HVAC noun "chillers", which stays — e.g. `website/src/lib/defaults.ts` marketi
   fallback · absent-hides · server-side materialization · `RESEND_FROM` · one-deploy-per-tenant)
   plus scope: full-stack across the suite · dynamic manifest route.
 - **PR granularity (decided 2026-07-11):** two plan files, **three PRs** — 01 = PR-A; 02 = PR-B +
-  PR-C. Checkpoints inside each file track the phases.
+  PR-C. Checkpoints inside each file track the phases. **Amended 2026-08-16:** 03 joins as a
+  third plan file with **one PR per checkpoint** (7), stacked — it spans backend, field app and
+  superadmin, so a per-leg PR would be unreviewable.
+- **03 scope locked 2026-08-16 (owner):** clean cut, no legacy support · HVAC seed as a one-off
+  script, not provisioning · reports API contract unification in scope · `template_id` replaces
+  `report_type` end-to-end (incl. 19/20) · one file, PR per checkpoint. Full statements in
+  `03-report-templates` → Decisions.
 - Per-plan open items live in their own files: **font-catalog contents** + **tint L-stops** in
-  `01-brand-backend`; **PWA icon assets** in `02-brand-frontend`.
+  `01-brand-backend`; **PWA icon assets** in `02-brand-frontend`; **the "no legacy reports worth
+  keeping" fact-check** + **field-app list pagination** in `03-report-templates`.
