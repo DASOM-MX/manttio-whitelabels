@@ -1,8 +1,9 @@
-import { and, desc, eq, gte, ilike, inArray, isNull, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, ilike, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { ReportStatus } from '../enums/reports.enum';
 import { reportCounters, reportDetails, reports } from '../models/reports.model';
 import { users } from '../../users/models/users.model';
+import { customers } from '../../customers/models/customers.model';
 import { formatReportId } from '../utils/report-id';
 import type {
   CustomerReportDTO,
@@ -11,6 +12,7 @@ import type {
   ReportDetailRow,
   ReportFilters,
   ReportRow,
+  ReportSummaryRow,
   SignedLocation,
 } from '../types/reports.types';
 
@@ -18,7 +20,18 @@ const activeFilter = isNull(reports.deletedAt);
 
 const dayString = (d: Date) => d.toISOString().slice(0, 10);
 
-export const listReports = async (db: Db, filters: ReportFilters = {}) => {
+/** Paged report list for the browsers (superadmin + field app).
+ *
+ *  Returns `ReportSummaryRow`s, not raw `reports` rows: the list surfaces the
+ *  customer and technician *names*, so both are joined here rather than left to
+ *  N+1 lookups in the caller. `templateName` is `report_type` — the denormalized
+ *  template name frozen at capture (03 decision 2), never a join against the live
+ *  template, which would drift away from what the report actually asked. */
+export const listReports = async (
+  db: Db,
+  filters: ReportFilters = {},
+  opts: { page: number; limit: number },
+): Promise<{ items: ReportSummaryRow[]; total: number }> => {
   const conds = [activeFilter];
   if (filters.status) conds.push(eq(reports.status, filters.status));
   if (filters.clientId) conds.push(eq(reports.clientId, filters.clientId));
@@ -29,11 +42,59 @@ export const listReports = async (db: Db, filters: ReportFilters = {}) => {
   if (filters.folio) conds.push(ilike(reports.id, `${filters.folio}%`));
   if (filters.dateFrom) conds.push(gte(reports.dateArrival, filters.dateFrom));
   if (filters.dateTo) conds.push(lte(reports.dateArrival, filters.dateTo));
-  return db
-    .select()
+  // Free-text box: folio prefix OR customer/technician name substring.
+  if (filters.search) {
+    const term = `%${filters.search}%`;
+    conds.push(
+      or(
+        ilike(reports.id, `${filters.search}%`),
+        ilike(customers.name, term),
+        ilike(users.name, term),
+      )!,
+    );
+  }
+
+  const where = and(...conds);
+  const joined = () =>
+    db
+      .select({
+        id: reports.id,
+        templateId: reports.templateId,
+        templateName: reports.reportType,
+        reportType: reports.reportType,
+        workType: reports.workType,
+        status: reports.status,
+        state: reports.state,
+        clientId: reports.clientId,
+        customerName: customers.name,
+        assignedTo: reports.assignedTo,
+        technicianName: users.name,
+        serviceOrderId: reports.serviceOrderId,
+        serviceId: reports.serviceId,
+        dateArrival: reports.dateArrival,
+        finishedAt: reports.finishedAt,
+        mailedAt: reports.mailedAt,
+        createdAt: reports.createdAt,
+      })
+      .from(reports)
+      .leftJoin(customers, eq(customers.id, reports.clientId))
+      .leftJoin(users, eq(users.id, reports.assignedTo))
+      .where(where);
+
+  const items = await joined()
+    .orderBy(desc(reports.createdAt))
+    .limit(opts.limit)
+    .offset((opts.page - 1) * opts.limit);
+
+  // Count over the same joins so a name-matching `search` counts consistently.
+  const [count] = await db
+    .select({ total: sql<number>`count(*)::int` })
     .from(reports)
-    .where(and(...conds))
-    .orderBy(desc(reports.createdAt));
+    .leftJoin(customers, eq(customers.id, reports.clientId))
+    .leftJoin(users, eq(users.id, reports.assignedTo))
+    .where(where);
+
+  return { items, total: count?.total ?? 0 };
 };
 
 /** Compact, technician-named report list for one customer (customer 360

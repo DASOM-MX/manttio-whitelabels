@@ -43,7 +43,8 @@ import { getBrand } from '../../brand/services/brand.service';
 import { notifyBestEffort } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums/notifications.enum';
 import { dispatchReportEmail } from './report-email.service';
-import type { CustomerReportDTO, ReportRow } from '../types/reports.types';
+import type { CustomerReportDTO, ReportRow, ReportDetail } from '../types/reports.types';
+import type { CapturedSection } from '../validators/reports.validator';
 import type {
   CreateReportMeta,
   ListReportsQuery,
@@ -193,6 +194,7 @@ export const listReportsForUser = async (
   if (q.work_type) filters.workType = q.work_type;
   if (q.state) filters.state = q.state;
   if (q.folio) filters.folio = q.folio;
+  if (q.search) filters.search = q.search;
   if (q.date_from) filters.dateFrom = new Date(q.date_from);
   if (q.date_to) filters.dateTo = new Date(q.date_to);
 
@@ -203,8 +205,9 @@ export const listReportsForUser = async (
     filters.assignedTo = user.id;
   }
 
-  const rows = await listReports(db, filters);
-  return { status: 200, body: { reports: rows } };
+  const { items, total } = await listReports(db, filters, { page: q.page, limit: q.limit });
+
+  return { status: 200, body: { items, total, page: q.page, limit: q.limit } };
 };
 
 export const getReportForUser = async (
@@ -215,7 +218,44 @@ export const getReportForUser = async (
   const result = await findReportWithDetails(db, id);
   if (!result) return { status: 404, body: { error: 'not_found' } };
   if (!canAccess(user, result.report)) return { status: 403, body: { error: 'forbidden' } };
-  return { status: 200, body: result };
+
+  // Extract sections from the snapshot (CP-1 stores capture data in details.data)
+  const capture = result.details.data as unknown;
+  const sections = (capture && typeof capture === 'object' && 'sections' in capture)
+    ? (capture as { sections: unknown }).sections
+    : [];
+
+  // Build flat ReportDetail
+  const flatDetail: ReportDetail = {
+    id: result.report.id,
+    templateId: result.report.templateId,
+    templateName: result.report.reportType,
+    reportType: result.report.reportType,
+    workType: result.report.workType,
+    dateArrival: result.report.dateArrival,
+    dateDeparture: result.report.dateDeparture,
+    createdBy: result.report.createdBy,
+    assignedTo: result.report.assignedTo,
+    clientId: result.report.clientId,
+    serviceOrderId: result.report.serviceOrderId,
+    serviceId: result.report.serviceId,
+    signedBy: result.report.signedBy,
+    status: result.report.status,
+    state: result.report.state,
+    signedAt: result.report.signedAt,
+    signedLatitude: result.report.signedLatitude,
+    signedLongitude: result.report.signedLongitude,
+    signedAccuracy: result.report.signedAccuracy,
+    finishedAt: result.report.finishedAt,
+    mailedAt: result.report.mailedAt,
+    createdAt: result.report.createdAt,
+    updatedAt: result.report.updatedAt,
+    sections: sections as CapturedSection[],
+    photos: result.details.pictures,
+    signatureUrl: result.details.signature,
+  };
+
+  return { status: 200, body: flatDetail };
 };
 
 // --- CREATE (multipart) ---
