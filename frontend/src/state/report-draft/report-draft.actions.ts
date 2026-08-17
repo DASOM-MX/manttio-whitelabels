@@ -1,9 +1,9 @@
-import type { ReportType, WorkType } from '../../app/data/types/report';
+import type { WorkType } from '../../app/data/types/report';
 
 export interface ReportDraftPatch {
   customerId?: string | null;
   workType?: WorkType | null;
-  reportType?: ReportType;
+  templateId?: string;
 }
 
 /** Ensure a draft exists. If none, stamps `arrivalAt = now()`. Idempotent: a second

@@ -21,7 +21,12 @@ offline.
 
 ## Hard rules (non-negotiable)
 
-1. **No `index.ts` barrels** (repo rule). Import concrete files.
+1. **Don't create new `index.ts` barrels.** Note the field app already has them under
+   `src/app/data/dtos/<resource>/` and `src/app/data/constants/` — that is the existing
+   local convention there, so adding an export to one of those is correct and churning
+   them away is out of scope. The no-barrel rule came from superadmin (PR #66) and has
+   never been applied to `frontend/`; don't proliferate barrels into new folders, and
+   import concrete files everywhere else.
 2. **Never `style="..."`, `[style]` or `[ngStyle]`** in templates. Tailwind classes or the
    component's own stylesheet.
 3. **Tailwind 3.4 only** — never upgrade/downgrade, never arbitrary values (`w-[137px]`).

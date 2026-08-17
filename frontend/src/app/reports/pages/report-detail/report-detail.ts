@@ -555,7 +555,7 @@ export class ReportDetail {
     pdfMake.createPdf(docDefinition).download(`reporte-${r.id}.pdf`);
   }
 
-  private getTableForReportType(reportType: ReportType, r: ReportViewModel) {
+  private getTableForReportType(reportType: string, r: ReportViewModel) {
     switch (reportType) {
       case 'minisplit':
         return {
@@ -602,6 +602,8 @@ export class ReportDetail {
           },
           margin: [0, 10, 0, 10],
         };
+      default:
+        return { table: { body: [] } };
     }
   }
 
@@ -658,7 +660,7 @@ export class ReportDetail {
     this.reportForm = this.fb.group({ ...commonControls, ...specificControls });
   }
 
-  private buildDataPatch(reportType: ReportType, fv: Record<string, unknown>): Partial<ReportData> {
+  private buildDataPatch(reportType: string, fv: Record<string, unknown>): Partial<ReportData> {
     const obs = (fv['observations'] as string | undefined) ?? '';
     const noise = !!fv['unusual_noise'];
     switch (reportType) {
@@ -701,6 +703,8 @@ export class ReportDetail {
           unusual_noise: noise,
           observations: obs,
         };
+      default:
+        return {};
     }
   }
 }

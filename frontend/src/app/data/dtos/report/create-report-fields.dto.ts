@@ -1,8 +1,8 @@
-import type { ReportType, WorkType } from '../../types/report';
-import type { ReportData } from './report-data.dto';
+import type { WorkType } from '../../types/report';
+import type { ReportCapture } from './report-capture.dto';
 
 export interface CreateReportFields {
-  report_type: ReportType;
+  report_type: string;
   work_type?: WorkType;
   client_id: string;
   date_arrival?: string;
@@ -12,7 +12,7 @@ export interface CreateReportFields {
    *  attributes it to the tech who created it, not the uploader. */
   created_by?: string;
   signed_by?: string;
-  data: ReportData;
+  data: ReportCapture;
   pictures?: File[];
   signature?: File;
   signature_base64?: string;
