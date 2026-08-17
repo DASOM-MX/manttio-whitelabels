@@ -1,14 +1,19 @@
 # Whitelabel 03 — Report templates → field app (capture rework)
 
-> **Status:** planned · **Last updated:** 2026-08-16 · **PRs:** one per checkpoint (stacked)
+> **Status:** planned · **Last updated:** 2026-08-17 · **PRs:** one per checkpoint (stacked)
 > **Part of:** `.claude/plans/field-app-whitelabeling/` (see `00-master` for the suite map).
 > **Depends on:** shipped backend `modules/report-templates/` (2026-07-09, migration `0013`) ·
 > shipped superadmin builder (`06-reports.md` §5, CP-4/CP-5) — this plan is the **field-app
 > counterpart** of that builder, plus the backend rework both sides have been waiting on.
-> **Owner:** branch `feature/docs-report-templates-field-app` (worktree
-> `../manttio-whitelabeled-worktrees/report-templates-plan`, off `main`).
-> **Supersedes:** the uncommitted 2026-07-10 draft in the stale `frontend-report-templates`
-> worktree (scope re-decided 2026-08-16 — see Decisions).
+> **Owner:** worktree `../manttio-whitelabeled-worktrees/field-app-templates` (off `main`).
+> CP-4…CP-6 are executed by the **`report-templates-field-app` agent**
+> (`.claude/agents/report-templates-field-app.md`, haiku, `frontend/`-only, commits but never
+> pushes); its conventions are the **`field-app-design`** skill. CP-1…CP-3 (backend) and CP-7
+> (superadmin) stay with the main session.
+> **Supersedes:** the uncommitted 2026-07-10 draft that lived in the `frontend-report-templates`
+> worktree (scope re-decided 2026-08-16 — see Decisions). That worktree and its branch were
+> **removed 2026-08-17**; its 8 commits were already on `main` via squash-merge and the draft
+> itself is fully superseded by this file.
 
 The tenant **authors** its report forms in superadmin (`/templates`, shipped). The field app
 still captures against **three hardcoded HVAC forms** compiled into `report-add.ts`. This plan
@@ -46,6 +51,17 @@ These five answers set the scope; they are not re-litigated per checkpoint.
    (no destructive migration) and written as the **template name** for display/back-compat; the
    `reportTypes` enum is deleted from every module.
 5. **One plan file, one PR per checkpoint** (stacked), per the standing granularity rule.
+
+**Amended 2026-08-17 (owner):**
+
+6. **The template picker is a lazy, server-paged `<p-select>` + a background prefetch.**
+   The select pages from the backend as the technician scrolls (`[lazy]` + `[virtualScroll]`
+   + `(onLazyLoad)`, supported by PrimeNG 20.4); separately, a background pass walks every
+   page once per session into Dexie so **offline keeps parity with online**. Supersedes the
+   original §4.1/§5.1 single `limit=100` fetch — see §4.1a.
+7. **CP-4…CP-6 are delegated to the `report-templates-field-app` agent** (`.claude/agents/`,
+   haiku, `frontend/` only, commits but never pushes). Backend CP-1…CP-3 and superadmin CP-7
+   stay with the main session. The agent's conventions live in the `field-app-design` skill.
 
 ---
 
@@ -260,9 +276,24 @@ starts empty and authors its own.
 
 ### 4.1 Service — `src/http/report-templates.service.ts`
 
-Thin `RemoteService` wrapper (mirrors `CustomersService`): `list()` scoped
-`{ status: 'active', limit: 100 }` and `get(id)`. Loop on `total` only if a tenant ever exceeds
-one page — not built until it happens.
+Thin `RemoteService` wrapper (mirrors `CustomersService`): `list({ status: 'active', page,
+limit })` → `{ items, total }`, and `get(id)`. **Always paged** — `page`/`limit` are real
+parameters, not a fixed `limit=100` (decision 6).
+
+### 4.1a Paging model — lazy picker + background prefetch (decision 6)
+
+Two consumers of one endpoint, and they are deliberately different:
+
+| Path | Reads | Why |
+|---|---|---|
+| **Picker, online** | `page=N&limit=20` on `(onLazyLoad)` | first options paint immediately, no full-catalog wait |
+| **Background prefetch** | walks `page=1…` until `loaded >= total`, once per session | Dexie ends up with **every** active template |
+| **Picker, offline** | the full Dexie set, scroller pages client-side | offline parity — a technician who only scrolled page 1 still reaches template 47 |
+
+The prefetch is a distinct action (`PrefetchActiveTemplates`) from the lazy page load
+(`LoadTemplatePage`), sequenced with `concatMap` and fully `catchError`-guarded: **a failed
+prefetch must never break the picker**, which is already usable off page 1. It is fire-and-
+forget on entry to the capture flow, not a gate.
 
 ### 4.2 State — `src/state/report-templates/` (NGXS, network-first + cache-fallback)
 
@@ -273,13 +304,20 @@ the storage-plugin keys — Dexie is the source of truth (same rule as `OfflineR
 
 ```ts
 interface ReportTemplatesStateModel {
-  entities: Record<string, ReportTemplate>; ids: string[];
-  loading: boolean; fromCache: boolean; lastSyncAt?: string;
+  entities: Record<string, ReportTemplate>;
+  /** Sparse by design: index = server row position, holes = not yet paged in.
+   *  Drives the virtual scroller's pre-sized options array (§5.1). */
+  ids: (string | undefined)[];
+  total: number;
+  loading: boolean; fromCache: boolean; prefetchDone: boolean; lastSyncAt?: string;
 }
-// LoadActiveTemplates:
-//   online  → api.list() → tap(patchState, fromCache:false) → concatMap(cache.putAll)
-//             catchError → cache fallback
-//   offline → from(cache.list()) → patchState(fromCache:true)
+// LoadTemplatePage(page, limit):
+//   online  → api.list({status:'active', page, limit})
+//             → tap(patch entities + splice ids at (page-1)*limit, total, fromCache:false)
+//             → concatMap(cache.putAll)   catchError → cache fallback
+//   offline → from(cache.list()) → patchState(fromCache:true, prefetchDone:true)
+// PrefetchActiveTemplates:  concatMap over page=1.. until loaded >= total
+//                           → cache.putAll   catchError → EMPTY (never breaks the picker)
 ```
 
 Online/offline comes from `select(AppState.isOnline)` — never `navigator` directly.
@@ -301,9 +339,11 @@ New `src/offline/templates-cache.service.ts` (Promise-based, mirrors `OfflineRep
 - **No service-worker `dataGroups`.** `ngsw-config.json` caches nothing at the SW level today;
   adding API caching would be a second, divergent mechanism. Templates live in **Dexie**,
   consistent with the reports outbox.
-- **Works offline** for any technician who has been online once: picker and capture form render
-  from cache, and the submitted report queues through the **existing** `QueueOfflineReport`
-  outbox — the outbox carries arbitrary `data`, so the snapshot rides along unchanged.
+- **Works offline** for any technician whose background prefetch (§4.1a) has completed once:
+  picker and capture form render from cache, and the submitted report queues through the
+  **existing** `QueueOfflineReport` outbox — the outbox carries arbitrary `data`, so the
+  snapshot rides along unchanged. The prefetch, not the lazy picker, is what guarantees the
+  cache is whole.
 - **First-run, never-online device** has no templates → explicit "conéctate una vez para
   descargar las plantillas" empty state. Never fail silently.
 - **Freshness:** `LoadActiveTemplates` on every entry to the capture flow. A stale cache is
@@ -315,10 +355,28 @@ New `src/offline/templates-cache.service.ts` (Promise-based, mirrors `OfflineRep
 
 ### 5.1 Template picker (`06 §5.5` field-app obligation)
 
-The 3-option `reportType` `<p-select>` becomes a select over the active templates. **One active
-template → skip the step**, straight into capture. **Zero active** → the §4.4 empty state (a
-real first-run path under decision 2, not an edge case). The 300 ms fade/remount animation
-between variants goes with it.
+The 3-option `reportType` `<p-select>` becomes a **lazy, server-paged** select over the active
+templates (decision 6). **One active template → skip the step**, straight into capture. **Zero
+active** → the §4.4 empty state (a real first-run path under decision 2, not an edge case). The
+300 ms fade/remount animation between variants goes with it.
+
+```html
+<p-select formControlName="templateId" [options]="options()" optionLabel="name" optionValue="id"
+  [virtualScroll]="true" [virtualScrollItemSize]="44" [lazy]="true"
+  (onLazyLoad)="onLazyLoad($event)" [loading]="loading()" [filter]="true"
+  appendTo="body" styleClass="field-input" placeholder="Selecciona una plantilla" />
+```
+
+Mechanics that bite if missed:
+
+- The scroller pages off a **pre-sized sparse array** — page 1 establishes `total`, then
+  **size the array once and fill slices in place**. Replacing the array wholesale resets
+  scroll position mid-flick.
+- `[virtualScrollItemSize]` must equal the real rendered row height or the scrollbar drifts.
+- **Offline** (`select(AppState.isOnline)` false) binds the full cached set with no lazy
+  fetch; the scroller pages client-side. Same component, one branch.
+- `[filter]` searches **only the pages already loaded**. Server-side template search is out
+  of scope here — revisit if a tenant's catalog makes local filtering feel broken.
 
 ### 5.2 Sections renderer — `reports/components/report-template-form/`
 
@@ -454,9 +512,12 @@ fade-remount animation (`report-add.ts`) · the per-variant blocks in `report-de
 
 ### CP-4 — Field app: templates infra (additive, no capture change)
 - [ ] `types/report-template/` + `dtos/report-template/` (§2.1) · `report-templates.service.ts`
+      with real `page`/`limit` (§4.1)
 - [ ] `ReportTemplatesState` + registration; Dexie `version(3)` + `templates-cache.service.ts`
-- [ ] `LoadActiveTemplates` read-through; offline + zero-templates empty states
-- [ ] Verify: picker lists live active templates and survives a reload offline
+- [ ] `LoadTemplatePage` (lazy) + `PrefetchActiveTemplates` (background, `catchError → EMPTY`)
+      read-through; offline + zero-templates empty states (§4.1a)
+- [ ] Verify: picker pages on scroll online, survives a reload offline **with templates the
+      technician never scrolled to** (i.e. the prefetch really filled Dexie)
 
 ### CP-5 — Field app: capture (`report-add`) template-driven
 - [ ] Template picker (1 active → skip; 0 → empty state) (§5.1)
@@ -487,7 +548,9 @@ fade-remount animation (`report-add.ts`) · the per-variant blocks in `report-de
   client-side over the full set (`total = reports().length`). Recommend the field app request a
   large single page (`limit=100`) and keep its client-side filtering for now, rather than
   rebuilding it as a server-paged lazy table — a technician's own report count is small.
-  **Confirm at CP-6.**
+  **Confirm at CP-6.** Note decision 6 (lazy paging) was scoped to the **template picker**
+  only and deliberately does not settle this — templates are a tenant-wide catalog that
+  grows without bound, a technician's report list is not.
 - **Template ↔ service prefilter** (`06 §5.1`, 19 CP-4): `report_templates` has **no
   `service_id` column** today, so the fill-time prefilter does not exist. Explicitly **out of
   scope** — an additive enrichment under the standalone-suite rule, not a dependency.

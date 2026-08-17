@@ -1,5 +1,11 @@
 # API rules
 
+> **Skill:** `backend-conventions` (`.claude/skills/backend-conventions/`) mirrors and
+> compresses this file — module layout, repository pattern, validation, roles, migration
+> rules, error shapes, testing, plus a pre-close checklist. Load it for any non-trivial
+> `backend/` work. **This file is the canonical source**: if the two disagree, this one wins
+> and the skill is updated in the same commit.
+
 ## Project state (as of 2026-07-04)
 - **Cloudflare Workers** (Wrangler v4) running **Hono 4** in TypeScript. Entry: `src/index.ts`, deployed as `manttio-api`. `compatibility_flags = ["nodejs_compat"]` so we can use `bcryptjs` and a few Node-flavored libs.
 - **Postgres** on **Neon** via `@neondatabase/serverless`'s **WebSocket driver** (not neon-http) — chosen for real transactions (the create-report flow updates a counter + a header row + N detail rows atomically). The live DB is whatever `pnpm db:migrate` has applied — **don't record a "current through NNNN" number here**; a tracked high-water mark is what made hand-applied DDL look normal, and it goes stale the moment someone forgets to update it. `drizzle.__drizzle_migrations` is the only answer.
