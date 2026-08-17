@@ -71,7 +71,7 @@ export interface ServiceOrderReportDTO {
   id: string;
   folio: string;
   status: ReportStatus;
-  reportType: ReportType;
+  reportType: string; // template name, denormalized for display
   /** Which line this report fulfills; drives the template prefilter (CP-4). */
   serviceId: string | null;
   assignedTo: string;

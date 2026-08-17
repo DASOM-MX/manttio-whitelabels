@@ -37,7 +37,7 @@ import { canAccess } from '../utils/report-access';
 import { isAdminTier } from '../../auth/utils/role-tier';
 import { isBirthStatus, isEditableStatus } from '../utils/report-lifecycle';
 import { ReportStatus } from '../enums/reports.enum';
-import { validateReportData } from '../validators/reports.validator';
+import { captureSchema } from '../validators/reports.validator';
 import { renderReportPdf } from '../helpers/report-pdf.helpers';
 import { getBrand } from '../../brand/services/brand.service';
 import { notifyBestEffort } from '../../notifications/services/notifications.service';
@@ -189,6 +189,7 @@ export const listReportsForUser = async (
   const filters: Parameters<typeof listReports>[1] = {};
   if (q.status) filters.status = q.status as (typeof filters)['status'];
   if (q.client_id) filters.clientId = q.client_id;
+  if (q.template_id) filters.templateId = q.template_id;
   if (q.work_type) filters.workType = q.work_type;
   if (q.state) filters.state = q.state;
   if (q.folio) filters.folio = q.folio;
@@ -275,10 +276,14 @@ export const submitReport = async (p: SubmitReportParams): Promise<JsonResult> =
   }
 
   try {
+    // Validate the capture data against the structural schema
+    const validatedCapture = captureSchema.parse(data);
+
     const result = await createReport(
       db,
       {
-        reportType: meta.report_type,
+        templateId: validatedCapture.templateId,
+        reportType: validatedCapture.templateName,
         workType: meta.work_type ?? null,
         dateArrival: meta.date_arrival ? new Date(meta.date_arrival) : null,
         dateDeparture: meta.date_departure ? new Date(meta.date_departure) : null,
@@ -289,7 +294,7 @@ export const submitReport = async (p: SubmitReportParams): Promise<JsonResult> =
         state: client.state ?? null,
       },
       {
-        data,
+        data: validatedCapture,
         pictures: pictureUrls,
         signature: signatureUrl,
         contentFilledAt: pictureUrls.length > 0 || signatureUrl ? new Date() : null,
@@ -358,7 +363,7 @@ export const applyPatch = async (
 
   let validatedData: unknown | undefined;
   if (input.data !== undefined) {
-    validatedData = validateReportData(report.reportType, input.data);
+    validatedData = captureSchema.parse(input.data);
   }
 
   await db.transaction(async (tx) => {

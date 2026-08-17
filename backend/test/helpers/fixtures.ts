@@ -147,7 +147,7 @@ export const seedOwnerAndLogin = async () => {
 };
 
 type SeedReportOpts = {
-  reportType?: 'minisplit' | 'chiller' | 'uma';
+  reportType?: string;
   status?: ReportStatus;
   createdBy: string;
   assignedTo?: string;
@@ -158,28 +158,48 @@ type SeedReportOpts = {
 
 type SeededReport = {
   id: string;
-  reportType: 'minisplit' | 'chiller' | 'uma';
+  reportType: string; // template name, denormalized for display
   status: ReportStatus;
   createdBy: string;
   assignedTo: string;
   clientId: string;
 };
 
-const defaultMinisplitData = () => ({
-  is_operating: true,
-  remote_working: true,
-  amperage: '5.2',
-  filter: true,
-  inner_voltage: '220',
-  unusual_noise: false,
-  observations: 'seeded',
+const TEMPLATE_ID = '00000000-0000-0000-0000-000000000001';
+
+const defaultReportCapture = () => ({
+  templateId: TEMPLATE_ID,
+  templateName: 'Minisplit Maintenance',
+  sections: [
+    {
+      title: 'General Inspection',
+      columns: 1,
+      answers: [
+        {
+          questionId: '00000000-0000-0000-0000-000000000101',
+          label: 'Operating',
+          datatype: 'boolean',
+          value: true,
+        },
+        {
+          questionId: '00000000-0000-0000-0000-000000000102',
+          label: 'Amperage',
+          datatype: 'text',
+          value: '5.2',
+        },
+      ],
+    },
+  ],
 });
 
 // Plants a report directly via Drizzle in the year-2099 folio partition so it cannot
 // collide with real same-day reports. The route layer is not exercised here — use POST
 // /reports for tests that need to validate the create path itself.
 export const seedReport = async (opts: SeedReportOpts): Promise<SeededReport> => {
-  const reportType = opts.reportType ?? 'minisplit';
+  const capture = opts.data ?? defaultReportCapture();
+  const templateName = typeof capture === 'object' && capture !== null && 'templateName' in capture
+    ? (capture as { templateName: string }).templateName
+    : 'Minisplit Maintenance';
   const status: ReportStatus = opts.status ?? ReportStatus.Created;
   const assignedTo = opts.assignedTo ?? opts.createdBy;
   const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
@@ -199,7 +219,8 @@ export const seedReport = async (opts: SeedReportOpts): Promise<SeededReport> =>
 
   await db.insert(reports).values({
     id,
-    reportType,
+    templateId: TEMPLATE_ID,
+    reportType: templateName,
     workType: opts.workType ?? null,
     createdBy: opts.createdBy,
     assignedTo,
@@ -208,7 +229,7 @@ export const seedReport = async (opts: SeedReportOpts): Promise<SeededReport> =>
   });
   await db
     .insert(reportDetails)
-    .values({ reportId: id, data: opts.data ?? defaultMinisplitData() });
+    .values({ reportId: id, data: capture });
 
-  return { id, reportType, status, createdBy: opts.createdBy, assignedTo, clientId: opts.clientId };
+  return { id, reportType: templateName, status, createdBy: opts.createdBy, assignedTo, clientId: opts.clientId };
 };

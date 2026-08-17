@@ -14,6 +14,7 @@ export type ReportFilters = {
   status?: ReportStatus;
   clientId?: string;
   assignedTo?: string;
+  templateId?: string;
   workType?: WorkType;
   state?: string;
   // Folio (report id) prefix match. e.g. `R-20260503` returns all of that day.
