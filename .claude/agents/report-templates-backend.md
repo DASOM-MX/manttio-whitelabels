@@ -76,6 +76,11 @@ Full set in the `backend-conventions` skill; these are the ones that get missed:
    the bug, not something to work around.
 4. **Migrations must be idempotent**: `ADD COLUMN IF NOT EXISTS`, `CREATE INDEX IF NOT
    EXISTS`, FKs inside `DO $$ … EXCEPTION WHEN duplicate_object` blocks.
+   **`drizzle-kit` does NOT emit `IF NOT EXISTS` for `ADD COLUMN`** — it generates a bare
+   `ALTER TABLE … ADD COLUMN`. You must **hand-edit the generated `.sql`** to add it. This
+   is the expected workflow, not a deviation: generate, then read the SQL line by line and
+   make every statement re-runnable before you commit. (It does emit `IF NOT EXISTS` for
+   indexes and wraps FKs in `DO $$` blocks already — check, don't assume.)
 5. **Every query lives in a repository.** Controllers/services never call `db.select(...)`.
 6. **Controllers stay thin**: validate → auth context → service → respond. Business rules
    in `services/`, queries in `repository/`.

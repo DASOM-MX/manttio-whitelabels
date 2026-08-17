@@ -5,7 +5,7 @@ import type { AppBindings } from '../../../env';
 import { createDb } from '../../database/client';
 import { requireRole } from '../../auth/middleware/roles.middleware';
 import { fdGet, fdGetAll, isFile } from '../../storage/utils/form-data';
-import { validateReportData } from '../validators/reports.validator';
+import { captureSchema } from '../validators/reports.validator';
 import {
   assignReportSchema,
   createReportMetaSchema,
@@ -85,7 +85,7 @@ reports.post('/', async (c) => {
   const fd = await c.req.formData();
 
   const meta = createReportMetaSchema.parse({
-    report_type: fdGet(fd, 'report_type') ?? undefined,
+    template_id: fdGet(fd, 'template_id') ?? undefined,
     work_type: fdGet(fd, 'work_type') ?? undefined,
     client_id: fdGet(fd, 'client_id') ?? undefined,
     date_arrival: fdGet(fd, 'date_arrival') ?? undefined,
@@ -108,7 +108,7 @@ reports.post('/', async (c) => {
   } catch {
     return c.json({ error: 'invalid_data_json' }, 400);
   }
-  const data = validateReportData(meta.report_type, dataParsed);
+  const data = captureSchema.parse(dataParsed);
 
   const db = createDb(c.env.DATABASE_URL);
   const { status, body } = await submitReport({

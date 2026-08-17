@@ -18,7 +18,7 @@ const longitudeField = z.coerce.number().min(-180).max(180);
 const accuracyField = z.coerce.number().nonnegative();
 
 export const createReportMetaSchema = z.object({
-  report_type: reportTypeEnum,
+  template_id: z.string().uuid(),
   work_type: workTypeEnum.optional(),
   client_id: z.string().uuid(),
   date_arrival: z.string().datetime().optional(),
@@ -62,6 +62,7 @@ export const listReportsQuerySchema = z.object({
   status: z.nativeEnum(ReportStatus).optional(),
   client_id: z.string().uuid().optional(),
   assigned_to: z.string().uuid().optional(),
+  template_id: z.string().uuid().optional(),
   work_type: workTypeEnum.optional(),
   state: z.string().min(1).optional(),
   // Folio (report id) prefix match — e.g. `R-20260503` returns all of that day, `R-20260503-0001` returns one.

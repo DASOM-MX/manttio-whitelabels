@@ -239,6 +239,13 @@
       "when": 1786084623602,
       "tag": "0033_sticky_sumo",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1786935025815,
+      "tag": "0034_curious_grim_reaper",
+      "breakpoints": true
     }
   ]
 }

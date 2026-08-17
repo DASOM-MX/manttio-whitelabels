@@ -23,6 +23,7 @@ export const listReports = async (db: Db, filters: ReportFilters = {}) => {
   if (filters.status) conds.push(eq(reports.status, filters.status));
   if (filters.clientId) conds.push(eq(reports.clientId, filters.clientId));
   if (filters.assignedTo) conds.push(eq(reports.assignedTo, filters.assignedTo));
+  if (filters.templateId) conds.push(eq(reports.templateId, filters.templateId));
   if (filters.workType) conds.push(eq(reports.workType, filters.workType));
   if (filters.state) conds.push(eq(reports.state, filters.state));
   if (filters.folio) conds.push(ilike(reports.id, `${filters.folio}%`));

@@ -28,6 +28,10 @@ Drizzle ORM · JWT (HS256, `jose`) · R2 · Resend · pdf-lib.
    EXISTS`, `CREATE INDEX IF NOT EXISTS`, FKs inside `DO $$ … EXCEPTION WHEN
    duplicate_object` blocks. Note `CREATE TABLE IF NOT EXISTS` silently does nothing to an
    existing table — a migration that creates a table *and* adds columns needs both.
+   **`drizzle-kit` does not emit `IF NOT EXISTS` for `ADD COLUMN`** — it generates a bare
+   `ALTER TABLE … ADD COLUMN`, so the generated `.sql` must be **hand-edited** for
+   idempotency before committing. Generating and committing the output unread is the
+   failure mode this rule exists to catch.
 5. **If `generate` proposes work you did not intend** (re-creating existing tables, any
    `DROP`), the `meta/` snapshot chain has drifted. **That is the bug to fix first** — do
    not apply it, do not hand-write around it.

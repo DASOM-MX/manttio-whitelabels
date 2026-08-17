@@ -25,25 +25,56 @@ type ReportRow = {
 
 type ReportDetailRow = {
   reportId: string;
-  data: Record<string, unknown>;
+  data: {
+    templateId: string;
+    templateName: string;
+    sections: Array<{
+      title: string;
+      columns: 1 | 2 | 3;
+      answers: Array<{
+        questionId: string;
+        label: string;
+        datatype: string;
+        unit?: string;
+        value: unknown;
+      }>;
+    }>;
+  };
   pictures: string[];
   signature: string | null;
 };
 
 const FOLIO_RE = /^R-\d{8}-\d{4}$/;
 
-const validMinisplitData = () => ({
-  is_operating: true,
-  remote_working: true,
-  amperage: '5.2',
-  filter: true,
-  inner_voltage: '220',
-  unusual_noise: false,
-  observations: 'created from e2e test',
+const TEMPLATE_ID = '00000000-0000-0000-0000-000000000001';
+
+const validReportCapture = () => ({
+  templateId: TEMPLATE_ID,
+  templateName: 'Minisplit Maintenance',
+  sections: [
+    {
+      title: 'General Inspection',
+      columns: 1,
+      answers: [
+        {
+          questionId: '00000000-0000-0000-0000-000000000101',
+          label: 'Operating',
+          datatype: 'boolean',
+          value: true,
+        },
+        {
+          questionId: '00000000-0000-0000-0000-000000000102',
+          label: 'Amperage',
+          datatype: 'text',
+          value: '5.2',
+        },
+      ],
+    },
+  ],
 });
 
 const buildCreateForm = (opts: {
-  reportType?: 'minisplit' | 'chiller' | 'uma';
+  templateId?: string;
   clientId: string;
   assignedTo?: string;
   createdBy?: string;
@@ -52,13 +83,13 @@ const buildCreateForm = (opts: {
   omitData?: boolean;
 }): FormData => {
   const fd = new FormData();
-  fd.set('report_type', opts.reportType ?? 'minisplit');
+  fd.set('template_id', opts.templateId ?? TEMPLATE_ID);
   fd.set('client_id', opts.clientId);
   if (opts.assignedTo !== undefined) fd.set('assigned_to', opts.assignedTo);
   if (opts.createdBy !== undefined) fd.set('created_by', opts.createdBy);
   if (opts.workType !== undefined) fd.set('work_type', opts.workType);
   if (!opts.omitData) {
-    const data = opts.data ?? validMinisplitData();
+    const data = opts.data ?? validReportCapture();
     fd.set('data', typeof data === 'string' ? data : JSON.stringify(data));
   }
   return fd;
@@ -218,7 +249,11 @@ describe('GET /reports/:id', () => {
     const body = await json<{ report: ReportRow; details: ReportDetailRow }>(res);
     expect(body.report.id).toBe(seeded.id);
     expect(body.details.reportId).toBe(seeded.id);
-    expect(body.details.data).toMatchObject({ is_operating: true });
+    expect(body.details.data).toMatchObject({
+      templateId: expect.any(String),
+      templateName: expect.any(String),
+      sections: expect.any(Array),
+    });
   });
 
   test('technician can fetch a report assigned to them', async () => {
@@ -255,7 +290,7 @@ describe('GET /reports/:id', () => {
 // --- POST /reports (multipart) ---
 
 describe('POST /reports', () => {
-  test('admin creates a minisplit report (201) with R-YYYYMMDD-NNNN folio', async () => {
+  test('admin creates a report from a template (201) with R-YYYYMMDD-NNNN folio', async () => {
     const { admin, token } = await seedAdminAndLogin();
     const customer = await seedCustomer();
 
@@ -268,12 +303,16 @@ describe('POST /reports', () => {
 
     const body = await json<{ report: ReportRow; details: ReportDetailRow }>(res);
     expect(body.report.id).toMatch(FOLIO_RE);
-    expect(body.report.reportType).toBe('minisplit');
+    expect(body.report.reportType).toBe('Minisplit Maintenance'); // template name, denormalized
     expect(body.report.clientId).toBe(customer.id);
     expect(body.report.createdBy).toBe(admin.id);
     expect(body.report.assignedTo).toBe(admin.id); // defaults to self
     expect(body.report.status).toBe('created');
-    expect(body.details.data).toMatchObject({ is_operating: true, amperage: '5.2' });
+    expect(body.details.data).toMatchObject({
+      templateId: TEMPLATE_ID,
+      templateName: 'Minisplit Maintenance',
+      sections: expect.any(Array),
+    });
     expect(body.details.pictures).toEqual([]);
     expect(body.details.signature).toBeNull();
   });
@@ -468,15 +507,42 @@ describe('PATCH /reports/:id', () => {
       status: ReportStatus.InProgress,
     });
 
-    const newData = { ...validMinisplitData(), observations: 'updated by patch' };
+    const newCapture = {
+      ...validReportCapture(),
+      sections: [
+        {
+          title: 'General Inspection',
+          columns: 1,
+          answers: [
+            {
+              questionId: '00000000-0000-0000-0000-000000000101',
+              label: 'Operating',
+              datatype: 'boolean',
+              value: true,
+            },
+            {
+              questionId: '00000000-0000-0000-0000-000000000103',
+              label: 'Observations',
+              datatype: 'textarea',
+              value: 'updated by patch',
+            },
+          ],
+        },
+      ],
+    };
     const res = await request(`/reports/${seeded.id}`, {
       method: 'PATCH',
       headers: jsonHeaders(token),
-      body: JSON.stringify({ data: newData }),
+      body: JSON.stringify({ data: newCapture }),
     });
     expect(res.status).toBe(200);
     const body = await json<{ report: ReportRow; details: ReportDetailRow }>(res);
-    expect(body.details.data.observations).toBe('updated by patch');
+    const section = body.details.data.sections[0];
+    if (section && section.answers && section.answers[1]) {
+      expect(section.answers[1].value).toBe('updated by patch');
+    } else {
+      expect.fail('Section or answers not found in patch response');
+    }
   });
 
   test('admin patches client_id (valid customer) → 200', async () => {
