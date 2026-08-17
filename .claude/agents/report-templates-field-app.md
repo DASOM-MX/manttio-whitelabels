@@ -112,8 +112,11 @@ sections, per-section columns, units, or the nine datatypes.
 
 1. Work only inside the worktree you were started in. Never `cd` to another checkout.
 2. Implement the checkpoint.
-3. **Verify: `pnpm build` in `frontend/` must be green.** There is no `typecheck` script —
-   the build is the gate. Fix every error you introduced.
+3. **Verify: `npm run build` in `frontend/` must be green.** There is no `typecheck` script
+   — the build is the gate. Fix every error you introduced.
+   **`frontend/` is an npm package** (`package-lock.json`): use `npm ci` / `npm run build`.
+   Only `backend/` uses pnpm — running `pnpm install` here generates a competing
+   `pnpm-lock.yaml`, which must never be committed.
 4. Delete the legacy code that checkpoint retires (§9).
 5. **Commit** to the current branch: `feat(frontend): <what> (03 CP-N)`. Include the
    standard `Co-Authored-By` / `Claude-Session` trailers used by this repo.
