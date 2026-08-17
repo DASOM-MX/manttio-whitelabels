@@ -42,7 +42,8 @@ These apply across packages; per-package CLAUDE.md files own the rest.
 - **Commit prefixes:** Conventional-ish: `feat(<project>)`, `fix(<project>)`, `docs(<project>)`, `style(<project>)`, `chore(<project>)`. Use `fullstack` for changes that span backend + frontend in the same PR.
 - **PR base is always `main`.** Stacked PRs are rare here — always re-check the base before merging (`gh pr view <N> --json baseRefName`), GitHub does not auto-retarget stacked PRs after the parent merges.
 - **Git identity:** never override with `-c user.name=…` / `-c user.email=…`. Use whatever the local git config already has.
-- **`.claude/` IS committed** (shared agent context for all devs: `skills/`, `plans/`) — **exception: `.claude/settings.local.json`** (per-user permissions, gitignored).
+- **`.claude/` IS committed** (shared agent context for all devs: `skills/`, `plans/`, `agents/`) — **exception: `.claude/settings.local.json`** (per-user permissions, gitignored).
+- **Scoped subagents** live in `.claude/agents/<name>.md`. Keep one narrowly scoped to a plan or app, name its out-of-bounds dirs explicitly, and have it **commit but never push or open PRs** — pushing and PR authoring stay with the main session, merging stays with the user. Existing: `report-templates-field-app` (whitelabel plan 03 CP-4…CP-6, `frontend/` only).
 - **Don't commit:** `frontend/src/environments/environment.development.ts` (local API URL override); `backend/.dev.vars` (local secrets); anything matching `.env*` outside the checked-in `*.example` files.
 - **Backend is the sole authority on JWT validity.** Frontend never decodes tokens; guards check presence only, the HTTP interceptor handles 401s.
 - **No entity is ever hard-deleted (fork rule, 2026-07-19).** Soft delete (`deleted_at`) is the *only* removal mechanism, for every domain entity — no hard-DELETE endpoints, no `ON DELETE CASCADE`, no wipe scripts, no destructive migrations. Read helpers always filter `isNull(deletedAt)`. Deleting a customer with reports succeeds and leaves the reports' FK intact (no 409 in_use). `customer_interactions` is stricter still: append-only, no updates either — the timeline IS the audit trail. The `users` table additionally carries `delete_comment` + `deleted_by` for the delete audit.
@@ -73,7 +74,9 @@ Backend is **module-first (NestJS-like)**: `src/` holds only `env.ts`, `index.ts
 ### Pointers (per-package conventions)
 
 - API conventions, auth, validation, R2, email/PDF, testing — `backend/CLAUDE.md`.
-- Angular/NGXS/PrimeNG/Tailwind/dark-mode/dialog patterns — `frontend/CLAUDE.md`.
+- Angular/NGXS/PrimeNG/Tailwind/dark-mode/dialog patterns — `frontend/CLAUDE.md`, expanded by
+  the **`field-app-design`** skill (structure, HTTP/NGXS/Dexie idioms, lazy `<p-select>`,
+  pre-close checklist).
 - Superadmin quick rules + pointers to its canonical conventions
   (`.claude/plans/superadmin/01-conventions.md` + the `superadmin-design` skill) —
   `superadmin/CLAUDE.md`.

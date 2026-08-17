@@ -1,5 +1,11 @@
 # Web-app rules
 
+> **Skill:** `field-app-design` (`.claude/skills/field-app-design/`) mirrors and expands this
+> file — structure, HTTP/NGXS/Dexie idioms, the lazy `<p-select>` pattern, dark-mode pairings
+> and a pre-close checklist. Load it for any non-trivial `frontend/` work. **This file is the
+> canonical source**: if the two disagree, this one wins and the skill is updated in the same
+> commit.
+
 ## Project state (as of 2026-06-10)
 - **Angular 20** standalone-components app, zoneless change detection, esbuild via `@angular/build`.
 - **State:** NGXS 20 — `Auth`, `App` (connectivity + dark mode), `Brand` (runtime tenant brand + font catalog), `Users`, `Customers`, `Reports`, `ReportDraft`, `OfflineReports`. `auth`, `reportDraft`, `app`, and `brand` are persisted via the storage plugin; `OfflineReports` is deliberately NOT persisted — IndexedDB (Dexie) is the source of truth and `LoadPendingReports` re-hydrates on boot.
@@ -64,8 +70,13 @@
 - Wrap hover/active state changes with the **`enabled:` modifier** (e.g. `enabled:hover:bg-sky-800 enabled:active:bg-sky-900`) on any `.btn-*` variant so a disabled button doesn't flash a darker tint on hover. The `.btn-*` global classes already do this — match the pattern when adding new buttons.
 
 ## Animations
-- Use **anime.js** for animations only. Do not use it as a general utility library.
-- Do not animate via CSS keyframes, Angular animations, or other libraries unless explicitly requested.
+- **CSS / Tailwind transitions only** — e.g. `class="transition-opacity duration-300"` with
+  `[class.opacity-0]` bound to a signal (`report-add.html` is the in-repo example). Keep motion
+  brief and purposeful, never decorative.
+- **anime.js is not a dependency of this app and must not be added** (corrected 2026-08-17 — this
+  section previously prescribed it; `grep` confirms zero usage and it is absent from
+  `package.json`). `@angular/animations` is likewise not installed. Don't reach for either
+  without an explicit decision to take on the dependency.
 
 ## Shared helpers (`src/app/data/utils.ts`)
 Reuse these instead of re-implementing locally. When you add a new general-purpose helper that doesn't belong in a feature folder, put it here and add a one-line entry below.
