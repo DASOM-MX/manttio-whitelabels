@@ -1,10 +1,8 @@
-import type { ReportType } from './types/report';
-
 /** Flattened, template-friendly shape the report-detail page renders. The
  *  discriminated per-type fields are optional — read them guarded by `report_type`. */
 export interface ReportViewModel {
   id: string;
-  report_type: ReportType;
+  report_type: string;
   manttio_type: string;
   report_status: boolean;
   date_arrival: string | null;

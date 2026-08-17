@@ -1,5 +1,4 @@
 import type { CreateReportFields } from '../app/data/dtos/report';
-import type { ReportType } from '../app/data/types/report';
 
 /** Upload lifecycle of a report captured while offline. */
 export enum PendingReportStatus {
@@ -35,7 +34,7 @@ export interface PendingReport {
  *  no blobs, so it's cheap to hold in NGXS state and render. */
 export interface PendingReportSummary {
   tempId: string;
-  reportType: ReportType;
+  reportType: string;
   clientId: string;
   createdBy: PendingReportCreator;
   createdAt: string;

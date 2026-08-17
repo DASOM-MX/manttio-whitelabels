@@ -1,0 +1,171 @@
+<form [formGroup]="form()" (ngSubmit)="onSubmit()">
+  @for (section of sections(); track section.id) {
+    <div class="card-section">
+      <h2 class="section-heading">{{ section.title }}</h2>
+
+      <!-- `columns` is the desktop ceiling; a phone always gets one column. -->
+      <div [class]="section.gridClasses">
+        @for (question of section.questions; track question.id) {
+          @if (form().get(question.id); as ctrl) {
+            <div class="field-group">
+              <label [for]="question.id" class="field-label">
+                {{ question.label }}
+                @if (question.unit) {
+                  <span class="text-granite-700 dark:text-granite-300">({{ question.unit }})</span>
+                }
+              </label>
+
+              @switch (question.kind) {
+                @case ('text') {
+                  <input
+                    pInputText
+                    type="text"
+                    [id]="question.id"
+                    [formControlName]="question.id"
+                    class="field-input"
+                  />
+                }
+
+                @case ('textarea') {
+                  <textarea
+                    pTextarea
+                    [id]="question.id"
+                    [formControlName]="question.id"
+                    class="field-input !h-auto"
+                    rows="4"
+                  ></textarea>
+                }
+
+                @case ('number') {
+                  <p-inputnumber
+                    [inputId]="question.id"
+                    [formControlName]="question.id"
+                    [min]="question.min"
+                    [max]="question.max"
+                    [useGrouping]="false"
+                    styleClass="field-input w-full"
+                    inputStyleClass="w-full"
+                  />
+                }
+
+                @case ('date') {
+                  <p-datepicker
+                    [inputId]="question.id"
+                    [formControlName]="question.id"
+                    [minDate]="question.minDate"
+                    [maxDate]="question.maxDate"
+                    dateFormat="dd/mm/yy"
+                    styleClass="field-input w-full"
+                    inputStyleClass="w-full"
+                  />
+                }
+
+                @case ('boolean') {
+                  <div class="flex items-center gap-3">
+                    <p-toggleswitch [inputId]="question.id" [formControlName]="question.id" />
+                    <span class="text-granite-700 dark:text-granite-300">
+                      {{ ctrl.value ? 'Sí' : 'No' }}
+                    </span>
+                  </div>
+                }
+
+                @case ('select') {
+                  <p-select
+                    [inputId]="question.id"
+                    [formControlName]="question.id"
+                    [options]="question.options"
+                    optionLabel="label"
+                    optionValue="value"
+                    [autoOptionFocus]="false"
+                    appendTo="body"
+                    styleClass="field-input w-full"
+                    placeholder="Selecciona una opción"
+                  />
+                }
+
+                @case ('multiselect') {
+                  <p-multiselect
+                    [inputId]="question.id"
+                    [formControlName]="question.id"
+                    [options]="question.options"
+                    optionLabel="label"
+                    optionValue="value"
+                    [showToggleAll]="false"
+                    [maxSelectedLabels]="3"
+                    appendTo="body"
+                    styleClass="field-input w-full"
+                    placeholder="Selecciona opciones"
+                  />
+                }
+
+                <!-- Radio and checkbox groups render their options visibly: a
+                     technician should see the choices without opening an overlay. -->
+                @case ('radio') {
+                  <div class="flex flex-col gap-3">
+                    @for (opt of question.options; track opt.value) {
+                      <div class="flex items-center gap-2">
+                        <p-radiobutton
+                          [inputId]="question.id + '-' + opt.value"
+                          [name]="question.id"
+                          [value]="opt.value"
+                          [formControlName]="question.id"
+                        />
+                        <label
+                          [for]="question.id + '-' + opt.value"
+                          class="cursor-pointer text-granite-800 dark:text-granite-200"
+                        >
+                          {{ opt.label }}
+                        </label>
+                      </div>
+                    }
+                  </div>
+                }
+
+                @case ('checkbox_group') {
+                  <div class="flex flex-col gap-3">
+                    @for (opt of question.options; track opt.value) {
+                      <div class="flex items-center gap-2">
+                        <p-checkbox
+                          [inputId]="question.id + '-' + opt.value"
+                          [value]="opt.value"
+                          [formControlName]="question.id"
+                        />
+                        <label
+                          [for]="question.id + '-' + opt.value"
+                          class="cursor-pointer text-granite-800 dark:text-granite-200"
+                        >
+                          {{ opt.label }}
+                        </label>
+                      </div>
+                    }
+                  </div>
+                }
+              }
+
+              @if (ctrl.invalid && ctrl.touched) {
+                <span class="text-sm text-red-600 dark:text-red-400">
+                  @if (ctrl.hasError('required')) {
+                    Campo requerido
+                  } @else if (ctrl.hasError('maxlength')) {
+                    Excede el largo máximo
+                  } @else if (ctrl.hasError('min')) {
+                    Valor por debajo del mínimo
+                  } @else if (ctrl.hasError('max')) {
+                    Valor por encima del máximo
+                  } @else {
+                    Valor inválido
+                  }
+                </span>
+              }
+            </div>
+          }
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Opens the signature modal in the parent; the report is not created here. -->
+  <button type="submit" [disabled]="form().invalid" class="btn-primary w-full">
+    Continuar
+  </button>
+</form>
