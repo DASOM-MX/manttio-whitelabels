@@ -662,11 +662,14 @@ export const renderPdfForToken = async (
   ]);
   if (!customer) return null;
 
+  // Parse the capture data (ReportCapture with sections)
+  const capture = (fullReport.details.data as { sections?: unknown }) ?? { sections: [] };
+
   const pdf = await renderReportPdf({
     brand,
     report: {
       id: fullReport.report.id,
-      reportType: fullReport.report.reportType,
+      templateName: fullReport.report.reportType, // denormalized template name
       workType: fullReport.report.workType,
       dateArrival: fullReport.report.dateArrival,
       dateDeparture: fullReport.report.dateDeparture,
@@ -676,7 +679,16 @@ export const renderPdfForToken = async (
       signedLongitude: fullReport.report.signedLongitude,
       signedAccuracy: fullReport.report.signedAccuracy,
     },
-    data: (fullReport.details.data as Record<string, unknown>) ?? {},
+    capture: capture as { sections: Array<{
+      title: string;
+      columns: 1 | 2 | 3;
+      answers: Array<{
+        label: string;
+        datatype: string;
+        unit?: string;
+        value: string | number | boolean | string[] | null;
+      }>;
+    }> },
     customer: {
       name: customer.name,
       identification: customer.identification,

@@ -1,15 +1,12 @@
 import { z } from 'zod';
 import {
   ReportStatus,
-  reportTypes,
   workTypes,
-  type ReportType,
   type WorkType,
 } from '../enums/reports.enum';
 
 // Narrow the inferred types (zod's tuple signature loses literals through a bare cast).
 const workTypeEnum = z.enum(workTypes as unknown as [WorkType, ...WorkType[]]);
-const reportTypeEnum = z.enum(reportTypes as unknown as [ReportType, ...ReportType[]]);
 
 // Multipart text fields (files are read separately via formData.getAll('pictures') etc.)
 // Geo fields arrive as strings — coerce to number and bound to valid WGS84 ranges.

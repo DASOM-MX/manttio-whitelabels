@@ -10,7 +10,6 @@ import { isLiveStatus, QuotationResponse } from '../../quotations/enums/quotatio
 import { QuotationNotLiveError } from '../../quotations/http-errors/quotations.error';
 import { isOverdue } from '../../quotations/services/quotations.service';
 import type { QuotationLineRow } from '../../quotations/types/quotations.types';
-import type { ReportType } from '../../reports/enums/reports.enum';
 import { createServiceOrderFromQuotation } from '../repository/service-orders.repository';
 import { getServiceOrderById } from './service-orders.service';
 import {
@@ -42,7 +41,7 @@ const isIntegralQuantity = (quantity: string): boolean =>
  *  fields are identical across the group by construction. */
 const mergeQuoteLines = (
   quoteLines: QuotationLineRow[],
-  assignments: Map<string, { technicianId: string; reportType: ReportType }>,
+  assignments: Map<string, { technicianId: string; templateId: string }>,
 ): FrozenOrderLine[] => {
   const merged = new Map<string, FrozenOrderLine>();
   for (const line of quoteLines) {
@@ -63,7 +62,7 @@ const mergeQuoteLines = (
       quantity: Number(line.quantity),
       unitPrice: line.unitPrice,
       technicianId: assignment.technicianId,
-      reportType: assignment.reportType,
+      templateId: assignment.templateId,
     });
   }
   return [...merged.values()];
@@ -116,7 +115,7 @@ export const createOrderFromQuotation = async (
 
   const quotedServiceIds = new Set(quoteLines.map((l) => l.serviceId!));
   const assignments = new Map(
-    input.assignments.map((a) => [a.serviceId, { technicianId: a.technicianId, reportType: a.reportType }]),
+    input.assignments.map((a) => [a.serviceId, { technicianId: a.technicianId, templateId: a.templateId }]),
   );
   const missing = [...quotedServiceIds].filter((id) => !assignments.has(id));
   const unknown = [...assignments.keys()].filter((id) => !quotedServiceIds.has(id));
