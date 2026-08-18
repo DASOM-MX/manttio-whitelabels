@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReportTemplateForm } from '../../components/report-template-form/report-template-form';
 import { SignSubmitDialog } from '../../components/sign-submit-dialog/sign-submit-dialog';
@@ -99,7 +99,11 @@ export class ReportAdd {
     templateId: [''],
   });
 
-  /** The currently selected template (if any). */
+  /** The currently selected template (if any).
+   *
+   *  Reads the draft, never the picker control, so a resumed draft and a fresh
+   *  pick resolve through one path — and so the single-template case below can
+   *  select without touching the form. */
   selectedTemplate = computed(() => {
     const templateId = this.draft()?.templateId;
     if (!templateId) return null;
@@ -201,6 +205,19 @@ export class ReportAdd {
           summary: 'No se pudo guardar el reporte sin conexión',
         });
       });
+
+    // A tenant with exactly one active template gets no picker (§5.1). Nothing
+    // else writes `templateId` in that branch — the picker is what normally does
+    // — so without this the draft stays empty, `selectedTemplate()` stays null
+    // and the capture form never renders at all. That is the whole page for a
+    // single-template tenant, which is the common small-shop shape.
+    effect(() => {
+      const options = this.templateOptions();
+      if (options.length !== 1) return;
+      const only = options[0];
+      if (!only || this.draft()?.templateId === only.id) return;
+      this.store.dispatch(new UpdateReportDraft({ templateId: only.id }));
+    });
 
     this.store.dispatch(new LoadCustomers());
     this.store.dispatch(new LoadReports());
