@@ -10,6 +10,17 @@ export type Cell = {
   colSpan?: number;
 };
 
+/** A cell that stacks its value under its label, instead of pairing them across
+ *  two table columns. This is what a form column *is* on screen — the question
+ *  with its answer beneath it — so a section rendered at N columns puts N of
+ *  these side by side. */
+export type StackedCell = {
+  label: string;
+  value: string;
+  /** Filler cells that pad a short final row draw no box. */
+  border?: boolean;
+};
+
 // Document theme — the whitelabel seam. Layouts derive one from the tenant
 // brand scales per render (falling back to DEFAULT_PDF_THEME in constants).
 export type PdfTheme = {
