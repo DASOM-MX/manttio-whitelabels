@@ -269,7 +269,7 @@ export class ReportAdd {
     const signatureFile = dataUrlToFile(signature.dataUrl, `signature-${Date.now()}.jpg`);
 
     const fields: CreateReportFields = {
-      report_type: capture.templateName,
+      template_id: capture.templateId,
       work_type: header.workType || undefined,
       client_id: header.customerId,
       date_arrival: this.arrivalAt(),

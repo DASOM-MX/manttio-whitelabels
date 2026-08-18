@@ -30,7 +30,7 @@ export class ReportsService {
   }
   create(fields: CreateReportFields): Observable<ReportResponse> {
     const fd = new FormData();
-    appendIf(fd, 'report_type', fields.report_type);
+    appendIf(fd, 'template_id', fields.template_id);
     appendIf(fd, 'work_type', fields.work_type);
     appendIf(fd, 'client_id', fields.client_id);
     appendIf(fd, 'date_arrival', fields.date_arrival);
