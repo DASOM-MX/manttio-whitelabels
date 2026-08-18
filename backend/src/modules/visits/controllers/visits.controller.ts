@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { streamSSE } from 'hono/streaming';
 import { zValidator } from '@hono/zod-validator';
 import type { AppBindings } from '../../../env';
 import { createDb } from '../../database/client';
@@ -30,6 +31,7 @@ import {
   rescheduleVisit,
   startVisit,
 } from '../services/visits.service';
+import { streamVisitEvents } from '../services/visits-stream.service';
 
 export const visits = new Hono<AppBindings>();
 
@@ -38,6 +40,17 @@ export const visits = new Hono<AppBindings>();
 visits.get('/', zValidator('query', listVisitsQuerySchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   return c.json(await getVisits(db, c.req.valid('query')));
+});
+
+// Live visit delivery (12 CP-4) — session-length per-connection SSE, the
+// notifications-stream posture (Bearer-authed by the mounted JWT middleware;
+// the frontend consumes it with the fetch-based reader since EventSource
+// can't set the Authorization header). Staff-gated: v1's only consumer is
+// the superadmin calendar — the field app stays offline-first pull.
+// Registered before `/:id` so "stream" never matches as an id.
+visits.get('/stream', requireRole(VISIT_STAFF_ROLES), (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  return streamSSE(c, (stream) => streamVisitEvents(db, stream));
 });
 
 visits.get('/:id', async (c) => {

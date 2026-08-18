@@ -236,8 +236,29 @@
     {
       "idx": 33,
       "version": "7",
-      "when": 1784785239321,
-      "tag": "0033_contracts",
+      "when": 1786084623602,
+      "tag": "0033_sticky_sumo",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1786935025815,
+      "tag": "0034_curious_grim_reaper",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1787029729285,
+      "tag": "0035_naive_nova",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1787041080932,
+      "tag": "0036_contracts",
       "breakpoints": true
     }
   ]

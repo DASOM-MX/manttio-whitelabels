@@ -143,7 +143,7 @@
       </section>
 
       <!-- What -->
-      @if (vm.visit.title || vm.visit.notes || vm.visit.equipment.length) {
+      @if (vm.visit.title || vm.visit.notes) {
         <section class="card">
           <div class="card-section flex flex-col gap-4">
             @if (vm.visit.title) {
@@ -152,22 +152,6 @@
                 <p class="text-base font-semibold text-granite-900 dark:text-granite-100">
                   {{ vm.visit.title }}
                 </p>
-              </div>
-            }
-            @if (vm.visit.equipment.length) {
-              <div class="flex flex-col gap-2">
-                <h2 class="field-label">Equipos</h2>
-                <ul class="flex flex-wrap gap-2">
-                  @for (unit of vm.visit.equipment; track unit.id) {
-                    <li
-                      class="rounded-lg px-3 py-1.5 text-sm font-semibold
-                             bg-granite-100 text-granite-900
-                             dark:bg-granite-800 dark:text-granite-100"
-                    >
-                      {{ unit.name ?? unit.id }}
-                    </li>
-                  }
-                </ul>
               </div>
             }
             @if (vm.visit.notes) {
@@ -179,6 +163,69 @@
               </div>
             }
           </div>
+        </section>
+      }
+
+      <!-- Equipment: one full-width card per unit inside the section; each
+           card leads with a swipeable carousel of THAT unit's photos (dots,
+           no side arrows — arrows would steal width from the photo), then
+           the nameplate the technician confirms against. -->
+      <!-- Equipment: a borderless labeled group — each unit is its own
+           free-standing card (white, light border) at the section's full
+           width, leading with the carousel of that unit's photos. -->
+      @if (vm.visit.equipment.length) {
+        <section class="flex flex-col gap-2.5">
+          <h2 class="field-label">
+            {{ vm.visit.equipment.length === 1 ? "Equipo" : "Equipos" }}
+          </h2>
+          <ul class="flex flex-col gap-2.5">
+            @for (unit of vm.visit.equipment; track unit.id) {
+              <li
+                class="rounded-xl overflow-hidden bg-white dark:bg-granite-900
+                       border border-granite-200 dark:border-granite-700"
+              >
+                @if (isOnline() && unit.photos; as photos) {
+                  <p-carousel
+                    [value]="photos"
+                    [numVisible]="1"
+                    [numScroll]="1"
+                    [circular]="false"
+                    [showNavigators]="false"
+                    [showIndicators]="photos.length > 1"
+                  >
+                    <ng-template let-photo #item>
+                      <img
+                        [src]="photo"
+                        [alt]="unit.name ?? 'Equipo'"
+                        loading="lazy"
+                        class="w-full h-56 object-cover"
+                      />
+                    </ng-template>
+                  </p-carousel>
+                }
+                <div class="p-4 flex flex-col gap-1">
+                  <p class="text-base font-bold text-granite-1000 dark:text-granite-0">
+                    {{ unit.name ?? unit.id }}
+                  </p>
+                  @if (unitSpecs(unit); as specs) {
+                    <p class="text-sm font-semibold text-granite-800 dark:text-granite-200">
+                      {{ specs }}
+                    </p>
+                  }
+                  @if (unit.serialNumber) {
+                    <p class="font-data text-sm text-granite-700 dark:text-granite-300">
+                      Serie {{ unit.serialNumber }}
+                    </p>
+                  }
+                  @if (unit.location) {
+                    <p class="text-sm text-granite-700 dark:text-granite-300">
+                      {{ unit.location }}
+                    </p>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
         </section>
       }
 

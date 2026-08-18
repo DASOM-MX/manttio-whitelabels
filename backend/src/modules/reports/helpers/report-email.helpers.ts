@@ -13,12 +13,6 @@ import { reportEmailHtml } from '../templates/report-email.html.ts';
 import type { EmailPalette } from '../templates/report-email.html.ts';
 import type { BrandColors, HslScale } from '../../brand/dtos/brand.dto';
 
-const REPORT_TYPE_LABELS: Record<string, string> = {
-  minisplit: 'Minisplit',
-  chiller: 'Chiller',
-  uma: 'UMA',
-};
-
 const fmtDate = (d: Date, timezone: string) =>
   new Intl.DateTimeFormat('es-MX', {
     dateStyle: 'long',
@@ -98,10 +92,10 @@ const formatSignedLocation = (lat: number | null, lng: number | null, accuracy: 
   };
 };
 
-const workTypeLabel = (workType: string | null, reportType: string) =>
+const workTypeLabel = (workType: string | null, templateName: string) =>
   workType && workType.trim().length > 0
     ? workType
-    : (REPORT_TYPE_LABELS[reportType] ?? reportType);
+    : templateName;
 
 export const renderReportEmailSubject = (folio: string, brandName?: string) =>
   brandName

@@ -48,7 +48,6 @@ import {
   ServiceOrderPriorityLabelPipe,
   ServiceOrderStatusLabelPipe,
   ServiceOrderStatusSeverityPipe,
-  ReportTypeLabelPipe,
 } from '../../../pipes/service-order.pipe';
 import { ReportStatusLabelPipe, ReportStatusSeverityPipe } from '../../../pipes/report-status.pipe';
 import { MoneyPipe } from '../../../pipes/money.pipe';
@@ -93,8 +92,7 @@ import type { ServiceOrderReport } from '../../../data/dtos/service-order';
     ServiceOrderEventChipClassPipe,
     ServiceOrderEventIconPipe,
     ServiceOrderEventLabelPipe,
-    ReportTypeLabelPipe,
-    ReportStatusLabelPipe,
+      ReportStatusLabelPipe,
     ReportStatusSeverityPipe,
     MoneyPipe,
     ServiceTaxRateShortPipe,

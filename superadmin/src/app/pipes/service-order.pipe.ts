@@ -8,7 +8,6 @@ import { SERVICE_ORDER_PRIORITY_LABEL_CLASSES } from '../model/constants/service
 import { SERVICE_ORDER_EVENT_LABELS } from '../model/constants/service-order/service-order-event-labels.const';
 import { SERVICE_ORDER_EVENT_ICONS } from '../model/constants/service-order/service-order-event-icons.const';
 import { SERVICE_ORDER_EVENT_CHIP_CLASSES } from '../model/constants/service-order/service-order-event-chip-classes.const';
-import { REPORT_TYPE_OPTIONS } from '../model/constants/service-order/report-type-options.const';
 import { ServiceOrderEventType } from '../model/enums/service-order/service-order-event-type.enum';
 import type { ServiceOrderPriority } from '../model/enums/service-order/service-order-priority.enum';
 import type { ServiceOrderStatus } from '../model/enums/service-order/service-order-status.enum';
@@ -71,12 +70,5 @@ export class ServiceOrderEventChipClassPipe implements PipeTransform {
       SERVICE_ORDER_EVENT_CHIP_CLASSES[type] ??
       SERVICE_ORDER_EVENT_CHIP_CLASSES[ServiceOrderEventType.OrderCreated]
     );
-  }
-}
-
-@Pipe({ name: 'reportTypeLabel' })
-export class ReportTypeLabelPipe implements PipeTransform {
-  transform(value: string): string {
-    return REPORT_TYPE_OPTIONS.find((o) => o.value === value)?.label ?? value;
   }
 }

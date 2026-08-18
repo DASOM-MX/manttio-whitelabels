@@ -1,14 +1,18 @@
-import type { ReportType, ReportStatus, WorkType } from '../../types/report';
+import type { ReportStatus, WorkType } from '../../types/report';
 
 export interface ReportRow {
   id: string;
-  reportType: ReportType;
+  templateId: string | null;
+  templateName: string;
+  reportType: string; // denormalized template name for display
   workType: WorkType | null;
   dateArrival: string | null;
   dateDeparture: string | null;
   createdBy: string;
   assignedTo: string;
   clientId: string;
+  serviceOrderId: string | null;
+  serviceId: string | null;
   signedBy: string | null;
   status: ReportStatus;
   state: string | null;

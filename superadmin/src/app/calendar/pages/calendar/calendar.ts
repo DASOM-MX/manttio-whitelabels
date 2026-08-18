@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal, viewChild } from '@angular/core';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
@@ -20,7 +20,11 @@ import {
 } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { VisitsState } from '../../../../state/visits/visits.state';
-import { LoadVisits } from '../../../../state/visits/visits.actions';
+import {
+  ListenVisits,
+  LoadVisits,
+  StopListeningVisits,
+} from '../../../../state/visits/visits.actions';
 import { AuthState } from '../../../../state/auth/auth.state';
 import { hasRole } from '../../../guards/has-role.guard';
 import { UsersService } from '../../../services/http/users.service';
@@ -355,6 +359,11 @@ export class Calendar {
   protected readonly weekdayInitials = WEEKDAY_INITIALS;
 
   constructor() {
+    // Live calendar (12 CP-4): the stream stays open for as long as this page
+    // is on screen — blocks move when a technician taps, without a reload.
+    this.store.dispatch(new ListenVisits());
+    inject(DestroyRef).onDestroy(() => this.store.dispatch(new StopListeningVisits()));
+
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       this.view.set(parseView(params.get('view')));
       this.anchor.set(parseDate(params.get('date')));

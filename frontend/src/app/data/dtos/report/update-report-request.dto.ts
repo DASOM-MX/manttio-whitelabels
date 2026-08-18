@@ -1,4 +1,4 @@
-import type { ReportData } from './report-data.dto';
+import type { ReportCapture } from './report-capture.dto';
 import type { WorkType } from '../../types/report';
 
 export interface UpdateReportRequest {
@@ -6,5 +6,7 @@ export interface UpdateReportRequest {
   date_arrival?: string;
   date_departure?: string;
   client_id?: string;
-  data?: Partial<ReportData>;
+  /** Empty string clears the stored comments; omitting the key leaves them as-is. */
+  comments?: string;
+  data?: Partial<ReportCapture>;
 }

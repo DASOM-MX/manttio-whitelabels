@@ -23,7 +23,8 @@ import { CustomersService } from '../../../services/http/customers.service';
 import { ServicesCatalogService } from '../../../services/http/services-catalog.service';
 import { ServiceOrdersService } from '../../../services/http/service-orders.service';
 import { UsersService } from '../../../services/http/users.service';
-import { REPORT_TYPE_OPTIONS } from '../../../model/constants/service-order/report-type-options.const';
+import { ReportTemplatesService } from '../../../services/http/report-templates.service';
+import { TemplateStatus, type ReportTemplate } from '../../../data/dtos/report-template';
 import { SERVICE_ORDER_PRIORITY_LABELS } from '../../../model/constants/service-order/service-order-priority-labels.const';
 import { TAX_RATE_MULTIPLIERS } from '../../../model/constants/service-order/tax-rate-multipliers.const';
 import { ServiceOrderPriority } from '../../../model/enums/service-order/service-order-priority.enum';
@@ -41,7 +42,7 @@ interface BuilderLineValue {
   serviceId: string;
   quantity: number;
   technicianId: string;
-  reportType: string;
+  templateId: string;
 }
 
 /** Client-side estimate of one line's money — mirrors the backend's
@@ -86,6 +87,7 @@ export class ServiceOrderBuilder implements HasPendingChanges {
   private store = inject(Store);
   private router = inject(Router);
   private messages = inject(MessageService);
+  private templatesHttp = inject(ReportTemplatesService);
 
   /** Reference data, loaded once per visit. Every stream degrades to an empty
    *  list + toast on failure — an errored `toSignal` rethrows on every read,
@@ -120,7 +122,23 @@ export class ServiceOrderBuilder implements HasPendingChanges {
     { initialValue: [] },
   );
 
-  protected readonly reportTypeOptions = REPORT_TYPE_OPTIONS;
+  /** The tenant's own active report templates — what each line's exploded report
+   *  will be filled against (03 §3.5). Only `active` templates may be assigned;
+   *  the backend re-validates that at creation time and 400s on anything else.
+   *  Replaces the old hardcoded minisplit/chiller/uma list. */
+  protected reportTemplates = toSignal(this.activeTemplates$(), { initialValue: [] });
+
+  protected templateOptions = computed(() =>
+    this.reportTemplates().map((t) => ({ label: t.name, value: t.id })),
+  );
+
+  private templateNamesById = computed(
+    () => new Map(this.reportTemplates().map((t) => [t.id, t.name])),
+  );
+
+  /** A tenant with no active template cannot open an order: every line must name
+   *  the template its report will use. Surfaced instead of failing on submit. */
+  protected hasNoActiveTemplates = computed(() => this.reportTemplates().length === 0);
 
   protected priorityOptions = (
     Object.entries(SERVICE_ORDER_PRIORITY_LABELS) as [ServiceOrderPriority, string][]
@@ -267,10 +285,7 @@ export class ServiceOrderBuilder implements HasPendingChanges {
         uom: service?.uom,
         quantity: line?.quantity ?? 0,
         technicianName: tech?.fullName ?? '',
-        reportType:
-          REPORT_TYPE_OPTIONS.find((o) => o.value === line?.reportType)?.label ??
-          line?.reportType ??
-          '',
+        templateName: this.templateNamesById().get(line?.templateId ?? '') ?? '',
         amount: this.lineAmounts()[i] ?? '0.00',
       };
     });
@@ -304,12 +319,22 @@ export class ServiceOrderBuilder implements HasPendingChanges {
     };
   }
 
+  /** The active-template fetch on its own, independent of how it is consumed:
+   *  the builder wraps it in `toSignal`, but a dialog or resolver can subscribe
+   *  to the same stream without inheriting that choice. */
+  private activeTemplates$(): Observable<ReportTemplate[]> {
+    return this.templatesHttp.list({ status: TemplateStatus.Active, limit: 100 }).pipe(
+      map((r) => r.items),
+      catchError(this.refDataFallback<ReportTemplate>('las plantillas de reporte')),
+    );
+  }
+
   private buildLine(): FormGroup {
     return this.fb.nonNullable.group({
       serviceId: ['', Validators.required],
       quantity: [1, [Validators.required, Validators.min(1), Validators.max(20)]],
       technicianId: ['', Validators.required],
-      reportType: [REPORT_TYPE_OPTIONS[0].value, Validators.required],
+      templateId: ['', Validators.required],
     });
   }
 
@@ -346,7 +371,7 @@ export class ServiceOrderBuilder implements HasPendingChanges {
             serviceId: line.serviceId,
             quantity: line.quantity,
             technicianId: line.technicianId,
-            reportType: line.reportType,
+            templateId: line.templateId,
           })),
         }),
       )

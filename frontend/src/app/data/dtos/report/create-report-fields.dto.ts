@@ -1,8 +1,10 @@
-import type { ReportType, WorkType } from '../../types/report';
-import type { ReportData } from './report-data.dto';
+import type { WorkType } from '../../types/report';
+import type { ReportCapture } from './report-capture.dto';
 
 export interface CreateReportFields {
-  report_type: ReportType;
+  /** The template this capture was filled against. The backend requires the id,
+   *  not the name — it stores the FK and denormalizes `data.templateName` itself. */
+  template_id: string;
   work_type?: WorkType;
   client_id: string;
   date_arrival?: string;
@@ -12,7 +14,10 @@ export interface CreateReportFields {
    *  attributes it to the tech who created it, not the uploader. */
   created_by?: string;
   signed_by?: string;
-  data: ReportData;
+  /** Closing remarks. Part of the report's fixed skeleton, not the template —
+   *  stored on the report header, never inside the capture snapshot. */
+  comments?: string;
+  data: ReportCapture;
   pictures?: File[];
   signature?: File;
   signature_base64?: string;

@@ -1,8 +1,5 @@
 -- Scoped to the contracts module (13 §1, owner supersession 2026-07-22: plain
--- document CRUD). db:generate also re-emitted customers_intake_effective_idx
--- (already live on the shared Neon DB from the CRM-dashboard work — the
--- journal was just behind); dropped here per the 0020 precedent so this file
--- is the record of the contracts DDL only. Guards make it safe to re-run.
+-- document CRUD). Guards make it safe to re-run.
 CREATE TABLE IF NOT EXISTS "contracts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"customer_id" uuid,

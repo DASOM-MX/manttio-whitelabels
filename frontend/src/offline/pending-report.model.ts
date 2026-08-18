@@ -1,5 +1,4 @@
 import type { CreateReportFields } from '../app/data/dtos/report';
-import type { ReportType } from '../app/data/types/report';
 
 /** Upload lifecycle of a report captured while offline. */
 export enum PendingReportStatus {
@@ -35,7 +34,7 @@ export interface PendingReport {
  *  no blobs, so it's cheap to hold in NGXS state and render. */
 export interface PendingReportSummary {
   tempId: string;
-  reportType: ReportType;
+  reportType: string;
   clientId: string;
   createdBy: PendingReportCreator;
   createdAt: string;
@@ -45,7 +44,9 @@ export interface PendingReportSummary {
 
 export const toPendingSummary = (r: PendingReport): PendingReportSummary => ({
   tempId: r.tempId,
-  reportType: r.fields.report_type,
+  // The queued payload carries the id, but the sync dialog lists reports to a
+  // human — so the summary shows the name frozen into the capture snapshot.
+  reportType: r.fields.data.templateName,
   clientId: r.fields.client_id,
   createdBy: r.createdBy,
   createdAt: r.createdAt,

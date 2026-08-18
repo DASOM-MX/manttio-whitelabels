@@ -10,7 +10,7 @@ import type {
   ServiceOrderStatus,
 } from '../enums/service-orders.enum';
 import type { ServiceTaxRate, ServiceUom } from '../../services/enums/services.enum';
-import type { ReportStatus, ReportType } from '../../reports/enums/reports.enum';
+import type { ReportStatus } from '../../reports/enums/reports.enum';
 
 export type ServiceOrderRow = typeof serviceOrders.$inferSelect;
 export type NewServiceOrder = typeof serviceOrders.$inferInsert;
@@ -36,7 +36,7 @@ export interface OrderLineInput {
   serviceId: string;
   quantity: number;
   technicianId: string;
-  reportType: ReportType;
+  templateId: string;
 }
 
 /** Money on a line or an order. Every field is a fixed-2 string — `numeric`
@@ -71,7 +71,7 @@ export interface ServiceOrderReportDTO {
   id: string;
   folio: string;
   status: ReportStatus;
-  reportType: ReportType;
+  reportType: string; // template name, denormalized for display
   /** Which line this report fulfills; drives the template prefilter (CP-4). */
   serviceId: string | null;
   assignedTo: string;
@@ -152,7 +152,7 @@ export interface FrozenOrderLine {
   quantity: number;
   unitPrice: string;
   technicianId: string;
-  reportType: ReportType;
+  templateId: string;
 }
 
 /** What the conversion service hands `createServiceOrderFromQuotation` after

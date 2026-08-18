@@ -23,6 +23,7 @@ import {
 import {
   InvalidOrderReferenceError,
   InvalidOrderTransitionError,
+  InvalidTemplateError,
   LocationEditForbiddenError,
   OrderClosedError,
   ReopenForbiddenError,
@@ -95,6 +96,9 @@ serviceOrders.post(
     } catch (err) {
       if (err instanceof InvalidOrderReferenceError) {
         return c.json({ error: 'invalid_reference', message: err.message }, 422);
+      }
+      if (err instanceof InvalidTemplateError) {
+        return c.json({ error: 'invalid_template', message: err.message }, 400);
       }
       throw err;
     }

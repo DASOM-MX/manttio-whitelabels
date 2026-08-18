@@ -10,6 +10,7 @@
 import type { ServiceOrderPriority } from '../../model/enums/service-order/service-order-priority.enum';
 import type { VisitCloseReason } from '../../model/enums/visit/visit-close-reason.enum';
 import type { VisitStatus } from '../../model/enums/visit/visit-status.enum';
+import type { VisitStreamKind } from '../../model/enums/visit/visit-stream-kind.enum';
 
 /** One linked unit, flattened for display. */
 export interface VisitEquipmentLink {
@@ -165,4 +166,13 @@ export interface RescheduleVisitRequest {
   scheduledStart: string;
   expectedDurationMinutes?: number;
   technicianId?: string | null;
+}
+
+/** One `visit` frame off `GET /visits/stream` (12 CP-4): which lifecycle
+ *  event fired, and the visit as it now reads — the same flattened DTO the
+ *  single-visit GET returns, so a consumer upserts by id without a second
+ *  read. */
+export interface VisitStreamFrame {
+  kind: VisitStreamKind;
+  visit: Visit;
 }

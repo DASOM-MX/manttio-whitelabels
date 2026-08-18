@@ -1,0 +1,64 @@
+/* PrimeNG MultiSelect
+   Added 2026-08-17: template questions of datatype `multiselect` were the first
+   use of this component in the field app. Without a sheet it fell back to Aura's
+   chrome, and the only way to make it look like a field control was to pass
+   `.field-input` as `styleClass` — which boxes the host but leaves the label
+   flowing below the host's own padding, so the placeholder sat low instead of
+   centered next to the single-select beside it. Mirrors select.scss so the two
+   read as the same control. */
+.p-multiselect {
+  @apply field-input flex items-center justify-between cursor-pointer;
+  position: relative;
+}
+.p-multiselect-label-container {
+  @apply flex-1 min-w-0;
+}
+.p-multiselect-label {
+  @apply block text-left truncate;
+
+  &.p-placeholder {
+    @apply text-granite-400;
+  }
+}
+.p-multiselect-dropdown {
+  @apply ml-2 inline-flex items-center justify-center text-granite-500;
+}
+
+/* Same pure-CSS anchoring as p-select: PrimeNG's Overlay measures and writes
+   inline coords after the panel enters the DOM, which paints once at the wrong
+   spot before snapping. Anchoring here makes those writes no-ops. */
+.p-multiselect > p-overlay > .p-overlay {
+  @apply absolute top-full left-0 right-auto bottom-auto mt-1 min-w-full origin-top z-50 !important;
+}
+.p-multiselect-overlay {
+  @apply bg-white border-2 border-granite-200 rounded-lg shadow-lg overflow-hidden w-full
+         dark:bg-granite-900 dark:border-granite-700;
+}
+.p-multiselect-header {
+  @apply p-2 border-b border-granite-200 dark:border-granite-700;
+}
+.p-multiselect-list-container {
+  @apply max-h-72 overflow-auto py-1;
+}
+.p-multiselect-list {
+  @apply flex flex-col;
+}
+.p-multiselect-option {
+  @apply flex items-center gap-3 px-5 py-3.5 text-lg text-granite-1000 cursor-pointer transition-colors
+         dark:text-granite-100;
+
+  &:hover,
+  &[data-p-focus='true'] {
+    @apply bg-sky-0 dark:bg-granite-800;
+  }
+  &[data-p-selected='true'] {
+    @apply bg-sky-100 font-bold dark:bg-granite-700;
+  }
+  &[data-p-disabled='true'] {
+    @apply opacity-50 cursor-not-allowed;
+  }
+}
+.p-multiselect-empty-message {
+  @apply px-5 py-3.5 text-lg text-granite-700 italic
+         dark:text-granite-300;
+}
