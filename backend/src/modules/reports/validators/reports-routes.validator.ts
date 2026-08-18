@@ -20,6 +20,9 @@ export const createReportMetaSchema = z.object({
   client_id: z.string().uuid(),
   date_arrival: z.string().datetime().optional(),
   date_departure: z.string().datetime().optional(),
+  // Fixed-skeleton footer, not a template question (03 §2) — optional because a
+  // technician with nothing to add should not be forced to type something.
+  comments: z.string().max(4000).optional(),
   assigned_to: z.string().uuid().optional(),
   // Original creator for reports captured offline and synced later (possibly under a
   // different logged-in user). Defaults to the authenticated uploader when omitted.
@@ -36,6 +39,8 @@ export const patchReportSchema = z
     date_arrival: z.string().datetime().optional(),
     date_departure: z.string().datetime().optional(),
     client_id: z.string().uuid().optional(),
+    // Empty string is meaningful here: it clears the comments back to null.
+    comments: z.string().max(4000).optional(),
     data: z.record(z.unknown()).optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: 'no fields to update' });

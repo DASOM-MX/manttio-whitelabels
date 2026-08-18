@@ -14,6 +14,9 @@ export interface CreateReportFields {
    *  attributes it to the tech who created it, not the uploader. */
   created_by?: string;
   signed_by?: string;
+  /** Closing remarks. Part of the report's fixed skeleton, not the template —
+   *  stored on the report header, never inside the capture snapshot. */
+  comments?: string;
   data: ReportCapture;
   pictures?: File[];
   signature?: File;

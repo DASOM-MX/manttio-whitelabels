@@ -226,6 +226,23 @@
                 </section>
                 }
 
+                <!-- Comentarios — fixed skeleton (03 §2): present on every report,
+                     whatever template it was captured against. -->
+                <section class="card-section flex flex-col gap-4">
+                    <h2 class="section-heading">Comentarios</h2>
+                    @if (editMode()) {
+                        <div class="field-group" [formGroup]="reportForm">
+                            <label for="report-comments" class="field-label">Observaciones del técnico (opcional)</label>
+                            <textarea pTextarea id="report-comments" formControlName="comments"
+                                class="field-input !h-auto" rows="4"></textarea>
+                        </div>
+                    } @else if (report.comments) {
+                        <p class="text-lg text-granite-1000 dark:text-granite-0 whitespace-pre-line">{{ report.comments }}</p>
+                    } @else {
+                        <p class="text-lg text-granite-700 dark:text-granite-300 italic">Sin comentarios.</p>
+                    }
+                </section>
+
                 <!-- Firma del cliente -->
                 <section class="card-section">
                     <h2 class="text-xl sm:text-2xl font-extrabold text-granite-1000 dark:text-granite-0 mb-4 tracking-tight">Firma del cliente</h2>

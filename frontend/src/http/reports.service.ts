@@ -38,6 +38,7 @@ export class ReportsService {
     appendIf(fd, 'assigned_to', fields.assigned_to);
     appendIf(fd, 'created_by', fields.created_by);
     appendIf(fd, 'signed_by', fields.signed_by);
+    appendIf(fd, 'comments', fields.comments);
     fd.set('data', JSON.stringify(fields.data));
     for (const pic of fields.pictures ?? []) fd.append('pictures', pic);
     appendIf(fd, 'signature', fields.signature);

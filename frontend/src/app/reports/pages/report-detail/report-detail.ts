@@ -478,6 +478,9 @@ export class ReportDetail {
     const formValue = this.reportForm.value;
     const payload: UpdateReportRequest = {
       ...(formValue.work_type ? { work_type: formValue.work_type as WorkType } : {}),
+      // Sent unconditionally, empty string included — that is how the backend is
+      // told the technician cleared the comments rather than left them alone.
+      comments: ((formValue.comments as string | null) ?? '').trim(),
       data: capture,
     };
 
@@ -605,7 +608,7 @@ export class ReportDetail {
               [{ text: 'Informaciones de las actividades', colSpan: 4, alignment: 'center', fillColor: '#DCDCDC', bold: true, color: 'dark', margin: [0, 5, 0, 5] }, {}, {}, {}],
               [{ text: 'Para:', bold: true }, u?.name ?? '', { text: 'Tipo de tarea:', bold: true }, r.manttio_type],
               [{ text: 'Fecha Llegada:', bold: true }, formatDate(r.date_arrival), { text: 'Fecha Salida', bold: true }, formatDate(r.date_departure)],
-              [{ text: 'Observaciones', bold: true }, r.observations, { text: ' ', border: [false, false, false, false] }, { text: ' ', border: [false, false, false, false] }],
+              [{ text: 'Comentarios', bold: true }, r.comments, { text: ' ', border: [false, false, false, false] }, { text: ' ', border: [false, false, false, false] }],
             ],
           },
           margin: [0, 10, 0, 10],
@@ -691,6 +694,9 @@ export class ReportDetail {
   private buildReportForm() {
     const controls: Record<string, unknown[]> = {
       work_type: [this.report()?.manttio_type || ''],
+      // Fixed-skeleton footer, so it is always editable — it belongs to the
+      // report, not to any template question that may have been locked.
+      comments: [this.report()?.comments ?? ''],
     };
 
     for (const section of this.sectionViews()) {

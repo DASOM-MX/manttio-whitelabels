@@ -28,7 +28,7 @@ export const toViewModel = (detail: ReportDetail): ReportViewModel => {
         ? `https://www.google.com/maps?q=${lat.toFixed(6)},${lng.toFixed(6)}`
         : null,
     pictures: detail.photos ?? [],
-    observations: detail.comments ?? '',
+    comments: detail.comments ?? '',
     sections: detail.sections,
   };
 };
@@ -57,7 +57,7 @@ export const toViewModelFromPending = (
     signed_accuracy: rec.fields.signed_accuracy ?? null,
     signed_maps_url: null,
     pictures: pictureUrls,
-    observations: '',
+    comments: rec.fields.comments ?? '',
     sections: capture?.sections ?? [],
   };
 };

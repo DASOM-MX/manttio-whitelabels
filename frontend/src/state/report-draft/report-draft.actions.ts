@@ -4,6 +4,7 @@ export interface ReportDraftPatch {
   customerId?: string | null;
   workType?: WorkType | null;
   templateId?: string;
+  comments?: string | null;
 }
 
 /** Ensure a draft exists. If none, stamps `arrivalAt = now()`. Idempotent: a second

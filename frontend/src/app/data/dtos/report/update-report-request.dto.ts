@@ -6,5 +6,7 @@ export interface UpdateReportRequest {
   date_arrival?: string;
   date_departure?: string;
   client_id?: string;
+  /** Empty string clears the stored comments; omitting the key leaves them as-is. */
+  comments?: string;
   data?: Partial<ReportCapture>;
 }

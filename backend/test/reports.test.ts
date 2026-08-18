@@ -21,6 +21,7 @@ type ReportRow = {
   createdBy: string;
   assignedTo: string;
   clientId: string;
+  comments: string | null;
   signedBy: string | null;
   deletedAt: string | null;
 };
@@ -76,6 +77,7 @@ type ReportDetail = {
   }>;
   photos: string[];
   signatureUrl: string | null;
+  comments: string | null;
 };
 
 const FOLIO_RE = /^R-\d{8}-\d{4}$/;
@@ -118,12 +120,14 @@ const buildCreateForm = (opts: {
   assignedTo?: string;
   createdBy?: string;
   workType?: string;
+  comments?: string;
   data?: Record<string, unknown> | string; // string for malformed-JSON tests
   omitData?: boolean;
 }): FormData => {
   const fd = new FormData();
   fd.set('template_id', opts.templateId ?? TEMPLATE_ID);
   fd.set('client_id', opts.clientId);
+  if (opts.comments !== undefined) fd.set('comments', opts.comments);
   if (opts.assignedTo !== undefined) fd.set('assigned_to', opts.assignedTo);
   if (opts.createdBy !== undefined) fd.set('created_by', opts.createdBy);
   if (opts.workType !== undefined) fd.set('work_type', opts.workType);
@@ -356,6 +360,37 @@ describe('POST /reports', () => {
     });
     expect(body.details.pictures).toEqual([]);
     expect(body.details.signature).toBeNull();
+  });
+
+  // Comments are fixed-skeleton (03 §2), so they live on the header, outside the
+  // capture snapshot — and they had no column at all until 0035, which is how a
+  // field the plan called for shipped absent for a whole checkpoint.
+  test('comments round-trip: stored on create, returned by detail, cleared by patch', async () => {
+    const { admin, token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+
+    const created = await request('/reports', {
+      method: 'POST',
+      headers: authHeader(token),
+      body: buildCreateForm({ clientId: customer.id, comments: 'Filtro sucio, se recomienda cambio.' }),
+    });
+    expect(created.status).toBe(201);
+    const { report } = await json<{ report: ReportRow }>(created);
+    expect(report.comments).toBe('Filtro sucio, se recomienda cambio.');
+
+    const detail = await request(`/reports/${report.id}`, { headers: authHeader(token) });
+    const detailBody = await json<ReportDetail>(detail);
+    expect(detailBody.comments).toBe('Filtro sucio, se recomienda cambio.');
+
+    // Empty string is the "cleared" signal, not "leave unchanged".
+    const patched = await request(`/reports/${report.id}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ comments: '' }),
+    });
+    expect(patched.status).toBe(200);
+    const patchedBody = await json<{ report: ReportRow }>(patched);
+    expect(patchedBody.report.comments).toBeNull();
   });
 
   test('admin can assign a different user', async () => {

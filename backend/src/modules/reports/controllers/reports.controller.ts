@@ -90,6 +90,7 @@ reports.post('/', async (c) => {
     client_id: fdGet(fd, 'client_id') ?? undefined,
     date_arrival: fdGet(fd, 'date_arrival') ?? undefined,
     date_departure: fdGet(fd, 'date_departure') ?? undefined,
+    comments: fdGet(fd, 'comments') ?? undefined,
     assigned_to: fdGet(fd, 'assigned_to') ?? undefined,
     created_by: fdGet(fd, 'created_by') ?? undefined,
     signed_by: fdGet(fd, 'signed_by') ?? undefined,

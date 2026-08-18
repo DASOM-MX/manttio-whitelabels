@@ -10,6 +10,9 @@ export interface ReportDraft {
   templateId?: string;
   customerId: string | null;
   workType: WorkType | null;
+  /** Fixed-skeleton footer text. Persisted with the rest of the draft so a
+   *  refresh mid-capture doesn't lose what the technician already wrote. */
+  comments: string | null;
 }
 
 export interface ReportDraftStateModel {
@@ -20,6 +23,7 @@ const defaultDraft = (): ReportDraft => ({
   arrivalAt: new Date().toISOString(),
   customerId: null,
   workType: null,
+  comments: null,
 });
 
 @State<ReportDraftStateModel>({
