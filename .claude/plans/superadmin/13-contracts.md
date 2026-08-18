@@ -1,7 +1,7 @@
 # 13 — Contracts (contratos / pólizas)
 
-> **Status:** in-progress — **CP-1 partial: the document-filing core is built** (table + CRUD + R2 upload); the order link, contract types, role-scoped visibility, signed URLs and the audit trail are **not** (see CP-1) · **Depends on:** 07 (client), 19 (service orders — the generating path), `storage/` (R2 signed URLs); 11 optional (equipment link) · **Reworked 2026-07-24** (owner: document-artifact model — supersedes the recurring-póliza / visit-generator model)
-> **Owner:** — · **Last updated:** 2026-08-02
+> **Status:** **CP-1 done (2026-08-18)** — backend complete: folio, order link, types, role-scoped visibility, private file store and the audit trail all built and tested. CP-2/CP-3 not started · **Depends on:** 07 (client), 19 (service orders — the generating path), `storage/` (R2); 11 optional (equipment link) · **Reworked 2026-07-24** (owner: document-artifact model — supersedes the recurring-póliza / visit-generator model)
+> **Owner:** — · **Last updated:** 2026-08-18
 
 A **contract is a stored document** — the signed pdf/docx/odt/xls/xlsx — plus typed
 metadata and validity dates. **Service orders generate contracts (0..n):** a job may
@@ -21,7 +21,9 @@ Contract {
   folio,                   // 'CON-YYYYMMDD-NNNN', unique — own daily counter
                            //   (contract_counters, report_counters mechanics)
   customerId,              // REQUIRED, restrict — the client the contract is with
-                           //   (copied from the order when order-generated)
+                           //   (copied from the order when order-generated).
+                           //   Reaffirmed 2026-08-18 against a nullable variant:
+                           //   it is the anchor §3's audit trail hangs on.
   serviceOrderId?,         // nullable (decided 2026-07-24): the order that generated
                            //   this contract; an order generates 0..n contracts.
                            //   null = standalone (imported / no order). Restrict.
@@ -81,17 +83,26 @@ contract does not auto-schedule anything; it's a document). Spanish labels live 
 `model/constants/contracts/` label map (superadmin), one constant per file per the
 constants rule.
 
-### 1.2 Stored document + signed URL (decided 2026-07-24)
+### 1.2 Stored document + private access (decided 2026-07-24, access mechanism revised 2026-08-18)
 
 - The file uploads to the private **`manttio-contracts` R2 bucket** (its own bucket,
   separate from report evidence; binding + name declared in `wrangler.toml`, infra config)
   via the `storage/` module — multipart form-data, the reports-evidence precedent. Allowed
   types are enforced server-side: **pdf / docx / odt / xls / xlsx** (`ContractFileType` enum
   + mime allowlist); reject anything else at upload.
-- **Access is via a short-lived signed URL, never a public link** ("sign the file URL for
-  enhanced security"): every read mints a fresh **presigned R2 GET URL** with a **1-hour
-  TTL** (decided 2026-07-24). The `fileKey` never leaves the backend; the frontend only ever
-  receives the time-boxed URL from `GET /contracts/:id/file-url`.
+- **Access is never a public link.** The `fileKey` never leaves the backend.
+  ~~Every read mints a presigned R2 GET URL with a 1-hour TTL, fetched from
+  `GET /contracts/:id/file-url`.~~ **Superseded 2026-08-18: the backend streams the file
+  itself** from `GET /contracts/:id/file`, re-checking the caller's role and
+  `visibleToRoles` on every request.
+  **Why:** the repo has no presigning infrastructure at all — no `aws4fetch`/`@aws-sdk`
+  dependency, no R2 S3 access keys, and `storage.service.ts` exposes only
+  `r2Key`/`cdnUrl`/`putObject`/`deleteObject`. Presigning would mean a new dependency plus
+  two new per-tenant secrets. Proxying needs neither, reuses the existing binary-response
+  precedent (`reports.controller.ts`), and is **strictly stronger** for a signed contract:
+  a presigned URL stays valid for its full hour no matter what, while a proxied download
+  honours a visibility change immediately. The `manttio-contracts` bucket therefore carries
+  **no public domain**, and there is no `CONTRACTS_CDN_BASE_URL`.
 - **Replacing the file** = a new upload that updates `fileKey`/`fileName`/`fileType` and
   **appends an audit event** (§3). Versioning (keeping old files) is out of v1 (open item).
 
@@ -143,21 +154,32 @@ reconciliation is 09's).
 
 ## 5. Expected API surface
 
-- `GET /contracts?page&limit&search&customerId&serviceOrderId&type&validity` → paged,
+*(built 2026-08-18 unless noted)*
+
+- `GET /contracts?page&limit&search&customerId&serviceOrderId&type&validity&tag` → paged,
   **role-scoped** (owner/admin see all; office/technician see only contracts whose
-  `visibleToRoles` includes their role). `validity` = derived por-iniciar / vigente / vencido
-- `GET /contracts/:id` → contract + resolved customer / order / equipment display
-- `GET /contracts/:id/file-url` → `{ url, expiresAt }` — a fresh short-lived **signed** R2
-  GET URL (the only way the file is served)
+  `visibleToRoles` includes their role). `validity` = derived por-iniciar / vigente / vencido.
+  `search` ilikes folio / name / description / fileName / tags
+- `GET /contracts/:id` → contract + resolved customer + order folio. A contract the caller
+  may not see returns **404, not 403** — the endpoint never confirms a restricted document
+  exists
+- `GET /contracts/:id/file` → the document itself, streamed from the private bucket
+  (supersedes `/file-url`, §1.2)
 - `POST /contracts` (multipart) — `{ customerId, serviceOrderId?, name, type, description?,
-  equipmentIds?, validFromDate, expiryDate?, file }` → validate file type, store to R2,
-  write the record, audit (§3)
-- `PATCH /contracts/:id` — metadata edits (name/type/description/dates/equipment); plus
-  `visibleToRoles` (**owner/admin only** — 403 for office); audited with a field diff
-- `POST /contracts/:id/file` (multipart) — replace the stored file; audited
-- `DELETE /contracts/:id` `{ deleteComment }` — soft delete (audited)
+  validFromDate, expiryDate?, tags?, visibleToRoles?, file }` → validate file type, store to
+  R2, write the record, audit (§3). **There is no `/upload/contract`**: `/upload/*` sits
+  behind bare auth, so a standalone route would let any authenticated technician write into
+  the contracts bucket. Upload is part of this request instead
+- `PATCH /contracts/:id` — metadata edits (name/type/description/dates/tags); plus
+  `visibleToRoles` (**owner/admin only** — 403 for office); audited with a field diff.
+  `customerId`/`serviceOrderId` are immutable — re-filing under another client would orphan
+  the audit trail
+- `POST /contracts/:id/file` (multipart) — replace the stored document; audited
+- `DELETE /contracts/:id` `{ deleteComment }` — soft delete (audited), owner/admin only
 - `GET /customers/:id/contracts` — customer-view card (07 slot — ask)
 - `GET /service-orders/:id/contracts` — the order's generated contracts (19 order view)
+- *not built:* `equipmentIds` anywhere (needs a `contract_equipment` join table — lands
+  with 11)
 
 ## 6. Pages & components
 
@@ -174,7 +196,7 @@ reconciliation is 09's).
   (pdf/docx/odt/xls/xlsx, single file). Edit keeps the current file unless replaced.
 - `contracts/pages/contract-view/` — header (folio, client link, type tag, validity pill,
   order link when present), metadata card, **document card** (file name/type + **Descargar**
-  → fetches a fresh signed URL), covered-equipment list, and the contract's audit entries
+  → hits `GET /contracts/:id/file`), covered-equipment list, and the contract's audit entries
   (from the customer timeline, filtered to this contract).
 - `contracts/components/delete-contract-dialog/` — shape-3, audit reason (soft delete).
 - Order view (19 §5): **Generar contrato** action + a "Contratos" card listing the order's
@@ -185,45 +207,37 @@ reconciliation is 09's).
 
 - `ContractsState`: `list`, `total`, `loading`, `selected`, `filters`. Actions:
   `LoadContracts(query)`, `LoadContract(id)`, `CreateContract`, `UpdateContract`,
-  `ReplaceContractFile(id, file)`, `DeleteContract(id, comment)`, `GetContractFileUrl(id)`
-  (transient — the signed URL is short-lived, never persisted in state).
+  `ReplaceContractFile(id, file)`, `DeleteContract(id, comment)`, `DownloadContract(id)`
+  (transient — fetches the bytes from `GET /contracts/:id/file`; there is no URL to hold,
+  §1.2).
 - `src/app/services/http/contracts.service.ts`.
 
 ---
 
 ## Checkpoints
 
-### CP-1 — Backend: contracts + file store + audit
-**Partially built (2026-08-02).** The branch that implemented this was written against
-the *superseded* 2026-07-22 "plain document filing" spec and predates the 2026-07-24
-document-artifact rework, so it delivers the filing core and none of the model's links.
-Split accordingly:
+### CP-1 — Backend: contracts + file store + audit ✅ (2026-08-18)
+Landed in two passes. The first (2026-07-22) was written against the *superseded* "plain
+document filing" spec and delivered only the filing core; the second (2026-08-18) brought
+it to this plan. Migration `0036_contracts.sql` — amended in place rather than stacked,
+since `main` had never applied it.
 
-**Built:**
-- [x] `contracts` table — `customerId?` (nullable: imported paper needs no client),
-      `description`, `fileUrl`/`fileName`/`fileMime`/`fileSize`, `validationDate`,
-      `expiryDate`, `tags text[]`, audited soft delete. Migration `0032_contracts.sql`
-      (renumbered from the branch's stale `0023`, which main had already used for
-      quotations)
-- [x] CRUD — list (tag/customer/validity filters) + read + create + patch + soft delete,
-      `requireRole(['owner','admin','office'])`
-- [x] `POST /upload/contract` — multipart into the dedicated `manttio-contracts` R2
-      bucket with a file-type allowlist (415 `unsupported_file_type`)
-
-**Not built — the document-artifact model's own requirements:**
-- [ ] **`serviceOrderId?` FK** — the generating path *is* the model ("service orders
-      generate contracts 0..n"), and 19 §1 already documents `contracts.serviceOrderId`.
-      Without it a contract cannot be traced to the job that produced it
-- [ ] `contract_counters`; `ContractType` / `ContractFileType` CHECKs
-- [ ] **`visibleToRoles`** + role-scoped list/read (owner/admin-only to set)
-- [ ] **`GET /:id/file-url` — short-lived signed URL (1 h).** What shipped instead
-      persists a **public CDN URL** in `contracts.file_url`. A signed contract is a
-      sensitive document: a public bucket URL is readable by anyone who ever sees the
-      link, forever, with no revocation. Treat this as the checkpoint's blocking item,
-      not a nicety
-- [ ] Audit to `customer_interactions` (create / update / file-replace / delete);
-      order-generated also logs `order_contract_generated` to the order timeline (19 §7);
+- [x] `contracts` table + `contract_counters` (`CON-YYYYMMDD-NNNN`, allocated in the create
+      transaction so a folio is never burned unused); `ContractType` / `ContractFileType`
+      CHECKs; `serviceOrderId?` FK (restrict); `visibleToRoles`; `createdBy`;
       `InteractionRefKind.Contract`
+- [x] CRUD + multipart upload to the private R2 bucket (type allowlist: pdf/docx/odt/xls/xlsx,
+      415 otherwise — images are rejected, a photo of a contract is not the contract)
+      + `GET /:id/file` (§1.2, supersedes the signed-URL design) + **role-scoped list/read**
+      (`visibleToRoles`; owner/admin-only to set; restricted contracts read as 404) + soft delete
+- [x] Audit to `customer_interactions` (create / update with a changed-field summary /
+      file-replace / delete); order-generated also logs `order_contract_generated` to the
+      order timeline (19 §7)
+- [x] `test/contracts.test.ts` — 18 tests, green against the live DB
+
+**Deferred out of CP-1:** `equipmentIds` / covered units (needs a `contract_equipment` join
+table; lands with 11), and download access-logging (§ open item — the proxy route makes it
+trivial to add later).
 
 ### CP-2 — Superadmin: contracts UI
 - [ ] DTOs + `ContractsState` + http service
@@ -244,8 +258,10 @@ Split accordingly:
   recurring-póliza model); fixed `ContractType` enum (8 values); `expiryDate` nullable;
   updates audited. Resolves the 19 "order → contract" open ask — a `programmed_maintenance`
   contract does **not** auto-schedule; future maintenance is new orders.
-- **Signed-URL TTL — 1 hour (decided 2026-07-24).** Whether downloads are additionally
-  access-logged is still open (revisit at build).
+- ~~**Signed-URL TTL — 1 hour (decided 2026-07-24).**~~ **Superseded 2026-08-18: no signed
+  URLs at all** — the backend streams the document from `GET /contracts/:id/file` and
+  re-checks access per request (§1.2 carries the reasoning). Whether downloads are
+  additionally access-logged is still open; the proxy route is the natural place for it.
 - **Role visibility — decided 2026-07-24:** per-contract `visibleToRoles`, **owner/admin
   set**; owner/admin always see all, office/technician only when their role is listed.
   **Default: all staff** (`[office, technician]`) — owners restrict per contract.
@@ -261,6 +277,14 @@ Split accordingly:
   all append there; **creation mirrors order-creation's client entry** (19 §2).
 - ~~description vs comments~~ — **decided 2026-07-24: description only** (a single
   free-text field; the separate `comments` field is dropped).
+- **Migration numbering (2026-08-18):** the contracts DDL is `0036_contracts.sql`. Earlier
+  revisions of this file said `0023` and then `0032`; both are stale — `main` took 0033–0035
+  (report `template_id`, report `comments`, order-events index) while this work sat unpushed.
+- **Dev-DB reconciliation (2026-08-18):** the shared Neon DB carried a hand-applied
+  `contracts` table from the superseded spec. It was dropped and recreated from the
+  migration (its only row was a self-labelled, soft-deleted smoke-test row referenced by
+  nothing). A tenant DB is provisioned from the migrations, so hand-applied schema is a
+  provisioning bug — see [[shared-neon-db-ahead-of-migrations]].
 - Ask to 07: "Contratos" card slot on customer-view.
 - Ask to 14: `contracts` module row in the matrix; config flag (own vs rides `scheduling`).
 - Ask to 11: equipment multiselect on contracts (covered units) when equipment lands.
