@@ -11,11 +11,12 @@ import {
   drawImageGrid,
   drawRow,
   drawSectionHeader,
+  drawStackedRow,
   embedImageFromUrl,
   ensureSpace,
 } from '../../pdf/services/pdf.service';
 import { hslToRgb01 } from '../../brand/utils/hsl-color';
-import type { PdfTheme, Renderer } from '../../pdf/types/pdf.types';
+import type { PdfTheme, Renderer, StackedCell } from '../../pdf/types/pdf.types';
 import type { Brand, HslScale } from '../../brand/dtos/brand.dto';
 
 const formatDate = (d: Date | null, timezone: string) => {
@@ -218,13 +219,22 @@ const drawCaptureSection = (
     { text: section.title, bold: true, fill: r.theme.fill, align: 'center' },
   ]);
 
-  // Render answers in a two-column label-value format
-  const cols = [CONTENT_WIDTH / 2, CONTENT_WIDTH / 2];
-  for (const answer of section.answers) {
-    drawRow(r, cols, [
-      { text: answer.label, bold: true },
-      { text: formatAnswerValue(answer) },
-    ]);
+  // The section's stored `columns` is how many question/answer pairs sit side by
+  // side, matching what the technician filled in — the answer reads *under* its
+  // label, not across a two-column table from it. A PDF page is fixed width, so
+  // the desktop count is used directly with no responsive step (03 §3.4).
+  const columns = section.columns;
+  const widths = Array.from({ length: columns }, () => CONTENT_WIDTH / columns);
+
+  for (let i = 0; i < section.answers.length; i += columns) {
+    const cells: StackedCell[] = section.answers.slice(i, i + columns).map((answer) => ({
+      label: answer.label,
+      value: formatAnswerValue(answer),
+    }));
+    // Pad a short final row with borderless filler so the boxes stay aligned
+    // without drawing an empty one.
+    while (cells.length < columns) cells.push({ label: '', value: '', border: false });
+    drawStackedRow(r, widths, cells);
   }
 
   r.y -= 8;

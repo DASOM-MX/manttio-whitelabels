@@ -5,7 +5,7 @@
 // document type (invoices, quotes, work orders) reuses this instead of re-implementing it.
 
 import { PDFDocument, StandardFonts } from 'pdf-lib';
-import type { PDFImage } from 'pdf-lib';
+import type { PDFFont, PDFImage } from 'pdf-lib';
 import {
   CONTENT_WIDTH,
   DEFAULT_PDF_THEME,
@@ -13,7 +13,7 @@ import {
   PAGE_HEIGHT,
   PAGE_WIDTH,
 } from '../constants/pdf-layout';
-import type { Cell, PdfTheme, Renderer } from '../types/pdf.types';
+import type { Cell, PdfTheme, Renderer, StackedCell } from '../types/pdf.types';
 
 // Create a document with Helvetica (+ bold) embedded and a first page, returning the
 // draw cursor. Callers draw with the primitives below, then `r.doc.save()`. The theme
@@ -80,6 +80,25 @@ export const ensureSpace = (r: Renderer, needed: number) => {
 
 // --- text + tables ---
 
+/** Naive greedy word-wrap. Single source for measuring a cell and for drawing
+ *  it — the two used to carry separate copies of this loop, which is how a cell
+ *  ends up measuring one height and painting another. */
+const wrapText = (font: PDFFont, text: string, innerWidth: number, size: number): string[] => {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of text.split(/\s+/)) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (font.widthOfTextAtSize(candidate, size) > innerWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  }
+  if (line) lines.push(line);
+  return lines.length ? lines : [''];
+};
+
 const drawCellText = (
   r: Renderer,
   cell: Cell,
@@ -90,24 +109,9 @@ const drawCellText = (
   size = 9,
 ) => {
   const font = cell.bold ? r.fontBold : r.font;
-  const txt = cell.text;
   const padX = 4;
   const innerW = width - padX * 2;
-
-  // Naive word-wrap.
-  const words = txt.split(/\s+/);
-  const lines: string[] = [];
-  let line = '';
-  for (const w of words) {
-    const candidate = line ? `${line} ${w}` : w;
-    if (font.widthOfTextAtSize(candidate, size) > innerW && line) {
-      lines.push(line);
-      line = w;
-    } else {
-      line = candidate;
-    }
-  }
-  if (line) lines.push(line);
+  const lines = wrapText(font, cell.text, innerW, size);
 
   const lineH = size * 1.25;
   let y = yTop - size - 2; // baseline of first line
@@ -140,19 +144,7 @@ const measureRowHeight = (
       ? widths.slice(i, i + c.colSpan).reduce((a, b) => a + (b ?? widths[widths.length - 1]!), 0)
       : (widths[i] ?? widths[widths.length - 1]!);
     const f = c.bold ? fontBold : font;
-    const innerW = w - 8;
-    const words = c.text.split(/\s+/);
-    let line = '';
-    let lines = 1;
-    for (const word of words) {
-      const candidate = line ? `${line} ${word}` : word;
-      if (f.widthOfTextAtSize(candidate, size) > innerW && line) {
-        lines += 1;
-        line = word;
-      } else {
-        line = candidate;
-      }
-    }
+    const lines = wrapText(f, c.text, w - 8, size).length;
     if (lines > maxLines) maxLines = lines;
     if (c.colSpan && c.colSpan > 1) i += c.colSpan - 1;
   }
@@ -176,6 +168,67 @@ export const drawRow = (r: Renderer, widths: number[], cells: Cell[], size = 9) 
     drawCellText(r, c, x, r.y, w, height, size);
     x += w;
     if (c.colSpan && c.colSpan > 1) i += c.colSpan - 1;
+  }
+  r.y -= height;
+};
+
+/** Draw a row of stacked label/value cells at the given column widths.
+ *
+ *  Every cell in the row shares one height (the tallest), so the boxes line up
+ *  across the row however unevenly the text wraps. */
+export const drawStackedRow = (
+  r: Renderer,
+  widths: number[],
+  cells: StackedCell[],
+  size = 9,
+) => {
+  const padX = 4;
+  const lineH = size * 1.25;
+  const gap = 3; // between the label and its value
+
+  const wrapped = cells.map((c, i) => {
+    const innerW = (widths[i] ?? widths[widths.length - 1]!) - padX * 2;
+    return {
+      label: wrapText(r.fontBold, c.label, innerW, size),
+      value: wrapText(r.font, c.value, innerW, size),
+    };
+  });
+
+  const height = Math.max(
+    24,
+    ...wrapped.map((w) => (w.label.length + w.value.length) * lineH + gap + 8),
+  );
+  ensureSpace(r, height);
+
+  let x = MARGIN;
+  for (let i = 0; i < cells.length; i++) {
+    const cell = cells[i]!;
+    const w = widths[i] ?? widths[widths.length - 1]!;
+    const lines = wrapped[i]!;
+
+    if (cell.border !== false) {
+      r.page.drawRectangle({
+        x,
+        y: r.y - height,
+        width: w,
+        height,
+        borderColor: r.theme.border,
+        borderWidth: 0.5,
+      });
+    }
+
+    let y = r.y - size - 2;
+    for (const ln of lines.label) {
+      r.page.drawText(ln, { x: x + padX, y, size, font: r.fontBold, color: r.theme.text });
+      y -= lineH;
+    }
+    y -= gap;
+    for (const ln of lines.value) {
+      r.page.drawText(ln, { x: x + padX, y, size, font: r.font, color: r.theme.text });
+      y -= lineH;
+    }
+
+    x += w;
   }
   r.y -= height;
 };

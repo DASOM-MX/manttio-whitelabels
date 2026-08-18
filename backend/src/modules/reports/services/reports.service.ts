@@ -648,17 +648,19 @@ export const revokeReportEmail = async (db: Db, emailId: string): Promise<JsonRe
   return { status: 200, body: { id: row.id, revoked: true } };
 };
 
-// --- Token-bearer PDF download (§9) ---
+// --- PDF rendering ---
 
-export const renderPdfForToken = async (
+/** Renders a stored report. Shared by every caller so the emailed copy, the
+ *  token-bearer download and the in-app download are byte-for-byte the same
+ *  document — the field app used to draw its own with pdfmake, and that second
+ *  layout silently fell behind (no capture sections, comments in a quarter-width
+ *  cell) while looking to a technician like the real thing. */
+const renderStoredReport = async (
   db: Db,
   logosCdnBase: string,
-  token: string,
+  reportId: string,
 ): Promise<{ id: string; pdf: Uint8Array } | null> => {
-  const found = await findEmailByToken(db, token);
-  if (!found) return null;
-
-  const fullReport = await findReportWithDetails(db, found.email.reportId);
+  const fullReport = await findReportWithDetails(db, reportId);
   if (!fullReport) return null;
 
   const [creator, customer, brand] = await Promise.all([
@@ -710,4 +712,32 @@ export const renderPdfForToken = async (
   });
 
   return { id: fullReport.report.id, pdf };
+};
+
+/** Token-bearer download (§9) — the link mailed to a customer recipient. */
+export const renderPdfForToken = async (
+  db: Db,
+  logosCdnBase: string,
+  token: string,
+): Promise<{ id: string; pdf: Uint8Array } | null> => {
+  const found = await findEmailByToken(db, token);
+  if (!found) return null;
+  return renderStoredReport(db, logosCdnBase, found.email.reportId);
+};
+
+/** In-app download. Same access rule as reading the report itself: a technician
+ *  gets their own reports, admin tier gets any. */
+export const renderPdfForUser = async (
+  db: Db,
+  logosCdnBase: string,
+  user: AuthUser,
+  id: string,
+): Promise<{ status: number; body?: unknown; pdf?: Uint8Array; id?: string }> => {
+  const found = await findReportWithDetails(db, id);
+  if (!found) return { status: 404, body: { error: 'not_found' } };
+  if (!canAccess(user, found.report)) return { status: 403, body: { error: 'forbidden' } };
+
+  const rendered = await renderStoredReport(db, logosCdnBase, id);
+  if (!rendered) return { status: 404, body: { error: 'not_found' } };
+  return { status: 200, pdf: rendered.pdf, id: rendered.id };
 };
