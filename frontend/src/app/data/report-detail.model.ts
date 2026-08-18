@@ -1,7 +1,12 @@
-/** Flattened, template-friendly shape the report-detail page renders. The
- *  discriminated per-type fields are optional — read them guarded by `report_type`. */
+import type { CapturedSection } from './dtos/report/report-capture.dto';
+
+/** Report detail view model, rendered from the stored snapshot sections. */
 export interface ReportViewModel {
   id: string;
+  /** Template the snapshot was captured against. Needed to save an edit — the
+   *  backend re-validates the whole `ReportCapture`, `templateId` included — and
+   *  to look the live template up for its option lists. */
+  template_id: string | null;
   report_type: string;
   manttio_type: string;
   report_status: boolean;
@@ -15,22 +20,5 @@ export interface ReportViewModel {
   signed_maps_url: string | null;
   pictures: string[];
   observations: string;
-  is_operating?: boolean;
-  remote_working?: boolean;
-  amperage?: string;
-  filter?: boolean;
-  inner_voltage?: string;
-  unusual_noise?: boolean;
-  inner_temperature?: string;
-  outer_temperature?: string;
-  plc_keys_working?: boolean;
-  motor_amperage?: string;
-  system_pressure_1?: string;
-  system_pressure_2?: string;
-  system_pressure_3?: string;
-  oil_pressure?: string;
-  oil_level?: string;
-  flux_switch_working?: boolean;
-  air_band_adjustment?: boolean;
-  air_good_quality?: boolean;
+  sections: CapturedSection[];
 }

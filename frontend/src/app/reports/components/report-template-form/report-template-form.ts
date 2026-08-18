@@ -31,27 +31,8 @@ import type {
   CapturedSection,
   CapturedAnswer,
 } from '../../../data/dtos/report/report-capture.dto';
-
-/** Section `columns` (the desktop count) → the full grid class string.
- *
- *  A phone always gets one column: the count is the *ceiling*, not the fixed
- *  layout. Every class is spelled out literally because Tailwind's JIT scans
- *  source text — an interpolated `lg:grid-cols-${n}` would never be emitted.
- *  This lookup is the single seam a future per-breakpoint override extends. */
-const GRID_CLASSES: Record<number, string> = {
-  1: 'grid grid-cols-1 gap-x-8 gap-y-7',
-  2: 'grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-7',
-  3: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-7',
-};
-
-/** `'today'` is the one symbolic date the builder can store; resolve it against
- *  the device clock at render. Anything else is an ISO date string. */
-const resolveDate = (raw: string | undefined): Date | undefined => {
-  if (!raw) return undefined;
-  if (raw === 'today') return new Date();
-  const parsed = new Date(raw);
-  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
-};
+import { GRID_CLASSES } from '../../helpers/grid-classes';
+import { resolveDate } from '../../helpers/resolve-template-date';
 
 @Component({
   selector: 'app-report-template-form',

@@ -63,13 +63,13 @@ export class ReportsService {
     appendIf(fd, 'signed_accuracy', fields.signed_accuracy);
     return this.remote.putForm<ReportResponse>(`/reports/${id}/signature`, fd);
   }
-  addPictures(id: string, pictures: File[]): Observable<ReportDetailsResponse> {
+  addPictures(id: string, pictures: File[]): Observable<ReportResponse> {
     const fd = new FormData();
     for (const pic of pictures) fd.append('pictures', pic);
-    return this.remote.putForm<ReportDetailsResponse>(`/reports/${id}/pictures`, fd);
+    return this.remote.putForm<ReportResponse>(`/reports/${id}/pictures`, fd);
   }
-  removePictures(id: string, body: DeletePicturesRequest): Observable<ReportDetailsResponse> {
-    return this.remote.delete<ReportDetailsResponse>(`/reports/${id}/pictures`, body);
+  removePictures(id: string, body: DeletePicturesRequest): Observable<ReportResponse> {
+    return this.remote.delete<ReportResponse>(`/reports/${id}/pictures`, body);
   }
   remove(id: string): Observable<DeleteReportResponse> {
     return this.remote.delete<DeleteReportResponse>(`/reports/${id}`);
