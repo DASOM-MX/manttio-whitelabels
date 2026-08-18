@@ -53,6 +53,8 @@ export interface CustomerReport {
   id: string;
   folio: string;
   serviceDate: string;
+  /** The template name frozen at capture (03 decision 2), already display-ready
+   *  — never run it through a label lookup. */
   reportType: string;
   workType: string | null;
   technicianName: string | null;
