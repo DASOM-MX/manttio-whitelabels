@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReportTemplateForm } from '../../components/report-template-form/report-template-form';
+import { ImagePickerComponent } from '../../components/image-picker/image-picker';
 import { SignSubmitDialog } from '../../components/sign-submit-dialog/sign-submit-dialog';
 import { LeaveDraftDialog } from '../../components/leave-draft-dialog/leave-draft-dialog';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -39,6 +40,7 @@ import type { ReportTemplate } from '../../../data/types/report-template/report-
   standalone: true,
   imports: [
     ReportTemplateForm,
+    ImagePickerComponent,
     SignSubmitDialog,
     LeaveDraftDialog,
     ReactiveFormsModule,
