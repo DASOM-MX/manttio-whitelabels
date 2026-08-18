@@ -28,6 +28,7 @@ import {
   listReportsForUser,
   reassign,
   renderPdfForToken,
+  renderPdfForUser,
   revokeReportEmail,
   submitReport,
 } from '../services/reports.service';
@@ -70,6 +71,23 @@ reports.get('/', zValidator('query', listReportsQuerySchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const { status, body } = await listReportsForUser(db, c.get('user'), c.req.valid('query'));
   return c.json(body, status);
+});
+
+// In-app download: the same document the customer is mailed, rendered on demand.
+// Registered before `/:id` for clarity; the patterns do not overlap.
+reports.get('/:id/pdf', async (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  const result = await renderPdfForUser(db, c.env.LOGOS_CDN_BASE_URL, c.get('user'), c.req.param('id'));
+  if (!result.pdf) return c.json(result.body, result.status as 403 | 404);
+
+  return new Response(result.pdf, {
+    status: 200,
+    headers: {
+      'content-type': 'application/pdf',
+      'content-disposition': `attachment; filename="${result.id}.pdf"`,
+      'cache-control': 'private, no-store',
+    },
+  });
 });
 
 reports.get('/:id', async (c) => {

@@ -330,6 +330,34 @@ describe('GET /reports/:id', () => {
     const res = await request('/reports/R-20990101-9999', { headers: authHeader(token) });
     expect(res.status).toBe(404);
   });
+
+  // The in-app download used to be a second, client-side pdfmake layout that
+  // drifted from this one. Now both go through the same renderer.
+  test('GET /reports/:id/pdf streams the server-rendered document', async () => {
+    const { admin, token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const seeded = await seedReport({ createdBy: admin.id, clientId: customer.id });
+
+    const res = await request(`/reports/${seeded.id}/pdf`, { headers: authHeader(token) });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('application/pdf');
+    // %PDF- magic: proves a real document came back, not a JSON error body.
+    expect((await res.text()).slice(0, 5)).toBe('%PDF-');
+  });
+
+  test('GET /reports/:id/pdf is 403 on another tech’s report', async () => {
+    const { token } = await seedTechnicianAndLogin();
+    const otherTech = await seedTechnician();
+    const customer = await seedCustomer();
+    const seeded = await seedReport({
+      createdBy: otherTech.id,
+      assignedTo: otherTech.id,
+      clientId: customer.id,
+    });
+
+    const res = await request(`/reports/${seeded.id}/pdf`, { headers: authHeader(token) });
+    expect(res.status).toBe(403);
+  });
 });
 
 // --- POST /reports (multipart) ---

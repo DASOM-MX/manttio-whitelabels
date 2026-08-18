@@ -9,10 +9,8 @@ import {
   type ValidatorFn,
 } from '@angular/forms';
 import { Actions, Store, ofActionSuccessful, ofActionErrored, select } from '@ngxs/store';
-import { take } from 'rxjs/operators';
+import { finalize, take } from 'rxjs/operators';
 import { firstValueFrom } from 'rxjs';
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SignatureComponent } from '../../components/signature-pad/signature-pad';
 import { ImagePickerComponent } from '../../components/image-picker/image-picker';
@@ -55,6 +53,7 @@ import { PendingReportStatus } from '../../../../offline/pending-report.model';
 import type { PendingReport } from '../../../../offline/pending-report.model';
 import { TemplatesCacheService } from '../../../../offline/templates-cache.service';
 import { ReportTemplatesService } from '../../../../http/report-templates.service';
+import { ReportsService } from '../../../../http/reports.service';
 import type {
   UpdateReportRequest,
   AddSignatureFields,
@@ -74,7 +73,7 @@ import type {
   AnswerSectionView,
   AnswerView,
 } from '../../../data/types/report/report-answer-view.types';
-import { dataUrlToFile, urlToDataUrl } from '../../../data/utils';
+import { dataUrlToFile, errorMessage } from '../../../data/utils';
 import type { ReportViewModel } from '../../../data/report-detail.model';
 import { toViewModel, toViewModelFromPending } from '../../../data/report-detail.mapper';
 import { gridClassesForColumns } from '../../helpers/grid-classes';
@@ -94,8 +93,6 @@ const MULTI_DATATYPES: QuestionKind[] = [
   QuestionDatatype.Multiselect,
   QuestionDatatype.CheckboxGroup,
 ];
-
-pdfMake.vfs = pdfFonts.vfs;
 
 @Component({
   selector: 'app-report-detail',
@@ -136,6 +133,7 @@ export class ReportDetail {
   private offline = inject(OfflineReportsService);
   private templatesCache = inject(TemplatesCacheService);
   private templatesHttp = inject(ReportTemplatesService);
+  private reportsHttp = inject(ReportsService);
   private destroyRef = inject(DestroyRef);
 
   private selected = select(ReportsState.selected);
@@ -234,6 +232,7 @@ export class ReportDetail {
   /** Visibility flags for the dialogs spawned by the "Terminar y enviar" flow. */
   signModalVisible = signal(false);
   pdfDialogVisible = signal(false);
+  protected readonly pdfDownloading = signal(false);
 
   /** Counts in-flight actions dispatched by saveChanges so the success/error
    *  handlers can settle on a single canonical toast regardless of order. */
@@ -547,104 +546,48 @@ export class ReportDetail {
 
   onPdfDownloadAccept(): void {
     this.pdfDialogVisible.set(false);
-    this.downloadTextPDF();
+    this.downloadPdf();
   }
 
   onPdfDownloadDecline(): void {
     this.pdfDialogVisible.set(false);
   }
 
-  async downloadTextPDF() {
+  /** Downloads the server-rendered PDF.
+   *
+   *  This used to build its own document with pdfmake. That second layout drifted
+   *  from the backend's — it never rendered the captured template sections at all
+   *  and squeezed the comments into a quarter-width cell of the activities table —
+   *  while looking to a technician like the real report. One renderer now, so the
+   *  copy a technician downloads is the copy the customer receives.
+   *
+   *  Only reachable for finished reports, which are by definition already synced,
+   *  so the network round-trip costs nothing the offline flow relied on. */
+  downloadPdf(): void {
     const r = this.report();
-    const c = this.customer();
-    const u = this.reportUser();
-    if (!r || !c) return;
+    if (!r || this.pdfDownloading()) return;
+    this.pdfDownloading.set(true);
+    this.reportsHttp
+      .downloadPdf(r.id)
+      .pipe(finalize(() => this.pdfDownloading.set(false)))
+      .subscribe({
+        next: (blob) => this.saveBlob(blob, `reporte-${r.id}.pdf`),
+        error: (err: unknown) =>
+          this.messages.add({
+            severity: 'error',
+            summary: 'No se pudo descargar el PDF',
+            detail: errorMessage(err, 'Intenta de nuevo en un momento.'),
+          }),
+      });
+  }
 
-    const picturesBase64 = await Promise.all(
-      (r.pictures || []).map((pic) => urlToDataUrl(pic).catch(() => null)),
-    );
-    const signatureBase64 = r.signature ? await urlToDataUrl(r.signature).catch(() => null) : null;
-
-    const tz = this.customerTimezone();
-    const formatDate = (dateString: string | null) =>
-      dateString
-        ? new Date(dateString).toLocaleDateString('es-MX', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            timeZone: tz,
-          })
-        : '';
-
-    const docDefinition: any = {
-      content: [
-        {
-          table: {
-            widths: ['*', '*'],
-            body: [[
-              { text: `${c.name}`, style: 'header', border: [false, false, false, true] },
-              { text: `${r.id}`, style: 'subheader', alignment: 'right', border: [false, false, false, true] },
-            ]],
-          },
-        },
-        {
-          table: {
-            widths: ['*', '*'],
-            body: [
-              [{ text: 'Datos del Cliente', colSpan: 2, alignment: 'center', fillColor: '#DCDCDC', bold: true, color: 'dark', margin: [0, 5, 0, 5] }, {}],
-              [{ text: 'Identificación', bold: true }, c.identification || ''],
-              [{ text: 'Teléfono', bold: true }, c.phone || ''],
-              [{ text: 'Email', bold: true }, c.email || ''],
-              [{ text: 'Observación', bold: true }, c.observation || ''],
-            ],
-          },
-        },
-        {
-          table: {
-            widths: ['25%', '25%', '25%', '25%'],
-            body: [
-              [{ text: 'Informaciones de las actividades', colSpan: 4, alignment: 'center', fillColor: '#DCDCDC', bold: true, color: 'dark', margin: [0, 5, 0, 5] }, {}, {}, {}],
-              [{ text: 'Para:', bold: true }, u?.name ?? '', { text: 'Tipo de tarea:', bold: true }, r.manttio_type],
-              [{ text: 'Fecha Llegada:', bold: true }, formatDate(r.date_arrival), { text: 'Fecha Salida', bold: true }, formatDate(r.date_departure)],
-              [{ text: 'Comentarios', bold: true }, r.comments, { text: ' ', border: [false, false, false, false] }, { text: ' ', border: [false, false, false, false] }],
-            ],
-          },
-          margin: [0, 10, 0, 10],
-        },
-        {
-          table: {
-            widths: ['*', '*', '*'],
-            body: [
-              [{ text: 'Fotos del Reporte', colSpan: 3, alignment: 'center', bold: true, color: 'dark', fillColor: '#DCDCDC', margin: [0, 5, 0, 5] }, {}, {}],
-              ...(() => {
-                const rows: any[] = [];
-                const imgs = picturesBase64.filter(Boolean);
-                for (let i = 0; i < imgs.length; i += 3) {
-                  rows.push([
-                    { image: imgs[i], width: 150, margin: [0, 5, 0, 5] },
-                    imgs[i + 1] ? { image: imgs[i + 1], width: 150, margin: [0, 5, 0, 5] } : {},
-                    imgs[i + 2] ? { image: imgs[i + 2], width: 150, margin: [0, 5, 0, 5] } : {},
-                  ]);
-                }
-                return rows;
-              })(),
-            ],
-          },
-          margin: [0, 10, 0, 10],
-        },
-        signatureBase64 ? { text: 'Firma del cliente', style: 'subheader', alignment: 'center', margin: [0, 10, 0, 5] } : null,
-        signatureBase64 ? { image: signatureBase64, width: 150, alignment: 'center' } : null,
-        signatureBase64 ? { text: `Iniciado por: ${this.technicianName()}`, style: 'subheader', alignment: 'center' } : null,
-        signatureBase64 ? { text: `Finalizado por: ${r.signed_by}`, style: 'subheader', alignment: 'center' } : null,
-      ],
-      styles: {
-        header: { fontSize: 18, bold: true },
-        subheader: { fontSize: 14, bold: true, margin: [0, 0, 0, 5] },
-      },
-    };
-    pdfMake.createPdf(docDefinition).download(`reporte-${r.id}.pdf`);
+  private saveBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
 

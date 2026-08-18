@@ -48,6 +48,10 @@ export class ReportsService {
     appendIf(fd, 'signed_accuracy', fields.signed_accuracy);
     return this.remote.postForm<ReportResponse>('/reports', fd);
   }
+  /** The server-rendered report PDF — the same document the customer is mailed. */
+  downloadPdf(id: string): Observable<Blob> {
+    return this.remote.getBlob(`/reports/${id}/pdf`);
+  }
   update(id: string, body: UpdateReportRequest): Observable<ReportResponse> {
     return this.remote.patch<ReportResponse>(`/reports/${id}`, body);
   }

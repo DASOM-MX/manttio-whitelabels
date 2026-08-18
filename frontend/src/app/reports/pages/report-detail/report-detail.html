@@ -320,7 +320,7 @@
                         <p-button type="button" (onClick)="uploadPending()" [disabled]="uploadingPending()" [loading]="uploadingPending()" icon="pi pi-cloud-upload" label="Subir"></p-button>
                         <p-button type="button" (onClick)="discardPending()" [disabled]="uploadingPending()" severity="danger" [outlined]="true" icon="pi pi-trash" label="Descartar"></p-button>
                     } @else if (report()?.report_status) {
-                        <p-button type="button" (onClick)="downloadTextPDF()" severity="secondary" label="Descargar PDF"></p-button>
+                        <p-button type="button" (onClick)="downloadPdf()" [disabled]="pdfDownloading()" [loading]="pdfDownloading()" severity="secondary" label="Descargar PDF"></p-button>
                         <p-button type="button" (onClick)="mailReport()" label="Enviar por correo"></p-button>
                     } @else if (editMode()) {
                         <p-button type="button" (onClick)="saveChanges()" label="Guardar"></p-button>
