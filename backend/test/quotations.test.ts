@@ -1,7 +1,8 @@
-import { afterAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { inArray } from 'drizzle-orm';
 import { env, json, jsonHeaders, request } from './helpers/request';
 import {
+  ensureFixtureTemplate,
   seedContact,
   seedCustomer,
   seedOfficeAndLogin,
@@ -108,6 +109,12 @@ const dayOffset = (days: number) => {
   return d.toISOString().slice(0, 10);
 };
 
+/** The Active template a conversion's assignments point at (03 CP-3). */
+let fixtureTemplateId: string;
+beforeAll(async () => {
+  fixtureTemplateId = await ensureFixtureTemplate();
+});
+
 const makeService = async (
   token: string,
   overrides: { price?: number; taxRate?: ServiceTaxRate; uom?: ServiceUom } = {},
@@ -121,6 +128,9 @@ const makeService = async (
       uom: overrides.uom ?? ServiceUom.Servicio,
       taxRate: overrides.taxRate ?? ServiceTaxRate.Iva16,
       description: 'Descripción de catálogo',
+      // Explicit: `isReportSource` defaults FALSE, and the conversion tests
+      // assert on the reports a converted order explodes.
+      isReportSource: true,
     }),
   });
   expect(res.status).toBe(201);
@@ -778,7 +788,7 @@ describe('quotations → service order (20 §6)', () => {
   const assignmentFor = (serviceId: string, technicianId: string) => ({
     serviceId,
     technicianId,
-    reportType: 'minisplit',
+    templateId: fixtureTemplateId,
   });
 
   /** Draft → sent to one reviewer → approved via their token. */
@@ -1016,7 +1026,7 @@ describe('quotations → service order (20 §6)', () => {
       comment: 'conversión directa',
       assignments: [
         // The catalog job explodes its report…
-        { serviceId: service.id, technicianId: tech.id, reportType: 'minisplit' },
+        { serviceId: service.id, technicianId: tech.id, templateId: fixtureTemplateId },
         // …the off-catalog charge is keyed by LINE, explodes nothing, and so
         // needs no technician at all.
         { lineId: offCatalogLineId, reportCount: 0 },

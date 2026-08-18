@@ -187,7 +187,10 @@ const scenario = async () => {
     headers: jsonHeaders(token),
     body: JSON.stringify({
       customerId: customer.id,
-      lines: [{ serviceId: service.id, quantity: 1, technicianId: tech.id, reportType: 'minisplit' }],
+      // `quantity` is a decimal string since line model v2, and the line
+      // explodes nothing (the seeded service is not a report source), so it
+      // needs neither a technician's template nor a report count.
+      lines: [{ serviceId: service.id, quantity: '1', technicianId: tech.id }],
     }),
   });
   expect(res.status).toBe(201);

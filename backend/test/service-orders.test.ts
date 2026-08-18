@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { and, eq, inArray, isNull, like } from 'drizzle-orm';
 import { env, json, jsonHeaders, request } from './helpers/request';
 import {
@@ -6,6 +6,7 @@ import {
   seedCustomer,
   seedOfficeAndLogin,
   seedOwnerAndLogin,
+  ensureFixtureTemplate,
   seedTechnician,
   seedTechnicianAndLogin,
   uniqueServiceName,
@@ -122,6 +123,14 @@ afterAll(async () => {
     .where(and(like(services.name, 'test+%'), isNull(services.deletedAt)));
 });
 
+/** The Active template every exploding line points at. Resolved once — the
+ *  fixture helper memoizes — so the sync `lineFor` below can stay sync across
+ *  its ~30 call sites. */
+let fixtureTemplateId: string;
+beforeAll(async () => {
+  fixtureTemplateId = await ensureFixtureTemplate();
+});
+
 const seedService = async (
   token: string,
   over: { price?: number; taxRate?: ServiceTaxRate; uom?: ServiceUom } = {},
@@ -134,6 +143,9 @@ const seedService = async (
       price: over.price ?? 1000,
       uom: over.uom ?? ServiceUom.Servicio,
       taxRate: over.taxRate ?? ServiceTaxRate.Iva16,
+      // Explicit: `isReportSource` defaults FALSE, and every test here turns
+      // on lines that actually explode reports.
+      isReportSource: true,
     }),
   });
   expect(res.status).toBe(201);
@@ -195,13 +207,13 @@ const scenario = async (serviceOver: { price?: number; taxRate?: ServiceTaxRate 
 const lineFor = (
   service: { id: string },
   tech: { id: string },
-  over: { quantity?: string; reportType?: string; reportCount?: number } = {},
+  over: { quantity?: string; templateId?: string; reportCount?: number } = {},
 ) => ({
   serviceId: service.id,
   quantity: over.quantity ?? '1',
   ...(over.reportCount === undefined ? {} : { reportCount: over.reportCount }),
   technicianId: tech.id,
-  reportType: over.reportType ?? 'minisplit',
+  templateId: over.templateId ?? fixtureTemplateId,
 });
 
 describe('POST /service-orders', () => {
