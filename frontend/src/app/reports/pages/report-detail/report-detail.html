@@ -105,17 +105,20 @@
                                             <textarea pTextarea [id]="answer.questionId"
                                                 [formControlName]="answer.questionId" class="field-input !h-auto" rows="4"></textarea>
                                         }
+                                        <!-- `.field-input` reaches these two through their
+                                             inner input (src/theme/); adding it here as well
+                                             would nest a second 56px frame. -->
                                         @case ('number') {
                                             <p-inputnumber [inputId]="answer.questionId"
                                                 [formControlName]="answer.questionId" [min]="answer.min"
                                                 [max]="answer.max" [useGrouping]="false"
-                                                styleClass="field-input w-full" inputStyleClass="w-full" />
+                                                styleClass="w-full" />
                                         }
                                         @case ('date') {
                                             <p-datepicker [inputId]="answer.questionId"
                                                 [formControlName]="answer.questionId" [minDate]="answer.minDate"
                                                 [maxDate]="answer.maxDate" dateFormat="dd/mm/yy"
-                                                styleClass="field-input w-full" inputStyleClass="w-full" />
+                                                styleClass="w-full" />
                                         }
                                         @case ('boolean') {
                                             <div class="flex items-center gap-3">
@@ -126,13 +129,13 @@
                                             <p-select [inputId]="answer.questionId" [formControlName]="answer.questionId"
                                                 [options]="answer.options" optionLabel="label" optionValue="value"
                                                 [autoOptionFocus]="false" appendTo="body"
-                                                styleClass="field-input w-full" placeholder="Selecciona una opción" />
+                                                styleClass="field-input" placeholder="Selecciona una opción" />
                                         }
                                         @case ('multiselect') {
                                             <p-multiselect [inputId]="answer.questionId" [formControlName]="answer.questionId"
                                                 [options]="answer.options" optionLabel="label" optionValue="value"
                                                 [showToggleAll]="false" [maxSelectedLabels]="3" appendTo="body"
-                                                styleClass="field-input w-full" placeholder="Selecciona opciones" />
+                                                placeholder="Selecciona opciones" />
                                         }
                                         <!-- Radio and checkbox groups show their options: a technician
                                              should see the choices without opening an overlay. -->
