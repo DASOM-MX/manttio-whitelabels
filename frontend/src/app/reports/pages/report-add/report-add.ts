@@ -8,6 +8,7 @@ import { Router } from '@angular/router';
 import { Actions, Store, ofActionSuccessful, ofActionErrored, select } from '@ngxs/store';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SelectModule } from 'primeng/select';
+import { TextareaModule } from 'primeng/textarea';
 import { DatePipe } from '@angular/common';
 import { AppState } from '../../../../state/app/app.state';
 import { AuthState } from '../../../../state/auth/auth.state';
@@ -42,6 +43,7 @@ import type { ReportTemplate } from '../../../data/types/report-template/report-
     LeaveDraftDialog,
     ReactiveFormsModule,
     SelectModule,
+    TextareaModule,
     DatePipe,
   ],
   templateUrl: './report-add.html',
@@ -99,6 +101,13 @@ export class ReportAdd {
     templateId: [''],
   });
 
+  /** Fixed-skeleton footer (03 §2) — comments belong to every report, whatever
+   *  template it was filled against, so they are their own group rather than a
+   *  control inside the template-driven form. */
+  footerForm: FormGroup = this.fb.group({
+    comments: [''],
+  });
+
   /** The currently selected template (if any).
    *
    *  Reads the draft, never the picker control, so a resumed draft and a fresh
@@ -137,6 +146,7 @@ export class ReportAdd {
         },
         { emitEvent: false },
       );
+      this.footerForm.patchValue({ comments: restored.comments ?? '' }, { emitEvent: false });
       if (restored.templateId) {
         this.templatePickerForm.patchValue(
           {
@@ -158,6 +168,11 @@ export class ReportAdd {
           workType: v.workType || null,
         }),
       );
+    });
+
+    // Sync footer ↔ draft state on every change
+    this.footerForm.valueChanges.pipe(takeUntilDestroyed()).subscribe((v) => {
+      this.store.dispatch(new UpdateReportDraft({ comments: v.comments || null }));
     });
 
     // Sync template picker ↔ draft state on every change
@@ -292,6 +307,7 @@ export class ReportAdd {
       date_arrival: this.arrivalAt(),
       data: capture,
       pictures: this.selectedFiles().length ? this.selectedFiles() : undefined,
+      comments: (this.footerForm.value.comments as string)?.trim() || undefined,
       signed_by: me?.email ?? 'Técnico',
       signature: signatureFile,
       signed_latitude: signature.latitude,
@@ -325,7 +341,8 @@ export class ReportAdd {
   canLeave(): boolean | Promise<boolean> {
     if (this.submittedSuccessfully()) return true;
     const v = this.headerForm.value as { customerId?: string; workType?: WorkType };
-    const hasMeaningfulContent = !!v.customerId || !!v.workType;
+    const comments = (this.footerForm.value.comments as string | null)?.trim();
+    const hasMeaningfulContent = !!v.customerId || !!v.workType || !!comments;
     if (!hasMeaningfulContent) {
       this.store.dispatch(new DiscardReportDraft());
       return true;

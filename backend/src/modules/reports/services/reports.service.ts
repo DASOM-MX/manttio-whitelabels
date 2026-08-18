@@ -253,6 +253,7 @@ export const getReportForUser = async (
     sections: sections as CapturedSection[],
     photos: result.details.pictures,
     signatureUrl: result.details.signature,
+    comments: result.report.comments,
   };
 
   return { status: 200, body: flatDetail };
@@ -330,6 +331,7 @@ export const submitReport = async (p: SubmitReportParams): Promise<JsonResult> =
         createdBy,
         assignedTo,
         clientId: meta.client_id,
+        comments: meta.comments || null,
         signedBy: meta.signed_by ?? null,
         state: client.state ?? null,
       },
@@ -412,7 +414,8 @@ export const applyPatch = async (
       input.work_type !== undefined ||
       input.date_arrival !== undefined ||
       input.date_departure !== undefined ||
-      input.client_id !== undefined
+      input.client_id !== undefined ||
+      input.comments !== undefined
     ) {
       await tx
         .update(reports)
@@ -423,6 +426,9 @@ export const applyPatch = async (
             ? new Date(input.date_departure)
             : report.dateDeparture,
           clientId: input.client_id ?? report.clientId,
+          // `??` would keep the old text when the tech clears the box — an
+          // explicit empty string means "no comments", so it must reach null.
+          comments: input.comments !== undefined ? input.comments || null : report.comments,
           updatedAt: now,
         })
         .where(eq(reports.id, report.id));
@@ -674,6 +680,7 @@ export const renderPdfForToken = async (
       dateArrival: fullReport.report.dateArrival,
       dateDeparture: fullReport.report.dateDeparture,
       finishedAt: fullReport.report.finishedAt,
+      comments: fullReport.report.comments,
       signedBy: fullReport.report.signedBy,
       signedLatitude: fullReport.report.signedLatitude,
       signedLongitude: fullReport.report.signedLongitude,

@@ -19,6 +19,8 @@ export interface ReportViewModel {
   signed_accuracy: number | null;
   signed_maps_url: string | null;
   pictures: string[];
-  observations: string;
+  /** Same name as the column and the API field — the old `observations` alias
+   *  was a third name for one value and hid whether it was even populated. */
+  comments: string;
   sections: CapturedSection[];
 }

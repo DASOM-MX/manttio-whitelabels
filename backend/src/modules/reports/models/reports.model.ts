@@ -45,6 +45,10 @@ export const reports = pgTable(
     }),
     // Drives the fill-time template prefilter (06 §5, CP-4).
     serviceId: uuid('service_id').references(() => services.id, { onDelete: 'restrict' }),
+    // Free-text closing remarks. Part of the report's **fixed skeleton** (03 §2) —
+    // every report has them regardless of template, so they live on the header
+    // rather than inside the versionless capture snapshot.
+    comments: text('comments'),
     signedBy: text('signed_by'),
     status: text('status')
       .$type<ReportStatus>()

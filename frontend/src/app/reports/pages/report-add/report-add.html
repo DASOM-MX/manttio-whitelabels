@@ -82,18 +82,9 @@
             </p>
           </div>
         } @else {
-          <!-- Template picker: one active → skip directly to form, multiple → show picker -->
-          @if (templateOptions().length === 1) {
-            <!-- Single template: skip picker, go straight to form if it's loaded -->
-            @if (selectedTemplate()) {
-              <app-report-template-form
-                [template]="selectedTemplate()!"
-                (submitForm)="onFormSubmit($event)"
-              >
-              </app-report-template-form>
-            }
-          } @else {
-            <!-- Multiple templates: show picker + form (if selected) -->
+          <!-- A lone active template is auto-selected (§5.1), so the picker only
+               appears when there is an actual choice to make. -->
+          @if (templateOptions().length > 1) {
             <div class="card-section flex flex-col gap-7" [formGroup]="templatePickerForm">
               <div class="field-group">
                 <label for="template" class="field-label">Plantilla de reporte</label>
@@ -116,15 +107,34 @@
                 </p-select>
               </div>
             </div>
+          }
 
-            <!-- Form for selected template -->
-            @if (selectedTemplate()) {
-              <app-report-template-form
-                [template]="selectedTemplate()!"
-                (submitForm)="onFormSubmit($event)"
-              >
-              </app-report-template-form>
-            }
+          <!-- Form for the selected template -->
+          @if (selectedTemplate()) {
+            <app-report-template-form
+              [template]="selectedTemplate()!"
+              (submitForm)="onFormSubmit($event)"
+            >
+              <!-- Projected into the form's footer, between the template sections
+                   and the submit button: comments are part of every report, never
+                   a template question. Its own `formGroup`, so it stays out of the
+                   template form's validity. -->
+              <div class="card-section flex flex-col gap-6" [formGroup]="footerForm">
+                <h2 class="section-heading">Comentarios</h2>
+                <div class="field-group">
+                  <label for="comments" class="field-label">
+                    Observaciones del técnico (opcional)
+                  </label>
+                  <textarea
+                    pTextarea
+                    id="comments"
+                    formControlName="comments"
+                    class="field-input !h-auto"
+                    rows="4"
+                  ></textarea>
+                </div>
+              </div>
+            </app-report-template-form>
           }
         }
       </div>

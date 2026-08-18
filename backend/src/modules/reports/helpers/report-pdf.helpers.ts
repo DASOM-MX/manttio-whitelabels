@@ -53,6 +53,7 @@ export type RenderReportPdfParams = {
     dateArrival: Date | null;
     dateDeparture: Date | null;
     finishedAt: Date | null;
+    comments: string | null;
     signedBy: string | null;
     signedLatitude: number | null;
     signedLongitude: number | null;
@@ -236,6 +237,16 @@ const drawReportPictures = async (r: Renderer, urls: string[]) => {
   r.y -= 8;
 };
 
+// Fixed-skeleton footer (03 §2): the technician's closing remarks, above the
+// signature. Rendered as a table row like the capture sections so long text
+// wraps and paginates through the same path.
+const drawComments = (r: Renderer, comments: string | null) => {
+  if (!comments || comments.trim() === '') return;
+  drawSectionHeader(r, 'Comentarios');
+  drawRow(r, [CONTENT_WIDTH], [{ text: comments }]);
+  r.y -= 8;
+};
+
 const drawSignature = async (
   r: Renderer,
   signatureUrl: string | null,
@@ -311,6 +322,7 @@ export const renderReportPdf = async (p: RenderReportPdfParams): Promise<Uint8Ar
     drawCaptureSection(r, section);
   }
   await drawReportPictures(r, p.pictureUrls);
+  drawComments(r, p.report.comments);
   await drawSignature(
     r,
     p.signatureUrl,

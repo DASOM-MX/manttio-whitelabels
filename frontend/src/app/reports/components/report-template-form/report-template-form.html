@@ -1,6 +1,8 @@
-<form [formGroup]="form()" (ngSubmit)="onSubmit()">
+<!-- `gap-8` matches the page rhythm in report-add: without it the section cards
+     butt against each other and against the submit button. -->
+<form [formGroup]="form()" (ngSubmit)="onSubmit()" class="flex flex-col gap-8">
   @for (section of sections(); track section.id) {
-    <div class="card-section">
+    <div class="card-section flex flex-col gap-6">
       <h2 class="section-heading">{{ section.title }}</h2>
 
       <!-- `columns` is the desktop ceiling; a phone always gets one column. -->
@@ -163,6 +165,11 @@
       </div>
     </div>
   }
+
+  <!-- Fixed-skeleton footer (03 §2): comments live outside the template — never a
+       question, never builder-configurable — so the parent projects them here,
+       after the template sections and before the submit button. -->
+  <ng-content />
 
   <!-- Opens the signature modal in the parent; the report is not created here. -->
   <button type="submit" [disabled]="form().invalid" class="btn-primary w-full">
