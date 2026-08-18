@@ -36,6 +36,9 @@
                   ></textarea>
                 }
 
+                <!-- `p-inputnumber` and `p-datepicker` put `.field-input` on their
+                     *inner* input via `src/theme/`; passing it as `styleClass` too
+                     would box the host as well and nest two 56px frames. -->
                 @case ('number') {
                   <p-inputnumber
                     [inputId]="question.id"
@@ -43,8 +46,7 @@
                     [min]="question.min"
                     [max]="question.max"
                     [useGrouping]="false"
-                    styleClass="field-input w-full"
-                    inputStyleClass="w-full"
+                    styleClass="w-full"
                   />
                 }
 
@@ -55,8 +57,7 @@
                     [minDate]="question.minDate"
                     [maxDate]="question.maxDate"
                     dateFormat="dd/mm/yy"
-                    styleClass="field-input w-full"
-                    inputStyleClass="w-full"
+                    styleClass="w-full"
                   />
                 }
 
@@ -78,7 +79,7 @@
                     optionValue="value"
                     [autoOptionFocus]="false"
                     appendTo="body"
-                    styleClass="field-input w-full"
+                    styleClass="field-input"
                     placeholder="Selecciona una opción"
                   />
                 }
@@ -93,7 +94,6 @@
                     [showToggleAll]="false"
                     [maxSelectedLabels]="3"
                     appendTo="body"
-                    styleClass="field-input w-full"
                     placeholder="Selecciona opciones"
                   />
                 }

@@ -44,7 +44,9 @@ export interface PendingReportSummary {
 
 export const toPendingSummary = (r: PendingReport): PendingReportSummary => ({
   tempId: r.tempId,
-  reportType: r.fields.report_type,
+  // The queued payload carries the id, but the sync dialog lists reports to a
+  // human — so the summary shows the name frozen into the capture snapshot.
+  reportType: r.fields.data.templateName,
   clientId: r.fields.client_id,
   createdBy: r.createdBy,
   createdAt: r.createdAt,
