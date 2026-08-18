@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { ServiceOrderPriority, ServiceOrderStatus } from '../enums/service-orders.enum';
-import { reportTypes } from '../../reports/enums/reports.enum';
 
 // A calendar date (YYYY-MM-DD) for the `promised_date` column — same shape as
 // the quotations validator's `validUntil`. Kept as a string rather than coerced
@@ -26,7 +25,7 @@ const orderLineSchema = z.object({
   // Explosion inputs, captured per line so the skeletons are born complete
   // (19 §2 — the report invariants are kept, not relaxed).
   technicianId: z.string().uuid(),
-  reportType: z.enum(reportTypes),
+  templateId: z.string().uuid(),
 });
 
 export const createServiceOrderSchema = z.object({

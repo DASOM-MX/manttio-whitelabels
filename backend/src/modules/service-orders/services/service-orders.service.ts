@@ -19,6 +19,7 @@ import { listOrderEvents } from '../repository/service-order-events.repository';
 import { ServiceOrderPriority, ServiceOrderStatus } from '../enums/service-orders.enum';
 import {
   InvalidOrderTransitionError,
+  InvalidTemplateError,
   LocationEditForbiddenError,
   ReopenForbiddenError,
 } from '../http-errors/service-orders.error';
