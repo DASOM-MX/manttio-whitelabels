@@ -13,7 +13,7 @@ import { customerInteractions } from '../customers/models/customer-interactions.
 import { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 import { reportEmails } from '../reports/models/report-emails.model';
 import { equipment, equipmentReports } from '../equipment/models/equipment.model';
-import { contracts } from '../contracts/models/contracts.model';
+import { contracts, contractCounters } from '../contracts/models/contracts.model';
 import { notifications } from '../notifications/models/notifications.model';
 import { scheduledVisits, visitEquipment } from '../visits/models/visits.model';
 import { services } from '../services/models/services.model';
@@ -33,7 +33,7 @@ export { customerInteractions } from '../customers/models/customer-interactions.
 export { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 export { reportEmails } from '../reports/models/report-emails.model';
 export { equipment, equipmentReports } from '../equipment/models/equipment.model';
-export { contracts } from '../contracts/models/contracts.model';
+export { contracts, contractCounters } from '../contracts/models/contracts.model';
 export { cmsDocuments, cmsClients } from '../cms/models/cms.model';
 export { reportTemplates } from '../report-templates/models/report-templates.model';
 export { brand } from '../brand/models/brand.model';
@@ -97,6 +97,8 @@ export const serviceOrdersRelations = relations(serviceOrders, ({ one, many }) =
   reports: many(reports),
   // The order timeline — the single audit aggregate for the job (19 §7).
   events: many(serviceOrderEvents),
+  // Documents this job produced — 0..n (13 §2).
+  contracts: many(contracts),
 }));
 
 export const serviceOrderServicesRelations = relations(serviceOrderServices, ({ one }) => ({
@@ -124,12 +126,16 @@ export const serviceOrderEventsRelations = relations(serviceOrderEvents, ({ one 
   }),
 }));
 
-// A contract is standalone-capable: `customerId` is nullable, so imported
-// paper with no client on file still files cleanly (13 §1).
+// A contract always belongs to a client (the audit anchor, 13 §3) and
+// optionally to the service order that generated it (13 §2, 0..n per order).
 export const contractsRelations = relations(contracts, ({ one }) => ({
   customer: one(customers, {
     fields: [contracts.customerId],
     references: [customers.id],
+  }),
+  serviceOrder: one(serviceOrders, {
+    fields: [contracts.serviceOrderId],
+    references: [serviceOrders.id],
   }),
 }));
 

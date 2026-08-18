@@ -1,5 +1,5 @@
 {
-  "id": "b62bd4d0-2926-42e6-8ebf-3bace0f3834d",
+  "id": "f3975303-3ad1-4e6a-b71e-9691307d7d15",
   "prevId": "7e3a97c7-edd8-4ebe-aa90-fe80873e3fd2",
   "version": "7",
   "dialect": "postgresql",
@@ -234,6 +234,31 @@
       },
       "isRLSEnabled": false
     },
+    "public.contract_counters": {
+      "name": "contract_counters",
+      "schema": "",
+      "columns": {
+        "day": {
+          "name": "day",
+          "type": "date",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "last_number": {
+          "name": "last_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.contracts": {
       "name": "contracts",
       "schema": "",
@@ -245,26 +270,56 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
+        "folio": {
+          "name": "folio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "customer_id": {
           "name": "customer_id",
           "type": "uuid",
           "primaryKey": false,
+          "notNull": true
+        },
+        "service_order_id": {
+          "name": "service_order_id",
+          "type": "uuid",
+          "primaryKey": false,
           "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         },
         "description": {
           "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "file_url": {
-          "name": "file_url",
+        "file_key": {
+          "name": "file_key",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "file_name": {
           "name": "file_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_type": {
+          "name": "file_type",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -281,8 +336,15 @@
           "primaryKey": false,
           "notNull": false
         },
-        "validation_date": {
-          "name": "validation_date",
+        "visible_to_roles": {
+          "name": "visible_to_roles",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{office,technician}'::text[]"
+        },
+        "valid_from_date": {
+          "name": "valid_from_date",
           "type": "date",
           "primaryKey": false,
           "notNull": true
@@ -299,6 +361,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'{}'::text[]"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
         },
         "delete_comment": {
           "name": "delete_comment",
@@ -334,6 +402,21 @@
         }
       },
       "indexes": {
+        "contracts_folio_uidx": {
+          "name": "contracts_folio_uidx",
+          "columns": [
+            {
+              "expression": "folio",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "contracts_customer_idx": {
           "name": "contracts_customer_idx",
           "columns": [
@@ -346,6 +429,22 @@
           ],
           "isUnique": false,
           "where": "\"contracts\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "contracts_order_idx": {
+          "name": "contracts_order_idx",
+          "columns": [
+            {
+              "expression": "service_order_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"contracts\".\"service_order_id\" is not null",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -364,6 +463,21 @@
           "concurrently": false,
           "method": "gin",
           "with": {}
+        },
+        "contracts_visible_roles_gin_idx": {
+          "name": "contracts_visible_roles_gin_idx",
+          "columns": [
+            {
+              "expression": "visible_to_roles",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -373,6 +487,32 @@
           "tableTo": "customers",
           "columnsFrom": [
             "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "contracts_service_order_id_service_orders_id_fk": {
+          "name": "contracts_service_order_id_service_orders_id_fk",
+          "tableFrom": "contracts",
+          "tableTo": "service_orders",
+          "columnsFrom": [
+            "service_order_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "contracts_created_by_users_id_fk": {
+          "name": "contracts_created_by_users_id_fk",
+          "tableFrom": "contracts",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
           ],
           "columnsTo": [
             "id"
@@ -397,7 +537,16 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "contracts_type_check": {
+          "name": "contracts_type_check",
+          "value": "\"contracts\".\"type\" in ('programmed_maintenance', 'corrective_maintenance', 'preventive_maintenance', 'installation', 'rent', 'sell', 'buy', 'guarantee')"
+        },
+        "contracts_file_type_check": {
+          "name": "contracts_file_type_check",
+          "value": "\"contracts\".\"file_type\" in ('pdf', 'docx', 'odt', 'xls', 'xlsx')"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.customer_contacts": {

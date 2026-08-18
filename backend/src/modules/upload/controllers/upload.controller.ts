@@ -3,8 +3,7 @@ import type { Context } from 'hono';
 import type { AppBindings } from '../../../env';
 import { fdGet, isFile } from '../../storage/utils/form-data';
 import { NotAnImageError } from '../http-errors/not-an-image.error';
-import { UnsupportedContractFileError } from '../http-errors/unsupported-contract-file.error';
-import { uploadContractFile, uploadImage } from '../services/upload.service';
+import { uploadImage } from '../services/upload.service';
 
 export const upload = new Hono<AppBindings>();
 
@@ -63,30 +62,3 @@ upload.post('/equipment', (c) =>
 upload.post('/website-image', (c) =>
   handleUpload(c, c.env.MANTTIO_IMAGES, c.env.IMAGES_CDN_BASE_URL ?? '', 'website'),
 );
-
-// Contract documents (13 §1) — pdf/word/image into the dedicated
-// `manttio-contracts` bucket (key prefix `contracts/`). Returns
-// `{ url, key, name, mime, size }` — the metadata the client commits verbatim
-// on POST /contracts.
-upload.post('/contract', async (c) => {
-  const fd = await c.req.formData();
-  const file = fdGet(fd, 'file');
-
-  if (!isFile(file)) {
-    return c.json({ error: 'no_file' }, 400);
-  }
-
-  try {
-    const result = await uploadContractFile(
-      c.env.MANTTIO_CONTRACTS,
-      c.env.CONTRACTS_CDN_BASE_URL,
-      file,
-    );
-    return c.json(result, 201);
-  } catch (err) {
-    if (err instanceof UnsupportedContractFileError) {
-      return c.json({ error: 'unsupported_file_type', message: err.message }, 415);
-    }
-    throw err;
-  }
-});

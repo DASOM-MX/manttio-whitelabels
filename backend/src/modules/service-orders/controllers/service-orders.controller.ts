@@ -4,6 +4,7 @@ import { zValidator } from '@hono/zod-validator';
 import type { AppBindings } from '../../../env';
 import { createDb } from '../../database/client';
 import { requireRole } from '../../auth/middleware/roles.middleware';
+import { getServiceOrderContracts } from '../../contracts/services/contracts.service';
 import {
   createServiceOrderSchema,
   listServiceOrdersQuerySchema,
@@ -65,6 +66,16 @@ serviceOrders.get('/:id/reports', async (c) => {
   const reports = await getServiceOrderReports(db, id.data);
   if (!reports) return c.json({ error: 'not_found' }, 404);
   return c.json({ reports });
+});
+
+// The contracts this job generated (13 §2, 0..n) — the order view's
+// "Contratos" card. Role-scoped, unpaged, newest-first.
+serviceOrders.get('/:id/contracts', async (c) => {
+  const id = idSchema.safeParse(c.req.param('id'));
+  if (!id.success) return c.json({ error: 'not_found' }, 404);
+  const db = createDb(c.env.DATABASE_URL);
+  const contracts = await getServiceOrderContracts(db, id.data, c.get('user'));
+  return c.json({ contracts });
 });
 
 // The order timeline (19 §7) — paged newest-first (decided 2026-07-27), the

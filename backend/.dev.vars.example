@@ -10,5 +10,3 @@ EQUIPMENT_CDN_BASE_URL=""
 # Cloudflare Turnstile always-pass test secret — fine for dev; real key via
 # `wrangler secret put TURNSTILE_SECRET_KEY [--env production]`.
 TURNSTILE_SECRET_KEY="1x0000000000000000000000000000000AA"
-# Public base of the `manttio-contracts` bucket (POST /upload/contract).
-CONTRACTS_CDN_BASE_URL=""

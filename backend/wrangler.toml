@@ -59,7 +59,9 @@ binding = "MANTTIO_IMAGES"
 bucket_name = "manttio-images"
 
 # Contract documents (13) — again its own bucket: a signed contract has a
-# different retention and audience from report photos or site imagery.
+# different retention and audience from report photos or site imagery. This one
+# is **private**: attach no r2.dev domain and no custom domain. There is no
+# CONTRACTS_CDN_BASE_URL by design — the backend streams the file itself.
 [[r2_buckets]]
 binding = "MANTTIO_CONTRACTS"
 bucket_name = "manttio-contracts"
@@ -121,9 +123,6 @@ simple = { limit = 1, period = 60 }
 #                           /upload/equipment returns + persists in equipment.photos
 #                           (S3 endpoint / r2.dev / custom domain — kept per-deploy,
 #                           out of committed config)
-#   CONTRACTS_CDN_BASE_URL  public base of the `manttio-contracts` bucket that
-#                           /upload/contract returns + persists in contracts.file_url
-#                           (same per-deploy pattern as EQUIPMENT_CDN_BASE_URL)
 #   TURNSTILE_SECRET_KEY    Cloudflare Turnstile secret for siteverify on
 #                           POST /public/leads (dev: always-pass test secret,
 #                           see .dev.vars.example)
