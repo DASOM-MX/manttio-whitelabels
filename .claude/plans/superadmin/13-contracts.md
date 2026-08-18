@@ -1,6 +1,6 @@
 # 13 — Contracts (contratos / pólizas)
 
-> **Status:** **CP-1 done (2026-08-18)** — backend complete: folio, order link, types, role-scoped visibility, private file store and the audit trail all built and tested. CP-2/CP-3 not started · **Depends on:** 07 (client), 19 (service orders — the generating path), `storage/` (R2); 11 optional (equipment link) · **Reworked 2026-07-24** (owner: document-artifact model — supersedes the recurring-póliza / visit-generator model)
+> **Status:** **CP-1 done (2026-08-18)** — backend complete: folio, order link, types, role-scoped visibility, private file store, covered units and the audit trail all built and tested. CP-2/CP-3 not started · **Depends on:** 07 (client), 19 (service orders — the generating path), `storage/` (R2); 11 optional (equipment link) · **Reworked 2026-07-24** (owner: document-artifact model — supersedes the recurring-póliza / visit-generator model)
 > **Owner:** — · **Last updated:** 2026-08-18
 
 A **contract is a stored document** — the signed pdf/docx/odt/xls/xlsx — plus typed
@@ -30,7 +30,11 @@ Contract {
   name,                    // title, e.g. "Garantía compresor — Hotel X"
   type,                    // ContractType enum (fixed, §1.1)
   description?,            // free text — what the contract covers / notes
-  equipmentIds?: string[], // covered units (11) — optional, scoped to the client
+  equipmentIds?: string[], // covered units (11) — optional, scoped to the client.
+                           //   `contract_equipment` join table (0037); editable after
+                           //   creation, unlike `visit_equipment`: the covered list is a
+                           //   statement about the agreement, not a record of what a
+                           //   technician touched
   visibleToRoles,          // Role[] — which non-manager roles may view/download this
                            //   contract (office / technician). Owner + admin always see
                            //   it and are the only ones who set this. Default: all
@@ -178,8 +182,13 @@ reconciliation is 09's).
 - `DELETE /contracts/:id` `{ deleteComment }` — soft delete (audited), owner/admin only
 - `GET /customers/:id/contracts` — customer-view card (07 slot — ask)
 - `GET /service-orders/:id/contracts` — the order's generated contracts (19 order view)
-- *not built:* `equipmentIds` anywhere (needs a `contract_equipment` join table — lands
-  with 11)
+- `GET /contracts?equipmentId=` — "which contracts cover this unit", the 11 equipment-view
+  coverage card. An `EXISTS` against `contract_equipment`, so a contract covering several
+  units is never doubled in the page or the count
+- `equipmentIds` rides on `POST /contracts` (JSON array over multipart) and `PATCH
+  /contracts/:id` (**full replacement set**: omit to leave untouched, `[]` to clear). Units
+  are **client-scoped** — a unit belonging to another customer, or a retired one, is
+  `409 equipment_customer_mismatch` rather than a silent drop
 
 ## 6. Pages & components
 
@@ -191,7 +200,7 @@ reconciliation is 09's).
   create/edit: client select (pre-filled + locked when launched from an order), type
   select (the fixed enum), name, description, validFrom + optional expiry
   (`p-datepicker`; a "sin vencimiento" toggle clears expiry), equipment multiselect
-  (scoped to the client, hidden until 11), a **visibility-by-role** multiselect (owner/admin
+  (scoped to the client; the backend accepts `equipmentIds` as of 2026-08-18), a **visibility-by-role** multiselect (owner/admin
   only — office / technician; managers implicit), and the **file upload**
   (pdf/docx/odt/xls/xlsx, single file). Edit keeps the current file unless replaced.
 - `contracts/pages/contract-view/` — header (folio, client link, type tag, validity pill,
@@ -233,10 +242,14 @@ since `main` had never applied it.
 - [x] Audit to `customer_interactions` (create / update with a changed-field summary /
       file-replace / delete); order-generated also logs `order_contract_generated` to the
       order timeline (19 §7)
-- [x] `test/contracts.test.ts` — 18 tests, green against the live DB
+- [x] **Covered units** (2026-08-18, second pass): `contract_equipment` join table
+      (`0037_contract_equipment.sql`), `equipmentIds` on create + as a full replacement set on
+      PATCH, client-scoped (a foreign or retired unit → `409 equipment_customer_mismatch`),
+      `?equipmentId=` list filter, and the links in the DTO — name-only on list reads,
+      nameplates on the detail read
+- [x] `test/contracts.test.ts` — 26 tests, green against the live DB
 
-**Deferred out of CP-1:** `equipmentIds` / covered units (needs a `contract_equipment` join
-table; lands with 11), and download access-logging (§ open item — the proxy route makes it
+**Deferred out of CP-1:** download access-logging (§ open item — the proxy route makes it
 trivial to add later).
 
 ### CP-2 — Superadmin: contracts UI
@@ -287,4 +300,7 @@ trivial to add later).
   provisioning bug — see [[shared-neon-db-ahead-of-migrations]].
 - Ask to 07: "Contratos" card slot on customer-view.
 - Ask to 14: `contracts` module row in the matrix; config flag (own vs rides `scheduling`).
-- Ask to 11: equipment multiselect on contracts (covered units) when equipment lands.
+- ~~Ask to 11: equipment multiselect on contracts (covered units) when equipment lands.~~
+  **Resolved 2026-08-18** — the backend leg is built (`contract_equipment`, `equipmentIds`,
+  `?equipmentId=`). What remains is the CP-2 multiselect and, on 11's side, a
+  "contratos que cubren este equipo" card fed by `?equipmentId=`.
