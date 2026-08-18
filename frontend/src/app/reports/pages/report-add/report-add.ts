@@ -35,6 +35,11 @@ import { dataUrlToFile } from '../../../data/utils';
 import { WORK_TYPES, ReportStatus, type WorkType } from '../../../data/types/report';
 import type { ReportTemplate } from '../../../data/types/report-template/report-template.types';
 
+/** Business rule: a report is evidence, so it ships with photographic proof —
+ *  no capture is accepted with fewer than two. Enforced at capture time only;
+ *  editing an older report does not retroactively demand them. */
+const MIN_PICTURES = 2;
+
 @Component({
   selector: 'app-report-add',
   standalone: true,
@@ -88,6 +93,12 @@ export class ReportAdd {
   arrivalAt = computed(() => this.draft()?.arrivalAt ?? new Date().toISOString());
 
   selectedFiles = signal<File[]>([]);
+
+  /** How many photos are still owed. Drives the inline hint so the requirement
+   *  is visible while shooting, not only after pressing Continuar. */
+  protected readonly picturesMissing = computed(() =>
+    Math.max(0, MIN_PICTURES - this.selectedFiles().length),
+  );
 
   readonly workTypeOptions: { label: string; value: WorkType }[] = WORK_TYPES.map((v) => ({
     label: v,
@@ -259,6 +270,14 @@ export class ReportAdd {
     const header = this.headerForm.value as { customerId?: string; workType?: WorkType };
     if (!header.customerId) {
       this.messages.add({ severity: 'error', summary: 'Selecciona un cliente antes de enviar' });
+      return;
+    }
+    if (this.selectedFiles().length < MIN_PICTURES) {
+      this.messages.add({
+        severity: 'error',
+        summary: `Agrega al menos ${MIN_PICTURES} fotos`,
+        detail: 'El reporte no puede enviarse sin evidencia fotográfica.',
+      });
       return;
     }
     // Hold the capture and open the signature modal

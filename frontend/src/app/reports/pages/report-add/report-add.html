@@ -122,6 +122,11 @@
               <div class="card-section flex flex-col gap-6">
                 <h2 class="section-heading">Fotos</h2>
                 <app-image-picker (filesSelected)="onFilesSelected($event)" />
+                @if (picturesMissing()) {
+                  <p class="text-base font-semibold text-red-600 dark:text-red-400">
+                    Agrega al menos 2 fotos — {{ picturesMissing() === 2 ? "faltan 2" : "falta 1" }}.
+                  </p>
+                }
               </div>
 
               <!-- Own `formGroup`, so it stays out of the template form's validity. -->
