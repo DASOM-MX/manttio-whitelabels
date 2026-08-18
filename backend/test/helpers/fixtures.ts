@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { env } from 'cloudflare:test';
 import { createDb } from '../../src/modules/database/client';
 import { insertCustomer } from '../../src/modules/customers/repository/customers.repository';
@@ -8,8 +8,10 @@ import {
   customerContacts,
   reportCounters,
   reportDetails,
+  reportTemplates,
   reports,
 } from '../../src/modules/database/schema';
+import { TemplateStatus } from '../../src/modules/report-templates/enums/report-templates.enum';
 import { ReportStatus, type WorkType } from '../../src/modules/reports/enums/reports.enum';
 import { request, json, jsonHeaders } from './request';
 
@@ -165,10 +167,72 @@ type SeededReport = {
   clientId: string;
 };
 
-const TEMPLATE_ID = '00000000-0000-0000-0000-000000000001';
+/** `reports.template_id` is a real FK (03 CP-1), so a seeded report needs a
+ *  template that actually exists — a synthetic uuid gets rejected by the
+ *  constraint. `report_templates` carries no `deleted_at` (lifecycle over soft
+ *  delete, `disabled` is terminal) and its `name` is not unique, so the fixture
+ *  is resolved by name and created once, then reused for the whole run. Like
+ *  every other fixture here it is never hard-deleted. */
+export const FIXTURE_TEMPLATE_NAME = 'test+fixture-report-template';
 
-const defaultReportCapture = () => ({
-  templateId: TEMPLATE_ID,
+const FIXTURE_QUESTION_BOOL = '00000000-0000-0000-0000-000000000101';
+const FIXTURE_QUESTION_NUM = '00000000-0000-0000-0000-000000000102';
+
+let fixtureTemplateId: string | null = null;
+
+export const ensureFixtureTemplate = async (): Promise<string> => {
+  if (fixtureTemplateId) return fixtureTemplateId;
+  const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
+
+  const [existing] = await db
+    .select({ id: reportTemplates.id })
+    .from(reportTemplates)
+    .where(eq(reportTemplates.name, FIXTURE_TEMPLATE_NAME))
+    .limit(1);
+  if (existing) {
+    fixtureTemplateId = existing.id;
+    return existing.id;
+  }
+
+  const [created] = await db
+    .insert(reportTemplates)
+    .values({
+      name: FIXTURE_TEMPLATE_NAME,
+      status: TemplateStatus.Active,
+      sections: [
+        {
+          id: '00000000-0000-0000-0000-000000000201',
+          order: 0,
+          title: 'General Inspection',
+          columns: 1,
+          questions: [
+            {
+              id: FIXTURE_QUESTION_BOOL,
+              order: 0,
+              label: 'Operating',
+              datatype: 'boolean',
+              required: false,
+            },
+            {
+              id: FIXTURE_QUESTION_NUM,
+              order: 1,
+              label: 'Amperage',
+              datatype: 'number',
+              required: false,
+              unit: 'A',
+            },
+          ],
+        },
+      ] as never,
+    })
+    .returning({ id: reportTemplates.id });
+  if (!created) throw new Error('ensureFixtureTemplate: insert returned no row');
+  fixtureTemplateId = created.id;
+  return created.id;
+};
+
+const defaultReportCapture = (templateId: string) => ({
+  templateId,
   templateName: 'Minisplit Maintenance',
   sections: [
     {
@@ -176,16 +240,17 @@ const defaultReportCapture = () => ({
       columns: 1,
       answers: [
         {
-          questionId: '00000000-0000-0000-0000-000000000101',
+          questionId: FIXTURE_QUESTION_BOOL,
           label: 'Operating',
           datatype: 'boolean',
           value: true,
         },
         {
-          questionId: '00000000-0000-0000-0000-000000000102',
+          questionId: FIXTURE_QUESTION_NUM,
           label: 'Amperage',
-          datatype: 'text',
-          value: '5.2',
+          datatype: 'number',
+          unit: 'A',
+          value: 5.2,
         },
       ],
     },
@@ -196,7 +261,8 @@ const defaultReportCapture = () => ({
 // collide with real same-day reports. The route layer is not exercised here — use POST
 // /reports for tests that need to validate the create path itself.
 export const seedReport = async (opts: SeedReportOpts): Promise<SeededReport> => {
-  const capture = opts.data ?? defaultReportCapture();
+  const templateId = await ensureFixtureTemplate();
+  const capture = opts.data ?? defaultReportCapture(templateId);
   const templateName = typeof capture === 'object' && capture !== null && 'templateName' in capture
     ? (capture as { templateName: string }).templateName
     : 'Minisplit Maintenance';
@@ -219,7 +285,7 @@ export const seedReport = async (opts: SeedReportOpts): Promise<SeededReport> =>
 
   await db.insert(reports).values({
     id,
-    templateId: TEMPLATE_ID,
+    templateId,
     reportType: templateName,
     workType: opts.workType ?? null,
     createdBy: opts.createdBy,

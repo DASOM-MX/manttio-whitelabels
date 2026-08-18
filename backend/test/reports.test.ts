@@ -1,7 +1,8 @@
-import { describe, expect, test } from 'vitest';
+import { beforeAll, describe, expect, test } from 'vitest';
 import { ReportStatus } from '../src/modules/reports/enums/reports.enum';
 import { authHeader, json, jsonHeaders, request } from './helpers/request';
 import {
+  ensureFixtureTemplate,
   seedAdmin,
   seedAdminAndLogin,
   seedCustomer,
@@ -79,7 +80,12 @@ type ReportDetail = {
 
 const FOLIO_RE = /^R-\d{8}-\d{4}$/;
 
-const TEMPLATE_ID = '00000000-0000-0000-0000-000000000001';
+// Resolved once against the real fixture template: `reports.template_id` is a
+// live FK (03 CP-1), so a synthetic uuid is rejected by the constraint.
+let TEMPLATE_ID = '';
+beforeAll(async () => {
+  TEMPLATE_ID = await ensureFixtureTemplate();
+});
 
 const validReportCapture = () => ({
   templateId: TEMPLATE_ID,
@@ -284,7 +290,9 @@ describe('GET /reports/:id', () => {
     expect(res.status).toBe(200);
     const body = await json<ReportDetail>(res);
     expect(body.id).toBe(seeded.id);
-    expect(body.templateId).toBe(expect.any(String));
+    // `toBe` is Object.is, which an asymmetric matcher can never satisfy — this
+    // assertion passed vacuously as written only because it never ran green.
+    expect(body.templateId).toEqual(expect.any(String));
     expect(body.templateName).toEqual(expect.any(String));
     expect(body.sections).toEqual(expect.any(Array));
   });
