@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { QuotationResponse, QuotationStatus } from '../enums/quotations.enum';
-import { reportTypes } from '../../reports/enums/reports.enum';
 import { ServiceTaxRate, ServiceUom } from '../../services/enums/services.enum';
 
 // A calendar date (YYYY-MM-DD) for the `date` column. Kept as a string rather
@@ -123,7 +122,7 @@ export const cancelQuotationSchema = resolutionComment;
 // The convergence body (20 §6, shape settled 2026-07-27). Beyond the mandatory
 // comment, the conversion must carry the order's explosion inputs: 19 §2 keeps
 // the report invariants — every exploded skeleton is born complete with a
-// technician and a report type — and the quote knows neither. One assignment
+// technician and a template assignment — and the quote knows neither. One assignment
 // per DISTINCT quoted service (the service layer checks exact coverage against
 // the quote's lines; duplicate-service quote lines merge into one order line).
 // Quantities and every money field come from the quote's frozen snapshots and
@@ -141,11 +140,11 @@ export const createOrderFromQuotationSchema = resolutionComment.extend({
           serviceId: z.string().uuid().optional(),
           lineId: z.string().uuid().optional(),
           technicianId: z.string().uuid().optional(),
-          reportType: z.enum(reportTypes).optional(),
+          templateId: z.string().uuid().optional(),
           // How many report skeletons this line explodes (owner 2026-07-31).
           // Omit to take the catalog default (`isReportSource`); send to raise
-          // it or to zero it. Technician + type are required exactly when the
-          // resolved count is > 0 — checked in the service layer.
+          // it or to zero it. Technician + template are required exactly when
+          // the resolved count is > 0 — checked in the service layer.
           reportCount: z.coerce.number().int().min(0).max(20).optional(),
         })
         .refine((a) => !!a.serviceId !== !!a.lineId, {

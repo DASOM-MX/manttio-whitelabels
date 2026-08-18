@@ -34,6 +34,14 @@ export const routes: Routes = [
                 canDeactivate: [reportAddDeactivateGuard]
             },
             {
+                path: 'visits',
+                loadComponent: () => import('./visits/pages/my-visits/my-visits').then(m => m.MyVisits)
+            },
+            {
+                path: 'visits/:id',
+                loadComponent: () => import('./visits/pages/visit-detail/visit-detail').then(m => m.VisitDetail)
+            },
+            {
                 path: 'customers',
                 canActivate: [adminGuard],
                 loadComponent: () => import('./customers/pages/customers/customers').then(m => m.Customers)

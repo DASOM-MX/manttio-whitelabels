@@ -1,7 +1,4 @@
-import type { ReportRow } from './report-row.dto';
-import type { ReportDetailRow } from './report-detail-row.dto';
+import type { ReportDetail } from './report-detail.dto';
 
-export interface ReportResponse {
-  report: ReportRow;
-  details: ReportDetailRow;
-}
+/** The flat detail of a report, replacing the old `{ report, details }` envelope. */
+export interface ReportResponse extends ReportDetail {}

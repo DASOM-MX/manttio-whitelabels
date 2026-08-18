@@ -9,6 +9,7 @@ import { SetDarkMode } from '../../state/app/app.actions';
 import { AuthState } from '../../state/auth/auth.state';
 import { Logout } from '../../state/auth/auth.actions';
 import { OfflineReportsState } from '../../state/offline-reports/offline-reports.state';
+import { PendingVisitActionsState } from '../../state/pending-visit-actions/pending-visit-actions.state';
 
 @Component({
   selector: 'app-bottom-nav',
@@ -28,6 +29,9 @@ export class BottomNav {
   /** Connectivity + offline queue size, for the offline bar and the pending badge. */
   isOnline = select(AppState.isOnline);
   pendingCount = select(OfflineReportsState.count);
+  /** Un-delivered field taps (Iniciar/Terminar/Cerrar) — badges the Visitas tab
+   *  so the technician can see work is still waiting on a connection. */
+  pendingVisitCount = select(PendingVisitActionsState.count);
 
   /** Dark-mode preference (persisted via NGXS storage; mirrored onto `<html>` by `App`). */
   darkMode = select(AppState.darkMode);

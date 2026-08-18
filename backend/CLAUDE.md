@@ -1,8 +1,14 @@
 # API rules
 
+> **Skill:** `backend-conventions` (`.claude/skills/backend-conventions/`) mirrors and
+> compresses this file — module layout, repository pattern, validation, roles, migration
+> rules, error shapes, testing, plus a pre-close checklist. Load it for any non-trivial
+> `backend/` work. **This file is the canonical source**: if the two disagree, this one wins
+> and the skill is updated in the same commit.
+
 ## Project state (as of 2026-07-04)
 - **Cloudflare Workers** (Wrangler v4) running **Hono 4** in TypeScript. Entry: `src/index.ts`, deployed as `manttio-api`. `compatibility_flags = ["nodejs_compat"]` so we can use `bcryptjs` and a few Node-flavored libs.
-- **Postgres** on **Neon** via `@neondatabase/serverless`'s **WebSocket driver** (not neon-http) — chosen for real transactions (the create-report flow updates a counter + a header row + N detail rows atomically). Live DB is current through migration `0010` (`owner` in the users role check).
+- **Postgres** on **Neon** via `@neondatabase/serverless`'s **WebSocket driver** (not neon-http) — chosen for real transactions (the create-report flow updates a counter + a header row + N detail rows atomically). The live DB is whatever `pnpm db:migrate` has applied — **don't record a "current through NNNN" number here**; a tracked high-water mark is what made hand-applied DDL look normal, and it goes stale the moment someone forgets to update it. `drizzle.__drizzle_migrations` is the only answer.
 - **Drizzle ORM** for the schema (`src/modules/database/schema.ts` barrel + per-module `models/*.model.ts`) and queries (`src/modules/<resource>/repository/*`). Migrations live in `drizzle/migrations/` and are run via `drizzle-kit` (see `db:*` scripts).
 - **Auth** via JWT (HS256) using `jose`. Token payload is `{ sub: userId, role }`. TTL: `7d` in dev, `1d` in prod.
 - **R2** buckets: `MANTTIO_REPORTS` (report images + generated PDFs, public reads via `CDN_BASE_URL`), `MANTTIO_LOGOS` (`manttio-logos` — brand images uploaded via `POST /upload/logo` + the generated PWA icon set, public reads via `LOGOS_CDN_BASE_URL`), and `MANTTIO_IMAGES` (`manttio-images` — public marketing-site imagery uploaded via `POST /upload/website-image`, key prefix `website/`, public reads via the optional `IMAGES_CDN_BASE_URL`). Brand assets and site imagery each keep their own lifecycle apart from report data.
@@ -16,7 +22,7 @@
 ## Module layout (NestJS-like, module-first)
 `src/` holds only `env.ts` (global bindings + `AuthUser`), `index.ts` (composition root), and `modules/`. **All logic for a domain lives under its own module.** No top-level `routes/`, `db/`, `lib/`, `middleware/`, or `validators/` — those were removed in the modular refactor.
 
-- **Domain modules:** `auth/`, `users/`, `customers/`, `reports/`, `upload/`, `cms/`, `services/`, `quotations/`.
+- **Domain modules:** `auth/`, `users/`, `customers/`, `reports/`, `upload/`, `cms/`, `services/`, `quotations/`, `service-orders/`, `visits/`.
 - **Cross-cutting modules (not junk drawers; must be generic/reusable):** `database/` (Drizzle client + schema barrel + `db-errors`), `storage/` (R2 service + form-data utils), `email/` (generic Resend transport), `pdf/` (generic pdf-lib toolkit — page setup, tables/rows/cells, section headers, image grid, image embedding, default theme). Domain composition that *uses* a cross-cutting module stays in the domain module (e.g. the report PDF **layout** lives in `reports/helpers/report-pdf.helpers.ts` and calls the `pdf/` toolkit — same split as `email/` transport vs `reports/` email composition).
 - **Per-module folders (create only what a module needs):**
   - `controllers/*.controller.ts` — the thin Hono router (validate → service → respond).
@@ -55,7 +61,11 @@
 - **Repository pattern**: every query/mutation goes in `src/modules/<resource>/repository/<resource>.repository.ts`. Controllers/services never call `db.select(...)` directly outside a repository. Repository functions take a `Db` (from `modules/database/client.ts`) plus typed args, return typed rows.
 - **Soft deletes** via `deleted_at` (`isNull(table.deletedAt)` in every list filter). Hard deletes don't exist in this codebase — **no entity is ever hard-deleted** (fork rule, 2026-07-19): no `db.delete(...)` on entity tables, no `ON DELETE CASCADE`, no wipe scripts.
 - **Postgres error mapping**: `src/modules/database/db-errors.ts` exports `isForeignKeyViolation` / `isUniqueViolation` that match SQLSTATE codes (and string fallbacks). Use these on inserts/updates rather than catching `Error` blindly — the service can then translate to the right HTTP status (400 vs 409 vs 422).
-- **Migrations**: `pnpm db:generate` (after a schema change) → review the SQL under `drizzle/migrations/` → `pnpm db:migrate` (or `db:push` for dev iteration). `db:studio` opens Drizzle Studio against the configured DB.
+- **Migrations — every schema change ships as one, no exceptions (owner, 2026-08-01).** `pnpm db:generate` (after a schema change) → **read the generated SQL** → `pnpm db:migrate`. `db:studio` opens Drizzle Studio against the configured DB.
+  - **Never hand-apply DDL to a database, and never `db:push` against a shared one.** This is a **whitelabel product: a new client instance is a new database, provisioned by running the migrations.** Schema that exists only because someone typed it into psql cannot be reproduced for a new tenant — hand-applied DDL is not a shortcut, it is a provisioning bug that stays invisible until the next customer is onboarded. This **revokes** the former "apply additive changes directly to the shared Neon DB and catch the models up" habit; several model files still carry a stale `Applied directly to the shared Neon DB (ahead-of-migrations rule)` comment, and each one is a claim to verify, not to trust.
+  - **Read what `generate` produces before applying it.** If it proposes work you did not intend — re-creating tables that exist, `DROP`s — the `meta/` snapshot chain has drifted (hand-written migrations that never updated it), and *that* is the bug to fix first. A `generate` you cannot trust is exactly what pushes people back to hand-applying.
+  - **Write every migration idempotent**: `CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`, FKs inside `DO $$ … EXCEPTION WHEN duplicate_object` blocks, `CREATE INDEX IF NOT EXISTS`. Databases are in mixed states; a migration that only works on a pristine one is not finished. Note that `CREATE TABLE IF NOT EXISTS` silently does **nothing** to an existing table, so a migration that both creates a table and adds columns to it needs the `ADD COLUMN` statements as well.
+  - **No destructive migrations** — same rule as entities (see soft-delete above): no `DROP TABLE`, no `DROP COLUMN`, no destructive rewrites.
 
 ## Validation
 - All request bodies, query params, and form data go through `@hono/zod-validator` (`zValidator('json' | 'query' | 'form', schema)`) — never read `await c.req.json()` directly in a handler.
@@ -88,7 +98,8 @@
   - **Don't run on top of in-flight production data without checking the fixture cleanup.**
   - Resend is mocked in the test suite; the fixture email patterns (`test+...@penanevadachillers.com` for users, `dasom.mx+test-...@gmail.com` for customers) are still designed to be defense-in-depth deliverable in case a real send slips through.
 - Test helpers live in `test/helpers/`: `request(path, init?)` calls `app.request` with the test env bindings, `json(res)` parses + asserts shape, `authHeader(token)` / `jsonHeaders(token?)` for typical headers, `fixtures.ts` for seeded users/customers/reports.
-- One `*.test.ts` file per resource (`auth`, `users`, `customers`, `reports`, `upload`, `cms`, `services`, `quotations`) + a `smoke.test.ts` for the bare `/` endpoint.
+- One `*.test.ts` file per resource (`auth`, `users`, `customers`, `reports`, `upload`, `cms`, `services`, `quotations`, `service-orders`, `visits`) + a `smoke.test.ts` for the bare `/` endpoint.
+- **Tables with no `test+` column at all** carry the marker transitively: `visits.test.ts` reaches its fixtures through the `test-%` customers they belong to, since a visit has neither an email nor a name it authors. Same soft-delete-in-`afterAll` rule.
 - **Tables with no email column** carry the fixture marker in whatever field they do have: `services` fixtures are named `test+<scope>-<tag>` via `uniqueServiceName()`, and `services.test.ts` soft-deletes every `test+%` row in `afterAll`. Same `test+` marker as the user/customer addresses, so one pattern identifies fixtures across the schema. The CMS suite can't isolate by fixture email (per-tenant singleton docs) — it snapshots the `cms_*` tables in `beforeAll` and restores them in `afterAll` instead.
 - Fixture rows are identifiable by email pattern (`test+%`, `dasom.mx+test-%@gmail.com`) but are **never hard-deleted** — the no-hard-delete rule applies to fixtures too. If test data ever needs clearing from views, soft-delete it by pattern; the rows stay.
 

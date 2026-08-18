@@ -1,5 +1,9 @@
 import { QuotationResponse, QuotationStatus } from '../enums/quotations.enum';
-import { approvalPageHTML } from '../templates/quotation-approval-page.html';
+// The `.ts` is load-bearing, and every other template import spells it out for
+// the same reason: without it wrangler matches the `.html` specifier against its
+// default Text module rule, bundles the template as a text asset, and the Worker
+// dies at startup on `does not provide an export named 'approvalPageHTML'`.
+import { approvalPageHTML } from '../templates/quotation-approval-page.html.ts';
 import { formatMoney as money } from './quotation-email.helpers';
 import type { Brand } from '../../brand/dtos/brand.dto';
 import type { PublicQuotationDTO } from '../types/quotations.types';

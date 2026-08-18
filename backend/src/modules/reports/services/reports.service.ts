@@ -37,13 +37,14 @@ import { canAccess } from '../utils/report-access';
 import { isAdminTier } from '../../auth/utils/role-tier';
 import { isBirthStatus, isEditableStatus } from '../utils/report-lifecycle';
 import { ReportStatus } from '../enums/reports.enum';
-import { validateReportData } from '../validators/reports.validator';
+import { captureSchema } from '../validators/reports.validator';
 import { renderReportPdf } from '../helpers/report-pdf.helpers';
 import { getBrand } from '../../brand/services/brand.service';
 import { notifyBestEffort } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums/notifications.enum';
 import { dispatchReportEmail } from './report-email.service';
-import type { CustomerReportDTO, ReportRow } from '../types/reports.types';
+import type { CustomerReportDTO, ReportRow, ReportDetail } from '../types/reports.types';
+import type { CapturedSection } from '../validators/reports.validator';
 import type {
   CreateReportMeta,
   ListReportsQuery,
@@ -189,9 +190,11 @@ export const listReportsForUser = async (
   const filters: Parameters<typeof listReports>[1] = {};
   if (q.status) filters.status = q.status as (typeof filters)['status'];
   if (q.client_id) filters.clientId = q.client_id;
+  if (q.template_id) filters.templateId = q.template_id;
   if (q.work_type) filters.workType = q.work_type;
   if (q.state) filters.state = q.state;
   if (q.folio) filters.folio = q.folio;
+  if (q.search) filters.search = q.search;
   if (q.date_from) filters.dateFrom = new Date(q.date_from);
   if (q.date_to) filters.dateTo = new Date(q.date_to);
 
@@ -202,8 +205,9 @@ export const listReportsForUser = async (
     filters.assignedTo = user.id;
   }
 
-  const rows = await listReports(db, filters);
-  return { status: 200, body: { reports: rows } };
+  const { items, total } = await listReports(db, filters, { page: q.page, limit: q.limit });
+
+  return { status: 200, body: { items, total, page: q.page, limit: q.limit } };
 };
 
 export const getReportForUser = async (
@@ -214,7 +218,45 @@ export const getReportForUser = async (
   const result = await findReportWithDetails(db, id);
   if (!result) return { status: 404, body: { error: 'not_found' } };
   if (!canAccess(user, result.report)) return { status: 403, body: { error: 'forbidden' } };
-  return { status: 200, body: result };
+
+  // Extract sections from the snapshot (CP-1 stores capture data in details.data)
+  const capture = result.details.data as unknown;
+  const sections = (capture && typeof capture === 'object' && 'sections' in capture)
+    ? (capture as { sections: unknown }).sections
+    : [];
+
+  // Build flat ReportDetail
+  const flatDetail: ReportDetail = {
+    id: result.report.id,
+    templateId: result.report.templateId,
+    templateName: result.report.reportType,
+    reportType: result.report.reportType,
+    workType: result.report.workType,
+    dateArrival: result.report.dateArrival,
+    dateDeparture: result.report.dateDeparture,
+    createdBy: result.report.createdBy,
+    assignedTo: result.report.assignedTo,
+    clientId: result.report.clientId,
+    serviceOrderId: result.report.serviceOrderId,
+    serviceId: result.report.serviceId,
+    signedBy: result.report.signedBy,
+    status: result.report.status,
+    state: result.report.state,
+    signedAt: result.report.signedAt,
+    signedLatitude: result.report.signedLatitude,
+    signedLongitude: result.report.signedLongitude,
+    signedAccuracy: result.report.signedAccuracy,
+    finishedAt: result.report.finishedAt,
+    mailedAt: result.report.mailedAt,
+    createdAt: result.report.createdAt,
+    updatedAt: result.report.updatedAt,
+    sections: sections as CapturedSection[],
+    photos: result.details.pictures,
+    signatureUrl: result.details.signature,
+    comments: result.report.comments,
+  };
+
+  return { status: 200, body: flatDetail };
 };
 
 // --- CREATE (multipart) ---
@@ -275,21 +317,26 @@ export const submitReport = async (p: SubmitReportParams): Promise<JsonResult> =
   }
 
   try {
+    // Validate the capture data against the structural schema
+    const validatedCapture = captureSchema.parse(data);
+
     const result = await createReport(
       db,
       {
-        reportType: meta.report_type,
+        templateId: validatedCapture.templateId,
+        reportType: validatedCapture.templateName,
         workType: meta.work_type ?? null,
         dateArrival: meta.date_arrival ? new Date(meta.date_arrival) : null,
         dateDeparture: meta.date_departure ? new Date(meta.date_departure) : null,
         createdBy,
         assignedTo,
         clientId: meta.client_id,
+        comments: meta.comments || null,
         signedBy: meta.signed_by ?? null,
         state: client.state ?? null,
       },
       {
-        data,
+        data: validatedCapture,
         pictures: pictureUrls,
         signature: signatureUrl,
         contentFilledAt: pictureUrls.length > 0 || signatureUrl ? new Date() : null,
@@ -358,7 +405,7 @@ export const applyPatch = async (
 
   let validatedData: unknown | undefined;
   if (input.data !== undefined) {
-    validatedData = validateReportData(report.reportType, input.data);
+    validatedData = captureSchema.parse(input.data);
   }
 
   await db.transaction(async (tx) => {
@@ -367,7 +414,8 @@ export const applyPatch = async (
       input.work_type !== undefined ||
       input.date_arrival !== undefined ||
       input.date_departure !== undefined ||
-      input.client_id !== undefined
+      input.client_id !== undefined ||
+      input.comments !== undefined
     ) {
       await tx
         .update(reports)
@@ -378,6 +426,9 @@ export const applyPatch = async (
             ? new Date(input.date_departure)
             : report.dateDeparture,
           clientId: input.client_id ?? report.clientId,
+          // `??` would keep the old text when the tech clears the box — an
+          // explicit empty string means "no comments", so it must reach null.
+          comments: input.comments !== undefined ? input.comments || null : report.comments,
           updatedAt: now,
         })
         .where(eq(reports.id, report.id));
@@ -597,17 +648,19 @@ export const revokeReportEmail = async (db: Db, emailId: string): Promise<JsonRe
   return { status: 200, body: { id: row.id, revoked: true } };
 };
 
-// --- Token-bearer PDF download (§9) ---
+// --- PDF rendering ---
 
-export const renderPdfForToken = async (
+/** Renders a stored report. Shared by every caller so the emailed copy, the
+ *  token-bearer download and the in-app download are byte-for-byte the same
+ *  document — the field app used to draw its own with pdfmake, and that second
+ *  layout silently fell behind (no capture sections, comments in a quarter-width
+ *  cell) while looking to a technician like the real thing. */
+const renderStoredReport = async (
   db: Db,
   logosCdnBase: string,
-  token: string,
+  reportId: string,
 ): Promise<{ id: string; pdf: Uint8Array } | null> => {
-  const found = await findEmailByToken(db, token);
-  if (!found) return null;
-
-  const fullReport = await findReportWithDetails(db, found.email.reportId);
+  const fullReport = await findReportWithDetails(db, reportId);
   if (!fullReport) return null;
 
   const [creator, customer, brand] = await Promise.all([
@@ -617,21 +670,34 @@ export const renderPdfForToken = async (
   ]);
   if (!customer) return null;
 
+  // Parse the capture data (ReportCapture with sections)
+  const capture = (fullReport.details.data as { sections?: unknown }) ?? { sections: [] };
+
   const pdf = await renderReportPdf({
     brand,
     report: {
       id: fullReport.report.id,
-      reportType: fullReport.report.reportType,
+      templateName: fullReport.report.reportType, // denormalized template name
       workType: fullReport.report.workType,
       dateArrival: fullReport.report.dateArrival,
       dateDeparture: fullReport.report.dateDeparture,
       finishedAt: fullReport.report.finishedAt,
+      comments: fullReport.report.comments,
       signedBy: fullReport.report.signedBy,
       signedLatitude: fullReport.report.signedLatitude,
       signedLongitude: fullReport.report.signedLongitude,
       signedAccuracy: fullReport.report.signedAccuracy,
     },
-    data: (fullReport.details.data as Record<string, unknown>) ?? {},
+    capture: capture as { sections: Array<{
+      title: string;
+      columns: 1 | 2 | 3;
+      answers: Array<{
+        label: string;
+        datatype: string;
+        unit?: string;
+        value: string | number | boolean | string[] | null;
+      }>;
+    }> },
     customer: {
       name: customer.name,
       identification: customer.identification,
@@ -646,4 +712,32 @@ export const renderPdfForToken = async (
   });
 
   return { id: fullReport.report.id, pdf };
+};
+
+/** Token-bearer download (§9) — the link mailed to a customer recipient. */
+export const renderPdfForToken = async (
+  db: Db,
+  logosCdnBase: string,
+  token: string,
+): Promise<{ id: string; pdf: Uint8Array } | null> => {
+  const found = await findEmailByToken(db, token);
+  if (!found) return null;
+  return renderStoredReport(db, logosCdnBase, found.email.reportId);
+};
+
+/** In-app download. Same access rule as reading the report itself: a technician
+ *  gets their own reports, admin tier gets any. */
+export const renderPdfForUser = async (
+  db: Db,
+  logosCdnBase: string,
+  user: AuthUser,
+  id: string,
+): Promise<{ status: number; body?: unknown; pdf?: Uint8Array; id?: string }> => {
+  const found = await findReportWithDetails(db, id);
+  if (!found) return { status: 404, body: { error: 'not_found' } };
+  if (!canAccess(user, found.report)) return { status: 403, body: { error: 'forbidden' } };
+
+  const rendered = await renderStoredReport(db, logosCdnBase, id);
+  if (!rendered) return { status: 404, body: { error: 'not_found' } };
+  return { status: 200, pdf: rendered.pdf, id: rendered.id };
 };

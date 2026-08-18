@@ -1,0 +1,301 @@
+<div class="min-h-full bg-background dark:bg-granite-1000">
+  <div class="max-w-3xl mx-auto px-4 sm:px-8 py-6 sm:py-10 flex flex-col gap-6">
+    <button
+      type="button"
+      (click)="back()"
+      class="self-start inline-flex items-center gap-2 py-2 pr-3 rounded-lg text-base font-bold transition-colors
+             text-sky-800 hover:bg-sky-0 dark:text-sky-300 dark:hover:bg-granite-800"
+    >
+      <i class="pi pi-arrow-left"></i>
+      Mis visitas
+    </button>
+
+    @if (vm(); as vm) {
+      <!-- Identity -->
+      <div class="flex flex-col gap-3">
+        <div class="flex items-start justify-between gap-3">
+          <h1
+            class="text-2xl sm:text-3xl font-extrabold text-granite-1000 dark:text-granite-0 leading-tight tracking-tight"
+          >
+            {{ vm.visit.customerName ?? "Cliente" }}
+          </h1>
+          <p-tag
+            [severity]="statusSeverities[vm.status]"
+            [value]="statusLabels[vm.status]"
+          ></p-tag>
+        </div>
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <span
+            class="font-data tabular-nums font-semibold text-granite-800 dark:text-granite-200"
+          >
+            {{ vm.visit.internalCode }}
+          </span>
+          @if (vm.visit.serviceOrderFolio) {
+            <span class="text-granite-700 dark:text-granite-300">
+              Orden {{ vm.visit.serviceOrderFolio }}
+            </span>
+          }
+        </div>
+        @if (vm.hasPending) {
+          <p
+            class="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold
+                   bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
+          >
+            <i class="pi pi-cloud-upload"></i>
+            {{ vm.pending.length }}
+            {{ vm.pending.length === 1 ? "acción guardada" : "acciones guardadas" }} en este
+            dispositivo, pendiente de enviar.
+          </p>
+        }
+      </div>
+
+      <!-- Where -->
+      @if (vm.visit.customerAddress; as address) {
+        <section class="card">
+          <div class="card-section flex flex-col gap-2">
+            <h2 class="field-label">Dirección</h2>
+            <p class="text-base text-granite-900 dark:text-granite-100">{{ address }}</p>
+            @if (isOnline() && mapUrl(); as mapSrc) {
+              <!-- Full-bleed to the card's sides AND bottom: the negative
+                   margins cancel the card-section's p-6/sm:p-8 exactly, and
+                   the rounded-b clip follows the card's own corners. The
+                   embed carries its own "Abrir en Maps" link, so no separate
+                   link is rendered alongside it. -->
+              <div class="-mx-6 -mb-6 sm:-mx-8 sm:-mb-8 overflow-hidden rounded-b-2xl">
+                <iframe
+                  [src]="mapSrc"
+                  title="Ubicación de la visita"
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  class="w-full h-80 border-t border-granite-200 dark:border-granite-700"
+                ></iframe>
+              </div>
+            } @else {
+              <a
+                [href]="'https://www.google.com/maps/search/?api=1&query=' + encode(address)"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="self-start inline-flex items-center gap-2 py-2 text-base font-bold
+                       text-sky-800 dark:text-sky-300"
+              >
+                <i class="pi pi-map-marker"></i>
+                Abrir en Maps
+              </a>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- Times -->
+      <section class="card">
+        <div class="card-section flex flex-col gap-4">
+          <div class="flex flex-col gap-1">
+            <h2 class="field-label">Programada</h2>
+            <p
+              class="font-data tabular-nums text-lg font-bold text-granite-1000 dark:text-granite-0"
+            >
+              {{ vm.visit.scheduledStart | visitDay }} ·
+              {{ vm.visit.scheduledStart | visitTime }}
+              @if (vm.visit.scheduledEnd) {
+                – {{ vm.visit.scheduledEnd | visitTime }}
+              }
+            </p>
+            <p class="text-sm text-granite-700 dark:text-granite-300">
+              Duración estimada: {{ formatDuration(vm.visit.expectedDurationMinutes) }}
+            </p>
+          </div>
+
+          @if (vm.actualStart) {
+            <div class="flex flex-col gap-1 border-t border-granite-200 dark:border-granite-700 pt-4">
+              <h2 class="field-label">Real</h2>
+              <p
+                class="font-data tabular-nums text-lg font-bold text-granite-1000 dark:text-granite-0"
+              >
+                {{ vm.actualStart | visitTime }}
+                @if (vm.actualEnd) {
+                  – {{ vm.actualEnd | visitTime }}
+                } @else {
+                  <span class="text-base font-semibold text-amber-700 dark:text-amber-300">
+                    · en curso
+                  </span>
+                }
+              </p>
+              @if (vm.visit.actualDurationMinutes !== undefined) {
+                <p class="text-sm text-granite-700 dark:text-granite-300">
+                  Duración real: {{ formatDuration(vm.visit.actualDurationMinutes) }}
+                  @if (overrunMinutes(); as diff) {
+                    <span
+                      class="font-bold"
+                      [class]="
+                        diff > 0
+                          ? 'text-amber-700 dark:text-amber-300'
+                          : 'text-emerald-700 dark:text-emerald-300'
+                      "
+                    >
+                      ({{ diff > 0 ? "+" : "" }}{{ diff }} min)
+                    </span>
+                  }
+                </p>
+              }
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- What -->
+      @if (vm.visit.title || vm.visit.notes) {
+        <section class="card">
+          <div class="card-section flex flex-col gap-4">
+            @if (vm.visit.title) {
+              <div class="flex flex-col gap-1">
+                <h2 class="field-label">Trabajo</h2>
+                <p class="text-base font-semibold text-granite-900 dark:text-granite-100">
+                  {{ vm.visit.title }}
+                </p>
+              </div>
+            }
+            @if (vm.visit.notes) {
+              <div class="flex flex-col gap-1">
+                <h2 class="field-label">Notas</h2>
+                <p class="text-base text-granite-800 dark:text-granite-200 whitespace-pre-line">
+                  {{ vm.visit.notes }}
+                </p>
+              </div>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- Equipment: one full-width card per unit inside the section; each
+           card leads with a swipeable carousel of THAT unit's photos (dots,
+           no side arrows — arrows would steal width from the photo), then
+           the nameplate the technician confirms against. -->
+      <!-- Equipment: a borderless labeled group — each unit is its own
+           free-standing card (white, light border) at the section's full
+           width, leading with the carousel of that unit's photos. -->
+      @if (vm.visit.equipment.length) {
+        <section class="flex flex-col gap-2.5">
+          <h2 class="field-label">
+            {{ vm.visit.equipment.length === 1 ? "Equipo" : "Equipos" }}
+          </h2>
+          <ul class="flex flex-col gap-2.5">
+            @for (unit of vm.visit.equipment; track unit.id) {
+              <li
+                class="rounded-xl overflow-hidden bg-white dark:bg-granite-900
+                       border border-granite-200 dark:border-granite-700"
+              >
+                @if (isOnline() && unit.photos; as photos) {
+                  <p-carousel
+                    [value]="photos"
+                    [numVisible]="1"
+                    [numScroll]="1"
+                    [circular]="false"
+                    [showNavigators]="false"
+                    [showIndicators]="photos.length > 1"
+                  >
+                    <ng-template let-photo #item>
+                      <img
+                        [src]="photo"
+                        [alt]="unit.name ?? 'Equipo'"
+                        loading="lazy"
+                        class="w-full h-56 object-cover"
+                      />
+                    </ng-template>
+                  </p-carousel>
+                }
+                <div class="p-4 flex flex-col gap-1">
+                  <p class="text-base font-bold text-granite-1000 dark:text-granite-0">
+                    {{ unit.name ?? unit.id }}
+                  </p>
+                  @if (unitSpecs(unit); as specs) {
+                    <p class="text-sm font-semibold text-granite-800 dark:text-granite-200">
+                      {{ specs }}
+                    </p>
+                  }
+                  @if (unit.serialNumber) {
+                    <p class="font-data text-sm text-granite-700 dark:text-granite-300">
+                      Serie {{ unit.serialNumber }}
+                    </p>
+                  }
+                  @if (unit.location) {
+                    <p class="text-sm text-granite-700 dark:text-granite-300">
+                      {{ unit.location }}
+                    </p>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <!-- Outcome -->
+      @if (vm.visit.closeReason; as reason) {
+        <section class="card">
+          <div class="card-section flex flex-col gap-1">
+            <h2 class="field-label">Motivo de cierre</h2>
+            <p class="text-base font-semibold text-granite-900 dark:text-granite-100">
+              {{ closeReasonLabels[reason] }}
+            </p>
+            @if (vm.visit.closeNote) {
+              <p class="text-base text-granite-800 dark:text-granite-200 whitespace-pre-line">
+                {{ vm.visit.closeNote }}
+              </p>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- Actions -->
+      @if (vm.canStart || vm.canRespond || vm.canClose) {
+        <div class="flex flex-col gap-3">
+          @if (vm.canStart) {
+            <button type="button" class="btn-primary w-full" (click)="start()" [disabled]="busy()">
+              @if (busy()) {
+                <i class="pi pi-spin pi-spinner mr-2"></i>
+              }
+              Iniciar visita
+            </button>
+          }
+          @if (vm.canRespond) {
+            <button
+              type="button"
+              class="btn-primary w-full"
+              (click)="respond()"
+              [disabled]="busy()"
+            >
+              @if (busy()) {
+                <i class="pi pi-spin pi-spinner mr-2"></i>
+              }
+              Terminar visita
+            </button>
+          }
+          @if (vm.canClose) {
+            <button
+              type="button"
+              class="btn-neutral w-full"
+              (click)="openCloseDialog()"
+              [disabled]="busy()"
+            >
+              Cerrar sin realizar
+            </button>
+          }
+        </div>
+      } @else {
+        <p
+          class="rounded-xl px-4 py-3 text-sm font-semibold text-center
+                 bg-granite-100 text-granite-700 dark:bg-granite-800 dark:text-granite-300"
+        >
+          Esta visita ya está cerrada. Para reprogramarla, la oficina creará una nueva.
+        </p>
+      }
+    } @else {
+      <p class="flex items-center gap-2 text-base text-granite-700 dark:text-granite-300">
+        <i class="pi pi-spin pi-spinner"></i>
+        Cargando visita…
+      </p>
+    }
+  </div>
+</div>
+
+<app-close-visit-dialog #closeDialog (closedVisit)="back()"></app-close-visit-dialog>

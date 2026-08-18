@@ -1,15 +1,18 @@
 import { Injectable } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
 import { OpenReportDraft, UpdateReportDraft, DiscardReportDraft } from './report-draft.actions';
-import type { ReportType, WorkType } from '../../app/data/types/report';
+import type { WorkType } from '../../app/data/types/report';
 
 export interface ReportDraft {
   /** ISO timestamp captured when the technician first opened the form.
    *  Frozen for the lifetime of the draft so refreshes don't reset it. */
   arrivalAt: string;
-  reportType: ReportType;
+  templateId?: string;
   customerId: string | null;
   workType: WorkType | null;
+  /** Fixed-skeleton footer text. Persisted with the rest of the draft so a
+   *  refresh mid-capture doesn't lose what the technician already wrote. */
+  comments: string | null;
 }
 
 export interface ReportDraftStateModel {
@@ -18,9 +21,9 @@ export interface ReportDraftStateModel {
 
 const defaultDraft = (): ReportDraft => ({
   arrivalAt: new Date().toISOString(),
-  reportType: 'minisplit',
   customerId: null,
   workType: null,
+  comments: null,
 });
 
 @State<ReportDraftStateModel>({

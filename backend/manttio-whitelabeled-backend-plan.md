@@ -243,10 +243,27 @@ System map: superadmin (product-user-auth) + field app (`frontend/`) + public si
 - **equipment** (11): `equipment` table + `report_equipment` join; retro-link
   endpoints; hook: serialized unit consumed on a report ⇒ offer/auto-create the
   client `Equipment` (`material_unit_id` backlink).
-- **visits** (12): `scheduled_visits` + append-only `visit_assignments`;
-  `POST /visits/:id/assign` enforces the tech-swap rule (**a technician may reassign
-  only a visit currently assigned to them — give away, never take**); range-bounded
-  list; status endpoint; report→visit completion hook (heuristic open).
+- **visits** (12): `scheduled_visits` + `visit_equipment`; `POST /visits/:id/assign`
+  enforces the tech-swap rule (**a technician may reassign only a visit currently
+  assigned to them — give away, never take**); range-bounded list; lifecycle endpoints;
+  report→visit completion hook (heuristic open). **Built 2026-07-30 (PR #110)** — the
+  audit is the *order's* timeline, so the once-planned `visit_assignments` table was
+  never created (12 §1 pivot).
+  - **Plan vs actual (owner 2026-07-31, 12 CP-1b).** Adds `expected_duration_minutes`
+    (NOT NULL, default 60), `actual_start`, `actual_end`, `actual_duration_minutes`;
+    `scheduled_end` is **kept** as a fast reference and written together with the
+    expected duration. New `in_progress` status; `POST /visits/:id/start` (Iniciar) and
+    an `actualEnd` on `/respond` (Terminar). Correction 409s once `in_progress`;
+    **reassignment stays open there** (audited mid-job handoff). `PATCH /:id/actuals`
+    is owner/admin-only on terminal visits.
+  - **Timestamps are client-supplied and trusted**, not `now()` — the field app queues
+    Iniciar/Terminar offline (Dexie v2) and syncs later, so the server must record when
+    the tap happened, not when it arrived. Same posture as `created_by` on synced
+    reports: trusted but validated. This is a **hard API contract**, not an
+    implementation detail — stamping `now()` would silently bill near-zero jobs.
+  - Two new order-timeline event types: `visit_started`, `visit_actuals_corrected`.
+  - **`test/visits.test.ts` is owed** — the module shipped without one, which breaks
+    `backend/CLAUDE.md`'s one-suite-per-resource rule.
 - **contracts** (13): lifecycle `draft → active → expired | cancelled`;
   `POST /contracts/:id/activate` generates evenly-spaced visits (`contract_id`
   backlink); cancel cascades to remaining `scheduled` visits only; types per §2.

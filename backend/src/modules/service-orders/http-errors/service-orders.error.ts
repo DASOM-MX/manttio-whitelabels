@@ -46,3 +46,13 @@ export class OrderClosedError extends Error {
     this.name = 'OrderClosedError';
   }
 }
+
+// Thrown when an assignment references a template that doesn't exist or is not
+// active (§3.5). Assignment is an admin-tier authoring action, so validation
+// belongs here, never at sync time. Maps to 400.
+export class InvalidTemplateError extends Error {
+  constructor(id: string) {
+    super(`invalid or inactive template: ${id}`);
+    this.name = 'InvalidTemplateError';
+  }
+}

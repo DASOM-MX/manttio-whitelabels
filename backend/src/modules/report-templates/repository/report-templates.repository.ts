@@ -12,7 +12,7 @@ export const findTemplateById = async (db: Db, id: string): Promise<ReportTempla
 export const listTemplates = async (
   db: Db,
   opts: { status?: TemplateStatus; page: number; limit: number },
-): Promise<{ items: ReportTemplateRow[]; total: number }> => {
+): Promise<{ items: ReportTemplateRow[]; total: number; page: number; limit: number }> => {
   const where: SQL | undefined = opts.status ? eq(reportTemplates.status, opts.status) : undefined;
   const items = await db
     .select()
@@ -25,7 +25,7 @@ export const listTemplates = async (
     .select({ total: sql<number>`count(*)::int` })
     .from(reportTemplates)
     .where(where);
-  return { items, total: count?.total ?? 0 };
+  return { items, total: count?.total ?? 0, page: opts.page, limit: opts.limit };
 };
 
 export const insertTemplate = async (

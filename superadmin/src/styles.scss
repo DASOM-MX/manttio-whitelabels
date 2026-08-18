@@ -41,10 +41,17 @@
 
 @layer base {
   html {
-    @apply h-full text-surface-1000 antialiased dark:text-surface-0;
+    @apply h-full antialiased;
   }
+  /* The inherited text color lives on `body`, NOT on `html`, and has to stay
+     there. `darkMode: ['class', '.app-dark']` compiles every `dark:` utility to
+     a *descendant* selector — `:is(.app-dark *)` — and `.app-dark` is toggled on
+     `<html>` itself, so a `dark:text-*` written on `html` matches nothing and
+     silently loses to its own light-mode color. Everything that never states a
+     color then inherits near-black onto a near-black page. `body` is a
+     descendant, so the same utility works. */
   body {
-    @apply h-full bg-background text-base dark:bg-surface-1000;
+    @apply h-full bg-background text-base text-surface-1000 dark:bg-surface-1000 dark:text-surface-0;
   }
   app-root {
     @apply block h-full;
@@ -171,9 +178,13 @@
     @apply inline-flex size-10 shrink-0 items-center justify-center rounded-chip bg-primary-400 text-white;
   }
 
-  /* Micro-label for card/section/table headers (01 Design language). */
+  /* Micro-label for card/section/table headers (01 Design language).
+     Dark tone is `surface-300`, a step lighter than the light-mode `500`
+     mirrors: at 10px these have to clear AA on the lightest surface they are
+     ever set on, which is `surface-800` (the year calendar's mini-months), not
+     just on the page. `400` measures ~4.2:1 there and fails. */
   .micro-label {
-    @apply text-2xs font-medium text-surface-500 dark:text-surface-400;
+    @apply text-2xs font-medium text-surface-500 dark:text-surface-300;
   }
 
   /* Role pill — the app-wide role visual language (QA 2026-07-08): one blue

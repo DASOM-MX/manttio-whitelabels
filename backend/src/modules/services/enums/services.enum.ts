@@ -57,13 +57,20 @@ export enum ServiceUom {
   // Tiempo
   Hora = 'hora',
   Dia = 'dia',
+  Semana = 'semana',
   Mes = 'mes',
+  // `anio`, not `ano` — the ASCII rule above would otherwise spell a very
+  // different Spanish word into every wire payload and CSV export.
+  Anio = 'anio',
   // Cantidad
   Unidad = 'unidad',
   Pieza = 'pieza',
+  Caja = 'caja',
   Pallet = 'pallet',
+  Resma = 'resma',
   // Longitud
   Metro = 'metro',
+  Kilometro = 'kilometro',
   Yarda = 'yarda',
   Pulgada = 'pulgada',
   // Superficie
@@ -74,6 +81,14 @@ export enum ServiceUom {
   Litro = 'litro',
   Mililitro = 'mililitro',
   Galon = 'galon',
+  OnzaLiquida = 'onza_liquida',
   // Peso
   Kilogramo = 'kilogramo',
+  Onza = 'onza',
+  // Energía — thermal units, for HVAC work billed by heat load rather than by
+  // time or headcount (added 2026-07-31).
+  Btu = 'btu',
+  MillonBtu = 'millon_btu',
+  BtuPorPieCubico = 'btu_pie_cubico',
+  ToneladaRefrigeracion = 'tonelada_refrigeracion',
 }

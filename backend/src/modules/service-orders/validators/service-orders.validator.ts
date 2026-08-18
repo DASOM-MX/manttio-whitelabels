@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { ServiceOrderPriority, ServiceOrderStatus } from '../enums/service-orders.enum';
-import { reportTypes } from '../../reports/enums/reports.enum';
 import { ServiceTaxRate, ServiceUom } from '../../services/enums/services.enum';
 
 // A calendar date (YYYY-MM-DD) for the `promised_date` column — same shape as
@@ -35,7 +34,7 @@ const decimalQuantity = z
 // skeletons the line explodes — separate since 2026-07-31, because a line of
 // 1.5 hours is one job that takes 1.5 hours, not 1.5 jobs. Omit it and the
 // server derives the default from the catalog's `isReportSource` flag; send it
-// to raise (or zero) the count. `technicianId`/`reportType` are explosion
+// to raise (or zero) the count. `technicianId`/`templateId` are explosion
 // inputs, so they are required exactly when the line explodes something — the
 // service layer enforces that, where the resolved count is known.
 const orderLineSchema = z
@@ -52,7 +51,7 @@ const orderLineSchema = z
     // thousands of skeletons in one transaction.
     reportCount: z.coerce.number().int().min(0).max(20).optional(),
     technicianId: z.string().uuid().optional(),
-    reportType: z.enum(reportTypes).optional(),
+    templateId: z.string().uuid().optional(),
   })
   .superRefine((line, ctx) => {
     const owned: [keyof typeof line, string][] = [
@@ -154,7 +153,9 @@ export const listServiceOrdersQuerySchema = z.object({
   /** Folio search — a prefix match on `OS-…`. */
   q: z.string().trim().optional(),
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(50).default(10),
+  // 100, not 50: the visit dialog loads every open order into its p-select in
+  // one read (same posture as the users/equipment rosters).
+  limit: z.coerce.number().int().min(1).max(100).default(10),
 });
 
 // Paged timeline read (decided 2026-07-27) — same shape as the customer

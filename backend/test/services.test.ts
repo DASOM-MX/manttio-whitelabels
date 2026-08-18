@@ -156,17 +156,19 @@ describe('POST /services', () => {
   test('uom is a closed list — an unlisted unit is rejected on create and update', async () => {
     const { token } = await seedOwnerAndLogin();
 
-    // Free text was the v1 posture; 'kilometro' is plausible but not a member,
-    // and accepting it is exactly what the enum exists to prevent.
+    // Free text was the v1 posture; 'barril' is plausible but not a member,
+    // and accepting it is exactly what the enum exists to prevent. (This was
+    // 'kilometro' until the 2026-07-31 unit expansion made that one real —
+    // the failure was the test doing its job, so pick another outsider.)
     const created = await createService(token, {
       name: uniqueServiceName('svc'),
       price: 10,
-      uom: 'kilometro',
+      uom: 'barril',
     });
     expect(created.status).toBe(400);
 
     const svc = await seedService();
-    const patched = await patchService(token, svc.id, { uom: 'kilometro' });
+    const patched = await patchService(token, svc.id, { uom: 'barril' });
     expect(patched.status).toBe(400);
 
     // Every member round-trips.
@@ -267,6 +269,36 @@ describe('PATCH /services/:id', () => {
     const { token } = await seedOwnerAndLogin();
     const res = await patchService(token, '00000000-0000-4000-8000-000000000000', { price: 1 });
     expect(res.status).toBe(404);
+  });
+
+  // The write path the CP-7 form drives (18 §6.4). No format assertion — the
+  // SAT versions its catalogs and 09 owns real validation.
+  test('SAT keys round-trip on edit, and an empty string clears them', async () => {
+    const svc = await seedService();
+    const { token } = await seedOwnerAndLogin();
+    expect(svc.satProdServCode).toBeUndefined();
+
+    const set = await patchService(token, svc.id, {
+      satProdServCode: '72101500',
+      satUnitCode: 'E48',
+    });
+    expect(set.status).toBe(200);
+    const withKeys = await json<Service>(set);
+    expect(withKeys.satProdServCode).toBe('72101500');
+    expect(withKeys.satUnitCode).toBe('E48');
+
+    // Cleared to null, not stored as '' — the form always sends both fields,
+    // so '' has to mean "erased".
+    const cleared = await patchService(token, svc.id, {
+      satProdServCode: '',
+      satUnitCode: '',
+    });
+    // Status first: an error body also lacks the SAT fields, so without this
+    // the toBeUndefined() pair would pass vacuously on a 400.
+    expect(cleared.status).toBe(200);
+    const withoutKeys = await json<Service>(cleared);
+    expect(withoutKeys.satProdServCode).toBeUndefined();
+    expect(withoutKeys.satUnitCode).toBeUndefined();
   });
 });
 
@@ -493,6 +525,129 @@ describe('DELETE /services/:id', () => {
       body: JSON.stringify({ deleteComment: 'nope' }),
     });
     expect(res.status).toBe(403);
+  });
+});
+
+describe('POST /services/import (18 §6.3)', () => {
+  type ImportErrorBody = {
+    error: string;
+    message: string;
+    rows: { index: number; message: string }[];
+  };
+
+  const importRows = (token: string, rows: unknown[]) =>
+    request('/services/import', {
+      method: 'POST',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ rows }),
+    });
+
+  const listNames = async (token: string): Promise<string[]> => {
+    const body = await json<{ services: Service[] }>(
+      await request('/services', { headers: jsonHeaders(token) }),
+    );
+    return body.services.map((s) => s.name);
+  };
+
+  test('imports the file whole; every row gets its via-import event', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const a = serviceBody({ price: 100 });
+    const b = serviceBody({ price: 200, cost: 90, taxRate: ServiceTaxRate.Iva8 });
+
+    const res = await importRows(token, [a, b]);
+    expect(res.status).toBe(201);
+    expect(await json<{ imported: number }>(res)).toEqual({ imported: 2 });
+
+    const list = await json<{ services: Service[] }>(
+      await request('/services', { headers: jsonHeaders(token) }),
+    );
+    const rowA = list.services.find((s) => s.name === a.name);
+    const rowB = list.services.find((s) => s.name === b.name);
+    expect(rowA).toBeDefined();
+    expect(rowB!.cost).toBe('90.00');
+
+    const events = await json<ServiceEvent[]>(
+      await request(`/services/${rowA!.id}/timeline`, { headers: jsonHeaders(token) }),
+    );
+    expect(events).toHaveLength(1);
+    expect(events[0]!.type).toBe(ServiceEventType.Created);
+    expect(events[0]!.changes).toEqual({ via: ServiceCreatedVia.Import });
+  });
+
+  test('422 names each failing row, and nothing is created (all-or-nothing)', async () => {
+    const { token } = await seedOwnerAndLogin();
+    const good = serviceBody({ price: 100 });
+    const badUom = { name: uniqueServiceName('svc'), price: 10, uom: 'barril' };
+    const badTax = serviceBody({ taxRate: 'iva_99' as ServiceTaxRate });
+
+    const res = await importRows(token, [good, badUom, badTax]);
+    expect(res.status).toBe(422);
+
+    const body = await json<ImportErrorBody>(res);
+    expect(body.error).toBe('import_invalid');
+    expect(body.rows.map((r) => r.index)).toEqual([1, 2]);
+    expect(body.rows[0]!.message).toContain('uom');
+    expect(body.rows[1]!.message).toContain('taxRate');
+
+    // The good row must NOT have slipped in — a partial import that silently
+    // skipped rows would read as "imported everything".
+    expect(await listNames(token)).not.toContain(good.name);
+  });
+
+  test('422 on duplicate códigos — repeated in-file and taken by the live catalog', async () => {
+    const live = uniqueServiceCode();
+    await seedService({ internalServiceCode: live });
+    const { token } = await seedOwnerAndLogin();
+
+    const repeated = uniqueServiceCode();
+    const res = await importRows(token, [
+      serviceBody({ internalServiceCode: repeated }),
+      serviceBody({ internalServiceCode: repeated }),
+      serviceBody({ internalServiceCode: live }),
+    ]);
+    expect(res.status).toBe(422);
+
+    const body = await json<ImportErrorBody>(res);
+    expect(body.rows).toHaveLength(2);
+    expect(body.rows[0]).toMatchObject({ index: 1 });
+    expect(body.rows[0]!.message).toContain('se repite en el archivo');
+    expect(body.rows[1]).toMatchObject({ index: 2 });
+    expect(body.rows[1]!.message).toContain('ya existe en el catálogo');
+  });
+
+  test('an empty file is a 400, and office cannot import at all', async () => {
+    const { token } = await seedOwnerAndLogin();
+    expect((await importRows(token, [])).status).toBe(400);
+
+    const { token: officeToken } = await seedOfficeAndLogin();
+    expect((await importRows(officeToken, [serviceBody()])).status).toBe(403);
+  });
+
+  test('the 500-row ceiling is a 400 before any row validates', async () => {
+    const { token } = await seedOwnerAndLogin();
+    // Cheap stubs on purpose: the envelope cap must reject the request before
+    // per-row validation (or the DB) ever sees it.
+    const rows = Array.from({ length: 501 }, () => ({}));
+    expect((await importRows(token, rows)).status).toBe(400);
+  });
+
+  test('a soft-deleted service releases its código to the import', async () => {
+    // The dup pre-check filters tombstones and the unique index is partial
+    // (`deleted_at is null`) — this pins that the two agree, so re-importing a
+    // retired price list never trips the race-fallback 422.
+    const code = uniqueServiceCode();
+    const retired = await seedService({ internalServiceCode: code });
+    const { token } = await seedOwnerAndLogin();
+    const del = await request(`/services/${retired.id}`, {
+      method: 'DELETE',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ deleteComment: 'lista retirada' }),
+    });
+    expect(del.status).toBe(200);
+
+    const res = await importRows(token, [serviceBody({ internalServiceCode: code })]);
+    expect(res.status).toBe(201);
+    expect(await json<{ imported: number }>(res)).toEqual({ imported: 1 });
   });
 });
 

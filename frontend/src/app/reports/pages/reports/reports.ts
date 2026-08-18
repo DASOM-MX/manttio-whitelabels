@@ -32,10 +32,12 @@ interface ReportRowVM extends ReportRow {
 }
 
 const STATUS_BUCKET: Record<ReportStatus, ReportListBucket> = {
+  pending: 'pending',
   created: 'pending',
   'in-progress': 'pending',
   finished: 'done',
   mailed: 'done',
+  cancelled: 'done',
 };
 
 @Component({

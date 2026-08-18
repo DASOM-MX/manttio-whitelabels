@@ -17,6 +17,7 @@ import { services } from './modules/services/controllers/services.controller';
 import { quotations } from './modules/quotations/controllers/quotations.controller';
 import { serviceOrders } from './modules/service-orders/controllers/service-orders.controller';
 import { customerQuotations } from './modules/quotations/controllers/customer-quotations.controller';
+import { visits } from './modules/visits/controllers/visits.controller';
 import { publicCms } from './modules/cms/controllers/public-cms.controller';
 import { publicLeads } from './modules/customers/controllers/public-leads.controller';
 import { publicServices } from './modules/services/controllers/public-services.controller';
@@ -77,6 +78,7 @@ app.use('/notifications/*', jwtMiddleware);
 app.use('/services/*', jwtMiddleware);
 app.use('/quotations/*', jwtMiddleware);
 app.use('/service-orders/*', jwtMiddleware);
+app.use('/visits/*', jwtMiddleware);
 
 app.route('/users', users);
 app.route('/customers', customers);
@@ -93,6 +95,7 @@ app.route('/notifications', notifications);
 app.route('/services', services);
 app.route('/quotations', quotations);
 app.route('/service-orders', serviceOrders);
+app.route('/visits', visits);
 
 app.onError((err, c) => {
   if (err instanceof SyntaxError || /JSON/i.test(err.message)) {

@@ -11,17 +11,19 @@ import {
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { ReportStatus, type ReportType, type WorkType } from '../enums/reports.enum';
+import { ReportStatus, type WorkType } from '../enums/reports.enum';
 import { users } from '../../users/models/users.model';
 import { customers } from '../../customers/models/customers.model';
 import { services } from '../../services/models/services.model';
 import { serviceOrders } from '../../service-orders/models/service-orders.model';
+import { reportTemplates } from '../../report-templates/models/report-templates.model';
 
 export const reports = pgTable(
   'reports',
   {
     id: text('id').primaryKey(),
-    reportType: text('report_type').$type<ReportType>().notNull(),
+    templateId: uuid('template_id').references(() => reportTemplates.id, { onDelete: 'restrict' }),
+    reportType: text('report_type').notNull(), // template name, denormalized for display
     workType: text('work_type').$type<WorkType | null>(),
     dateArrival: timestamp('date_arrival', { withTimezone: true }),
     dateDeparture: timestamp('date_departure', { withTimezone: true }),
@@ -43,6 +45,10 @@ export const reports = pgTable(
     }),
     // Drives the fill-time template prefilter (06 §5, CP-4).
     serviceId: uuid('service_id').references(() => services.id, { onDelete: 'restrict' }),
+    // Free-text closing remarks. Part of the report's **fixed skeleton** (03 §2) —
+    // every report has them regardless of template, so they live on the header
+    // rather than inside the versionless capture snapshot.
+    comments: text('comments'),
     signedBy: text('signed_by'),
     status: text('status')
       .$type<ReportStatus>()
@@ -63,6 +69,7 @@ export const reports = pgTable(
     index('reports_created_by_idx').on(table.createdBy),
     index('reports_assigned_to_idx').on(table.assignedTo),
     index('reports_client_id_idx').on(table.clientId),
+    index('reports_template_id_idx').on(table.templateId),
     index('reports_report_type_idx').on(table.reportType),
     index('reports_status_idx').on(table.status),
     index('reports_assigned_status_idx').on(table.assignedTo, table.status),

@@ -61,11 +61,18 @@ export enum ServiceOrderEventType {
   VisitCreated = 'visit_created',
   VisitReassigned = 'visit_reassigned',
   VisitCorrected = 'visit_corrected',
+  /** The technician tapped Iniciar in the field app — work began (12 CP-1b,
+   *  2026-07-31). With this and the actuals, the CP-5 handoff document reports
+   *  the times the crew was really on site, not just what was booked. */
+  VisitStarted = 'visit_started',
   VisitCompleted = 'visit_completed',
   /** note = close category + reason. */
   VisitClosed = 'visit_closed',
   /** refId → the successor visit (visits are immutable records). */
   VisitRescheduled = 'visit_rescheduled',
+  /** An owner/admin fixed a mis-tapped or mis-synced actual time (12 CP-1b).
+   *  `changes` carries the before/after, so the trail keeps both. */
+  VisitActualsCorrected = 'visit_actuals_corrected',
 
   // --- Reports (06) ---
   ReportExploded = 'report_exploded',

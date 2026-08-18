@@ -14,13 +14,18 @@ const SERVICE_UOM_LABELS: Record<string, string> = {
 
   hora: 'hora',
   dia: 'día',
+  semana: 'semana',
   mes: 'mes',
+  anio: 'año',
 
   unidad: 'unidad',
   pieza: 'pieza',
+  caja: 'caja',
   pallet: 'pallet',
+  resma: 'resma',
 
   metro: 'm',
+  kilometro: 'km',
   yarda: 'yd',
   pulgada: 'in',
 
@@ -31,8 +36,15 @@ const SERVICE_UOM_LABELS: Record<string, string> = {
   litro: 'L',
   mililitro: 'mL',
   galon: 'gal',
+  onza_liquida: 'fl oz',
 
   kilogramo: 'kg',
+  onza: 'oz',
+
+  btu: 'BTU',
+  millon_btu: 'MMBTU',
+  btu_pie_cubico: 'BTU/ft³',
+  tonelada_refrigeracion: 'TR',
 };
 
 export function serviceUomLabel(uom: string): string {

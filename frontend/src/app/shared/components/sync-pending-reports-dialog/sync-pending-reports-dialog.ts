@@ -16,7 +16,6 @@ import {
 } from '../../../../state/offline-reports/offline-reports.actions';
 import { SyncDialogBridge } from '../../../../offline/sync-dialog-bridge.service';
 import { PendingReportStatus } from '../../../../offline/pending-report.model';
-import type { ReportType } from '../../../data/types/report';
 
 interface SyncRow {
   tempId: string;
@@ -27,12 +26,6 @@ interface SyncRow {
   isFailed: boolean;
   lastError?: string;
 }
-
-const TYPE_LABELS: Record<ReportType, string> = {
-  minisplit: 'Minisplit',
-  chiller: 'Chiller',
-  uma: 'UMA',
-};
 
 @Component({
   selector: 'app-sync-pending-reports-dialog',
@@ -69,7 +62,7 @@ export class SyncPendingReportsDialog {
   rows = computed<SyncRow[]>(() =>
     this.pending().map((p) => ({
       tempId: p.tempId,
-      typeLabel: TYPE_LABELS[p.reportType],
+      typeLabel: p.reportType,
       createdByName: p.createdBy.name,
       createdAt: p.createdAt,
       isUploading: p.status === PendingReportStatus.Uploading,

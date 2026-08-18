@@ -30,7 +30,7 @@ export class ReportsService {
   }
   create(fields: CreateReportFields): Observable<ReportResponse> {
     const fd = new FormData();
-    appendIf(fd, 'report_type', fields.report_type);
+    appendIf(fd, 'template_id', fields.template_id);
     appendIf(fd, 'work_type', fields.work_type);
     appendIf(fd, 'client_id', fields.client_id);
     appendIf(fd, 'date_arrival', fields.date_arrival);
@@ -38,6 +38,7 @@ export class ReportsService {
     appendIf(fd, 'assigned_to', fields.assigned_to);
     appendIf(fd, 'created_by', fields.created_by);
     appendIf(fd, 'signed_by', fields.signed_by);
+    appendIf(fd, 'comments', fields.comments);
     fd.set('data', JSON.stringify(fields.data));
     for (const pic of fields.pictures ?? []) fd.append('pictures', pic);
     appendIf(fd, 'signature', fields.signature);
@@ -46,6 +47,10 @@ export class ReportsService {
     appendIf(fd, 'signed_longitude', fields.signed_longitude);
     appendIf(fd, 'signed_accuracy', fields.signed_accuracy);
     return this.remote.postForm<ReportResponse>('/reports', fd);
+  }
+  /** The server-rendered report PDF — the same document the customer is mailed. */
+  downloadPdf(id: string): Observable<Blob> {
+    return this.remote.getBlob(`/reports/${id}/pdf`);
   }
   update(id: string, body: UpdateReportRequest): Observable<ReportResponse> {
     return this.remote.patch<ReportResponse>(`/reports/${id}`, body);
@@ -63,13 +68,13 @@ export class ReportsService {
     appendIf(fd, 'signed_accuracy', fields.signed_accuracy);
     return this.remote.putForm<ReportResponse>(`/reports/${id}/signature`, fd);
   }
-  addPictures(id: string, pictures: File[]): Observable<ReportDetailsResponse> {
+  addPictures(id: string, pictures: File[]): Observable<ReportResponse> {
     const fd = new FormData();
     for (const pic of pictures) fd.append('pictures', pic);
-    return this.remote.putForm<ReportDetailsResponse>(`/reports/${id}/pictures`, fd);
+    return this.remote.putForm<ReportResponse>(`/reports/${id}/pictures`, fd);
   }
-  removePictures(id: string, body: DeletePicturesRequest): Observable<ReportDetailsResponse> {
-    return this.remote.delete<ReportDetailsResponse>(`/reports/${id}/pictures`, body);
+  removePictures(id: string, body: DeletePicturesRequest): Observable<ReportResponse> {
+    return this.remote.delete<ReportResponse>(`/reports/${id}/pictures`, body);
   }
   remove(id: string): Observable<DeleteReportResponse> {
     return this.remote.delete<DeleteReportResponse>(`/reports/${id}`);

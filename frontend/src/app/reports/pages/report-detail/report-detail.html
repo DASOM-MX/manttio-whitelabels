@@ -1,5 +1,5 @@
 <div class="min-h-full bg-background dark:bg-granite-1000">
-    <div #pdfContent>
+    <div>
         <form [formGroup]="reportForm">
             @if (report(); as report) {
             <div class="max-w-4xl mx-auto px-4 sm:px-8 py-10 sm:py-12 flex flex-col gap-8">
@@ -67,7 +67,6 @@
                             <dt class="field-label">Fecha</dt>
                             <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.date_arrival | dateInTz: customerTimezone() : 'mediumDate' }}</dd>
                         </div>
-
                         <div class="field-group">
                             <dt class="field-label">Llegada</dt>
                             <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.date_arrival | dateInTz: customerTimezone() : 'medium' }}</dd>
@@ -79,302 +78,127 @@
                     </dl>
                 </section>
 
-                <!-- Minisplit -->
-                @if (report.report_type === 'minisplit') {
-                <section class="card-section">
-                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-1000 dark:text-granite-0 mb-6 tracking-tight">Mantenimiento minisplit</h2>
-                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
-                        @if (!editMode()) {
-                            <div class="field-group">
-                                <dt class="field-label">Equipo operando</dt>
-                                <dd>
-                                    <p-tag [severity]="report.is_operating ? 'success' : 'danger'"
-                                        [value]="report.is_operating ? 'Sí' : 'No'"></p-tag>
-                                </dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Control remoto funcionando</dt>
-                                <dd>
-                                    <p-tag [severity]="report.remote_working ? 'success' : 'danger'"
-                                        [value]="report.remote_working ? 'Sí' : 'No'"></p-tag>
-                                </dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Amperaje</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.amperage }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Voltaje interno</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.inner_voltage }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Ruido inusual</dt>
-                                <dd>
-                                    <p-tag [severity]="report.unusual_noise ? 'danger' : 'success'"
-                                        [value]="report.unusual_noise ? 'Sí' : 'No'"></p-tag>
-                                </dd>
-                            </div>
-                        } @else {
-                            <div class="field-group">
-                                <label class="field-label">Equipo operando</label>
-                                <div class="flex items-center gap-3">
-                                    <p-checkbox formControlName="is_operating" [binary]="true" inputId="msOperating"></p-checkbox>
-                                    <label for="msOperating" class="text-lg text-granite-1000 dark:text-granite-0 font-semibold cursor-pointer">Sí</label>
-                                </div>
-                            </div>
-                            <div class="field-group">
-                                <label class="field-label">Control remoto funcionando</label>
-                                <div class="flex items-center gap-3">
-                                    <p-checkbox formControlName="remote_working" [binary]="true" inputId="msRemote"></p-checkbox>
-                                    <label for="msRemote" class="text-lg text-granite-1000 dark:text-granite-0 font-semibold cursor-pointer">Sí</label>
-                                </div>
-                            </div>
-                            <div class="field-group">
-                                <label for="amperage" class="field-label">Amperaje</label>
-                                <input pInputText id="amperage" type="text" formControlName="amperage" />
-                            </div>
-                            <div class="field-group">
-                                <label for="innerVoltage" class="field-label">Voltaje interno</label>
-                                <input pInputText id="innerVoltage" type="text" formControlName="inner_voltage" />
-                            </div>
-                            <div class="field-group">
-                                <label class="field-label">Ruido inusual</label>
-                                <div class="flex items-center gap-3">
-                                    <p-checkbox formControlName="unusual_noise" [binary]="true" inputId="msNoise"></p-checkbox>
-                                    <label for="msNoise" class="text-lg text-granite-1000 dark:text-granite-0 font-semibold cursor-pointer">Sí</label>
-                                </div>
-                            </div>
-                        }
-                    </dl>
-                </section>
+                <!-- Snapshot sections — read-only, or editable controls in edit mode -->
+                @if (editMode() && hasLockedAnswers()) {
+                    <p class="rounded-xl bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-amber-900 dark:text-amber-200">
+                        Algunas respuestas de opción múltiple no se pueden editar aquí: su plantilla ya no está disponible en este dispositivo. Se conservarán tal como se capturaron.
+                    </p>
                 }
 
-                <!-- Chiller -->
-                @if (report.report_type === 'chiller') {
+                @for (section of sectionViews(); track section.title) {
                 <section class="card-section">
-                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-1000 dark:text-granite-0 mb-6 tracking-tight">Mantenimiento Chiller</h2>
-                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
-                        @if (!editMode()) {
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-1000 dark:text-granite-0 mb-6 tracking-tight">{{ section.title }}</h2>
+                    <div [class]="section.gridClasses">
+                        @for (answer of section.answers; track answer.questionId) {
                             <div class="field-group">
-                                <dt class="field-label">¿Está operando?</dt>
-                                <dd><p-tag [severity]="report.is_operating ? 'success' : 'danger'" [value]="report.is_operating ? 'Sí' : 'No'"></p-tag></dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Temperatura entrada</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.inner_temperature }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Temperatura salida</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.outer_temperature }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Voltaje interno</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.inner_voltage }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">PLC funcionando</dt>
-                                <dd><p-tag [severity]="report.plc_keys_working ? 'success' : 'danger'" [value]="report.plc_keys_working ? 'Sí' : 'No'"></p-tag></dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Amperaje motor</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.motor_amperage }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Presión sistema 1</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.system_pressure_1 }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Presión sistema 2</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.system_pressure_2 }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Presión sistema 3</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.system_pressure_3 }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Presión aceite</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.oil_pressure }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Nivel de aceite</dt>
-                                <dd class="text-lg text-granite-1000 dark:text-granite-0">{{ report.oil_level }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Switch de flujo funcionando</dt>
-                                <dd><p-tag [severity]="report.flux_switch_working ? 'success' : 'danger'" [value]="report.flux_switch_working ? 'Sí' : 'No'"></p-tag></dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Ruido inusual</dt>
-                                <dd><p-tag [severity]="report.unusual_noise ? 'danger' : 'success'" [value]="report.unusual_noise ? 'Sí' : 'No'"></p-tag></dd>
-                            </div>
-                        } @else {
-                            <div class="field-group">
-                                <label class="field-label">¿Está operando?</label>
-                                <div class="flex items-center gap-3">
-                                    <p-checkbox formControlName="is_operating" [binary]="true" inputId="chOperating"></p-checkbox>
-                                    <label for="chOperating" class="text-lg text-granite-1000 dark:text-granite-0 font-semibold cursor-pointer">Sí</label>
-                                </div>
-                            </div>
-                            <div class="field-group">
-                                <label for="innerTemp" class="field-label">Temperatura entrada</label>
-                                <input pInputText id="innerTemp" type="text" formControlName="inner_temperature" />
-                            </div>
-                            <div class="field-group">
-                                <label for="outerTemp" class="field-label">Temperatura salida</label>
-                                <input pInputText id="outerTemp" type="text" formControlName="outer_temperature" />
-                            </div>
-                            <div class="field-group">
-                                <label for="innerVoltageC" class="field-label">Voltaje interno</label>
-                                <input pInputText id="innerVoltageC" type="text" formControlName="inner_voltage" />
-                            </div>
-                            <div class="field-group">
-                                <label class="field-label">PLC funcionando</label>
-                                <div class="flex items-center gap-3">
-                                    <p-checkbox formControlName="plc_keys_working" [binary]="true" inputId="chPlc"></p-checkbox>
-                                    <label for="chPlc" class="text-lg text-granite-1000 dark:text-granite-0 font-semibold cursor-pointer">Sí</label>
-                                </div>
-                            </div>
-                            <div class="field-group">
-                                <label for="motorAmp" class="field-label">Amperaje motor</label>
-                                <input pInputText id="motorAmp" type="text" formControlName="motor_amperage" />
-                            </div>
-                            <div class="field-group">
-                                <label for="sysP1" class="field-label">Presión sistema 1</label>
-                                <input pInputText id="sysP1" type="text" formControlName="system_pressure_1" />
-                            </div>
-                            <div class="field-group">
-                                <label for="sysP2" class="field-label">Presión sistema 2</label>
-                                <input pInputText id="sysP2" type="text" formControlName="system_pressure_2" />
-                            </div>
-                            <div class="field-group">
-                                <label for="sysP3" class="field-label">Presión sistema 3</label>
-                                <input pInputText id="sysP3" type="text" formControlName="system_pressure_3" />
-                            </div>
-                            <div class="field-group">
-                                <label for="oilP" class="field-label">Presión aceite</label>
-                                <input pInputText id="oilP" type="text" formControlName="oil_pressure" />
-                            </div>
-                            <div class="field-group">
-                                <label for="oilL" class="field-label">Nivel de aceite</label>
-                                <input pInputText id="oilL" type="text" formControlName="oil_level" />
-                            </div>
-                            <div class="field-group">
-                                <label class="field-label">Switch de flujo funcionando</label>
-                                <div class="flex items-center gap-3">
-                                    <p-checkbox formControlName="flux_switch_working" [binary]="true" inputId="chFlux"></p-checkbox>
-                                    <label for="chFlux" class="text-lg text-granite-1000 dark:text-granite-0 font-semibold cursor-pointer">Sí</label>
-                                </div>
-                            </div>
-                            <div class="field-group">
-                                <label class="field-label">Ruido inusual</label>
-                                <div class="flex items-center gap-3">
-                                    <p-checkbox formControlName="unusual_noise" [binary]="true" inputId="chNoise"></p-checkbox>
-                                    <label for="chNoise" class="text-lg text-granite-1000 dark:text-granite-0 font-semibold cursor-pointer">Sí</label>
-                                </div>
+                                <label [for]="answer.questionId" class="field-label">
+                                    {{ answer.label }}@if (answer.unit) { ({{ answer.unit }}) }
+                                </label>
+
+                                @if (editMode() && answer.editable) {
+                                    @switch (answer.kind) {
+                                        @case ('text') {
+                                            <input pInputText type="text" [id]="answer.questionId"
+                                                [formControlName]="answer.questionId" class="field-input" />
+                                        }
+                                        @case ('textarea') {
+                                            <textarea pTextarea [id]="answer.questionId"
+                                                [formControlName]="answer.questionId" class="field-input !h-auto" rows="4"></textarea>
+                                        }
+                                        <!-- `.field-input` reaches these two through their
+                                             inner input (src/theme/); adding it here as well
+                                             would nest a second 56px frame. -->
+                                        @case ('number') {
+                                            <p-inputnumber [inputId]="answer.questionId"
+                                                [formControlName]="answer.questionId" [min]="answer.min"
+                                                [max]="answer.max" [useGrouping]="false"
+                                                styleClass="w-full" />
+                                        }
+                                        @case ('date') {
+                                            <p-datepicker [inputId]="answer.questionId"
+                                                [formControlName]="answer.questionId" [minDate]="answer.minDate"
+                                                [maxDate]="answer.maxDate" dateFormat="dd/mm/yy"
+                                                styleClass="w-full" />
+                                        }
+                                        @case ('boolean') {
+                                            <div class="flex items-center gap-3">
+                                                <p-toggleswitch [inputId]="answer.questionId" [formControlName]="answer.questionId" />
+                                            </div>
+                                        }
+                                        @case ('select') {
+                                            <p-select [inputId]="answer.questionId" [formControlName]="answer.questionId"
+                                                [options]="answer.options" optionLabel="label" optionValue="value"
+                                                [autoOptionFocus]="false" appendTo="body"
+                                                styleClass="field-input" placeholder="Selecciona una opción" />
+                                        }
+                                        @case ('multiselect') {
+                                            <p-multiselect [inputId]="answer.questionId" [formControlName]="answer.questionId"
+                                                [options]="answer.options" optionLabel="label" optionValue="value"
+                                                [showToggleAll]="false" [maxSelectedLabels]="3" appendTo="body"
+                                                placeholder="Selecciona opciones" />
+                                        }
+                                        <!-- Radio and checkbox groups show their options: a technician
+                                             should see the choices without opening an overlay. -->
+                                        @case ('radio') {
+                                            <div class="flex flex-col gap-3">
+                                                @for (opt of answer.options; track opt.value) {
+                                                    <div class="flex items-center gap-2">
+                                                        <p-radiobutton [inputId]="answer.questionId + '-' + opt.value"
+                                                            [name]="answer.questionId" [value]="opt.value"
+                                                            [formControlName]="answer.questionId" />
+                                                        <label [for]="answer.questionId + '-' + opt.value"
+                                                            class="cursor-pointer text-granite-800 dark:text-granite-200">{{ opt.label }}</label>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                        @case ('checkbox_group') {
+                                            <div class="flex flex-col gap-3">
+                                                @for (opt of answer.options; track opt.value) {
+                                                    <div class="flex items-center gap-2">
+                                                        <p-checkbox [inputId]="answer.questionId + '-' + opt.value"
+                                                            [value]="opt.value" [formControlName]="answer.questionId" />
+                                                        <label [for]="answer.questionId + '-' + opt.value"
+                                                            class="cursor-pointer text-granite-800 dark:text-granite-200">{{ opt.label }}</label>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                } @else {
+                                    <div class="text-lg text-granite-1000 dark:text-granite-0">
+                                        @switch (answer.kind) {
+                                            @case ('boolean') {
+                                                <p-tag [severity]="answer.checked ? 'success' : 'danger'"
+                                                    [value]="answer.checked ? 'Sí' : 'No'"></p-tag>
+                                            }
+                                            @case ('multiselect') {
+                                                @if (answer.values.length) {
+                                                    <div class="flex flex-wrap gap-2">
+                                                        @for (v of answer.values; track v) {
+                                                            <p-chip [label]="v" />
+                                                        }
+                                                    </div>
+                                                } @else { — }
+                                            }
+                                            @case ('checkbox_group') {
+                                                @if (answer.values.length) {
+                                                    <div class="flex flex-wrap gap-2">
+                                                        @for (v of answer.values; track v) {
+                                                            <p-chip [label]="v" />
+                                                        }
+                                                    </div>
+                                                } @else { — }
+                                            }
+                                            @default {
+                                                {{ answer.display }}
+                                            }
+                                        }
+                                    </div>
+                                }
                             </div>
                         }
-                    </dl>
-                </section>
-                }
-
-                <!-- UMA -->
-                @if (report.report_type === 'uma') {
-                <section class="card-section">
-                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-1000 dark:text-granite-0 mb-6 tracking-tight">Mantenimiento UMA</h2>
-                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
-                        @if (!editMode()) {
-                            <div class="field-group">
-                                <dt class="field-label">¿Está operando?</dt>
-                                <dd><p-tag [severity]="report.is_operating ? 'success' : 'danger'" [value]="report.is_operating ? 'Sí' : 'No'"></p-tag></dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Ajuste de banda</dt>
-                                <dd><p-tag [severity]="report.air_band_adjustment ? 'success' : 'danger'" [value]="report.air_band_adjustment ? 'Sí' : 'No'"></p-tag></dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Temperatura entrada</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.inner_temperature }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Temperatura salida</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.outer_temperature }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Rejilla aire en buenas condiciones</dt>
-                                <dd><p-tag [severity]="report.air_good_quality ? 'success' : 'danger'" [value]="report.air_good_quality ? 'Sí' : 'No'"></p-tag></dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Voltaje interno</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.inner_voltage }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Amperaje motor</dt>
-                                <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.motor_amperage }}</dd>
-                            </div>
-                            <div class="field-group">
-                                <dt class="field-label">Ruido inusual</dt>
-                                <dd><p-tag [severity]="report.unusual_noise ? 'danger' : 'success'" [value]="report.unusual_noise ? 'Sí' : 'No'"></p-tag></dd>
-                            </div>
-                        } @else {
-                            <div class="field-group">
-                                <label class="field-label">¿Está operando?</label>
-                                <div class="flex items-center gap-3">
-                                    <p-checkbox formControlName="is_operating" [binary]="true" inputId="umaOperating"></p-checkbox>
-                                    <label for="umaOperating" class="text-lg text-granite-1000 dark:text-granite-0 font-semibold cursor-pointer">Sí</label>
-                                </div>
-                            </div>
-                            <div class="field-group">
-                                <label class="field-label">Ajuste de banda</label>
-                                <div class="flex items-center gap-3">
-                                    <p-checkbox formControlName="air_band_adjustment" [binary]="true" inputId="umaBand"></p-checkbox>
-                                    <label for="umaBand" class="text-lg text-granite-1000 dark:text-granite-0 font-semibold cursor-pointer">Sí</label>
-                                </div>
-                            </div>
-                            <div class="field-group">
-                                <label for="umaInTemp" class="field-label">Temperatura entrada</label>
-                                <input pInputText id="umaInTemp" type="text" formControlName="inner_temperature" />
-                            </div>
-                            <div class="field-group">
-                                <label for="umaOutTemp" class="field-label">Temperatura salida</label>
-                                <input pInputText id="umaOutTemp" type="text" formControlName="outer_temperature" />
-                            </div>
-                            <div class="field-group">
-                                <label class="field-label">Rejilla aire en buenas condiciones</label>
-                                <div class="flex items-center gap-3">
-                                    <p-checkbox formControlName="air_good_quality" [binary]="true" inputId="umaAirQ"></p-checkbox>
-                                    <label for="umaAirQ" class="text-lg text-granite-1000 dark:text-granite-0 font-semibold cursor-pointer">Sí</label>
-                                </div>
-                            </div>
-                            <div class="field-group">
-                                <label for="umaVolt" class="field-label">Voltaje interno</label>
-                                <input pInputText id="umaVolt" type="text" formControlName="inner_voltage" />
-                            </div>
-                            <div class="field-group">
-                                <label for="umaAmp" class="field-label">Amperaje motor</label>
-                                <input pInputText id="umaAmp" type="text" formControlName="motor_amperage" />
-                            </div>
-                            <div class="field-group">
-                                <label class="field-label">Ruido inusual</label>
-                                <div class="flex items-center gap-3">
-                                    <p-checkbox formControlName="unusual_noise" [binary]="true" inputId="umaNoise"></p-checkbox>
-                                    <label for="umaNoise" class="text-lg text-granite-1000 dark:text-granite-0 font-semibold cursor-pointer">Sí</label>
-                                </div>
-                            </div>
-                        }
-                    </dl>
-                </section>
-                }
-
-                <!-- Observaciones -->
-                @if (!editMode()) {
-                <section class="card-section">
-                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-1000 dark:text-granite-0 mb-4 tracking-tight">Observaciones</h2>
-                    <p class="text-lg text-granite-900 dark:text-granite-100 whitespace-pre-line leading-relaxed">{{ report.observations || 'Ninguna' }}</p>
-                </section>
-                } @else {
-                <section class="card-section field-group">
-                    <label for="observations" class="field-label">Observaciones</label>
-                    <textarea pTextarea id="observations" formControlName="observations" rows="4"></textarea>
+                    </div>
                 </section>
                 }
 
@@ -401,6 +225,23 @@
                     }
                 </section>
                 }
+
+                <!-- Comentarios — fixed skeleton (03 §2): present on every report,
+                     whatever template it was captured against. -->
+                <section class="card-section flex flex-col gap-4">
+                    <h2 class="section-heading">Comentarios</h2>
+                    @if (editMode()) {
+                        <div class="field-group" [formGroup]="reportForm">
+                            <label for="report-comments" class="field-label">Observaciones del técnico (opcional)</label>
+                            <textarea pTextarea id="report-comments" formControlName="comments"
+                                class="field-input !h-auto" rows="4"></textarea>
+                        </div>
+                    } @else if (report.comments) {
+                        <p class="text-lg text-granite-1000 dark:text-granite-0 whitespace-pre-line">{{ report.comments }}</p>
+                    } @else {
+                        <p class="text-lg text-granite-700 dark:text-granite-300 italic">Sin comentarios.</p>
+                    }
+                </section>
 
                 <!-- Firma del cliente -->
                 <section class="card-section">
@@ -471,7 +312,7 @@
             </div>
             }
 
-            <!-- Sticky action bar (sticks to scroll-container bottom, above the bottom-nav) -->
+            <!-- Sticky action bar -->
             @if (report()) {
             <div class="sticky bottom-0 z-40 bg-white/95 dark:bg-granite-900/95 backdrop-blur border-t-2 border-granite-200 dark:border-granite-700 shadow-lg">
                 <div class="max-w-4xl mx-auto px-4 sm:px-8 py-4 flex flex-wrap justify-end gap-3">
@@ -479,7 +320,7 @@
                         <p-button type="button" (onClick)="uploadPending()" [disabled]="uploadingPending()" [loading]="uploadingPending()" icon="pi pi-cloud-upload" label="Subir"></p-button>
                         <p-button type="button" (onClick)="discardPending()" [disabled]="uploadingPending()" severity="danger" [outlined]="true" icon="pi pi-trash" label="Descartar"></p-button>
                     } @else if (report()?.report_status) {
-                        <p-button type="button" (onClick)="downloadTextPDF()" severity="secondary" label="Descargar PDF"></p-button>
+                        <p-button type="button" (onClick)="downloadPdf()" [disabled]="pdfDownloading()" [loading]="pdfDownloading()" severity="secondary" label="Descargar PDF"></p-button>
                         <p-button type="button" (onClick)="mailReport()" label="Enviar por correo"></p-button>
                     } @else if (editMode()) {
                         <p-button type="button" (onClick)="saveChanges()" label="Guardar"></p-button>
@@ -495,11 +336,7 @@
     </div>
 </div>
 
-<!-- Sign-and-finish modal: triggered by the "Terminar y enviar" button. The signature
-     component dispatches AddSignature on save, which marks the report finished and
-     auto-emails the customer. Lazy-mounted on visible so the canvas's offsetWidth
-     is non-zero at init — otherwise signature_pad pegs the drawing buffer to 0x0
-     and no mouse/touch input registers. -->
+<!-- Sign-and-finish modal -->
 <p-dialog header="Terminar y enviar reporte" [(visible)]="signModalVisible" [modal]="true"
     [closable]="true" [draggable]="false" [resizable]="false" [style]="{ width: '36rem' }"
     styleClass="max-w-11/12">
@@ -511,8 +348,7 @@
     }
 </p-dialog>
 
-<!-- Post-finish PDF dialog: offered as a courtesy after the report is signed. The
-     download is optional — the customer email already went out. -->
+<!-- Post-finish PDF dialog -->
 <p-dialog header="¿Descargar PDF?" [(visible)]="pdfDialogVisible" [modal]="true"
     [closable]="false" [draggable]="false" [resizable]="false" [style]="{ width: '28rem' }"
     styleClass="max-w-11/12">

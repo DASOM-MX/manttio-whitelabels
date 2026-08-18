@@ -9,7 +9,9 @@ import { Pipe, PipeTransform } from '@angular/core';
  *  as $0.00. */
 @Pipe({ name: 'money' })
 export class MoneyPipe implements PipeTransform {
-  transform(value: string | null | undefined): string {
+  // `number` admitted for pre-persistence values (the import preview) — API
+  // money stays string end-to-end.
+  transform(value: string | number | null | undefined): string {
     if (value === null || value === undefined || value === '') return '—';
     const amount = Number(value);
     if (!Number.isFinite(amount)) return '—';

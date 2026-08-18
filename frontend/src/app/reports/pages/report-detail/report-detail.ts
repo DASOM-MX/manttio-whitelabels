@@ -1,21 +1,16 @@
-import {
-  Component,
-  DestroyRef,
-  ElementRef,
-  ViewChild,
-  computed,
-  inject,
-  signal,
-} from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import {
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+  type ValidatorFn,
+} from '@angular/forms';
 import { Actions, Store, ofActionSuccessful, ofActionErrored, select } from '@ngxs/store';
-import { take } from 'rxjs/operators';
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { finalize, take } from 'rxjs/operators';
+import { firstValueFrom } from 'rxjs';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SignatureComponent } from '../../components/signature-pad/signature-pad';
 import { ImagePickerComponent } from '../../components/image-picker/image-picker';
@@ -27,7 +22,13 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { SelectModule } from 'primeng/select';
+import { MultiSelectModule } from 'primeng/multiselect';
+import { RadioButtonModule } from 'primeng/radiobutton';
 import { DecimalPipe, SlicePipe } from '@angular/common';
+import { DatePickerModule } from 'primeng/datepicker';
+import { ChipModule } from 'primeng/chip';
 import { DateInTzPipe } from '../../../shared/pipes/date-in-tz.pipe';
 import { DEFAULT_MEXICAN_TIMEZONE } from '../../../data/constants';
 import { AuthState } from '../../../../state/auth/auth.state';
@@ -50,18 +51,48 @@ import {
 import { OfflineReportsService } from '../../../../offline/offline-reports.service';
 import { PendingReportStatus } from '../../../../offline/pending-report.model';
 import type { PendingReport } from '../../../../offline/pending-report.model';
+import { TemplatesCacheService } from '../../../../offline/templates-cache.service';
+import { ReportTemplatesService } from '../../../../http/report-templates.service';
+import { ReportsService } from '../../../../http/reports.service';
 import type {
-  ReportData,
   UpdateReportRequest,
   AddSignatureFields,
   SignedPayload,
+  ReportCapture,
+  CapturedSection,
+  CapturedAnswer,
 } from '../../../data/dtos/report';
-import type { ReportType, WorkType } from '../../../data/types/report';
-import { dataUrlToFile, urlToDataUrl } from '../../../data/utils';
+import type { WorkType } from '../../../data/types/report';
+import { QuestionDatatype } from '../../../data/types/report-template/question-datatype.type';
+import type {
+  ReportTemplate,
+  TemplateQuestion,
+} from '../../../data/types/report-template/report-template.types';
+import type { QuestionKind } from '../../../data/types/report-template/report-template-form-view.types';
+import type {
+  AnswerSectionView,
+  AnswerView,
+} from '../../../data/types/report/report-answer-view.types';
+import { dataUrlToFile, errorMessage } from '../../../data/utils';
 import type { ReportViewModel } from '../../../data/report-detail.model';
 import { toViewModel, toViewModelFromPending } from '../../../data/report-detail.mapper';
+import { gridClassesForColumns } from '../../helpers/grid-classes';
+import { resolveDate } from '../../helpers/resolve-template-date';
 
-pdfMake.vfs = pdfFonts.vfs;
+/** Datatypes whose control is a fixed option list. They are the only ones that
+ *  need the live template — everything else is fully described by the snapshot. */
+const CHOICE_DATATYPES: QuestionKind[] = [
+  QuestionDatatype.Select,
+  QuestionDatatype.Multiselect,
+  QuestionDatatype.Radio,
+  QuestionDatatype.CheckboxGroup,
+];
+
+/** Datatypes whose stored value is a `string[]`. */
+const MULTI_DATATYPES: QuestionKind[] = [
+  QuestionDatatype.Multiselect,
+  QuestionDatatype.CheckboxGroup,
+];
 
 @Component({
   selector: 'app-report-detail',
@@ -81,13 +112,17 @@ pdfMake.vfs = pdfFonts.vfs;
     DialogModule,
     SkeletonModule,
     TagModule,
+    ToggleSwitchModule,
+    SelectModule,
+    MultiSelectModule,
+    RadioButtonModule,
+    DatePickerModule,
+    ChipModule,
   ],
   templateUrl: './report-detail.html',
   styleUrl: './report-detail.scss',
 })
 export class ReportDetail {
-  @ViewChild('pdfContent', { static: false }) pdfContent!: ElementRef;
-
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
@@ -96,6 +131,9 @@ export class ReportDetail {
   private messages = inject(MessageService);
   private confirm = inject(ConfirmationService);
   private offline = inject(OfflineReportsService);
+  private templatesCache = inject(TemplatesCacheService);
+  private templatesHttp = inject(ReportTemplatesService);
+  private reportsHttp = inject(ReportsService);
   private destroyRef = inject(DestroyRef);
 
   private selected = select(ReportsState.selected);
@@ -129,7 +167,7 @@ export class ReportDetail {
         : null;
     }
     const sel = this.selected();
-    return sel ? toViewModel(sel.report, sel.details) : null;
+    return sel ? toViewModel(sel) : null;
   });
 
   /** Drives the skeleton: true while we don't have content to render yet and
@@ -146,13 +184,45 @@ export class ReportDetail {
   reportUser = computed(() => {
     const sel = this.selected();
     const me = this.currentUser();
-    if (sel && me && sel.report.assignedTo === me.id) return me;
+    if (sel && me && sel.assignedTo === me.id) return me;
     // Tech not in state — full user lookup requires admin access; defer.
     return null;
   });
 
   technicianName = computed(() =>
     this.isPending ? this.pendingRecord()?.createdBy.name ?? '' : this.reportUser()?.name ?? '',
+  );
+
+  /** The live template behind this report, when it could still be resolved —
+   *  cache first (a technician editing offline is the normal case), network
+   *  second. Only its option lists are used; structure comes from the snapshot. */
+  private liveTemplate = signal<ReportTemplate | null>(null);
+
+  /** The snapshot flattened for rendering: grid classes, display strings and
+   *  option lists resolved once per report/template change rather than per
+   *  change-detection pass. Drives both read and edit mode. */
+  protected readonly sectionViews = computed<AnswerSectionView[]>(() => {
+    const questions = this.questionsById();
+    return (this.report()?.sections ?? []).map((section) => ({
+      title: section.title,
+      gridClasses: gridClassesForColumns(section.columns),
+      answers: section.answers.map((answer) => this.toAnswerView(answer, questions)),
+    }));
+  });
+
+  private questionsById = computed(() => {
+    const map = new Map<string, TemplateQuestion>();
+    for (const section of this.liveTemplate()?.sections ?? []) {
+      for (const question of section.questions) map.set(question.id, question);
+    }
+    return map;
+  });
+
+  /** True when the report has choice answers this device cannot offer a control
+   *  for — the template is gone or was never cached. Edit mode says so rather
+   *  than silently rendering those answers as uneditable. */
+  protected readonly hasLockedAnswers = computed(() =>
+    this.sectionViews().some((s) => s.answers.some((a) => !a.editable)),
   );
 
   editMode = signal(false);
@@ -162,16 +232,16 @@ export class ReportDetail {
   /** Visibility flags for the dialogs spawned by the "Terminar y enviar" flow. */
   signModalVisible = signal(false);
   pdfDialogVisible = signal(false);
+  protected readonly pdfDownloading = signal(false);
 
   /** Counts in-flight actions dispatched by saveChanges so the success/error
    *  handlers can settle on a single canonical toast regardless of order. */
   private pendingSave = signal(0);
   private saveErrored = signal(false);
 
-  reportForm: FormGroup = new FormGroup({
-    observations: new FormControl(''),
-    unusual_noise: new FormControl(false),
-  });
+  /** Rebuilt from the snapshot each time edit mode opens (`buildReportForm`);
+   *  empty until then so the template can bind `[formGroup]` unconditionally. */
+  reportForm: FormGroup = new FormGroup({});
 
   constructor() {
     const id = this.route.snapshot.paramMap.get('id');
@@ -250,8 +320,29 @@ export class ReportDetail {
       .pipe(ofActionSuccessful(LoadReport), take(1), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         const sel = this.selected();
-        if (sel) this.store.dispatch(new LoadCustomer(sel.report.clientId));
+        if (!sel) return;
+        this.store.dispatch(new LoadCustomer(sel.clientId));
+        // Finished reports are read-only, so their option lists are never needed.
+        if (sel.templateId && !this.report()?.report_status) {
+          void this.loadLiveTemplate(sel.templateId);
+        }
       });
+  }
+
+  /** Best-effort: the option lists for choice answers. Cache first so an offline
+   *  technician can still edit; network only as a fallback. Failure is not an
+   *  error state — choice answers simply stay read-only (`AnswerView.editable`). */
+  private async loadLiveTemplate(templateId: string): Promise<void> {
+    const cached = await this.templatesCache.get(templateId).catch(() => undefined);
+    if (cached) {
+      this.liveTemplate.set(cached);
+      return;
+    }
+    try {
+      this.liveTemplate.set(await firstValueFrom(this.templatesHttp.get(templateId)));
+    } catch {
+      // Template deleted, or offline with a cold cache.
+    }
   }
 
   /** A SyncOfflineReport always "succeeds" (upload errors are caught in state), so the
@@ -367,23 +458,37 @@ export class ReportDetail {
   }
 
   saveChanges() {
-    const vm = this.report();
     const sel = this.selected();
-    if (!vm || !sel) return;
+    if (!sel) return;
     if (this.reportForm.invalid) return;
+
+    // The backend re-validates the whole capture, not a patch of it, so a report
+    // whose snapshot lost its template link cannot be saved at all.
+    const capture = this.buildCapture();
+    if (!capture) {
+      this.messages.add({
+        severity: 'error',
+        summary: 'No se pudo guardar',
+        detail: 'Este reporte no tiene plantilla asociada.',
+      });
+      return;
+    }
 
     const formValue = this.reportForm.value;
     const payload: UpdateReportRequest = {
       ...(formValue.work_type ? { work_type: formValue.work_type as WorkType } : {}),
-      data: this.buildDataPatch(vm.report_type, formValue),
+      // Sent unconditionally, empty string included — that is how the backend is
+      // told the technician cleared the comments rather than left them alone.
+      comments: ((formValue.comments as string | null) ?? '').trim(),
+      data: capture,
     };
 
-    const acts: object[] = [new UpdateReport(sel.report.id, payload)];
+    const acts: object[] = [new UpdateReport(sel.id, payload)];
     if (this.newPictures().length > 0) {
-      acts.push(new AddPictures(sel.report.id, this.newPictures()));
+      acts.push(new AddPictures(sel.id, this.newPictures()));
     }
     if (this.removedPictures().length > 0) {
-      acts.push(new RemovePictures(sel.report.id, { urls: this.removedPictures() }));
+      acts.push(new RemovePictures(sel.id, { urls: this.removedPictures() }));
     }
     this.saveErrored.set(false);
     this.pendingSave.set(acts.length);
@@ -421,7 +526,7 @@ export class ReportDetail {
       signed_longitude: payload.longitude,
       signed_accuracy: payload.accuracy,
     };
-    this.store.dispatch(new AddSignature(sel.report.id, fields));
+    this.store.dispatch(new AddSignature(sel.id, fields));
   }
 
   /** Resends the report to the customer (backend defaults `to` to the customer email
@@ -435,272 +540,171 @@ export class ReportDetail {
       icon: 'pi pi-envelope',
       acceptLabel: 'Enviar',
       rejectLabel: 'Cancelar',
-      accept: () => this.store.dispatch(new SendReportEmail(sel.report.id, {})),
+      accept: () => this.store.dispatch(new SendReportEmail(sel.id, {})),
     });
   }
 
   onPdfDownloadAccept(): void {
     this.pdfDialogVisible.set(false);
-    this.downloadTextPDF();
+    this.downloadPdf();
   }
 
   onPdfDownloadDecline(): void {
     this.pdfDialogVisible.set(false);
   }
 
-  downloadPDF() {
-    const DATA = this.pdfContent.nativeElement;
-    html2canvas(DATA, { scale: 2 }).then((canvas) => {
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save('reporte.pdf');
-    });
-  }
-
-  async downloadTextPDF() {
+  /** Downloads the server-rendered PDF.
+   *
+   *  This used to build its own document with pdfmake. That second layout drifted
+   *  from the backend's — it never rendered the captured template sections at all
+   *  and squeezed the comments into a quarter-width cell of the activities table —
+   *  while looking to a technician like the real report. One renderer now, so the
+   *  copy a technician downloads is the copy the customer receives.
+   *
+   *  Only reachable for finished reports, which are by definition already synced,
+   *  so the network round-trip costs nothing the offline flow relied on. */
+  downloadPdf(): void {
     const r = this.report();
-    const c = this.customer();
-    const u = this.reportUser();
-    if (!r || !c) return;
+    if (!r || this.pdfDownloading()) return;
+    this.pdfDownloading.set(true);
+    this.reportsHttp
+      .downloadPdf(r.id)
+      .pipe(finalize(() => this.pdfDownloading.set(false)))
+      .subscribe({
+        next: (blob) => this.saveBlob(blob, `reporte-${r.id}.pdf`),
+        error: (err: unknown) =>
+          this.messages.add({
+            severity: 'error',
+            summary: 'No se pudo descargar el PDF',
+            detail: errorMessage(err, 'Intenta de nuevo en un momento.'),
+          }),
+      });
+  }
 
-    const picturesBase64 = await Promise.all(
-      (r.pictures || []).map((pic) => urlToDataUrl(pic).catch(() => null)),
-    );
-    const signatureBase64 = r.signature ? await urlToDataUrl(r.signature).catch(() => null) : null;
+  private saveBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
-    const tz = this.customerTimezone();
-    const formatDate = (dateString: string | null) =>
-      dateString
-        ? new Date(dateString).toLocaleDateString('es-MX', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            timeZone: tz,
-          })
-        : '';
 
-    const docDefinition: any = {
-      content: [
-        {
-          table: {
-            widths: ['*', '*'],
-            body: [[
-              { text: `${c.name}`, style: 'header', border: [false, false, false, true] },
-              { text: `${r.id}`, style: 'subheader', alignment: 'right', border: [false, false, false, true] },
-            ]],
-          },
-        },
-        {
-          table: {
-            widths: ['*', '*'],
-            body: [
-              [{ text: 'Datos del Cliente', colSpan: 2, alignment: 'center', fillColor: '#DCDCDC', bold: true, color: 'dark', margin: [0, 5, 0, 5] }, {}],
-              [{ text: 'Identificación', bold: true }, c.identification || ''],
-              [{ text: 'Teléfono', bold: true }, c.phone || ''],
-              [{ text: 'Email', bold: true }, c.email || ''],
-              [{ text: 'Observación', bold: true }, c.observation || ''],
-            ],
-          },
-        },
-        {
-          table: {
-            widths: ['25%', '25%', '25%', '25%'],
-            body: [
-              [{ text: 'Informaciones de las actividades', colSpan: 4, alignment: 'center', fillColor: '#DCDCDC', bold: true, color: 'dark', margin: [0, 5, 0, 5] }, {}, {}, {}],
-              [{ text: 'Para:', bold: true }, u?.name ?? '', { text: 'Tipo de tarea:', bold: true }, r.manttio_type],
-              [{ text: 'Fecha Llegada:', bold: true }, formatDate(r.date_arrival), { text: 'Fecha Salida', bold: true }, formatDate(r.date_departure)],
-              [{ text: 'Observaciones', bold: true }, r.observations, { text: ' ', border: [false, false, false, false] }, { text: ' ', border: [false, false, false, false] }],
-            ],
-          },
-          margin: [0, 10, 0, 10],
-        },
-        this.getTableForReportType(r.report_type, r),
-        {
-          table: {
-            widths: ['*', '*', '*'],
-            body: [
-              [{ text: 'Fotos del Reporte', colSpan: 3, alignment: 'center', bold: true, color: 'dark', fillColor: '#DCDCDC', margin: [0, 5, 0, 5] }, {}, {}],
-              ...(() => {
-                const rows: any[] = [];
-                const imgs = picturesBase64.filter(Boolean);
-                for (let i = 0; i < imgs.length; i += 3) {
-                  rows.push([
-                    { image: imgs[i], width: 150, margin: [0, 5, 0, 5] },
-                    imgs[i + 1] ? { image: imgs[i + 1], width: 150, margin: [0, 5, 0, 5] } : {},
-                    imgs[i + 2] ? { image: imgs[i + 2], width: 150, margin: [0, 5, 0, 5] } : {},
-                  ]);
-                }
-                return rows;
-              })(),
-            ],
-          },
-          margin: [0, 10, 0, 10],
-        },
-        signatureBase64 ? { text: 'Firma del cliente', style: 'subheader', alignment: 'center', margin: [0, 10, 0, 5] } : null,
-        signatureBase64 ? { image: signatureBase64, width: 150, alignment: 'center' } : null,
-        signatureBase64 ? { text: `Iniciado por: ${this.technicianName()}`, style: 'subheader', alignment: 'center' } : null,
-        signatureBase64 ? { text: `Finalizado por: ${r.signed_by}`, style: 'subheader', alignment: 'center' } : null,
-      ],
-      styles: {
-        header: { fontSize: 18, bold: true },
-        subheader: { fontSize: 14, bold: true, margin: [0, 0, 0, 5] },
-      },
+  // ─── Snapshot → view model ───
+
+  private toAnswerView(answer: CapturedAnswer, questions: Map<string, TemplateQuestion>): AnswerView {
+    const question = questions.get(answer.questionId);
+    const constraints = question?.constraints ?? {};
+    const options = (question?.options ?? []).map((opt) => ({ label: opt, value: opt }));
+    const isMulti = MULTI_DATATYPES.includes(answer.datatype);
+    const isChoice = CHOICE_DATATYPES.includes(answer.datatype);
+    return {
+      questionId: answer.questionId,
+      label: answer.label,
+      kind: answer.datatype,
+      unit: answer.unit,
+      display: isMulti ? '' : this.displayValue(answer.value),
+      values: isMulti && Array.isArray(answer.value) ? answer.value : [],
+      checked: answer.value === true,
+      editable: !isChoice || options.length > 0,
+      options,
+      // Absent the live template there is nothing to enforce; the captured value
+      // already passed these rules once, so nothing is retroactively invalid.
+      required: question?.required ?? false,
+      min: constraints.min,
+      max: constraints.max,
+      maxLength: constraints.maxLength,
+      minDate: resolveDate(constraints.minDate),
+      maxDate: resolveDate(constraints.maxDate),
     };
-    pdfMake.createPdf(docDefinition).download(`reporte-${r.id}.pdf`);
   }
 
-  private getTableForReportType(reportType: ReportType, r: ReportViewModel) {
-    switch (reportType) {
-      case 'minisplit':
-        return {
-          table: {
-            widths: ['25%', '25%', '25%', '25%'],
-            body: [
-              [{ text: 'Formulario: Mantenimiento Minisplit', colSpan: 4, alignment: 'center', fillColor: '#DCDCDC', bold: true, color: 'dark', margin: [0, 5, 0, 5] }, {}, {}, {}],
-              [{ text: 'Equipo se encuentra operando', bold: true }, r.is_operating ? 'Sí' : 'No', { text: 'Cuenta con filtro evaporador', bold: true }, r.filter ? 'Sí' : 'No'],
-              [{ text: 'Control remoto funciona', bold: true }, r.remote_working ? 'Sí' : 'No', { text: 'Voltaje de entrada', bold: true }, r.inner_voltage ?? ''],
-              [{ text: 'Amperaje general', bold: true }, r.amperage ?? '', { text: 'Ruido fuera de lo normal', bold: true }, r.unusual_noise ? 'Sí' : 'No'],
-              [{ text: 'Observaciones', bold: true }, r.observations || 'Ninguna', { text: ' ', border: [false, false, false, false] }, { text: ' ', border: [false, false, false, false] }],
-            ],
-          },
-          margin: [0, 10, 0, 10],
-        };
-      case 'chiller':
-        return {
-          table: {
-            widths: ['35%', '15%', '35%', '15%'],
-            body: [
-              [{ text: 'Informaciones de las actividades', colSpan: 4, alignment: 'center', fillColor: '#DCDCDC', bold: true, color: 'dark', margin: [0, 5, 0, 5] }, {}, {}, {}],
-              [{ text: 'Equipo se encuentra operando', bold: true }, r.is_operating ? 'Sí' : 'No', { text: 'Switch de flujo funciona', bold: true }, r.flux_switch_working ? 'Sí' : 'No'],
-              [{ text: 'Temperatura de entrada', bold: true }, r.inner_temperature ?? '', { text: 'Temperatura de salida', bold: true }, r.outer_temperature ?? ''],
-              [{ text: 'Teclas del PLC funcionan', bold: true }, r.plc_keys_working ? 'Sí' : 'No', { text: 'Voltaje de entrada', bold: true }, r.inner_voltage ?? ''],
-              [{ text: 'Amperaje de motor condensador general', bold: true }, r.motor_amperage ?? '', { text: 'Presiones del sistema 1', bold: true }, r.system_pressure_1 ?? ''],
-              [{ text: 'Presiones del sistema 2', bold: true }, r.system_pressure_2 ?? '', { text: 'Presiones del sistema 3', bold: true }, r.system_pressure_3 ?? ''],
-              [{ text: 'Presión de aceite', bold: true }, r.oil_pressure ?? '', { text: 'Nivel de aceite', bold: true }, r.oil_level ?? ''],
-            ],
-          },
-          margin: [0, 10, 0, 10],
-        };
-      case 'uma':
-        return {
-          table: {
-            widths: ['25%', '25%', '25%', '25%'],
-            body: [
-              [{ text: 'Formulario UMAS', colSpan: 4, alignment: 'center', fillColor: '#DCDCDC', bold: true, margin: [0, 5, 0, 5] }, {}, {}, {}],
-              [{ text: 'Equipo se encuentra operando', bold: true }, r.is_operating ? 'Sí' : 'No', { text: 'Se ajustó la banda de la UMA', bold: true }, r.air_band_adjustment ? 'Sí' : 'No'],
-              [{ text: 'Temperatura de entrada', bold: true }, r.inner_temperature ?? '', { text: 'Temperatura de salida', bold: true }, r.outer_temperature ?? ''],
-              [{ text: 'Rejilla de aire en buenas condiciones', bold: true }, r.air_good_quality ? 'Sí' : 'No', { text: 'Voltaje de entrada', bold: true }, r.inner_voltage ?? ''],
-              [{ text: 'Amperaje del motor', bold: true }, r.motor_amperage ?? '', { text: 'Ruido fuera de lo normal', bold: true }, r.unusual_noise ? 'Sí' : 'No'],
-              [{ text: 'Observaciones', bold: true }, r.observations || 'Ninguna', { text: '', border: [false, false, false, false] }, { text: '', border: [false, false, false, false] }],
-            ],
-          },
-          margin: [0, 10, 0, 10],
-        };
-    }
+  private displayValue(value: CapturedAnswer['value']): string {
+    if (value === null || value === undefined || value === '') return '—';
+    return String(value);
   }
 
+  // ─── Edit mode ───
+
+  /** One control per captured answer, seeded from the snapshot. The snapshot's
+   *  `datatype` is what decides the control's value shape — a date has to become
+   *  a `Date` for `<p-datepicker>` and back to ISO on save, and a multi-value
+   *  answer has to stay an array so its control's type never flips mid-edit.
+   *
+   *  Answers with no resolvable control (`AnswerView.editable === false`) get no
+   *  control at all, so `buildCapture` falls back to their captured value. */
   private buildReportForm() {
-    const r = this.report();
-    if (!r) return;
-
-    const commonControls: Record<string, unknown[]> = {
-      observations: [r.observations || ''],
-      unusual_noise: [r.unusual_noise || false],
-      work_type: [r.manttio_type || ''],
+    const controls: Record<string, unknown[]> = {
+      work_type: [this.report()?.manttio_type || ''],
+      // Fixed-skeleton footer, so it is always editable — it belongs to the
+      // report, not to any template question that may have been locked.
+      comments: [this.report()?.comments ?? ''],
     };
 
-    let specificControls: Record<string, unknown[]> = {};
-    switch (r.report_type) {
-      case 'minisplit':
-        specificControls = {
-          is_operating: [r.is_operating || false],
-          remote_working: [r.remote_working || false],
-          amperage: [r.amperage || ''],
-          inner_voltage: [r.inner_voltage || ''],
-          filter: [r.filter || false],
-        };
-        break;
-      case 'chiller':
-        specificControls = {
-          is_operating: [r.is_operating || false],
-          inner_temperature: [r.inner_temperature || ''],
-          outer_temperature: [r.outer_temperature || ''],
-          inner_voltage: [r.inner_voltage || ''],
-          plc_keys_working: [r.plc_keys_working || false],
-          motor_amperage: [r.motor_amperage || ''],
-          system_pressure_1: [r.system_pressure_1 || ''],
-          system_pressure_2: [r.system_pressure_2 || ''],
-          system_pressure_3: [r.system_pressure_3 || ''],
-          oil_pressure: [r.oil_pressure || ''],
-          oil_level: [r.oil_level || ''],
-          flux_switch_working: [r.flux_switch_working || false],
-        };
-        break;
-      case 'uma':
-        specificControls = {
-          is_operating: [r.is_operating || false],
-          air_band_adjustment: [r.air_band_adjustment || false],
-          inner_temperature: [r.inner_temperature || ''],
-          outer_temperature: [r.outer_temperature || ''],
-          air_good_quality: [r.air_good_quality || false],
-          inner_voltage: [r.inner_voltage || ''],
-          motor_amperage: [r.motor_amperage || ''],
-        };
-        break;
+    for (const section of this.sectionViews()) {
+      for (const answer of section.answers) {
+        if (!answer.editable) continue;
+        controls[answer.questionId] = [this.toControlValue(answer), this.validatorsFor(answer)];
+      }
     }
 
-    this.reportForm = this.fb.group({ ...commonControls, ...specificControls });
+    this.reportForm = this.fb.group(controls);
   }
 
-  private buildDataPatch(reportType: ReportType, fv: Record<string, unknown>): Partial<ReportData> {
-    const obs = (fv['observations'] as string | undefined) ?? '';
-    const noise = !!fv['unusual_noise'];
-    switch (reportType) {
-      case 'minisplit':
-        return {
-          is_operating: !!fv['is_operating'],
-          remote_working: !!fv['remote_working'],
-          amperage: String(fv['amperage'] ?? ''),
-          filter: !!fv['filter'],
-          inner_voltage: String(fv['inner_voltage'] ?? ''),
-          unusual_noise: noise,
-          observations: obs,
-        };
-      case 'chiller':
-        return {
-          is_operating: !!fv['is_operating'],
-          inner_temperature: String(fv['inner_temperature'] ?? ''),
-          outer_temperature: String(fv['outer_temperature'] ?? ''),
-          inner_voltage: String(fv['inner_voltage'] ?? ''),
-          plc_keys_working: !!fv['plc_keys_working'],
-          motor_amperage: String(fv['motor_amperage'] ?? ''),
-          system_pressure_1: String(fv['system_pressure_1'] ?? ''),
-          system_pressure_2: String(fv['system_pressure_2'] ?? ''),
-          system_pressure_3: String(fv['system_pressure_3'] ?? ''),
-          oil_pressure: String(fv['oil_pressure'] ?? ''),
-          oil_level: String(fv['oil_level'] ?? ''),
-          flux_switch_working: !!fv['flux_switch_working'],
-          unusual_noise: noise,
-          observations: obs,
-        };
-      case 'uma':
-        return {
-          is_operating: !!fv['is_operating'],
-          air_band_adjustment: !!fv['air_band_adjustment'],
-          inner_temperature: String(fv['inner_temperature'] ?? ''),
-          outer_temperature: String(fv['outer_temperature'] ?? ''),
-          air_good_quality: !!fv['air_good_quality'],
-          inner_voltage: String(fv['inner_voltage'] ?? ''),
-          motor_amperage: String(fv['motor_amperage'] ?? ''),
-          unusual_noise: noise,
-          observations: obs,
-        };
+  private validatorsFor(answer: AnswerView): ValidatorFn[] {
+    const validators: ValidatorFn[] = [];
+    if (answer.required) validators.push(Validators.required);
+    if (answer.maxLength) validators.push(Validators.maxLength(answer.maxLength));
+    if (answer.min !== undefined) validators.push(Validators.min(answer.min));
+    if (answer.max !== undefined) validators.push(Validators.max(answer.max));
+    return validators;
+  }
+
+  private toControlValue(answer: AnswerView): unknown {
+    const raw = this.capturedValue(answer.questionId);
+    if (MULTI_DATATYPES.includes(answer.kind)) return Array.isArray(raw) ? raw : [];
+    if (answer.kind === QuestionDatatype.Boolean) return raw === true;
+    if (answer.kind === QuestionDatatype.Date) {
+      const parsed = raw ? new Date(String(raw)) : null;
+      return parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
     }
+    return raw ?? '';
+  }
+
+  private capturedValue(questionId: string): CapturedAnswer['value'] {
+    for (const section of this.report()?.sections ?? []) {
+      const found = section.answers.find((a) => a.questionId === questionId);
+      if (found) return found.value;
+    }
+    return null;
+  }
+
+  /** Writes the edited values back into the snapshot shape (`06 §5.5`): the
+   *  frozen `label`/`datatype`/`unit` are carried through untouched — only
+   *  `value` may change — and the whole capture is re-sent, because the backend
+   *  validates `ReportCapture` in full rather than merging a partial. */
+  private buildCapture(): ReportCapture | null {
+    const r = this.report();
+    if (!r || !r.template_id) return null;
+
+    const sections: CapturedSection[] = r.sections.map((section) => ({
+      title: section.title,
+      columns: section.columns,
+      answers: section.answers.map((answer) => ({
+        ...answer,
+        value: this.editedValue(answer),
+      })),
+    }));
+
+    return { templateId: r.template_id, templateName: r.report_type, sections };
+  }
+
+  private editedValue(answer: CapturedAnswer): CapturedAnswer['value'] {
+    const control = this.reportForm.get(answer.questionId);
+    if (!control) return answer.value; // locked answer — keep what was captured
+    const value = control.value;
+    if (value instanceof Date) return value.toISOString();
+    return value ?? null;
   }
 }

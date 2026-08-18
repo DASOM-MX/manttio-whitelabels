@@ -10,7 +10,6 @@ import { isLiveStatus, QuotationResponse } from '../../quotations/enums/quotatio
 import { QuotationNotLiveError } from '../../quotations/http-errors/quotations.error';
 import { isOverdue } from '../../quotations/services/quotations.service';
 import type { QuotationLineRow } from '../../quotations/types/quotations.types';
-import type { ReportType } from '../../reports/enums/reports.enum';
 import {
   createServiceOrderFromQuotation,
   defaultReportCount,
@@ -34,7 +33,7 @@ import type { FrozenOrderLine, ServiceOrderDetailDTO } from '../types/service-or
  *  merge per service) or by quotation line (off-catalog ones, which never do). */
 type Assignment = {
   technicianId?: string;
-  reportType?: ReportType;
+  templateId?: string;
   reportCount?: number;
 };
 
@@ -80,7 +79,7 @@ const mergeQuoteLines = (
       discountAmount: line.discountAmount,
       reportCount,
       technicianId: assignment.technicianId ?? null,
-      reportType: assignment.reportType ?? null,
+      templateId: assignment.templateId ?? null,
     });
   }
   return [...merged.values()];
@@ -137,7 +136,7 @@ export const createOrderFromQuotation = async (
   const assignments = new Map(
     input.assignments.map((a) => [
       a.serviceId ?? `line:${a.lineId}`,
-      { technicianId: a.technicianId, reportType: a.reportType, reportCount: a.reportCount },
+      { technicianId: a.technicianId, templateId: a.templateId, reportCount: a.reportCount },
     ]),
   );
   const missing = [...quotedKeys].filter((key) => !assignments.has(key));
@@ -158,10 +157,11 @@ export const createOrderFromQuotation = async (
     (serviceId) => reportSource.get(serviceId),
   );
 
-  // A line that explodes reports must name who does them and what kind — the
-  // report invariants 19 §2 keeps. A line that explodes none needs neither,
-  // which is exactly what makes a materials-only line convertible.
-  const unassigned = lines.find((l) => l.reportCount > 0 && (!l.technicianId || !l.reportType));
+  // A line that explodes reports must name who does them and from which
+  // template — the report invariants 19 §2 keeps. A line that explodes none
+  // needs neither, which is exactly what makes a materials-only line
+  // convertible.
+  const unassigned = lines.find((l) => l.reportCount > 0 && (!l.technicianId || !l.templateId));
   if (unassigned) throw new MissingExplosionInputsError(unassigned.serviceName);
 
   const totalUnits = lines.reduce((sum, l) => sum + l.reportCount, 0);

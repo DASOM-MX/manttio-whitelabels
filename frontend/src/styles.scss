@@ -29,8 +29,17 @@
 }
 
 @layer components {
+  /* Section title inside a `.card-section`. Louder than `.field-label` on
+     purpose: the heading names the group, the labels name the fields inside it.
+     Carries no margin — spacing comes from the card's own `flex flex-col gap-*`. */
+  .section-heading {
+    @apply block text-xl sm:text-2xl font-extrabold tracking-tight text-granite-1000 dark:text-granite-0;
+  }
+  /* Subordinate to `.section-heading` — sentence case, not uppercase: caps are
+     reserved for warnings, and they cost legibility at arm's length, which is
+     exactly the reading distance this app is used at. */
   .field-label {
-    @apply block text-sm font-bold uppercase tracking-wide text-granite-800 dark:text-granite-200;
+    @apply block text-base font-semibold text-granite-700 dark:text-granite-300;
   }
   .field-group {
     @apply flex flex-col gap-2;

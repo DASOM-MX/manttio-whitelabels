@@ -2,6 +2,7 @@ import { afterAll, describe, expect, test } from 'vitest';
 import { and, eq, like, or } from 'drizzle-orm';
 import { authHeader, env, json, jsonHeaders, request } from './helpers/request';
 import {
+  ensureFixtureTemplate,
   seedAdmin,
   seedAdminAndLogin,
   seedCustomer,
@@ -40,6 +41,33 @@ afterAll(async () => {
         like(notifications.body, '%test-lead-%'),
       ),
     );
+});
+
+/** Minimal valid capture snapshot against the fixture template — the notification
+ *  triggers care about report lifecycle, not form content. */
+const triggerCapture = (templateId: string, note: string) => ({
+  templateId,
+  templateName: 'Minisplit Maintenance',
+  sections: [
+    {
+      title: 'General Inspection',
+      columns: 1,
+      answers: [
+        {
+          questionId: '00000000-0000-0000-0000-000000000101',
+          label: 'Operating',
+          datatype: 'boolean',
+          value: true,
+        },
+        {
+          questionId: '00000000-0000-0000-0000-000000000102',
+          label: 'Observaciones',
+          datatype: 'text',
+          value: note,
+        },
+      ],
+    },
+  ],
 });
 
 const rowsFor = async (
@@ -180,23 +208,13 @@ describe('report lifecycle triggers', () => {
       const observer = await seedOwner();
       const { token } = await seedAdminAndLogin();
       const customer = await seedCustomer();
+      const templateId = await ensureFixtureTemplate();
 
       // Unsigned create → `created`.
       const fd = new FormData();
-      fd.set('report_type', 'minisplit');
+      fd.set('template_id', templateId);
       fd.set('client_id', customer.id);
-      fd.set(
-        'data',
-        JSON.stringify({
-          is_operating: true,
-          remote_working: true,
-          amperage: '5.2',
-          filter: true,
-          inner_voltage: '220',
-          unusual_noise: false,
-          observations: 'notif trigger',
-        }),
-      );
+      fd.set('data', JSON.stringify(triggerCapture(templateId, 'notif trigger')));
       const createRes = await request('/reports', {
         method: 'POST',
         headers: authHeader(token),
@@ -213,19 +231,11 @@ describe('report lifecycle triggers', () => {
 
       // Signed at creation → straight to `finished`: one notice, not two.
       const signedFd = new FormData();
-      signedFd.set('report_type', 'minisplit');
+      signedFd.set('template_id', templateId);
       signedFd.set('client_id', customer.id);
       signedFd.set(
         'data',
-        JSON.stringify({
-          is_operating: true,
-          remote_working: true,
-          amperage: '5.2',
-          filter: true,
-          inner_voltage: '220',
-          unusual_noise: false,
-          observations: 'notif trigger signed',
-        }),
+        JSON.stringify(triggerCapture(templateId, 'notif trigger signed')),
       );
       signedFd.set('signed_by', 'Cliente de Prueba');
       signedFd.set('signature_base64', PNG_B64);

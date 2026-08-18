@@ -13,8 +13,13 @@ import type { NavEntry } from '../../../data/types/access/nav-entry.type';
 /** Owner/admin/office nav — three groups (owner regroup 2026-07-22,
  *  supersedes the 02 §4 flat list): Negocio · CRM · CMS. Children carry
  *  their own module gates (mixed-module groups); office loses entries via
- *  the matrix as before. Panel, Calendario, Facturación, Almacén, and the
- *  Leads preset left the nav — their routes stay reachable by URL. */
+ *  the matrix as before. Panel, Facturación, Almacén and the Leads preset left
+ *  the nav — their routes stay reachable by URL.
+ *
+ *  **Calendario returned 2026-08-03 with 12 CP-2**, which supersedes its removal
+ *  in that regroup: the calendar had no page worth linking to then. Now it is
+ *  where office actually schedules, and the one surface staff open daily is not
+ *  a URL people are expected to remember. */
 export const NAV: NavEntry[] = [
   {
     label: 'Negocio',
@@ -24,10 +29,18 @@ export const NAV: NavEntry[] = [
       { label: 'Marca', route: '/branding', module: 'branding' },
       { label: 'Usuarios', route: '/users', module: 'users' },
       { label: 'Servicios', route: '/services', module: 'services' },
+      { label: 'Plantillas', route: '/templates', module: 'templates' },
+    ],
+  },
+  {
+    label: 'Operaciones',
+    icon: LucideHeartHandshake,
+    route: '/customers',
+    children: [
       { label: 'Cotizaciones', route: '/quotations', module: 'quotations' },
       { label: 'Órdenes', route: '/service-orders', module: 'service-orders' },
+      { label: 'Calendario', route: '/calendar', module: 'calendar' },
       { label: 'Reportes', route: '/reports', module: 'reports' },
-      { label: 'Plantillas', route: '/templates', module: 'templates' },
     ],
   },
   {

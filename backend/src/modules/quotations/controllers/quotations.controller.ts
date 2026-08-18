@@ -40,7 +40,7 @@ import {
   QuotationExpiredError,
   MissingExplosionInputsError,
 } from '../../service-orders/http-errors/order-from-quotation.error';
-import { InvalidOrderReferenceError } from '../../service-orders/http-errors/service-orders.error';
+import { InvalidOrderReferenceError, InvalidTemplateError } from '../../service-orders/http-errors/service-orders.error';
 import {
   cancelQuotation,
   createQuotationDraft,
@@ -323,6 +323,9 @@ quotations.post(
       }
       if (err instanceof InvalidOrderReferenceError) {
         return c.json({ error: 'invalid_reference', message: err.message }, 422);
+      }
+      if (err instanceof InvalidTemplateError) {
+        return c.json({ error: 'invalid_template', message: err.message }, 400);
       }
       throw err;
     }

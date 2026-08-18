@@ -10,6 +10,8 @@ import { reportCounters, reportDetails, reports } from '../../reports/models/rep
 import { ReportStatus } from '../../reports/enums/reports.enum';
 import { isFinishedOrMailed, isVoidableByOrderCancel } from '../../reports/utils/report-lifecycle';
 import { formatReportId } from '../../reports/utils/report-id';
+import { reportTemplates } from '../../report-templates/models/report-templates.model';
+import { TemplateStatus } from '../../report-templates/enums/report-templates.enum';
 import {
   serviceOrderCounters,
   serviceOrderServices,
@@ -31,7 +33,11 @@ import {
   ServiceOrderPriority,
   ServiceOrderStatus,
 } from '../enums/service-orders.enum';
-import { InvalidOrderReferenceError, OrderClosedError } from '../http-errors/service-orders.error';
+import {
+  InvalidOrderReferenceError,
+  InvalidTemplateError,
+  OrderClosedError,
+} from '../http-errors/service-orders.error';
 import { ExplosionTooLargeError } from '../http-errors/order-from-quotation.error';
 import { formatServiceOrderFolio } from '../utils/service-order-folio';
 import type {
@@ -393,21 +399,44 @@ const insertOrderGraph = async (
     if (!reportCounter) throw new Error('insertOrderGraph: report counter returned no row');
     sequence = reportCounter.lastNumber - totalUnits + 1;
   }
+
+  // Resolve all referenced templates to get their names (denormalized display
+  // value). Batch lookup instead of per-unit to avoid N queries. Only lines
+  // that explode carry a template, so a billing-only line contributes nothing
+  // here — and an order made of nothing but charges queries not at all.
+  const templateIds = [
+    ...new Set(input.lines.flatMap((l) => (l.reportCount > 0 && l.templateId ? [l.templateId] : []))),
+  ];
+  const templateRows = templateIds.length
+    ? await tx
+        .select({ id: reportTemplates.id, name: reportTemplates.name })
+        .from(reportTemplates)
+        .where(inArray(reportTemplates.id, templateIds))
+    : [];
+  const templateNames = new Map(templateRows.map((r) => [r.id, r.name]));
   const reportRows: (typeof reports.$inferInsert)[] = [];
   const explodedReportIds: string[] = [];
 
   for (const line of input.lines) {
-    // `reportCount` is 0 for billing-only lines — the loop simply doesn't run,
-    // and an order of nothing but consumables explodes no reports at all.
+    // `reportCount` is 0 for billing-only lines — they explode nothing, so an
+    // order of nothing but consumables mints no reports at all.
+    if (line.reportCount === 0) continue;
+    // A line that explodes carries its explosion inputs (the service layer
+    // refuses one that doesn't), and `assertTemplatesActive` ran earlier in
+    // this same transaction — so neither miss is reachable, and both must stay
+    // loud if they ever become so. Defaulting to `''` would silently mint
+    // reports with a blank template name, which nothing downstream detects.
+    if (!line.templateId) throw new Error('insertOrderGraph: exploding line carries no template');
+    const reportType = templateNames.get(line.templateId);
+    if (!reportType) throw new InvalidTemplateError(line.templateId);
     for (let unit = 0; unit < line.reportCount; unit += 1) {
       const id = formatReportId(day, sequence);
       sequence += 1;
       explodedReportIds.push(id);
       reportRows.push({
         id,
-        // Non-null inside this loop: a line with `reportCount > 0` carries its
-        // explosion inputs (the service layer refuses one that doesn't).
-        reportType: line.reportType!,
+        templateId: line.templateId,
+        reportType, // Denormalized template name, captured at explosion time
         // Not on site yet — `dateArrival` is stamped when the technician
         // actually opens the report, unlike the manual path which defaults it
         // to now() precisely because opening one *is* arriving.
@@ -504,6 +533,25 @@ const assertCustomerExists = async (tx: Tx, customerId: string): Promise<void> =
   if (!customer) throw new InvalidOrderReferenceError('customer', customerId);
 };
 
+/** Validate that all referenced templates exist and are active. Assignment is
+ *  an admin-tier action (§3.5), so validation happens here, never at report sync.
+ *  Throws InvalidTemplateError if any template doesn't exist or is not active. */
+const assertTemplatesActive = async (tx: Tx, templateIds: string[]): Promise<void> => {
+  const unique = [...new Set(templateIds)];
+  const rows = await tx
+    .select({ id: reportTemplates.id, status: reportTemplates.status })
+    .from(reportTemplates)
+    .where(inArray(reportTemplates.id, unique));
+  const found = new Map(rows.map((r) => [r.id, r.status]));
+
+  for (const id of unique) {
+    const status = found.get(id);
+    if (!status || status !== TemplateStatus.Active) {
+      throw new InvalidTemplateError(id);
+    }
+  }
+};
+
 export const createServiceOrder = async (
   db: Db,
   command: CreateOrderCommand,
@@ -512,14 +560,19 @@ export const createServiceOrder = async (
   const serviceIds = [
     ...new Set(command.lines.flatMap((l) => (l.serviceId ? [l.serviceId] : []))),
   ];
-  // Billing-only lines (reportCount 0) name no technician — nothing to assert.
+  // Billing-only lines (reportCount 0) name neither technician nor template —
+  // nothing to assert for them.
   const technicianIds = [
     ...new Set(command.lines.flatMap((l) => (l.technicianId ? [l.technicianId] : []))),
+  ];
+  const templateIds = [
+    ...new Set(command.lines.flatMap((l) => (l.templateId ? [l.templateId] : []))),
   ];
 
   return db.transaction(async (tx) => {
     await assertCustomerExists(tx, command.customerId);
     await assertTechniciansExist(tx, technicianIds);
+    await assertTemplatesActive(tx, templateIds);
 
     // The direct path freezes the LIVE catalog here — and refuses soft-deleted
     // services, which satisfy the FK perfectly well while being exactly what
@@ -565,7 +618,7 @@ export const createServiceOrder = async (
             discountAmount: line.discountAmount ?? '0.00',
             reportCount: line.reportCount ?? defaultReportCount(service?.isReportSource, line.quantity),
             technicianId: line.technicianId ?? null,
-            reportType: line.reportType ?? null,
+            templateId: line.templateId ?? null,
           };
         }),
       },
@@ -605,14 +658,19 @@ export const createServiceOrderFromQuotation = async (
   command: ConvertQuotationCommand,
   day: Date = new Date(),
 ): Promise<{ order: ServiceOrderRow; lines: ServiceOrderLineRow[]; reportIds: string[] }> => {
-  // Billing-only lines (reportCount 0) name no technician — nothing to assert.
+  // Billing-only lines (reportCount 0) name neither technician nor template —
+  // nothing to assert for them.
   const technicianIds = [
     ...new Set(command.lines.flatMap((l) => (l.technicianId ? [l.technicianId] : []))),
+  ];
+  const templateIds = [
+    ...new Set(command.lines.flatMap((l) => (l.templateId ? [l.templateId] : []))),
   ];
 
   return db.transaction(async (tx) => {
     await assertCustomerExists(tx, command.customerId);
     await assertTechniciansExist(tx, technicianIds);
+    await assertTemplatesActive(tx, templateIds);
 
     // No catalog read: the lines are the quotation's snapshots, inherited
     // verbatim — what's serviced/billed matches exactly what the client

@@ -44,6 +44,20 @@ export const createServiceSchema = z.object({
 // A clone is a birth fact, not an editable field — updates never carry it.
 export const updateServiceSchema = createServiceSchema.omit({ sourceServiceId: true }).partial();
 
+/** One CSV import row (18 §6.3) — a plain create with the clone provenance
+ *  stripped: an imported row's provenance is the import itself, recorded by
+ *  the endpoint, never claimable by the payload. */
+export const importServiceRowSchema = createServiceSchema.omit({ sourceServiceId: true });
+
+// The envelope stays loose (`unknown` rows): the service layer validates each
+// row individually so the 422 can name every failing row at once, instead of
+// zod rejecting the whole body on the first bad one. The 500-row ceiling is a
+// named validation error, not a silent cap — real price lists are far smaller,
+// and an unbounded array is a request-size hazard on Workers.
+export const importServicesSchema = z.object({
+  rows: z.array(z.unknown()).min(1).max(500),
+});
+
 // Catalog-sized: a search box, no pagination (18 §4).
 export const listServicesQuerySchema = z.object({ q: z.string().optional() });
 
@@ -52,5 +66,7 @@ export const deleteServiceSchema = z.object({ deleteComment: z.string().min(1) }
 
 export type CreateServiceInput = z.infer<typeof createServiceSchema>;
 export type UpdateServiceInput = z.infer<typeof updateServiceSchema>;
+export type ImportServiceRowInput = z.infer<typeof importServiceRowSchema>;
+export type ImportServicesInput = z.infer<typeof importServicesSchema>;
 export type ListServicesQuery = z.infer<typeof listServicesQuerySchema>;
 export type DeleteServiceInput = z.infer<typeof deleteServiceSchema>;
