@@ -60,6 +60,11 @@ export const SERVICE_CSV_HEADER_ALIASES: Record<string, ServiceCsvColumn> = {
   claveunidadsat: 'satUnitCode',
   cclaveunidad: 'satUnitCode',
 
+  generareporte: 'isReportSource',
+  generareportes: 'isReportSource',
+  reporte: 'isReportSource',
+  requierereporte: 'isReportSource',
+
   sitioweb: 'isListableInWebsite',
   publicado: 'isListableInWebsite',
   listado: 'isListableInWebsite',

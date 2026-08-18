@@ -38,6 +38,16 @@ export const SERVICE_IMPORT_FIELDS: ServiceImportFieldSpec[] = [
   { field: 'satProdServCode', label: SERVICE_FIELD_LABELS['satProdServCode']!, kind: 'text' },
   { field: 'satUnitCode', label: SERVICE_FIELD_LABELS['satUnitCode']!, kind: 'text' },
   {
+    field: 'isReportSource',
+    label: SERVICE_FIELD_LABELS['isReportSource']!,
+    kind: 'boolean',
+    // 'true', unlike the website flags: it is the catalog default and the
+    // behavior every service had before the column existed, so a bare
+    // name+price list imports as "every line explodes a report" — what the
+    // 0036 migration backfilled existing rows to.
+    fixedDefault: 'true',
+  },
+  {
     field: 'isListableInWebsite',
     label: SERVICE_FIELD_LABELS['isListableInWebsite']!,
     kind: 'boolean',

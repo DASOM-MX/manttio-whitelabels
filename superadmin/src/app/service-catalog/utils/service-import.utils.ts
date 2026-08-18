@@ -158,13 +158,19 @@ export const resolveServiceImport = (
     const taxRate = TAX_TOKENS.get(normalizeCsvToken(taxRaw));
     if (!taxRate) errors.push(`IVA desconocido: "${taxRaw}"`);
 
-    const bool = (field: ServiceImportField, label: string): boolean => {
+    // `whenBlank` is what an empty cell means, which is not always false: a
+    // blank `isReportSource` has to read as the catalog default, or a list
+    // that carries the column but fills it sparsely would silently turn every
+    // gap into a billing-only service.
+    const bool = (field: ServiceImportField, label: string, whenBlank = false): boolean => {
       const token = normalizeCsvToken(raw(field));
-      if (token === '' || FALSE_TOKENS.has(token)) return false;
+      if (token === '') return whenBlank;
+      if (FALSE_TOKENS.has(token)) return false;
       if (TRUE_TOKENS.has(token)) return true;
       errors.push(`${label} inválido: "${raw(field)}" (usa sí/no)`);
-      return false;
+      return whenBlank;
     };
+    const isReportSource = bool('isReportSource', 'Genera reporte', true);
     const isListable = bool('isListableInWebsite', 'Listado en el sitio');
     const isPriceVisible = bool('isPriceVisibleInWebsite', 'Precio visible');
 
@@ -194,6 +200,7 @@ export const resolveServiceImport = (
           websiteDescription: optional('websiteDescription'),
           satProdServCode: optional('satProdServCode'),
           satUnitCode: optional('satUnitCode'),
+          isReportSource,
           isListableInWebsite: isListable,
           // Mirrors the server invariant: unlisted → never price-visible.
           isPriceVisibleInWebsite: isListable && isPriceVisible,

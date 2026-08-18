@@ -295,7 +295,7 @@ quotations.post(
         return c.json(
           {
             error: 'missing_explosion_inputs',
-            message: `La partida "${err.serviceName}" genera reportes: asigna técnico y tipo de reporte.`,
+            message: `La partida "${err.serviceName}" genera reportes: asigna técnico y plantilla.`,
             serviceName: err.serviceName,
           },
           422,

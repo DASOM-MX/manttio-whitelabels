@@ -28,6 +28,7 @@ export interface ServiceImportRow {
   websiteDescription?: string;
   satProdServCode?: string;
   satUnitCode?: string;
+  isReportSource: boolean;
   isListableInWebsite: boolean;
   isPriceVisibleInWebsite: boolean;
 }
