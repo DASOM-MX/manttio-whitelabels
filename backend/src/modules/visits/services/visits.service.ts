@@ -16,7 +16,6 @@ import {
 import {
   equipmentForVisit,
   equipmentForVisits,
-  equipmentIdsForCustomer,
   findSuccessorId,
   findVisitById,
   findVisitWithMeta,
@@ -25,6 +24,7 @@ import {
   listVisitsInRange,
   updateVisit,
 } from '../repository/visits.repository';
+import { equipmentIdsForCustomer } from '../../equipment/repository/equipment.repository';
 import { appendVisitEvent } from './visit-audit.service';
 import type { VisitFieldChanges } from '../types/visit-audit.types';
 import { diffFields } from '../utils/field-diff';

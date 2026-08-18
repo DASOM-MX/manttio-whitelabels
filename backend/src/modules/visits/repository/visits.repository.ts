@@ -213,27 +213,6 @@ export const equipmentForVisits = async (
   return grouped;
 };
 
-/** Which of these equipment ids actually belong to the customer. The service
- *  diffs this against what was asked for, so the error can name the offenders. */
-export const equipmentIdsForCustomer = async (
-  db: Db,
-  customerId: string,
-  ids: string[],
-): Promise<string[]> => {
-  if (!ids.length) return [];
-  const rows = await db
-    .select({ id: equipment.id })
-    .from(equipment)
-    .where(
-      and(
-        inArray(equipment.id, ids),
-        eq(equipment.customerId, customerId),
-        isNull(equipment.deletedAt),
-      ),
-    );
-  return rows.map((r) => r.id);
-};
-
 /** Insert the visit and its equipment links atomically, running `audit` inside
  *  the same transaction — the trail can never drift from the row it describes
  *  (19 §7). Returns the created row; the service composes the DTO. */

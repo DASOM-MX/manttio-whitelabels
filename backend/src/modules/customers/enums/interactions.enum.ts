@@ -33,4 +33,9 @@ export enum InteractionRefKind {
    *  complementary posture as ServiceOrder — the client timeline answers
    *  "what happened with this client", the quote's own timeline the rest. */
   Quotation = 'quotation',
+  /** Contract filed / edited / document replaced / deleted (13 §3). Contracts
+   *  have **no** audit table of their own: the client timeline is the audit
+   *  home, which is what makes it work for standalone and order-generated
+   *  contracts alike. */
+  Contract = 'contract',
 }
