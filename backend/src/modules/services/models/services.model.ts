@@ -55,10 +55,12 @@ export const services = pgTable(
     // maintenance, an installation); false for what an order merely charges —
     // labor by the hour, refrigerant by the kilo, freight. Before this flag,
     // quantity did double duty as money multiplier AND job count, so "2 horas
-    // de mano de obra" exploded two phantom report skeletons. Defaults true:
-    // every existing line exploded, so the backfill preserves that exactly and
-    // tenants flip their consumables off.
-    isReportSource: boolean('is_report_source').notNull().default(true),
+    // de mano de obra" exploded two phantom report skeletons. Defaults FALSE
+    // (owner 2026-08-18): a service is only a charge until someone says it is
+    // a job, so every service created from here on is opt-in. Migration 0036
+    // still backfills the rows that predate the column to true — before the
+    // flag every line exploded — so no existing order changes meaning.
+    isReportSource: boolean('is_report_source').notNull().default(false),
     // Public website listing (15). Price visibility is independent of listing —
     // a listed service may still hide its number — and only meaningful while
     // listed; the service layer forces it false otherwise.

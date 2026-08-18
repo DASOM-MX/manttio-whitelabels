@@ -167,7 +167,7 @@ export class ServiceForm implements HasPendingChanges {
     // stale local format check would reject valid keys. 09 owns validation.
     satProdServCode: [''],
     satUnitCode: [''],
-    isReportSource: [true],
+    isReportSource: [false],
     isListableInWebsite: [false],
     isPriceVisibleInWebsite: [false],
     websiteDescription: [''],

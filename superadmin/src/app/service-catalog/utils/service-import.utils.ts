@@ -158,19 +158,14 @@ export const resolveServiceImport = (
     const taxRate = TAX_TOKENS.get(normalizeCsvToken(taxRaw));
     if (!taxRate) errors.push(`IVA desconocido: "${taxRaw}"`);
 
-    // `whenBlank` is what an empty cell means, which is not always false: a
-    // blank `isReportSource` has to read as the catalog default, or a list
-    // that carries the column but fills it sparsely would silently turn every
-    // gap into a billing-only service.
-    const bool = (field: ServiceImportField, label: string, whenBlank = false): boolean => {
+    const bool = (field: ServiceImportField, label: string): boolean => {
       const token = normalizeCsvToken(raw(field));
-      if (token === '') return whenBlank;
-      if (FALSE_TOKENS.has(token)) return false;
+      if (token === '' || FALSE_TOKENS.has(token)) return false;
       if (TRUE_TOKENS.has(token)) return true;
       errors.push(`${label} inválido: "${raw(field)}" (usa sí/no)`);
-      return whenBlank;
+      return false;
     };
-    const isReportSource = bool('isReportSource', 'Genera reporte', true);
+    const isReportSource = bool('isReportSource', 'Genera reporte');
     const isListable = bool('isListableInWebsite', 'Listado en el sitio');
     const isPriceVisible = bool('isPriceVisibleInWebsite', 'Precio visible');
 
