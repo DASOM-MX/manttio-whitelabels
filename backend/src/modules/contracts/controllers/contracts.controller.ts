@@ -26,6 +26,7 @@ import {
   storeContractFile,
 } from '../services/contract-files.service';
 import { ContractVisibilityForbiddenError } from '../http-errors/contract-visibility-forbidden.error';
+import { ContractEquipmentMismatchError } from '../http-errors/contract-equipment-mismatch.error';
 import { UnsupportedContractFileError } from '../http-errors/unsupported-contract-file.error';
 import type { ContractFile } from '../types/contracts.types';
 
@@ -102,6 +103,7 @@ contracts.post('/', requireRole([...WRITE_ROLES]), async (c) => {
     expiryDate: fdGet(fd, 'expiryDate') ?? undefined,
     tags: fdGet(fd, 'tags') ?? undefined,
     visibleToRoles: fdGet(fd, 'visibleToRoles') ?? undefined,
+    equipmentIds: fdGet(fd, 'equipmentIds') ?? undefined,
   });
   if (!parsed.success) {
     return c.json({ error: 'invalid_input', issues: parsed.error.issues }, 400);
@@ -127,6 +129,15 @@ contracts.post('/', requireRole([...WRITE_ROLES]), async (c) => {
     if (err instanceof ContractVisibilityForbiddenError) {
       return c.json({ error: 'visibility_forbidden', message: err.message }, 403);
     }
+    if (err instanceof ContractEquipmentMismatchError) {
+      return c.json(
+        {
+          error: 'equipment_customer_mismatch',
+          message: 'Algún equipo seleccionado no pertenece a este cliente.',
+        },
+        409,
+      );
+    }
     if (isForeignKeyViolation(err)) return c.json({ error: 'invalid_reference' }, 400);
     throw err;
   }
@@ -147,6 +158,15 @@ contracts.patch(
     } catch (err) {
       if (err instanceof ContractVisibilityForbiddenError) {
         return c.json({ error: 'visibility_forbidden', message: err.message }, 403);
+      }
+      if (err instanceof ContractEquipmentMismatchError) {
+        return c.json(
+          {
+            error: 'equipment_customer_mismatch',
+            message: 'Algún equipo seleccionado no pertenece a este cliente.',
+          },
+          409,
+        );
       }
       throw err;
     }

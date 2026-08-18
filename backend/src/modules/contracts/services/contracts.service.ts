@@ -2,6 +2,8 @@ import type { Db } from '../../database/client';
 import type { AuthUser } from '../../../env';
 import type { Role } from '../../users/enums/users.enum';
 import {
+  equipmentForContract,
+  equipmentForContracts,
   findContractFile,
   findContractWithMeta,
   insertContract,
@@ -10,6 +12,7 @@ import {
   updateContract,
   type ContractMetaRow,
 } from '../repository/contracts.repository';
+import { equipmentIdsForCustomer } from '../../equipment/repository/equipment.repository';
 import type {
   CreateContractMetaInput,
   ListContractsQuery,
@@ -17,6 +20,7 @@ import type {
 } from '../validators/contracts.validator';
 import type {
   ContractDTO,
+  ContractEquipmentLink,
   ContractFile,
   ContractRow,
   PagedContracts,
@@ -24,6 +28,7 @@ import type {
 } from '../types/contracts.types';
 import { ContractValidity } from '../enums/contracts.enum';
 import { ContractVisibilityForbiddenError } from '../http-errors/contract-visibility-forbidden.error';
+import { ContractEquipmentMismatchError } from '../http-errors/contract-equipment-mismatch.error';
 
 const opt = <T>(v: T | null | undefined): T | undefined => (v == null ? undefined : v);
 
@@ -37,7 +42,11 @@ const validityOf = (row: ContractRow, today: string): ContractValidity => {
   return ContractValidity.Active;
 };
 
-const toDTO = (m: ContractMetaRow, today: string): ContractDTO => ({
+const toDTO = (
+  m: ContractMetaRow,
+  today: string,
+  equipment: ContractEquipmentLink[],
+): ContractDTO => ({
   id: m.row.id,
   folio: m.row.folio,
   customerId: m.row.customerId,
@@ -52,6 +61,7 @@ const toDTO = (m: ContractMetaRow, today: string): ContractDTO => ({
   fileMime: m.row.fileMime,
   fileSize: opt(m.row.fileSize),
   visibleToRoles: m.row.visibleToRoles ?? [],
+  equipment,
   validFromDate: m.row.validFromDate,
   expiryDate: opt(m.row.expiryDate),
   validity: validityOf(m.row, today),
@@ -83,14 +93,42 @@ const assertMaySetVisibility = (user: AuthUser): void => {
   }
 };
 
+/** Covered units are **client-scoped** (13 §1): a contract may only cover
+ *  equipment belonging to its own customer. A foreign unit is a data error worth
+ *  naming rather than silently dropping — the same rule visits enforce (12 §1).
+ *  Soft-deleted units count as foreign: they are no longer part of the fleet. */
+const assertEquipmentBelongsToCustomer = async (
+  db: Db,
+  customerId: string,
+  ids: string[],
+): Promise<void> => {
+  if (!ids.length) return;
+  const owned = new Set(await equipmentIdsForCustomer(db, customerId, ids));
+  const foreign = ids.filter((id) => !owned.has(id));
+  if (foreign.length) throw new ContractEquipmentMismatchError(foreign);
+};
+
+/** Attach the covered units to a page of contracts in one extra query rather
+ *  than one per row. */
+const toPageDTOs = async (
+  db: Db,
+  items: ContractMetaRow[],
+): Promise<ContractDTO[]> => {
+  const links = await equipmentForContracts(
+    db,
+    items.map((m) => m.row.id),
+  );
+  const today = todayString();
+  return items.map((m) => toDTO(m, today, links.get(m.row.id) ?? []));
+};
+
 export const getContracts = async (
   db: Db,
   q: ListContractsQuery,
   user: AuthUser,
 ): Promise<PagedContracts> => {
   const { items, total } = await listContracts(db, q, user.role);
-  const today = todayString();
-  return { items: items.map((m) => toDTO(m, today)), total, page: q.page, limit: q.limit };
+  return { items: await toPageDTOs(db, items), total, page: q.page, limit: q.limit };
 };
 
 /** Unpaged card feeds for the customer 360 (07) and the order view (19 §5).
@@ -109,8 +147,7 @@ const cardFeed = async (
     { page: 1, limit: CARD_FEED_LIMIT, ...filter },
     user.role,
   );
-  const today = todayString();
-  return items.map((m) => toDTO(m, today));
+  return toPageDTOs(db, items);
 };
 
 export const getCustomerContracts = (db: Db, customerId: string, user: AuthUser) =>
@@ -125,7 +162,9 @@ export const getContractById = async (
   user: AuthUser,
 ): Promise<ContractDTO | null> => {
   const meta = await findContractWithMeta(db, id, user.role);
-  return meta ? toDTO(meta, todayString()) : null;
+  if (!meta) return null;
+  // The detail read is the one place nameplates are worth fetching (13 §6).
+  return toDTO(meta, todayString(), await equipmentForContract(db, id));
 };
 
 export const createContract = async (
@@ -135,6 +174,9 @@ export const createContract = async (
   user: AuthUser,
 ): Promise<ContractDTO> => {
   if (input.visibleToRoles) assertMaySetVisibility(user);
+
+  const equipmentIds = [...new Set(input.equipmentIds ?? [])];
+  await assertEquipmentBelongsToCustomer(db, input.customerId, equipmentIds);
 
   const row = await insertContract(
     db,
@@ -154,13 +196,14 @@ export const createContract = async (
       expiryDate: input.expiryDate ?? null,
       tags: normalizeTags(input.tags),
       createdBy: user.id,
+      equipmentIds,
     },
     new Date(),
   );
 
-  return (await getContractById(db, row.id, user)) ?? toDTO(
-    { row, customerName: null, serviceOrderFolio: null },
-    todayString(),
+  return (
+    (await getContractById(db, row.id, user)) ??
+    toDTO({ row, customerName: null, serviceOrderFolio: null }, todayString(), [])
   );
 };
 
@@ -174,6 +217,7 @@ const FIELD_LABELS: Record<keyof UpdateContractInput, string> = {
   expiryDate: 'vencimiento',
   tags: 'etiquetas',
   visibleToRoles: 'visibilidad',
+  equipmentIds: 'equipos cubiertos',
 };
 
 const collectUpdate = (input: UpdateContractInput): UpdateContractFields => {
@@ -201,15 +245,30 @@ export const editContract = async (
   const existing = await findContractWithMeta(db, id, user.role);
   if (!existing) return null;
 
-  const fields = collectUpdate(input);
-  const changed = (Object.keys(fields) as (keyof UpdateContractInput)[])
-    .map((k) => FIELD_LABELS[k])
-    .join(', ');
+  // The covered-unit set lives in the join table, not on the row, so it travels
+  // beside `fields` rather than inside it — but it is still one transaction and
+  // one audit entry.
+  const replaceEquipmentIds =
+    input.equipmentIds === undefined ? undefined : [...new Set(input.equipmentIds)];
+  if (replaceEquipmentIds) {
+    await assertEquipmentBelongsToCustomer(db, existing.row.customerId, replaceEquipmentIds);
+  }
 
-  const row = await updateContract(db, id, fields, {
-    body: `Contrato ${existing.row.folio} actualizado — ${changed || 'sin cambios'}`,
-    actorId: user.id,
-  });
+  const fields = collectUpdate(input);
+  const labels = (Object.keys(fields) as (keyof UpdateContractInput)[]).map((k) => FIELD_LABELS[k]);
+  if (replaceEquipmentIds) labels.push(FIELD_LABELS.equipmentIds);
+  const changed = labels.join(', ');
+
+  const row = await updateContract(
+    db,
+    id,
+    fields,
+    {
+      body: `Contrato ${existing.row.folio} actualizado — ${changed || 'sin cambios'}`,
+      actorId: user.id,
+    },
+    replaceEquipmentIds,
+  );
   if (!row) return null;
   return getContractById(db, id, user);
 };

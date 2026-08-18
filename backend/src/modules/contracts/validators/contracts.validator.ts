@@ -8,6 +8,10 @@ const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD'
 // validator only bounds them.
 const tagsSchema = z.array(z.string().min(1).max(40)).max(20);
 
+// Covered units (13 §1). Bounded rather than unbounded: a contract covering
+// more than this is a filing mistake, not a real agreement.
+const equipmentIdsSchema = z.array(z.string().uuid()).max(100);
+
 // Only the non-manager roles are settable: owner/admin always see every
 // contract and are not listed (13 §4).
 const visibleToRolesSchema = z.array(z.enum(['office', 'technician'])).max(2);
@@ -36,12 +40,18 @@ export const createContractMetaSchema = z.object({
   expiryDate: dateString.optional(),
   tags: jsonArray(tagsSchema).optional(),
   visibleToRoles: jsonArray(visibleToRolesSchema).optional(),
+  equipmentIds: jsonArray(equipmentIdsSchema).optional(),
 });
 
 // PATCH is **metadata only** — the stored document is replaced through
 // POST /:id/file so the file fields can never drift apart (they move as one
 // unit). `customerId` and `serviceOrderId` are immutable: re-filing a contract
 // under a different client would orphan its audit trail.
+//
+// `equipmentIds` is the **full replacement set**, same semantics as create (the
+// visits precedent): omit it to leave the covered units untouched, send `[]` to
+// clear them. Since `customerId` cannot move, the client scope of the set can
+// never be invalidated by a later edit.
 export const updateContractSchema = z
   .object({
     name: z.string().min(1).max(200),
@@ -51,6 +61,7 @@ export const updateContractSchema = z
     expiryDate: dateString.nullable(),
     tags: tagsSchema,
     visibleToRoles: visibleToRolesSchema,
+    equipmentIds: equipmentIdsSchema,
   })
   .partial();
 
@@ -63,6 +74,8 @@ export const listContractsQuerySchema = z.object({
   type: z.nativeEnum(ContractType).optional(),
   // Derived from the dates, not a stored column (13 §1).
   validity: z.nativeEnum(ContractValidity).optional(),
+  // "Which contracts cover this unit" — the 11 equipment-view coverage card.
+  equipmentId: z.string().uuid().optional(),
   // Exact-containment tag filter (GIN-backed), vs `search` which ilikes.
   tag: z.string().optional(),
 });

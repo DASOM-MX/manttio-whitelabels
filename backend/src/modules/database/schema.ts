@@ -13,7 +13,11 @@ import { customerInteractions } from '../customers/models/customer-interactions.
 import { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 import { reportEmails } from '../reports/models/report-emails.model';
 import { equipment, equipmentReports } from '../equipment/models/equipment.model';
-import { contracts, contractCounters } from '../contracts/models/contracts.model';
+import {
+  contracts,
+  contractCounters,
+  contractEquipment,
+} from '../contracts/models/contracts.model';
 import { notifications } from '../notifications/models/notifications.model';
 import { scheduledVisits, visitEquipment } from '../visits/models/visits.model';
 import { services } from '../services/models/services.model';
@@ -33,7 +37,7 @@ export { customerInteractions } from '../customers/models/customer-interactions.
 export { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 export { reportEmails } from '../reports/models/report-emails.model';
 export { equipment, equipmentReports } from '../equipment/models/equipment.model';
-export { contracts, contractCounters } from '../contracts/models/contracts.model';
+export { contracts, contractCounters, contractEquipment } from '../contracts/models/contracts.model';
 export { cmsDocuments, cmsClients } from '../cms/models/cms.model';
 export { reportTemplates } from '../report-templates/models/report-templates.model';
 export { brand } from '../brand/models/brand.model';
@@ -128,7 +132,7 @@ export const serviceOrderEventsRelations = relations(serviceOrderEvents, ({ one 
 
 // A contract always belongs to a client (the audit anchor, 13 §3) and
 // optionally to the service order that generated it (13 §2, 0..n per order).
-export const contractsRelations = relations(contracts, ({ one }) => ({
+export const contractsRelations = relations(contracts, ({ one, many }) => ({
   customer: one(customers, {
     fields: [contracts.customerId],
     references: [customers.id],
@@ -136,6 +140,18 @@ export const contractsRelations = relations(contracts, ({ one }) => ({
   serviceOrder: one(serviceOrders, {
     fields: [contracts.serviceOrderId],
     references: [serviceOrders.id],
+  }),
+  equipment: many(contractEquipment),
+}));
+
+export const contractEquipmentRelations = relations(contractEquipment, ({ one }) => ({
+  contract: one(contracts, {
+    fields: [contractEquipment.contractId],
+    references: [contracts.id],
+  }),
+  equipment: one(equipment, {
+    fields: [contractEquipment.equipmentId],
+    references: [equipment.id],
   }),
 }));
 
@@ -217,6 +233,7 @@ export const equipmentRelations = relations(equipment, ({ one, many }) => ({
     references: [customers.id],
   }),
   reports: many(equipmentReports),
+  contracts: many(contractEquipment),
 }));
 
 export const equipmentReportsRelations = relations(equipmentReports, ({ one }) => ({

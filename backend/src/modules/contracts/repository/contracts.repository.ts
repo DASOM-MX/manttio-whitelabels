@@ -1,7 +1,8 @@
-import { and, desc, eq, ilike, isNull, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 import type { Db, DbOrTx } from '../../database/client';
 import { customers } from '../../customers/models/customers.model';
 import { customerInteractions } from '../../customers/models/customer-interactions.model';
+import { equipment } from '../../equipment/models/equipment.model';
 import { InteractionRefKind, InteractionType } from '../../customers/enums/interactions.enum';
 import { serviceOrders } from '../../service-orders/models/service-orders.model';
 import {
@@ -10,10 +11,15 @@ import {
 } from '../../service-orders/enums/service-orders.enum';
 import { appendOrderEvent } from '../../service-orders/repository/service-order-events.repository';
 import type { Role } from '../../users/enums/users.enum';
-import { contractCounters, contracts } from '../models/contracts.model';
+import { contractCounters, contractEquipment, contracts } from '../models/contracts.model';
 import { ContractValidity } from '../enums/contracts.enum';
 import { formatContractFolio } from '../utils/contract-folio';
-import type { ContractRow, NewContract, UpdateContractFields } from '../types/contracts.types';
+import type {
+  ContractEquipmentLink,
+  ContractRow,
+  NewContract,
+  UpdateContractFields,
+} from '../types/contracts.types';
 import type { ListContractsQuery } from '../validators/contracts.validator';
 
 const activeFilter = isNull(contracts.deletedAt);
@@ -64,6 +70,16 @@ const listConditions = (q: ListContractsQuery, role: Role): SQL[] => {
   if (q.serviceOrderId) conds.push(eq(contracts.serviceOrderId, q.serviceOrderId));
   if (q.type) conds.push(eq(contracts.type, q.type));
   if (q.validity) conds.push(validityFilter(q.validity));
+  // "Which contracts cover this unit" (11): an EXISTS against the join table
+  // rather than a join, so a contract covering several units is never doubled
+  // in the page or the count.
+  if (q.equipmentId) {
+    conds.push(sql`exists (
+      select 1 from ${contractEquipment}
+      where ${contractEquipment.contractId} = ${contracts.id}
+        and ${contractEquipment.equipmentId} = ${q.equipmentId}
+    )`);
+  }
   // Exact containment — this is what the GIN index answers.
   if (q.tag) conds.push(sql`${contracts.tags} @> array[${q.tag}]::text[]`);
   if (q.search) {
@@ -127,6 +143,83 @@ export const findContractWithMeta = async (
   return row ?? null;
 };
 
+/** The covered units of one contract, with nameplates — the detail view's
+ *  "equipos cubiertos" list (13 §6). */
+export const equipmentForContract = async (
+  db: Db,
+  contractId: string,
+): Promise<ContractEquipmentLink[]> => {
+  const rows = await db
+    .select({
+      id: equipment.id,
+      name: equipment.name,
+      brand: equipment.brand,
+      model: equipment.model,
+      serialNumber: equipment.serialNumber,
+      kind: equipment.kind,
+      capacity: equipment.capacity,
+      location: equipment.location,
+    })
+    .from(contractEquipment)
+    .innerJoin(equipment, eq(equipment.id, contractEquipment.equipmentId))
+    .where(eq(contractEquipment.contractId, contractId))
+    .orderBy(asc(equipment.name));
+  // Nulls collapse to absent keys, per the DTO convention.
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    brand: row.brand ?? undefined,
+    model: row.model ?? undefined,
+    serialNumber: row.serialNumber ?? undefined,
+    kind: row.kind ?? undefined,
+    capacity: row.capacity ?? undefined,
+    location: row.location ?? undefined,
+  }));
+};
+
+/** The same links for a whole page of contracts, in **one** query, grouped by
+ *  contract — the visits precedent. Asking per row would be a round trip per
+ *  card. Name-only: a list renders names, and the detail read supplies the
+ *  nameplates when someone opens the contract. Contracts with no covered unit
+ *  are simply absent from the map; callers default to `[]`. */
+export const equipmentForContracts = async (
+  db: Db,
+  contractIds: string[],
+): Promise<Map<string, ContractEquipmentLink[]>> => {
+  const grouped = new Map<string, ContractEquipmentLink[]>();
+  if (!contractIds.length) return grouped;
+  const rows = await db
+    .select({ contractId: contractEquipment.contractId, id: equipment.id, name: equipment.name })
+    .from(contractEquipment)
+    .innerJoin(equipment, eq(equipment.id, contractEquipment.equipmentId))
+    .where(inArray(contractEquipment.contractId, contractIds))
+    .orderBy(asc(equipment.name));
+  for (const { contractId, id, name } of rows) {
+    const links = grouped.get(contractId);
+    if (links) links.push({ id, name });
+    else grouped.set(contractId, [{ id, name }]);
+  }
+  return grouped;
+};
+
+/** Replace a contract's covered-unit set inside the caller's transaction.
+ *  Deleting these rows is not a hard delete of anything: they are pure
+ *  associations, not domain entities, and the before/after sets are named in the
+ *  audit entry the same transaction appends (the `visit_equipment` precedent,
+ *  owner 2026-08-06). */
+const replaceEquipmentLinks = async (
+  tx: DbOrTx,
+  contractId: string,
+  equipmentIds: string[],
+): Promise<void> => {
+  await tx.delete(contractEquipment).where(eq(contractEquipment.contractId, contractId));
+  if (equipmentIds.length) {
+    await tx
+      .insert(contractEquipment)
+      .values(equipmentIds.map((equipmentId) => ({ contractId, equipmentId })));
+  }
+};
+
 /** Append the contract's audit entry to the **customer's** timeline (13 §3).
  *  The client is the always-present anchor, so this works for order-generated
  *  and standalone contracts alike and there is no per-contract audit table. */
@@ -147,6 +240,8 @@ const appendContractInteraction = async (
 export interface InsertContractInput extends Omit<NewContract, 'folio'> {
   customerId: string;
   createdBy: string;
+  /** Covered units, linked in the same transaction as the row (13 §1). */
+  equipmentIds: string[];
 }
 
 /** Create in one transaction (13 §1): allocate the daily folio, insert the row,
@@ -168,11 +263,14 @@ export const insertContract = async (
       .returning({ lastNumber: contractCounters.lastNumber });
     if (!counter) throw new Error('insertContract: counter upsert returned no row');
 
+    const { equipmentIds, ...columns } = values;
     const [row] = await tx
       .insert(contracts)
-      .values({ ...values, folio: formatContractFolio(day, counter.lastNumber) })
+      .values({ ...columns, folio: formatContractFolio(day, counter.lastNumber) })
       .returning();
     if (!row) throw new Error('insertContract returned no row');
+
+    if (equipmentIds.length) await replaceEquipmentLinks(tx, row.id, equipmentIds);
 
     await appendContractInteraction(tx, {
       customerId: row.customerId,
@@ -203,6 +301,10 @@ export const updateContract = async (
   id: string,
   fields: UpdateContractFields,
   audit: { body: string; actorId: string },
+  // Full replacement set for the covered units, applied in the same transaction
+  // so the links can never drift from the audit entry describing them. Undefined
+  // leaves them untouched; `[]` clears them.
+  replaceEquipmentIds?: string[],
 ): Promise<ContractRow | null> =>
   db.transaction(async (tx) => {
     const [row] = await tx
@@ -211,6 +313,8 @@ export const updateContract = async (
       .where(and(eq(contracts.id, id), activeFilter))
       .returning();
     if (!row) return null;
+
+    if (replaceEquipmentIds) await replaceEquipmentLinks(tx, id, replaceEquipmentIds);
 
     await appendContractInteraction(tx, {
       customerId: row.customerId,

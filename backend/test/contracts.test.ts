@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'vitest';
-import { and, desc, eq } from 'drizzle-orm';
+import { afterAll, describe, expect, test } from 'vitest';
+import { and, desc, eq, inArray, isNull, like } from 'drizzle-orm';
 import { authHeader, env, json, jsonHeaders, request } from './helpers/request';
 import {
   seedAdminAndLogin,
@@ -9,11 +9,18 @@ import {
   seedTechnicianAndLogin,
 } from './helpers/fixtures';
 import { createDb } from '../src/modules/database/client';
-import { customerInteractions } from '../src/modules/database/schema';
+import { contracts, customerInteractions, customers, equipment } from '../src/modules/database/schema';
 import { InteractionRefKind } from '../src/modules/customers/enums/interactions.enum';
 import { ContractFileType, ContractType, ContractValidity } from '../src/modules/contracts/enums/contracts.enum';
 
 type WorkerEnv = { DATABASE_URL: string; MANTTIO_CONTRACTS: R2Bucket };
+
+type EquipmentLink = {
+  id: string;
+  name: string | null;
+  brand?: string;
+  serialNumber?: string;
+};
 
 type Contract = {
   id: string;
@@ -29,6 +36,7 @@ type Contract = {
   fileMime: string;
   fileSize?: number;
   visibleToRoles: string[];
+  equipment: EquipmentLink[];
   validFromDate: string;
   expiryDate?: string;
   validity: ContractValidity;
@@ -60,6 +68,7 @@ type CreateOpts = {
   expiryDate?: string;
   tags?: string[];
   visibleToRoles?: string[];
+  equipmentIds?: string[];
   file?: File;
 };
 
@@ -73,6 +82,7 @@ const createForm = (opts: CreateOpts): FormData => {
   if (opts.expiryDate) fd.set('expiryDate', opts.expiryDate);
   if (opts.tags) fd.set('tags', JSON.stringify(opts.tags));
   if (opts.visibleToRoles) fd.set('visibleToRoles', JSON.stringify(opts.visibleToRoles));
+  if (opts.equipmentIds) fd.set('equipmentIds', JSON.stringify(opts.equipmentIds));
   return fd;
 };
 
@@ -90,6 +100,46 @@ const createOk = async (token: string, opts: CreateOpts): Promise<Contract> => {
   if (res.status !== 201) throw new Error(`create failed: ${res.status} ${await res.text()}`);
   return json<Contract>(res);
 };
+
+/** Seed a unit for a client through the API — there is no equipment fixture,
+ *  and the create route is owner/admin only. */
+const seedEquipment = async (
+  token: string,
+  customerId: string,
+  fields: Record<string, unknown> = {},
+): Promise<{ id: string; name: string }> => {
+  const res = await request('/equipment', {
+    method: 'POST',
+    headers: jsonHeaders(token),
+    body: JSON.stringify({ customerId, name: 'test-chiller', ...fields }),
+  });
+  if (res.status !== 201) throw new Error(`equipment seed failed: ${res.status} ${await res.text()}`);
+  return json<{ id: string; name: string }>(res);
+};
+
+// Contracts and their covered units hang off the suite's `test-%` customers.
+// Per the no-hard-delete rule the rows stay — they simply leave every read path
+// via `isNull(deletedAt)`. `contract_equipment` is a pure link table and is
+// deliberately left untouched; its rows become unreachable with their contract.
+afterAll(async () => {
+  const conn = db();
+  const fixtureCustomers = await conn
+    .select({ id: customers.id })
+    .from(customers)
+    .where(like(customers.name, 'test-%'));
+  const customerIds = fixtureCustomers.map((c) => c.id);
+  if (!customerIds.length) return;
+
+  const now = new Date();
+  await conn
+    .update(contracts)
+    .set({ deletedAt: now, updatedAt: now })
+    .where(and(inArray(contracts.customerId, customerIds), isNull(contracts.deletedAt)));
+  await conn
+    .update(equipment)
+    .set({ deletedAt: now, updatedAt: now })
+    .where(and(inArray(equipment.customerId, customerIds), isNull(equipment.deletedAt)));
+});
 
 describe('POST /contracts', () => {
   test('admin files a contract → 201 with a CON- folio and no file key', async () => {
@@ -407,6 +457,183 @@ describe('card feeds', () => {
     expect(res.status).toBe(200);
     const body = await json<{ contracts: Contract[] }>(res);
     expect(body.contracts.map((c) => c.id)).toContain(contract.id);
+  });
+});
+
+describe('covered equipment (13 §1)', () => {
+  test('a contract carries its covered units, with nameplates on the detail read', async () => {
+    const { token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const chiller = await seedEquipment(token, customer.id, {
+      name: 'test-chiller-A',
+      brand: 'Carrier',
+      serialNumber: 'SN-001',
+    });
+    const pump = await seedEquipment(token, customer.id, { name: 'test-pump-B' });
+
+    const created = await createOk(token, {
+      customerId: customer.id,
+      equipmentIds: [chiller.id, pump.id],
+    });
+
+    // Sorted by name, and the create response is a detail read → nameplates.
+    expect(created.equipment.map((e) => e.id)).toEqual([chiller.id, pump.id]);
+    expect(created.equipment[0]?.brand).toBe('Carrier');
+    expect(created.equipment[0]?.serialNumber).toBe('SN-001');
+
+    const read = await request(`/contracts/${created.id}`, { headers: authHeader(token) });
+    const body = await json<Contract>(read);
+    expect(body.equipment.map((e) => e.id)).toEqual([chiller.id, pump.id]);
+  });
+
+  test('a contract with no covered units is valid and reads as an empty list', async () => {
+    const { token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+
+    const created = await createOk(token, { customerId: customer.id });
+
+    expect(created.equipment).toEqual([]);
+  });
+
+  test('another client’s unit is rejected — 409, and it names the offender', async () => {
+    const { token } = await seedAdminAndLogin();
+    const mine = await seedCustomer();
+    const theirs = await seedCustomer();
+    const foreign = await seedEquipment(token, theirs.id);
+
+    const res = await createContract(token, {
+      customerId: mine.id,
+      equipmentIds: [foreign.id],
+    });
+
+    expect(res.status).toBe(409);
+    const body = await json<{ error: string }>(res);
+    expect(body.error).toBe('equipment_customer_mismatch');
+  });
+
+  test('a retired (soft-deleted) unit no longer counts as the client’s', async () => {
+    const { token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const unit = await seedEquipment(token, customer.id);
+
+    const gone = await request(`/equipment/${unit.id}`, {
+      method: 'DELETE',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ deleteComment: 'baja de prueba' }),
+    });
+    expect(gone.status).toBe(200);
+
+    const res = await createContract(token, {
+      customerId: customer.id,
+      equipmentIds: [unit.id],
+    });
+    expect(res.status).toBe(409);
+  });
+
+  test('PATCH replaces the whole set, and [] clears it', async () => {
+    const { token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const first = await seedEquipment(token, customer.id, { name: 'test-unit-1' });
+    const second = await seedEquipment(token, customer.id, { name: 'test-unit-2' });
+
+    const created = await createOk(token, {
+      customerId: customer.id,
+      equipmentIds: [first.id],
+    });
+
+    const swapped = await request(`/contracts/${created.id}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ equipmentIds: [second.id] }),
+    });
+    expect(swapped.status).toBe(200);
+    expect((await json<Contract>(swapped)).equipment.map((e) => e.id)).toEqual([second.id]);
+
+    // Omitting the key leaves the set untouched…
+    const renamed = await request(`/contracts/${created.id}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ name: 'Garantía renombrada' }),
+    });
+    expect((await json<Contract>(renamed)).equipment.map((e) => e.id)).toEqual([second.id]);
+
+    // …while an explicit empty array clears it.
+    const cleared = await request(`/contracts/${created.id}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ equipmentIds: [] }),
+    });
+    expect((await json<Contract>(cleared)).equipment).toEqual([]);
+  });
+
+  test('PATCH cannot smuggle in another client’s unit', async () => {
+    const { token } = await seedAdminAndLogin();
+    const mine = await seedCustomer();
+    const theirs = await seedCustomer();
+    const foreign = await seedEquipment(token, theirs.id);
+    const created = await createOk(token, { customerId: mine.id });
+
+    const res = await request(`/contracts/${created.id}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ equipmentIds: [foreign.id] }),
+    });
+
+    expect(res.status).toBe(409);
+  });
+
+  test('the equipmentId filter finds covering contracts exactly once', async () => {
+    const { token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const covered = await seedEquipment(token, customer.id, { name: 'test-covered' });
+    const other = await seedEquipment(token, customer.id, { name: 'test-other' });
+
+    // Two units on one contract — the EXISTS must not double it in the page.
+    const both = await createOk(token, {
+      customerId: customer.id,
+      equipmentIds: [covered.id, other.id],
+    });
+    await createOk(token, { customerId: customer.id, equipmentIds: [other.id] });
+
+    const res = await request(`/contracts?equipmentId=${covered.id}`, {
+      headers: authHeader(token),
+    });
+    const page = await json<{ items: Contract[]; total: number }>(res);
+
+    expect(page.total).toBe(1);
+    expect(page.items.map((c) => c.id)).toEqual([both.id]);
+    // List reads carry name-only links.
+    expect(page.items[0]?.equipment.map((e) => e.name).sort()).toEqual([
+      'test-covered',
+      'test-other',
+    ]);
+  });
+
+  test('changing the covered units is named in the client timeline', async () => {
+    const { token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const unit = await seedEquipment(token, customer.id);
+    const created = await createOk(token, { customerId: customer.id });
+
+    await request(`/contracts/${created.id}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ equipmentIds: [unit.id] }),
+    });
+
+    const [latest] = await db()
+      .select({ body: customerInteractions.body })
+      .from(customerInteractions)
+      .where(
+        and(
+          eq(customerInteractions.refKind, InteractionRefKind.Contract),
+          eq(customerInteractions.refId, created.id),
+        ),
+      )
+      .orderBy(desc(customerInteractions.createdAt))
+      .limit(1);
+
+    expect(latest?.body).toContain('equipos cubiertos');
   });
 });
 

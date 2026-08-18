@@ -15,6 +15,21 @@ export interface ContractFile {
   fileSize: number;
 }
 
+/** One covered unit, flattened for the DTO (13 §1). `name` is whatever
+ *  identifies the unit on screen; the nameplate fields are populated by the
+ *  SINGLE-contract read only — a list page renders names, and the detail view is
+ *  already loaded before anyone needs a serial number. */
+export interface ContractEquipmentLink {
+  id: string;
+  name: string | null;
+  brand?: string;
+  model?: string;
+  serialNumber?: string;
+  kind?: string;
+  capacity?: string;
+  location?: string;
+}
+
 export type UpdateContractFields = Partial<
   Pick<
     ContractRow,
@@ -51,6 +66,9 @@ export interface ContractDTO {
   fileMime: string;
   fileSize?: number;
   visibleToRoles: Role[];
+  /** Covered units (13 §1) — client-scoped, possibly empty. Name-only on list
+   *  reads, full nameplates on the single read. */
+  equipment: ContractEquipmentLink[];
   validFromDate: string;
   expiryDate?: string;
   /** Derived from the dates on read, never stored (13 §1). */

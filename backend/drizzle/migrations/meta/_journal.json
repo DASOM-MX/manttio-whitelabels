@@ -260,6 +260,13 @@
       "when": 1787090261012,
       "tag": "0036_contracts",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1787092115228,
+      "tag": "0037_contract_equipment",
+      "breakpoints": true
     }
   ]
 }

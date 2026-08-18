@@ -5,12 +5,14 @@ import {
   index,
   integer,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 import { customers } from '../../customers/models/customers.model';
+import { equipment } from '../../equipment/models/equipment.model';
 import { serviceOrders } from '../../service-orders/models/service-orders.model';
 import { users } from '../../users/models/users.model';
 import type { Role } from '../../users/enums/users.enum';
@@ -124,3 +126,36 @@ export const contractCounters = pgTable('contract_counters', {
   day: date('day').primaryKey(),
   lastNumber: integer('last_number').notNull(),
 });
+
+// contract ↔ equipment is many-to-many (13 §1): one agreement usually covers
+// several of the client's units — a programmed-maintenance contract for a whole
+// chiller room, a guarantee for a single compressor. Optional: a contract with
+// no covered units is perfectly valid (a rental agreement, an NDA).
+//
+// The set is **client-scoped**: every linked unit must belong to the contract's
+// `customerId`, which the service asserts on write. Editable after creation
+// (unlike `visit_equipment`), because a contract's covered list is a statement
+// about the agreement rather than a record of what a technician touched — the
+// PATCH replaces the whole set and names the before/after in the audit entry.
+//
+// `restrict` on both sides, never cascade: nothing here is ever hard-deleted, so
+// the constraint is a guard rail that should never fire. Deleting rows from this
+// table on a replace does not breach that rule — these are pure associations,
+// not domain entities (the `visit_equipment` precedent, owner 2026-08-06).
+export const contractEquipment = pgTable(
+  'contract_equipment',
+  {
+    contractId: uuid('contract_id')
+      .notNull()
+      .references(() => contracts.id, { onDelete: 'restrict' }),
+    equipmentId: uuid('equipment_id')
+      .notNull()
+      .references(() => equipment.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.contractId, table.equipmentId] }),
+    // "Every contract covering this unit" — the 11 equipment view's coverage card.
+    index('contract_equipment_equipment_idx').on(table.equipmentId),
+  ],
+);
