@@ -27,24 +27,43 @@
 
     <div class="grid gap-4 sm:grid-cols-2">
       <div class="field-group">
-        <label class="field-label" for="contract-customer"
-          >Cliente<span aria-hidden="true"> *</span></label
-        >
-        <p-select
-          inputId="contract-customer"
-          formControlName="customerId"
-          [options]="customerOptions()"
-          optionLabel="label"
-          optionValue="value"
-          [filter]="true"
-          placeholder="Elige un cliente"
-          appendTo="body"
-          (onChange)="onCustomerChange($event.value)"
-        />
         @if (customerLocked) {
+          <!-- Read-only display, never a disabled select: the client cannot
+               change once the contract is filed, and the roster is paged so
+               there is no full options list to resolve a name from anyway. -->
+          <span class="field-label" id="contract-customer-label">Cliente</span>
+          <p
+            class="flex min-h-11 items-center rounded-control bg-surface-100 px-3 py-2 text-sm font-medium sm:min-h-10 dark:bg-surface-800/40"
+            aria-labelledby="contract-customer-label"
+          >
+            {{ customerName() ?? '—' }}
+          </p>
           <p class="field-hint">El cliente no cambia: la bitácora del contrato cuelga de él.</p>
+        } @else {
+          <label class="field-label" for="contract-customer"
+            >Cliente<span aria-hidden="true"> *</span></label
+          >
+          <!-- Clients load 20 at a time as the overlay scrolls (owner
+               2026-08-18) — the roster is 1000+ rows on a real tenant. -->
+          <p-select
+            inputId="contract-customer"
+            formControlName="customerId"
+            [options]="customerOptions()"
+            optionLabel="label"
+            optionValue="value"
+            [virtualScroll]="true"
+            [virtualScrollItemSize]="customerRowHeight"
+            [virtualScrollOptions]="customerScrollOptions"
+            placeholder="Elige un cliente"
+            appendTo="body"
+            (onChange)="onCustomerChange($event.value)"
+          />
+          @if (form.controls.customerId.touched && form.controls.customerId.errors?.['required']) {
+            <p class="field-error" role="alert">Elige el cliente del contrato.</p>
+          }
         }
       </div>
+
       <div class="field-group">
         <label class="field-label" for="contract-type"
           >Tipo<span aria-hidden="true"> *</span></label

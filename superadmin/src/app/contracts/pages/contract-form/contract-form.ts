@@ -7,7 +7,7 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
 import { CheckboxModule } from 'primeng/checkbox';
-import { MessageService } from 'primeng/api';
+import { MessageService, type ScrollerOptions } from 'primeng/api';
 import { LucideFileUp, LucideX } from '@lucide/angular';
 import { catchError, of } from 'rxjs';
 import { select, Store } from '@ngxs/store';
@@ -19,9 +19,8 @@ import {
   UpdateContract,
 } from '../../../../state/contracts/contracts.actions';
 import { AuthState } from '../../../../state/auth/auth.state';
-import { CustomersState } from '../../../../state/customers/customers.state';
-import { LoadCustomers } from '../../../../state/customers/customers.actions';
 import { EquipmentService } from '../../../services/http/equipment.service';
+import { CustomersService } from '../../../services/http/customers.service';
 import { TagsInput } from '../../../customers/components/tags-input/tags-input';
 import { hasRole } from '../../../guards/has-role.guard';
 import { CONTRACT_TYPE_LABELS } from '../../../model/constants/contract/contract-type-labels.const';
@@ -57,6 +56,22 @@ const VISIBLE_ROLE_OPTIONS: { label: string; value: ContractVisibleRole }[] = [
 ];
 
 const DEFAULT_VISIBLE_ROLES: ContractVisibleRole[] = ['office', 'technician'];
+
+/** Clients arrive 20 at a time as the overlay scrolls (owner 2026-08-18) — the
+ *  roster runs to 1000+ rows on a real tenant, and loading all of it to open a
+ *  form is the thing this avoids. `p-select`'s lazy virtual scroll asks for the
+ *  visible window; we translate that window into pages and fill the slots. */
+const CUSTOMER_PAGE_SIZE = 20;
+const CUSTOMER_ROW_HEIGHT = 40;
+/** Slot text before its page arrives — the scroller sizes rows off the array,
+ *  so every index must hold something from the start. */
+const CUSTOMER_PLACEHOLDER: Option = { label: '…', value: '' };
+
+/** The row window the virtual scroller asks for. */
+interface ScrollerLazyLoadEvent {
+  first: number;
+  last: number;
+}
 
 /** Add/edit contract (13 §6) — a **routed page**, not a dialog: filing a
  *  contract is a real record with a document, covered units and a visibility
@@ -95,6 +110,7 @@ export class ContractForm implements HasPendingChanges {
   private router = inject(Router);
   private messages = inject(MessageService);
   private equipmentApi = inject(EquipmentService);
+  private customersApi = inject(CustomersService);
 
   protected selected = select(ContractsState.selected);
   private me = select(AuthState.me);
@@ -124,10 +140,21 @@ export class ContractForm implements HasPendingChanges {
    *  would keep if you pick nothing. */
   protected currentFileName = signal<string | null>(null);
 
-  private customers = select(CustomersState.items);
-  protected customerOptions = computed<Option[]>(() =>
-    this.customers().map((c) => ({ label: c.name, value: c.id })),
-  );
+  /** The chosen client's name — the read-only display when the field is locked
+   *  (edit, or pre-locked by a caller), where there is no select to render. */
+  protected customerName = signal<string | null>(null);
+
+  /** Sparse: sized to the roster's total on first load, filled page by page as
+   *  the overlay scrolls. */
+  protected customerOptions = signal<Option[]>([]);
+  private loadedCustomerPages = new Set<number>();
+  protected readonly customerRowHeight = CUSTOMER_ROW_HEIGHT;
+  protected readonly customerScrollOptions: ScrollerOptions = {
+    delay: 250,
+    showLoader: true,
+    lazy: true,
+    onLazyLoad: (event: ScrollerLazyLoadEvent) => this.onCustomersLazyLoad(event),
+  };
 
   protected typeOptions = (Object.entries(CONTRACT_TYPE_LABELS) as [ContractType, string][]).map(
     ([value, label]) => ({ label, value }),
@@ -149,14 +176,21 @@ export class ContractForm implements HasPendingChanges {
   });
 
   constructor() {
-    this.store.dispatch(new LoadCustomers({ page: 1, limit: 100 }));
-
     if (this.contractId) {
       this.store.dispatch(new LoadContract(this.contractId));
     } else if (this.presetCustomerId) {
       this.form.controls.customerId.setValue(this.presetCustomerId);
       this.loadEquipment(this.presetCustomerId);
+      // Pre-locked by a caller: one read for the name, since the locked field
+      // shows text rather than a select.
+      this.customersApi
+        .get(this.presetCustomerId)
+        .pipe(catchError(() => of(null)))
+        .subscribe((customer) => this.customerName.set(customer?.name ?? null));
     }
+
+    // Only the unlocked field renders a select worth seeding.
+    if (!this.customerLocked) this.seedCustomers();
 
     if (this.customerLocked) this.form.controls.customerId.disable({ emitEvent: false });
 
@@ -170,10 +204,61 @@ export class ContractForm implements HasPendingChanges {
     return (this.form.dirty || this.file() !== null) && !this.busy();
   }
 
-  /** Covered units are client-scoped, so the pool follows the client select. */
+  /** Covered units are client-scoped, so the pool follows the chosen client. */
   protected onCustomerChange(customerId: string): void {
     this.form.controls.equipmentIds.setValue([]);
     this.loadEquipment(customerId);
+  }
+
+  /** First page doubles as the roster's size probe: `total` fixes the array
+   *  length, so the scrollbar is honest before the rest has been fetched. */
+  private seedCustomers(): void {
+    this.loadedCustomerPages.add(1);
+    this.customersApi
+      .list({ page: 1, limit: CUSTOMER_PAGE_SIZE })
+      .pipe(catchError(() => of(null)))
+      .subscribe((res) => {
+        if (!res) {
+          this.loadedCustomerPages.delete(1);
+          return;
+        }
+        const options: Option[] = new Array(res.total).fill(CUSTOMER_PLACEHOLDER);
+        this.fill(options, 1, res.items);
+        this.customerOptions.set(options);
+      });
+  }
+
+  /** The scroller reports a row window; a window can straddle two pages. */
+  private onCustomersLazyLoad(event: ScrollerLazyLoadEvent): void {
+    const firstPage = Math.floor(event.first / CUSTOMER_PAGE_SIZE) + 1;
+    const lastRow = Math.max(event.last - 1, event.first);
+    const lastPage = Math.floor(lastRow / CUSTOMER_PAGE_SIZE) + 1;
+    for (let page = firstPage; page <= lastPage; page++) this.loadCustomerPage(page);
+  }
+
+  private loadCustomerPage(page: number): void {
+    if (this.loadedCustomerPages.has(page)) return;
+    // Claimed before the request: the scroller re-fires while one is in flight.
+    this.loadedCustomerPages.add(page);
+    this.customersApi
+      .list({ page, limit: CUSTOMER_PAGE_SIZE })
+      .pipe(catchError(() => of(null)))
+      .subscribe((res) => {
+        if (!res) {
+          this.loadedCustomerPages.delete(page);
+          return;
+        }
+        const options = [...this.customerOptions()];
+        this.fill(options, page, res.items);
+        this.customerOptions.set(options);
+      });
+  }
+
+  private fill(options: Option[], page: number, items: { id: string; name: string }[]): void {
+    const offset = (page - 1) * CUSTOMER_PAGE_SIZE;
+    items.forEach((customer, i) => {
+      options[offset + i] = { label: customer.name, value: customer.id };
+    });
   }
 
   private loadEquipment(customerId: string): void {
@@ -321,6 +406,7 @@ export class ContractForm implements HasPendingChanges {
       { emitEvent: false },
     );
     this.currentFileName.set(contract.fileName);
+    this.customerName.set(contract.customerName ?? null);
     this.loadEquipment(contract.customerId);
     this.form.markAsPristine();
   }

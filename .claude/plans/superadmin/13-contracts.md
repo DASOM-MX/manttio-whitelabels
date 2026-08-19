@@ -277,7 +277,8 @@ it was mined for ideas, not rebased.
 - [x] `contract-form` — a **routed page**, not a dialog (owner 2026-08-18): `/contracts/new`
       and `/contracts/:id/edit`, `pendingChangesGuard`, four card sections (General ·
       Documento · Vigencia · Equipos cubiertos) on the `customer-form` pattern. Client select
-      (locked on edit and when pre-locked), type, dates + "sin vencimiento" toggle,
+      (**lazy virtual scroll, 20 rows per request** — the roster is 1000+ on a real tenant;
+      locked fields render as text, not a disabled select), type, dates + "sin vencimiento" toggle,
       **equipment multiselect scoped to the client**, role-visibility multiselect
       (owner/admin only), single-file picker. Create sends one request; edit patches metadata
       and only then replaces the document
