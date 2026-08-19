@@ -107,7 +107,7 @@
        their own (owner 2026-08-18): the bottom-row card left their overlays
        nowhere to open, and they spilled past the page. -->
   <section class="card-section flex flex-col gap-4" aria-labelledby="contract-file-title">
-    <h2 id="contract-file-title" class="section-heading">Documento y vigencia</h2>
+    <h2 id="contract-file-title" class="section-heading">Documento, vigencia y equipos</h2>
 
     <div class="field-group">
       <span class="field-label" id="contract-file-label">
@@ -238,15 +238,12 @@
         </p>
       </div>
     }
-  </section>
 
-  <!-- Equipos cubiertos -->
-  <section class="card-section flex flex-col gap-4" aria-labelledby="contract-equipment-title">
-    <h2 id="contract-equipment-title" class="section-heading">Equipos cubiertos</h2>
-
-    @if (equipmentOptions().length) {
-      <div class="field-group">
-        <label class="field-label" for="contract-equipment">Unidades que ampara</label>
+    <!-- Last in the panel and `flex-1`, so it takes whatever height the row
+         leaves rather than the card stopping short of the General column. -->
+    <div class="field-group flex-1">
+      <label class="field-label" for="contract-equipment">Equipos cubiertos</label>
+      @if (equipmentOptions().length) {
         <p-multiselect
           inputId="contract-equipment"
           formControlName="equipmentIds"
@@ -258,17 +255,17 @@
           appendTo="body"
         />
         <p class="field-hint">Solo equipos de este cliente.</p>
-      </div>
-    } @else {
-      <p class="text-sm text-surface-600 dark:text-surface-400">
-        @if (form.controls.customerId.value) {
-          Este cliente no tiene equipos registrados. Puedes guardar el contrato sin unidades y
-          agregarlas después.
-        } @else {
-          Elige un cliente para ver sus unidades.
-        }
-      </p>
-    }
+      } @else {
+        <p class="text-sm text-surface-600 dark:text-surface-400">
+          @if (form.controls.customerId.value) {
+            Este cliente no tiene equipos registrados. Puedes guardar el contrato sin unidades y
+            agregarlas después.
+          } @else {
+            Elige un cliente para ver sus unidades.
+          }
+        </p>
+      }
+    </div>
   </section>
 
   <div class="flex justify-end gap-2 xl:col-span-2">
