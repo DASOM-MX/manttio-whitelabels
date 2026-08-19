@@ -196,8 +196,13 @@ reconciliation is 09's).
   vigencia [validFrom → expiry, or "sin vencimiento"], **validity pill**, archivo icon,
   creada), URL filters (`q`/`customer`/`type`/`validity`). Primary action **Registrar
   contrato**. Top-level **Contratos** nav entry (owner/admin/office).
-- `contracts/components/contract-form-dialog/` (or a page if the upload UX needs room) —
-  create/edit: client select (pre-filled + locked when launched from an order), type
+- `contracts/pages/contract-form/` — **a page, decided 2026-08-18** (owner: "MUST be an
+  isolated page instead, for extensibility"). Supersedes the dialog this section originally
+  hedged on: the form already carries a document, covered units and a visibility decision,
+  it is expected to keep growing (renewals, amounts, signatories), and a route gives every
+  entry point a plain link — which is exactly what §5's order-driven "Generar contrato"
+  needs (`/contracts/new?customer=…&order=…` opens with both pre-locked). Canon to follow is
+  `customers/pages/customer-form/`. Create/edit: client select (pre-filled + locked when launched from an order), type
   select (the fixed enum), name, description, validFrom + optional expiry
   (`p-datepicker`; a "sin vencimiento" toggle clears expiry), equipment multiselect
   (scoped to the client; the backend accepts `equipmentIds` as of 2026-08-18), a **visibility-by-role** multiselect (owner/admin
@@ -269,10 +274,13 @@ it was mined for ideas, not rebased.
       `byCustomer`/`byServiceOrder` card feeds already wired for CP-3
 - [x] `contracts-list` — p-table, URL filters (`?q&customer&type&validity&tag&page`),
       validity pill straight off the API, clickable tag chips, whole-row click into the view
-- [x] `contract-form-dialog` — client select (locked on edit and when pre-locked by a
-      caller), type, dates + "sin vencimiento" toggle, **equipment multiselect scoped to the
-      client**, role-visibility multiselect (owner/admin only), single-file picker. Create
-      sends one request; edit patches metadata and only then replaces the document
+- [x] `contract-form` — a **routed page**, not a dialog (owner 2026-08-18): `/contracts/new`
+      and `/contracts/:id/edit`, `pendingChangesGuard`, four card sections (General ·
+      Documento · Vigencia · Equipos cubiertos) on the `customer-form` pattern. Client select
+      (locked on edit and when pre-locked), type, dates + "sin vencimiento" toggle,
+      **equipment multiselect scoped to the client**, role-visibility multiselect
+      (owner/admin only), single-file picker. Create sends one request; edit patches metadata
+      and only then replaces the document
 - [x] `contract-view` — header (folio, validity pill), ficha, **document card with
       Descargar** (fetches bytes, object URL revoked immediately — no link to share),
       covered-equipment table

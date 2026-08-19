@@ -55,10 +55,10 @@
       />
     </div>
   </app-filters-popover>
-  <button type="button" class="btn-primary" (click)="openCreate()">
+  <a routerLink="/contracts/new" class="btn-primary">
     <svg lucidePlus class="size-4" aria-hidden="true"></svg>
     Registrar contrato
-  </button>
+  </a>
 </app-page-header>
 
 <div>
@@ -162,5 +162,3 @@
     </ng-template>
   </p-table>
 </div>
-
-<app-contract-form-dialog #formDialog (saved)="refresh()" />

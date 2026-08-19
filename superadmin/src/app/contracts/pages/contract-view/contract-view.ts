@@ -23,7 +23,6 @@ import {
   ContractVisibilityLabelPipe,
 } from '../../../pipes/contract.pipe';
 import { FileSizePipe } from '../../../pipes/file-size.pipe';
-import { ContractFormDialog } from '../../components/contract-form-dialog/contract-form-dialog';
 import { DeleteContractDialog } from '../../components/delete-contract-dialog/delete-contract-dialog';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { hasRole } from '../../../guards/has-role.guard';
@@ -47,7 +46,6 @@ import { errorMessage } from '../../../data/utils';
     ContractFileGlyphPipe,
     ContractVisibilityLabelPipe,
     FileSizePipe,
-    ContractFormDialog,
     DeleteContractDialog,
     PageHeader,
     LucideDownload,
@@ -73,7 +71,6 @@ export class ContractView {
 
   protected downloading = signal(false);
 
-  protected formDialog = viewChild<ContractFormDialog>('formDialog');
   protected deleteDialog = viewChild<DeleteContractDialog>('deleteDialog');
 
   constructor() {
@@ -81,19 +78,9 @@ export class ContractView {
     if (id) this.store.dispatch(new LoadContract(id));
   }
 
-  protected openEdit(): void {
-    const contract = this.contract();
-    if (contract) this.formDialog()?.open({ contract });
-  }
-
   protected openDelete(): void {
     const contract = this.contract();
     if (contract) this.deleteDialog()?.open(contract);
-  }
-
-  protected refresh(): void {
-    const contract = this.contract();
-    if (contract) this.store.dispatch(new LoadContract(contract.id));
   }
 
   /** A deleted contract has no view left to show. */

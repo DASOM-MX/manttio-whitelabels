@@ -1,0 +1,266 @@
+<app-page-header
+  [title]="isEdit ? 'Editar contrato' : 'Registrar contrato'"
+  backLink="/contracts"
+  backLabel="Volver a contratos"
+/>
+
+<form [formGroup]="form" (ngSubmit)="submit()" class="mt-5 grid gap-4 xl:grid-cols-2">
+  <!-- General -->
+  <section class="card-section flex flex-col gap-4" aria-labelledby="contract-general-title">
+    <h2 id="contract-general-title" class="section-heading">General</h2>
+
+    <div class="field-group">
+      <label class="field-label" for="contract-name"
+        >Nombre<span aria-hidden="true"> *</span></label
+      >
+      <input
+        id="contract-name"
+        pInputText
+        formControlName="name"
+        maxlength="200"
+        placeholder="Garantía compresor — Hotel Vista"
+      />
+      @if (form.controls.name.touched && form.controls.name.errors?.['required']) {
+        <p class="field-error" role="alert">Ponle un nombre para reconocerlo en la lista.</p>
+      }
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="field-group">
+        <label class="field-label" for="contract-customer"
+          >Cliente<span aria-hidden="true"> *</span></label
+        >
+        <p-select
+          inputId="contract-customer"
+          formControlName="customerId"
+          [options]="customerOptions()"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+          placeholder="Elige un cliente"
+          appendTo="body"
+          (onChange)="onCustomerChange($event.value)"
+        />
+        @if (customerLocked) {
+          <p class="field-hint">El cliente no cambia: la bitácora del contrato cuelga de él.</p>
+        }
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="contract-type"
+          >Tipo<span aria-hidden="true"> *</span></label
+        >
+        <p-select
+          inputId="contract-type"
+          formControlName="type"
+          [options]="typeOptions"
+          optionLabel="label"
+          optionValue="value"
+          appendTo="body"
+        />
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="contract-description">Descripción</label>
+      <textarea
+        id="contract-description"
+        pTextarea
+        formControlName="description"
+        rows="3"
+        placeholder="Qué cubre, condiciones acordadas…"
+      ></textarea>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="contract-tags">Etiquetas</label>
+      <app-tags-input controlId="contract-tags" formControlName="tags" />
+      <p class="field-hint">Sirven para encontrarlo después — se guardan en minúsculas.</p>
+    </div>
+  </section>
+
+  <!-- Documento -->
+  <section class="card-section flex flex-col gap-4" aria-labelledby="contract-file-title">
+    <h2 id="contract-file-title" class="section-heading">
+      Documento
+      @if (!isEdit) {
+        <span aria-hidden="true"> *</span>
+      }
+    </h2>
+
+    <div class="field-group">
+      @if (file(); as picked) {
+        <div
+          class="flex items-center justify-between gap-3 rounded-control bg-surface-100 px-3 py-2 dark:bg-surface-800/40"
+        >
+          <span class="truncate text-sm">{{ picked.name }}</span>
+          <button
+            type="button"
+            class="row-action row-action--danger"
+            (click)="clearFile()"
+            aria-label="Quitar el documento seleccionado"
+          >
+            <svg lucideX class="size-4" aria-hidden="true"></svg>
+          </button>
+        </div>
+      } @else {
+        <label
+          class="flex cursor-pointer items-center gap-3 rounded-control border border-dashed border-surface-300 px-3 py-4 text-surface-600 transition-colors hover:border-primary-500 hover:text-primary-700 dark:border-surface-700 dark:text-surface-400 dark:hover:border-primary-500"
+        >
+          <svg lucideFileUp class="size-5" aria-hidden="true"></svg>
+          <span class="text-sm font-medium">
+            @if (isEdit) {
+              Reemplazar el documento
+            } @else {
+              Elige el documento firmado
+            }
+          </span>
+          <input
+            type="file"
+            class="sr-only"
+            [accept]="acceptedFileTypes"
+            (change)="onFileSelected($event)"
+          />
+        </label>
+      }
+
+      <p class="field-hint">
+        @if (isEdit) {
+          @if (currentFileName(); as current) {
+            Actual: <span class="font-medium">{{ current }}</span> — se conserva si no eliges otro.
+            Al reemplazarlo, la versión anterior no se guarda.
+          } @else {
+            Se conserva el actual si no eliges otro.
+          }
+        } @else {
+          PDF, Word (docx/odt) o Excel (xls/xlsx). Un solo archivo.
+        }
+      </p>
+    </div>
+
+    @if (canSetVisibility()) {
+      <div class="field-group">
+        <label class="field-label" for="contract-visibility">Quién puede verlo</label>
+        <p-multiselect
+          inputId="contract-visibility"
+          formControlName="visibleToRoles"
+          [options]="visibleRoleOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Nadie más que la administración"
+          [showToggleAll]="false"
+          appendTo="body"
+        />
+        <p class="field-hint">
+          Tú y los administradores siempre lo ven. Quita un rol para reservar un documento sensible.
+        </p>
+      </div>
+    }
+  </section>
+
+  <!-- Vigencia -->
+  <section class="card-section flex flex-col gap-4" aria-labelledby="contract-validity-title">
+    <h2 id="contract-validity-title" class="section-heading">Vigencia</h2>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="field-group">
+        <label class="field-label" for="contract-valid-from"
+          >Vigente desde<span aria-hidden="true"> *</span></label
+        >
+        <p-datepicker
+          inputId="contract-valid-from"
+          formControlName="validFromDate"
+          dateFormat="yy-mm-dd"
+          [readonlyInput]="true"
+          [showIcon]="true"
+          [iconDisplay]="'input'"
+          placeholder="Elige una fecha"
+          appendTo="body"
+        />
+        @if (
+          form.controls.validFromDate.touched && form.controls.validFromDate.errors?.['required']
+        ) {
+          <p class="field-error" role="alert">Indica desde cuándo aplica.</p>
+        }
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="contract-expiry">Vence</label>
+        <p-datepicker
+          inputId="contract-expiry"
+          formControlName="expiryDate"
+          dateFormat="yy-mm-dd"
+          [readonlyInput]="true"
+          [showIcon]="true"
+          [iconDisplay]="'input'"
+          placeholder="Elige una fecha"
+          appendTo="body"
+          [disabled]="form.controls.neverExpires.value"
+        />
+        <div class="mt-2 flex items-center gap-2">
+          <p-checkbox
+            inputId="contract-never-expires"
+            formControlName="neverExpires"
+            [binary]="true"
+          />
+          <label
+            class="text-sm text-surface-700 dark:text-surface-300"
+            for="contract-never-expires"
+          >
+            Sin vencimiento
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <p class="field-hint">
+      El estado (por iniciar / vigente / vencido) se calcula solo a partir de estas fechas.
+    </p>
+  </section>
+
+  <!-- Equipos cubiertos -->
+  <section class="card-section flex flex-col gap-4" aria-labelledby="contract-equipment-title">
+    <h2 id="contract-equipment-title" class="section-heading">Equipos cubiertos</h2>
+
+    @if (equipmentOptions().length) {
+      <div class="field-group">
+        <label class="field-label" for="contract-equipment">Unidades que ampara</label>
+        <p-multiselect
+          inputId="contract-equipment"
+          formControlName="equipmentIds"
+          [options]="equipmentOptions()"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Opcional"
+          [showToggleAll]="false"
+          appendTo="body"
+        />
+        <p class="field-hint">Solo equipos de este cliente.</p>
+      </div>
+    } @else {
+      <p class="text-sm text-surface-600 dark:text-surface-400">
+        @if (form.controls.customerId.value) {
+          Este cliente no tiene equipos registrados. Puedes guardar el contrato sin unidades y
+          agregarlas después.
+        } @else {
+          Elige un cliente para ver sus unidades.
+        }
+      </p>
+    }
+  </section>
+
+  <div class="flex justify-end gap-2 xl:col-span-2">
+    <a routerLink="/contracts" class="btn-neutral">Cancelar</a>
+    <button type="submit" class="btn-primary" [disabled]="form.invalid || !canSubmit()">
+      @if (busy()) {
+        <span
+          class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+          aria-hidden="true"
+        ></span>
+        Guardando…
+      } @else if (isEdit) {
+        Guardar
+      } @else {
+        Registrar contrato
+      }
+    </button>
+  </div>
+</form>

@@ -10,10 +10,10 @@
   </span>
   @if (contract(); as c) {
     <div class="flex gap-2">
-      <button type="button" class="btn-secondary" (click)="openEdit()">
+      <a [routerLink]="['/contracts', c.id, 'edit']" class="btn-secondary">
         <svg lucidePencil class="size-4" aria-hidden="true"></svg>
         Editar
-      </button>
+      </a>
       @if (canDelete()) {
         <button type="button" class="btn-danger" (click)="openDelete()">
           <svg lucideTrash class="size-4" aria-hidden="true"></svg>
@@ -181,5 +181,4 @@
   </div>
 }
 
-<app-contract-form-dialog #formDialog (saved)="refresh()" />
 <app-delete-contract-dialog #deleteDialog (deleted)="onDeleted()" />

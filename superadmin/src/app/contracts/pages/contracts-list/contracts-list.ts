@@ -1,4 +1,4 @@
-import { Component, computed, inject, viewChild } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -19,7 +19,6 @@ import {
   ContractValidityLabelPipe,
   ContractValiditySeverityPipe,
 } from '../../../pipes/contract.pipe';
-import { ContractFormDialog } from '../../components/contract-form-dialog/contract-form-dialog';
 import { FiltersPopover } from '../../../shared/components/filters-popover/filters-popover';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { ContractType } from '../../../model/enums/contract/contract-type.enum';
@@ -45,7 +44,6 @@ import type { ContractListQuery } from '../../../data/dtos/contract/contract-req
     ContractTypeLabelPipe,
     ContractValidityLabelPipe,
     ContractValiditySeverityPipe,
-    ContractFormDialog,
     FiltersPopover,
     PageHeader,
     LucidePlus,
@@ -89,8 +87,6 @@ export class ContractsList {
     ),
   ];
 
-  protected formDialog = viewChild<ContractFormDialog>('formDialog');
-
   constructor() {
     this.store.dispatch(new LoadCustomers({ page: 1, limit: 100 }));
 
@@ -131,14 +127,6 @@ export class ContractsList {
       validity: this.validityFilter.value || undefined,
       tag: this.tagFilter.value || undefined,
     };
-  }
-
-  protected refresh(): void {
-    this.list.refresh(this.contracts().length);
-  }
-
-  protected openCreate(): void {
-    this.formDialog()?.open();
   }
 
   /** Row click → the contract view (canon whole-row idiom). A contract has a
