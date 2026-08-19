@@ -11,6 +11,9 @@ export type PublicUser = {
   maternalLastName: string | null;
   email: string;
   role: Role;
+  /** Deactivation (05 §1) is a pending column — until it lands, derived from
+   *  the soft delete, so every reachable row reports true. */
+  active: boolean;
   mustChangePassword: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -23,6 +26,7 @@ export const toPublicUser = (u: UserRow): PublicUser => ({
   maternalLastName: u.maternalLastName,
   email: u.email,
   role: u.role,
+  active: u.deletedAt === null,
   mustChangePassword: u.mustChangePassword,
   createdAt: u.createdAt,
   updatedAt: u.updatedAt,

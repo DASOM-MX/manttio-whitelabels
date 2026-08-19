@@ -26,7 +26,7 @@ import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
 import type { CmsHome, CmsHomeManufacturer } from '../../../data/dtos/cms';
 
 /** Home-document editor (04 §3 + §6): scalar fields + the repeater groups
- *  across the five section tabs, one save action for the whole document;
+ *  across the six section tabs, one save action for the whole document;
  *  draft→publish via the bar. */
 @Component({
   selector: 'app-home-editor',
@@ -95,6 +95,11 @@ export class HomeEditor implements HasPendingChanges {
       title: [''],
       description: [''],
       schedule: [''],
+    }),
+    catalog_content: this.fb.nonNullable.group({
+      eyebrow: [''],
+      title: [''],
+      description: [''],
     }),
     service_targets: this.fb.array<FormControl<string>>([]),
     badges: this.fb.array<FormGroup>([]),
@@ -261,6 +266,7 @@ export class HomeEditor implements HasPendingChanges {
       clients_content: this.sectionOrUndefined(raw.clients_content),
       manufacturers_content: this.sectionOrUndefined(raw.manufacturers_content),
       location_content: this.sectionOrUndefined(raw.location_content),
+      catalog_content: this.sectionOrUndefined(raw.catalog_content),
       service_targets: raw.service_targets.filter((t) => !!t.trim()),
       badges: raw.badges as CmsHome['badges'],
       services: (
@@ -323,6 +329,11 @@ export class HomeEditor implements HasPendingChanges {
           title: doc.location_content?.title ?? '',
           description: doc.location_content?.description ?? '',
           schedule: doc.location_content?.schedule ?? '',
+        },
+        catalog_content: {
+          eyebrow: doc.catalog_content?.eyebrow ?? '',
+          title: doc.catalog_content?.title ?? '',
+          description: doc.catalog_content?.description ?? '',
         },
       },
       { emitEvent: false },

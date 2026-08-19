@@ -1,0 +1,71 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [focusOnShow]="false"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="dialog-md"
+  header="Corregir tiempos"
+>
+  @if (target(); as visit) {
+    <form [formGroup]="form" (ngSubmit)="confirm()" class="grid gap-4">
+      <p class="text-sm text-surface-500 dark:text-surface-400">
+        Ajusta lo que quedó mal registrado en la visita
+        <span class="font-data font-medium">{{ visit.internalCode }}</span
+        >. La corrección queda en la bitácora de la orden, con el valor anterior y el nuevo.
+      </p>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="field-group">
+          <label class="field-label" for="actual-start">Inicio real</label>
+          <p-datepicker
+            inputId="actual-start"
+            formControlName="inicio"
+            [showTime]="true"
+            [showIcon]="true"
+            hourFormat="24"
+            dateFormat="dd/mm/yy"
+          />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="actual-end">Fin real</label>
+          <p-datepicker
+            inputId="actual-end"
+            formControlName="fin"
+            [showTime]="true"
+            [showIcon]="true"
+            hourFormat="24"
+            dateFormat="dd/mm/yy"
+          />
+        </div>
+      </div>
+
+      @if (incoherent()) {
+        <div class="callout callout--danger">
+          El fin no puede ser anterior al inicio.
+        </div>
+      } @else if (previewDuration(); as duration) {
+        <div class="callout callout--info">
+          Duración real con estos tiempos: <span class="font-data font-medium">{{ duration }}</span>
+          · estimada
+          <span class="font-data font-medium">{{ visit.expectedDurationMinutes }} min</span>
+        </div>
+      }
+
+      <div class="flex justify-end gap-2">
+        <button type="button" class="btn-neutral" (click)="close()" [disabled]="submitting()">
+          Volver
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="!canConfirm()">
+          @if (submitting()) {
+            Guardando…
+          } @else {
+            Guardar corrección
+          }
+        </button>
+      </div>
+    </form>
+  }
+</p-dialog>

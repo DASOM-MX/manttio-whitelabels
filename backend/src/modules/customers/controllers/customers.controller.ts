@@ -36,6 +36,7 @@ import {
 import { getFollowUps, getIntakeStats, getIntakeTrend } from '../services/customer-stats.service';
 import { getCustomerEquipment } from '../../equipment/services/equipment.service';
 import { getCustomerReports } from '../../reports/services/reports.service';
+import { getCustomerContracts } from '../../contracts/services/contracts.service';
 import {
   BlacklistReasonRequiredError,
   InvalidStatusTransitionError,
@@ -160,6 +161,15 @@ customers.get('/:id/equipment', async (c) => {
 customers.get('/:id/reports', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   return c.json(await getCustomerReports(db, c.req.param('id')));
+});
+
+// The client's filed contracts (13 §6) — the customer 360 "Contratos" card.
+// Role-scoped: office/technician see only the contracts whose `visibleToRoles`
+// admits them.
+customers.get('/:id/contracts', async (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  const contracts = await getCustomerContracts(db, c.req.param('id'), c.get('user'));
+  return c.json({ contracts });
 });
 
 // --- CRM sub-resources (08) ---------------------------------------------------

@@ -1,4 +1,4 @@
-import type { ReportRow, ReportDetailRow, ReportData } from './dtos/report';
+import type { ReportDetail, ReportCapture } from './dtos/report';
 import { ReportStatus } from './types/report';
 import type { PendingReport } from '../../offline/pending-report.model';
 import type { ReportViewModel } from './report-detail.model';
@@ -6,30 +6,30 @@ import type { ReportViewModel } from './report-detail.model';
 /** Statuses that count as "done" (read-only, finished workflow). */
 const DONE_STATUSES: ReportStatus[] = [ReportStatus.Finished, ReportStatus.Mailed];
 
-/** Maps a server report (+ details) into the view model. */
-export const toViewModel = (report: ReportRow, details: ReportDetailRow | null): ReportViewModel => {
-  const data = (details?.data ?? {}) as Partial<ReportData>;
-  const lat = report.signedLatitude;
-  const lng = report.signedLongitude;
+/** Maps a server report detail into the view model. Renders from the stored snapshot. */
+export const toViewModel = (detail: ReportDetail): ReportViewModel => {
+  const lat = detail.signedLatitude;
+  const lng = detail.signedLongitude;
   return {
-    id: report.id,
-    report_type: report.reportType,
-    manttio_type: report.workType ?? '',
-    report_status: DONE_STATUSES.includes(report.status),
-    date_arrival: report.dateArrival,
-    date_departure: report.dateDeparture,
-    signature: details?.signature ?? null,
-    signed_by: report.signedBy,
+    id: detail.id,
+    template_id: detail.templateId,
+    report_type: detail.reportType,
+    manttio_type: detail.workType ?? '',
+    report_status: DONE_STATUSES.includes(detail.status),
+    date_arrival: detail.dateArrival,
+    date_departure: detail.dateDeparture,
+    signature: detail.signatureUrl ?? null,
+    signed_by: detail.signedBy,
     signed_latitude: lat,
     signed_longitude: lng,
-    signed_accuracy: report.signedAccuracy,
+    signed_accuracy: detail.signedAccuracy,
     signed_maps_url:
       lat !== null && lng !== null
         ? `https://www.google.com/maps?q=${lat.toFixed(6)},${lng.toFixed(6)}`
         : null,
-    pictures: details?.pictures ?? [],
-    observations: (data as { observations?: string }).observations ?? '',
-    ...data,
+    pictures: detail.photos ?? [],
+    comments: detail.comments ?? '',
+    sections: detail.sections,
   };
 };
 
@@ -41,10 +41,11 @@ export const toViewModelFromPending = (
   pictureUrls: string[],
   signatureUrl: string | null,
 ): ReportViewModel => {
-  const data = rec.fields.data as Partial<ReportData>;
+  const capture = rec.fields.data as ReportCapture;
   return {
     id: rec.tempId,
-    report_type: rec.fields.report_type,
+    template_id: capture?.templateId ?? null,
+    report_type: capture?.templateName ?? '',
     manttio_type: rec.fields.work_type ?? '',
     report_status: false,
     date_arrival: rec.fields.date_arrival ?? null,
@@ -56,7 +57,7 @@ export const toViewModelFromPending = (
     signed_accuracy: rec.fields.signed_accuracy ?? null,
     signed_maps_url: null,
     pictures: pictureUrls,
-    observations: (data as { observations?: string }).observations ?? '',
-    ...data,
+    comments: rec.fields.comments ?? '',
+    sections: capture?.sections ?? [],
   };
 };

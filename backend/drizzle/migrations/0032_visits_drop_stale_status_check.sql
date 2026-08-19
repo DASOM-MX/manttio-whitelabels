@@ -1,0 +1,33 @@
+-- Drop the pre-pivot status CHECK on `scheduled_visits`.
+--
+-- The shared database carried this from the abandoned PR #97:
+--
+--   CHECK (status = ANY (ARRAY['scheduled','completed','cancelled','missed','rescheduled']))
+--
+-- That is the *old* vocabulary. The pivot's is `scheduled | in_progress |
+-- completed | closed` (12 §1), so the live database rejected both `in_progress`
+-- (Iniciar) and `closed` (Cerrar) with a 23514 — every start and every close
+-- 500'd. Found by `test/visits.test.ts`; `0031`'s transactional dry run could
+-- not have caught it, because proving DDL *executes* says nothing about what
+-- rows the table will then accept.
+--
+-- Dropped rather than corrected, and that is the reconciling choice, not the
+-- destructive one:
+--
+--   * The drizzle model declares no check on this column — so a tenant database
+--     provisioned from these migrations never had one. Correcting the array
+--     would have left the shared database enforcing a contract no other tenant
+--     has, which is the divergence the never-hand-apply rule exists to prevent.
+--   * Every table built in the migration era — `service_orders`, `quotations`,
+--     `quotation_lines`, `service_order_events`, `services`, `equipment` —
+--     carries zero check constraints. Status vocabularies are enforced by the
+--     TS enum plus zod at the edge. Only the legacy tables (`customers`,
+--     `reports`, `users`) still have them, from before that convention.
+--
+-- No data is touched. A dropped CHECK removes a constraint, never a row, so
+-- this is not a destructive migration in the sense the fork rule forbids —
+-- and there is no way to widen a CHECK without dropping it.
+--
+-- `IF EXISTS` because a freshly provisioned tenant never had the constraint:
+-- there, this migration is a no-op.
+ALTER TABLE "scheduled_visits" DROP CONSTRAINT IF EXISTS "scheduled_visits_status_check";

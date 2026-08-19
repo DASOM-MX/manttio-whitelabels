@@ -1,0 +1,16 @@
+/* PrimeNG Carousel — the visit detail's per-unit photo carousels (12 CP-4b).
+   Aura's indicator pills are surface-on-surface and disappear against the
+   white equipment cards, which leaves a multi-photo unit with no cue that
+   swiping does anything. Repaint them with the granite scale (active = brand
+   primary) and tuck them close under the photo. */
+.p-carousel-indicator-list {
+  @apply gap-1.5 py-2;
+}
+
+.p-carousel-indicator-button {
+  @apply h-1.5 w-4 rounded-full bg-granite-300 dark:bg-granite-600;
+}
+
+.p-carousel-indicator-active .p-carousel-indicator-button {
+  @apply bg-sky-700 dark:bg-sky-300;
+}

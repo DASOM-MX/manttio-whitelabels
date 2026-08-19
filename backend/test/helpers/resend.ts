@@ -8,6 +8,7 @@ export type CapturedSend = {
   html: string;
   text: string;
   reply_to?: string;
+  attachments?: { filename: string; content: string }[];
 };
 
 const captures: CapturedSend[] = [];

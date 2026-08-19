@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { equipment, equipmentReports } from '../models/equipment.model';
 import { customers } from '../../customers/models/customers.model';
@@ -76,6 +76,23 @@ export const listEquipment = async (
     .where(where);
 
   return { items, total: countRows[0]?.count ?? 0 };
+};
+
+/** Which of these equipment ids actually belong to the customer, ignoring
+ *  soft-deleted units. Callers diff this against what was asked for so the
+ *  error can name the offenders. Shared by every module that links units to a
+ *  client-scoped record — visits (12 §1) and contracts (13 §1). */
+export const equipmentIdsForCustomer = async (
+  db: Db,
+  customerId: string,
+  ids: string[],
+): Promise<string[]> => {
+  if (!ids.length) return [];
+  const rows = await db
+    .select({ id: equipment.id })
+    .from(equipment)
+    .where(and(inArray(equipment.id, ids), eq(equipment.customerId, customerId), activeFilter));
+  return rows.map((r) => r.id);
 };
 
 export const listEquipmentByCustomer = async (

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { customers } from '../models/customers.model';
 import { customerContacts } from '../models/customer-contacts.model';
@@ -6,6 +6,7 @@ import { customerFiscal } from '../models/customer-fiscal.model';
 import { customerInteractions } from '../models/customer-interactions.model';
 import { InteractionType } from '../enums/interactions.enum';
 import type {
+  ContactRow,
   CustomerRow,
   CustomerWithRelations,
   NewContact,
@@ -36,6 +37,26 @@ const fiscalOf = async (exec: Executor, customerId: string) => {
     .where(eq(customerFiscal.customerId, customerId))
     .limit(1);
   return row ?? null;
+};
+
+/** The subset of a customer's contacts named by id — the server-side check
+ *  behind the quotation recipient picker (20 §4).
+ *
+ *  Scoped by `customerId` on purpose: it makes "this contact belongs to a
+ *  different client" un-representable rather than something every caller has to
+ *  remember to verify. The failure it prevents is mailing one client's prices
+ *  into another client's inbox, so it fails closed — an id that doesn't match
+ *  simply isn't returned, and the caller rejects the whole send. */
+export const findContactsForCustomer = async (
+  db: Db,
+  customerId: string,
+  ids: string[],
+): Promise<ContactRow[]> => {
+  if (ids.length === 0) return [];
+  return db
+    .select()
+    .from(customerContacts)
+    .where(and(eq(customerContacts.customerId, customerId), inArray(customerContacts.id, ids)));
 };
 
 export const listCustomers = async (db: Db): Promise<CustomerRow[]> => {

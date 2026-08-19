@@ -1,0 +1,44 @@
+/* PrimeNG RadioButton
+   Added 2026-08-17 with the `radio` template datatype — the first use of this
+   component in the field app.
+
+   A sheet is mandatory, not cosmetic: Tailwind's preflight zeroes borders
+   (`*, ::before, ::after { border-width: 0 }`) and is **unlayered**, so it beats
+   Aura's `primeng`-layered border rules. Without an unlayered override the box
+   computes to `border: 0` and renders as an invisible white circle.
+
+   Mirrors checkbox.scss — same 28px target, same filled-when-on treatment — so a
+   radio group and a checkbox group read as the same family of control. */
+.p-radiobutton {
+  // Size the host too: Aura's layered `width/height: 20px` is not a border, so
+  // preflight leaves it alone and it would clip the 28px box (the squash that
+  // checkbox.scss hit).
+  @apply relative inline-flex items-center justify-center size-7 cursor-pointer;
+}
+/* Hide the native <input> but keep it accessible (screen-readers + tab focus) by
+   overlaying it on the styled box — same reason as checkbox.scss. */
+.p-radiobutton-input {
+  @apply absolute inset-0 size-full m-0 p-0 opacity-0 cursor-pointer;
+}
+.p-radiobutton-box {
+  @apply size-7 rounded-full border-2 border-granite-400 bg-white flex items-center justify-center transition-colors cursor-pointer;
+}
+.p-radiobutton.p-radiobutton-checked .p-radiobutton-box,
+.p-radiobutton-box[data-p-checked='true'] {
+  @apply bg-sky-700 border-sky-700;
+}
+.p-radiobutton-icon {
+  @apply size-3 rounded-full bg-transparent transition-colors;
+}
+.p-radiobutton.p-radiobutton-checked .p-radiobutton-icon,
+.p-radiobutton-box[data-p-checked='true'] .p-radiobutton-icon {
+  @apply bg-white;
+}
+.p-radiobutton.p-focus .p-radiobutton-box,
+.p-radiobutton-box[data-p-focus='true'] {
+  @apply ring-4 ring-sky-700/25;
+}
+.p-radiobutton.p-disabled,
+.p-radiobutton[data-p-disabled='true'] {
+  @apply opacity-50 cursor-not-allowed;
+}

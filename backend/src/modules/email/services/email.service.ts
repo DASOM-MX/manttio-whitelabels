@@ -23,6 +23,7 @@ export const sendEmail = async (p: ResendSendParams): Promise<{ id: string }> =>
       html: p.html,
       text: p.text,
       reply_to: p.replyTo,
+      attachments: p.attachments,
     }),
   });
 

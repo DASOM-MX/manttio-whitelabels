@@ -9,7 +9,7 @@ import { LoadReport } from '../../../../state/reports/reports.actions';
 import { AuthState } from '../../../../state/auth/auth.state';
 import { ReportsService } from '../../../services/http/reports.service';
 import { hasRole } from '../../../guards/has-role.guard';
-import { ReportStatus } from '../../../data/dtos/report';
+import { ReportStatus } from '../../../model/enums/report/report-status.enum';
 import { REPORT_STATUS_LABELS } from '../../../model/constants/report/report-status-labels.const';
 import { REPORT_STATUS_SEVERITIES } from '../../../model/constants/report/report-status-severities.const';
 import { AnswerValuePipe, ColumnsGridPipe } from '../../../pipes/report-answer.pipe';

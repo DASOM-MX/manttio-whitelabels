@@ -3,7 +3,7 @@
 // always comes from the brand/CMS API; these defaults only keep the template
 // rendering with generic industry copy.
 
-import type { Brand, CmsClient, CmsHome } from './types';
+import type { Brand, CmsClient, CmsHome, CmsSectionContent } from './types';
 
 export const DEFAULT_BRAND: Brand = {
   name: 'Climatización Industrial',
@@ -65,3 +65,14 @@ export const DEFAULT_HOME: CmsHome = {
 // Client roster is tenant content (cms_clients) — no fallback wall; the
 // Clientes section hides entirely when the CMS has nothing published.
 export const DEFAULT_CLIENTS: CmsClient[] = [];
+
+// Fallback copy for the published service catalog (18 §4), used when the tenant
+// leaves `cms_home.catalog_content` blank — same posture as every other v1.1
+// section group. The *entries* are always tenant-owned (the service catalog);
+// only this heading has a brand-neutral default.
+export const DEFAULT_CATALOG_CONTENT: CmsSectionContent = {
+  eyebrow: 'Catálogo',
+  title: 'Servicios y precios de referencia',
+  description:
+    'El detalle de lo que ofrecemos, con su unidad de cobro. Los precios son de referencia y no incluyen IVA; cada proyecto se cotiza según alcance, ubicación y condiciones de sitio.',
+};

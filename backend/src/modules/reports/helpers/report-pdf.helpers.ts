@@ -11,11 +11,12 @@ import {
   drawImageGrid,
   drawRow,
   drawSectionHeader,
+  drawStackedRow,
   embedImageFromUrl,
   ensureSpace,
 } from '../../pdf/services/pdf.service';
 import { hslToRgb01 } from '../../brand/utils/hsl-color';
-import type { PdfTheme, Renderer } from '../../pdf/types/pdf.types';
+import type { PdfTheme, Renderer, StackedCell } from '../../pdf/types/pdf.types';
 import type { Brand, HslScale } from '../../brand/dtos/brand.dto';
 
 const formatDate = (d: Date | null, timezone: string) => {
@@ -48,17 +49,29 @@ export type RenderReportPdfParams = {
   brand: Brand;
   report: {
     id: string;
-    reportType: string;
+    templateName: string;
     workType: string | null;
     dateArrival: Date | null;
     dateDeparture: Date | null;
     finishedAt: Date | null;
+    comments: string | null;
     signedBy: string | null;
     signedLatitude: number | null;
     signedLongitude: number | null;
     signedAccuracy: number | null;
   };
-  data: Record<string, unknown>;
+  capture: {
+    sections: Array<{
+      title: string;
+      columns: 1 | 2 | 3;
+      answers: Array<{
+        label: string;
+        datatype: string;
+        unit?: string;
+        value: string | number | boolean | string[] | null;
+      }>;
+    }>;
+  };
   customer: {
     name: string;
     identification: string | null;
@@ -163,146 +176,67 @@ const drawActivitiesTable = (r: Renderer, p: RenderReportPdfParams) => {
     { text: 'Fecha Salida', bold: true },
     { text: formatDate(p.report.dateDeparture, p.customer.timezone) },
   ]);
-  drawRow(r, cols, [
-    { text: 'Observaciones', bold: true },
-    { text: (p.data['observations'] as string) || '', colSpan: 3 },
-  ]);
   r.y -= 8;
 };
 
-const drawVariantTable = (r: Renderer, reportType: string, data: Record<string, unknown>) => {
-  const v = (k: string) => {
-    const val = data[k];
-    if (val === true) return 'Sí';
-    if (val === false) return 'No';
-    if (val === null || val === undefined) return '';
-    return String(val);
-  };
-  const w = CONTENT_WIDTH / 4;
-  const cols4 = [w, w, w, w];
-
-  if (reportType === 'minisplit') {
-    drawRow(r, cols4, [
-      { text: 'Formulario: Mantenimiento Minisplit', bold: true, fill: r.theme.fill, align: 'center', colSpan: 4 },
-      { text: '' },
-      { text: '' },
-      { text: '' },
-    ]);
-    drawRow(r, cols4, [
-      { text: 'Equipo se encuentra operando', bold: true },
-      { text: v('is_operating') },
-      { text: 'Cuenta con filtro evaporador', bold: true },
-      { text: v('filter') },
-    ]);
-    drawRow(r, cols4, [
-      { text: 'Control remoto funciona', bold: true },
-      { text: v('remote_working') },
-      { text: 'Voltaje de entrada', bold: true },
-      { text: v('inner_voltage') },
-    ]);
-    drawRow(r, cols4, [
-      { text: 'Amperaje general', bold: true },
-      { text: v('amperage') },
-      { text: 'Ruido fuera de lo normal', bold: true },
-      { text: v('unusual_noise') },
-    ]);
-    drawRow(r, cols4, [
-      { text: 'Observaciones', bold: true },
-      { text: v('observations') || 'Ninguna', colSpan: 3 },
-    ]);
-  } else if (reportType === 'chiller') {
-    const cols = [
-      CONTENT_WIDTH * 0.35,
-      CONTENT_WIDTH * 0.15,
-      CONTENT_WIDTH * 0.35,
-      CONTENT_WIDTH * 0.15,
-    ];
-    drawRow(r, cols, [
-      { text: 'Informaciones de las actividades', bold: true, fill: r.theme.fill, align: 'center', colSpan: 4 },
-      { text: '' },
-      { text: '' },
-      { text: '' },
-    ]);
-    drawRow(r, cols, [
-      { text: 'Equipo se encuentra operando', bold: true },
-      { text: v('is_operating') },
-      { text: 'Switch de flujo funciona', bold: true },
-      { text: v('flux_switch_working') },
-    ]);
-    drawRow(r, cols, [
-      { text: 'Temperatura de entrada', bold: true },
-      { text: v('inner_temperature') },
-      { text: 'Temperatura de salida', bold: true },
-      { text: v('outer_temperature') },
-    ]);
-    drawRow(r, cols, [
-      { text: 'Teclas del PLC funcionan', bold: true },
-      { text: v('plc_keys_working') },
-      { text: 'Voltaje de entrada', bold: true },
-      { text: v('inner_voltage') },
-    ]);
-    drawRow(r, cols, [
-      { text: 'Amperaje de motor condensador general', bold: true },
-      { text: v('motor_amperage') },
-      { text: 'Presiones del sistema 1', bold: true },
-      { text: v('system_pressure_1') },
-    ]);
-    drawRow(r, cols, [
-      { text: 'Presiones del sistema 2', bold: true },
-      { text: v('system_pressure_2') },
-      { text: 'Presiones del sistema 3', bold: true },
-      { text: v('system_pressure_3') },
-    ]);
-    drawRow(r, cols, [
-      { text: 'Presión de aceite', bold: true },
-      { text: v('oil_pressure') },
-      { text: 'Nivel de aceite', bold: true },
-      { text: v('oil_level') },
-    ]);
-    drawRow(r, cols, [
-      { text: 'Observaciones', bold: true },
-      { text: v('observations') || 'Ninguna', colSpan: 3 },
-    ]);
-  } else if (reportType === 'uma') {
-    drawRow(r, cols4, [
-      { text: 'Formulario UMAS', bold: true, fill: r.theme.fill, align: 'center', colSpan: 4 },
-      { text: '' },
-      { text: '' },
-      { text: '' },
-    ]);
-    drawRow(r, cols4, [
-      { text: 'Equipo se encuentra operando', bold: true },
-      { text: v('is_operating') },
-      { text: 'Se ajustó la banda de la UMA', bold: true },
-      { text: v('air_band_adjustment') },
-    ]);
-    drawRow(r, cols4, [
-      { text: 'Temperatura de entrada', bold: true },
-      { text: v('inner_temperature') },
-      { text: 'Temperatura de salida', bold: true },
-      { text: v('outer_temperature') },
-    ]);
-    drawRow(r, cols4, [
-      { text: 'Rejilla de aire en buenas condiciones', bold: true },
-      { text: v('air_good_quality') },
-      { text: 'Voltaje de entrada', bold: true },
-      { text: v('inner_voltage') },
-    ]);
-    drawRow(r, cols4, [
-      { text: 'Amperaje del motor', bold: true },
-      { text: v('motor_amperage') },
-      { text: 'Ruido fuera de lo normal', bold: true },
-      { text: v('unusual_noise') },
-    ]);
-    drawRow(r, cols4, [
-      { text: 'Observaciones', bold: true },
-      { text: v('observations') || 'Ninguna', colSpan: 3 },
-    ]);
-  } else {
-    drawRow(r, [CONTENT_WIDTH], [
-      { text: 'Sin datos específicos de mantenimiento', align: 'center' },
-    ]);
+// Format a single answer value for PDF display, including unit suffix for numbers.
+const formatAnswerValue = (answer: {
+  datatype: string;
+  unit?: string;
+  value: string | number | boolean | string[] | null;
+}): string => {
+  if (answer.value === null || answer.value === undefined) return '—';
+  if (answer.datatype === 'boolean') {
+    return answer.value === true ? 'Sí' : 'No';
   }
+  if (answer.datatype === 'multiselect' || answer.datatype === 'checkbox_group') {
+    if (Array.isArray(answer.value)) {
+      return answer.value.join(', ') || '—';
+    }
+  }
+  if (typeof answer.value === 'number' && answer.unit) {
+    return `${answer.value} ${answer.unit}`;
+  }
+  if (typeof answer.value === 'string' && answer.value.trim() === '') return '—';
+  return String(answer.value);
+};
+
+const drawCaptureSection = (
+  r: Renderer,
+  section: {
+    title: string;
+    columns: 1 | 2 | 3;
+    answers: Array<{
+      label: string;
+      datatype: string;
+      unit?: string;
+      value: string | number | boolean | string[] | null;
+    }>;
+  },
+) => {
+  // Section header
+  drawRow(r, [CONTENT_WIDTH], [
+    { text: section.title, bold: true, fill: r.theme.fill, align: 'center' },
+  ]);
+
+  // The section's stored `columns` is how many question/answer pairs sit side by
+  // side, matching what the technician filled in — the answer reads *under* its
+  // label, not across a two-column table from it. A PDF page is fixed width, so
+  // the desktop count is used directly with no responsive step (03 §3.4).
+  const columns = section.columns;
+  const widths = Array.from({ length: columns }, () => CONTENT_WIDTH / columns);
+
+  for (let i = 0; i < section.answers.length; i += columns) {
+    const cells: StackedCell[] = section.answers.slice(i, i + columns).map((answer) => ({
+      label: answer.label,
+      value: formatAnswerValue(answer),
+    }));
+    // Pad a short final row with borderless filler so the boxes stay aligned
+    // without drawing an empty one.
+    while (cells.length < columns) cells.push({ label: '', value: '', border: false });
+    drawStackedRow(r, widths, cells);
+  }
+
   r.y -= 8;
 };
 
@@ -310,6 +244,16 @@ const drawReportPictures = async (r: Renderer, urls: string[]) => {
   if (urls.length === 0) return;
   drawSectionHeader(r, 'Fotos del Reporte', 3);
   await drawImageGrid(r, urls, 3);
+  r.y -= 8;
+};
+
+// Fixed-skeleton footer (03 §2): the technician's closing remarks, above the
+// signature. Rendered as a table row like the capture sections so long text
+// wraps and paginates through the same path.
+const drawComments = (r: Renderer, comments: string | null) => {
+  if (!comments || comments.trim() === '') return;
+  drawSectionHeader(r, 'Comentarios');
+  drawRow(r, [CONTENT_WIDTH], [{ text: comments }]);
   r.y -= 8;
 };
 
@@ -383,8 +327,12 @@ export const renderReportPdf = async (p: RenderReportPdfParams): Promise<Uint8Ar
   drawTitleBar(r, p.customer.name, p.report.id);
   drawCustomerTable(r, p.customer);
   drawActivitiesTable(r, p);
-  drawVariantTable(r, p.report.reportType, p.data);
+  // Draw each section from the captured template snapshot
+  for (const section of p.capture.sections) {
+    drawCaptureSection(r, section);
+  }
   await drawReportPictures(r, p.pictureUrls);
+  drawComments(r, p.report.comments);
   await drawSignature(
     r,
     p.signatureUrl,

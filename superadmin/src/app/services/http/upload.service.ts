@@ -28,4 +28,13 @@ export class UploadService {
     fd.set('file', file);
     return this.remote.postForm<UploadImageResponse>('/upload/equipment', fd);
   }
+
+  /** Public marketing-site imagery (service catalog photos) — the dedicated
+   *  `manttio-images` bucket. Commit the returned **key**, not the URL: the
+   *  backend materializes URLs on read so a CDN move never rewrites rows. */
+  uploadWebsiteImage(file: File): Observable<UploadImageResponse> {
+    const fd = new FormData();
+    fd.set('file', file);
+    return this.remote.postForm<UploadImageResponse>('/upload/website-image', fd);
+  }
 }

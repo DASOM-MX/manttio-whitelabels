@@ -19,80 +19,135 @@
     <!-- Form card — hidden until the technician confirms the "Abrir nuevo reporte"
              dialog (or an existing draft is resumed). -->
     @if (formReady()) {
-      <div class="card-section flex flex-col gap-7" [formGroup]="headerForm">
-        <!-- 2x2 cabecera: Cliente | Llegada | Tipo de reporte | Tipo de tarea -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-7">
-          <div class="field-group">
-            <label for="customer" class="field-label">Cliente</label>
-            <p-select
-              inputId="customer"
-              formControlName="customerId"
-              [options]="customers()"
-              optionLabel="name"
-              optionValue="id"
-              [autoOptionFocus]="false"
-              styleClass="w-full"
-              [filter]="true"
-              filterBy="name,identification"
-              placeholder="Selecciona un cliente"
-            >
-            </p-select>
-          </div>
+      <div class="flex flex-col gap-8">
+        <!-- Header card: Cliente | Llegada | Tipo de tarea -->
+        <div class="card-section flex flex-col gap-7" [formGroup]="headerForm">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-7">
+            <div class="field-group">
+              <label for="customer" class="field-label">Cliente</label>
+              <p-select
+                inputId="customer"
+                formControlName="customerId"
+                [options]="customers()"
+                optionLabel="name"
+                optionValue="id"
+                [autoOptionFocus]="false"
+                styleClass="field-input"
+                [filter]="true"
+                filterBy="name,identification"
+                placeholder="Selecciona un cliente"
+              >
+              </p-select>
+            </div>
 
-          <div class="field-group">
-            <span class="field-label">Llegada</span>
-            <span
-              class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold pt-1.5"
-            >
-              {{ arrivalAt() | date: "dd/MM/yyyy HH:mm" }}
-            </span>
-          </div>
+            <div class="field-group">
+              <span class="field-label">Llegada</span>
+              <span
+                class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold pt-1.5"
+              >
+                {{ arrivalAt() | date: "dd/MM/yyyy HH:mm" }}
+              </span>
+            </div>
 
-          <div class="field-group">
-            <label for="reportType" class="field-label">Tipo de reporte</label>
-            <p-select
-              inputId="reportType"
-              formControlName="reportType"
-              [options]="reportTypeOptions"
-              optionLabel="label"
-              optionValue="value"
-              [autoOptionFocus]="false"
-              styleClass="w-full"
-            >
-            </p-select>
-          </div>
-
-          <div class="field-group">
-            <label for="workType" class="field-label">Tipo de tarea</label>
-            <p-select
-              inputId="workType"
-              formControlName="workType"
-              [options]="workTypeOptions"
-              optionLabel="label"
-              optionValue="value"
-              [autoOptionFocus]="false"
-              styleClass="w-full"
-              placeholder="Selecciona un tipo"
-            >
-            </p-select>
+            <div class="field-group">
+              <label for="workType" class="field-label">Tipo de tarea</label>
+              <p-select
+                inputId="workType"
+                formControlName="workType"
+                [options]="workTypeOptions"
+                optionLabel="label"
+                optionValue="value"
+                [autoOptionFocus]="false"
+                styleClass="field-input"
+                placeholder="Selecciona un tipo"
+              >
+              </p-select>
+            </div>
           </div>
         </div>
 
-        <!-- Dynamic form (fades + remounts when Tipo de reporte changes) -->
-        <div
-          class="transition-opacity duration-300"
-          [class.opacity-0]="isAnimating()"
-          [class.opacity-100]="!isAnimating()"
-        >
-          @if (!isAnimating()) {
-            <app-dynamic-form
-              [fields]="formFields()"
-              (submitForm)="onFormSubmit($event)"
-              (filesSelected)="onFilesSelected($event)"
-            >
-            </app-dynamic-form>
+        <!-- Template picker or empty state -->
+        @if (hasNoActiveTemplates()) {
+          <!-- Zero active templates: tenant has authored none yet -->
+          <div class="card-section flex flex-col gap-4 py-8">
+            <p class="text-granite-700 dark:text-granite-300">
+              No hay plantillas de reporte disponibles. Por favor, crea una en la configuración de tu cuenta.
+            </p>
+          </div>
+        } @else if (needsFirstSync()) {
+          <!-- Cache is empty: device has never been online -->
+          <div class="card-section flex flex-col gap-4 py-8">
+            <p class="text-granite-700 dark:text-granite-300">
+              Conéctate una vez para descargar las plantillas de reporte de tu cuenta.
+            </p>
+          </div>
+        } @else {
+          <!-- A lone active template is auto-selected (§5.1), so the picker only
+               appears when there is an actual choice to make. -->
+          @if (templateOptions().length > 1) {
+            <div class="card-section flex flex-col gap-7" [formGroup]="templatePickerForm">
+              <div class="field-group">
+                <label for="template" class="field-label">Plantilla de reporte</label>
+                <p-select
+                  inputId="template"
+                  formControlName="templateId"
+                  [options]="templateOptions()"
+                  optionLabel="name"
+                  optionValue="id"
+                  [virtualScroll]="true"
+                  [virtualScrollItemSize]="44"
+                  [lazy]="true"
+                  (onLazyLoad)="onTemplateLazyLoad($event)"
+                  [loading]="templateLoading()"
+                  [filter]="true"
+                  appendTo="body"
+                  styleClass="field-input"
+                  placeholder="Selecciona una plantilla"
+                >
+                </p-select>
+              </div>
+            </div>
           }
-        </div>
+
+          <!-- Form for the selected template -->
+          @if (selectedTemplate()) {
+            <app-report-template-form
+              [template]="selectedTemplate()!"
+              (submitForm)="onFormSubmit($event)"
+            >
+              <!-- Projected into the form's footer, between the template sections
+                   and the submit button. Photos and comments are part of every
+                   report, never template questions (03 §2), so they are rendered
+                   here by the page rather than by the template renderer. -->
+              <div class="card-section flex flex-col gap-6">
+                <h2 class="section-heading">Fotos</h2>
+                <app-image-picker (filesSelected)="onFilesSelected($event)" />
+                @if (picturesMissing()) {
+                  <p class="text-base font-semibold text-red-600 dark:text-red-400">
+                    Agrega al menos 2 fotos — {{ picturesMissing() === 2 ? "faltan 2" : "falta 1" }}.
+                  </p>
+                }
+              </div>
+
+              <!-- Own `formGroup`, so it stays out of the template form's validity. -->
+              <div class="card-section flex flex-col gap-6" [formGroup]="footerForm">
+                <h2 class="section-heading">Comentarios</h2>
+                <div class="field-group">
+                  <label for="comments" class="field-label">
+                    Observaciones del técnico (opcional)
+                  </label>
+                  <textarea
+                    pTextarea
+                    id="comments"
+                    formControlName="comments"
+                    class="field-input !h-auto"
+                    rows="4"
+                  ></textarea>
+                </div>
+              </div>
+            </app-report-template-form>
+          }
+        }
       </div>
     }
   </div>
@@ -107,9 +162,7 @@
 >
 </app-leave-draft-dialog>
 
-<!-- Sign-and-submit modal: opens when the tech taps "Enviar" with a valid header.
-     The signature emit dispatches the actual CreateReport (with the signature
-     attached so the backend can mark the report finished in one shot). -->
+<!-- Sign-and-submit modal -->
 <app-sign-submit-dialog
   [(visible)]="signModalVisible"
   [loading]="saving()"

@@ -3,7 +3,7 @@
     class="flex-shrink-0 flex items-center justify-center gap-2 bg-amber-500 text-granite-1000 text-sm font-semibold py-1.5 px-4"
   >
     <i class="pi pi-exclamation-triangle"></i>
-    Sin conexión — los reportes se guardarán en este dispositivo
+    Sin conexión — tu trabajo se guardará en este dispositivo
   </div>
 }
 
@@ -42,6 +42,39 @@
           }
         </span>
         <span class="text-xs font-semibold">Reportes</span>
+      </a>
+    </li>
+    <li class="flex-1">
+      <a
+        routerLink="/visits"
+        routerLinkActive="text-sky-300 bg-navy-800"
+        class="flex flex-col items-center gap-0.5 min-h-16 py-2.5 text-granite-100 hover:bg-navy-800 active:bg-navy-700 transition-colors"
+      >
+        <span class="relative">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="size-7"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
+            />
+          </svg>
+          @if (pendingVisitCount() > 0) {
+            <span
+              class="absolute -top-1.5 -right-2.5 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-amber-500 text-granite-1000 text-xs font-bold leading-none"
+              aria-label="Acciones de visita pendientes de enviar"
+            >
+              {{ pendingVisitCount() }}
+            </span>
+          }
+        </span>
+        <span class="text-xs font-semibold">Visitas</span>
       </a>
     </li>
     <li class="flex-1">

@@ -1,0 +1,52 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="dialog-md"
+  header="Cancelar cotización"
+>
+  <div class="grid gap-4">
+    <p class="text-sm text-surface-700 dark:text-surface-300">
+      <span class="font-data font-medium">{{ target()?.folio }}</span> se cierra de forma
+      definitiva: deja de poder enviarse, revisarse o convertirse en orden.
+    </p>
+
+    <div class="callout callout--info">
+      Las ligas que ya enviaste siguen abriendo, pero el cliente verá la cotización como cerrada y
+      ya no podrá aprobarla.
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="confirm()" class="grid gap-4">
+      <div class="field-group">
+        <label class="field-label" for="quotation-cancel-comment">
+          Motivo<span aria-hidden="true"> *</span>
+        </label>
+        <textarea
+          id="quotation-cancel-comment"
+          pTextarea
+          formControlName="comment"
+          rows="2"
+          class="!min-h-16"
+          placeholder="El cliente cambió de alcance, se cotizó por error…"
+        ></textarea>
+        <p class="field-hint">Queda en la bitácora de la cotización, junto con quién la cerró.</p>
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button type="button" class="btn-neutral" (click)="close()" [disabled]="submitting()">
+          Volver
+        </button>
+        <button type="submit" class="btn-danger" [disabled]="!canConfirm()">
+          @if (submitting()) {
+            Cancelando…
+          } @else {
+            Cancelar cotización
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</p-dialog>

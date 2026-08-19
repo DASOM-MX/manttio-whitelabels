@@ -1,0 +1,139 @@
+<app-page-header
+  title="Cotizaciones"
+  description="Las propuestas que has enviado a tus clientes y en qué van."
+>
+  <app-filters-popover [params]="['q', 'status', 'customerId', 'due']">
+    <div class="field-group">
+      <label class="field-label" for="quotations-search">Buscar</label>
+      <input
+        id="quotations-search"
+        pInputText
+        type="search"
+        [formControl]="search"
+        placeholder="Folio o cliente"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="quotations-status">Estado</label>
+      <p-select
+        inputId="quotations-status"
+        [formControl]="statusFilter"
+        [options]="statusOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="quotations-customer">Cliente</label>
+      <p-select
+        inputId="quotations-customer"
+        [formControl]="customerFilter"
+        [options]="customerOptions()"
+        optionLabel="label"
+        optionValue="value"
+        [filter]="true"
+        filterBy="label"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="quotations-due">Vigencia</label>
+      <p-select
+        inputId="quotations-due"
+        [formControl]="dueFilter"
+        [options]="dueOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
+  </app-filters-popover>
+  @if (canEditSettings()) {
+    <button type="button" class="btn-neutral" (click)="openSettings()">
+      <svg lucideSettings2 class="size-4" aria-hidden="true"></svg>
+      Términos
+    </button>
+  }
+  <a routerLink="/quotations/new" class="btn-primary">
+    <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+    Nueva cotización
+  </a>
+</app-page-header>
+
+<div>
+  <p-table
+    [value]="quotations()"
+    [lazy]="true"
+    (onLazyLoad)="list.onLazyLoad($event)"
+    [paginator]="true"
+    [rows]="list.PAGE_SIZE"
+    [first]="list.first()"
+    [totalRecords]="total()"
+    [loading]="loading()"
+    [showLoader]="false"
+    [rowHover]="true"
+    dataKey="id"
+  >
+    <ng-template #header>
+      <tr>
+        <th scope="col">Folio</th>
+        <th scope="col">Cliente</th>
+        <th scope="col">Estado</th>
+        <th scope="col">Revisores</th>
+        <th scope="col">Total</th>
+        <th scope="col">Vigencia</th>
+        <th scope="col">Creada</th>
+      </tr>
+    </ng-template>
+
+    <ng-template #body let-q>
+      <tr class="cursor-pointer" (click)="openQuotation(q)">
+        <td class="font-data font-medium tabular-nums">{{ q.folio }}</td>
+        <td>{{ q.customerName }}</td>
+        <td>
+          <div class="flex flex-wrap items-center gap-1">
+            <p-tag
+              [severity]="q.status | quotationStatusSeverity"
+              [value]="q.status | quotationStatusLabel"
+            />
+            <!-- Only while the quote is live: past its date it blocks the
+                 conversion and calls for a revise. On a closed quote it's
+                 trivia. -->
+            @if (q | quotationShowsOverdue) {
+              <p-tag severity="danger" value="Vencida" />
+            }
+          </div>
+        </td>
+        <td class="text-sm text-surface-600 dark:text-surface-400">
+          {{ q.tally | quotationTally }}
+        </td>
+        <td class="font-data tabular-nums">{{ q.total | money }}</td>
+        <td class="font-data tabular-nums">{{ q.validUntil }}</td>
+        <td class="font-data tabular-nums">{{ q.createdAt | date: 'dd/MM/y' }}</td>
+      </tr>
+    </ng-template>
+
+    <ng-template #loadingbody>
+      @for (r of skeletonRows; track r) {
+        <tr>
+          @for (c of skeletonColumns; track c) {
+            <td><span class="skeleton"></span></td>
+          }
+        </tr>
+      }
+    </ng-template>
+
+    <ng-template #emptymessage>
+      <tr class="p-datatable-emptymessage">
+        <td colspan="7">
+          <span class="inline-flex flex-col items-center gap-3">
+            <span class="empty-icon">
+              <svg lucideFileSpreadsheet class="size-5" aria-hidden="true"></svg>
+            </span>
+            Sin cotizaciones con esos filtros.
+          </span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<app-quotation-settings-dialog #settingsDialog />

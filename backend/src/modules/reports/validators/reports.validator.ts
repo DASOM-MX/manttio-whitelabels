@@ -1,70 +1,35 @@
 import { z } from 'zod';
-import type { ReportType } from '../enums/reports.enum';
+import { Magnitude, QuestionDatatype } from '../../report-templates/enums/report-templates.enum';
 
-export const minisplitDataSchema = z.object({
-  is_operating: z.boolean(),
-  remote_working: z.boolean(),
-  amperage: z.string(),
-  filter: z.boolean(),
-  inner_voltage: z.string(),
-  unusual_noise: z.boolean(),
-  observations: z.string().default(''),
+// Structural validation only: validates the snapshot's shape (sections/answers/datatypes),
+// not whether answers satisfy live template constraints. Constraint enforcement
+// is a field-app form concern at fill time.
+export const capturedAnswerSchema = z.object({
+  questionId: z.string().uuid(),
+  label: z.string().min(1), // frozen at capture
+  datatype: z.nativeEnum(QuestionDatatype),
+  unit: z.nativeEnum(Magnitude).optional(),
+  value: z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.array(z.string()),
+    z.null(),
+  ]),
 });
 
-export const chillerDataSchema = z.object({
-  is_operating: z.boolean(),
-  inner_temperature: z.string(),
-  outer_temperature: z.string(),
-  inner_voltage: z.string(),
-  plc_keys_working: z.boolean(),
-  motor_amperage: z.string(),
-  system_pressure_1: z.string(),
-  system_pressure_2: z.string(),
-  system_pressure_3: z.string(),
-  oil_pressure: z.string(),
-  oil_level: z.string(),
-  flux_switch_working: z.boolean(),
-  unusual_noise: z.boolean(),
-  observations: z.string().default(''),
+export const capturedSectionSchema = z.object({
+  title: z.string().min(1),
+  columns: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  answers: z.array(capturedAnswerSchema),
 });
 
-export const umaDataSchema = z.object({
-  is_operating: z.boolean(),
-  air_band_adjustment: z.boolean(),
-  inner_temperature: z.string(),
-  outer_temperature: z.string(),
-  air_good_quality: z.boolean(),
-  inner_voltage: z.string(),
-  motor_amperage: z.string(),
-  unusual_noise: z.boolean(),
-  observations: z.string().default(''),
+export const captureSchema = z.object({
+  templateId: z.string().uuid(),
+  templateName: z.string().min(1), // denormalized for display
+  sections: z.array(capturedSectionSchema),
 });
 
-// One zod schema per report variant. The variant keys mirror `reportTypes` in
-// enums/reports.enum.ts — add a new variant in both places.
-export const reportSchemas = {
-  minisplit: minisplitDataSchema,
-  chiller: chillerDataSchema,
-  uma: umaDataSchema,
-} as const;
-
-export type MinisplitData = z.infer<typeof minisplitDataSchema>;
-export type ChillerData = z.infer<typeof chillerDataSchema>;
-export type UmaData = z.infer<typeof umaDataSchema>;
-export type ReportData = MinisplitData | ChillerData | UmaData;
-
-export const reportPayloadSchema = z.discriminatedUnion('report_type', [
-  z.object({ report_type: z.literal('minisplit'), data: minisplitDataSchema }),
-  z.object({ report_type: z.literal('chiller'), data: chillerDataSchema }),
-  z.object({ report_type: z.literal('uma'), data: umaDataSchema }),
-]);
-
-export const isReportType = (value: string): value is ReportType =>
-  Object.prototype.hasOwnProperty.call(reportSchemas, value);
-
-export const validateReportData = (reportType: string, data: unknown) => {
-  if (!isReportType(reportType)) {
-    throw new Error(`Unknown report_type: ${reportType}`);
-  }
-  return reportSchemas[reportType].parse(data);
-};
+export type CapturedAnswer = z.infer<typeof capturedAnswerSchema>;
+export type CapturedSection = z.infer<typeof capturedSectionSchema>;
+export type ReportCapture = z.infer<typeof captureSchema>;

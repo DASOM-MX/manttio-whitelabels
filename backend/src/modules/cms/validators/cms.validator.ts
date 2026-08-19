@@ -66,6 +66,10 @@ export const cmsHomeSchema = z.object({
     .optional(),
   manufacturers_content: sectionContentSchema.optional(),
   manufacturers: z.array(manufacturerSchema).optional(),
+  // Priced-catalog section (18 §4). Copy only — the entries come from the
+  // `services` table via `/public/services`, never from the CMS, so this group
+  // has no array beside it.
+  catalog_content: sectionContentSchema.optional(),
   location_content: sectionContentSchema
     .extend({
       schedule: z.string().optional(),

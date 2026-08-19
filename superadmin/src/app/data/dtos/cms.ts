@@ -54,6 +54,9 @@ export interface CmsHome {
   location_content?: CmsHomeSectionContent & {
     schedule?: string; // e.g. "Lun a vie, 8:00 – 18:00" — shown under the phone item
   };
+  /** Copy for the priced-catalog section (18 §4). Copy only: the cards come
+   *  from the service catalog, so there is no `catalog` array to match it. */
+  catalog_content?: CmsHomeSectionContent;
 }
 
 /** Draft client entry as the editor sees it. The public read omits `id` and

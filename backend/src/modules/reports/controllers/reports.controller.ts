@@ -5,7 +5,7 @@ import type { AppBindings } from '../../../env';
 import { createDb } from '../../database/client';
 import { requireRole } from '../../auth/middleware/roles.middleware';
 import { fdGet, fdGetAll, isFile } from '../../storage/utils/form-data';
-import { validateReportData } from '../validators/reports.validator';
+import { captureSchema } from '../validators/reports.validator';
 import {
   assignReportSchema,
   createReportMetaSchema,
@@ -28,6 +28,7 @@ import {
   listReportsForUser,
   reassign,
   renderPdfForToken,
+  renderPdfForUser,
   revokeReportEmail,
   submitReport,
 } from '../services/reports.service';
@@ -72,6 +73,23 @@ reports.get('/', zValidator('query', listReportsQuerySchema), async (c) => {
   return c.json(body, status);
 });
 
+// In-app download: the same document the customer is mailed, rendered on demand.
+// Registered before `/:id` for clarity; the patterns do not overlap.
+reports.get('/:id/pdf', async (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  const result = await renderPdfForUser(db, c.env.LOGOS_CDN_BASE_URL, c.get('user'), c.req.param('id'));
+  if (!result.pdf) return c.json(result.body, result.status as 403 | 404);
+
+  return new Response(result.pdf, {
+    status: 200,
+    headers: {
+      'content-type': 'application/pdf',
+      'content-disposition': `attachment; filename="${result.id}.pdf"`,
+      'cache-control': 'private, no-store',
+    },
+  });
+});
+
 reports.get('/:id', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const { status, body } = await getReportForUser(db, c.get('user'), c.req.param('id'));
@@ -85,11 +103,12 @@ reports.post('/', async (c) => {
   const fd = await c.req.formData();
 
   const meta = createReportMetaSchema.parse({
-    report_type: fdGet(fd, 'report_type') ?? undefined,
+    template_id: fdGet(fd, 'template_id') ?? undefined,
     work_type: fdGet(fd, 'work_type') ?? undefined,
     client_id: fdGet(fd, 'client_id') ?? undefined,
     date_arrival: fdGet(fd, 'date_arrival') ?? undefined,
     date_departure: fdGet(fd, 'date_departure') ?? undefined,
+    comments: fdGet(fd, 'comments') ?? undefined,
     assigned_to: fdGet(fd, 'assigned_to') ?? undefined,
     created_by: fdGet(fd, 'created_by') ?? undefined,
     signed_by: fdGet(fd, 'signed_by') ?? undefined,
@@ -108,7 +127,7 @@ reports.post('/', async (c) => {
   } catch {
     return c.json({ error: 'invalid_data_json' }, 400);
   }
-  const data = validateReportData(meta.report_type, dataParsed);
+  const data = captureSchema.parse(dataParsed);
 
   const db = createDb(c.env.DATABASE_URL);
   const { status, body } = await submitReport({

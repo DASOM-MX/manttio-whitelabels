@@ -14,3 +14,12 @@
 .p-tabpanels {
   @apply bg-transparent p-4 sm:p-5;
 }
+
+/* A panel's gutter is p-4/sm:p-5, not the card-section's p-6, so a
+   `.card-flush-table` inside one has to pull by that much instead. Corrected
+   here rather than as a second flush class: the pull and the padding it cancels
+   then live in the same rule set and can't drift apart. Canon: the quotation
+   view's recipients/timeline tabs. */
+.p-tabpanels .card-flush-table {
+  @apply -mx-4 sm:-mx-5;
+}

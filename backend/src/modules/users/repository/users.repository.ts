@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { users } from '../models/users.model';
 import type { Role } from '../enums/users.enum';
@@ -24,8 +24,37 @@ export const findUserById = async (db: Db, id: string) => {
   return rows[0] ?? null;
 };
 
-export const listUsers = async (db: Db) => {
-  return db.select().from(users).where(activeFilter).orderBy(desc(users.createdAt));
+/** Paged roster read (05 §3): newest-first, search across names + email,
+ *  optional role filter. */
+export const listUsersPaged = async (
+  db: Db,
+  query: { page: number; limit: number; search?: string; role?: Role },
+): Promise<{ rows: UserRow[]; total: number }> => {
+  const filters: SQL[] = [activeFilter];
+  if (query.role) filters.push(eq(users.role, query.role));
+  if (query.search) {
+    const term = `%${query.search}%`;
+    const match = or(
+      ilike(users.name, term),
+      ilike(users.paternalLastName, term),
+      ilike(users.maternalLastName, term),
+      ilike(users.email, term),
+    );
+    if (match) filters.push(match);
+  }
+  const where = and(...filters);
+
+  const rows = await db
+    .select()
+    .from(users)
+    .where(where)
+    .orderBy(desc(users.createdAt))
+    .limit(query.limit)
+    .offset((query.page - 1) * query.limit);
+
+  const countRows = await db.select({ count: sql<number>`count(*)::int` }).from(users).where(where);
+
+  return { rows, total: countRows[0]?.count ?? 0 };
 };
 
 /** Active users holding any of the given roles — the notifications module's

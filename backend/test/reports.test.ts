@@ -1,7 +1,8 @@
-import { describe, expect, test } from 'vitest';
+import { beforeAll, describe, expect, test } from 'vitest';
 import { ReportStatus } from '../src/modules/reports/enums/reports.enum';
 import { authHeader, json, jsonHeaders, request } from './helpers/request';
 import {
+  ensureFixtureTemplate,
   seedAdmin,
   seedAdminAndLogin,
   seedCustomer,
@@ -13,52 +14,125 @@ import {
 
 type ReportRow = {
   id: string;
+  templateId: string | null;
   reportType: string;
   workType: string | null;
   status: 'created' | 'in-progress' | 'finished' | 'mailed';
   createdBy: string;
   assignedTo: string;
   clientId: string;
+  comments: string | null;
   signedBy: string | null;
   deletedAt: string | null;
 };
 
 type ReportDetailRow = {
   reportId: string;
-  data: Record<string, unknown>;
+  data: {
+    templateId: string;
+    templateName: string;
+    sections: Array<{
+      title: string;
+      columns: 1 | 2 | 3;
+      answers: Array<{
+        questionId: string;
+        label: string;
+        datatype: string;
+        unit?: string;
+        value: unknown;
+      }>;
+    }>;
+  };
   pictures: string[];
   signature: string | null;
 };
 
+type ReportListResponse = {
+  items: ReportRow[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+type ReportDetail = {
+  id: string;
+  templateId: string | null;
+  templateName: string;
+  reportType: string;
+  workType: string | null;
+  createdBy: string;
+  assignedTo: string;
+  clientId: string;
+  status: string;
+  sections: Array<{
+    title: string;
+    columns: 1 | 2 | 3;
+    answers: Array<{
+      questionId: string;
+      label: string;
+      datatype: string;
+      unit?: string;
+      value: unknown;
+    }>;
+  }>;
+  photos: string[];
+  signatureUrl: string | null;
+  comments: string | null;
+};
+
 const FOLIO_RE = /^R-\d{8}-\d{4}$/;
 
-const validMinisplitData = () => ({
-  is_operating: true,
-  remote_working: true,
-  amperage: '5.2',
-  filter: true,
-  inner_voltage: '220',
-  unusual_noise: false,
-  observations: 'created from e2e test',
+// Resolved once against the real fixture template: `reports.template_id` is a
+// live FK (03 CP-1), so a synthetic uuid is rejected by the constraint.
+let TEMPLATE_ID = '';
+beforeAll(async () => {
+  TEMPLATE_ID = await ensureFixtureTemplate();
+});
+
+const validReportCapture = () => ({
+  templateId: TEMPLATE_ID,
+  templateName: 'Minisplit Maintenance',
+  sections: [
+    {
+      title: 'General Inspection',
+      columns: 1,
+      answers: [
+        {
+          questionId: '00000000-0000-0000-0000-000000000101',
+          label: 'Operating',
+          datatype: 'boolean',
+          value: true,
+        },
+        {
+          questionId: '00000000-0000-0000-0000-000000000102',
+          label: 'Amperage',
+          datatype: 'text',
+          value: '5.2',
+        },
+      ],
+    },
+  ],
 });
 
 const buildCreateForm = (opts: {
-  reportType?: 'minisplit' | 'chiller' | 'uma';
+  templateId?: string;
   clientId: string;
   assignedTo?: string;
   createdBy?: string;
   workType?: string;
+  comments?: string;
   data?: Record<string, unknown> | string; // string for malformed-JSON tests
   omitData?: boolean;
 }): FormData => {
   const fd = new FormData();
-  fd.set('report_type', opts.reportType ?? 'minisplit');
+  fd.set('template_id', opts.templateId ?? TEMPLATE_ID);
   fd.set('client_id', opts.clientId);
+  if (opts.comments !== undefined) fd.set('comments', opts.comments);
   if (opts.assignedTo !== undefined) fd.set('assigned_to', opts.assignedTo);
   if (opts.createdBy !== undefined) fd.set('created_by', opts.createdBy);
   if (opts.workType !== undefined) fd.set('work_type', opts.workType);
   if (!opts.omitData) {
-    const data = opts.data ?? validMinisplitData();
+    const data = opts.data ?? validReportCapture();
     fd.set('data', typeof data === 'string' ? data : JSON.stringify(data));
   }
   return fd;
@@ -76,8 +150,11 @@ describe('GET /reports', () => {
 
     const res = await request('/reports', { headers: authHeader(token) });
     expect(res.status).toBe(200);
-    const body = await json<{ reports: ReportRow[] }>(res);
-    expect(body.reports.some((r) => r.id === seeded.id)).toBe(true);
+    const body = await json<{ items: ReportRow[]; total: number; page: number; limit: number }>(res);
+    expect(body.items.some((r) => r.id === seeded.id)).toBe(true);
+    expect(body.page).toBe(1);
+    expect(body.limit).toBe(10);
+    expect(body.total).toBeGreaterThan(0);
   });
 
   test('admin filter by status returns only matching status', async () => {
@@ -98,8 +175,8 @@ describe('GET /reports', () => {
       headers: authHeader(token),
     });
     expect(res.status).toBe(200);
-    const body = await json<{ reports: ReportRow[] }>(res);
-    const ids = body.reports.map((r) => r.id);
+    const body = await json<ReportListResponse>(res);
+    const ids = body.items.map((r) => r.id);
     expect(ids).toContain(finished.id);
     expect(ids).not.toContain(created.id);
   });
@@ -112,8 +189,8 @@ describe('GET /reports', () => {
 
     const res = await request(`/reports?client_id=${a.id}`, { headers: authHeader(token) });
     expect(res.status).toBe(200);
-    const body = await json<{ reports: ReportRow[] }>(res);
-    const ids = body.reports.map((r) => r.id);
+    const body = await json<ReportListResponse>(res);
+    const ids = body.items.map((r) => r.id);
     expect(ids).toContain(ra.id);
     expect(ids).not.toContain(rb.id);
   });
@@ -133,8 +210,8 @@ describe('GET /reports', () => {
       headers: authHeader(token),
     });
     expect(res.status).toBe(200);
-    const body = await json<{ reports: ReportRow[] }>(res);
-    const ids = body.reports.map((r) => r.id);
+    const body = await json<ReportListResponse>(res);
+    const ids = body.items.map((r) => r.id);
     expect(ids).toContain(theirs.id);
     expect(ids).not.toContain(mine.id);
   });
@@ -147,9 +224,9 @@ describe('GET /reports', () => {
 
     const res = await request(`/reports?folio=${prefix}`, { headers: authHeader(token) });
     expect(res.status).toBe(200);
-    const body = await json<{ reports: ReportRow[] }>(res);
-    expect(body.reports.every((r) => r.id.startsWith(prefix))).toBe(true);
-    expect(body.reports.some((r) => r.id === seeded.id)).toBe(true);
+    const body = await json<ReportListResponse>(res);
+    expect(body.items.every((r) => r.id.startsWith(prefix))).toBe(true);
+    expect(body.items.some((r) => r.id === seeded.id)).toBe(true);
   });
 
   test('technician sees only reports assigned to them (auto-scoped)', async () => {
@@ -165,8 +242,8 @@ describe('GET /reports', () => {
 
     const res = await request('/reports', { headers: authHeader(token) });
     expect(res.status).toBe(200);
-    const body = await json<{ reports: ReportRow[] }>(res);
-    const ids = body.reports.map((r) => r.id);
+    const body = await json<ReportListResponse>(res);
+    const ids = body.items.map((r) => r.id);
     expect(ids).toContain(mine.id);
     expect(ids).not.toContain(theirs.id);
   });
@@ -186,8 +263,8 @@ describe('GET /reports', () => {
       headers: authHeader(token),
     });
     expect(res.status).toBe(200);
-    const body = await json<{ reports: ReportRow[] }>(res);
-    const ids = body.reports.map((r) => r.id);
+    const body = await json<ReportListResponse>(res);
+    const ids = body.items.map((r) => r.id);
     expect(ids).toContain(mine.id);
     expect(ids).not.toContain(theirs.id);
   });
@@ -215,10 +292,13 @@ describe('GET /reports/:id', () => {
 
     const res = await request(`/reports/${seeded.id}`, { headers: authHeader(token) });
     expect(res.status).toBe(200);
-    const body = await json<{ report: ReportRow; details: ReportDetailRow }>(res);
-    expect(body.report.id).toBe(seeded.id);
-    expect(body.details.reportId).toBe(seeded.id);
-    expect(body.details.data).toMatchObject({ is_operating: true });
+    const body = await json<ReportDetail>(res);
+    expect(body.id).toBe(seeded.id);
+    // `toBe` is Object.is, which an asymmetric matcher can never satisfy — this
+    // assertion passed vacuously as written only because it never ran green.
+    expect(body.templateId).toEqual(expect.any(String));
+    expect(body.templateName).toEqual(expect.any(String));
+    expect(body.sections).toEqual(expect.any(Array));
   });
 
   test('technician can fetch a report assigned to them', async () => {
@@ -250,12 +330,40 @@ describe('GET /reports/:id', () => {
     const res = await request('/reports/R-20990101-9999', { headers: authHeader(token) });
     expect(res.status).toBe(404);
   });
+
+  // The in-app download used to be a second, client-side pdfmake layout that
+  // drifted from this one. Now both go through the same renderer.
+  test('GET /reports/:id/pdf streams the server-rendered document', async () => {
+    const { admin, token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const seeded = await seedReport({ createdBy: admin.id, clientId: customer.id });
+
+    const res = await request(`/reports/${seeded.id}/pdf`, { headers: authHeader(token) });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('application/pdf');
+    // %PDF- magic: proves a real document came back, not a JSON error body.
+    expect((await res.text()).slice(0, 5)).toBe('%PDF-');
+  });
+
+  test('GET /reports/:id/pdf is 403 on another tech’s report', async () => {
+    const { token } = await seedTechnicianAndLogin();
+    const otherTech = await seedTechnician();
+    const customer = await seedCustomer();
+    const seeded = await seedReport({
+      createdBy: otherTech.id,
+      assignedTo: otherTech.id,
+      clientId: customer.id,
+    });
+
+    const res = await request(`/reports/${seeded.id}/pdf`, { headers: authHeader(token) });
+    expect(res.status).toBe(403);
+  });
 });
 
 // --- POST /reports (multipart) ---
 
 describe('POST /reports', () => {
-  test('admin creates a minisplit report (201) with R-YYYYMMDD-NNNN folio', async () => {
+  test('admin creates a report from a template (201) with R-YYYYMMDD-NNNN folio', async () => {
     const { admin, token } = await seedAdminAndLogin();
     const customer = await seedCustomer();
 
@@ -268,14 +376,49 @@ describe('POST /reports', () => {
 
     const body = await json<{ report: ReportRow; details: ReportDetailRow }>(res);
     expect(body.report.id).toMatch(FOLIO_RE);
-    expect(body.report.reportType).toBe('minisplit');
+    expect(body.report.reportType).toBe('Minisplit Maintenance'); // template name, denormalized
     expect(body.report.clientId).toBe(customer.id);
     expect(body.report.createdBy).toBe(admin.id);
     expect(body.report.assignedTo).toBe(admin.id); // defaults to self
     expect(body.report.status).toBe('created');
-    expect(body.details.data).toMatchObject({ is_operating: true, amperage: '5.2' });
+    expect(body.details.data).toMatchObject({
+      templateId: TEMPLATE_ID,
+      templateName: 'Minisplit Maintenance',
+      sections: expect.any(Array),
+    });
     expect(body.details.pictures).toEqual([]);
     expect(body.details.signature).toBeNull();
+  });
+
+  // Comments are fixed-skeleton (03 §2), so they live on the header, outside the
+  // capture snapshot — and they had no column at all until 0035, which is how a
+  // field the plan called for shipped absent for a whole checkpoint.
+  test('comments round-trip: stored on create, returned by detail, cleared by patch', async () => {
+    const { admin, token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+
+    const created = await request('/reports', {
+      method: 'POST',
+      headers: authHeader(token),
+      body: buildCreateForm({ clientId: customer.id, comments: 'Filtro sucio, se recomienda cambio.' }),
+    });
+    expect(created.status).toBe(201);
+    const { report } = await json<{ report: ReportRow }>(created);
+    expect(report.comments).toBe('Filtro sucio, se recomienda cambio.');
+
+    const detail = await request(`/reports/${report.id}`, { headers: authHeader(token) });
+    const detailBody = await json<ReportDetail>(detail);
+    expect(detailBody.comments).toBe('Filtro sucio, se recomienda cambio.');
+
+    // Empty string is the "cleared" signal, not "leave unchanged".
+    const patched = await request(`/reports/${report.id}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ comments: '' }),
+    });
+    expect(patched.status).toBe(200);
+    const patchedBody = await json<{ report: ReportRow }>(patched);
+    expect(patchedBody.report.comments).toBeNull();
   });
 
   test('admin can assign a different user', async () => {
@@ -468,15 +611,42 @@ describe('PATCH /reports/:id', () => {
       status: ReportStatus.InProgress,
     });
 
-    const newData = { ...validMinisplitData(), observations: 'updated by patch' };
+    const newCapture = {
+      ...validReportCapture(),
+      sections: [
+        {
+          title: 'General Inspection',
+          columns: 1,
+          answers: [
+            {
+              questionId: '00000000-0000-0000-0000-000000000101',
+              label: 'Operating',
+              datatype: 'boolean',
+              value: true,
+            },
+            {
+              questionId: '00000000-0000-0000-0000-000000000103',
+              label: 'Observations',
+              datatype: 'textarea',
+              value: 'updated by patch',
+            },
+          ],
+        },
+      ],
+    };
     const res = await request(`/reports/${seeded.id}`, {
       method: 'PATCH',
       headers: jsonHeaders(token),
-      body: JSON.stringify({ data: newData }),
+      body: JSON.stringify({ data: newCapture }),
     });
     expect(res.status).toBe(200);
     const body = await json<{ report: ReportRow; details: ReportDetailRow }>(res);
-    expect(body.details.data.observations).toBe('updated by patch');
+    const section = body.details.data.sections[0];
+    if (section && section.answers && section.answers[1]) {
+      expect(section.answers[1].value).toBe('updated by patch');
+    } else {
+      expect.fail('Section or answers not found in patch response');
+    }
   });
 
   test('admin patches client_id (valid customer) → 200', async () => {

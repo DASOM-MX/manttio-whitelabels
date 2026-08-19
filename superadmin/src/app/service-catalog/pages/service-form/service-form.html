@@ -1,0 +1,531 @@
+<app-page-header [title]="pageTitle()" backLink="/services" backLabel="Volver a servicios" />
+
+<!-- View-first detail: static labels until "Editar" is clicked (QA 2026-07-09) —
+     no live inputs, no accidental requests. -->
+@if (isEdit && !editing()) {
+  <!-- Same rail as the Bitácora below — mismatched card widths read as a bug. -->
+  <section class="card-section mt-4 flex max-w-4xl flex-col gap-4">
+    @if (selected(); as svc) {
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <p class="field-label">Nombre</p>
+          <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+            {{ svc.name }}
+          </p>
+        </div>
+        <div>
+          <p class="field-label">Precio</p>
+          <p
+            class="mt-1 font-data text-sm font-medium tabular-nums text-surface-900 dark:text-surface-100"
+          >
+            {{ svc.price | money }}
+          </p>
+        </div>
+        @if (svc.cost !== undefined) {
+          <div>
+            <p class="field-label">Costo interno</p>
+            <p
+              class="mt-1 font-data text-sm font-medium tabular-nums text-surface-900 dark:text-surface-100"
+            >
+              {{ svc.cost | money }}
+            </p>
+          </div>
+        }
+        <div>
+          <p class="field-label">Unidad</p>
+          <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+            {{ svc.uom | serviceUomLabel }}
+          </p>
+        </div>
+        <div>
+          <p class="field-label">IVA</p>
+          <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+            {{ svc.taxRate | serviceTaxRateLabel }}
+          </p>
+        </div>
+        <div>
+          <p class="field-label">Código interno</p>
+          <p
+            class="mt-1 font-data text-sm font-medium tabular-nums text-surface-900 dark:text-surface-100"
+          >
+            {{ svc.internalServiceCode || '—' }}
+          </p>
+        </div>
+        <div>
+          <p class="field-label">Genera reporte</p>
+          <p class="mt-1">
+            <p-tag
+              [severity]="svc.isReportSource ? 'success' : 'secondary'"
+              [value]="svc.isReportSource ? 'Sí, uno por unidad' : 'No, solo se cobra'"
+            />
+          </p>
+        </div>
+        <div>
+          <p class="field-label">Sitio web</p>
+          <p class="mt-1">
+            @if (svc.isListableInWebsite) {
+              <p-tag
+                [severity]="svc.isPriceVisibleInWebsite ? 'success' : 'info'"
+                [value]="svc.isPriceVisibleInWebsite ? 'Listado con precio' : 'Listado sin precio'"
+              />
+            } @else {
+              <span class="text-sm text-surface-500 dark:text-surface-400">No listado</span>
+            }
+          </p>
+        </div>
+        <div>
+          <p class="field-label">Alta</p>
+          <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+            {{ svc.createdAt | date: 'dd/MM/y' }}
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <p class="field-label">Descripción interna</p>
+        <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+          {{ svc.description || '—' }}
+        </p>
+      </div>
+
+      <!-- Mirrors the form's Facturación group, so both read in the same
+           order. Always rendered — an em dash says "no key yet", which is
+           itself what an accountant needs to know. -->
+      <div>
+        <h2 class="section-heading">Facturación (SAT)</h2>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <p class="field-label">Clave SAT (producto/servicio)</p>
+            <p class="mt-1 font-data text-sm font-medium tabular-nums text-surface-900 dark:text-surface-100">
+              {{ svc.satProdServCode || '—' }}
+            </p>
+          </div>
+          <div>
+            <p class="field-label">Clave SAT (unidad)</p>
+            <p class="mt-1 font-data text-sm font-medium tabular-nums text-surface-900 dark:text-surface-100">
+              {{ svc.satUnitCode || '—' }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      @if (svc.isListableInWebsite) {
+        <div>
+          <p class="field-label">Descripción para el sitio</p>
+          <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+            {{ svc.websiteDescription || '—' }}
+          </p>
+        </div>
+        @if (svc.websiteImageUrl; as url) {
+          <div>
+            <p class="field-label">Imagen para el sitio</p>
+            <div
+              class="mt-1 flex h-36 max-w-xs items-center justify-center overflow-hidden rounded-control border border-surface-200 bg-surface-0 dark:border-surface-800 dark:bg-surface-900"
+            >
+              <img
+                [src]="url"
+                alt="Imagen del servicio"
+                class="max-h-full max-w-full object-contain p-2"
+              />
+            </div>
+          </div>
+        }
+      }
+
+      @if (canManage()) {
+        <div class="flex justify-end gap-2">
+          <!-- Duplicar (18 §6.2): opens a prefilled create — nothing is
+               written until the copy is saved. -->
+          <a class="btn-neutral" [routerLink]="['/services/new']" [queryParams]="{ from: svc.id }">
+            <svg lucideCopy class="size-4" aria-hidden="true"></svg>
+            Duplicar
+          </a>
+          <button type="button" class="btn-primary" (click)="startEdit()">
+            <svg lucidePencil class="size-4" aria-hidden="true"></svg>
+            Editar
+          </button>
+        </div>
+      }
+    } @else {
+      <p class="text-sm text-surface-600 dark:text-surface-400">Cargando servicio…</p>
+    }
+  </section>
+
+  <!-- Append-only and in insertion order (18 §6.1): nothing here is ever
+       edited or removed — who repriced what, and when. Admin tier only; the
+       endpoint 403s office and technician, so it's never even requested. -->
+  @if (canManage()) {
+    <!-- Wider than the detail rail: four columns of trail don't fit 2xl and a
+         clipped diff defeats the audit. -->
+    <section class="card-section mt-4 max-w-4xl">
+      <h2 class="section-heading">Bitácora</h2>
+      <p class="mb-3 text-sm text-surface-600 dark:text-surface-400">
+        Todo lo que ha pasado con este servicio, en orden y sin ediciones.
+      </p>
+      <div class="card-flush-table">
+        <p-table
+          [value]="timeline()"
+          [loading]="timelineLoading()"
+          [showLoader]="false"
+          dataKey="id"
+        >
+          <ng-template #header>
+            <tr>
+              <th scope="col">Evento</th>
+              <th scope="col">Quién</th>
+              <th scope="col">Detalle</th>
+              <th scope="col">Cuándo</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-event>
+            <tr>
+              <td>
+                <span class="inline-flex items-center gap-2 font-medium">
+                  <svg
+                    lucideIcon
+                    [lucideIcon]="event.type | serviceEventIcon"
+                    class="size-4 text-surface-500 dark:text-surface-400"
+                    aria-hidden="true"
+                  ></svg>
+                  {{ event.type | serviceEventLabel }}
+                </span>
+              </td>
+              <td>{{ event.actorName || '—' }}</td>
+              <!-- The one wrapping cell in the house table idiom: a multi-field
+                   diff is a sentence, and nowrap would shove Cuándo off-card. -->
+              <td class="!whitespace-normal text-sm text-surface-600 dark:text-surface-400">
+                {{ event | serviceEventDetail }}
+              </td>
+              <td class="font-data tabular-nums">{{ event.createdAt | relativeTime }}</td>
+            </tr>
+          </ng-template>
+          <ng-template #loadingbody>
+            @for (r of skeletonRows; track r) {
+              <tr>
+                @for (c of [0, 1, 2, 3]; track c) {
+                  <td><span class="skeleton"></span></td>
+                }
+              </tr>
+            }
+          </ng-template>
+          <ng-template #emptymessage>
+            <tr class="p-datatable-emptymessage">
+              <td colspan="4">Sin movimientos.</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    </section>
+  }
+} @else {
+  <form
+    [formGroup]="form"
+    (ngSubmit)="submit()"
+    class="card-section mt-4 flex max-w-2xl flex-col gap-4"
+  >
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="field-group sm:col-span-2">
+        <label class="field-label" for="svc-name">Nombre<span aria-hidden="true"> *</span></label>
+        <input
+          id="svc-name"
+          pInputText
+          formControlName="name"
+          placeholder="Mantenimiento preventivo"
+        />
+        @if (form.controls.name.touched && form.controls.name.errors?.['required']) {
+          <p class="field-error" role="alert">Escribe el nombre del servicio.</p>
+        }
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="svc-price">Precio<span aria-hidden="true"> *</span></label>
+        <p-inputnumber
+          inputId="svc-price"
+          formControlName="price"
+          mode="currency"
+          currency="MXN"
+          locale="es-MX"
+          [min]="0"
+        />
+        @if (form.controls.price.touched && form.controls.price.errors?.['min']) {
+          <p class="field-error" role="alert">El precio no puede ser negativo.</p>
+        }
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="svc-cost">Costo interno</label>
+        <p-inputnumber
+          inputId="svc-cost"
+          formControlName="cost"
+          mode="currency"
+          currency="MXN"
+          locale="es-MX"
+          [min]="0"
+        />
+        <p class="field-hint">Sólo para calcular margen. Los técnicos no lo ven.</p>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="svc-uom">Unidad<span aria-hidden="true"> *</span></label>
+        <p-select
+          inputId="svc-uom"
+          formControlName="uom"
+          [options]="uomGroups"
+          [group]="true"
+          optionGroupLabel="label"
+          optionGroupChildren="items"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+          filterBy="label"
+          filterPlaceholder="Buscar unidad"
+          appendTo="body"
+          (onChange)="onUomSelected()"
+        />
+        <p class="field-hint">El precio se cobra por esta unidad.</p>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="svc-tax">IVA<span aria-hidden="true"> *</span></label>
+        <p-select
+          inputId="svc-tax"
+          formControlName="taxRate"
+          [options]="taxRateOptions"
+          optionLabel="label"
+          optionValue="value"
+          appendTo="body"
+        />
+        <p class="field-hint">Se aplica por línea en cotizaciones y órdenes.</p>
+      </div>
+
+      <div class="field-group sm:col-span-2">
+        <label class="field-label" for="svc-code">Código interno</label>
+        <input
+          id="svc-code"
+          pInputText
+          formControlName="internalServiceCode"
+          spellcheck="false"
+          placeholder="MP-001"
+        />
+        <p class="field-hint">Sólo para uso interno. No puede repetirse en el catálogo.</p>
+      </div>
+
+      <div class="field-group sm:col-span-2">
+        <label class="field-label" for="svc-description">Descripción interna</label>
+        <textarea
+          id="svc-description"
+          pTextarea
+          formControlName="description"
+          rows="2"
+          class="!min-h-16"
+        ></textarea>
+        <p class="field-hint">Notas para tu equipo. No se publica en el sitio.</p>
+      </div>
+    </div>
+
+    <hr class="border-surface-100 dark:border-surface-800" />
+
+    <!-- Facturación (18 §6.4). No format validation on purpose: the SAT
+         versions its catalogs and a stale local check would reject valid
+         keys — 09 owns real validation. -->
+    <div>
+      <h2 class="section-heading">Facturación (SAT)</h2>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="field-group">
+          <label class="field-label" for="svc-sat-prod">Clave SAT (producto/servicio)</label>
+          <input
+            id="svc-sat-prod"
+            pInputText
+            formControlName="satProdServCode"
+            spellcheck="false"
+            placeholder="72101500"
+          />
+          <p class="field-hint">Catálogo c_ClaveProdServ. La usa tu factura.</p>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="svc-sat-unit">Clave SAT (unidad)</label>
+          <input
+            id="svc-sat-unit"
+            pInputText
+            formControlName="satUnitCode"
+            spellcheck="false"
+            placeholder="E48"
+          />
+          <p class="field-hint">
+            Catálogo c_ClaveUnidad. Se sugiere al elegir la unidad; puedes cambiarla.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <hr class="border-surface-100 dark:border-surface-800" />
+
+    <!-- Operational, not commercial: this decides whether an order made of this
+         service explodes report skeletons for a technician to fill (19 §2), or
+         is merely something the order charges for. -->
+    <div>
+      <div class="flex items-center gap-3">
+        <p-toggleswitch formControlName="isReportSource" inputId="svc-report-source" />
+        <label class="field-label !mb-0" for="svc-report-source">
+          Genera un reporte de servicio por unidad
+        </label>
+      </div>
+      <p class="mt-1 field-hint">
+        Actívalo para trabajos que un técnico realiza y documenta. Déjalo apagado para lo que solo
+        se cobra — mano de obra por hora, refrigerante, fletes: esas partidas no generan reportes al
+        crear la orden.
+      </p>
+    </div>
+
+    <hr class="border-surface-100 dark:border-surface-800" />
+
+    <div class="flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <p-checkbox formControlName="isListableInWebsite" [binary]="true" inputId="svc-listable" />
+        <label class="field-label !mb-0" for="svc-listable">
+          Aparecerá en la sección de servicios del sitio
+        </label>
+      </div>
+      @if (showsPriceToggle()) {
+        <button
+          type="button"
+          class="row-action"
+          (click)="toggleWebsiteSection()"
+          [attr.aria-expanded]="websiteSectionOpen()"
+          aria-controls="svc-website-fields"
+          [attr.aria-label]="
+            websiteSectionOpen() ? 'Contraer opciones del sitio' : 'Expandir opciones del sitio'
+          "
+        >
+          @if (websiteSectionOpen()) {
+            <svg lucideChevronUp class="size-4" aria-hidden="true"></svg>
+          } @else {
+            <svg lucideChevronDown class="size-4" aria-hidden="true"></svg>
+          }
+        </button>
+      }
+    </div>
+
+    <!-- Revealed only once the service is listed: neither the price toggle
+         nor the public copy means anything on a service the site never
+         shows. Collapsible so the form stays short once these are set. -->
+    @if (showsPriceToggle() && websiteSectionOpen()) {
+      <div
+        id="svc-website-fields"
+        class="flex flex-col gap-4 pl-6"
+        animate.enter="anim-enter"
+        animate.leave="anim-leave"
+      >
+        <div>
+          <div class="flex items-center gap-2">
+            <p-checkbox
+              formControlName="isPriceVisibleInWebsite"
+              [binary]="true"
+              inputId="svc-price-visible"
+            />
+            <label class="field-label !mb-0" for="svc-price-visible">
+              Mostrar el precio en el sitio
+            </label>
+          </div>
+          <p class="mt-1 field-hint">
+            Si lo dejas apagado, el sitio muestra el servicio sin precio.
+          </p>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="svc-website-description">
+            Descripción para el sitio
+          </label>
+          <textarea
+            id="svc-website-description"
+            pTextarea
+            formControlName="websiteDescription"
+            rows="3"
+            class="!min-h-20"
+            placeholder="Cómo quieres que se lea este servicio para un cliente nuevo."
+          ></textarea>
+          <p class="field-hint">
+            Es el único texto que se publica. Si lo dejas vacío, el sitio muestra sólo el nombre del
+            servicio.
+          </p>
+        </div>
+
+        <div class="field-group">
+          <span class="field-label">Imagen para el sitio</span>
+          <div
+            class="flex h-36 items-center justify-center overflow-hidden rounded-control border border-surface-200 bg-surface-0 dark:border-surface-800 dark:bg-surface-900"
+          >
+            @if (image().url; as url) {
+              <img
+                [src]="url"
+                alt="Imagen del servicio"
+                class="max-h-full max-w-full object-contain p-2"
+              />
+            } @else {
+              <svg lucideImage class="size-6 text-surface-400" aria-hidden="true"></svg>
+            }
+          </div>
+          <div class="flex items-center gap-4">
+            <label class="link-action cursor-pointer">
+              <svg lucideImageUp class="size-4" aria-hidden="true"></svg>
+              @if (image().uploading) {
+                Subiendo…
+              } @else if (image().url) {
+                Cambiar imagen
+              } @else {
+                Subir imagen
+              }
+              <input
+                type="file"
+                class="sr-only"
+                accept="image/png,image/webp,image/jpeg"
+                (change)="onImageFile($event)"
+                [disabled]="image().uploading"
+              />
+            </label>
+            @if (image().url && !image().uploading) {
+              <button
+                type="button"
+                class="link-action !text-red-600 dark:!text-red-400"
+                (click)="removeImage()"
+              >
+                <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
+                Quitar
+              </button>
+            }
+          </div>
+          <p class="field-hint">
+            Opcional. Se muestra en la tarjeta del servicio en el sitio. Si la dejas vacía, la
+            tarjeta va sin imagen.
+          </p>
+        </div>
+      </div>
+    }
+
+    <div class="flex justify-end gap-2">
+      @if (isEdit) {
+        <button type="button" class="btn-neutral" (click)="cancelEdit()">Cancelar</button>
+      } @else {
+        <a routerLink="/services" class="btn-neutral">Cancelar</a>
+      }
+      <button
+        type="submit"
+        class="btn-primary"
+        [disabled]="form.invalid || busy() || image().uploading"
+      >
+        @if (busy()) {
+          <span
+            class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+            aria-hidden="true"
+          ></span>
+          Guardando…
+        } @else if (isEdit) {
+          Guardar
+        } @else {
+          Registrar servicio
+        }
+      </button>
+    </div>
+  </form>
+}

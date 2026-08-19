@@ -19,10 +19,23 @@ export const MANUAL_INTERACTION_TYPES = [
   InteractionType.Visit,
 ] as const;
 
-// What a `system` entry links out to (08 §2). Only `status_change` emits in v1;
-// report/bill land as those modules integrate.
+// What a `system` entry links out to (08 §2). TS-only — the table carries no
+// ref-kind CHECK, so adding a member needs no DDL.
 export enum InteractionRefKind {
   StatusChange = 'status_change',
   Report = 'report',
   Bill = 'bill',
+  /** Emitted when an order is created (19 §2). Complementary to the order's own
+   *  timeline, not a duplicate of it: this one answers "what happened with this
+   *  client", the order timeline answers "what happened on this job". */
+  ServiceOrder = 'service_order',
+  /** Pre-sale touches (20 PR-C): quote sent / reviewer answered. Same
+   *  complementary posture as ServiceOrder — the client timeline answers
+   *  "what happened with this client", the quote's own timeline the rest. */
+  Quotation = 'quotation',
+  /** Contract filed / edited / document replaced / deleted (13 §3). Contracts
+   *  have **no** audit table of their own: the client timeline is the audit
+   *  home, which is what makes it work for standalone and order-generated
+   *  contracts alike. */
+  Contract = 'contract',
 }

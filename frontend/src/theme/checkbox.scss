@@ -1,6 +1,9 @@
 /* PrimeNG Checkbox */
 .p-checkbox {
-  @apply relative inline-flex items-center cursor-pointer;
+  // `size-7` on the host as well as the box: Aura's layered `width/height: 20px`
+  // is not a border, so Tailwind's preflight never zeroes it, and it clipped the
+  // 28px box to a 20x28 rectangle (fixed 2026-08-17).
+  @apply relative inline-flex items-center justify-center size-7 cursor-pointer;
 }
 /* Hide the native <input>; keep it accessible (screen-readers + tab focus) by overlaying
    it on the styled box. Without this, theme: 'none' lets the browser-default checkbox

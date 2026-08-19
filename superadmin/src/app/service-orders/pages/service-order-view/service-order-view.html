@@ -1,0 +1,449 @@
+@if (order(); as order) {
+  <app-page-header [title]="order.folio" backLink="/service-orders">
+    <ng-container meta>
+      <p-tag
+        [severity]="order.status | serviceOrderStatusSeverity"
+        [value]="order.status | serviceOrderStatusLabel"
+      />
+      @if (isUrgent()) {
+        <span
+          class="inline-flex items-center gap-1.5 text-sm font-medium"
+          [class]="order.priority | serviceOrderPriorityLabelClass"
+        >
+          <svg
+            lucideFlag
+            class="size-4 shrink-0 fill-current"
+            [class]="order.priority | serviceOrderPriorityFlagClass"
+            aria-hidden="true"
+          ></svg>
+          {{ order.priority | serviceOrderPriorityLabel }}
+        </span>
+      }
+      @if (isOverdue()) {
+        <p-tag severity="danger" value="Vencida" />
+      }
+      @if (progressChip()) {
+        <p-tag severity="secondary" [value]="progressChip()" />
+      }
+    </ng-container>
+    @if (isStaff()) {
+      <button type="button" class="btn-secondary" (click)="duplicate()">
+        <svg lucideCopy class="size-4" aria-hidden="true"></svg>
+        Duplicar
+      </button>
+    }
+    @if (canReopen()) {
+      <button type="button" class="btn-secondary" (click)="reopenOpen.set(true)">
+        <svg lucideRotateCcw class="size-4" aria-hidden="true"></svg>
+        Reabrir
+      </button>
+    }
+    @if (isStaff() && isOpen()) {
+      <button type="button" class="btn-secondary" (click)="scheduleVisit()">
+        <svg lucideCalendarPlus class="size-4" aria-hidden="true"></svg>
+        Programar visita
+      </button>
+      <button type="button" class="btn-secondary" (click)="openEdit()">
+        <svg lucidePencil class="size-4" aria-hidden="true"></svg>
+        Editar
+      </button>
+      <button type="button" class="btn-danger" (click)="cancelOpen.set(true)">
+        <svg lucideX class="size-4" aria-hidden="true"></svg>
+        Cancelar
+      </button>
+      <button type="button" class="btn-primary" (click)="completeOpen.set(true)">
+        <svg lucideCheck class="size-4" aria-hidden="true"></svg>
+        Completar
+      </button>
+    }
+  </app-page-header>
+
+  <div class="flex flex-col gap-6">
+    <!-- Resumen -->
+    <section class="card p-6">
+      <h2 class="micro-label mb-4">Resumen</h2>
+      <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <dt class="micro-label">Cliente</dt>
+          <dd class="mt-1 text-sm font-medium">
+            <a [routerLink]="['/customers', order.customerId]" class="link-action">
+              {{ order.customerName }}
+            </a>
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Ubicación</dt>
+          <dd class="mt-1 text-sm">{{ order.location || '—' }}</dd>
+        </div>
+        <div>
+          <dt class="micro-label">Creada por</dt>
+          <dd class="mt-1 text-sm">{{ order.createdByName || '—' }}</dd>
+        </div>
+        <div>
+          <dt class="micro-label">Fecha</dt>
+          <dd class="mt-1 text-sm">{{ order.createdAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+        </div>
+        <div>
+          <dt class="micro-label">Prioridad</dt>
+          <dd class="mt-1">
+            <span
+              class="inline-flex items-center gap-1.5 text-sm font-medium"
+              [class]="order.priority | serviceOrderPriorityLabelClass"
+            >
+              <svg
+                lucideFlag
+                class="size-4 shrink-0 fill-current"
+                [class]="order.priority | serviceOrderPriorityFlagClass"
+                aria-hidden="true"
+              ></svg>
+              {{ order.priority | serviceOrderPriorityLabel }}
+            </span>
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Fecha compromiso</dt>
+          <dd class="mt-1 text-sm">
+            @if (order.promisedDate) {
+              {{ order.promisedDate | date: 'dd/MM/yyyy' }}
+              @if (isOverdue()) {
+                <span class="ml-1 align-middle"><p-tag severity="danger" value="Vencida" /></span>
+              }
+            } @else {
+              —
+            }
+          </dd>
+        </div>
+        @if (order.comments) {
+          <div class="sm:col-span-2 lg:col-span-4">
+            <dt class="micro-label">Comentarios</dt>
+            <dd class="mt-1 text-sm">{{ order.comments }}</dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <!-- Detail tabs: the day-to-day view leads; the activity feed (19 §7) is
+         its own tab (owner 2026-07-27). Framed in a card (theme/tabs.scss
+         flattens the tablist + pads the panel to match). -->
+    <section class="card">
+      <p-tabs [value]="activeTab()" (valueChange)="setTab($event)">
+        <p-tablist>
+          <p-tab value="general">General</p-tab>
+          <p-tab value="actividad">Actividad</p-tab>
+        </p-tablist>
+        <p-tabpanels>
+          <p-tabpanel value="general">
+            <!-- Servicios -->
+            <div>
+              <h2 class="micro-label mb-4">Servicios</h2>
+              <div class="card-flush-table">
+                <p-table [value]="order.lines">
+                  <ng-template #header>
+                    <tr>
+                      <th scope="col">Servicio</th>
+                      <th scope="col">Cantidad</th>
+                      <th scope="col">IVA</th>
+                      @if (showsMoney()) {
+                        <th scope="col" class="text-right">Precio unitario</th>
+                        <th scope="col" class="text-right">Importe</th>
+                      }
+                    </tr>
+                  </ng-template>
+                  <ng-template #body let-line>
+                    <tr>
+                      <td class="font-medium">{{ line.serviceName }}</td>
+                      <td class="font-data">
+                        {{ line.quantity }} {{ line.uom | serviceUomShort }}
+                      </td>
+                      <td class="font-data">{{ line.taxRate | serviceTaxRateShort }}</td>
+                      @if (showsMoney()) {
+                        <td class="font-data text-right">{{ line.unitPrice | money }}</td>
+                        <td class="font-data text-right">{{ line.amounts?.total | money }}</td>
+                      }
+                    </tr>
+                  </ng-template>
+                </p-table>
+              </div>
+              @if (showsMoney()) {
+                <dl class="mt-4 flex flex-col items-end gap-1 text-sm">
+                  <div class="flex gap-6">
+                    <dt class="text-surface-500 dark:text-surface-400">Subtotal</dt>
+                    <dd class="font-data w-28 text-right">{{ order.amounts?.subtotal | money }}</dd>
+                  </div>
+                  <div class="flex gap-6">
+                    <dt class="text-surface-500 dark:text-surface-400">IVA</dt>
+                    <dd class="font-data w-28 text-right">{{ order.amounts?.tax | money }}</dd>
+                  </div>
+                  <div class="flex gap-6 font-medium">
+                    <dt>Total</dt>
+                    <dd class="font-data w-28 text-right">{{ order.amounts?.total | money }}</dd>
+                  </div>
+                </dl>
+              }
+            </div>
+
+            <!-- Reportes generados -->
+            <div class="mt-6">
+              <h2 class="micro-label mb-4">Reportes</h2>
+              @if (reports(); as reportRows) {
+                <div class="card-flush-table">
+                  <p-table [value]="reportRows" [rowHover]="true">
+                    <ng-template #header>
+                      <tr>
+                        <th scope="col">Folio</th>
+                        <th scope="col">Tipo</th>
+                        <th scope="col">Técnico</th>
+                        <th scope="col">Estado</th>
+                      </tr>
+                    </ng-template>
+                    <ng-template #body let-report>
+                      <tr class="cursor-pointer" (click)="openReport(report)">
+                        <td class="font-data font-medium">{{ report.folio }}</td>
+                        <td>{{ report.reportType }}</td>
+                        <td>{{ report.assignedToName || '—' }}</td>
+                        <td>
+                          <p-tag
+                            [severity]="report.status | reportStatusSeverity"
+                            [value]="report.status | reportStatusLabel"
+                          />
+                        </td>
+                      </tr>
+                    </ng-template>
+                    <ng-template #emptymessage>
+                      <tr>
+                        <td colspan="4">
+                          <div class="flex flex-col items-center gap-3 py-8 text-center">
+                            <span class="empty-icon">
+                              <svg lucideFileText class="size-5" aria-hidden="true"></svg>
+                            </span>
+                            <p class="text-sm text-surface-500 dark:text-surface-400">
+                              Esta orden no tiene reportes.
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    </ng-template>
+                  </p-table>
+                </div>
+              } @else {
+                <div class="flex flex-col gap-2">
+                  @for (row of [0, 1, 2]; track row) {
+                    <div class="skeleton h-8"></div>
+                  }
+                </div>
+              }
+            </div>
+          </p-tabpanel>
+
+          <!-- Actividad (19 §7) -->
+          <p-tabpanel value="actividad">
+            @if (timeline().length > 0) {
+              <ol class="flex flex-col">
+                @for (event of timeline(); track event.id) {
+                  <li
+                    class="flex items-center gap-3 border-b border-surface-200 py-2.5 last:border-b-0 dark:border-surface-700"
+                  >
+                    <!-- Uniform rows: the text block reserves two lines
+                         (min-h-10 = 2 × text-sm leading) and centers its
+                         content, so every row is the same height and the chip
+                         centers vertically whether or not a detail line
+                         exists. Per-type icon + color family — the label
+                         carries the meaning, the chip reinforces it. -->
+                    <span
+                      class="inline-flex size-7 shrink-0 items-center justify-center rounded-full"
+                      [class]="event.type | serviceOrderEventChipClass"
+                    >
+                      <svg
+                        lucideIcon
+                        [lucideIcon]="event.type | serviceOrderEventIcon"
+                        class="size-3.5"
+                        aria-hidden="true"
+                      ></svg>
+                    </span>
+                    <div class="flex min-h-10 min-w-0 grow flex-col justify-center">
+                      <p class="truncate text-sm font-medium">
+                        {{ event.type | serviceOrderEventLabel }}
+                      </p>
+                      @if (event.note) {
+                        <p class="truncate text-sm text-surface-500 dark:text-surface-400">
+                          {{ event.note }}
+                        </p>
+                      }
+                    </div>
+                    <p class="micro-label shrink-0 text-right">
+                      {{ event.createdAt | relativeTime
+                      }}@if (event.actorName) {<span> · {{ event.actorName }}</span>}
+                    </p>
+                  </li>
+                }
+              </ol>
+              @if (hasMoreEvents()) {
+                <button type="button" class="link-action mt-3" (click)="loadMoreEvents()">
+                  Ver más actividad
+                </button>
+              }
+            } @else {
+              <div class="flex flex-col gap-2">
+                @for (row of [0, 1, 2]; track row) {
+                  <div class="skeleton h-8"></div>
+                }
+              </div>
+            }
+          </p-tabpanel>
+        </p-tabpanels>
+      </p-tabs>
+    </section>
+  </div>
+
+  <!-- Editar la metadata logística (19 §1 + CP-2b): comentarios, prioridad y
+       fecha compromiso para todo el staff; ubicación solo owner/admin. -->
+  <p-dialog
+    header="Editar orden"
+    [modal]="true"
+    [visible]="editOpen()"
+    (visibleChange)="editOpen.set($event)"
+    [style]="{ width: '28rem' }"
+  >
+    <form [formGroup]="editForm" class="flex flex-col gap-5" (ngSubmit)="saveEdit()">
+      <div class="field-group">
+        <label class="field-label" for="edit-comments">Comentarios</label>
+        <textarea id="edit-comments" pTextarea formControlName="comments" rows="3"></textarea>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="edit-priority">Prioridad</label>
+        <p-select
+          inputId="edit-priority"
+          formControlName="priority"
+          [options]="priorityOptions"
+          optionLabel="label"
+          optionValue="value"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="edit-promised-date">Fecha compromiso</label>
+        <p-datepicker
+          inputId="edit-promised-date"
+          formControlName="promisedDate"
+          dateFormat="yy-mm-dd"
+          [readonlyInput]="true"
+          [showIcon]="true"
+          [iconDisplay]="'input'"
+          [showClear]="true"
+          placeholder="Sin compromiso"
+          appendTo="body"
+        />
+        <p class="field-hint">Quitarla retira el compromiso; el cambio queda en la actividad.</p>
+      </div>
+      @if (canEditLocation()) {
+        <div class="field-group">
+          <label class="field-label" for="edit-location">Ubicación</label>
+          <input id="edit-location" pInputText formControlName="location" />
+          <p class="field-hint">Cambiarla queda registrado en la actividad de la orden.</p>
+        </div>
+      }
+      <div class="flex items-center justify-end gap-3">
+        <button type="button" class="btn-secondary" (click)="editOpen.set(false)">Cancelar</button>
+        <button type="submit" class="btn-primary" [disabled]="saving()">Guardar</button>
+      </div>
+    </form>
+  </p-dialog>
+
+  <!-- Completar -->
+  <p-dialog
+    header="Completar orden"
+    [modal]="true"
+    [visible]="completeOpen()"
+    (visibleChange)="completeOpen.set($event)"
+    [style]="{ width: '26rem' }"
+  >
+    <p class="text-sm">La orden {{ order.folio }} se marcará como completada.</p>
+    @if (unfinishedWarning()) {
+      <p class="callout callout--warn mt-4">{{ unfinishedWarning() }}</p>
+    }
+    <div class="mt-6 flex items-center justify-end gap-3">
+      <button type="button" class="btn-secondary" (click)="completeOpen.set(false)">
+        Cancelar
+      </button>
+      <button type="button" class="btn-primary" [disabled]="saving()" (click)="confirmComplete()">
+        Completar
+      </button>
+    </div>
+  </p-dialog>
+
+  <!-- Reabrir (CP-2b) — la válvula de seguridad owner/admin para un Completar
+       equivocado; una orden cancelada es terminal y no aparece aquí. -->
+  <p-dialog
+    header="Reabrir orden"
+    [modal]="true"
+    [visible]="reopenOpen()"
+    (visibleChange)="reopenOpen.set($event)"
+    [style]="{ width: '28rem' }"
+  >
+    <p class="text-sm">
+      La orden {{ order.folio }} volverá a estar abierta y sus campos podrán editarse de nuevo.
+      Quedará registrado en la actividad.
+    </p>
+    <div class="field-group mt-4">
+      <label class="field-label" for="reopen-note">Motivo</label>
+      <textarea
+        id="reopen-note"
+        pTextarea
+        [formControl]="reopenNote"
+        rows="2"
+        placeholder="Opcional — queda en la actividad de la orden"
+      ></textarea>
+    </div>
+    <div class="mt-6 flex items-center justify-end gap-3">
+      <button type="button" class="btn-secondary" (click)="reopenOpen.set(false)">Volver</button>
+      <button type="button" class="btn-primary" [disabled]="saving()" (click)="confirmReopen()">
+        Reabrir
+      </button>
+    </div>
+  </p-dialog>
+
+  <!-- Cancelar (voids unfinished reports — 19 §2) -->
+  <p-dialog
+    header="Cancelar orden"
+    [modal]="true"
+    [visible]="cancelOpen()"
+    (visibleChange)="cancelOpen.set($event)"
+    [style]="{ width: '28rem' }"
+  >
+    <p class="callout callout--danger">
+      Los reportes sin terminar de esta orden se cancelarán. Los reportes ya terminados se
+      conservan.
+    </p>
+    <div class="field-group mt-4">
+      <label class="field-label" for="cancel-note">Motivo</label>
+      <textarea
+        id="cancel-note"
+        pTextarea
+        [formControl]="cancelNote"
+        rows="2"
+        placeholder="Opcional — queda en la actividad de la orden"
+      ></textarea>
+    </div>
+    <div class="mt-6 flex items-center justify-end gap-3">
+      <button type="button" class="btn-secondary" (click)="cancelOpen.set(false)">Volver</button>
+      <button type="button" class="btn-danger" [disabled]="saving()" (click)="confirmCancel()">
+        Cancelar orden
+      </button>
+    </div>
+  </p-dialog>
+
+  <app-visit-dialog #visitDialog (changed)="onVisitChanged()" />
+} @else if (loadFailed()) {
+  <div class="card flex flex-col items-center gap-3 p-10 text-center">
+    <span class="empty-icon">
+      <svg lucideSearchX class="size-5" aria-hidden="true"></svg>
+    </span>
+    <p class="text-sm text-surface-500 dark:text-surface-400">No se encontró la orden.</p>
+    <a routerLink="/service-orders" class="btn-secondary">Volver a órdenes</a>
+  </div>
+} @else {
+  <div class="flex flex-col gap-6">
+    @for (row of [0, 1, 2]; track row) {
+      <div class="card p-6"><div class="skeleton h-24"></div></div>
+    }
+  </div>
+}

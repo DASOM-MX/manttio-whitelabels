@@ -23,6 +23,7 @@
       <p-tablist>
         <p-tab value="portada">Portada</p-tab>
         <p-tab value="servicios">Servicios</p-tab>
+        <p-tab value="catalogo">Catálogo</p-tab>
         <p-tab value="clientes">Clientes</p-tab>
         <p-tab value="marcas">Marcas</p-tab>
         <p-tab value="ubicacion">Ubicación</p-tab>
@@ -231,6 +232,55 @@
                   </div>
                 </ng-template>
               </app-repeater>
+            </div>
+          </div>
+        </p-tabpanel>
+
+        <p-tabpanel value="catalogo">
+          <div class="flex flex-col gap-4" formGroupName="catalog_content">
+            <p class="field-hint">
+              Textos de la sección de precios del sitio. Los servicios que aparecen ahí, con su
+              precio y unidad, se administran en «Catálogo de servicios». Los campos vacíos usan el
+              texto por defecto del sitio.
+            </p>
+            <div
+              class="grid gap-6 divide-surface-200 lg:grid-cols-2 lg:gap-0 lg:divide-x dark:divide-surface-800"
+            >
+              <div class="flex flex-col gap-4 lg:pr-8">
+                <div class="field-group">
+                  <label class="field-label" for="cms-cat-eyebrow">Antetítulo</label>
+                  <input
+                    id="cms-cat-eyebrow"
+                    pInputText
+                    formControlName="eyebrow"
+                    placeholder="Catálogo"
+                  />
+                </div>
+                <div class="field-group">
+                  <label class="field-label" for="cms-cat-title">Título de la sección</label>
+                  <input
+                    id="cms-cat-title"
+                    pInputText
+                    formControlName="title"
+                    placeholder="Servicios y precios de referencia"
+                  />
+                </div>
+              </div>
+              <div class="flex flex-col gap-4 lg:pl-8">
+                <div class="field-group">
+                  <label class="field-label" for="cms-cat-description">Descripción</label>
+                  <textarea
+                    id="cms-cat-description"
+                    pTextarea
+                    formControlName="description"
+                    rows="4"
+                  ></textarea>
+                  <p class="field-hint">
+                    Buen lugar para aclarar si los precios incluyen IVA o cómo se cotiza el alcance
+                    final.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </p-tabpanel>

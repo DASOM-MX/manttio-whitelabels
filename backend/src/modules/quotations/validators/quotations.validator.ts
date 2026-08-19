@@ -1,0 +1,223 @@
+import { z } from 'zod';
+import { QuotationResponse, QuotationStatus } from '../enums/quotations.enum';
+import { ServiceTaxRate, ServiceUom } from '../../services/enums/services.enum';
+
+// A calendar date (YYYY-MM-DD) for the `date` column. Kept as a string rather
+// than coerced through `Date`: parsing "2026-08-01" as a Date lands on UTC
+// midnight, which in a negative-offset timezone is the day before — and an
+// expiry that silently shifts a day is exactly the bug a quote can't have.
+const calendarDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)')
+  .refine((v) => !Number.isNaN(Date.parse(`${v}T00:00:00Z`)), 'Fecha inexistente');
+
+// Money travels as an exact decimal string, never a JSON float — the same
+// discipline as every `numeric(12,2)` column (see `quotation-totals.ts`).
+const moneyAmount = z
+  .string()
+  .regex(/^\d{1,10}(\.\d{1,2})?$/, 'Monto inválido (hasta dos decimales, sin signo)');
+
+// Decimal quantity (decided 2026-07-29): numeric(12,3), a string end-to-end for
+// the same reason money is — `1.005` as a JSON float is already not 1.005.
+const decimalQuantity = z
+  .string()
+  .regex(/^\d{1,9}(\.\d{1,3})?$/, 'Cantidad inválida (hasta tres decimales)')
+  .refine((v) => Number(v) > 0, 'La cantidad debe ser mayor a cero');
+
+// A line is either **catalog** (a `serviceId`; every priced field is a snapshot
+// the server resolves — accepting a price from the caller would let a quote
+// carry one the catalog never held, which defeats the freeze) or
+// **off-catalog** (decided 2026-07-29: no `serviceId`; the staff-typed
+// name/price/uom/taxRate ARE the snapshot). One object + superRefine rather
+// than a union so each missing field gets its own message instead of a
+// unionwide "invalid input".
+const quotationLineInput = z
+  .object({
+    serviceId: z.string().uuid().optional(),
+    name: z.string().trim().min(1).optional(),
+    unitPrice: moneyAmount.optional(),
+    uom: z.nativeEnum(ServiceUom).optional(),
+    taxRate: z.nativeEnum(ServiceTaxRate).optional(),
+    quantity: decimalQuantity,
+    // A per-line note replacing the catalog description (or, off-catalog, just
+    // the line's note).
+    description: z.string().trim().optional(),
+    // Frozen amount, never a percent (decided 2026-07-29) — the % entry is a
+    // builder-side helper that converts once. `≤ importe` is enforced in the
+    // service layer, where the catalog price is known.
+    discountAmount: moneyAmount.optional(),
+  })
+  .superRefine((line, ctx) => {
+    const owned: [keyof typeof line, string][] = [
+      ['name', 'nombre'],
+      ['unitPrice', 'precio'],
+      ['uom', 'unidad'],
+      ['taxRate', 'IVA'],
+    ];
+    if (line.serviceId) {
+      for (const [key, label] of owned) {
+        if (line[key] !== undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `Una partida de catálogo no puede traer ${label} propio — se toma del catálogo.`,
+          });
+        }
+      }
+    } else {
+      for (const [key, label] of owned) {
+        if (line[key] === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `Una partida fuera de catálogo necesita ${label}.`,
+          });
+        }
+      }
+    }
+  });
+
+export const createQuotationSchema = z.object({
+  customerId: z.string().uuid(),
+  validUntil: calendarDate,
+  comments: z.string().optional(),
+  lines: z.array(quotationLineInput).min(1, 'La cotización necesita al menos una partida'),
+});
+
+// Draft-only (409 once sent). Lines are replaced wholesale when present — see
+// `UpdateQuotationFields`.
+export const updateQuotationSchema = z.object({
+  validUntil: calendarDate.optional(),
+  comments: z.string().optional(),
+  lines: z.array(quotationLineInput).min(1).optional(),
+});
+
+// Recipients are chosen from the customer's contacts (07); each carries the
+// reviewer toggle. Zero reviewers is allowed (owner 2026-07-26) — an
+// informational send — so there is deliberately no `.refine` demanding one.
+export const sendQuotationSchema = z
+  .object({
+    recipients: z
+      .array(z.object({ contactId: z.string().uuid(), isReviewer: z.boolean().default(false) }))
+      .min(1, 'Elige al menos un destinatario'),
+    message: z.string().trim().optional(),
+  })
+  // One entry per contact. The recipient upsert writes the whole list in a
+  // single statement, and Postgres rejects an ON CONFLICT that would touch the
+  // same row twice — so a repeated contact used to surface as a 500 carrying
+  // the raw driver message. Rejecting here is also the more honest answer than
+  // silently de-duplicating: two entries for one contact disagree about
+  // `isReviewer`, and picking a winner would quietly decide who may approve.
+  .refine((v) => new Set(v.recipients.map((r) => r.contactId)).size === v.recipients.length, {
+    path: ['recipients'],
+    message: 'Hay un destinatario repetido; elige cada contacto una sola vez.',
+  });
+
+// Both terminal staff actions carry a mandatory comment — the audit "why"
+// (20 §2). `min(1)` after trim so whitespace can't satisfy it.
+const resolutionComment = z.object({ comment: z.string().trim().min(1, 'El comentario es obligatorio') });
+
+export const cancelQuotationSchema = resolutionComment;
+
+// The convergence body (20 §6, shape settled 2026-07-27). Beyond the mandatory
+// comment, the conversion must carry the order's explosion inputs: 19 §2 keeps
+// the report invariants — every exploded skeleton is born complete with a
+// technician and a template assignment — and the quote knows neither. One assignment
+// per DISTINCT quoted service (the service layer checks exact coverage against
+// the quote's lines; duplicate-service quote lines merge into one order line).
+// Quantities and every money field come from the quote's frozen snapshots and
+// are deliberately NOT accepted here.
+export const createOrderFromQuotationSchema = resolutionComment.extend({
+  location: z.string().trim().optional(),
+  assignments: z
+    .array(
+      z
+        .object({
+          // Catalog lines are keyed by service (they merge into one order line
+          // per service); an off-catalog line has no service, so it is keyed by
+          // its own quotation LINE id. Exactly one, same idiom as the line
+          // input itself.
+          serviceId: z.string().uuid().optional(),
+          lineId: z.string().uuid().optional(),
+          technicianId: z.string().uuid().optional(),
+          templateId: z.string().uuid().optional(),
+          // How many report skeletons this line explodes (owner 2026-07-31).
+          // Omit to take the catalog default (`isReportSource`); send to raise
+          // it or to zero it. Technician + template are required exactly when
+          // the resolved count is > 0 — checked in the service layer.
+          reportCount: z.coerce.number().int().min(0).max(20).optional(),
+        })
+        .refine((a) => !!a.serviceId !== !!a.lineId, {
+          message: 'Cada asignación referencia un servicio o una partida, no ambos.',
+        }),
+    )
+    .min(1)
+    .max(20)
+    .refine(
+      (rows) => {
+        const keys = rows.map((r) => r.serviceId ?? r.lineId);
+        return new Set(keys).size === keys.length;
+      },
+      { message: 'Hay una partida repetida; asigna cada una sola vez.' },
+    ),
+});
+
+// Audited soft delete, same contract as users/services/equipment. Distinct from
+// `/cancel`: cancelling retires a quote the client may still be shown, deleting
+// takes it out of the tenant's own lists (and kills every recipient link).
+export const deleteQuotationSchema = z.object({
+  deleteComment: z.string().trim().min(1, 'El comentario es obligatorio'),
+});
+
+/** `GET /customers/:id/quotations` — the client is the path, so the only query
+ *  left is paging. Deliberately not `listQuotationsQuerySchema.pick(...)`: a
+ *  `customerId` in the query string of a customer-scoped route could disagree
+ *  with the path, and there is no sensible way to resolve that. */
+export const customerQuotationsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const listQuotationsQuerySchema = z.object({
+  q: z.string().optional(),
+  customerId: z.string().uuid().optional(),
+  // Vigencia lens (PR-C): 'overdue' = past validUntil and still live; 'soon' =
+  // expiring within 7 days. A guard-derived filter, deliberately not a status.
+  due: z.enum(['soon', 'overdue']).optional(),
+  status: z.nativeEnum(QuotationStatus).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+// The public token page's only write. A decline must say why; an approval
+// need not — refusing costs the client something and the reason is what staff
+// act on, while "yes" is self-explanatory.
+export const respondQuotationSchema = z
+  .object({
+    response: z.nativeEnum(QuotationResponse),
+    reason: z.string().trim().optional(),
+  })
+  .refine(
+    (v) => v.response !== QuotationResponse.Declined || !!v.reason,
+    { path: ['reason'], message: 'Indica el motivo del rechazo' },
+  );
+
+export type CreateQuotationInput = z.infer<typeof createQuotationSchema>;
+export type UpdateQuotationInput = z.infer<typeof updateQuotationSchema>;
+export type SendQuotationInput = z.infer<typeof sendQuotationSchema>;
+export type CancelQuotationInput = z.infer<typeof cancelQuotationSchema>;
+export type ConvertQuotationInput = z.infer<typeof createOrderFromQuotationSchema>;
+export type DeleteQuotationInput = z.infer<typeof deleteQuotationSchema>;
+export type ListQuotationsQuery = z.infer<typeof listQuotationsQuerySchema>;
+
+/** PUT /quotations/settings — the tenant's default terms (PR-C). */
+export const quotationSettingsSchema = z.object({
+  defaultComments: z.string().max(5000).default(''),
+});
+export type QuotationSettingsInput = z.infer<typeof quotationSettingsSchema>;
+
+/** POST /quotations/:id/remind — nudge one pending reviewer (PR-C). */
+export const remindQuotationSchema = z.object({ contactId: z.string().uuid() });
+export type RemindQuotationInput = z.infer<typeof remindQuotationSchema>;
+export type RespondQuotationInput = z.infer<typeof respondQuotationSchema>;
+export type QuotationLineInput = z.infer<typeof quotationLineInput>;

@@ -1,0 +1,344 @@
+@if (quotation(); as q) {
+  <app-page-header
+    [title]="'Cotización — ' + q.folio"
+    backLink="/quotations"
+    backLabel="Volver a cotizaciones"
+  >
+    <div meta class="flex flex-wrap items-center gap-1">
+      <p-tag
+        [severity]="q.status | quotationStatusSeverity"
+        [value]="q.status | quotationStatusLabel"
+      />
+      @if (q | quotationShowsOverdue) {
+        <p-tag severity="danger" value="Vencida" />
+      }
+    </div>
+
+    @if (isDraft()) {
+      <a [routerLink]="['/quotations', q.id, 'edit']" class="btn-neutral">
+        <svg lucidePencil class="size-4" aria-hidden="true"></svg>
+        Editar
+      </a>
+    }
+    @if (isLive()) {
+      <button type="button" class="btn-primary" (click)="openSend()">
+        <svg lucideSend class="size-4" aria-hidden="true"></svg>
+        {{ q.sentAt ? 'Reenviar' : 'Enviar' }}
+      </button>
+      @if (!isDraft()) {
+        <button type="button" class="btn-neutral" (click)="revise()">
+          <svg lucideRefreshCw class="size-4" aria-hidden="true"></svg>
+          Revisar
+        </button>
+      }
+      <button type="button" class="btn-neutral" (click)="openCancel()">
+        <svg lucideXCircle class="size-4" aria-hidden="true"></svg>
+        Cancelar
+      </button>
+    }
+    <a [routerLink]="['/quotations', 'new']" [queryParams]="{ from: q.id }" class="btn-neutral">
+      <svg lucideCopy class="size-4" aria-hidden="true"></svg>
+      Duplicar
+    </a>
+    @if (canDelete()) {
+      <button type="button" class="btn-danger" (click)="openDelete()">
+        <svg lucideTrash2 class="size-4" aria-hidden="true"></svg>
+        Eliminar
+      </button>
+    }
+  </app-page-header>
+
+  <section class="card-section">
+    <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <dt class="micro-label">Cliente</dt>
+        <dd class="mt-0.5 text-sm font-medium">
+          <a [routerLink]="['/customers', q.customerId]" class="link-action">{{
+            q.customerName
+          }}</a>
+        </dd>
+      </div>
+      <div>
+        <dt class="micro-label">Aprobaciones</dt>
+        <dd class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
+          {{ q.tally | quotationTally }}
+        </dd>
+      </div>
+      <div>
+        <dt class="micro-label">Vigencia</dt>
+        <dd
+          class="mt-0.5 font-data text-sm font-medium tabular-nums text-surface-1000 dark:text-surface-0"
+        >
+          {{ q.validUntil }}
+        </dd>
+      </div>
+      <div>
+        <dt class="micro-label">Enviada</dt>
+        <dd
+          class="mt-0.5 font-data text-sm font-medium tabular-nums text-surface-1000 dark:text-surface-0"
+        >
+          {{ q.sentAt ? (q.sentAt | date: 'dd/MM/y') : '—' }}
+        </dd>
+      </div>
+    </dl>
+
+    @if (q.supersedesQuotationId) {
+      <div class="callout callout--info mt-4">
+        Esta cotización reemplaza a una anterior, que quedó cancelada.
+        <a [routerLink]="['/quotations', q.supersedesQuotationId]" class="link-action">
+          Ver la anterior
+        </a>
+      </div>
+    }
+
+    @if (q.resolutionReason) {
+      <div class="callout callout--warn mt-4">
+        <span class="font-medium">Motivo del cierre:</span> {{ q.resolutionReason }}
+      </div>
+    }
+
+    @if (q.comments) {
+      <div class="mt-4">
+        <h2 class="micro-label">Términos y condiciones</h2>
+        <p class="mt-1 whitespace-pre-line text-sm text-surface-800 dark:text-surface-200">
+          {{ q.comments }}
+        </p>
+      </div>
+    }
+  </section>
+
+  <section class="card-section mt-4">
+    <h2 class="section-heading">Partidas</h2>
+    <!-- Frozen at creation: these prices are what the client was quoted, even
+         if the catalog has moved since. -->
+    <p class="mt-1 text-sm text-surface-600 dark:text-surface-400">
+      Precios congelados al momento de crearla — no cambian aunque el catálogo cambie.
+    </p>
+
+    <div class="card-flush-table mt-3">
+      <p-table [value]="q.lines" dataKey="id">
+        <ng-template #header>
+          <tr>
+            <th scope="col">Servicio</th>
+            <th scope="col">Cantidad</th>
+            <th scope="col">Unidad</th>
+            <th scope="col">Precio unitario</th>
+            <th scope="col">Descuento</th>
+            <th scope="col">IVA</th>
+            <th scope="col">Importe</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-line>
+          <tr>
+            <td>
+              <span class="font-medium">{{ line.serviceName }}</span>
+              @if (!line.serviceId) {
+                <span class="block text-xs text-surface-500 dark:text-surface-400">
+                  Fuera de catálogo
+                </span>
+              }
+              @if (line.description) {
+                <span class="block text-xs text-surface-500 dark:text-surface-400">
+                  {{ line.description }}
+                </span>
+              }
+            </td>
+            <td class="font-data tabular-nums">{{ line.quantity | quantity }}</td>
+            <td>{{ line.uom | serviceUomShort }}</td>
+            <td class="font-data tabular-nums">{{ line.unitPrice | money }}</td>
+            <td class="font-data tabular-nums">
+              @if (line.discountAmount !== '0.00') {
+                −{{ line.discountAmount | money }}
+              } @else {
+                —
+              }
+            </td>
+            <td class="font-data tabular-nums">{{ line.taxRate | serviceTaxRateShort }}</td>
+            <td class="font-data font-medium tabular-nums">{{ line.lineSubtotal | money }}</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+
+    <dl class="mt-4 ml-auto grid w-full max-w-xs gap-1 text-sm">
+      <div class="flex items-baseline justify-between gap-4">
+        <dt class="text-surface-600 dark:text-surface-400">Subtotal</dt>
+        <dd class="font-data tabular-nums">{{ q.totals.subtotal | money }}</dd>
+      </div>
+      @if (q.totals.discount !== '0.00') {
+        <div class="flex items-baseline justify-between gap-4">
+          <dt class="text-surface-600 dark:text-surface-400">Descuento</dt>
+          <dd class="font-data tabular-nums">−{{ q.totals.discount | money }}</dd>
+        </div>
+      }
+      <div class="flex items-baseline justify-between gap-4">
+        <dt class="text-surface-600 dark:text-surface-400">IVA</dt>
+        <dd class="font-data tabular-nums">{{ q.totals.iva | money }}</dd>
+      </div>
+      <div
+        class="flex items-baseline justify-between gap-4 border-t border-surface-200 pt-1 dark:border-surface-700"
+      >
+        <dt class="font-medium text-surface-1000 dark:text-surface-0">Total</dt>
+        <dd class="font-data font-medium tabular-nums text-surface-1000 dark:text-surface-0">
+          {{ q.totals.total | money }}
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <!-- Who received it and what has happened since — the process around the
+       quote, as opposed to the quote itself above. Framed in a card the same
+       way the customer view frames its tabs (`.card` carries no padding
+       because `.p-tabpanels` supplies it). -->
+  <section class="card mt-4">
+    <p-tabs [value]="activeTab()" (valueChange)="setTab($event)">
+      <p-tablist>
+        <p-tab value="destinatarios">Destinatarios</p-tab>
+        <p-tab value="bitacora">Bitácora</p-tab>
+      </p-tablist>
+      <p-tabpanels>
+        <p-tabpanel value="destinatarios">
+          <!-- Full-bleed: `tabs.scss` retargets `.card-flush-table` to the
+               panel's own gutter. -->
+          <div class="card-flush-table">
+            <p-table [value]="q.recipients" dataKey="id">
+              <ng-template #header>
+                <tr>
+                  <th scope="col">Contacto</th>
+                  <th scope="col">Correo</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Abrió</th>
+                  <th scope="col">Respondió</th>
+                  <th scope="col">Motivo</th>
+                  <th scope="col"><span class="sr-only">Acciones</span></th>
+                </tr>
+              </ng-template>
+              <ng-template #body let-recipient>
+                <tr>
+                  <td class="font-medium">{{ recipient.contactName || '—' }}</td>
+                  <td>{{ recipient.email }}</td>
+                  <td>
+                    <p-tag
+                      [severity]="recipient | quotationRecipientSeverity"
+                      [value]="recipient | quotationRecipientStanding"
+                    />
+                  </td>
+                  <td class="font-data tabular-nums">
+                    {{ recipient.viewedAt ? (recipient.viewedAt | relativeTime) : '—' }}
+                  </td>
+                  <td class="font-data tabular-nums">
+                    {{ recipient.respondedAt ? (recipient.respondedAt | relativeTime) : '—' }}
+                  </td>
+                  <td class="text-sm text-surface-600 dark:text-surface-400">
+                    {{ recipient.responseReason || '—' }}
+                  </td>
+                  <td>
+                    <!-- Same token, reminder email — only while an answer can
+                         still land and only for reviewers who haven't. -->
+                    @if (canRemind() && recipient.isReviewer && !recipient.response) {
+                      <button
+                        type="button"
+                        class="row-action"
+                        [disabled]="remindingId() === recipient.contactId"
+                        (click)="remind(recipient.contactId)"
+                        [attr.aria-label]="'Recordar a ' + recipient.email"
+                        [attr.title]="'Enviar recordatorio'"
+                      >
+                        <svg lucideBellRing class="size-4" aria-hidden="true"></svg>
+                      </button>
+                    }
+                  </td>
+                </tr>
+              </ng-template>
+              <ng-template #emptymessage>
+                <tr class="p-datatable-emptymessage">
+                  <td colspan="7">Todavía no se ha enviado a nadie.</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+        </p-tabpanel>
+
+        <p-tabpanel value="bitacora">
+          <!-- Append-only and in insertion order: nothing here is ever edited or
+               removed, including a reviewer changing their mind. -->
+          <p class="mb-3 text-sm text-surface-600 dark:text-surface-400">
+            Todo lo que ha pasado con esta cotización, en orden y sin ediciones.
+          </p>
+          <div class="card-flush-table">
+            <p-table
+              [value]="timeline()"
+              [loading]="timelineLoading()"
+              [showLoader]="false"
+              dataKey="id"
+            >
+              <ng-template #header>
+                <tr>
+                  <th scope="col">Evento</th>
+                  <th scope="col">Quién</th>
+                  <th scope="col">Detalle</th>
+                  <th scope="col">Cuándo</th>
+                </tr>
+              </ng-template>
+              <ng-template #body let-event>
+                <tr>
+                  <td>
+                    <span class="inline-flex items-center gap-2 font-medium">
+                      <svg
+                        lucideIcon
+                        [lucideIcon]="event.type | quotationEventIcon"
+                        class="size-4 text-surface-500 dark:text-surface-400"
+                        aria-hidden="true"
+                      ></svg>
+                      {{ event.type | quotationEventLabel }}
+                    </span>
+                  </td>
+                  <td>{{ event | quotationEventActor }}</td>
+                  <td class="text-sm text-surface-600 dark:text-surface-400">
+                    {{ event | quotationEventDetail }}
+                  </td>
+                  <td class="font-data tabular-nums">{{ event.createdAt | relativeTime }}</td>
+                </tr>
+              </ng-template>
+              <ng-template #loadingbody>
+                @for (r of skeletonRows; track r) {
+                  <tr>
+                    @for (c of [0, 1, 2, 3]; track c) {
+                      <td><span class="skeleton"></span></td>
+                    }
+                  </tr>
+                }
+              </ng-template>
+              <ng-template #emptymessage>
+                <tr class="p-datatable-emptymessage">
+                  <td colspan="4">Sin movimientos.</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
+  </section>
+
+  <app-send-quotation-dialog #sendDialog (sent)="refresh()" />
+  <app-cancel-quotation-dialog #cancelDialog (cancelled)="refresh()" />
+  <app-delete-quotation-dialog #deleteDialog (deleted)="onDeleted()" />
+} @else if (loadFailed()) {
+  <div class="mt-10 flex flex-col items-center gap-3" role="alert">
+    <p class="text-sm text-surface-500 dark:text-surface-400">
+      No encontramos esta cotización. Puede que se haya eliminado.
+    </p>
+    <a routerLink="/quotations" class="btn-neutral">Volver a cotizaciones</a>
+  </div>
+} @else {
+  <div class="mt-6 flex flex-col gap-4">
+    <span class="skeleton h-8 w-48"></span>
+    <section class="card-section">
+      <span class="skeleton"></span>
+    </section>
+    <section class="card-section">
+      <span class="skeleton"></span>
+    </section>
+  </div>
+}

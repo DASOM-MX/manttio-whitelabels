@@ -8,6 +8,7 @@ import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
 import Services from '../components/Services.astro';
+import ServiceCatalog from '../components/ServiceCatalog.astro';
 import Clients from '../components/Clients.astro';
 import Location from '../components/Location.astro';
 import Manufacturers from '../components/Manufacturers.astro';
@@ -16,7 +17,7 @@ import UtmCapture from '../components/UtmCapture.astro';
 import { getSiteData } from '../lib/api';
 import { buildBrandCss } from '../lib/theme';
 
-const { brand, home, clients, fonts } = await getSiteData();
+const { brand, home, clients, services, fonts } = await getSiteData();
 const brandCss = buildBrandCss(brand, fonts);
 
 const requestOrigin = new URL(Astro.request.url).origin;
@@ -95,6 +96,7 @@ const organizationSchema = {
     <main>
       <Hero brand={brand} home={home} />
       <Services home={home} />
+      {services.length > 0 && <ServiceCatalog home={home} services={services} />}
       {clients.length > 0 && <Clients brand={brand} home={home} clients={clients} />}
       <Location brand={brand} home={home} />
       <Manufacturers home={home} />

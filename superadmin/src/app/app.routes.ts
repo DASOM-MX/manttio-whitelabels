@@ -69,6 +69,27 @@ export const routes: Routes = [
         loadChildren: () => import('./equipment/equipment.routes'),
       },
       {
+        path: 'services',
+        canMatch: [accessGuard],
+        data: { module: 'services', roles: ['owner', 'admin', 'office', 'technician'] },
+        loadChildren: () => import('./service-catalog/service-catalog.routes'),
+      },
+      {
+        path: 'quotations',
+        canMatch: [accessGuard],
+        data: { module: 'quotations', roles: ['owner', 'admin', 'office'] },
+        loadChildren: () => import('./quotations/quotations.routes'),
+      },
+      {
+        path: 'service-orders',
+        canMatch: [accessGuard],
+        data: {
+          module: 'service-orders',
+          roles: ['owner', 'admin', 'office', 'technician'],
+        },
+        loadChildren: () => import('./service-orders/service-orders.routes'),
+      },
+      {
         path: 'contracts',
         canMatch: [accessGuard],
         data: { module: 'contracts', roles: ['owner', 'admin', 'office'] },

@@ -1,7 +1,7 @@
 # 20 — Quotations (cotizaciones)
 
-> **Status:** planned · **Depends on:** 07 (client + contacts), 18 (catalog + `taxRate`), `email/` + `pdf/` modules · **Feeds:** 19 (staff create a service order from an approved quote) · **Hooks:** 08 (CRM interaction), 09 (billing)
-> **Owner:** — · **Last updated:** 2026-07-24
+> **Status:** CP-1 + CP-2 built (backend + superadmin UI; **`/order` convergence landed 2026-07-27** with 19 CP-1 — see CP-1) · **Depends on:** 07 (client + contacts), 18 (catalog + `taxRate`), `email/` + `pdf/` modules · **Feeds:** 19 (staff create a service order from an approved quote) · **Hooks:** 08 (CRM interaction), 09 (billing)
+> **Owner:** — · **Last updated:** 2026-07-31
 
 The **sales entry point** and the convergence of 18 and 19: a quotation is built from
 catalog services (18), mailed to the client's reviewer-contacts (07) who approve/decline
@@ -49,14 +49,24 @@ Quotation {
 }
 QuotationLine {             // FROZEN snapshot — the quote never re-reads the catalog
   id, quotationId,
-  serviceId,                // ref → services (restrict; the service may later be
-                            //   renamed/soft-deleted — the snapshot stays intact)
+  serviceId?,               // ref → services (restrict; the service may later be
+                            //   renamed/soft-deleted — the snapshot stays intact).
+                            //   NULL = OFF-CATALOG line (decided 2026-07-29): staff
+                            //   typed the whole line; name/price/uom/taxRate ARE its
+                            //   snapshot, no catalog row to trace back to
   serviceName,              // snapshot of services.name at creation
   description?,             // snapshot (or a per-line override)
   unitPrice,                // numeric(12,2) SNAPSHOT of services.price
   uom,                      // snapshot of services.uom
-  quantity,                 // int >= 1
+  quantity,                 // numeric(12,3) > 0 (decided 2026-07-29 — decimal
+                            //   quantities: 1.5 h, 12.75 m²); a STRING end-to-end,
+                            //   like money, so no JSON float ever touches it
   taxRate,                  // SNAPSHOT of services.taxRate (§3) — Mexican IVA rate
+  discountAmount,           // numeric(12,2) ≥ 0, ≤ importe (decided 2026-07-29) —
+                            //   frozen AMOUNT, never a %: CFDI's per-concepto
+                            //   Descuento is an amount, and freezing it means no
+                            //   percent re-rounding can make quote and invoice
+                            //   disagree. The builder's % entry converts ONCE.
   // lineSubtotal = unitPrice * quantity (computed; not stored)
   createdAt
 }
@@ -85,11 +95,17 @@ quotes. When the quote converts to an order (§6), the **order lines inherit the
 snapshots** — so the order (and eventually the invoice) charges exactly what the client
 accepted.
 
-**Totals** are computed from the frozen lines, never stored redundantly. IVA rates vary per
-line, so IVA is a **per-line** sum: `subtotal = Σ lineSubtotal`;
-`iva = Σ (lineSubtotal × rate(taxRate))` with `rate(iva_16)=0.16, rate(iva_8)=0.08,
-rate(iva_0)=0, rate(exento)=0`; `total = subtotal + iva`. `iva_0` and `exento` both add 0
-but stay distinct for CFDI.
+**Totals** are computed from the frozen lines, never stored redundantly, and mirror
+**CFDI 4.0** (revised 2026-07-29 for decimal quantities + discounts): per line,
+`importe = round(unitPrice × quantity)` — the ONE rounding a line gets, half-up to the
+centavo, needed because cents × thousandths lands between centavos — then
+`iva = round((importe − discountAmount) × rate)` per line (rates vary per line; CFDI
+rounds per concepto). `subtotal = Σ importe` (pre-discount), `descuento = Σ
+discountAmount` (exact amounts, no rounding), `total = subtotal − descuento + iva`.
+All arithmetic in scaled integers (cents / quantity-thousandths; the cross product in
+BigInt — it can pass 2⁵³), duplicated verbatim in the superadmin preview
+(`services/quotations/quotation-totals.service.ts`) — any change lands in both in the
+same PR. `iva_0` and `exento` both add 0 but stay distinct for CFDI.
 
 ## 2. Lifecycle & statuses (decided 2026-07-24)
 
@@ -254,9 +270,12 @@ is primary, not exclusive.
   recipients + tokens, mails PDF + link, status → `sent`
 - `POST /quotations/:id/revise` → new linked `draft`; the old one is **cancelled** with an
   auto-comment referencing the successor (`supersedesQuotationId` on the new)
-- `POST /quotations/:id/order` `{ comment }` — **creates the service order** (§6).
-  Enforces the gate: 403 for office at 0 approvals (owner/admin override); 409 past
-  `validUntil`. Comment mandatory → `order_created`.
+- `POST /quotations/:id/order` `{ comment, location?, assignments: [{ serviceId,
+  technicianId, reportType }] }` — **creates the service order** (§6; body amended
+  2026-07-27: the per-service assignments are 19 §2's explosion inputs, one per
+  distinct quoted service, coverage-checked). Enforces the gate: 403 for office at
+  0 approvals (owner/admin override); 409 past `validUntil`. Comment mandatory →
+  `order_created`.
 - `POST /quotations/:id/cancel` `{ comment }` — explicit abandonment; comment mandatory →
   `cancelled` (terminal).
 - **Public:** `GET /public/quotations/{token}` (view; reviewer tokens get the actions) ·
@@ -279,27 +298,113 @@ is primary, not exclusive.
 ## Checkpoints (stacked with the operations suite — 18 → 20 → 19)
 
 ### CP-1 — Backend: quotations + convergence
-- [ ] `services.taxRate` (18 amendment); `quotations` + `quotation_lines` +
-      `quotation_recipients` + `quotation_events` + `quotation_counters` tables,
-      hand-written additive DDL; `service_orders.quotationId?`
-- [ ] CRUD (draft) + `/send` (tokens + email PDF) + `/revise` + `/order` (comment,
-      gated) + `/cancel` (comment); snapshot resolution server-side
-- [ ] Public `GET /public/quotations/{token}` + `/respond` (reviewer-only, **mutable**,
-      `validUntil`-guarded) → **re-derives the tally status**; `/order` gate (≥1 approval
-      for office, owner/admin override from 0) → **opens order (19) inheriting snapshots**
-- [ ] `quotation_events` for every mutation incl. per-response re-logs + status-derive +
-      mandatory order/cancel comments; `validUntil` cron flag
+- [x] `services.taxRate` — landed with 18 CP-1. `quotations` + `quotation_lines` +
+      `quotation_recipients` + `quotation_events` + `quotation_counters`, hand-written
+      additive DDL as `drizzle/migrations/0023_quotations.sql` and applied with
+      **`drizzle-kit migrate`** (owner 2026-07-27 — "shouldn't we do this through the
+      migrations?"; supersedes the out-of-band `db:push`/hand-apply habit). That run also
+      re-synced the tracking table, which was 4 files behind: `0020`–`0022` had been
+      applied out-of-band and were re-run as no-ops (all three are guarded). Enum-ish
+      columns carry **no CHECK constraints** — the `services` posture (18), not
+      `notifications` (0020): the Drizzle model is the single source of truth and the
+      tally rewrites `status` too often for a constraint to earn its keep.
+- [x] CRUD (draft) + `/send` + `/revise` + `/cancel`; snapshot resolution server-side —
+      the client sends only `serviceId` + `quantity`, so a caller can never quote a price
+      the catalog never held (asserted).
+- [x] ~~**`/order` deferred to 19**~~ — **landed 2026-07-27** (both CP-1s on main;
+      owner: "link them"). One transaction: order graph off the frozen line
+      snapshots (duplicate-service quote lines **merge** into one order line,
+      quantities summed — same-instant snapshots make this lossless), quote
+      flipped to `order_created` (guarded on liveness inside the tx, so a
+      convert can't race a cancel), `serviceOrderId` + `resolutionReason` +
+      both timeline events written. FKs now real both ways (DDL 0027;
+      `service_orders.quotationId` + partial unique = one order per quote).
+      **Body shape amended from the `{ comment }` sketch:** 19 §2's report
+      invariants make per-service **`assignments`** (`technicianId` +
+      `reportType`) mandatory — the skeletons must be born complete, and the
+      quote knows neither. Gates as §7: office needs ≥1 approval, owner/admin
+      override from 0 is flagged in the event `changes`; 409 past `validUntil`;
+      the ≤50-exploded-reports bound applies (409 `explosion_too_large`).
+      A soft-deleted service does NOT block conversion — the client accepted
+      the frozen snapshot (asserted in the suite).
+- [x] Public `GET /public/quotations/{token}` + `/respond` (reviewer-only, **mutable**,
+      `validUntil`-guarded) → **re-derives the tally status**. CP-1 answers JSON; CP-3
+      replaces the `GET` with the server-rendered page on the same route, so links already
+      mailed keep working.
+- [x] `quotation_events` for every mutation incl. per-response re-logs + status-derive +
+      mandatory cancel comments. Events are always written **inside** the transaction that
+      makes the change, and always as a single multi-row insert — a 20-line quote opens
+      with 21 events and awaiting them one at a time would be 21 sequential round trips
+      inside the transaction holding the folio counter (owner 2026-07-27: "awaits inside
+      for loops are not performant").
+- [x] **`DELETE /quotations/:id`** — audited soft delete (owner 2026-07-27, CP-1 review).
+      Not in §9's surface; added because the module had a `deleted_at` column and no way
+      to use it. Admin-tier only (office can `/cancel`, which is a lifecycle decision the
+      client may still see, but not remove a quote from the tenant's lists), mandatory
+      `{ deleteComment }`, stamps `deleted_by`, appends a `quotation_deleted` event.
+      Allowed from any state — housekeeping, not a lifecycle step — and it also stops
+      every recipient token resolving.
+- [x] **Timeline ordering is `seq`, never `created_at`** (CP-1 review). Events are written
+      in batches and every row in a batch shares one `now()`, so ordering by timestamp
+      left ties the planner could return in any order — a trail reporting "line added"
+      before "quotation created". `quotation_events.seq` (bigserial) is the insertion
+      order and the only sort key; the covering index moved with it.
+- [x] `test/quotations.test.ts` — 30 tests, green. Fixtures are tracked by id and
+      **soft-deleted** in `afterAll`; the no-hard-delete rule covers fixtures too.
 
 ### CP-2 — Superadmin: quotation UI
-- [ ] DTOs + `QuotationsState` + http service
-- [ ] Builder page (`/new`) + list (URL filters) + view with recipients + timeline
-- [ ] Send dialog (contact picker); nav + module keys
+- [x] DTOs + `QuotationsState` + http service
+- [x] Builder page (`/new`, plus `/:id/edit` for drafts) + list (URL filters) + view with
+      recipients + timeline
+- [x] Send dialog (contact picker); nav + module keys
+- [x] Cancel + audited-delete dialogs; customer-view "Cotizaciones" tab backed by the new
+      `GET /customers/:id/quotations`
 
-### CP-3 — Backend approval page + PDF
-- [ ] Cotización PDF (`pdf/` module, brand-themed); email template
-- [ ] **Backend-rendered** approval page (`quotations/templates/` + `helpers/`, public
-      route): view → approve/decline (+ reason); overdue/resolved/non-reviewer states —
-      no SPA
+**Not in CP-2, by necessity:** **Crear orden** — `POST /:id/order` does not exist until 19,
+so no button is rendered (a button that 404s is worse than none). Lands in CP-4 with the
+gate + override.
+
+### CP-3 — Suite (PR-A/B/C, one PR each — decided 2026-07-29)
+**PR-A — line model v2 (fullstack)** — [x] built 2026-07-29:
+- [x] Per-line **discount as a frozen amount** + builder % quick-entry (converts once);
+      `≤ importe` guarded (400 `discount_too_large`; revise clamps instead — a reprice
+      below the old discount must not hard-fail a body-less endpoint)
+- [x] **Off-catalog lines**: `service_id` nullable; staff-supplied name/price/uom/taxRate
+      are the snapshot; catalog lines still reject caller-priced fields (now a 400, no
+      longer silently ignored)
+- [x] **Decimal quantities** `numeric(12,3)`, string end-to-end, scaled-integer
+      arithmetic (BigInt cross product, one half-up rounding per derived figure);
+      superadmin totals mirror updated in the same PR; migration `0026`; 38 tests green
+**PR-B — approval page + PDF (CP-3 as originally scoped)** — [x] built 2026-07-30:
+- [x] Cotización PDF (`quotation-pdf.helpers.ts` composing the `pdf/` toolkit,
+      brand-themed via `pdfThemeFromBrand`) — renders discounts, off-catalog lines and
+      decimal quantities from day one; **generated per request, never stored** (totals
+      are computed, so the document cannot drift from the data). `/send` now attaches
+      it (`email/` transport grew `attachments`); `GET /public/quotations/{token}/pdf`
+      serves the same document from the page's "Descargar PDF".
+- [x] **Backend-rendered** approval page (`templates/quotation-approval-page.html.ts` +
+      `helpers/quotation-approval-page.helpers.ts`): view → approve/decline (+ reason);
+      answered / overdue / resolved / informational states all say why — no SPA, **no
+      scripts at all**: the form posts form-data and is answered with a PRG redirect
+      (`?e=` codes render the banner). Refinement over "replaces the GET": the same
+      route **content-negotiates** — browsers (`Accept: text/html`) get the page, API
+      callers keep the CP-1 JSON — so mailed links upgraded without breaking either.
+**PR-C — sales follow-through** — [x] built 2026-07-31:
+- [x] Default terms & conditions: `quotation_settings` singleton (migration `0030`),
+      `GET`/`PUT /quotations/settings` (read office+, write owner/admin, registered
+      before `/:id`), owner/admin "Términos" dialog on the list, prefilled into a blank
+      new quote (programmatic set — the dirty guard stays quiet)
+- [x] Duplicar — **no endpoint** (order-builder precedent, 19 CP-2b): the view's button
+      opens `/quotations/new?from=<id>`; the builder prefills (client editable, past
+      validity cleared, lines incl. off-catalog + discounts) and a plain create births
+      an independent quote with today's catalog prices
+- [x] Reviewer reminder: `POST /:id/remind {contactId}` — same token, "Recordatorio:"
+      subject, `quotation_reminder_sent` event; named 409s for informational/answered
+      recipients, expired or resolved quotes; per-row bell on the recipients tab
+- [x] "Por vencer / vencidas": `due=soon|overdue` (live quotes only — an expired
+      cancelled quote is trivia), Vigencia select in the filters popover, URL-persisted
+- [x] CRM hook (08): send + reviewer response insert `customer_interactions` `system`
+      rows (`refKind: quotation`) **inside the same transaction** as the mutation
 
 ### CP-4 — Polish
 - [ ] Revise chain UI; Crear orden (comment + gate) / Cancelar (comment) from the view;
@@ -310,6 +415,44 @@ is primary, not exclusive.
       all-decline → office blocked, owner creates the order
 
 ## Open decisions / asks
+- ~~**Convergence vs line model v2** (2026-07-29): `/order` refused quotes it could not
+  represent with `409 quotation_line_not_convertible`.~~ — **resolved 2026-07-31:** 19
+  learned the line model (order line model v2 + `services.is_report_source` + explicit
+  report counts, see 19's decisions). Every quote shape now converts; the guard and its
+  409 are **retired**, replaced by `422 missing_explosion_inputs` for the one thing that
+  is genuinely missing information — a line that explodes reports without a technician
+  or report type. The owner call the guard was waiting on ("what does 1.5 h explode
+  into?") was answered by separating the money quantity from the job count entirely.
+- **Line model v2 (decided 2026-07-29, CP-3 PR-A):** per-line **discounts stored as a
+  frozen amount** (CFDI's Descuento; the % is a builder-side helper that converts once —
+  supersedes "no discounts"); **off-catalog lines allowed** (`service_id` NULL,
+  staff-typed snapshot — supersedes the implicit catalog-only stance); **decimal
+  quantities** (`numeric(12,3)`, string end-to-end — supersedes `int >= 1`). Totals
+  re-shaped to CFDI 4.0 (§1); IVA base is the per-line net (importe − descuento).
+- **Send scope (decided 2026-07-26):** CP-1's `/send` mints the per-recipient tokens,
+  moves the status and mails a **branded link email** (markup in
+  `quotations/templates/quotation-email.html.ts`, renderer in `helpers/`, dispatched
+  through the generic `email/` transport). The **cotización PDF attachment stays CP-3** —
+  the two checkpoints contradicted each other on this and the endpoint is honest as
+  written rather than a `/send` that sends nothing. **Done 2026-07-30 (PR-B):** `/send`
+  attaches the PDF. Delivery is per-recipient and
+  `allSettled`: one bad address cannot cancel the rest, the send still commits, and the
+  response body names every failure so staff see who did receive it.
+- **Re-send (decided 2026-07-26):** `/send` may be called again on any live quote. It
+  upserts on `(quotationId, contactId)` and **keeps the existing token**, so a link
+  already sitting in someone's inbox never dies; `isReviewer` and the mailed address
+  refresh, prior responses are untouched, and `sentAt` records only the first send. The
+  tally then re-derives over the **full** reviewer set — adding a reviewer to an
+  `approved` quote correctly drops it back to `partially_approved`.
+- **Zero reviewers (decided 2026-07-26):** an all-informational send is **allowed** —
+  sharing a quote as an FYI with the decision handled offline. Such a quote has nothing
+  to tally and rests in `waiting_approval` until staff cancel or convert it. `N = 0`
+  therefore resolves to `waiting_approval`, never to a vacuous `approved`.
+- **`validUntil` (decided 2026-07-26):** overdue-ness is **computed on read**
+  (`isOverdue`), not a stored flag with a daily cron as CP-1 originally worded it. No
+  column can go stale, no second `triggers.crons` entry, and the guard is exact the
+  instant a quote expires. An expired quote stays **readable** on its token page — only
+  the action is refused, because a dead end helps nobody.
 - **Decided 2026-07-24:** quotation is the primary (not sole) order-birth path; revisions
   = a new linked `draft` (the old is cancelled referencing the successor); **tax via a
   per-service Mexican IVA rate** (`taxRate`: `iva_16`/`iva_8`/`iva_0`/`exento`), summed per
@@ -335,5 +478,26 @@ is primary, not exclusive.
 - Ask to 09: quote totals are indicative; the **authoritative CFDI IVA breakdown +
   retenciones (ISR / IVA retenido) compute at invoicing (09)** — both derive from the same
   frozen line snapshots, must reconcile. Retenciones stay out of quote/order scope.
-- Ask to 14: `quotations` module row in the matrix.
-- Ask to 07: "Cotizaciones" card slot on the customer view.
+- ~~Ask to 14: `quotations` module row in the matrix.~~ — **done (CP-2):** `quotations`
+  module key, owner/admin/office; no technician row at all, not even read. Delete is
+  admin-tier, gated in-page.
+- ~~Ask to 07: "Cotizaciones" card slot on the customer view.~~ — **done (CP-2):** its own
+  tab on the customer view, between Equipos and Servicios, reading
+  `GET /customers/:id/quotations` (20 §9). That route is owned by the **quotations**
+  module and mounted onto the customers path in `index.ts` — quotations already imports
+  customers for the contact check, so putting it in the customers controller would have
+  made the two circular.
+- **Sending needs a contact row (CP-1 gap, still open).** §4 says recipients are the
+  client's `customer_contacts` **"+ the customer's main email"**; only the contacts half
+  exists. `quotation_recipients.contact_id` is NOT NULL, and making it nullable would
+  collide with the events table's rule that a null `contact_id` means *staff action*.
+  **Consequence today: a client with zero contact rows cannot be sent a quote at all** —
+  CP-2's send dialog says so explicitly and links to the client rather than failing at the
+  API. The likely fix belongs in **07** (backfill a default contact from `customers.email`)
+  rather than in 20's schema.
+- **A re-send can lower the status (CP-1 behaviour, surfaced in CP-2).** The tally
+  re-derives over the full reviewer set, so adding a reviewer to an `approved` quote drops
+  it to `partially_approved`. The send dialog warns before it happens.
+- **A zero-reviewer quote rests in `waiting_approval` forever** — an all-informational send
+  has nothing to tally. The tally pipe renders that as "Sin revisores — envío informativo"
+  rather than letting it read as a stalled approval.
