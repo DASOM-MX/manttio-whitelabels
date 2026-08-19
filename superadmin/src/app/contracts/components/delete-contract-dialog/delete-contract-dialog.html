@@ -1,0 +1,52 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="dialog-md"
+  header="Eliminar contrato"
+>
+  <div class="grid gap-4">
+    <p class="text-sm text-surface-700 dark:text-surface-300">
+      <span class="font-data font-medium">{{ target()?.folio }}</span> deja de aparecer en tus
+      listas.
+    </p>
+
+    <div class="callout callout--info">
+      No se borra nada: el contrato, su documento y su bitácora se conservan para auditoría, solo
+      dejan de listarse. Así se registra también una terminación anticipada.
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="confirm()" class="grid gap-4">
+      <div class="field-group">
+        <label class="field-label" for="contract-delete-comment">
+          Motivo<span aria-hidden="true"> *</span>
+        </label>
+        <textarea
+          id="contract-delete-comment"
+          pTextarea
+          formControlName="comment"
+          rows="2"
+          class="!min-h-16"
+          placeholder="Terminado por acuerdo, se archivó duplicado…"
+        ></textarea>
+        <p class="field-hint">Queda registrado junto con quién lo eliminó.</p>
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button type="button" class="btn-neutral" (click)="close()" [disabled]="submitting()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-danger" [disabled]="!canConfirm()">
+          @if (submitting()) {
+            Eliminando…
+          } @else {
+            Eliminar
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</p-dialog>

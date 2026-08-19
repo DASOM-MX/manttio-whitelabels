@@ -1,6 +1,6 @@
 # 13 — Contracts (contratos / pólizas)
 
-> **Status:** **CP-1 done (2026-08-18)** — backend complete: folio, order link, types, role-scoped visibility, private file store, covered units and the audit trail all built and tested. CP-2/CP-3 not started · **Depends on:** 07 (client), 19 (service orders — the generating path), `storage/` (R2); 11 optional (equipment link) · **Reworked 2026-07-24** (owner: document-artifact model — supersedes the recurring-póliza / visit-generator model)
+> **Status:** **CP-1 + CP-2 done (2026-08-18)** — backend complete: folio, order link, types, role-scoped visibility, private file store, covered units and the audit trail all built and tested; superadmin list/form/view/delete shipped. CP-3 not started · **Depends on:** 07 (client), 19 (service orders — the generating path), `storage/` (R2); 11 optional (equipment link) · **Reworked 2026-07-24** (owner: document-artifact model — supersedes the recurring-póliza / visit-generator model)
 > **Owner:** — · **Last updated:** 2026-08-18
 
 A **contract is a stored document** — the signed pdf/docx/odt/xls/xlsx — plus typed
@@ -196,8 +196,13 @@ reconciliation is 09's).
   vigencia [validFrom → expiry, or "sin vencimiento"], **validity pill**, archivo icon,
   creada), URL filters (`q`/`customer`/`type`/`validity`). Primary action **Registrar
   contrato**. Top-level **Contratos** nav entry (owner/admin/office).
-- `contracts/components/contract-form-dialog/` (or a page if the upload UX needs room) —
-  create/edit: client select (pre-filled + locked when launched from an order), type
+- `contracts/pages/contract-form/` — **a page, decided 2026-08-18** (owner: "MUST be an
+  isolated page instead, for extensibility"). Supersedes the dialog this section originally
+  hedged on: the form already carries a document, covered units and a visibility decision,
+  it is expected to keep growing (renewals, amounts, signatories), and a route gives every
+  entry point a plain link — which is exactly what §5's order-driven "Generar contrato"
+  needs (`/contracts/new?customer=…&order=…` opens with both pre-locked). Canon to follow is
+  `customers/pages/customer-form/`. Create/edit: client select (pre-filled + locked when launched from an order), type
   select (the fixed enum), name, description, validFrom + optional expiry
   (`p-datepicker`; a "sin vencimiento" toggle clears expiry), equipment multiselect
   (scoped to the client; the backend accepts `equipmentIds` as of 2026-08-18), a **visibility-by-role** multiselect (owner/admin
@@ -216,9 +221,10 @@ reconciliation is 09's).
 
 - `ContractsState`: `list`, `total`, `loading`, `selected`, `filters`. Actions:
   `LoadContracts(query)`, `LoadContract(id)`, `CreateContract`, `UpdateContract`,
-  `ReplaceContractFile(id, file)`, `DeleteContract(id, comment)`, `DownloadContract(id)`
-  (transient — fetches the bytes from `GET /contracts/:id/file`; there is no URL to hold,
-  §1.2).
+  `ReplaceContractFile(id, file)`, `DeleteContract(id, comment)`. The download is
+  **transient and stays out of state** (built 2026-08-18): the view calls
+  `ContractsService.download(id)` for the bytes and revokes the object URL immediately — the
+  report-PDF precedent. There is nothing to store and no URL to hold (§1.2).
 - `src/app/services/http/contracts.service.ts`.
 
 ---
@@ -252,11 +258,43 @@ since `main` had never applied it.
 **Deferred out of CP-1:** download access-logging (§ open item — the proxy route makes it
 trivial to add later).
 
-### CP-2 — Superadmin: contracts UI
-- [ ] DTOs + `ContractsState` + http service
-- [ ] List (URL filters, validity pill) + form (upload + role-visibility, owner/admin) +
-      view (signed-URL download) + delete dialog
-- [ ] Nav **Contratos** + `ModuleKey`/`MODULE_ROLES` `'contracts'`; build green
+### CP-2 — Superadmin: contracts UI ✅ (2026-08-18)
+Built fresh against the document-artifact contract. A 2026-07-23 attempt exists on the
+unmerged `feature/superadmin-contracts-ui` branch but was written for the **superseded**
+spec (public `fileUrl` downloads, JSON create, optional client, `validationDate`, a
+client-derived `por_vencer ≤30d` vigencia) and predates the plan-17 restyle by 54 commits —
+it was mined for ideas, not rebased.
+
+- [x] `data/dtos/contract/` + `model/enums/contract/` (type · file type · validity, parity
+      with the backend) + `model/constants/contract/` labels/severities + `contract.pipe.ts`
+      (type · validity label/severity · file glyph · visibility) + `file-size.pipe.ts`
+- [x] `ContractsService` — multipart create (metadata + document in **one** request),
+      metadata PATCH, `POST /:id/file` replace, and `download()` returning a **Blob**
+- [x] `ContractsState` (route-lazy `provideStates`) with `items`/`selected` +
+      `byCustomer`/`byServiceOrder` card feeds already wired for CP-3
+- [x] `contracts-list` — p-table, URL filters (`?q&customer&type&validity&tag&page`),
+      validity pill straight off the API, clickable tag chips, whole-row click into the view
+- [x] `contract-form` — a **routed page**, not a dialog (owner 2026-08-18): `/contracts/new`
+      and `/contracts/:id/edit`, `pendingChangesGuard`, four card sections (General ·
+      Documento · Vigencia · Equipos cubiertos) on the `customer-form` pattern. Client select
+      (**lazy virtual scroll, 65 rows per request, server-backed search** — the roster is 1000+ on a real tenant;
+      locked fields render as text, not a disabled select), type, dates + "sin vencimiento" toggle,
+      **equipment multiselect scoped to the client**, role-visibility multiselect
+      (owner/admin only), single-file picker. Create sends one request; edit patches metadata
+      and only then replaces the document
+- [x] `contract-view` — header (folio, validity pill), ficha, **document card with
+      Descargar** (fetches bytes, object URL revoked immediately — no link to share),
+      covered-equipment table
+- [x] `delete-contract-dialog` — audited soft delete, owner/admin only
+- [x] Routes replace the `ModuleStub`; nav entry + `MODULE_ROLES` already existed. Build green
+
+**Not built — needs a backend change first:** the view's **audit-entry card** (§6). The
+entries exist (`customer_interactions`, `refKind: 'contract'`), but
+`GET /customers/:id/interactions` takes only `page`/`limit` — there is no `refKind`/`refId`
+filter, so the card could only page the whole client timeline and hope the contract's
+entries are on it. Client-side filtering would render a card that is silently empty for any
+active client. The fix is a small filter on that endpoint; deliberately not folded into a
+superadmin checkpoint.
 
 ### CP-3 — Order + customer integration
 - [ ] Order view **Generar contrato** (pre-locks client/order) + order "Contratos" card

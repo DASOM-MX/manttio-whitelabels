@@ -1,0 +1,164 @@
+<app-page-header
+  title="Contratos"
+  description="Los documentos firmados con tus clientes, con su vigencia y lo que amparan."
+>
+  <app-filters-popover [params]="['q', 'customer', 'type', 'validity', 'tag']">
+    <div class="field-group">
+      <label class="field-label" for="contracts-search">Buscar</label>
+      <input
+        id="contracts-search"
+        pInputText
+        type="search"
+        [formControl]="search"
+        placeholder="Folio, nombre o archivo"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="contracts-customer">Cliente</label>
+      <p-select
+        inputId="contracts-customer"
+        [formControl]="customerFilter"
+        [options]="customerOptions()"
+        optionLabel="label"
+        optionValue="value"
+        [filter]="true"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="contracts-type">Tipo</label>
+      <p-select
+        inputId="contracts-type"
+        [formControl]="typeFilter"
+        [options]="typeOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="contracts-validity">Vigencia</label>
+      <p-select
+        inputId="contracts-validity"
+        [formControl]="validityFilter"
+        [options]="validityOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="contracts-tag">Etiqueta</label>
+      <input
+        id="contracts-tag"
+        pInputText
+        type="search"
+        [formControl]="tagFilter"
+        placeholder="garantía"
+      />
+    </div>
+  </app-filters-popover>
+  <a routerLink="/contracts/new" class="btn-primary">
+    <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+    Registrar contrato
+  </a>
+</app-page-header>
+
+<div>
+  <p-table
+    [value]="contracts()"
+    [lazy]="true"
+    (onLazyLoad)="list.onLazyLoad($event)"
+    [paginator]="true"
+    [rows]="list.PAGE_SIZE"
+    [first]="list.first()"
+    [totalRecords]="total()"
+    [loading]="loading()"
+    [showLoader]="false"
+    [rowHover]="true"
+    dataKey="id"
+  >
+    <ng-template #header>
+      <tr>
+        <th scope="col">Folio</th>
+        <th scope="col">Contrato</th>
+        <th scope="col">Cliente</th>
+        <th scope="col">Tipo</th>
+        <th scope="col">Vigencia</th>
+        <th scope="col">Estado</th>
+        <th scope="col">Etiquetas</th>
+        <th scope="col"><span class="sr-only">Acciones</span></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-contract>
+      <tr class="cursor-pointer" (click)="openContract(contract)">
+        <td class="font-data tabular-nums">{{ contract.folio }}</td>
+        <td class="font-medium">{{ contract.name }}</td>
+        <td (click)="$event.stopPropagation()">
+          <a
+            [routerLink]="['/customers', contract.customerId]"
+            class="font-medium text-primary-700 hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
+            >{{ contract.customerName }}</a
+          >
+        </td>
+        <td>{{ contract.type | contractTypeLabel }}</td>
+        <td class="font-data tabular-nums">
+          {{ contract.validFromDate }}
+          @if (contract.expiryDate) {
+            → {{ contract.expiryDate }}
+          } @else {
+            <span class="text-surface-500 dark:text-surface-400">— sin vencimiento</span>
+          }
+        </td>
+        <td>
+          <p-tag
+            [severity]="contract.validity | contractValiditySeverity"
+            [value]="contract.validity | contractValidityLabel"
+          />
+        </td>
+        <td (click)="$event.stopPropagation()">
+          <div class="flex flex-wrap gap-1">
+            @for (tag of contract.tags; track tag) {
+              <button
+                type="button"
+                class="rounded-full bg-surface-100 px-2 py-0.5 text-xs text-surface-700 transition-colors hover:bg-primary-100 hover:text-primary-800 dark:bg-surface-800 dark:text-surface-300 dark:hover:bg-primary-1000/60 dark:hover:text-primary-300"
+                (click)="filterByTag(tag)"
+              >
+                {{ tag }}
+              </button>
+            }
+          </div>
+        </td>
+        <td class="w-16" (click)="$event.stopPropagation()">
+          <div class="flex justify-end gap-1">
+            <a
+              [routerLink]="['/contracts', contract.id]"
+              class="row-action"
+              [attr.aria-label]="'Ver contrato ' + contract.folio"
+            >
+              <svg lucideEye class="size-4" aria-hidden="true"></svg>
+            </a>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #loadingbody>
+      @for (r of [0, 1, 2, 3, 4, 5, 6, 7]; track r) {
+        <tr>
+          @for (c of [0, 1, 2, 3, 4, 5, 6, 7]; track c) {
+            <td><span class="skeleton"></span></td>
+          }
+        </tr>
+      }
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr class="p-datatable-emptymessage">
+        <td colspan="8">
+          <span class="inline-flex flex-col items-center gap-3">
+            <span class="empty-icon">
+              <svg lucideFileSignature class="size-5" aria-hidden="true"></svg>
+            </span>
+            Sin contratos archivados — registra el primero.
+          </span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
