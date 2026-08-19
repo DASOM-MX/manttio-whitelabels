@@ -1,5 +1,6 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
@@ -9,7 +10,7 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { CheckboxModule } from 'primeng/checkbox';
 import { MessageService, type ScrollerOptions } from 'primeng/api';
 import { LucideFileUp, LucideX } from '@lucide/angular';
-import { catchError, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, of, Subject } from 'rxjs';
 import { select, Store } from '@ngxs/store';
 import { ContractsState } from '../../../../state/contracts/contracts.state';
 import {
@@ -57,12 +58,13 @@ const VISIBLE_ROLE_OPTIONS: { label: string; value: ContractVisibleRole }[] = [
 
 const DEFAULT_VISIBLE_ROLES: ContractVisibleRole[] = ['office', 'technician'];
 
-/** Clients arrive 20 at a time as the overlay scrolls (owner 2026-08-18) — the
+/** Clients arrive 65 at a time as the overlay scrolls (owner 2026-08-18) — the
  *  roster runs to 1000+ rows on a real tenant, and loading all of it to open a
  *  form is the thing this avoids. `p-select`'s lazy virtual scroll asks for the
  *  visible window; we translate that window into pages and fill the slots. */
-const CUSTOMER_PAGE_SIZE = 20;
+const CUSTOMER_PAGE_SIZE = 65;
 const CUSTOMER_ROW_HEIGHT = 40;
+const SEARCH_DEBOUNCE_MS = 300;
 /** Slot text before its page arrives — the scroller sizes rows off the array,
  *  so every index must hold something from the start. */
 const CUSTOMER_PLACEHOLDER: Option = { label: '…', value: '' };
@@ -148,6 +150,7 @@ export class ContractForm implements HasPendingChanges {
    *  the overlay scrolls. */
   protected customerOptions = signal<Option[]>([]);
   private loadedCustomerPages = new Set<number>();
+  private customerSearch = new Subject<string>();
   protected readonly customerRowHeight = CUSTOMER_ROW_HEIGHT;
   protected readonly customerScrollOptions: ScrollerOptions = {
     delay: 250,
@@ -190,7 +193,12 @@ export class ContractForm implements HasPendingChanges {
     }
 
     // Only the unlocked field renders a select worth seeding.
-    if (!this.customerLocked) this.seedCustomers();
+    if (!this.customerLocked) {
+      this.seedCustomers();
+      this.customerSearch
+        .pipe(debounceTime(SEARCH_DEBOUNCE_MS), distinctUntilChanged(), takeUntilDestroyed())
+        .subscribe((term) => this.searchCustomers(term));
+    }
 
     if (this.customerLocked) this.form.controls.customerId.disable({ emitEvent: false });
 
@@ -213,6 +221,7 @@ export class ContractForm implements HasPendingChanges {
   /** First page doubles as the roster's size probe: `total` fixes the array
    *  length, so the scrollbar is honest before the rest has been fetched. */
   private seedCustomers(): void {
+    this.loadedCustomerPages.clear();
     this.loadedCustomerPages.add(1);
     this.customersApi
       .list({ page: 1, limit: CUSTOMER_PAGE_SIZE })
@@ -251,6 +260,39 @@ export class ContractForm implements HasPendingChanges {
         const options = [...this.customerOptions()];
         this.fill(options, page, res.items);
         this.customerOptions.set(options);
+      });
+  }
+
+  protected onCustomerFilter(term: string): void {
+    this.customerSearch.next(term.trim());
+  }
+
+  /** Typing queries the server instead of the loaded slice.
+   *
+   *  Results are materialized in full, with **no placeholder rows** — `p-select`
+   *  filters its options array client-side whenever a term is set, so the `…`
+   *  slots would be dropped and the sparse tail (with its lazy loading) would go
+   *  with them. Real rows survive that pass unchanged, since the server matched
+   *  on the same names the local filter re-checks.
+   *
+   *  The trade: a term shows the first `CUSTOMER_PAGE_SIZE` matches and does not
+   *  page further. Narrowing the term is the way to reach the rest — which is
+   *  what someone typing a client's name is already doing. Clearing it restores
+   *  the full lazily-paged roster. */
+  private searchCustomers(term: string): void {
+    if (!term) {
+      this.seedCustomers();
+      return;
+    }
+    this.customersApi
+      .list({ page: 1, limit: CUSTOMER_PAGE_SIZE, search: term })
+      .pipe(catchError(() => of(null)))
+      .subscribe((res) => {
+        if (!res) return;
+        this.loadedCustomerPages.clear();
+        this.customerOptions.set(
+          res.items.map((customer) => ({ label: customer.name, value: customer.id })),
+        );
       });
   }
 
