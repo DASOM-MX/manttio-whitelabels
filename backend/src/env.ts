@@ -46,6 +46,11 @@ export type Env = {
    *  brand assets get (owner 2026-07-26): marketing imagery has a different
    *  lifecycle and a different audience from operational report photos. */
   MANTTIO_IMAGES: R2Bucket;
+  /** Contract document bucket (`manttio-contracts`) — separate lifecycle from
+   *  report data, and **private**: it has no public base URL on purpose. Keys
+   *  never leave the backend; downloads stream through GET /contracts/:id/file
+   *  so access is re-checked per request (13 §1.2). */
+  MANTTIO_CONTRACTS: R2Bucket;
   /** 1 req/min per-IP throttle on POST /public/leads (Workers rate-limiting
    *  binding). Optional: when absent the throttle is skipped (fail-open). */
   LEADS_RATE_LIMITER?: RateLimit;

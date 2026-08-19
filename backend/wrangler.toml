@@ -58,6 +58,14 @@ bucket_name = "manttio-equipment"
 binding = "MANTTIO_IMAGES"
 bucket_name = "manttio-images"
 
+# Contract documents (13) — again its own bucket: a signed contract has a
+# different retention and audience from report photos or site imagery. This one
+# is **private**: attach no r2.dev domain and no custom domain. There is no
+# CONTRACTS_CDN_BASE_URL by design — the backend streams the file itself.
+[[r2_buckets]]
+binding = "MANTTIO_CONTRACTS"
+bucket_name = "manttio-contracts"
+
 # 1 req/min per IP on POST /public/leads (Workers rate-limiting API). Best-effort
 # per-colo counting — an abuse dial, not a strict quota. Optional binding: the
 # controller fails open when it is absent.
@@ -93,6 +101,10 @@ bucket_name = "manttio-equipment"
 [[env.production.r2_buckets]]
 binding = "MANTTIO_IMAGES"
 bucket_name = "manttio-images"
+
+[[env.production.r2_buckets]]
+binding = "MANTTIO_CONTRACTS"
+bucket_name = "manttio-contracts"
 
 [[env.production.unsafe.bindings]]
 name = "LEADS_RATE_LIMITER"
