@@ -50,6 +50,17 @@ export const services = pgTable(
     // not invoice ones — carrying them here spares 09 a hand-backfill. No v1 UI.
     satProdServCode: text('sat_prod_serv_code'),
     satUnitCode: text('sat_unit_code'),
+    // Does a unit of this service produce a REPORT of its own (19 §2, owner
+    // 2026-07-31)? True for jobs a technician performs and documents (a
+    // maintenance, an installation); false for what an order merely charges —
+    // labor by the hour, refrigerant by the kilo, freight. Before this flag,
+    // quantity did double duty as money multiplier AND job count, so "2 horas
+    // de mano de obra" exploded two phantom report skeletons. Defaults FALSE
+    // (owner 2026-08-18): a service is only a charge until someone says it is
+    // a job, so every service created from here on is opt-in. Migration 0036
+    // still backfills the rows that predate the column to true — before the
+    // flag every line exploded — so no existing order changes meaning.
+    isReportSource: boolean('is_report_source').notNull().default(false),
     // Public website listing (15). Price visibility is independent of listing —
     // a listed service may still hide its number — and only meaningful while
     // listed; the service layer forces it false otherwise.

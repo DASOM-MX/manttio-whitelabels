@@ -485,6 +485,45 @@ The order-side obligations below are unchanged; the calendar itself is 12's to b
   the handoff readable.
 - ~~Explosion × quantity~~ — **decided 2026-07-23: one report per unit** (a
   `quantity: 3` line explodes 3 `pending` reports; each individually reassignable).
+  **Superseded 2026-07-31 (owner):** quantity was doing double duty as the money
+  multiplier *and* the job count, so "2 horas de mano de obra" exploded two phantom
+  reports. The two are now separate:
+  - **`services.is_report_source`** (18, new column, DEFAULT **true** so the backfill
+    preserves today's behavior exactly) says whether a unit of a service produces a
+    report of its own — true for jobs a technician performs and documents, false for
+    what an order merely charges (labor by the hour, refrigerant by the kilo, freight).
+  - **The explosion count is explicit** per line (`reportCount`), on both birth paths.
+    Omit it and the server derives the default — `isReportSource ? units : 0`, and **1
+    for a fractional quantity on a report source** (half a job is still one job). Send
+    it to raise or zero the count: *"users can increase the report count as needed
+    before explosion"*.
+  - **Consequence, verified:** an order may now explode **zero** reports (a
+    materials-only order). Safe — order status is staff-set (`Open`/`Completed` with
+    role gates), never derived from reports, and progress is a `finished/total` count
+    that simply reads 0/0. Technician + reportType are required **only** on lines that
+    explode something (422 `missing_explosion_inputs` otherwise), which also ends the
+    nuisance of assigning a technician to a "flete" line.
+- **Order line model v2 (decided 2026-07-31)** — `service_order_services` mirrors
+  `quotation_lines` (20 CP-3 PR-A), so a quote converts without losing anything:
+  `service_id` **nullable** (off-catalog lines; the one-line-per-service unique index
+  still holds because Postgres treats NULLs as distinct), `quantity` → **numeric(12,3)**,
+  and a per-line **`discount_amount`**. Migration `0032`, non-destructive.
+  `reportCount` is deliberately **not** a column — it is an explosion *input*, exactly
+  like `technicianId`/`reportType`, and the exploded report rows are its record.
+- **Order money arithmetic (fixed 2026-07-31)** — `order-money.ts` parsed money as
+  `Number(x) * 100`, a **float**, while quotations used exact decimal strings. An order
+  inheriting its quote's frozen snapshots could therefore disagree with it by a centavo,
+  defeating the freeze both are built on. Rewritten to the quotation's arithmetic:
+  integer cents × integer thousandths, BigInt cross product, one half-up rounding per
+  line, tax per line on the **net** base (importe − descuento), totals in CFDI shape.
+  The two implementations are now deliberately identical and must change together.
+  *(Extracting them into a shared `money/` cross-cutting module was proposed and set
+  aside — revisit when 09 becomes the third caller.)*
+- **Conversion assignment keying (decided 2026-07-31)** — `POST /quotations/:id/order`
+  takes one assignment per **serviceId** (catalog lines, which still merge per service —
+  the merge now sums quantity, discount and report count) **or** per **lineId**
+  (off-catalog lines, which never merge). Exactly one of the two per assignment, the
+  same idiom the line input itself uses.
 - ~~Cancelled order → pending reports~~ — **decided 2026-07-23:** add `cancelled` to
   `ReportStatus`; on order cancel, unfinished reports (`pending`/`in-progress`) → 
   `cancelled`, finished/mailed untouched (06 §amendment). Never a hard delete.

@@ -131,17 +131,35 @@ export const createOrderFromQuotationSchema = resolutionComment.extend({
   location: z.string().trim().optional(),
   assignments: z
     .array(
-      z.object({
-        serviceId: z.string().uuid(),
-        technicianId: z.string().uuid(),
-        templateId: z.string().uuid(),
-      }),
+      z
+        .object({
+          // Catalog lines are keyed by service (they merge into one order line
+          // per service); an off-catalog line has no service, so it is keyed by
+          // its own quotation LINE id. Exactly one, same idiom as the line
+          // input itself.
+          serviceId: z.string().uuid().optional(),
+          lineId: z.string().uuid().optional(),
+          technicianId: z.string().uuid().optional(),
+          templateId: z.string().uuid().optional(),
+          // How many report skeletons this line explodes (owner 2026-07-31).
+          // Omit to take the catalog default (`isReportSource`); send to raise
+          // it or to zero it. Technician + template are required exactly when
+          // the resolved count is > 0 — checked in the service layer.
+          reportCount: z.coerce.number().int().min(0).max(20).optional(),
+        })
+        .refine((a) => !!a.serviceId !== !!a.lineId, {
+          message: 'Cada asignación referencia un servicio o una partida, no ambos.',
+        }),
     )
     .min(1)
     .max(20)
-    .refine((rows) => new Set(rows.map((r) => r.serviceId)).size === rows.length, {
-      message: 'Hay un servicio repetido; asigna cada servicio una sola vez.',
-    }),
+    .refine(
+      (rows) => {
+        const keys = rows.map((r) => r.serviceId ?? r.lineId);
+        return new Set(keys).size === keys.length;
+      },
+      { message: 'Hay una partida repetida; asigna cada una sola vez.' },
+    ),
 });
 
 // Audited soft delete, same contract as users/services/equipment. Distinct from

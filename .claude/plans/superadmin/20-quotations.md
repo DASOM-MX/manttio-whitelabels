@@ -415,13 +415,14 @@ gate + override.
       all-decline → office blocked, owner creates the order
 
 ## Open decisions / asks
-- **Convergence vs line model v2 (2026-07-29, PR-A rebase over 19 CP-1):** `/order`
-  predates v2 and **refuses** quotes it cannot represent — off-catalog lines (order
-  lines are keyed by service), fractional quantities (the explosion counts whole
-  report skeletons; what 1.5 h explodes into is an **owner call**), per-line
-  discounts (order lines carry none) — with `409 quotation_line_not_convertible`
-  naming the line. Full support = a 19-side follow-up (order line model v2 +
-  explosion semantics), targeted alongside PR-B/C.
+- ~~**Convergence vs line model v2** (2026-07-29): `/order` refused quotes it could not
+  represent with `409 quotation_line_not_convertible`.~~ — **resolved 2026-07-31:** 19
+  learned the line model (order line model v2 + `services.is_report_source` + explicit
+  report counts, see 19's decisions). Every quote shape now converts; the guard and its
+  409 are **retired**, replaced by `422 missing_explosion_inputs` for the one thing that
+  is genuinely missing information — a line that explodes reports without a technician
+  or report type. The owner call the guard was waiting on ("what does 1.5 h explode
+  into?") was answered by separating the money quantity from the job count entirely.
 - **Line model v2 (decided 2026-07-29, CP-3 PR-A):** per-line **discounts stored as a
   frozen amount** (CFDI's Descuento; the % is a builder-side helper that converts once —
   supersedes "no discounts"); **off-catalog lines allowed** (`service_id` NULL,

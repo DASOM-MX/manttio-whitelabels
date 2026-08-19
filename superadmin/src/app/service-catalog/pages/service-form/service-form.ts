@@ -8,6 +8,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { CheckboxModule } from 'primeng/checkbox';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
@@ -75,6 +76,7 @@ import type { ServiceWebsiteImage } from '../../../data/types/services/service-w
     SelectModule,
     TextareaModule,
     CheckboxModule,
+    ToggleSwitchModule,
     TableModule,
     TagModule,
     MoneyPipe,
@@ -165,6 +167,7 @@ export class ServiceForm implements HasPendingChanges {
     // stale local format check would reject valid keys. 09 owns validation.
     satProdServCode: [''],
     satUnitCode: [''],
+    isReportSource: [false],
     isListableInWebsite: [false],
     isPriceVisibleInWebsite: [false],
     websiteDescription: [''],
@@ -235,6 +238,7 @@ export class ServiceForm implements HasPendingChanges {
       taxRate: svc.taxRate,
       satProdServCode: svc.satProdServCode ?? '',
       satUnitCode: svc.satUnitCode ?? '',
+      isReportSource: svc.isReportSource,
       isListableInWebsite: svc.isListableInWebsite,
       isPriceVisibleInWebsite: svc.isPriceVisibleInWebsite,
       websiteDescription: svc.websiteDescription ?? '',
@@ -263,6 +267,7 @@ export class ServiceForm implements HasPendingChanges {
       // same way, and unlike the código these carry no uniqueness.
       satProdServCode: svc.satProdServCode ?? '',
       satUnitCode: svc.satUnitCode ?? '',
+      isReportSource: svc.isReportSource,
       isListableInWebsite: svc.isListableInWebsite,
       isPriceVisibleInWebsite: svc.isPriceVisibleInWebsite,
       websiteDescription: svc.websiteDescription ?? '',
@@ -349,6 +354,7 @@ export class ServiceForm implements HasPendingChanges {
       // reasoning as the photo, and the backend maps '' → null.
       satProdServCode: raw.satProdServCode.trim(),
       satUnitCode: raw.satUnitCode.trim(),
+      isReportSource: raw.isReportSource,
       isListableInWebsite: listed,
       // Mirrors the server invariant: an unlisted service can't carry a
       // price-visible flag, so we never send a stale true.

@@ -33,10 +33,20 @@ export interface ServiceOrderFilters {
  *  Price and tax are *not* here — they're snapshotted from the catalog inside
  *  the transaction, so a client can never post their own price. */
 export interface OrderLineInput {
-  serviceId: string;
-  quantity: number;
-  technicianId: string;
-  templateId: string;
+  /** Absent = off-catalog: the four snapshot fields below carry the line. */
+  serviceId?: string;
+  name?: string;
+  unitPrice?: string;
+  uom?: ServiceUom;
+  taxRate?: ServiceTaxRate;
+  /** Money multiplier, `numeric(12,3)` as a string. */
+  quantity: string;
+  discountAmount?: string;
+  /** Explicit explosion count; omitted takes the catalog default. */
+  reportCount?: number;
+  /** Required exactly when the resolved `reportCount` is > 0. */
+  technicianId?: string;
+  templateId?: string;
 }
 
 /** Money on a line or an order. Every field is a fixed-2 string — `numeric`
@@ -44,19 +54,23 @@ export interface OrderLineInput {
  *  technicians (19 §3 — technician-facing responses omit money entirely). */
 export interface MoneyBreakdown {
   subtotal: string;
+  discount: string;
   tax: string;
   total: string;
 }
 
 export interface ServiceOrderLineDTO {
   id: string;
-  serviceId: string;
+  /** Absent = off-catalog (line model v2, 2026-07-31). */
+  serviceId?: string;
   /** The snapshot, never a live catalog read — a renamed or soft-deleted
    *  service still shows what was sold (19 §1). */
   serviceName: string;
   uom: ServiceUom;
   taxRate: ServiceTaxRate;
-  quantity: number;
+  /** Money multiplier, `numeric(12,3)` as a string. */
+  quantity: string;
+  discountAmount: string;
   /** Omitted for technicians, along with `amounts`. */
   unitPrice?: string;
   amounts?: MoneyBreakdown;
@@ -145,14 +159,22 @@ export interface CreateOrderCommand {
  *  them from the quotation's line snapshots (20 §6) — the graph insert never
  *  reads the catalog, which is what keeps both paths' money semantics honest. */
 export interface FrozenOrderLine {
-  serviceId: string;
+  /** Absent = an off-catalog line (line model v2, 2026-07-31). */
+  serviceId: string | null;
   serviceName: string;
   uom: ServiceUom;
   taxRate: ServiceTaxRate;
-  quantity: number;
+  /** The MONEY multiplier, `numeric(12,3)` as a string. Not the job count —
+   *  see `reportCount`. */
+  quantity: string;
   unitPrice: string;
-  technicianId: string;
-  templateId: string;
+  discountAmount: string;
+  /** How many report skeletons this line explodes (owner 2026-07-31). Zero for
+   *  what an order only charges — labor, consumables, freight — in which case
+   *  there is no technician to name. */
+  reportCount: number;
+  technicianId: string | null;
+  templateId: string | null;
 }
 
 /** What the conversion service hands `createServiceOrderFromQuotation` after

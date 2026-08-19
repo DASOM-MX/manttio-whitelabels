@@ -96,6 +96,10 @@ export interface Service {
   /** SAT CFDI catalog keys — carried for facturación (09), no v1 UI. */
   satProdServCode?: string;
   satUnitCode?: string;
+  /** A unit of this service produces its own report skeleton when an order is
+   *  created (19 §2). False for what an order only charges — labor by the
+   *  hour, consumables, freight. */
+  isReportSource: boolean;
   isListableInWebsite: boolean;
   /** Only meaningful while `isListableInWebsite` is true — the backend forces
    *  it false whenever listing is off. */
@@ -130,6 +134,9 @@ export interface SaveServiceRequest {
    *  validation on either side; 09 owns that. */
   satProdServCode?: string;
   satUnitCode?: string;
+  /** A unit of this service produces its own report skeleton when an order is
+   *  created (19 §2). False for what an order only charges. */
+  isReportSource: boolean;
   isListableInWebsite: boolean;
   isPriceVisibleInWebsite: boolean;
   /** Clone provenance (18 §6.2): the id the form was prefilled from

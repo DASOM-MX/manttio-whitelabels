@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { and, eq, inArray, isNull, like } from 'drizzle-orm';
 import { env, json, jsonHeaders, request } from './helpers/request';
 import {
@@ -6,6 +6,7 @@ import {
   seedCustomer,
   seedOfficeAndLogin,
   seedOwnerAndLogin,
+  ensureFixtureTemplate,
   seedTechnician,
   seedTechnicianAndLogin,
   uniqueServiceName,
@@ -30,7 +31,7 @@ type WorkerEnv = { DATABASE_URL: string };
 
 const db = () => createDb((env as unknown as WorkerEnv).DATABASE_URL);
 
-type Money = { subtotal: string; tax: string; total: string };
+type Money = { subtotal: string; discount: string; tax: string; total: string };
 
 type OrderLine = {
   id: string;
@@ -38,7 +39,8 @@ type OrderLine = {
   serviceName: string;
   uom: ServiceUom;
   taxRate: ServiceTaxRate;
-  quantity: number;
+  quantity: string;
+  discountAmount: string;
   unitPrice?: string;
   amounts?: Money;
 };
@@ -121,6 +123,14 @@ afterAll(async () => {
     .where(and(like(services.name, 'test+%'), isNull(services.deletedAt)));
 });
 
+/** The Active template every exploding line points at. Resolved once — the
+ *  fixture helper memoizes — so the sync `lineFor` below can stay sync across
+ *  its ~30 call sites. */
+let fixtureTemplateId: string;
+beforeAll(async () => {
+  fixtureTemplateId = await ensureFixtureTemplate();
+});
+
 const seedService = async (
   token: string,
   over: { price?: number; taxRate?: ServiceTaxRate; uom?: ServiceUom } = {},
@@ -133,6 +143,9 @@ const seedService = async (
       price: over.price ?? 1000,
       uom: over.uom ?? ServiceUom.Servicio,
       taxRate: over.taxRate ?? ServiceTaxRate.Iva16,
+      // Explicit: `isReportSource` defaults FALSE, and every test here turns
+      // on lines that actually explode reports.
+      isReportSource: true,
     }),
   });
   expect(res.status).toBe(201);
@@ -194,12 +207,13 @@ const scenario = async (serviceOver: { price?: number; taxRate?: ServiceTaxRate 
 const lineFor = (
   service: { id: string },
   tech: { id: string },
-  over: { quantity?: number; reportType?: string } = {},
+  over: { quantity?: string; templateId?: string; reportCount?: number } = {},
 ) => ({
   serviceId: service.id,
-  quantity: over.quantity ?? 1,
+  quantity: over.quantity ?? '1',
+  ...(over.reportCount === undefined ? {} : { reportCount: over.reportCount }),
   technicianId: tech.id,
-  reportType: over.reportType ?? 'minisplit',
+  templateId: over.templateId ?? fixtureTemplateId,
 });
 
 describe('POST /service-orders', () => {
@@ -209,7 +223,7 @@ describe('POST /service-orders', () => {
     const res = await createOrder(token, {
       customerId: customer.id,
       location: 'Planta norte',
-      lines: [lineFor(service, tech, { quantity: 3 })],
+      lines: [lineFor(service, tech, { quantity: '3' })],
     });
     expect(res.status).toBe(201);
     const { order } = await json<{ order: Order }>(res);
@@ -224,7 +238,7 @@ describe('POST /service-orders', () => {
     expect(order.lines).toHaveLength(1);
     expect(order.lines[0]!.serviceName).toBe(service.name);
     expect(order.lines[0]!.unitPrice).toBe('1500.00');
-    expect(order.lines[0]!.quantity).toBe(3);
+    expect(order.lines[0]!.quantity).toBe('3.000');
 
     // One report per sold unit, each born complete and `pending`. The detail
     // response carries no reports — the order view lazy-loads them here.
@@ -272,7 +286,7 @@ describe('POST /service-orders', () => {
     const { token, customer, tech, service } = await scenario();
     const res = await createOrder(token, {
       customerId: customer.id,
-      lines: [lineFor(service, tech), lineFor(service, tech, { quantity: 2 })],
+      lines: [lineFor(service, tech), lineFor(service, tech, { quantity: '2' })],
     });
     // The unique index would refuse this anyway — the refine turns it into a
     // clean validation error instead of a unique-violation 500.
@@ -286,8 +300,11 @@ describe('POST /service-orders', () => {
     const c = await seedService(token);
     const res = await createOrder(token, {
       customerId: customer.id,
-      // 3 × 20 = 60 units > the 50-report explosion cap.
-      lines: [a, b, c].map((svc) => lineFor(svc, tech, { quantity: 20 })),
+      // 3 × 20 = 60 reports > the 50-report explosion cap. Explicit counts are
+      // caught by the schema (400); the same bound is re-checked over the
+      // RESOLVED counts inside the transaction, which is what catches a line
+      // that omitted the count and took a server-derived default.
+      lines: [a, b, c].map((svc) => lineFor(svc, tech, { quantity: '20', reportCount: 20 })),
     });
     expect(res.status).toBe(400);
   });
@@ -299,12 +316,17 @@ describe('POST /service-orders', () => {
 
     const res = await createOrder(token, {
       customerId: customer.id,
-      lines: [lineFor(taxed, tech, { quantity: 2 }), lineFor(exempt, tech)],
+      lines: [lineFor(taxed, tech, { quantity: '2' }), lineFor(exempt, tech)],
     });
     const { order } = await json<{ order: Order }>(res);
 
     // 2 × 1000 = 2000 (+16% = 320), 1 × 500 = 500 (exento, +0).
-    expect(order.amounts).toEqual({ subtotal: '2500.00', tax: '320.00', total: '2820.00' });
+    expect(order.amounts).toEqual({
+      subtotal: '2500.00',
+      discount: '0.00',
+      tax: '320.00',
+      total: '2820.00',
+    });
     expect(order.servicesCount).toBe(2);
   });
 
@@ -312,7 +334,7 @@ describe('POST /service-orders', () => {
     const { token, customer, tech, service } = await scenario();
     const res = await createOrder(token, {
       customerId: customer.id,
-      lines: [lineFor(service, tech, { quantity: 2 })],
+      lines: [lineFor(service, tech, { quantity: '2' })],
     });
     const { order } = await json<{ order: Order }>(res);
 
@@ -470,7 +492,7 @@ describe('GET /service-orders', () => {
     const { token, customer, tech, service } = await scenario();
     const created = await createOrder(token, {
       customerId: customer.id,
-      lines: [lineFor(service, tech, { quantity: 3 })],
+      lines: [lineFor(service, tech, { quantity: '3' })],
     });
     const { order } = await json<{ order: Order }>(created);
     expect(order.reportsTotal).toBe(3);
@@ -519,7 +541,7 @@ describe('GET /service-orders', () => {
     expect(seen.lines[0]!.amounts).toBeUndefined();
     // Everything else the field needs is still there.
     expect(seen.lines[0]!.serviceName).toBe(service.name);
-    expect(seen.lines[0]!.quantity).toBe(1);
+    expect(seen.lines[0]!.quantity).toBe('1.000');
   });
 
   test('404s an unknown order', async () => {
@@ -550,7 +572,7 @@ describe('GET /service-orders/:id/timeline', () => {
     const { token, customer, tech, service } = await scenario();
     const created = await createOrder(token, {
       customerId: customer.id,
-      lines: [lineFor(service, tech, { quantity: 2 })],
+      lines: [lineFor(service, tech, { quantity: '2' })],
     });
     const { order } = await json<{ order: Order }>(created);
     // 4 creation events + 1 completion (written later, so strictly newest).
@@ -703,7 +725,7 @@ describe('POST /service-orders/:id/status', () => {
     const { token, customer, tech, service } = await scenario();
     const created = await createOrder(token, {
       customerId: customer.id,
-      lines: [lineFor(service, tech, { quantity: 2 })],
+      lines: [lineFor(service, tech, { quantity: '2' })],
     });
     const { order } = await json<{ order: Order }>(created);
 

@@ -165,6 +165,7 @@ export const resolveServiceImport = (
       errors.push(`${label} inválido: "${raw(field)}" (usa sí/no)`);
       return false;
     };
+    const isReportSource = bool('isReportSource', 'Genera reporte');
     const isListable = bool('isListableInWebsite', 'Listado en el sitio');
     const isPriceVisible = bool('isPriceVisibleInWebsite', 'Precio visible');
 
@@ -194,6 +195,7 @@ export const resolveServiceImport = (
           websiteDescription: optional('websiteDescription'),
           satProdServCode: optional('satProdServCode'),
           satUnitCode: optional('satUnitCode'),
+          isReportSource,
           isListableInWebsite: isListable,
           // Mirrors the server invariant: unlisted → never price-visible.
           isPriceVisibleInWebsite: isListable && isPriceVisible,

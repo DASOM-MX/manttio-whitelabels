@@ -29,6 +29,12 @@ export const createServiceSchema = z.object({
   // (09) owns real validation when it lands.
   satProdServCode: z.string().trim().optional(),
   satUnitCode: z.string().trim().optional(),
+  // Defaults false (owner 2026-08-18): a catalog service is only something the
+  // order charges for unless the tenant says it is a job that a technician
+  // performs and documents (19 §2). `updateServiceSchema` and
+  // `importServiceRowSchema` both derive from here, so this is the single
+  // answer for every write path that omits the field.
+  isReportSource: z.boolean().default(false),
   isListableInWebsite: z.boolean().default(false),
   isPriceVisibleInWebsite: z.boolean().default(false),
   // Clone provenance (18 §6.2): present only when the form was opened as

@@ -33,7 +33,12 @@ import {
   ServiceOrderPriority,
   ServiceOrderStatus,
 } from '../enums/service-orders.enum';
-import { InvalidOrderReferenceError, InvalidTemplateError, OrderClosedError } from '../http-errors/service-orders.error';
+import {
+  InvalidOrderReferenceError,
+  InvalidTemplateError,
+  OrderClosedError,
+} from '../http-errors/service-orders.error';
+import { ExplosionTooLargeError } from '../http-errors/order-from-quotation.error';
 import { formatServiceOrderFolio } from '../utils/service-order-folio';
 import type {
   ConvertQuotationCommand,
@@ -325,7 +330,10 @@ const insertOrderGraph = async (
   input: OrderGraphInput,
   day: Date,
 ): Promise<{ order: ServiceOrderRow; lines: ServiceOrderLineRow[]; reportIds: string[] }> => {
-  const totalUnits = input.lines.reduce((sum, l) => sum + l.quantity, 0);
+  // The explosion is driven by each line's explicit report count, NOT its
+  // money quantity (owner 2026-07-31): 1.5 hours of labor is one job that takes
+  // 1.5 hours — or none at all, if the service only bills.
+  const totalUnits = input.lines.reduce((sum, l) => sum + l.reportCount, 0);
   const count = input.lines.length;
   const countLabel = `${count} ${count === 1 ? 'servicio' : 'servicios'}`;
 
@@ -368,6 +376,7 @@ const insertOrderGraph = async (
         taxRate: line.taxRate,
         quantity: line.quantity,
         unitPrice: line.unitPrice,
+        discountAmount: line.discountAmount,
       })),
     )
     .returning();
@@ -375,37 +384,52 @@ const insertOrderGraph = async (
   // One report per sold unit (19 §2, decided 2026-07-23). Sequence numbers are
   // reserved in a single counter bump rather than one upsert per report: same
   // atomicity, one round trip, and no chance of a partial reservation.
-  const [reportCounter] = await tx
-    .insert(reportCounters)
-    .values({ day: dayString(day), lastNumber: totalUnits })
-    .onConflictDoUpdate({
-      target: reportCounters.day,
-      set: { lastNumber: sql`${reportCounters.lastNumber} + ${totalUnits}` },
-    })
-    .returning({ lastNumber: reportCounters.lastNumber });
-  if (!reportCounter) throw new Error('insertOrderGraph: report counter returned no row');
+  // A materials-only order explodes nothing (owner 2026-07-31): no counter
+  // bump — reserving zero sequence numbers would just churn the day's row.
+  let sequence = 0;
+  if (totalUnits > 0) {
+    const [reportCounter] = await tx
+      .insert(reportCounters)
+      .values({ day: dayString(day), lastNumber: totalUnits })
+      .onConflictDoUpdate({
+        target: reportCounters.day,
+        set: { lastNumber: sql`${reportCounters.lastNumber} + ${totalUnits}` },
+      })
+      .returning({ lastNumber: reportCounters.lastNumber });
+    if (!reportCounter) throw new Error('insertOrderGraph: report counter returned no row');
+    sequence = reportCounter.lastNumber - totalUnits + 1;
+  }
 
-  // Resolve all referenced templates to get their names (denormalized display value).
-  // Batch lookup instead of per-unit to avoid N queries.
-  const templateIds = [...new Set(input.lines.map((l) => l.templateId))];
-  const templateRows = await tx
-    .select({ id: reportTemplates.id, name: reportTemplates.name })
-    .from(reportTemplates)
-    .where(inArray(reportTemplates.id, templateIds));
+  // Resolve all referenced templates to get their names (denormalized display
+  // value). Batch lookup instead of per-unit to avoid N queries. Only lines
+  // that explode carry a template, so a billing-only line contributes nothing
+  // here — and an order made of nothing but charges queries not at all.
+  const templateIds = [
+    ...new Set(input.lines.flatMap((l) => (l.reportCount > 0 && l.templateId ? [l.templateId] : []))),
+  ];
+  const templateRows = templateIds.length
+    ? await tx
+        .select({ id: reportTemplates.id, name: reportTemplates.name })
+        .from(reportTemplates)
+        .where(inArray(reportTemplates.id, templateIds))
+    : [];
   const templateNames = new Map(templateRows.map((r) => [r.id, r.name]));
-
-  let sequence = reportCounter.lastNumber - totalUnits + 1;
   const reportRows: (typeof reports.$inferInsert)[] = [];
   const explodedReportIds: string[] = [];
 
   for (const line of input.lines) {
-    // `assertTemplatesActive` ran earlier in this same transaction, so a miss here
-    // is impossible — and must stay loud if it ever becomes possible. Defaulting to
-    // `''` would silently mint reports with a blank template name, which is exactly
-    // the bug this resolution exists to prevent and which nothing downstream detects.
+    // `reportCount` is 0 for billing-only lines — they explode nothing, so an
+    // order of nothing but consumables mints no reports at all.
+    if (line.reportCount === 0) continue;
+    // A line that explodes carries its explosion inputs (the service layer
+    // refuses one that doesn't), and `assertTemplatesActive` ran earlier in
+    // this same transaction — so neither miss is reachable, and both must stay
+    // loud if they ever become so. Defaulting to `''` would silently mint
+    // reports with a blank template name, which nothing downstream detects.
+    if (!line.templateId) throw new Error('insertOrderGraph: exploding line carries no template');
     const reportType = templateNames.get(line.templateId);
     if (!reportType) throw new InvalidTemplateError(line.templateId);
-    for (let unit = 0; unit < line.quantity; unit += 1) {
+    for (let unit = 0; unit < line.reportCount; unit += 1) {
       const id = formatReportId(day, sequence);
       sequence += 1;
       explodedReportIds.push(id);
@@ -418,7 +442,7 @@ const insertOrderGraph = async (
         // to now() precisely because opening one *is* arriving.
         dateArrival: null,
         createdBy: input.actorId,
-        assignedTo: line.technicianId,
+        assignedTo: line.technicianId!,
         clientId: input.customerId,
         status: ReportStatus.Pending,
         serviceOrderId: order.id,
@@ -427,14 +451,23 @@ const insertOrderGraph = async (
     }
   }
 
-  await tx.insert(reports).values(reportRows);
-  // Skeleton content rows: `data: {}` with `contentFilledAt` left null is the
-  // "nothing filled in yet" state. They exist from birth because every
-  // downstream read (`findReportWithDetails`) and every content write assumes
-  // the row is there.
-  await tx
-    .insert(reportDetails)
-    .values(reportRows.map((r) => ({ reportId: r.id, data: {}, pictures: [] })));
+  // The transaction-size backstop, applied where the RESOLVED counts are known
+  // — the schema refine can only see what the caller sent, and a line that omits
+  // `reportCount` takes a server-derived default.
+  if (totalUnits > MAX_EXPLODED_REPORTS) throw new ExplosionTooLargeError(totalUnits);
+
+  // Guarded: an order of nothing but charges has no skeletons, and the driver
+  // rejects `values()` with an empty array.
+  if (reportRows.length > 0) {
+    await tx.insert(reports).values(reportRows);
+    // Skeleton content rows: `data: {}` with `contentFilledAt` left null is the
+    // "nothing filled in yet" state. They exist from birth because every
+    // downstream read (`findReportWithDetails`) and every content write assumes
+    // the row is there.
+    await tx
+      .insert(reportDetails)
+      .values(reportRows.map((r) => ({ reportId: r.id, data: {}, pictures: [] })));
+  }
 
   // The timeline opens with the creation (19 §2 step 3).
   const events: NewServiceOrderEvent[] = [
@@ -524,9 +557,17 @@ export const createServiceOrder = async (
   command: CreateOrderCommand,
   day: Date = new Date(),
 ): Promise<{ order: ServiceOrderRow; lines: ServiceOrderLineRow[]; reportIds: string[] }> => {
-  const serviceIds = [...new Set(command.lines.map((l) => l.serviceId))];
-  const technicianIds = [...new Set(command.lines.map((l) => l.technicianId))];
-  const templateIds = command.lines.map((l) => l.templateId);
+  const serviceIds = [
+    ...new Set(command.lines.flatMap((l) => (l.serviceId ? [l.serviceId] : []))),
+  ];
+  // Billing-only lines (reportCount 0) name neither technician nor template —
+  // nothing to assert for them.
+  const technicianIds = [
+    ...new Set(command.lines.flatMap((l) => (l.technicianId ? [l.technicianId] : []))),
+  ];
+  const templateIds = [
+    ...new Set(command.lines.flatMap((l) => (l.templateId ? [l.templateId] : []))),
+  ];
 
   return db.transaction(async (tx) => {
     await assertCustomerExists(tx, command.customerId);
@@ -544,6 +585,7 @@ export const createServiceOrder = async (
         uom: services.uom,
         taxRate: services.taxRate,
         price: services.price,
+        isReportSource: services.isReportSource,
       })
       .from(services)
       .where(and(inArray(services.id, serviceIds), isNull(services.deletedAt)));
@@ -560,23 +602,47 @@ export const createServiceOrder = async (
         priority: command.priority,
         promisedDate: command.promisedDate,
         actorId: command.actorId,
+        // Catalog lines freeze the live catalog; off-catalog ones carry their
+        // own snapshot. `reportCount` defaults from the service's
+        // `isReportSource` (owner 2026-07-31) — a job explodes per unit, a
+        // charge explodes nothing — and an explicit count from the caller wins.
         lines: command.lines.map((line) => {
-          const service = catalog.get(line.serviceId)!;
+          const service = line.serviceId ? catalog.get(line.serviceId)! : undefined;
           return {
-            serviceId: line.serviceId,
-            serviceName: service.name,
-            uom: service.uom,
-            taxRate: service.taxRate,
+            serviceId: line.serviceId ?? null,
+            serviceName: service?.name ?? line.name!,
+            uom: service?.uom ?? line.uom!,
+            taxRate: service?.taxRate ?? line.taxRate!,
             quantity: line.quantity,
-            unitPrice: service.price,
-            technicianId: line.technicianId,
-            templateId: line.templateId,
+            unitPrice: service?.price ?? line.unitPrice!,
+            discountAmount: line.discountAmount ?? '0.00',
+            reportCount: line.reportCount ?? defaultReportCount(service?.isReportSource, line.quantity),
+            technicianId: line.technicianId ?? null,
+            templateId: line.templateId ?? null,
           };
         }),
       },
       day,
     );
   });
+};
+
+/** The explosion count a line takes when the caller doesn't say (owner
+ *  2026-07-31). A catalog service that IS a report source explodes one report
+ *  per whole unit — and a single report for a fractional quantity, because half
+ *  a job is still one job. Everything else (a billing-only service, an
+ *  off-catalog concept) explodes nothing until staff ask for it. */
+/** The transaction-size cap on exploded reports (19 §2 caps, 2026-07-27),
+ *  enforced here because only the resolved counts are the real ones. */
+export const MAX_EXPLODED_REPORTS = 50;
+
+export const defaultReportCount = (
+  isReportSource: boolean | undefined,
+  quantity: string,
+): number => {
+  if (!isReportSource) return 0;
+  const units = Number(quantity);
+  return Number.isInteger(units) ? units : 1;
 };
 
 /** The convergence (20 §6): one transaction that opens the order off the
@@ -592,8 +658,14 @@ export const createServiceOrderFromQuotation = async (
   command: ConvertQuotationCommand,
   day: Date = new Date(),
 ): Promise<{ order: ServiceOrderRow; lines: ServiceOrderLineRow[]; reportIds: string[] }> => {
-  const technicianIds = [...new Set(command.lines.map((l) => l.technicianId))];
-  const templateIds = command.lines.map((l) => l.templateId);
+  // Billing-only lines (reportCount 0) name neither technician nor template —
+  // nothing to assert for them.
+  const technicianIds = [
+    ...new Set(command.lines.flatMap((l) => (l.technicianId ? [l.technicianId] : []))),
+  ];
+  const templateIds = [
+    ...new Set(command.lines.flatMap((l) => (l.templateId ? [l.templateId] : []))),
+  ];
 
   return db.transaction(async (tx) => {
     await assertCustomerExists(tx, command.customerId);
@@ -615,6 +687,8 @@ export const createServiceOrderFromQuotation = async (
         promisedDate: null,
         quotationId: command.quotationId,
         actorId: command.actorId,
+        // Already frozen by the conversion service — inherited verbatim, no
+        // catalog read (19 §1 / 20 §6).
         lines: command.lines,
         openingRef: { kind: ServiceOrderEventRefKind.Quotation, id: command.quotationId },
         openingNote: `Orden creada desde la cotización ${command.quotationFolio}`,

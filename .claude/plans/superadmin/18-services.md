@@ -376,6 +376,13 @@ them. CP-6's CSV columns already include both, so an import can seed them.
 - [ ] CSV columns confirmed (CP-6); tests for persist + public omission
 
 ## Open decisions / asks
+- **`is_report_source` (decided 2026-07-31, owner)** — a catalog service now says
+  whether a unit of it produces a **report skeleton** of its own (19 §2): true for jobs
+  a technician performs and documents, false for what an order only charges (labor by
+  the hour, consumables by the kilo, freight). Column added in migration `0031`,
+  **DEFAULT true** so every existing row keeps today's behavior and tenants flip their
+  consumables off. Consumed by both order birth paths as the *default* explosion count;
+  staff can override per line. Editor toggle lands with the 19 UI leg.
 - **Import upsert (open, deferred from CP-6):** v1 import is create-only. An
   upsert-by-`internalServiceCode` mode (update price/copy for rows whose código already
   exists) is the natural v2 — decide when a tenant actually re-imports a revised list.

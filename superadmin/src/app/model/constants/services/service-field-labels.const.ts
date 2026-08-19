@@ -14,6 +14,7 @@ export const SERVICE_FIELD_LABELS: Record<string, string> = {
   websiteImageKey: 'Imagen del sitio',
   satProdServCode: 'Clave SAT (producto/servicio)',
   satUnitCode: 'Clave SAT (unidad)',
+  isReportSource: 'Genera reporte',
   isListableInWebsite: 'Listado en el sitio',
   isPriceVisibleInWebsite: 'Precio visible en el sitio',
 };

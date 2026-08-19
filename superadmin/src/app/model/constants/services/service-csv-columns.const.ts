@@ -13,6 +13,7 @@ export const SERVICE_CSV_COLUMNS = [
   'websiteDescription',
   'satProdServCode',
   'satUnitCode',
+  'isReportSource',
   'isListableInWebsite',
   'isPriceVisibleInWebsite',
 ] as const;

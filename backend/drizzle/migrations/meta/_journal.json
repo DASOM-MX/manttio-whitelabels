@@ -267,6 +267,20 @@
       "when": 1787092115228,
       "tag": "0037_contract_equipment",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1787101724005,
+      "tag": "0038_service_is_report_source",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1787101724006,
+      "tag": "0039_order_line_model_v2",
+      "breakpoints": true
     }
   ]
 }

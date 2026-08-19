@@ -38,6 +38,12 @@ export const SERVICE_IMPORT_FIELDS: ServiceImportFieldSpec[] = [
   { field: 'satProdServCode', label: SERVICE_FIELD_LABELS['satProdServCode']!, kind: 'text' },
   { field: 'satUnitCode', label: SERVICE_FIELD_LABELS['satUnitCode']!, kind: 'text' },
   {
+    field: 'isReportSource',
+    label: SERVICE_FIELD_LABELS['isReportSource']!,
+    kind: 'boolean',
+    fixedDefault: 'false',
+  },
+  {
     field: 'isListableInWebsite',
     label: SERVICE_FIELD_LABELS['isListableInWebsite']!,
     kind: 'boolean',
