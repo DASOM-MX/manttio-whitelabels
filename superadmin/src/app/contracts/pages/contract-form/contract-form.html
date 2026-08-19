@@ -103,16 +103,19 @@
     </div>
   </section>
 
-  <!-- Documento -->
+  <!-- Documento y vigencia. The date pickers live here rather than in a card of
+       their own (owner 2026-08-18): the bottom-row card left their overlays
+       nowhere to open, and they spilled past the page. -->
   <section class="card-section flex flex-col gap-4" aria-labelledby="contract-file-title">
-    <h2 id="contract-file-title" class="section-heading">
-      Documento
-      @if (!isEdit) {
-        <span aria-hidden="true"> *</span>
-      }
-    </h2>
+    <h2 id="contract-file-title" class="section-heading">Documento y vigencia</h2>
 
     <div class="field-group">
+      <span class="field-label" id="contract-file-label">
+        Archivo
+        @if (!isEdit) {
+          <span aria-hidden="true"> *</span>
+        }
+      </span>
       @if (file(); as picked) {
         <div
           class="flex items-center justify-between gap-3 rounded-control bg-surface-100 px-3 py-2 dark:bg-surface-800/40"
@@ -143,6 +146,7 @@
             type="file"
             class="sr-only"
             [accept]="acceptedFileTypes"
+            aria-labelledby="contract-file-label"
             (change)="onFileSelected($event)"
           />
         </label>
@@ -161,30 +165,6 @@
         }
       </p>
     </div>
-
-    @if (canSetVisibility()) {
-      <div class="field-group">
-        <label class="field-label" for="contract-visibility">Quién puede verlo</label>
-        <p-multiselect
-          inputId="contract-visibility"
-          formControlName="visibleToRoles"
-          [options]="visibleRoleOptions"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="Nadie más que la administración"
-          [showToggleAll]="false"
-          appendTo="body"
-        />
-        <p class="field-hint">
-          Tú y los administradores siempre lo ven. Quita un rol para reservar un documento sensible.
-        </p>
-      </div>
-    }
-  </section>
-
-  <!-- Vigencia -->
-  <section class="card-section flex flex-col gap-4" aria-labelledby="contract-validity-title">
-    <h2 id="contract-validity-title" class="section-heading">Vigencia</h2>
 
     <div class="grid gap-4 sm:grid-cols-2">
       <div class="field-group">
@@ -239,6 +219,25 @@
     <p class="field-hint">
       El estado (por iniciar / vigente / vencido) se calcula solo a partir de estas fechas.
     </p>
+
+    @if (canSetVisibility()) {
+      <div class="field-group">
+        <label class="field-label" for="contract-visibility">Quién puede verlo</label>
+        <p-multiselect
+          inputId="contract-visibility"
+          formControlName="visibleToRoles"
+          [options]="visibleRoleOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Nadie más que la administración"
+          [showToggleAll]="false"
+          appendTo="body"
+        />
+        <p class="field-hint">
+          Tú y los administradores siempre lo ven. Quita un rol para reservar un documento sensible.
+        </p>
+      </div>
+    }
   </section>
 
   <!-- Equipos cubiertos -->
