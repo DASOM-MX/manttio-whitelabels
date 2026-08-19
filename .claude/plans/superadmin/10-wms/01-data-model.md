@@ -20,7 +20,8 @@ WMS DDL is purely additive so this stays safe.
 ## 1. Enums (`wms/enums/`)
 
 ```ts
-enum StorageNodeType { StorageUnit = 'storage_unit', Rack = 'rack',
+enum StorageNodeType { Warehouse = 'warehouse',       // topmost level (owner 2026-08-18)
+                       StorageUnit = 'storage_unit', Rack = 'rack',
                        Section = 'section', StorageBox = 'storage_box' }
 enum MaterialTracking { Serialized = 'serialized',   // one row per piece, unique serial
                         Lot = 'lot',                  // added 2026-07-20 (owner): batch-
@@ -71,7 +72,10 @@ enum ReplenishmentImportStatus {                     // added 2026-07-19 (owner 
 ```
 
 `STORAGE_NODE_RANK: Record<StorageNodeType, number>` (`wms/constants/`) —
-`storage_unit: 1, rack: 2, section: 3, storage_box: 4`; hierarchy rule in §2.
+`warehouse: 0, storage_unit: 1, rack: 2, section: 3, storage_box: 4` (zero-based;
+**`warehouse` added as the topmost level, owner 2026-08-18** — the four original
+levels each shift up by one, the ordering between them is unchanged); hierarchy
+rule in §2.
 `UNPROCESSABLE_ROW_ERRORS = ['duplicate_serial', 'serial_exists']` (`wms/constants/`)
 — the fixable-vs-unprocessable row-error split (owner 2026-07-20; **serials only** —
 lot collisions are legitimate top-ups, not errors, since re-receipt was enabled
@@ -121,6 +125,11 @@ from v1).
   levels skippable (box directly in a unit is legal). **Roots may be any type (proposed
   2026-07-19** — a small warehouse that is "just racks" shouldn't need a fake unit;
   confirm §6). Violation → `400 invalid_parent_type`.
+- **`warehouse` is the topmost type (owner 2026-08-18):** nothing outranks it, so a
+  `warehouse` node can only ever be a root — the strictly-descending rule rejects it as
+  anyone's child (`400 invalid_parent_type`). It is the node that stands for the whole
+  building/site at the top of a warehouse's tree, above storage units; every other type
+  keeps its existing relative order beneath it.
 - `type` is **immutable** after create; moving a node to another parent is **out of v1**
   (delete-if-empty + recreate; revisit on demand).
 - Delete: only when empty — no non-deleted child nodes, no stock, no in-stock units at
