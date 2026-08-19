@@ -28,6 +28,22 @@ import { quotationRecipients } from '../quotations/models/quotation-recipients.m
 import { quotationEvents } from '../quotations/models/quotation-events.model';
 import { serviceOrderServices, serviceOrders } from '../service-orders/models/service-orders.model';
 import { serviceOrderEvents } from '../service-orders/models/service-order-events.model';
+import { warehouses } from '../wms/models/warehouses.model';
+import { storageNodes } from '../wms/models/storage-nodes.model';
+import { materials } from '../wms/models/materials.model';
+import { materialUnits } from '../wms/models/material-units.model';
+import { materialLots } from '../wms/models/material-lots.model';
+import { stockEntries } from '../wms/models/stock-entries.model';
+import { movementReasonDefs } from '../wms/models/movement-reason-defs.model';
+import { movements, movementUnits } from '../wms/models/movements.model';
+import {
+  replenishmentImportEvents,
+  replenishmentImportRows,
+  replenishmentImports,
+} from '../wms/models/replenishment-imports.model';
+import { replenishmentItems, replenishments } from '../wms/models/replenishments.model';
+import { stockCountLines, stockCountSessions } from '../wms/models/stock-count.model';
+import { reportMaterials } from '../wms/models/report-materials.model';
 
 export { users } from '../users/models/users.model';
 export { customers } from '../customers/models/customers.model';
@@ -56,6 +72,27 @@ export {
   serviceOrderCounters,
 } from '../service-orders/models/service-orders.model';
 export { serviceOrderEvents } from '../service-orders/models/service-order-events.model';
+export { warehouses } from '../wms/models/warehouses.model';
+export { storageNodes } from '../wms/models/storage-nodes.model';
+export { materials } from '../wms/models/materials.model';
+export { materialUnits } from '../wms/models/material-units.model';
+export { materialLots } from '../wms/models/material-lots.model';
+export { stockEntries } from '../wms/models/stock-entries.model';
+export { movementReasonDefs } from '../wms/models/movement-reason-defs.model';
+export { movements, movementUnits } from '../wms/models/movements.model';
+export {
+  replenishmentImports,
+  replenishmentImportRows,
+  replenishmentImportEvents,
+} from '../wms/models/replenishment-imports.model';
+export {
+  replenishments,
+  replenishmentItems,
+  wmsCounters,
+} from '../wms/models/replenishments.model';
+export { stockCountSessions, stockCountLines } from '../wms/models/stock-count.model';
+export { reportMaterials } from '../wms/models/report-materials.model';
+export { wmsSettings } from '../wms/models/wms-settings.model';
 
 export const usersRelations = relations(users, ({ many }) => ({
   reportsCreated: many(reports, { relationName: 'reports_created_by' }),
@@ -374,5 +411,307 @@ export const visitEquipmentRelations = relations(visitEquipment, ({ one }) => ({
   equipment: one(equipment, {
     fields: [visitEquipment.equipmentId],
     references: [equipment.id],
+  }),
+}));
+
+// ── WMS (10-wms/01) ────────────────────────────────────────────────────────
+
+export const warehousesRelations = relations(warehouses, ({ one, many }) => ({
+  // Self-referential nesting (one level in v1).
+  parent: one(warehouses, {
+    fields: [warehouses.parentId],
+    references: [warehouses.id],
+    relationName: 'warehouse_children',
+  }),
+  children: many(warehouses, { relationName: 'warehouse_children' }),
+  assignedUser: one(users, {
+    fields: [warehouses.assignedUserId],
+    references: [users.id],
+  }),
+  nodes: many(storageNodes),
+  stockEntries: many(stockEntries),
+  materialUnits: many(materialUnits),
+  materialLots: many(materialLots),
+}));
+
+export const storageNodesRelations = relations(storageNodes, ({ one, many }) => ({
+  warehouse: one(warehouses, {
+    fields: [storageNodes.warehouseId],
+    references: [warehouses.id],
+  }),
+  parent: one(storageNodes, {
+    fields: [storageNodes.parentNodeId],
+    references: [storageNodes.id],
+    relationName: 'storage_node_children',
+  }),
+  children: many(storageNodes, { relationName: 'storage_node_children' }),
+}));
+
+export const materialsRelations = relations(materials, ({ many }) => ({
+  units: many(materialUnits),
+  lots: many(materialLots),
+  stockEntries: many(stockEntries),
+  movements: many(movements),
+}));
+
+export const materialUnitsRelations = relations(materialUnits, ({ one, many }) => ({
+  material: one(materials, {
+    fields: [materialUnits.materialId],
+    references: [materials.id],
+  }),
+  warehouse: one(warehouses, {
+    fields: [materialUnits.warehouseId],
+    references: [warehouses.id],
+  }),
+  storageNode: one(storageNodes, {
+    fields: [materialUnits.storageNodeId],
+    references: [storageNodes.id],
+  }),
+  movementUnits: many(movementUnits),
+}));
+
+export const materialLotsRelations = relations(materialLots, ({ one }) => ({
+  material: one(materials, {
+    fields: [materialLots.materialId],
+    references: [materials.id],
+  }),
+  warehouse: one(warehouses, {
+    fields: [materialLots.warehouseId],
+    references: [warehouses.id],
+  }),
+  storageNode: one(storageNodes, {
+    fields: [materialLots.storageNodeId],
+    references: [storageNodes.id],
+  }),
+}));
+
+export const stockEntriesRelations = relations(stockEntries, ({ one }) => ({
+  material: one(materials, {
+    fields: [stockEntries.materialId],
+    references: [materials.id],
+  }),
+  warehouse: one(warehouses, {
+    fields: [stockEntries.warehouseId],
+    references: [warehouses.id],
+  }),
+  storageNode: one(storageNodes, {
+    fields: [stockEntries.storageNodeId],
+    references: [storageNodes.id],
+  }),
+}));
+
+export const movementReasonDefsRelations = relations(movementReasonDefs, ({ many }) => ({
+  movements: many(movements),
+}));
+
+export const movementsRelations = relations(movements, ({ one, many }) => ({
+  // Joined by `code`, not id — inactive reasons keep rendering in history.
+  reasonDef: one(movementReasonDefs, {
+    fields: [movements.reason],
+    references: [movementReasonDefs.code],
+  }),
+  material: one(materials, {
+    fields: [movements.materialId],
+    references: [materials.id],
+  }),
+  // Two FKs land on `warehouses` (and two on `storage_nodes`), so each side
+  // needs an explicit relationName.
+  fromWarehouse: one(warehouses, {
+    fields: [movements.fromWarehouseId],
+    references: [warehouses.id],
+    relationName: 'movements_from_warehouse',
+  }),
+  toWarehouse: one(warehouses, {
+    fields: [movements.toWarehouseId],
+    references: [warehouses.id],
+    relationName: 'movements_to_warehouse',
+  }),
+  fromNode: one(storageNodes, {
+    fields: [movements.fromNodeId],
+    references: [storageNodes.id],
+    relationName: 'movements_from_node',
+  }),
+  toNode: one(storageNodes, {
+    fields: [movements.toNodeId],
+    references: [storageNodes.id],
+    relationName: 'movements_to_node',
+  }),
+  report: one(reports, {
+    fields: [movements.reportId],
+    references: [reports.id],
+  }),
+  replenishment: one(replenishments, {
+    fields: [movements.replenishmentId],
+    references: [replenishments.id],
+  }),
+  countSession: one(stockCountSessions, {
+    fields: [movements.countSessionId],
+    references: [stockCountSessions.id],
+  }),
+  user: one(users, {
+    fields: [movements.userId],
+    references: [users.id],
+  }),
+  units: many(movementUnits),
+}));
+
+export const movementUnitsRelations = relations(movementUnits, ({ one }) => ({
+  movement: one(movements, {
+    fields: [movementUnits.movementId],
+    references: [movements.id],
+  }),
+  materialUnit: one(materialUnits, {
+    fields: [movementUnits.materialUnitId],
+    references: [materialUnits.id],
+  }),
+}));
+
+export const replenishmentImportsRelations = relations(
+  replenishmentImports,
+  ({ one, many }) => ({
+    // Two FKs land on `warehouses`: the destination and its resolved parent
+    // (the one-in-flight scope key).
+    warehouse: one(warehouses, {
+      fields: [replenishmentImports.warehouseId],
+      references: [warehouses.id],
+      relationName: 'imports_warehouse',
+    }),
+    parentWarehouse: one(warehouses, {
+      fields: [replenishmentImports.parentWarehouseId],
+      references: [warehouses.id],
+      relationName: 'imports_parent_warehouse',
+    }),
+    user: one(users, {
+      fields: [replenishmentImports.userId],
+      references: [users.id],
+    }),
+    rows: many(replenishmentImportRows),
+    events: many(replenishmentImportEvents),
+    replenishment: one(replenishments),
+  }),
+);
+
+export const replenishmentImportRowsRelations = relations(
+  replenishmentImportRows,
+  ({ one }) => ({
+    import: one(replenishmentImports, {
+      fields: [replenishmentImportRows.importId],
+      references: [replenishmentImports.id],
+    }),
+    material: one(materials, {
+      fields: [replenishmentImportRows.materialId],
+      references: [materials.id],
+    }),
+    storageNode: one(storageNodes, {
+      fields: [replenishmentImportRows.storageNodeId],
+      references: [storageNodes.id],
+    }),
+  }),
+);
+
+export const replenishmentImportEventsRelations = relations(
+  replenishmentImportEvents,
+  ({ one }) => ({
+    import: one(replenishmentImports, {
+      fields: [replenishmentImportEvents.importId],
+      references: [replenishmentImports.id],
+    }),
+    actor: one(users, {
+      fields: [replenishmentImportEvents.actorUserId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const replenishmentsRelations = relations(replenishments, ({ one, many }) => ({
+  warehouse: one(warehouses, {
+    fields: [replenishments.warehouseId],
+    references: [warehouses.id],
+  }),
+  import: one(replenishmentImports, {
+    fields: [replenishments.importId],
+    references: [replenishmentImports.id],
+  }),
+  user: one(users, {
+    fields: [replenishments.userId],
+    references: [users.id],
+  }),
+  items: many(replenishmentItems),
+  movements: many(movements),
+}));
+
+export const replenishmentItemsRelations = relations(replenishmentItems, ({ one }) => ({
+  replenishment: one(replenishments, {
+    fields: [replenishmentItems.replenishmentId],
+    references: [replenishments.id],
+  }),
+  material: one(materials, {
+    fields: [replenishmentItems.materialId],
+    references: [materials.id],
+  }),
+  storageNode: one(storageNodes, {
+    fields: [replenishmentItems.storageNodeId],
+    references: [storageNodes.id],
+  }),
+}));
+
+export const stockCountSessionsRelations = relations(
+  stockCountSessions,
+  ({ one, many }) => ({
+    warehouse: one(warehouses, {
+      fields: [stockCountSessions.warehouseId],
+      references: [warehouses.id],
+    }),
+    storageNode: one(storageNodes, {
+      fields: [stockCountSessions.storageNodeId],
+      references: [storageNodes.id],
+    }),
+    // Two FKs land on `users`: who counted vs who applied.
+    openedByUser: one(users, {
+      fields: [stockCountSessions.openedBy],
+      references: [users.id],
+      relationName: 'count_sessions_opened_by',
+    }),
+    appliedByUser: one(users, {
+      fields: [stockCountSessions.appliedBy],
+      references: [users.id],
+      relationName: 'count_sessions_applied_by',
+    }),
+    lines: many(stockCountLines),
+    movements: many(movements),
+  }),
+);
+
+export const stockCountLinesRelations = relations(stockCountLines, ({ one }) => ({
+  session: one(stockCountSessions, {
+    fields: [stockCountLines.countSessionId],
+    references: [stockCountSessions.id],
+  }),
+  material: one(materials, {
+    fields: [stockCountLines.materialId],
+    references: [materials.id],
+  }),
+  storageNode: one(storageNodes, {
+    fields: [stockCountLines.storageNodeId],
+    references: [storageNodes.id],
+  }),
+}));
+
+export const reportMaterialsRelations = relations(reportMaterials, ({ one }) => ({
+  report: one(reports, {
+    fields: [reportMaterials.reportId],
+    references: [reports.id],
+  }),
+  material: one(materials, {
+    fields: [reportMaterials.materialId],
+    references: [materials.id],
+  }),
+  materialUnit: one(materialUnits, {
+    fields: [reportMaterials.materialUnitId],
+    references: [materialUnits.id],
+  }),
+  sourceWarehouse: one(warehouses, {
+    fields: [reportMaterials.sourceWarehouseId],
+    references: [warehouses.id],
   }),
 }));

@@ -281,6 +281,13 @@
       "when": 1787101724006,
       "tag": "0039_order_line_model_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1787102950351,
+      "tag": "0040_wms_data_model",
+      "breakpoints": true
     }
   ]
 }
