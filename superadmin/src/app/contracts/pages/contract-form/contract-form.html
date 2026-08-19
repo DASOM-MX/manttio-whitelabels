@@ -101,6 +101,25 @@
       <app-tags-input controlId="contract-tags" formControlName="tags" />
       <p class="field-hint">Sirven para encontrarlo después — se guardan en minúsculas.</p>
     </div>
+
+    @if (canSetVisibility()) {
+      <div class="field-group">
+        <label class="field-label" for="contract-visibility">Quién puede verlo</label>
+        <p-multiselect
+          inputId="contract-visibility"
+          formControlName="visibleToRoles"
+          [options]="visibleRoleOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Nadie más que la administración"
+          [showToggleAll]="false"
+          appendTo="body"
+        />
+        <p class="field-hint">
+          Tú y los administradores siempre lo ven. Quita un rol para reservar un documento sensible.
+        </p>
+      </div>
+    }
   </section>
 
   <!-- Documento y vigencia. The date pickers live here rather than in a card of
@@ -219,25 +238,6 @@
     <p class="field-hint">
       El estado (por iniciar / vigente / vencido) se calcula solo a partir de estas fechas.
     </p>
-
-    @if (canSetVisibility()) {
-      <div class="field-group">
-        <label class="field-label" for="contract-visibility">Quién puede verlo</label>
-        <p-multiselect
-          inputId="contract-visibility"
-          formControlName="visibleToRoles"
-          [options]="visibleRoleOptions"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="Nadie más que la administración"
-          [showToggleAll]="false"
-          appendTo="body"
-        />
-        <p class="field-hint">
-          Tú y los administradores siempre lo ven. Quita un rol para reservar un documento sensible.
-        </p>
-      </div>
-    }
 
     <!-- Last in the panel and `flex-1`, so it takes whatever height the row
          leaves rather than the card stopping short of the General column. -->
