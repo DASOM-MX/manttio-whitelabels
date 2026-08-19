@@ -117,7 +117,7 @@ Rules for agents:
 | 10 wms | not-started (plan expanded 2026-07-19 → `10-wms/` suite) | — |
 | 11 equipment | **done** (frontend side; branch `feature/superadmin-equipment`) | CP-3 |
 | 12 calendar | in-progress (CP-1 backend on PR #110; CP-1b/CP-2/CP-3 planned 2026-07-31) | — |
-| 13 contracts | not-started | — |
+| 13 contracts | in-progress — CP-1 backend merged (PR #125, 2026-08-18) + CP-2 superadmin UI on `feature/superadmin-contracts-ui-cp2` | CP-2 |
 | 14 access-control | done (doc) | — |
 | 15 website | in-progress · PR #44 | CP-2 |
 | 16 semantic-brand-colors | superadmin leg (PR-2) **done** — front-run 2026-07-21, PR #87; frontend/website legs deferred, run last (post-MVP) | — |
