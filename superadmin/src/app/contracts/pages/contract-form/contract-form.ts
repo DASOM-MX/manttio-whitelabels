@@ -104,6 +104,7 @@ interface ScrollerLazyLoadEvent {
     LucideX,
   ],
   templateUrl: './contract-form.html',
+  styleUrl: './contract-form.scss',
 })
 export class ContractForm implements HasPendingChanges {
   private fb = inject(FormBuilder);

@@ -1,0 +1,30 @@
+/* Why this sheet exists (superadmin CLAUDE.md — sheets are for layout
+   integration, never looks): the form should reach the bottom of the window
+   instead of stopping wherever its longest column happens to end, and that needs
+   a viewport measurement no utility class can express.
+
+   Everything visible — surfaces, borders, spacing — stays in the template as
+   utilities, so dark mode and the runtime brand scales keep working. */
+
+.contract-form {
+  /* Only from `xl` up, where the two columns sit side by side. Below that the
+     cards stack, the page is already taller than the window, and stretching them
+     would just insert dead space between fields. 1280px is Tailwind's `xl` — the
+     same systematic breakpoint the template uses, not an ad-hoc one. */
+  @media (min-width: 1280px) {
+    /* Everything stacked above this form: the app topbar (`h-14`), the main
+       region's top gutter (`py-6`), the page header and its `mb-6`, and this
+       form's own `mt-5`. A measured constant, like the calendar's `--cal-chrome`
+       — the alternative is making the whole shell's height chain definite for
+       one page's sizing, which the conventions rule out.
+
+       `dvh` so mobile browser chrome collapsing never leaves a gap. */
+    --form-chrome: 12.5rem;
+    min-height: calc(100dvh - var(--form-chrome));
+
+    /* The cards row takes the slack; the actions row keeps its natural height.
+       Inside the right card the equipment block is `flex-1`, so the extra height
+       lands there rather than as padding under the last field. */
+    grid-template-rows: 1fr auto;
+  }
+}
