@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, test } from 'vitest';
-import { and, eq, like, or } from 'drizzle-orm';
+import { and, eq, like, or, sql } from 'drizzle-orm';
 import { authHeader, env, json, jsonHeaders, request } from './helpers/request';
+import { mockResend } from './helpers/resend';
 import {
   ensureFixtureTemplate,
   seedAdmin,
@@ -70,20 +71,43 @@ const triggerCapture = (templateId: string, note: string) => ({
   ],
 });
 
+/** The rows one trigger produced for one observer, scoped to the entity under
+ *  test.
+ *
+ *  Recipient + type alone is not enough: every trigger here is a `role: 'owner'`
+ *  broadcast, so a freshly-seeded observer also receives the notices other
+ *  suites generate while this one runs — `customers.test.ts` and
+ *  `public-leads.test.ts` both create clients against the same live DB. Scoping
+ *  on `data` is what makes "the trigger fired exactly once" a claim about this
+ *  test's own entity; every payload carries the deep link (notifications
+ *  plan §1). */
 const rowsFor = async (
   recipientUserId: string,
   type: NotificationType,
-): Promise<NotificationRow[]> =>
-  db()
-    .select()
-    .from(notifications)
-    .where(
-      and(eq(notifications.recipientUserId, recipientUserId), eq(notifications.type, type)),
-    );
+  scope: { customerId?: string; reportId?: string } = {},
+): Promise<NotificationRow[]> => {
+  const conds = [
+    eq(notifications.recipientUserId, recipientUserId),
+    eq(notifications.type, type),
+  ];
+  if (scope.customerId) {
+    conds.push(sql`${notifications.data}->>'customerId' = ${scope.customerId}`);
+  }
+  if (scope.reportId) {
+    conds.push(sql`${notifications.data}->>'reportId' = ${scope.reportId}`);
+  }
+  return db().select().from(notifications).where(and(...conds));
+};
 
 // 1×1 transparent PNG — enough for the signature upload path.
 const PNG_B64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+// Signing a report at creation fires the customer auto-email, so this suite
+// reaches Resend the same way `quotations.test.ts` does. Without the mock the
+// only thing standing between a run and a real send is `.dev.vars` happening to
+// carry no valid RESEND_API_KEY.
+mockResend();
 
 describe('notify() excludeUserId', () => {
   test('the actor is dropped from a role broadcast', async () => {
@@ -118,7 +142,13 @@ describe('customer lifecycle triggers', () => {
       expect(createRes.status).toBe(201);
       const { customer } = await json<{ customer: { id: string } }>(createRes);
 
-      const created = await rowsFor(observer.id, NotificationType.ClientRegisteredFromSuperadmin);
+      const forCustomer = { customerId: customer.id };
+
+      const created = await rowsFor(
+        observer.id,
+        NotificationType.ClientRegisteredFromSuperadmin,
+        forCustomer,
+      );
       expect(created).toHaveLength(1);
       expect(created[0]!.body).toContain(customerName);
       expect(created[0]!.body).toContain('por test owner');
@@ -126,7 +156,7 @@ describe('customer lifecycle triggers', () => {
       expect(created[0]!.data).toMatchObject({ customerId: customer.id });
       // The acting owner never hears about their own action.
       expect(
-        await rowsFor(actor.id, NotificationType.ClientRegisteredFromSuperadmin),
+        await rowsFor(actor.id, NotificationType.ClientRegisteredFromSuperadmin, forCustomer),
       ).toHaveLength(0);
 
       // Update — actor named in the body.
@@ -136,11 +166,13 @@ describe('customer lifecycle triggers', () => {
         body: JSON.stringify({ observation: 'nota' }),
       });
       expect(patchRes.status).toBe(200);
-      const updated = await rowsFor(observer.id, NotificationType.ClientUpdated);
+      const updated = await rowsFor(observer.id, NotificationType.ClientUpdated, forCustomer);
       expect(updated).toHaveLength(1);
       expect(updated[0]!.body).toContain('actualizó los datos de');
       expect(updated[0]!.body).toContain(customerName);
-      expect(await rowsFor(actor.id, NotificationType.ClientUpdated)).toHaveLength(0);
+      expect(
+        await rowsFor(actor.id, NotificationType.ClientUpdated, forCustomer),
+      ).toHaveLength(0);
 
       // Manual interaction — logged by an office user (on the composer gate
       // since 2026-07-21); the body names the actor and the medium.
@@ -154,6 +186,7 @@ describe('customer lifecycle triggers', () => {
       const interacted = await rowsFor(
         observer.id,
         NotificationType.ClientInteractionRegistered,
+        forCustomer,
       );
       expect(interacted).toHaveLength(1);
       expect(interacted[0]!.body).toContain(customerName);
@@ -167,7 +200,11 @@ describe('customer lifecycle triggers', () => {
         body: JSON.stringify({ status: 'blacklisted', reason: 'pagos vencidos' }),
       });
       expect(statusRes.status).toBe(200);
-      const blacklisted = await rowsFor(observer.id, NotificationType.ClientBlacklisted);
+      const blacklisted = await rowsFor(
+        observer.id,
+        NotificationType.ClientBlacklisted,
+        forCustomer,
+      );
       expect(blacklisted).toHaveLength(1);
       expect(blacklisted[0]!.body).toContain('pagos vencidos');
 
@@ -177,10 +214,12 @@ describe('customer lifecycle triggers', () => {
         headers: authHeader(token),
       });
       expect(deleteRes.status).toBe(200);
-      const archived = await rowsFor(observer.id, NotificationType.ClientArchived);
+      const archived = await rowsFor(observer.id, NotificationType.ClientArchived, forCustomer);
       expect(archived).toHaveLength(1);
       expect(archived[0]!.body).toContain(customerName);
-      expect(await rowsFor(actor.id, NotificationType.ClientArchived)).toHaveLength(0);
+      expect(
+        await rowsFor(actor.id, NotificationType.ClientArchived, forCustomer),
+      ).toHaveLength(0);
     },
     60_000,
   );
@@ -188,14 +227,16 @@ describe('customer lifecycle triggers', () => {
   test('a website lead notifies every owner (no actor to exclude)', async () => {
     const observer = await seedOwner();
     const leadLast = `test-lead-${tag()}`;
-    await createLead(db(), {
+    const lead = await createLead(db(), {
       firstName: 'Notif',
       lastName: leadLast,
       email: `dasom.mx+test-lead-${tag()}@gmail.com`,
       clientType: ClientType.Person,
       turnstileToken: 'test-token',
     });
-    const rows = await rowsFor(observer.id, NotificationType.ClientRegisteredFromWebsite);
+    const rows = await rowsFor(observer.id, NotificationType.ClientRegisteredFromWebsite, {
+      customerId: lead.id,
+    });
     expect(rows).toHaveLength(1);
     expect(rows[0]!.body).toContain(leadLast);
   });
@@ -223,7 +264,9 @@ describe('report lifecycle triggers', () => {
       expect(createRes.status).toBe(201);
       const createdBody = await json<{ report: { id: string } }>(createRes);
 
-      const createdRows = await rowsFor(observer.id, NotificationType.ReportCreated);
+      const createdRows = await rowsFor(observer.id, NotificationType.ReportCreated, {
+        reportId: createdBody.report.id,
+      });
       expect(createdRows).toHaveLength(1);
       expect(createdRows[0]!.body).toContain(createdBody.report.id);
       expect(createdRows[0]!.body).toContain(customer.name);
@@ -250,13 +293,17 @@ describe('report lifecycle triggers', () => {
       const signedBody = await json<{ report: { id: string; status: string } }>(signedRes);
       expect(signedBody.report.status).toBe('finished');
 
-      const finalizedRows = await rowsFor(observer.id, NotificationType.ReportFinalized);
+      const finalizedRows = await rowsFor(observer.id, NotificationType.ReportFinalized, {
+        reportId: signedBody.report.id,
+      });
       expect(finalizedRows).toHaveLength(1);
       expect(finalizedRows[0]!.body).toContain(signedBody.report.id);
-      // No `created` notice for the signed report — only for the first one.
-      const createdAfter = await rowsFor(observer.id, NotificationType.ReportCreated);
-      expect(createdAfter).toHaveLength(1);
-      expect(createdAfter[0]!.body).not.toContain(signedBody.report.id);
+      // No `created` notice for the signed report — it went straight to
+      // `finished`, so the trigger it skipped left no row of its own.
+      const createdForSigned = await rowsFor(observer.id, NotificationType.ReportCreated, {
+        reportId: signedBody.report.id,
+      });
+      expect(createdForSigned).toHaveLength(0);
     },
     60_000,
   );
