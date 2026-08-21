@@ -49,6 +49,13 @@ idempotent).
   status value ships in the enum. Purely additive later.
 - `report_id` columns are `text` (matching `reports.id`, which is text — this file
   said uuid); `STORAGE_NODE_RANK` is zero-based (user 2026-08-08).
+- **`created_at` on every table (user 2026-08-21):** the child/join/balance tables
+  this file's §2 specs left without one — `movement_units`, `replenishment_items`,
+  `replenishment_import_rows`, `stock_count_lines`, `stock_entries`, `wms_counters`,
+  `wms_settings` — all carry `created_at timestamptz NOT NULL DEFAULT now()`.
+  `stock_count_sessions` is the one exception on purpose: its `opened_at` already
+  records the same instant. Folded into `0040` rather than a follow-up migration,
+  which is safe because `0040` has never been applied to any database.
 
 ---
 

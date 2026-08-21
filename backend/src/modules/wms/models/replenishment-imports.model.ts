@@ -141,6 +141,7 @@ export const replenishmentImportRows = pgTable(
     }),
     // ParseRowError code (02 §6); NULL = clean.
     error: text('error'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // Retries upsert by this key — never duplicate rows (idempotent handler).

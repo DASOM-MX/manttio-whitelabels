@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS "movement_reason_defs" (
 CREATE TABLE IF NOT EXISTS "movement_units" (
 	"movement_id" uuid NOT NULL,
 	"material_unit_id" uuid NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "movement_units_movement_id_material_unit_id_pk" PRIMARY KEY("movement_id","material_unit_id")
 );
 --> statement-breakpoint
@@ -101,6 +102,7 @@ CREATE TABLE IF NOT EXISTS "replenishment_import_rows" (
 	"lot_expires_at" timestamp with time zone,
 	"storage_node_id" uuid,
 	"error" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "replenishment_import_rows_line_uq" UNIQUE("import_id","line")
 );
 --> statement-breakpoint
@@ -138,7 +140,8 @@ CREATE TABLE IF NOT EXISTS "replenishment_items" (
 	"lot_expires_at" timestamp with time zone,
 	"storage_node_id" uuid,
 	"unprocessable" boolean DEFAULT false NOT NULL,
-	"error" text
+	"error" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "replenishments" (
@@ -176,6 +179,7 @@ CREATE TABLE IF NOT EXISTS "stock_count_lines" (
 	"counted_qty" numeric(12, 3),
 	"system_pieces" integer,
 	"counted_pieces" integer,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "stock_count_lines_cell_uq" UNIQUE NULLS NOT DISTINCT("count_session_id","material_id","storage_node_id","lot_number")
 );
 --> statement-breakpoint
@@ -200,6 +204,7 @@ CREATE TABLE IF NOT EXISTS "stock_entries" (
 	"warehouse_id" uuid NOT NULL,
 	"storage_node_id" uuid,
 	"quantity" numeric(12, 3) NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "stock_entries_material_location_uq" UNIQUE NULLS NOT DISTINCT("material_id","warehouse_id","storage_node_id"),
 	CONSTRAINT "stock_entries_quantity_nonneg_check" CHECK ("stock_entries"."quantity" >= 0)
 );
@@ -232,13 +237,15 @@ CREATE TABLE IF NOT EXISTS "warehouses" (
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "wms_counters" (
 	"id" text PRIMARY KEY NOT NULL,
-	"value" integer NOT NULL
+	"value" integer NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "wms_settings" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"key" text NOT NULL,
 	"value" jsonb NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "wms_settings_key_unique" UNIQUE("key")
 );
@@ -567,7 +574,8 @@ CREATE INDEX IF NOT EXISTS "stock_entries_location_idx" ON "stock_entries" USING
 CREATE UNIQUE INDEX IF NOT EXISTS "storage_nodes_name_in_parent_uidx" ON "storage_nodes" USING btree ("warehouse_id",coalesce("parent_node_id", '00000000-0000-0000-0000-000000000000'::uuid),"name") WHERE "storage_nodes"."deleted_at" is null;--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "storage_nodes_warehouse_idx" ON "storage_nodes" USING btree ("warehouse_id","parent_node_id") WHERE "storage_nodes"."deleted_at" is null;--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "warehouses_assigned_user_idx" ON "warehouses" USING btree ("assigned_user_id") WHERE "warehouses"."deleted_at" is null and "warehouses"."assigned_user_id" is not null;--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "warehouses_parent_idx" ON "warehouses" USING btree ("parent_id") WHERE "warehouses"."deleted_at" is null;--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "warehouses_parent_idx" ON "warehouses" USING btree ("parent_id") WHERE "warehouses"."deleted_at" is null;
+--> statement-breakpoint
 -- Seed: the 14 built-in movement reasons (10-wms/01 §5; the TS mirror the
 -- CP-2 verification test checks against lives in
 -- `src/modules/wms/constants/movement-reason-seeds.ts` — keep both in sync).

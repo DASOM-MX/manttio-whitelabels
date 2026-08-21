@@ -74,6 +74,7 @@ export const replenishmentItems = pgTable(
     }),
     unprocessable: boolean('unprocessable').notNull().default(false),
     error: text('error'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index('replenishment_items_replenishment_idx').on(table.replenishmentId)],
 );
@@ -84,4 +85,5 @@ export const replenishmentItems = pgTable(
 export const wmsCounters = pgTable('wms_counters', {
   id: text('id').primaryKey(),
   value: integer('value').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });

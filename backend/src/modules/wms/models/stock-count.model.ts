@@ -96,6 +96,7 @@ export const stockCountLines = pgTable(
     // snapshotted/counted alongside the content quantity.
     systemPieces: integer('system_pieces'),
     countedPieces: integer('counted_pieces'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // One cell per session: NULLS NOT DISTINCT so warehouse-level (NULL node)

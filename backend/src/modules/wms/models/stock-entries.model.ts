@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, index, numeric, pgTable, unique, uuid } from 'drizzle-orm/pg-core';
+import { check, index, numeric, pgTable, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 import { materials } from './materials.model';
 import { storageNodes } from './storage-nodes.model';
 import { warehouses } from './warehouses.model';
@@ -24,6 +24,9 @@ export const stockEntries = pgTable(
     }),
     // Whole integers in v1 (00 §6 #22), held in numeric.
     quantity: numeric('quantity', { precision: 12, scale: 3 }).notNull(),
+    // When this location first held this material — the row is upserted from
+    // then on, so it never moves.
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // The upsert key for stock math (01 §3): NULLS NOT DISTINCT so

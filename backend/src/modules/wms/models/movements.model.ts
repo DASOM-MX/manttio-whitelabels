@@ -132,6 +132,7 @@ export const movementUnits = pgTable(
     materialUnitId: uuid('material_unit_id')
       .notNull()
       .references(() => materialUnits.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.movementId, table.materialUnitId] }),

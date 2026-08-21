@@ -17,5 +17,7 @@ export const wmsSettings = pgTable('wms_settings', {
   // Namespaced `<domain>.<name>`, e.g. `wms.last_replenishment_mapping`.
   key: text('key').notNull().unique(),
   value: jsonb('value').notNull(),
+  // When the key was first written; `updatedAt` moves on every set.
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
