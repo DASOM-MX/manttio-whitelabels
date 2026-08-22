@@ -24,7 +24,11 @@ import { WarehouseType } from '../src/modules/wms/enums/warehouses.enum';
 
 type WorkerEnv = { DATABASE_URL: string };
 
-const FIXTURE_PREFIX = 'wms-test-';
+// The prefix is PER SUITE, not shared: vitest runs test files in parallel, and
+// `afterAll` cleans by prefix — a marker both suites answered to would have one
+// file soft-deleting the other's live fixtures mid-run. Both still carry the
+// `wms-test-` marker 02 CP-1 asks for.
+const FIXTURE_PREFIX = 'wms-test-wh-';
 const tag = () => Math.random().toString(36).slice(2, 10);
 const wmsName = (scope: string) => `${FIXTURE_PREFIX}${scope}-${tag()}`;
 
@@ -204,6 +208,20 @@ describe('warehouse registry (02 §2)', () => {
   test('the tree is staff-only — a technician gets 403', async () => {
     const res = await request('/warehouses/tree', { headers: jsonHeaders(techToken) });
     expect(res.status).toBe(403);
+  });
+
+  test('a PATCH that changes nothing is a no-op, not a 500', async () => {
+    const wh = await seedWarehouse();
+    const res = await request(`/warehouses/${wh.id}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(ownerToken),
+      body: JSON.stringify({}),
+    });
+    expect(res.status).toBe(200);
+    expect(await json<{ id: string; name: string }>(res)).toMatchObject({
+      id: wh.id,
+      name: wh.name,
+    });
   });
 
   test('a malformed id 404s instead of throwing on the uuid cast', async () => {
