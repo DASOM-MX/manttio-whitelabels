@@ -38,7 +38,11 @@
         Reabrir
       </button>
     }
-    @if (canFileContract()) {
+    @if (isStaff() && isOpen()) {
+      <button type="button" class="btn-secondary" (click)="scheduleVisit()">
+        <svg lucideCalendarPlus class="size-4" aria-hidden="true"></svg>
+        Programar visita
+      </button>
       <a
         class="btn-secondary"
         routerLink="/contracts/new"
@@ -47,12 +51,6 @@
         <svg lucideFilePlus class="size-4" aria-hidden="true"></svg>
         Generar contrato
       </a>
-    }
-    @if (isStaff() && isOpen()) {
-      <button type="button" class="btn-secondary" (click)="scheduleVisit()">
-        <svg lucideCalendarPlus class="size-4" aria-hidden="true"></svg>
-        Programar visita
-      </button>
       <button type="button" class="btn-secondary" (click)="openEdit()">
         <svg lucidePencil class="size-4" aria-hidden="true"></svg>
         Editar

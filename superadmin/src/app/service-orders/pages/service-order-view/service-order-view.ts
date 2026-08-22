@@ -68,7 +68,9 @@ import type { ServiceOrderReport } from '../../../data/dtos/service-order';
  *  opens with this order locked) and their lifecycle shows in the timeline;
  *  the week view lives in the calendar. **Generar contrato** files a document
  *  against this job (13 §2 — an order generates 0..n) and the Contratos card
- *  lists what it produced.
+ *  lists what it produced; filing rides the same open-order gate as every other
+ *  mutation here (owner 2026-08-22), so a closed or cancelled job is done
+ *  growing.
  *
  *  Mutability mirrors the API (19 §1): comments for any staff, location for
  *  owner/admin only, status one-way with a confirm dialog — cancel warns that
@@ -143,14 +145,6 @@ export class ServiceOrderView {
       this.order()?.status === ServiceOrderStatus.Completed,
   );
   protected showsMoney = computed(() => this.order()?.amounts !== undefined);
-  /** Generar contrato (13 §2, CP-3): staff only — the contracts module is
-   *  owner/admin/office, and a technician reaching an order as context for a
-   *  report has no business filing one. Not gated on `isOpen()`: the document a
-   *  job produces — a guarantee above all — is usually issued once the work is
-   *  done. A cancelled order produced no work, so it produces no contract. */
-  protected canFileContract = computed(
-    () => this.isStaff() && this.order()?.status !== ServiceOrderStatus.Cancelled,
-  );
   protected hasMoreEvents = computed(() => this.timeline().length < this.timelineTotal());
 
   protected isUrgent = computed(() => this.order()?.priority === ServiceOrderPriority.Urgent);

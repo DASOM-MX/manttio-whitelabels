@@ -306,9 +306,13 @@ page of that client's history.
 
 ### CP-3 — Order + customer integration ✅ (2026-08-21)
 - [x] Order view **Generar contrato** — a link to `/contracts/new?customer=…&order=…`, which
-      is the entry point CP-2 made the form a page for. Not gated on the order being open
-      (a guarantee is issued when the work is *done*); hidden on a cancelled order, which
-      produced no work, and for technicians. Plus the order "Contratos" card (0..n)
+      is the entry point CP-2 made the form a page for. **Open orders only** (owner
+      2026-08-22): filing rides the same gate as every other mutation on the view, so a
+      closed or cancelled job is done growing. ~~An earlier build showed it on completed
+      orders too, on the reasoning that a guarantee is issued once the work is done; the
+      owner's call is that a closed order is closed.~~ Technicians never see it. Plus the
+      order "Contratos" card (0..n), which stays visible on a closed order — what a job
+      produced is history, and history keeps showing
 - [x] Customer-view **Contratos tab** — the 07 slot ask, answered as a tab beside
       Cotizaciones and Servicios rather than a card in General, with **Registrar contrato**
       pre-locking the client
@@ -342,6 +346,11 @@ turn out to be unreachable from them; they are unused as of CP-3.
   URLs at all** — the backend streams the document from `GET /contracts/:id/file` and
   re-checks access per request (§1.2 carries the reasoning). Whether downloads are
   additionally access-logged is still open; the proxy route is the natural place for it.
+- **Filing from an order — decided 2026-08-22 (owner):** **Generar contrato** shows on
+  **open orders only**, not on completed or cancelled ones. It rides the same gate as every
+  other mutation on the order view (19 §5), so a closed job is done growing; a contract for
+  work already closed out is filed standalone from the client or the contracts list. The
+  order's **Contratos card** is unaffected — it reads history and keeps showing.
 - **Role visibility — decided 2026-07-24:** per-contract `visibleToRoles`, **owner/admin
   set**; owner/admin always see all, office/technician only when their role is listed.
   **Default: all staff** (`[office, technician]`) — owners restrict per contract.
@@ -365,7 +374,8 @@ turn out to be unreachable from them; they are unused as of CP-3.
   migration (its only row was a self-labelled, soft-deleted smoke-test row referenced by
   nothing). A tenant DB is provisioned from the migrations, so hand-applied schema is a
   provisioning bug — see [[shared-neon-db-ahead-of-migrations]].
-- ~~Ask to 07: "Contratos" card slot on customer-view.~~ **Resolved 2026-08-21 (CP-3):** its
+- ~~Ask to 07: "Contratos" card slot on customer-view.~~ **Resolved 2026-08-21 (CP-3),
+  confirmed by the owner 2026-08-22 ("contratos will live in the client 360 view too"):** its
   own **Contratos tab**, beside Cotizaciones and Servicios — the client 360 already carries
   its per-domain feeds as tabs, and a contracts list is a table, not a General-card row.
 - Ask to 14: `contracts` module row in the matrix; config flag (own vs rides `scheduling`).
