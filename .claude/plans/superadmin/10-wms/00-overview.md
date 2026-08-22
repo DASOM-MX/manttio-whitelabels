@@ -494,7 +494,7 @@ money silently); 24–27 are **owner-delight** (≈ one column + one pill each);
 | Sub-plan | Status | Checkpoint |
 |---|---|---|
 | 01 data-model | in-progress | CP-1 merged (#151), `0040` applied 2026-08-21; `0041` open |
-| 02 api-surface | not-started | — |
+| 02 api-surface | in-progress | §2 warehouses + nodes shipped 2026-08-21 (CP-1 first half); §3 materials next |
 | 03 warehouses | not-started | — |
 | 04 storage-hierarchy | not-started | — |
 | 05 materials-catalog | not-started | — |
