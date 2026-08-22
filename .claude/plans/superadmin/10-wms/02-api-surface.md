@@ -1,8 +1,9 @@
 # 10-wms / 02 — API surface (backend)
 
-> **Status:** in-progress — **§2 warehouses + storage nodes shipped 2026-08-21**
-> (`modules/wms/`, first half of CP-1); §3 materials next · **Depends on:** 01
-> **Owner:** — · **Last updated:** 2026-08-21
+> **Status:** in-progress — **CP-1 complete: §2 warehouses + storage nodes
+> (2026-08-21) and §3 materials (2026-08-22)** are live in `modules/wms/`;
+> CP-2 (§4 stock ops + §5 reasons) next · **Depends on:** 01
+> **Owner:** — · **Last updated:** 2026-08-22
 
 The complete WMS endpoint catalog: paths, role gates, validator shapes, responses, and
 error codes. Follows `backend/CLAUDE.md` to the letter: thin controllers
@@ -82,11 +83,11 @@ controller — an in-tenant editor is a later add).
 
 | Endpoint | Roles | Notes |
 |---|---|---|
-| `GET /materials?search&tracking&lowStock&page&limit` | owner/admin/office/technician | Paged; `search` matches **name, sku, and upc** (exact-ish on the codes, ilike on name — a keyboard-wedge barcode scan into any search box resolves the material). Rows carry `totalStock` + `lowStock` (`totalStock < minStock`). Technician read = stock lookup (09) — same endpoint, no special casing |
+| `GET /materials?search&tracking&lowStock&page&limit` | owner/admin/office/technician | Paged; `search` matches **name anywhere (ilike), `sku` by prefix, `upc` exactly** (2026-08-22 — a keyboard-wedge scan types the full barcode and hits Enter, so exact `upc` is what makes the plain box a scan target; a partial barcode is a mis-scan and deliberately does not match). Rows carry `totalStock` + `lowStock` (`totalStock < minStock`; false whenever `minStock` is unset). **Both are computed in SQL**, not folded in memory — the list filters and pages on them, and a total assembled after paging would page wrongly |
 | `GET /materials/:id` | owner/admin/office/technician | Detail |
-| `GET /materials/:id/stock` | owner/admin/office/technician | Per-location breakdown `{ warehouse, node?, quantity }[]`; serialized adds the unit list `{ id, serialNumber, warehouse, node?, status }[]`; **lot adds the lot list** `{ lotNumber, warehouse, node?, quantity, expiresAt? }[]` (added 2026-07-20; `expiresAt` present only for tracked lots) |
+| `GET /materials/:id/stock` | owner/admin/office/technician | Per-location breakdown `{ warehouse, node?, quantity }[]`; serialized adds the unit list `{ id, serialNumber, warehouse, node?, status }[]`; **lot adds the lot list** `{ lotNumber, warehouse, node?, quantity, `**`pieces`**`, expiresAt? }[]` (added 2026-07-20; `pieces` added 2026-08-22 with the column, user 2026-08-08; `expiresAt` present only for tracked lots). All three keys are **always present** so the client renders from the tracking mode, not from which list happens to be non-empty. Units are listed in **every** status here (unlike `GET /warehouses/:id/stock`, which is on-hand only): this is the "where did that serial end up?" surface |
 | `POST /materials` | owner/admin | `{ sku?, upc?, name, description?, unit, tracking, minStock? }` (`409 sku_in_use` / `409 upc_in_use`; upc validated `^\d{8,14}$`) |
-| `PATCH /materials/:id` | owner/admin | `tracking` rejected once movements exist (`409 tracking_immutable`) |
+| `PATCH /materials/:id` | owner/admin | `tracking` rejected once **movements** exist (`409 tracking_immutable`) — history freezes the mode, not stock: a material drained back to zero still has a journal that assumes its mode. Re-stating the SAME mode is not a change and never trips the guard. Nullable fields clear on `null`; a body that changes nothing is a **no-op 200**, never a 500 |
 | `DELETE /materials/:id` | owner/admin | Soft; zero stock everywhere (`409 material_has_stock`) |
 
 ## 4. Stock operations + movements — `stock.controller.ts`
@@ -252,10 +253,20 @@ mapped in the owning controller (400 validation · 403 role/scope · 404 missing
 ### CP-1 — Structure + catalog endpoints
 - [x] §2 warehouses/nodes live with role gates + error codes; office read-only verified
       (mutations 403) — 2026-08-21, `modules/wms/{controllers,services,repository,validators,http-errors}`
-- [ ] §3 materials live with role gates + error codes
-- [x] Vitest coverage for §2 (`test/wms-warehouses.test.ts`; fixtures carry the
-      `wms-test-` name prefix and are soft-deleted in `afterAll`)
-- [ ] Vitest coverage for §3
+- [x] §3 materials live with role gates + error codes — 2026-08-22. Catalog writes
+      owner/admin; reads open to every role with **no special casing** (the technician
+      read IS the stock-lookup surface, 09 §2, and nothing in a material row is
+      confidential — there is no `cost` here, unlike the services catalog)
+- [x] Vitest coverage for §2 (`test/wms-warehouses.test.ts`) and §3
+      (`test/wms-materials.test.ts`). Fixtures carry the `wms-test-` marker with a
+      **per-suite** prefix (`wms-test-wh-` / `wms-test-mm-`) and are soft-deleted in
+      `afterAll` — vitest runs files in parallel, so a shared prefix had one suite
+      cleaning the other's live fixtures mid-run
+
+**Quantity scale (2026-08-22):** every quantity this module returns is `trim_scale`d,
+so a whole five reads as `5` rather than the column's `5.000`. v1 quantities are whole
+integers (00 §6 #22) and `numeric(12,3)` is an implementation detail; two endpoints
+answering the same quantity differently would be worse than either choice.
 
 **Unpaged by design (2026-08-21):** §1 says every list endpoint is paged, but §2's own
 rows never ask for `page`/`limit` while §3/§4/§6 do. Warehouses and storage nodes follow

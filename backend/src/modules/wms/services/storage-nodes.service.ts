@@ -209,6 +209,13 @@ export const editStorageNode = async (
     fields.assignmentRole = assignment.assignmentRole;
   }
 
+  // A PATCH that changes nothing is a no-op, not an error: drizzle refuses an
+  // empty `.set({})`, and an editor that submits the whole form unchanged — or
+  // re-states the one immutable field — would otherwise get a 500.
+  if (Object.keys(fields).length === 0) {
+    return toNodeDTO(current.node, current.assigneeName, current.hasChildren);
+  }
+
   try {
     const row = await updateStorageNodeRow(db, nodeId, fields);
     if (!row) return null;

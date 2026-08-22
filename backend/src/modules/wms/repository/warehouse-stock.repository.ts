@@ -1,4 +1,5 @@
-import { and, asc, eq, gt } from 'drizzle-orm';
+import { and, asc, eq, gt, sql } from 'drizzle-orm';
+import type { PgColumn } from 'drizzle-orm/pg-core';
 import type { Db } from '../../database/client';
 import { MaterialUnitStatus } from '../enums/materials.enum';
 import { materialLots } from '../models/material-lots.model';
@@ -21,6 +22,11 @@ import { storageNodes } from '../models/storage-nodes.model';
 // naming a dead material means the invariant broke — and hiding it would hide
 // stock that physically exists.
 
+/** `numeric(12,3)` reads back as `7.000`. Trimmed here for the same reason the
+ *  catalog trims: v1 quantities are whole integers (00 §6 #22), and two
+ *  endpoints must never answer the same quantity differently. */
+const trimmed = (column: PgColumn) => sql<string>`trim_scale(${column})`;
+
 const materialRef = {
   id: materials.id,
   name: materials.name,
@@ -40,7 +46,7 @@ const nodeRef = {
  *  here", which is a different statement from not stocking it at all. */
 export const listStockEntriesAt = async (db: Db, warehouseId: string, nodeId?: string) =>
   db
-    .select({ material: materialRef, node: nodeRef, quantity: stockEntries.quantity })
+    .select({ material: materialRef, node: nodeRef, quantity: trimmed(stockEntries.quantity) })
     .from(stockEntries)
     .innerJoin(materials, eq(materials.id, stockEntries.materialId))
     .leftJoin(storageNodes, eq(storageNodes.id, stockEntries.storageNodeId))
@@ -84,7 +90,7 @@ export const listStockLotsAt = async (db: Db, warehouseId: string, nodeId?: stri
       material: materialRef,
       node: nodeRef,
       lotNumber: materialLots.lotNumber,
-      quantity: materialLots.quantity,
+      quantity: trimmed(materialLots.quantity),
       pieces: materialLots.pieces,
       expiresAt: materialLots.expiresAt,
     })
