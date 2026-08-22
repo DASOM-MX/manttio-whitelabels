@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
 import type { PagedResponse } from '../../data/dtos/paged-response';
 import type { Contract } from '../../data/dtos/contract/contract';
@@ -9,6 +9,12 @@ import type {
   DeleteContractRequest,
   UpdateContractRequest,
 } from '../../data/dtos/contract/contract-requests';
+
+/** Both card feeds answer with a bare list under one key — they are capped,
+ *  not paged, so there is no envelope to carry. */
+interface ContractsResponse {
+  contracts: Contract[];
+}
 
 /** Array fields cross the multipart boundary as JSON strings — the backend's
  *  create validator accepts either shape and normalizes (the reports-create
@@ -41,6 +47,22 @@ export class ContractsService {
 
   get(id: string): Observable<Contract> {
     return this.remote.get<Contract>(`/contracts/${id}`);
+  }
+
+  /** The client's filed contracts — the customer-view card (13 §6). A dedicated
+   *  unpaged read capped backend-side: a client with more contracts than the cap
+   *  belongs on the filtered list page, not in a card. */
+  listForCustomer(customerId: string): Observable<Contract[]> {
+    return this.remote
+      .get<ContractsResponse>(`/customers/${customerId}/contracts`)
+      .pipe(map((res) => res.contracts));
+  }
+
+  /** The contracts one job generated (13 §2 — an order generates 0..n). */
+  listForServiceOrder(serviceOrderId: string): Observable<Contract[]> {
+    return this.remote
+      .get<ContractsResponse>(`/service-orders/${serviceOrderId}/contracts`)
+      .pipe(map((res) => res.contracts));
   }
 
   /** Create is **one multipart request**: metadata plus the document. There is

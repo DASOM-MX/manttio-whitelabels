@@ -1,4 +1,4 @@
-import { desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { customerInteractions } from '../models/customer-interactions.model';
 import { customers } from '../models/customers.model';
@@ -42,18 +42,27 @@ const authoredColumns = {
   userMaternalLastName: users.maternalLastName,
 };
 
-/** Paged, newest-first timeline for one customer (08 §2). */
+/** Paged, newest-first timeline for one customer (08 §2), optionally narrowed
+ *  to what one linked entity wrote (`refKind`/`refId`) — the read an entity's
+ *  own audit card makes (13 §6). `total` counts the same filtered set, so
+ *  "cargar más" and the count agree. */
 export const listInteractions = async (
   db: Db,
   customerId: string,
   page: number,
   limit: number,
+  ref: { refKind?: InteractionRefKind; refId?: string } = {},
 ): Promise<{ items: InteractionDTO[]; total: number }> => {
+  const conds = [eq(customerInteractions.customerId, customerId)];
+  if (ref.refKind) conds.push(eq(customerInteractions.refKind, ref.refKind));
+  if (ref.refId) conds.push(eq(customerInteractions.refId, ref.refId));
+  const where = and(...conds);
+
   const rows = await db
     .select(authoredColumns)
     .from(customerInteractions)
     .leftJoin(users, eq(customerInteractions.userId, users.id))
-    .where(eq(customerInteractions.customerId, customerId))
+    .where(where)
     .orderBy(desc(customerInteractions.createdAt))
     .limit(limit)
     .offset((page - 1) * limit);
@@ -61,7 +70,7 @@ export const listInteractions = async (
   const countRows = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(customerInteractions)
-    .where(eq(customerInteractions.customerId, customerId));
+    .where(where);
 
   return { items: rows.map(toDTO), total: countRows[0]?.count ?? 0 };
 };

@@ -9,7 +9,9 @@ import {
   type LucideIcon,
 } from '@lucide/angular';
 import { INTERACTION_TYPE_LABELS } from '../model/constants/interaction/interaction-type-labels.const';
-import type { InteractionType } from '../data/dtos/interaction';
+import { INTERACTION_REF_LABELS } from '../model/constants/interaction/interaction-ref-labels.const';
+import { INTERACTION_REF_ROUTES } from '../model/constants/interaction/interaction-ref-routes.const';
+import type { InteractionRef, InteractionType } from '../data/dtos/interaction';
 
 const ICONS: Record<InteractionType, LucideIcon> = {
   note: LucideStickyNote,
@@ -40,5 +42,24 @@ export class IsOverduePipe implements PipeTransform {
   transform(iso: string | undefined | null): boolean {
     if (!iso) return false;
     return iso.slice(0, 10) < new Date().toISOString().slice(0, 10);
+  }
+}
+
+/** The `routerLink` a timeline entry's `ref` points at, or null when the kind
+ *  has nowhere to go (`status_change` refers back to the client you are on;
+ *  `bill` has no module yet). Keeping route assembly in a pipe is what lets the
+ *  template stay a single `@if` over every ref kind. */
+@Pipe({ name: 'interactionRefLink' })
+export class InteractionRefLinkPipe implements PipeTransform {
+  transform(ref: InteractionRef | undefined): string[] | null {
+    const base = ref && INTERACTION_REF_ROUTES[ref.kind];
+    return base && ref ? [base, ref.id] : null;
+  }
+}
+
+@Pipe({ name: 'interactionRefLabel' })
+export class InteractionRefLabelPipe implements PipeTransform {
+  transform(ref: InteractionRef | undefined): string | null {
+    return (ref && INTERACTION_REF_LABELS[ref.kind]) ?? null;
   }
 }

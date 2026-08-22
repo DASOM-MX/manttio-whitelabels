@@ -45,6 +45,17 @@ type Contract = {
   createdAt: string;
 };
 
+/** One `customer_interactions` row as the API serves it — the shape the
+ *  contract's audit card reads (13 §6). */
+type TimelineEntry = {
+  id: string;
+  type: string;
+  body: string;
+  ref?: { kind: InteractionRefKind; id: string };
+  userName?: string;
+  createdAt: string;
+};
+
 const FOLIO_RE = /^CON-\d{8}-\d{4}$/;
 
 const PDF_BYTES = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34]); // %PDF-1.4
@@ -442,6 +453,58 @@ describe('audit trail (13 §3)', () => {
     // The trail names what changed, not just that something did.
     expect(bodies).toContain('vencimiento');
     expect(bodies).toContain('duplicado');
+  });
+
+  test('the client timeline filters to one contract’s entries', async () => {
+    const { token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const subject = await createOk(token, { customerId: customer.id, name: 'Póliza vigilada' });
+    const other = await createOk(token, { customerId: customer.id, name: 'Otro contrato' });
+    // A manual touch on the same client — the noise the unfiltered feed carries.
+    await request(`/customers/${customer.id}/interactions`, {
+      method: 'POST',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ type: 'note', body: 'llamada de seguimiento' }),
+    });
+    await request(`/contracts/${subject.id}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ name: 'Póliza vigilada 2026' }),
+    });
+
+    const res = await request(
+      `/customers/${customer.id}/interactions?refKind=${InteractionRefKind.Contract}&refId=${subject.id}`,
+      { headers: authHeader(token) },
+    );
+    expect(res.status).toBe(200);
+    const body = await json<{ items: TimelineEntry[]; total: number }>(res);
+
+    // Create + edit for this contract only: the other contract's create and the
+    // manual note stay out, and `total` counts the filtered set so the card's
+    // "load more" math is right.
+    expect(body.total).toBe(2);
+    expect(body.items).toHaveLength(2);
+    expect(body.items.every((e) => e.ref?.kind === InteractionRefKind.Contract)).toBe(true);
+    expect(body.items.every((e) => e.ref?.id === subject.id)).toBe(true);
+    const filtered = body.items.map((e) => e.body).join('\n');
+    expect(filtered).toContain(subject.folio);
+    expect(filtered).not.toContain(other.folio);
+    expect(filtered).not.toContain('llamada de seguimiento');
+  });
+
+  test('refKind alone gathers every contract entry on the client', async () => {
+    const { token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const first = await createOk(token, { customerId: customer.id });
+    const second = await createOk(token, { customerId: customer.id });
+
+    const res = await request(
+      `/customers/${customer.id}/interactions?refKind=${InteractionRefKind.Contract}`,
+      { headers: authHeader(token) },
+    );
+    const body = await json<{ items: TimelineEntry[]; total: number }>(res);
+    expect(body.total).toBe(2);
+    expect(body.items.map((e) => e.ref?.id).sort()).toEqual([first.id, second.id].sort());
   });
 });
 

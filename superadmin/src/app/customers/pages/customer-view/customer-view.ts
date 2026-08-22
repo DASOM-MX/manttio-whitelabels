@@ -38,6 +38,7 @@ import { CustomerTimeline } from '../../../crm/components/customer-timeline/cust
 import { CustomerEquipmentCard } from '../../../equipment/components/customer-equipment-card/customer-equipment-card';
 import { CustomerReportsCard } from '../../../reports/components/customer-reports-card/customer-reports-card';
 import { CustomerQuotationsCard } from '../../../quotations/components/customer-quotations-card/customer-quotations-card';
+import { CustomerContractsCard } from '../../../contracts/components/customer-contracts-card/customer-contracts-card';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { errorMessage } from '../../../data/utils';
 
@@ -64,6 +65,7 @@ import { errorMessage } from '../../../data/utils';
     CustomerEquipmentCard,
     CustomerReportsCard,
     CustomerQuotationsCard,
+    CustomerContractsCard,
     PageHeader,
     LucideBan,
     LucidePencil,

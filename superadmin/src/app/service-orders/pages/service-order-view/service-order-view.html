@@ -43,6 +43,14 @@
         <svg lucideCalendarPlus class="size-4" aria-hidden="true"></svg>
         Programar visita
       </button>
+      <a
+        class="btn-secondary"
+        routerLink="/contracts/new"
+        [queryParams]="{ customer: order.customerId, order: order.id }"
+      >
+        <svg lucideFilePlus class="size-4" aria-hidden="true"></svg>
+        Adjuntar contrato
+      </a>
       <button type="button" class="btn-secondary" (click)="openEdit()">
         <svg lucidePencil class="size-4" aria-hidden="true"></svg>
         Editar
@@ -233,6 +241,15 @@
                 </div>
               }
             </div>
+
+            <!-- Contratos de la orden (13 §2) — a job may carry 0..n; the
+                 module is owner/admin/office, so technicians never see it. -->
+            @if (isStaff()) {
+              <div class="mt-6">
+                <h2 class="micro-label mb-4">Contratos</h2>
+                <app-service-order-contracts-card [serviceOrderId]="order.id" />
+              </div>
+            }
           </p-tabpanel>
 
           <!-- Actividad (19 §7) -->
