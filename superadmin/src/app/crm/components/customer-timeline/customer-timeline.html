@@ -67,9 +67,12 @@
             <span class="font-data tabular-nums">{{ entry.createdAt | relativeTime }}</span>
           </p>
           <p class="mt-0.5 text-sm text-surface-800 dark:text-surface-200">{{ entry.body }}</p>
-          @if (entry.ref && entry.ref.kind === 'report') {
-            <a [routerLink]="['/reports', entry.ref.id]" class="link-action mt-0.5 text-xs">
-              Ver reporte
+          <!-- System entries link out to whatever wrote them — a report, an
+               order, a quotation, a contract. The pipes decide; a kind with
+               nowhere to go (status change, bill) renders no link. -->
+          @if (entry.ref | interactionRefLink; as refLink) {
+            <a [routerLink]="refLink" class="link-action mt-0.5 text-xs">
+              {{ entry.ref | interactionRefLabel }}
             </a>
           }
         </div>

@@ -23,6 +23,7 @@ import {
   ContractVisibilityLabelPipe,
 } from '../../../pipes/contract.pipe';
 import { FileSizePipe } from '../../../pipes/file-size.pipe';
+import { ContractAuditCard } from '../../components/contract-audit-card/contract-audit-card';
 import { DeleteContractDialog } from '../../components/delete-contract-dialog/delete-contract-dialog';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { hasRole } from '../../../guards/has-role.guard';
@@ -33,7 +34,10 @@ import { errorMessage } from '../../../data/utils';
  *
  *  The document is **not a link** — it lives in a private bucket and is fetched
  *  as bytes through `GET /contracts/:id/file`, which re-checks access on every
- *  request (13 §1.2). There is no URL to copy, bookmark or leak. */
+ *  request (13 §1.2). There is no URL to copy, bookmark or leak.
+ *
+ *  The audit card closes CP-2's one gap: contracts keep no events table, so
+ *  their trail is read back out of the client timeline (13 §3). */
 @Component({
   selector: 'app-contract-view',
   imports: [
@@ -46,6 +50,7 @@ import { errorMessage } from '../../../data/utils';
     ContractFileGlyphPipe,
     ContractVisibilityLabelPipe,
     FileSizePipe,
+    ContractAuditCard,
     DeleteContractDialog,
     PageHeader,
     LucideDownload,

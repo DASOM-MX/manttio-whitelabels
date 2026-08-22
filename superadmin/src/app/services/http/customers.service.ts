@@ -19,6 +19,7 @@ import type {
   AddInteractionRequest,
   ChangeStatusRequest,
   Interaction,
+  InteractionListQuery,
 } from '../../data/dtos/interaction';
 
 @Injectable({ providedIn: 'root' })
@@ -68,10 +69,18 @@ export class CustomersService {
       .pipe(map((res) => this.unwrap(res)));
   }
 
-  listInteractions(id: string, page = 1, limit = 10): Observable<PagedResponse<Interaction>> {
+  /** The client's activity timeline (08 §2). Pass `refKind`/`refId` to read one
+   *  linked entity's trail instead of the whole history — how a contract's
+   *  audit card gets its entries (13 §6). */
+  listInteractions(
+    id: string,
+    query: InteractionListQuery = {},
+  ): Observable<PagedResponse<Interaction>> {
     return this.remote.get<PagedResponse<Interaction>>(`/customers/${id}/interactions`, {
-      page,
-      limit,
+      page: query.page ?? 1,
+      limit: query.limit ?? 10,
+      refKind: query.refKind,
+      refId: query.refId,
     });
   }
 

@@ -10,7 +10,12 @@ import { CustomersState } from '../../../../state/customers/customers.state';
 import { AddInteraction, LoadInteractions } from '../../../../state/customers/customers.actions';
 import { MANUAL_INTERACTION_TYPES } from '../../../model/constants/interaction/manual-interaction-types.const';
 import { INTERACTION_TYPE_LABELS } from '../../../model/constants/interaction/interaction-type-labels.const';
-import { InteractionTypeIconPipe, InteractionTypeLabelPipe } from '../../../pipes/interaction.pipe';
+import {
+  InteractionRefLabelPipe,
+  InteractionRefLinkPipe,
+  InteractionTypeIconPipe,
+  InteractionTypeLabelPipe,
+} from '../../../pipes/interaction.pipe';
 import { RelativeTimePipe } from '../../../pipes/relative-time.pipe';
 import { errorMessage } from '../../../data/utils';
 import type { InteractionType } from '../../../data/dtos/interaction';
@@ -18,7 +23,11 @@ import type { InteractionType } from '../../../data/dtos/interaction';
 /** Activity timeline + composer (08 §2) — mounted in 07's customer-view CRM
  *  slot. Append-only; `system` entries render muted with an outbound link;
  *  quick-contact buttons call `open(type)` so logging the touch is one save
- *  away (never auto-saved — 08 §2.1). */
+ *  away (never auto-saved — 08 §2.1).
+ *
+ *  A `system` entry's outbound link covers every ref kind the backend writes —
+ *  report, order, quotation, contract — so the client trail is a working index
+ *  of everything raised for them, not just their reports. */
 @Component({
   selector: 'app-customer-timeline',
   imports: [
@@ -29,6 +38,8 @@ import type { InteractionType } from '../../../data/dtos/interaction';
     LucideDynamicIcon,
     InteractionTypeIconPipe,
     InteractionTypeLabelPipe,
+    InteractionRefLinkPipe,
+    InteractionRefLabelPipe,
     RelativeTimePipe,
   ],
   templateUrl: './customer-timeline.html',

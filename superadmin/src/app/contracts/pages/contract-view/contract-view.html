@@ -166,6 +166,13 @@
         </p>
       }
     </section>
+
+    <section class="card-section xl:col-span-3" aria-labelledby="contract-audit-title">
+      <h2 id="contract-audit-title" class="micro-label">Historial</h2>
+      <!-- The trail lives on the client's timeline (13 §3) — this card reads it
+           back filtered to this contract. -->
+      <app-contract-audit-card [contractId]="c.id" [customerId]="c.customerId" />
+    </section>
   </div>
 } @else {
   <div class="grid gap-4 xl:grid-cols-3">
