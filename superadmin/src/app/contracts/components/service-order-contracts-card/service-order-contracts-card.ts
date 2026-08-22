@@ -11,12 +11,14 @@ import {
 } from '../../../pipes/contract.pipe';
 import type { Contract } from '../../../data/dtos/contract/contract';
 
-/** The contracts one job generated (13 §2, 19 §5 — CP-3).
+/** The contracts filed against one job (13 §2, 19 §5 — CP-3).
  *
- *  An order generates **0..n**: a job may produce a guarantee, a programmed-
- *  maintenance agreement, both, or nothing at all — which is why the link lives
- *  on the contract (`serviceOrderId`) and this is a list rather than a single
- *  slot on the order.
+ *  A job carries **0..n**: it may end in a guarantee, a programmed-maintenance
+ *  agreement, both, or nothing at all — which is why the link lives on the
+ *  contract (`serviceOrderId`) and this is a list rather than a single slot on
+ *  the order. The documents are signed papers **attached** here, not something
+ *  the app produces (owner 2026-08-22) — that is what "Adjuntar contrato" on
+ *  the order view says now.
  *
  *  Reads the dedicated `GET /service-orders/:id/contracts` through the HTTP
  *  service; `ContractsState` is route-lazy on `/contracts` and does not exist

@@ -110,9 +110,15 @@ constants rule.
 - **Replacing the file** = a new upload that updates `fileKey`/`fileName`/`fileType` and
   **appends an audit event** (§3). Versioning (keeping old files) is out of v1 (open item).
 
-## 2. Generation from a service order
+## 2. Filing against a service order
 
-- The order view (19 §5) offers **Generar contrato**, opening the contract form with
+**UI copy is "Adjuntar contrato" (owner 2026-08-22)** — ~~"Generar contrato"~~. The app does
+not produce the document; a signed paper is attached to the job. The stored event key stays
+`order_contract_generated` (19 §7) and the code keeps saying "order-generated" for the FK
+direction — the overclaim was in the copy, and the day the app really does generate a
+contract the key is already right.
+
+- The order view (19 §5) offers **Adjuntar contrato**, opening the contract form with
   `serviceOrderId` + `customerId` pre-filled and locked from the order. An order can
   generate several (0..n); each is an independent contract record.
 - Order-generated creation appends `order_contract_generated` to the **order timeline**
@@ -205,7 +211,7 @@ reconciliation is 09's).
   isolated page instead, for extensibility"). Supersedes the dialog this section originally
   hedged on: the form already carries a document, covered units and a visibility decision,
   it is expected to keep growing (renewals, amounts, signatories), and a route gives every
-  entry point a plain link — which is exactly what §5's order-driven "Generar contrato"
+  entry point a plain link — which is exactly what §5's order-driven "Adjuntar contrato"
   needs (`/contracts/new?customer=…&order=…` opens with both pre-locked). Canon to follow is
   `customers/pages/customer-form/`. Create/edit: client select (pre-filled + locked when launched from an order), type
   select (the fixed enum), name, description, validFrom + optional expiry
@@ -219,7 +225,7 @@ reconciliation is 09's).
   (built 2026-08-21): the contract's audit entries read from the client timeline filtered to
   this contract, newest first, with the exact stamp on hover.
 - `contracts/components/delete-contract-dialog/` — shape-3, audit reason (soft delete).
-- Order view (19 §5): **Generar contrato** action (a link to `/contracts/new?customer&order`,
+- Order view (19 §5): **Adjuntar contrato** action (a link to `/contracts/new?customer&order`,
   hidden for technicians and for a cancelled order) + a "Contratos" card listing what the job
   generated. Both built 2026-08-21.
 - Customer view (07): **its own "Contratos" tab** (built 2026-08-21 — the 07 slot ask,
@@ -305,7 +311,7 @@ silently empty for any active client, because the contract's entries are not on 
 page of that client's history.
 
 ### CP-3 — Order + customer integration ✅ (2026-08-21)
-- [x] Order view **Generar contrato** — a link to `/contracts/new?customer=…&order=…`, which
+- [x] Order view **Adjuntar contrato** — a link to `/contracts/new?customer=…&order=…`, which
       is the entry point CP-2 made the form a page for. **Open orders only** (owner
       2026-08-22): filing rides the same gate as every other mutation on the view, so a
       closed or cancelled job is done growing. ~~An earlier build showed it on completed
@@ -346,7 +352,12 @@ turn out to be unreachable from them; they are unused as of CP-3.
   URLs at all** — the backend streams the document from `GET /contracts/:id/file` and
   re-checks access per request (§1.2 carries the reasoning). Whether downloads are
   additionally access-logged is still open; the proxy route is the natural place for it.
-- **Filing from an order — decided 2026-08-22 (owner):** **Generar contrato** shows on
+- **Action copy — decided 2026-08-22 (owner):** the order-view action is **"Adjuntar
+  contrato"**, and the order timeline entry reads **"Contrato adjuntado"**. ~~"Generar"~~
+  claimed the app produces the document; it files one someone signed. Same reason the
+  contract view's order row is now plainly **"Orden de servicio"** rather than "Orden que lo
+  generó". Nothing stored changed — `order_contract_generated` is a persisted key.
+- **Filing from an order — decided 2026-08-22 (owner):** **Adjuntar contrato** shows on
   **open orders only**, not on completed or cancelled ones. It rides the same gate as every
   other mutation on the order view (19 §5), so a closed job is done growing; a contract for
   work already closed out is filed standalone from the client or the contracts list. The

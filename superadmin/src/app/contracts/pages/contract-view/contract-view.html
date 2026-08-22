@@ -63,7 +63,7 @@
         </div>
         @if (c.serviceOrderId) {
           <div>
-            <dt class="micro-label">Orden que lo generó</dt>
+            <dt class="micro-label">Orden de servicio</dt>
             <dd class="mt-0.5 text-sm font-medium">
               <a [routerLink]="['/service-orders', c.serviceOrderId]" class="link-action">{{
                 c.serviceOrderFolio ?? 'Ver orden'

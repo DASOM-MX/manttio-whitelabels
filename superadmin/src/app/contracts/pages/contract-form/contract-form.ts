@@ -80,7 +80,7 @@ interface ScrollerLazyLoadEvent {
  *  contract is a real record with a document, covered units and a visibility
  *  decision, and the form is expected to keep growing (renewals, amounts,
  *  signatories). A page also gives every entry point a plain link, which is
- *  what the order view's "Generar contrato" needs (CP-3): it navigates to
+ *  what the order view's "Adjuntar contrato" needs (CP-3): it navigates to
  *  `/contracts/new?customer=…&order=…` and the two fields lock.
  *
  *  Create is **one request**: metadata and the document go up together, so a
@@ -150,7 +150,7 @@ export class ContractForm implements HasPendingChanges {
   protected customerName = signal<string | null>(null);
 
   /** The generating order, when there is one. Shown read-only rather than left
-   *  as a silent hidden field: "Generar contrato" locks the job this document
+   *  as a silent hidden field: "Adjuntar contrato" locks the job this document
    *  belongs to, and the person filing it should see which one. Immutable like
    *  the client — re-filing under another order would orphan the trail. */
   protected lockedOrderId = signal<string | null>(this.presetServiceOrderId);

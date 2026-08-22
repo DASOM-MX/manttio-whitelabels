@@ -66,9 +66,9 @@ import type { ServiceOrderReport } from '../../../data/dtos/service-order';
  *  newest-first feed the CP-5 handoff document will be composed from).
  *  Visits schedule from here via **Programar visita** (19 CP-3 — the dialog
  *  opens with this order locked) and their lifecycle shows in the timeline;
- *  the week view lives in the calendar. **Generar contrato** files a document
- *  against this job (13 §2 — an order generates 0..n) and the Contratos card
- *  lists what it produced; filing rides the same open-order gate as every other
+ *  the week view lives in the calendar. **Adjuntar contrato** files a signed
+ *  document against this job (13 §2 — a job may carry 0..n) and the Contratos
+ *  card lists them; filing rides the same open-order gate as every other
  *  mutation here (owner 2026-08-22), so a closed or cancelled job is done
  *  growing.
  *

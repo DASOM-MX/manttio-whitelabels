@@ -12,7 +12,7 @@ import { ContractView } from './pages/contract-view/contract-view';
  *  The form is a **page, not a dialog** — filing a contract carries a document,
  *  covered units and a visibility decision, the shape is expected to keep
  *  growing, and a route means every entry point is just a link. That is what
- *  CP-3's "Generar contrato" needs: `/contracts/new?customer=…&order=…` opens
+ *  CP-3's "Adjuntar contrato" needs: `/contracts/new?customer=…&order=…` opens
  *  the form with both pre-locked.
  *
  *  `CustomersState` rides along for the client select and the list's client

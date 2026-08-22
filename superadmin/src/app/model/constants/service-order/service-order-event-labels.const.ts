@@ -12,7 +12,9 @@ export const SERVICE_ORDER_EVENT_LABELS: Record<ServiceOrderEventType, string> =
   order_status_changed: 'Orden reabierta',
   order_completed: 'Orden completada',
   order_cancelled: 'Orden cancelada',
-  order_contract_generated: 'Contrato generado',
+  // The stored event key stays `generated` (19 §7, persisted): the copy is
+  // what was wrong. The app files a signed document, it does not produce one.
+  order_contract_generated: 'Contrato adjuntado',
   order_mailed: 'Historial enviado al cliente',
   visit_created: 'Visita programada',
   visit_reassigned: 'Visita reasignada',
