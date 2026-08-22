@@ -125,6 +125,7 @@
         <p-tab value="equipos">Equipos</p-tab>
         <p-tab value="cotizaciones">Cotizaciones</p-tab>
         <p-tab value="servicios">Servicios</p-tab>
+        <p-tab value="contratos">Contratos</p-tab>
         <p-tab value="actividad">Actividad</p-tab>
       </p-tablist>
     <p-tabpanels>
@@ -361,6 +362,13 @@
              row links through to the report view. The trail (Actividad) shows
              the same reports as "service performed" entries. -->
         <app-customer-reports-card [customerId]="c.id" />
+      </p-tabpanel>
+
+      <p-tabpanel value="contratos">
+        <!-- Filed contracts (13 §6): guarantees, pólizas, rental and sale
+             documents — order-generated or imported. Role-scoped backend-side,
+             so office sees only what its role may view. -->
+        <app-customer-contracts-card [customerId]="c.id" />
       </p-tabpanel>
 
       <p-tabpanel value="actividad">

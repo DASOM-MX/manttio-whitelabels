@@ -38,6 +38,16 @@
         Reabrir
       </button>
     }
+    @if (canFileContract()) {
+      <a
+        class="btn-secondary"
+        routerLink="/contracts/new"
+        [queryParams]="{ customer: order.customerId, order: order.id }"
+      >
+        <svg lucideFilePlus class="size-4" aria-hidden="true"></svg>
+        Generar contrato
+      </a>
+    }
     @if (isStaff() && isOpen()) {
       <button type="button" class="btn-secondary" (click)="scheduleVisit()">
         <svg lucideCalendarPlus class="size-4" aria-hidden="true"></svg>
@@ -233,6 +243,15 @@
                 </div>
               }
             </div>
+
+            <!-- Contratos generados (13 §2) — an order generates 0..n; the
+                 module is owner/admin/office, so technicians never see it. -->
+            @if (isStaff()) {
+              <div class="mt-6">
+                <h2 class="micro-label mb-4">Contratos</h2>
+                <app-service-order-contracts-card [serviceOrderId]="order.id" />
+              </div>
+            }
           </p-tabpanel>
 
           <!-- Actividad (19 §7) -->

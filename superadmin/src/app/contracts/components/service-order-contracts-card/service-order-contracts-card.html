@@ -1,0 +1,71 @@
+<div class="card-flush-table">
+  <p-table
+    [value]="contracts()"
+    [loading]="loading()"
+    [showLoader]="false"
+    [rowHover]="true"
+    dataKey="id"
+  >
+    <ng-template #header>
+      <tr>
+        <th scope="col">Folio</th>
+        <th scope="col">Contrato</th>
+        <th scope="col">Tipo</th>
+        <th scope="col">Vigencia</th>
+        <th scope="col">Validez</th>
+      </tr>
+    </ng-template>
+
+    <ng-template #body let-contract>
+      <tr>
+        <td class="p-0">
+          <a
+            [routerLink]="['/contracts', contract.id]"
+            class="block px-3 py-3 font-data font-medium tabular-nums"
+          >
+            {{ contract.folio }}
+          </a>
+        </td>
+        <td class="text-sm font-medium">{{ contract.name }}</td>
+        <td class="text-sm">{{ contract.type | contractTypeLabel }}</td>
+        <td class="font-data whitespace-nowrap text-sm tabular-nums">
+          {{ contract.validFromDate }} →
+          @if (contract.expiryDate) {
+            {{ contract.expiryDate }}
+          } @else {
+            <span class="text-surface-500 dark:text-surface-400">sin vencimiento</span>
+          }
+        </td>
+        <td>
+          <p-tag
+            [severity]="contract.validity | contractValiditySeverity"
+            [value]="contract.validity | contractValidityLabel"
+          />
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template #loadingbody>
+      @for (r of skeletonRows; track r) {
+        <tr>
+          @for (c of [0, 1, 2, 3, 4]; track c) {
+            <td><span class="skeleton"></span></td>
+          }
+        </tr>
+      }
+    </ng-template>
+
+    <ng-template #emptymessage>
+      <tr class="p-datatable-emptymessage">
+        <td colspan="5">
+          <span class="inline-flex flex-col items-center gap-3">
+            <span class="empty-icon">
+              <svg lucideFileText class="size-5" aria-hidden="true"></svg>
+            </span>
+            Esta orden no ha generado contratos.
+          </span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

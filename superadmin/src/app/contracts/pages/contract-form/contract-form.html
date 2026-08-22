@@ -85,6 +85,23 @@
       </div>
     </div>
 
+    @if (lockedOrderId(); as orderId) {
+      <div class="field-group">
+        <!-- Read-only like the client: the generating order is fixed at filing
+             time (13 §5) and a display row is the honest rendering of that. -->
+        <span class="field-label" id="contract-order-label">Orden que lo genera</span>
+        <p
+          class="flex min-h-11 items-center rounded-control bg-surface-100 px-3 py-2 text-sm font-medium sm:min-h-10 dark:bg-surface-800/40"
+          aria-labelledby="contract-order-label"
+        >
+          <a [routerLink]="['/service-orders', orderId]" class="link-action font-data tabular-nums">
+            {{ lockedOrderFolio() ?? 'Ver orden' }}
+          </a>
+        </p>
+        <p class="field-hint">Se registrará en la bitácora de esta orden.</p>
+      </div>
+    }
+
     <div class="field-group">
       <label class="field-label" for="contract-description">Descripción</label>
       <textarea

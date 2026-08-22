@@ -22,6 +22,7 @@ import {
 import { AuthState } from '../../../../state/auth/auth.state';
 import { EquipmentService } from '../../../services/http/equipment.service';
 import { CustomersService } from '../../../services/http/customers.service';
+import { ServiceOrdersService } from '../../../services/http/service-orders.service';
 import { TagsInput } from '../../../customers/components/tags-input/tags-input';
 import { hasRole } from '../../../guards/has-role.guard';
 import { CONTRACT_TYPE_LABELS } from '../../../model/constants/contract/contract-type-labels.const';
@@ -114,6 +115,7 @@ export class ContractForm implements HasPendingChanges {
   private messages = inject(MessageService);
   private equipmentApi = inject(EquipmentService);
   private customersApi = inject(CustomersService);
+  private ordersApi = inject(ServiceOrdersService);
 
   protected selected = select(ContractsState.selected);
   private me = select(AuthState.me);
@@ -146,6 +148,13 @@ export class ContractForm implements HasPendingChanges {
   /** The chosen client's name — the read-only display when the field is locked
    *  (edit, or pre-locked by a caller), where there is no select to render. */
   protected customerName = signal<string | null>(null);
+
+  /** The generating order, when there is one. Shown read-only rather than left
+   *  as a silent hidden field: "Generar contrato" locks the job this document
+   *  belongs to, and the person filing it should see which one. Immutable like
+   *  the client — re-filing under another order would orphan the trail. */
+  protected lockedOrderId = signal<string | null>(this.presetServiceOrderId);
+  protected lockedOrderFolio = signal<string | null>(null);
 
   /** Sparse: sized to the roster's total on first load, filled page by page as
    *  the overlay scrolls. */
@@ -191,6 +200,14 @@ export class ContractForm implements HasPendingChanges {
         .get(this.presetCustomerId)
         .pipe(catchError(() => of(null)))
         .subscribe((customer) => this.customerName.set(customer?.name ?? null));
+    }
+
+    if (!this.contractId && this.presetServiceOrderId) {
+      // One read for the folio — the locked row shows the job, not a uuid.
+      this.ordersApi
+        .get(this.presetServiceOrderId)
+        .pipe(catchError(() => of(null)))
+        .subscribe((res) => this.lockedOrderFolio.set(res?.order.folio ?? null));
     }
 
     // Only the unlocked field renders a select worth seeding.
@@ -450,6 +467,8 @@ export class ContractForm implements HasPendingChanges {
     );
     this.currentFileName.set(contract.fileName);
     this.customerName.set(contract.customerName ?? null);
+    this.lockedOrderId.set(contract.serviceOrderId ?? null);
+    this.lockedOrderFolio.set(contract.serviceOrderFolio ?? null);
     this.loadEquipment(contract.customerId);
     this.form.markAsPristine();
   }
