@@ -173,7 +173,11 @@ describe('WMS schema shape — the 2026-08-08 build deltas (01 header)', () => {
     expect(columnNames(warehouses)).toEqual(
       expect.arrayContaining(['location_reference', 'latitude', 'longitude']),
     );
+    // Deliberately the FULL set, not arrayContaining: a new check on
+    // warehouses should trip this and get looked at, the way
+    // `warehouses_assignment_role_check` did when 0041 added it.
     expect(checkNames(warehouses).sort()).toEqual([
+      'warehouses_assignment_role_check',
       'warehouses_coords_pair_check',
       'warehouses_locatable_check',
     ]);
