@@ -92,7 +92,14 @@ Deliberately **not** a task system — one field, defined on the Customer DTO in
 - `POST /customers/:id/status` `{ status, reason?, nextFollowUpAt? }` — dedicated
   transition endpoint so the backend can audit transitions (preferred over PATCHing the
   field; confirm). Emits the `system` timeline entry server-side.
-- `GET /customers/:id/interactions?page&limit` → paged, newest-first.
+- `GET /customers/:id/interactions?page&limit&refKind&refId` → paged, newest-first.
+  `refKind`/`refId` (built 2026-08-21, 13 CP-3) narrow the same timeline to one linked
+  entity's trail — the read an entity's **own** audit card makes. This is what lets an
+  entity keep no events table of its own (contracts, 13 §3) and still show its history:
+  client-side filtering would have needed the whole client history paged in first, and on
+  an active client the entries wanted are simply not on the page that comes back. The two
+  filter independently (`refKind` alone = every contract entry on this client), and `total`
+  counts the filtered set. `ref_id` stays untyped as text, so `refId` is not uuid-validated.
 - `POST /customers/:id/interactions` `{ type, body }` — manual types only; backend
   rejects `system`.
 - `nextFollowUpAt` travels on the normal `PATCH /customers/:id` (07's endpoint).
