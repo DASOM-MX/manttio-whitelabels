@@ -458,11 +458,42 @@ money silently); 24–27 are **owner-delight** (≈ one column + one pill each);
       DTO/const/pipe), 14 §2.1 (roles). Serialized-count handling: the found-set workaround
       is confirmed (owner 2026-07-21).**
 
+### Locations, ownership + timestamps (owner 2026-08-21 — decided, not proposed)
+
+30. **`created_at` on every table.** The child, join and balance tables shipped without a
+    creation stamp (`movement_units`, `replenishment_items`, `replenishment_import_rows`,
+    `stock_count_lines`, `stock_entries`, `wms_counters`, `wms_settings`); all now carry
+    `created_at timestamptz NOT NULL DEFAULT now()`. `stock_count_sessions` is the one
+    exception on purpose — its `opened_at` already records the same instant.
+    **Lands in —** `01` §2 (preamble rule); nothing else changes.
+
+31. **Storage nodes get `description` + `location_reference`.** Both `text`, both optional.
+    `description` is what the node holds or is for; `location_reference` is how someone
+    finds it inside the building ("pasillo 3, pared norte") — the same intent as
+    `warehouses.location_reference` one level down, but with **no locatable check** at this
+    level. **Lands in —** `01` §2, `04` (node form + detail panel show both).
+
+32. **Who is in charge, with the KIND of responsibility.** New `AssignmentRole` enum
+    (`supervisor` | `leader` | `technician`). `warehouses` gains `assignment_role` beside
+    its existing `assigned_user_id`; `storage_nodes` gains both. A user's own role can't
+    express this — the same admin may supervise one warehouse and lead the crew in another
+    — and a technician assignee on a warehouse still means "their van" (03 §2), so the role
+    column refines that convention rather than replacing it.
+    - **Paired, and level-limited:** assignee and role are set together or not at all
+      (`*_assignment_role_check`), and on nodes **only `warehouse` / `storage_unit` may
+      hold one** (`storage_nodes_assignee_level_check`; safe in the DB because `type` is
+      immutable) — the service answers `400 invalid_assignment_level`.
+    - **Lands in —** `01` §1/§2 (enum + columns + checks + the assigned-user index), `02`
+      (assign endpoints carry the role; the new error code), `03` (the assign dialog gains
+      a role select), `04` (unit assignment + badge), `10` (DTO/const/pipe), `14` (roles).
+      **⚠️ Not yet propagated into 02/03/04/10/14 — those sub-plans still describe a
+      role-less "assign technician".**
+
 ## 7. Progress board (sub-plan owners update their row + their file header together)
 
 | Sub-plan | Status | Checkpoint |
 |---|---|---|
-| 01 data-model | not-started | — |
+| 01 data-model | in-progress | CP-1 merged (#151), `0040` applied 2026-08-21; `0041` open |
 | 02 api-surface | not-started | — |
 | 03 warehouses | not-started | — |
 | 04 storage-hierarchy | not-started | — |

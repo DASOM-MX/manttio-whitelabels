@@ -1,9 +1,11 @@
 # 10-wms / 01 — Data model (backend)
 
 > **Status:** in-progress — CP-1 built 2026-08-08 (`feature/backend-wms-schema`),
-> rebased onto main 2026-08-18 (migration renumbered `0034` → `0040`),
-> migration awaiting SQL review → apply · **Depends on:** — (first WMS slice to build)
-> **Owner:** CP-1 build session · **Last updated:** 2026-08-18
+> rebased onto main 2026-08-18 (migration renumbered `0034` → `0040`), merged as
+> PR #151 and **`0040` applied to the live Neon DB 2026-08-21**. The three
+> 2026-08-21 column deltas below missed that merge and ship as a follow-up
+> `0041` · **Depends on:** — (first WMS slice to build)
+> **Owner:** CP-1 build session · **Last updated:** 2026-08-21
 
 Backend-side source of truth for every WMS table, enum, seed, and invariant. Frontend
 DTO views live in each feature sub-plan; keep them in sync with this file. Module code
@@ -18,7 +20,11 @@ schema change ships as an idempotent migration (`pnpm db:generate` → read the 
 `pnpm db:migrate`); a new tenant database is provisioned by running the migrations, so
 hand-applied DDL is a provisioning bug. WMS CP-1 ships as
 `drizzle/migrations/0040_wms_data_model.sql` (all-new tables + the reason seed, fully
-idempotent).
+idempotent) plus `0041_wms_node_assignments.sql` (the storage-node description /
+location / assignment columns, which landed after `0040` merged). **`0040` is applied
+— it is immutable now:** drizzle skips any migration whose journal `when` is older
+than the newest applied row, so editing `0040` would silently never reach a database
+that already ran it. Every further schema change is a new migration.
 
 **Build deltas — CP-1 (2026-08-08, recorded at build; supersede the matching §2 specs):**
 - **`warehouses.assigned_user_id`** (was `assigned_technician_id`, user 2026-08-08):
@@ -54,8 +60,29 @@ idempotent).
   `replenishment_import_rows`, `stock_count_lines`, `stock_entries`, `wms_counters`,
   `wms_settings` — all carry `created_at timestamptz NOT NULL DEFAULT now()`.
   `stock_count_sessions` is the one exception on purpose: its `opened_at` already
-  records the same instant. Folded into `0040` rather than a follow-up migration,
-  which is safe because `0040` has never been applied to any database.
+  records the same instant. Folded into `0040` while that migration was still
+  unapplied, and shipped inside it (PR #151).
+- **`storage_nodes.description` + `location_reference` (user 2026-08-21):** both
+  `text`, both optional. `description` is what the node holds or is for;
+  `location_reference` is how someone finds it inside the building ("pasillo 3,
+  pared norte") — the same intent as `warehouses.location_reference` one level
+  down, but never required, since a rack inside a named unit is usually
+  self-locating. No locatable CHECK at this level. Missed the `0040` merge, so it
+  ships as `0041_wms_node_assignments.sql` (`ADD COLUMN IF NOT EXISTS`).
+- **Who is in charge, with the KIND of responsibility (user 2026-08-21):** new
+  `AssignmentRole` enum (`supervisor` | `leader` | `technician`,
+  `wms/enums/assignments.enum.ts`). `warehouses` gains `assignment_role` beside its
+  existing `assigned_user_id`; `storage_nodes` gains BOTH. A user's own role can't
+  carry this — the same admin may supervise one warehouse and lead the crew in
+  another. DB checks: the pair is set together or not at all
+  (`*_assignment_role_check`), and on nodes only the two top levels may hold an
+  assignee (`storage_nodes_assignee_level_check`: `type in ('warehouse',
+  'storage_unit')`, safe as a DB check because `type` is immutable) — the service
+  answers `400 invalid_assignment_level` (02). Plus a partial
+  `storage_nodes_assigned_user_idx` for "which units is this user in charge of?".
+  A warehouse with a TECHNICIAN assignee still means "their van" (03 §2), so the
+  role column refines that convention rather than replacing it. Ships as
+  `0041_wms_node_assignments.sql` alongside the two columns above.
 
 ---
 
@@ -79,6 +106,9 @@ enum ReadjustmentDirection { In = 'in', Out = 'out' }
 enum StockCountStatus { Open = 'open',              // added 2026-07-21 (owner, §6 #29):
                         Applied = 'applied',        //   physical-count reconciliation
                         Cancelled = 'cancelled' }   //   session window; REUSES readjustment
+enum AssignmentRole { Supervisor = 'supervisor',  // WHO is in charge of a location
+                      Leader = 'leader',          //   (owner 2026-08-21) — pairs with
+                      Technician = 'technician' } //   assigned_user_id, set together
 enum ReasonContext { Inbound = 'inbound', Transfer = 'transfer',
                      ReadjustmentIn = 'readjustment_in',
                      ReadjustmentOut = 'readjustment_out',
@@ -133,6 +163,13 @@ unit-bearing quantities (m/ml/L/gal/inch…) are **deferred** to the text-storag
 not v1 (owner 2026-07-21 — confirmed: the earlier fractional-`m`/`kg` support is dropped
 from v1).
 
+**Every table carries `created_at timestamptz NOT NULL DEFAULT now()` (owner
+2026-08-21)** — including the child, join and balance rows the per-table specs below
+don't spell it out for (`movement_units`, `replenishment_items`,
+`replenishment_import_rows`, `stock_count_lines`, `stock_entries`, `wms_counters`,
+`wms_settings`). The single exception is `stock_count_sessions`, whose `opened_at`
+already records the same instant under a name that reads better for a session.
+
 ### `warehouses`
 
 | Column | Type / constraint |
@@ -141,6 +178,7 @@ from v1).
 | `name` | text, not null |
 | `parent_id` | uuid null → `warehouses.id`, `ON DELETE RESTRICT`. **One level of nesting v1**: service rejects a parent that itself has `parent_id` set (`400 invalid_parent`) |
 | `assigned_technician_id` | uuid null → `users.id`. **Partial unique index** `WHERE deleted_at IS NULL AND assigned_technician_id IS NOT NULL` — one active warehouse per technician, DB-enforced (`409 technician_already_assigned`) |
+| `assignment_role` | text `.$type<AssignmentRole>()`, null. **Owner 2026-08-21** — WHAT the assigned user is here (`supervisor` \| `leader` \| `technician`). DB check `warehouses_assignment_role_check`: set together with the assignee or not at all. A TECHNICIAN assignee still means "their van" (03 §2); the column refines that convention rather than replacing it |
 | `address`, `notes` | text null |
 | `created_at` / `deleted_at` | soft delete |
 
@@ -161,6 +199,10 @@ from v1).
 | `parent_node_id` | uuid null → `storage_nodes.id` |
 | `type` | text `.$type<StorageNodeType>()`, not null |
 | `name` | text, not null. Unique within parent: `UNIQUE NULLS NOT DISTINCT (warehouse_id, parent_node_id, name)` partial `WHERE deleted_at IS NULL` (`409 duplicate_node_name`) |
+| `description` | text null (**owner 2026-08-21**) — what the node holds or is for |
+| `location_reference` | text null (**owner 2026-08-21**) — how someone finds it inside the building ("pasillo 3, pared norte"). Same intent as `warehouses.location_reference` one level down, but **never required**: no locatable check at this level, since a rack inside a named unit is usually self-locating |
+| `assigned_user_id` | uuid null → `users.id`, `ON DELETE RESTRICT` (**owner 2026-08-21**) — who is in charge of this unit. Partial lookup index `storage_nodes_assigned_user_idx` `WHERE deleted_at IS NULL AND assigned_user_id IS NOT NULL` |
+| `assignment_role` | text `.$type<AssignmentRole>()`, null (**owner 2026-08-21**) — paired with the assignee by `storage_nodes_assignment_role_check` |
 | `created_at` / `deleted_at` | **soft delete (proposed 2026-07-19)** — movements reference nodes forever, so rows must outlive the structure |
 
 - **Hierarchy rule:** `STORAGE_NODE_RANK[parent.type] < STORAGE_NODE_RANK[child.type]`,
@@ -172,6 +214,11 @@ from v1).
   anyone's child (`400 invalid_parent_type`). It is the node that stands for the whole
   building/site at the top of a warehouse's tree, above storage units; every other type
   keeps its existing relative order beneath it.
+- **Only the top two levels carry someone in charge (owner 2026-08-21):** a `warehouse`
+  or `storage_unit` node may hold `assigned_user_id` + `assignment_role`; a rack, section
+  or box may not. DB check `storage_nodes_assignee_level_check` holds it — safe in the
+  database precisely because `type` is immutable — and the service answers
+  `400 invalid_assignment_level` (02).
 - `type` is **immutable** after create; moving a node to another parent is **out of v1**
   (delete-if-empty + recreate; revisit on demand).
 - Delete: only when empty — no non-deleted child nodes, no stock, no in-stock units at
@@ -717,9 +764,11 @@ Backend validates `type` ↔ `applies_to` on every movement (readjustments map t
 - [x] `wms/models/*.model.ts` (all §2 tables + `wms_settings`), enums, barrel
       relations — built 2026-08-08, `feature/backend-wms-schema` (with the build
       deltas above)
-- [ ] DDL applied to the live Neon DB — `0040_wms_data_model.sql` generated, fully
-      idempotent, awaiting SQL review → `pnpm db:migrate` (hand-apply revoked, see
-      the migration-workflow note above)
+- [x] DDL applied to the live Neon DB — `0040_wms_data_model.sql` applied
+      2026-08-21 via `pnpm db:migrate` (16 tables + 14 seeded reasons verified in
+      place; hand-apply revoked, see the migration-workflow note above)
+- [ ] `0041_wms_node_assignments.sql` applied — the storage-node description /
+      location / assignment columns that missed the `0040` merge
 - [x] Reason seed idempotent + verified against §5 — rides the same migration
       (`ON CONFLICT (code) DO NOTHING`, 14 seeds incl. `requires_note`); TS mirror in
       `wms/constants/movement-reason-seeds.ts` for the CP-2 verification test
