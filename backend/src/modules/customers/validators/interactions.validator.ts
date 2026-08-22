@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { InteractionType, MANUAL_INTERACTION_TYPES } from '../enums/interactions.enum';
+import {
+  InteractionRefKind,
+  InteractionType,
+  MANUAL_INTERACTION_TYPES,
+} from '../enums/interactions.enum';
 import { CustomerStatus } from '../enums/customers.enum';
 
 const MANUAL_TYPES = MANUAL_INTERACTION_TYPES as readonly InteractionType[];
@@ -14,9 +18,20 @@ export const addInteractionSchema = z.object({
 });
 
 // Paged, newest-first timeline read (08 §4).
+//
+// `refKind`/`refId` narrow the same timeline to one linked entity — the read
+// behind an entity's own audit card (13 §6: a contract's trail lives here, not
+// in a table of its own). Without it a card could only page the whole client
+// history and hope the entries it wants are on the page it got. The two filter
+// independently: `refKind` alone answers "every contract entry for this
+// client", both together "this one contract's trail".
 export const listInteractionsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(10),
+  refKind: z.nativeEnum(InteractionRefKind).optional(),
+  // Deliberately not `.uuid()`: `ref_id` is a text column, so a future ref kind
+  // may key on something that isn't one.
+  refId: z.string().min(1).max(64).optional(),
 });
 
 // Tenant-wide latest-activity feed (utm-params 03, amendment 2026-07-20).

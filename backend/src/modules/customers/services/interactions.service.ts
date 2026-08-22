@@ -25,8 +25,9 @@ export const getInteractions = async (
   customerId: string,
   page: number,
   limit: number,
+  ref: { refKind?: InteractionRefKind; refId?: string } = {},
 ): Promise<{ items: InteractionDTO[]; total: number }> =>
-  listInteractions(db, customerId, page, limit);
+  listInteractions(db, customerId, page, limit, ref);
 
 /** Tenant-wide latest activity (utm-params 03 — owner/admin dashboard feed). */
 export const getRecentInteractions = async (
