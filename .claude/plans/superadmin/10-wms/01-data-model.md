@@ -1,7 +1,9 @@
 # 10-wms / 01 — Data model (backend)
 
-> **Status:** not-started · **Depends on:** — (first WMS slice to build)
-> **Owner:** — · **Last updated:** 2026-07-19
+> **Status:** in-progress — CP-1 built 2026-08-08 (`feature/backend-wms-schema`),
+> rebased onto main 2026-08-18 (migration renumbered `0034` → `0040`),
+> migration awaiting SQL review → apply · **Depends on:** — (first WMS slice to build)
+> **Owner:** CP-1 build session · **Last updated:** 2026-08-18
 
 Backend-side source of truth for every WMS table, enum, seed, and invariant. Frontend
 DTO views live in each feature sub-plan; keep them in sync with this file. Module code
@@ -10,10 +12,50 @@ lives in `backend/src/modules/wms/` (layout in `02-api-surface.md` §1); models 
 `modules/database/schema.ts` barrel, string-valued TS enums in `wms/enums/`, columns
 typed with `.$type<TheEnum>()`.
 
-**Migration workflow:** the shared Neon DB is managed ahead of the checked-in migrations
-(live DB currently through `0010`) — generate SQL with `pnpm db:generate` for the record,
-but **apply additive DDL directly** to the live DB (don't blind-run `db:migrate`); all
-WMS DDL is purely additive so this stays safe.
+**Migration workflow — SUPERSEDED (owner 2026-08-01, `backend/CLAUDE.md`):** the
+ahead-of-migrations hand-apply rule this paragraph used to state is **revoked** — every
+schema change ships as an idempotent migration (`pnpm db:generate` → read the SQL →
+`pnpm db:migrate`); a new tenant database is provisioned by running the migrations, so
+hand-applied DDL is a provisioning bug. WMS CP-1 ships as
+`drizzle/migrations/0040_wms_data_model.sql` (all-new tables + the reason seed, fully
+idempotent).
+
+**Build deltas — CP-1 (2026-08-08, recorded at build; supersede the matching §2 specs):**
+- **`warehouses.assigned_user_id`** (was `assigned_technician_id`, user 2026-08-08):
+  admins are assignable as warehouse/unit managers; a technician assignee still means
+  "van". A user may hold SEVERAL warehouses — the one-active-van-per-technician
+  invariant moved to the assignment service (role-aware), so the partial unique became
+  a plain lookup index.
+- **Warehouses must be locatable** (client requirement, 2026-08-08): new
+  `location_reference` + `latitude`/`longitude` (double precision) columns, with DB
+  checks requiring a reference and/or a coordinate pair, and coords as a pair or not
+  at all.
+- **Lot stock has a package dimension** (user 2026-08-08): `material_lots.pieces`
+  (integer ≥ 0) next to `quantity` — 10 bags of 500 nails = one row
+  `{ pieces: 10, quantity: 5000 }`, content partially consumable. `pieces` is
+  journaled on `movements` and threaded through staged rows, `replenishment_items`,
+  count lines (`system_pieces`/`counted_pieces`), and the import mapper (optional
+  Piezas target).
+- **00 §6 #21/#23 propagated into the tables here:** `movements.idempotency_key`
+  (partial unique) and `movement_reason_defs.requires_note` (seeded true for `scrap` +
+  `lot_expired`).
+- **The settings store is WMS-LOCAL** (user 2026-08-08): `wms_settings` KV
+  (`wms/models/wms-settings.model.ts`, keys in `wms/constants/wms-setting-keys.ts`) —
+  no cross-cutting `modules/settings/`, no Durable-Object cache in v1 (supersedes that
+  part of 00 §6 #12). ⚠️ `notifications.manager_user_id` has NO home yet — decide
+  before 07/11 build the pending-approval warnings.
+- **Reservation schema (00 §6 #10) deferred** (2026-08-08): no `reserved_for` column /
+  `stock_reservations` table until the open mechanics are settled; the `assigned`
+  status value ships in the enum. Purely additive later.
+- `report_id` columns are `text` (matching `reports.id`, which is text — this file
+  said uuid); `STORAGE_NODE_RANK` is zero-based (user 2026-08-08).
+- **`created_at` on every table (user 2026-08-21):** the child/join/balance tables
+  this file's §2 specs left without one — `movement_units`, `replenishment_items`,
+  `replenishment_import_rows`, `stock_count_lines`, `stock_entries`, `wms_counters`,
+  `wms_settings` — all carry `created_at timestamptz NOT NULL DEFAULT now()`.
+  `stock_count_sessions` is the one exception on purpose: its `opened_at` already
+  records the same instant. Folded into `0040` rather than a follow-up migration,
+  which is safe because `0040` has never been applied to any database.
 
 ---
 
@@ -672,11 +714,20 @@ Backend validates `type` ↔ `applies_to` on every movement (readjustments map t
 ## Checkpoints
 
 ### CP-1 — Schema + seeds
-- [ ] `wms/models/*.model.ts` (all §2 tables), enums, barrel relations; DDL applied to
-      the live Neon DB (additive; SQL generated for the record)
-- [ ] Reason seed idempotent + verified against §5 (codes, appliesTo, built_in)
-- [ ] DB-level guards in place: partial uniques (technician, sku, node name), checks
-      (quantity ≥ 0, readjustment↔direction, report_materials XOR)
+- [x] `wms/models/*.model.ts` (all §2 tables + `wms_settings`), enums, barrel
+      relations — built 2026-08-08, `feature/backend-wms-schema` (with the build
+      deltas above)
+- [ ] DDL applied to the live Neon DB — `0040_wms_data_model.sql` generated, fully
+      idempotent, awaiting SQL review → `pnpm db:migrate` (hand-apply revoked, see
+      the migration-workflow note above)
+- [x] Reason seed idempotent + verified against §5 — rides the same migration
+      (`ON CONFLICT (code) DO NOTHING`, 14 seeds incl. `requires_note`); TS mirror in
+      `wms/constants/movement-reason-seeds.ts` for the CP-2 verification test
+- [x] DB-level guards in place: partial uniques (sku, upc, node-name-in-parent, one
+      in-flight import per parent warehouse, idempotency key), checks
+      (quantity/pieces ≥ 0, readjustment↔direction, report_materials XOR, warehouse
+      locatable + coords-pair) — the technician unique became a plain lookup index
+      (multi-hold, see deltas)
 
 ### CP-2 — Repositories + invariants
 - [ ] `wms/repository/*` — movements repo is insert+select only (no update/delete
