@@ -10,6 +10,7 @@ import {
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { users } from '../../users/models/users.model';
+import { AssignmentRole } from '../enums/assignments.enum';
 
 // Warehouses + sub-warehouses (10-wms/01 §2). ONE level of nesting in v1 — the
 // service rejects a parent that itself has `parentId` set (`400
@@ -37,6 +38,10 @@ export const warehouses = pgTable(
     assignedUserId: uuid('assigned_user_id').references(() => users.id, {
       onDelete: 'restrict',
     }),
+    // WHAT that user is to this warehouse (user 2026-08-21) — the user's own
+    // role can't say it: the same admin may supervise one warehouse and lead
+    // the crew in another. Set with `assignedUserId` or not at all.
+    assignmentRole: text('assignment_role').$type<AssignmentRole>(),
     address: text('address'),
     // How people actually find the place when the street address isn't enough
     // — "bodega del fondo, portón azul" (client requirement, 2026-08-08).
@@ -50,6 +55,11 @@ export const warehouses = pgTable(
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (table) => [
+    // Assignee and its role travel together — neither alone.
+    check(
+      'warehouses_assignment_role_check',
+      sql`(${table.assignedUserId} is null) = (${table.assignmentRole} is null)`,
+    ),
     // A warehouse MUST be locatable (client requirement, 2026-08-08): a
     // location reference and/or a coordinate pair — never neither.
     check(
