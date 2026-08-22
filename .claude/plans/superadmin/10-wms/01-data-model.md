@@ -778,14 +778,17 @@ Backend validates `type` ↔ `applies_to` on every movement (readjustments map t
       locatable + coords-pair) — the technician unique became a plain lookup index
       (multi-hold, see deltas)
 
-### CP-2 — Repositories + invariants
-- [ ] `wms/repository/*` — movements repo is insert+select only (no update/delete
-      function exists, grep-provable); stock mutation helpers implement §3 inside a
-      transaction with row locks
-- [ ] Reconciliation test: scripted movement sequence → journal sum equals materialized
-      balances (unserialized + serialized)
-- [ ] Concurrency test: two parallel transfers off one balance — one lands, one gets
-      `insufficient_stock`, balance never negative
+### CP-2 — Repositories + invariants — **done 2026-08-22** (with 02 CP-2, the slice that can move stock)
+- [x] `wms/repository/*` — `movements.repository.ts` is insert+select only (no update or
+      delete function exists, grep-provable); `stock-balances.repository.ts` implements
+      §3 inside the operation transaction, incrementing by upsert and decrementing behind
+      `SELECT … FOR UPDATE`
+- [x] Reconciliation test: inbound + transfer + both readjust directions → the signed
+      journal sum equals `stock_entries` per (material, warehouse); serialized checked
+      through the unit's location/status after its last movement
+      (`test/wms-stock.test.ts`)
+- [x] Concurrency test: two parallel transfers off one balance — exactly one `201`, one
+      `409 insufficient_stock`, balance never negative
 
 ## Open decisions / asks
 - Confirm §6-of-overview proposals touching this file: materialized stock (3),
