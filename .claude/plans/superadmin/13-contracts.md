@@ -331,11 +331,13 @@ page of that client's history.
       it had linked out to reports since 08 and ignored every kind added since, so order,
       quotation and contract system entries rendered as dead text on the one screen meant to
       be the client's index of everything raised for them
-- [x] Role gating: both cards read role-scoped feeds (office sees only what its
-      `visibleToRoles` admits, and the cards never filter visibility themselves);
-      technicians see neither surface — the module is owner/admin/office
-- [x] `test/contracts.test.ts` — 28 tests (two new: the filter narrows to one contract, and
-      `refKind` alone gathers every contract entry on a client)
+- [x] Role gating: the **contracts** feeds are role-scoped backend-side (office sees only
+      what its `visibleToRoles` admits, and the cards never filter visibility themselves);
+      technicians see neither surface — the module is owner/admin/office. The **audit
+      trail** is deliberately not scoped — see the timeline decision below
+- [x] `test/contracts.test.ts` — 29 tests (three new: the filter narrows to one contract,
+      `refKind` alone gathers every contract entry on a client, and `refId` without a
+      `refKind` is refused)
 
 **Both card feeds go through the HTTP service, not `ContractsState`** — that state is
 route-lazy on `/contracts` and does not exist on the customer or order view. Its
@@ -352,6 +354,18 @@ turn out to be unreachable from them; they are unused as of CP-3.
   URLs at all** — the backend streams the document from `GET /contracts/:id/file` and
   re-checks access per request (§1.2 carries the reasoning). Whether downloads are
   additionally access-logged is still open; the proxy route is the natural place for it.
+- **Timeline visibility — decided 2026-08-22 (owner), answering a CP-3 review finding:**
+  the client timeline (`GET /customers/:id/interactions`) stays **open to every
+  authenticated user and unscoped by `visibleToRoles`** — including the `contract` entries.
+  It was raised as a leak: a technician can read a contract's folio, name, change summary
+  and delete comment through the feed while `GET /contracts/:id` 404s them. That is the
+  intended trade: **everyone can see the audit, nobody but an admitted role can see the
+  contract.** An audit trail that is filtered per viewer is not an audit trail — the
+  timeline records *that* something happened to this client, and hiding entries from staff
+  would make the client 360 lie about its own history. Visibility gates the **document and
+  its details** (§1.2, §4), not the fact of it. Do not "fix" this by scoping the timeline.
+- **`refId` requires `refKind` — 2026-08-22:** the filter is rejected 400 without a kind
+  (an id alone would match across every ref kind); `refKind` alone stays valid.
 - **Action copy — decided 2026-08-22 (owner):** the order-view action is **"Adjuntar
   contrato"**, and the order timeline entry reads **"Contrato adjuntado"**. ~~"Generar"~~
   claimed the app produces the document; it files one someone signed. Same reason the
