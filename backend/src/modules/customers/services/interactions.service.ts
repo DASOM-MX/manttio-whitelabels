@@ -17,7 +17,11 @@ import {
 import { notifyBestEffort } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums/notifications.enum';
 import type { CustomerWithRelations, UpdateCustomerFields } from '../types/customers.types';
-import type { InteractionDTO, RecentInteractionDTO } from '../types/interactions.types';
+import type {
+  InteractionDTO,
+  InteractionRefFilter,
+  RecentInteractionDTO,
+} from '../types/interactions.types';
 import type { AddInteractionInput, ChangeStatusInput } from '../validators/interactions.validator';
 
 export const getInteractions = async (
@@ -25,7 +29,7 @@ export const getInteractions = async (
   customerId: string,
   page: number,
   limit: number,
-  ref: { refKind?: InteractionRefKind; refId?: string } = {},
+  ref: InteractionRefFilter = {},
 ): Promise<{ items: InteractionDTO[]; total: number }> =>
   listInteractions(db, customerId, page, limit, ref);
 

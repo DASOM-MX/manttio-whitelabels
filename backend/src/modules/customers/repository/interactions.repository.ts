@@ -7,6 +7,7 @@ import { displayName } from '../../users/utils/display-name';
 import { InteractionRefKind, InteractionType } from '../enums/interactions.enum';
 import type {
   InteractionDTO,
+  InteractionRefFilter,
   InteractionRowWithAuthor,
   NewInteraction,
   RecentInteractionDTO,
@@ -51,7 +52,7 @@ export const listInteractions = async (
   customerId: string,
   page: number,
   limit: number,
-  ref: { refKind?: InteractionRefKind; refId?: string } = {},
+  ref: InteractionRefFilter = {},
 ): Promise<{ items: InteractionDTO[]; total: number }> => {
   const conds = [eq(customerInteractions.customerId, customerId)];
   if (ref.refKind) conds.push(eq(customerInteractions.refKind, ref.refKind));
