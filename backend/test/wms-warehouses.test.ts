@@ -156,6 +156,37 @@ describe('warehouse registry (02 §2)', () => {
     expect((await patch({ latitude: null, longitude: null })).status).toBe(400);
   });
 
+  test('half a pin cannot be cleared either — `null` is not "unchanged"', async () => {
+    // The regression this test exists for: the pair rule compared `undefined`
+    // only, so a body clearing ONE coordinate sailed past it and the DB check
+    // answered with a 500 (and the raw constraint name in the message).
+    const wh = await seedWarehouse();
+    const patch = (body: object) =>
+      request(`/warehouses/${wh.id}`, {
+        method: 'PATCH',
+        headers: jsonHeaders(ownerToken),
+        body: JSON.stringify(body),
+      });
+
+    expect((await patch({ latitude: 25.68, longitude: -100.31 })).status).toBe(200);
+
+    for (const half of [
+      { latitude: null, longitude: -100.31 },
+      { latitude: 25.68, longitude: null },
+    ]) {
+      const res = await patch(half);
+      expect(res.status).toBe(400);
+    }
+
+    // The legitimate edit this was blocking: drop the pin, keep the reference.
+    // Both coordinates go together, and the warehouse stays locatable.
+    const dropped = await patch({ latitude: null, longitude: null });
+    expect(dropped.status).toBe(200);
+    const body = await json<{ latitude?: number; longitude?: number }>(dropped);
+    expect(body.latitude).toBeUndefined();
+    expect(body.longitude).toBeUndefined();
+  });
+
   test('type is derived from the parent, never sent', async () => {
     const root = await seedWarehouse();
     expect(root.type).toBe(WarehouseType.Warehouse);

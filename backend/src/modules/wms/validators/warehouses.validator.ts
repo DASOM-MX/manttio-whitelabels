@@ -10,6 +10,33 @@ const longText = z.string().trim().min(1).max(2000);
 const latitude = z.coerce.number().finite().min(-90).max(90);
 const longitude = z.coerce.number().finite().min(-180).max(180);
 
+/** A coordinate is "not there" whether it was never sent or explicitly cleared.
+ *  The pair rule has to read both the same way — checking only `undefined` let
+ *  `{ latitude: null, longitude: 19.4 }` through, and the DB check answered it
+ *  as a 500 (`warehouses_coords_pair_check`). */
+const absent = (value: number | null | undefined) => value === undefined || value === null;
+
+/** Mirrors `warehouses_coords_pair_check`: a lone coordinate is a partly filled
+ *  form, and answering it from the DB would be a 500.
+ *
+ *  This lives in the validator rather than on the merged row (unlike
+ *  locatability, which genuinely needs what is stored) because the PATCH schema
+ *  refuses a body that sends one coordinate without the other — so a body that
+ *  touches the pair at all determines it completely, and the stored values
+ *  cannot make a legal body illegal. */
+const assertCoordinatePair = (
+  v: { latitude?: number | null; longitude?: number | null },
+  ctx: z.RefinementCtx,
+  message: string,
+) => {
+  if (absent(v.latitude) === absent(v.longitude)) return;
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    path: [absent(v.latitude) ? 'latitude' : 'longitude'],
+    message,
+  });
+};
+
 export const createWarehouseSchema = z
   .object({
     name: locationName,
@@ -23,15 +50,7 @@ export const createWarehouseSchema = z
     notes: longText.optional(),
   })
   .superRefine((v, ctx) => {
-    // Mirrors `warehouses_coords_pair_check` — a lone coordinate is a partly
-    // filled form, and answering it from the DB would be a 500.
-    if ((v.latitude === undefined) !== (v.longitude === undefined)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: [v.latitude === undefined ? 'latitude' : 'longitude'],
-        message: 'latitude and longitude travel together',
-      });
-    }
+    assertCoordinatePair(v, ctx, 'latitude and longitude travel together');
     // Mirrors `warehouses_locatable_check` (client requirement 2026-08-08): a
     // warehouse people cannot find is not a warehouse.
     if (v.locationReference === undefined && v.latitude === undefined) {
@@ -59,13 +78,9 @@ export const updateWarehouseSchema = z
     notes: longText.nullable().optional(),
   })
   .superRefine((v, ctx) => {
-    if ((v.latitude === undefined) !== (v.longitude === undefined)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: [v.latitude === undefined ? 'latitude' : 'longitude'],
-        message: 'send latitude and longitude together, or neither',
-      });
-    }
+    // Both together, or neither — and `null` counts as neither, so dropping the
+    // pin is `{ latitude: null, longitude: null }` and never one of the two.
+    assertCoordinatePair(v, ctx, 'send latitude and longitude together, or neither');
   });
 
 /** `POST /warehouses/:id/assign-technician` (02 §2). The path keeps its name
