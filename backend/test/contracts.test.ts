@@ -506,6 +506,19 @@ describe('audit trail (13 §3)', () => {
     expect(body.total).toBe(2);
     expect(body.items.map((e) => e.ref?.id).sort()).toEqual([first.id, second.id].sort());
   });
+
+  test('refId without refKind is rejected — the filter has no defined meaning', async () => {
+    const { token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const contract = await createOk(token, { customerId: customer.id });
+
+    const res = await request(`/customers/${customer.id}/interactions?refId=${contract.id}`, {
+      headers: authHeader(token),
+    });
+    // An id with no kind would filter across every ref kind at once; answering
+    // it with whatever happened to match is worse than saying no.
+    expect(res.status).toBe(400);
+  });
 });
 
 describe('card feeds', () => {
