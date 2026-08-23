@@ -2,7 +2,7 @@
   <div class="card-flush-table">
     <p-table
       [value]="entries()"
-      [loading]="loading()"
+      [loading]="showSkeleton()"
       [showLoader]="false"
       [rowHover]="true"
       dataKey="id"

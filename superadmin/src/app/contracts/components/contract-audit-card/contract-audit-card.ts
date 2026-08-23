@@ -20,6 +20,17 @@ import type { Interaction } from '../../../data/dtos/interaction';
  *
  *  Fetched through the HTTP service, not `CustomersState`, so opening a
  *  contract never overwrites the timeline a customer view left in state. */
+/** Append the next page, dropping ids already on screen.
+ *
+ *  Offset paging over an **append-only, newest-first** feed overlaps by
+ *  construction: one entry written between two page reads shifts the whole
+ *  window down, so page 2 repeats page 1's last row. Unchecked that duplicates
+ *  a `dataKey="id"` — two table rows claiming the same key. */
+const merge = (current: Interaction[], next: Interaction[]): Interaction[] => {
+  const seen = new Set(current.map((e) => e.id));
+  return [...current, ...next.filter((e) => !seen.has(e.id))];
+};
+
 @Component({
   selector: 'app-contract-audit-card',
   imports: [DatePipe, TableModule, RelativeTimePipe, LucideHistory],
@@ -35,12 +46,23 @@ export class ContractAuditCard {
 
   protected entries = signal<Interaction[]>([]);
   protected total = signal(0);
-  protected loading = signal(true);
-  protected loadingMore = signal(false);
+  /** **One** in-flight marker, not a boolean per request kind: two flags can
+   *  disagree, and each response would clear both — including the one belonging
+   *  to a request still running. `null` means idle. */
+  private inFlight = signal<'first' | 'more' | null>('first');
   private page = signal(1);
 
   protected readonly pageSize = 8;
   protected readonly skeletonRows = [0, 1, 2];
+
+  protected loadingMore = computed(() => this.inFlight() === 'more');
+
+  /** PrimeNG renders `#loadingbody` **after** the data rows and gates it on
+   *  `loading` alone (`isEmpty()` guards only the empty message), so a truthy
+   *  `[loading]` over a populated table stacks skeletons *under* real entries.
+   *  The skeleton is therefore the empty-table state only; a reload keeps the
+   *  rows it already has on screen until the new ones replace them. */
+  protected showSkeleton = computed(() => this.inFlight() === 'first' && !this.entries().length);
 
   protected hasMore = computed(() => this.entries().length < this.total());
 
@@ -50,13 +72,13 @@ export class ContractAuditCard {
   }
 
   protected loadMore(): void {
-    if (this.loadingMore()) return;
-    this.loadingMore.set(true);
+    if (this.inFlight()) return;
+    this.inFlight.set('more');
     this.load(this.page() + 1);
   }
 
   private load(page: number): void {
-    if (page === 1) this.loading.set(true);
+    this.inFlight.set(page === 1 ? 'first' : 'more');
     this.customersApi
       .listInteractions(this.customerId(), {
         page,
@@ -67,10 +89,9 @@ export class ContractAuditCard {
       .subscribe({
         next: ({ items, total }) => {
           this.page.set(page);
-          this.entries.update((current) => (page === 1 ? items : [...current, ...items]));
+          this.entries.update((current) => (page === 1 ? items : merge(current, items)));
           this.total.set(total);
-          this.loading.set(false);
-          this.loadingMore.set(false);
+          this.inFlight.set(null);
         },
         error: () => {
           // A trail that fails to load reads as an empty card rather than an
@@ -79,8 +100,7 @@ export class ContractAuditCard {
             this.entries.set([]);
             this.total.set(0);
           }
-          this.loading.set(false);
-          this.loadingMore.set(false);
+          this.inFlight.set(null);
         },
       });
   }
