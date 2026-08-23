@@ -7,8 +7,6 @@ import {
   DeleteContract,
   LoadContract,
   LoadContracts,
-  LoadCustomerContracts,
-  LoadServiceOrderContracts,
   ReplaceContractFile,
   UpdateContract,
 } from './contracts.actions';
@@ -20,9 +18,6 @@ export interface ContractsStateModel {
   total: number;
   loading: boolean;
   selected: Contract | null;
-  /** Card feeds for the customer view (07) and the order view (19 §5). */
-  byCustomer: Contract[];
-  byServiceOrder: Contract[];
   query: ContractListQuery;
 }
 
@@ -33,8 +28,6 @@ export interface ContractsStateModel {
     total: 0,
     loading: false,
     selected: null,
-    byCustomer: [],
-    byServiceOrder: [],
     query: {},
   },
 })
@@ -54,24 +47,13 @@ export class ContractsState {
   @Selector() static selected(s: ContractsStateModel): Contract | null {
     return s.selected;
   }
-  @Selector() static byCustomer(s: ContractsStateModel): Contract[] {
-    return s.byCustomer;
-  }
-  @Selector() static byServiceOrder(s: ContractsStateModel): Contract[] {
-    return s.byServiceOrder;
-  }
 
   /** A mutation returns the full contract, so every place it appears refreshes
    *  from one payload rather than each caller re-reading. */
   private applyUpdated(ctx: StateContext<ContractsStateModel>, contract: Contract): void {
     const s = ctx.getState();
     const swap = (list: Contract[]) => list.map((x) => (x.id === contract.id ? contract : x));
-    ctx.patchState({
-      selected: contract,
-      items: swap(s.items),
-      byCustomer: swap(s.byCustomer),
-      byServiceOrder: swap(s.byServiceOrder),
-    });
+    ctx.patchState({ selected: contract, items: swap(s.items) });
   }
 
   @Action(LoadContracts)
@@ -86,23 +68,6 @@ export class ContractsState {
     );
   }
 
-  @Action(LoadCustomerContracts)
-  loadByCustomer(ctx: StateContext<ContractsStateModel>, { customerId }: LoadCustomerContracts) {
-    return this.api
-      .list({ customerId, limit: 50 })
-      .pipe(tap(({ items }) => ctx.patchState({ byCustomer: items })));
-  }
-
-  @Action(LoadServiceOrderContracts)
-  loadByServiceOrder(
-    ctx: StateContext<ContractsStateModel>,
-    { serviceOrderId }: LoadServiceOrderContracts,
-  ) {
-    return this.api
-      .list({ serviceOrderId, limit: 50 })
-      .pipe(tap(({ items }) => ctx.patchState({ byServiceOrder: items })));
-  }
-
   @Action(LoadContract)
   loadContract(ctx: StateContext<ContractsStateModel>, { id }: LoadContract) {
     // Clear first so the view shows skeletons rather than the previous record.
@@ -110,17 +75,12 @@ export class ContractsState {
     return this.api.get(id).pipe(tap((contract) => ctx.patchState({ selected: contract })));
   }
 
+  /** Nothing to patch: the list reloads from its URL params on the way back,
+   *  and the cards that show a client's or a job's contracts fetch their own
+   *  feed (they live outside this route, so this state is not even loaded). */
   @Action(CreateContract)
-  create(ctx: StateContext<ContractsStateModel>, { payload, file }: CreateContract) {
-    return this.api.create(payload, file).pipe(
-      tap((contract) => {
-        const s = ctx.getState();
-        ctx.patchState({
-          byCustomer:
-            contract.customerId === payload.customerId ? [contract, ...s.byCustomer] : s.byCustomer,
-        });
-      }),
-    );
+  create(_ctx: StateContext<ContractsStateModel>, { payload, file }: CreateContract) {
+    return this.api.create(payload, file);
   }
 
   @Action(UpdateContract)
@@ -140,8 +100,6 @@ export class ContractsState {
         const s = ctx.getState();
         ctx.patchState({
           items: s.items.filter((x) => x.id !== id),
-          byCustomer: s.byCustomer.filter((x) => x.id !== id),
-          byServiceOrder: s.byServiceOrder.filter((x) => x.id !== id),
           total: Math.max(0, s.total - 1),
         });
       }),

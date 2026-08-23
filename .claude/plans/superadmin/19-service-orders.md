@@ -218,7 +218,8 @@ a. Technicians reach orders through their assigned visits/reports (context heade
   `open`: the **owner/admin-only reopen** of a `completed` order (`cancelled` is
   terminal), emitting the reserved `order_status_changed` event
 - Contract generation is **`POST /contracts` (13)** carrying this order's id (0..n per
-  order); the order view's **Generar contrato** launches it and it logs
+  order); the order view's **Adjuntar contrato** launches it (copy revised 2026-08-22 —
+  the app files a signed document, it does not produce one) and it logs
   `order_contract_generated` (refId → the contract) on this order's timeline. No
   `contractId` on the order — the link lives on the contract (13 §1).
 - `GET /customers/:id/service-orders` — customer-view card (07 slot — ask)
@@ -231,7 +232,8 @@ a. Technicians reach orders through their assigned visits/reports (context heade
 - `service-orders/pages/order-view/` — header (folio, client link, status actions),
   lines card, exploded-reports card (status pills, link out), visits card with
   **Programar visita** (opens 12's dialog with the order locked), and a **contratos** card
-  with **Generar contrato** (13, 0..n).
+  with **Adjuntar contrato** (13, 0..n) — shown on open orders only, like every other
+  mutation here; the card itself keeps listing on a closed order.
 - `service-orders/pages/order-builder/` — **dedicated create page** (decided
   2026-07-23, not a dialog — too heavy for the shape-3 idiom): client select + location
   + comments, then the lines builder (service select + quantity + technician +

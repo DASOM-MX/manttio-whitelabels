@@ -178,8 +178,13 @@ customers.get('/:id/contracts', async (c) => {
 // paged list is newest-first.
 customers.get('/:id/interactions', zValidator('query', listInteractionsQuerySchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  const { page, limit } = c.req.valid('query');
-  const { items, total } = await getInteractions(db, c.req.param('id'), page, limit);
+  const { page, limit, refKind, refId } = c.req.valid('query');
+  // `refKind`/`refId` narrow the feed to one linked entity's trail — what a
+  // contract's audit card reads (13 §6). Unfiltered, this is the full timeline.
+  const { items, total } = await getInteractions(db, c.req.param('id'), page, limit, {
+    refKind,
+    refId,
+  });
   return c.json({ items, total, page, limit });
 });
 

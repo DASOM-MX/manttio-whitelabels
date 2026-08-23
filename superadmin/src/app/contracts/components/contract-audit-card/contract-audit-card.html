@@ -1,0 +1,68 @@
+<section aria-label="Historial del contrato">
+  <div class="card-flush-table">
+    <p-table
+      [value]="entries()"
+      [loading]="showSkeleton()"
+      [showLoader]="false"
+      [rowHover]="true"
+      dataKey="id"
+    >
+      <ng-template #header>
+        <tr>
+          <th scope="col">Movimiento</th>
+          <th scope="col">Quién</th>
+          <th scope="col">Cuándo</th>
+        </tr>
+      </ng-template>
+
+      <ng-template #body let-entry>
+        <tr>
+          <td class="text-sm">{{ entry.body }}</td>
+          <td class="text-sm text-surface-600 dark:text-surface-400">
+            {{ entry.userName || 'Sistema' }}
+          </td>
+          <td class="font-data whitespace-nowrap tabular-nums">
+            <!-- Relative reads at a glance; the exact stamp is one hover away,
+                 which is what an audit trail is asked for when it matters. -->
+            <span [title]="entry.createdAt | date: 'dd/MM/yyyy HH:mm'">
+              {{ entry.createdAt | relativeTime }}
+            </span>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template #loadingbody>
+        @for (r of skeletonRows; track r) {
+          <tr>
+            @for (c of [0, 1, 2]; track c) {
+              <td><span class="skeleton"></span></td>
+            }
+          </tr>
+        }
+      </ng-template>
+
+      <ng-template #emptymessage>
+        <tr class="p-datatable-emptymessage">
+          <td colspan="3">
+            <span class="inline-flex flex-col items-center gap-3">
+              <span class="empty-icon">
+                <svg lucideHistory class="size-5" aria-hidden="true"></svg>
+              </span>
+              Sin movimientos registrados todavía.
+            </span>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  @if (hasMore()) {
+    <button type="button" class="link-action mt-3" (click)="loadMore()" [disabled]="loadingMore()">
+      @if (loadingMore()) {
+        Cargando…
+      } @else {
+        Ver más movimientos
+      }
+    </button>
+  }
+</section>

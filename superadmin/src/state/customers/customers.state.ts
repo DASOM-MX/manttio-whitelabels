@@ -164,7 +164,7 @@ export class CustomersState {
   @Action(LoadInteractions)
   loadInteractions(ctx: StateContext<CustomersStateModel>, { customerId, page }: LoadInteractions) {
     ctx.patchState({ interactionsLoading: true });
-    return this.api.listInteractions(customerId, page).pipe(
+    return this.api.listInteractions(customerId, { page }).pipe(
       tap(({ items, total }) =>
         ctx.patchState({
           // page 1 replaces (read-your-writes reload); later pages append.

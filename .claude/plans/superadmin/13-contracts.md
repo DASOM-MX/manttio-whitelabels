@@ -1,7 +1,7 @@
 # 13 — Contracts (contratos / pólizas)
 
-> **Status:** **CP-1 + CP-2 done (2026-08-18)** — backend complete: folio, order link, types, role-scoped visibility, private file store, covered units and the audit trail all built and tested; superadmin list/form/view/delete shipped. CP-3 not started · **Depends on:** 07 (client), 19 (service orders — the generating path), `storage/` (R2); 11 optional (equipment link) · **Reworked 2026-07-24** (owner: document-artifact model — supersedes the recurring-póliza / visit-generator model)
-> **Owner:** — · **Last updated:** 2026-08-18
+> **Status:** **CP-1 + CP-2 + CP-3 done (CP-3: 2026-08-21)** — backend complete: folio, order link, types, role-scoped visibility, private file store, covered units and the audit trail all built and tested; superadmin list/form/view/delete shipped, and the module now reaches the order view and the client 360. **The module is complete for v1** · **Depends on:** 07 (client), 19 (service orders — the generating path), `storage/` (R2); 11 optional (equipment link) · **Reworked 2026-07-24** (owner: document-artifact model — supersedes the recurring-póliza / visit-generator model)
+> **Owner:** — · **Last updated:** 2026-08-21
 
 A **contract is a stored document** — the signed pdf/docx/odt/xls/xlsx — plus typed
 metadata and validity dates. **Service orders generate contracts (0..n):** a job may
@@ -110,9 +110,15 @@ constants rule.
 - **Replacing the file** = a new upload that updates `fileKey`/`fileName`/`fileType` and
   **appends an audit event** (§3). Versioning (keeping old files) is out of v1 (open item).
 
-## 2. Generation from a service order
+## 2. Filing against a service order
 
-- The order view (19 §5) offers **Generar contrato**, opening the contract form with
+**UI copy is "Adjuntar contrato" (owner 2026-08-22)** — ~~"Generar contrato"~~. The app does
+not produce the document; a signed paper is attached to the job. The stored event key stays
+`order_contract_generated` (19 §7) and the code keeps saying "order-generated" for the FK
+direction — the overclaim was in the copy, and the day the app really does generate a
+contract the key is already right.
+
+- The order view (19 §5) offers **Adjuntar contrato**, opening the contract form with
   `serviceOrderId` + `customerId` pre-filled and locked from the order. An order can
   generate several (0..n); each is an independent contract record.
 - Order-generated creation appends `order_contract_generated` to the **order timeline**
@@ -182,6 +188,11 @@ reconciliation is 09's).
 - `DELETE /contracts/:id` `{ deleteComment }` — soft delete (audited), owner/admin only
 - `GET /customers/:id/contracts` — customer-view card (07 slot — ask)
 - `GET /service-orders/:id/contracts` — the order's generated contracts (19 order view)
+- `GET /customers/:id/interactions?refKind=contract&refId=<id>` (**built 2026-08-21, CP-3**)
+  — how a contract reads its **own** audit trail back out. It lives on 08's endpoint, not
+  here, precisely because contracts keep no events table: the entries are the client's
+  (§3). Client-side filtering was never viable — the contract's entries are not on the
+  first page of an active client's history
 - `GET /contracts?equipmentId=` — "which contracts cover this unit", the 11 equipment-view
   coverage card. An `EXISTS` against `contract_equipment`, so a contract covering several
   units is never doubled in the page or the count
@@ -200,7 +211,7 @@ reconciliation is 09's).
   isolated page instead, for extensibility"). Supersedes the dialog this section originally
   hedged on: the form already carries a document, covered units and a visibility decision,
   it is expected to keep growing (renewals, amounts, signatories), and a route gives every
-  entry point a plain link — which is exactly what §5's order-driven "Generar contrato"
+  entry point a plain link — which is exactly what §5's order-driven "Adjuntar contrato"
   needs (`/contracts/new?customer=…&order=…` opens with both pre-locked). Canon to follow is
   `customers/pages/customer-form/`. Create/edit: client select (pre-filled + locked when launched from an order), type
   select (the fixed enum), name, description, validFrom + optional expiry
@@ -210,12 +221,16 @@ reconciliation is 09's).
   (pdf/docx/odt/xls/xlsx, single file). Edit keeps the current file unless replaced.
 - `contracts/pages/contract-view/` — header (folio, client link, type tag, validity pill,
   order link when present), metadata card, **document card** (file name/type + **Descargar**
-  → hits `GET /contracts/:id/file`), covered-equipment list, and the contract's audit entries
-  (from the customer timeline, filtered to this contract).
+  → hits `GET /contracts/:id/file`), covered-equipment list, and the **Historial card**
+  (built 2026-08-21): the contract's audit entries read from the client timeline filtered to
+  this contract, newest first, with the exact stamp on hover.
 - `contracts/components/delete-contract-dialog/` — shape-3, audit reason (soft delete).
-- Order view (19 §5): **Generar contrato** action + a "Contratos" card listing the order's
-  contracts.
-- Customer view (07): "Contratos" card (07 slot — ask).
+- Order view (19 §5): **Adjuntar contrato** action (a link to `/contracts/new?customer&order`,
+  hidden for technicians and for a cancelled order) + a "Contratos" card listing what the job
+  generated. Both built 2026-08-21.
+- Customer view (07): **its own "Contratos" tab** (built 2026-08-21 — the 07 slot ask,
+  answered: a tab beside Cotizaciones and Servicios, not a card in General), with
+  **Registrar contrato** pre-locking the client.
 
 ## 7. State
 
@@ -288,20 +303,48 @@ it was mined for ideas, not rebased.
 - [x] `delete-contract-dialog` — audited soft delete, owner/admin only
 - [x] Routes replace the `ModuleStub`; nav entry + `MODULE_ROLES` already existed. Build green
 
-**Not built — needs a backend change first:** the view's **audit-entry card** (§6). The
-entries exist (`customer_interactions`, `refKind: 'contract'`), but
-`GET /customers/:id/interactions` takes only `page`/`limit` — there is no `refKind`/`refId`
-filter, so the card could only page the whole client timeline and hope the contract's
-entries are on it. Client-side filtering would render a card that is silently empty for any
-active client. The fix is a small filter on that endpoint; deliberately not folded into a
-superadmin checkpoint.
+~~**Not built — needs a backend change first:** the view's **audit-entry card** (§6).~~
+**Resolved 2026-08-21 in CP-3**: `GET /customers/:id/interactions` learned `refKind`/`refId`
+(08 §4), and the Historial card reads the contract's own entries through it. The reasoning
+that kept it out of CP-2 held — client-side filtering would have rendered a card that is
+silently empty for any active client, because the contract's entries are not on the first
+page of that client's history.
 
-### CP-3 — Order + customer integration
-- [ ] Order view **Generar contrato** (pre-locks client/order) + order "Contratos" card
-- [ ] Customer-view "Contratos" card (07 slot)
-- [ ] Role gating (office no delete); dark-mode; empty states; manual pass: order →
-      generar contrato (upload pdf) → download via signed URL → edit expiry (audited) →
-      standalone contract → soft delete
+### CP-3 — Order + customer integration ✅ (2026-08-21)
+- [x] Order view **Adjuntar contrato** — a link to `/contracts/new?customer=…&order=…`, which
+      is the entry point CP-2 made the form a page for. **Open orders only** (owner
+      2026-08-22): filing rides the same gate as every other mutation on the view, so a
+      closed or cancelled job is done growing. ~~An earlier build showed it on completed
+      orders too, on the reasoning that a guarantee is issued once the work is done; the
+      owner's call is that a closed order is closed.~~ Technicians never see it. Plus the
+      order "Contratos" card (0..n), which stays visible on a closed order — what a job
+      produced is history, and history keeps showing
+- [x] Customer-view **Contratos tab** — the 07 slot ask, answered as a tab beside
+      Cotizaciones and Servicios rather than a card in General, with **Registrar contrato**
+      pre-locking the client
+- [x] The form stops hiding the lock it was handed: opened from an order it wrote
+      `serviceOrderId` from a query param and showed nothing, so the person filing could not
+      see which job the document would attach to. The order now renders as a read-only row
+      linking back — the same treatment the immutable client already had
+- [x] **Contract audit card** (the CP-2 leftover) + the backend `refKind`/`refId` filter it
+      needed; the **client timeline** learned the rest of the ref kinds while there —
+      it had linked out to reports since 08 and ignored every kind added since, so order,
+      quotation and contract system entries rendered as dead text on the one screen meant to
+      be the client's index of everything raised for them
+- [x] Role gating: the **contracts** feeds are role-scoped backend-side (office sees only
+      what its `visibleToRoles` admits, and the cards never filter visibility themselves);
+      technicians see neither surface — the module is owner/admin/office. The **audit
+      trail** is deliberately not scoped — see the timeline decision below
+- [x] `test/contracts.test.ts` — 29 tests (three new: the filter narrows to one contract,
+      `refKind` alone gathers every contract entry on a client, and `refId` without a
+      `refKind` is refused)
+
+**Both card feeds go through the HTTP service, not `ContractsState`** — that state is
+route-lazy on `/contracts` and does not exist on the customer or order view. Its
+`byCustomer`/`byServiceOrder` slices were added speculatively in CP-2 for exactly these
+cards and turned out to be unreachable from them; **removed 2026-08-22** along with
+`LoadCustomerContracts`/`LoadServiceOrderContracts`. A card that lives outside a module's
+route reads through the module's HTTP service — the state is not there to read.
 
 ## Open decisions / asks
 - **Reworked 2026-07-24 (owner):** contract = **stored signed document + typed metadata**,
@@ -313,6 +356,28 @@ superadmin checkpoint.
   URLs at all** — the backend streams the document from `GET /contracts/:id/file` and
   re-checks access per request (§1.2 carries the reasoning). Whether downloads are
   additionally access-logged is still open; the proxy route is the natural place for it.
+- **Timeline visibility — decided 2026-08-22 (owner), answering a CP-3 review finding:**
+  the client timeline (`GET /customers/:id/interactions`) stays **open to every
+  authenticated user and unscoped by `visibleToRoles`** — including the `contract` entries.
+  It was raised as a leak: a technician can read a contract's folio, name, change summary
+  and delete comment through the feed while `GET /contracts/:id` 404s them. That is the
+  intended trade: **everyone can see the audit, nobody but an admitted role can see the
+  contract.** An audit trail that is filtered per viewer is not an audit trail — the
+  timeline records *that* something happened to this client, and hiding entries from staff
+  would make the client 360 lie about its own history. Visibility gates the **document and
+  its details** (§1.2, §4), not the fact of it. Do not "fix" this by scoping the timeline.
+- **`refId` requires `refKind` — 2026-08-22:** the filter is rejected 400 without a kind
+  (an id alone would match across every ref kind); `refKind` alone stays valid.
+- **Action copy — decided 2026-08-22 (owner):** the order-view action is **"Adjuntar
+  contrato"**, and the order timeline entry reads **"Contrato adjuntado"**. ~~"Generar"~~
+  claimed the app produces the document; it files one someone signed. Same reason the
+  contract view's order row is now plainly **"Orden de servicio"** rather than "Orden que lo
+  generó". Nothing stored changed — `order_contract_generated` is a persisted key.
+- **Filing from an order — decided 2026-08-22 (owner):** **Adjuntar contrato** shows on
+  **open orders only**, not on completed or cancelled ones. It rides the same gate as every
+  other mutation on the order view (19 §5), so a closed job is done growing; a contract for
+  work already closed out is filed standalone from the client or the contracts list. The
+  order's **Contratos card** is unaffected — it reads history and keeps showing.
 - **Role visibility — decided 2026-07-24:** per-contract `visibleToRoles`, **owner/admin
   set**; owner/admin always see all, office/technician only when their role is listed.
   **Default: all staff** (`[office, technician]`) — owners restrict per contract.
@@ -336,7 +401,10 @@ superadmin checkpoint.
   migration (its only row was a self-labelled, soft-deleted smoke-test row referenced by
   nothing). A tenant DB is provisioned from the migrations, so hand-applied schema is a
   provisioning bug — see [[shared-neon-db-ahead-of-migrations]].
-- Ask to 07: "Contratos" card slot on customer-view.
+- ~~Ask to 07: "Contratos" card slot on customer-view.~~ **Resolved 2026-08-21 (CP-3),
+  confirmed by the owner 2026-08-22 ("contratos will live in the client 360 view too"):** its
+  own **Contratos tab**, beside Cotizaciones and Servicios — the client 360 already carries
+  its per-domain feeds as tabs, and a contracts list is a table, not a General-card row.
 - Ask to 14: `contracts` module row in the matrix; config flag (own vs rides `scheduling`).
 - ~~Ask to 11: equipment multiselect on contracts (covered units) when equipment lands.~~
   **Resolved 2026-08-18** — the backend leg is built (`contract_equipment`, `equipmentIds`,

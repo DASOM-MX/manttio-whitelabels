@@ -17,6 +17,7 @@ import {
   LucideCheck,
   LucideCopy,
   LucideDynamicIcon,
+  LucideFilePlus,
   LucideFileText,
   LucideFlag,
   LucidePencil,
@@ -56,6 +57,7 @@ import { RelativeTimePipe } from '../../../pipes/relative-time.pipe';
 import { ServiceUomShortPipe } from '../../../pipes/service-uom.pipe';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { VisitDialog } from '../../../calendar/components/visit-dialog/visit-dialog';
+import { ServiceOrderContractsCard } from '../../../contracts/components/service-order-contracts-card/service-order-contracts-card';
 import { errorCode, errorMessage, isCalendarDatePast, toCalendarDate } from '../../../data/utils';
 import type { ServiceOrderReport } from '../../../data/dtos/service-order';
 
@@ -64,8 +66,11 @@ import type { ServiceOrderReport } from '../../../data/dtos/service-order';
  *  newest-first feed the CP-5 handoff document will be composed from).
  *  Visits schedule from here via **Programar visita** (19 CP-3 — the dialog
  *  opens with this order locked) and their lifecycle shows in the timeline;
- *  the week view lives in the calendar. The contracts card arrives with 13's
- *  backend.
+ *  the week view lives in the calendar. **Adjuntar contrato** files a signed
+ *  document against this job (13 §2 — a job may carry 0..n) and the Contratos
+ *  card lists them; filing rides the same open-order gate as every other
+ *  mutation here (owner 2026-08-22), so a closed or cancelled job is done
+ *  growing.
  *
  *  Mutability mirrors the API (19 §1): comments for any staff, location for
  *  owner/admin only, status one-way with a confirm dialog — cancel warns that
@@ -100,10 +105,12 @@ import type { ServiceOrderReport } from '../../../data/dtos/service-order';
     ServiceUomShortPipe,
     PageHeader,
     VisitDialog,
+    ServiceOrderContractsCard,
     LucideCalendarPlus,
     LucideCheck,
     LucideCopy,
     LucideDynamicIcon,
+    LucideFilePlus,
     LucideFileText,
     LucideFlag,
     LucidePencil,

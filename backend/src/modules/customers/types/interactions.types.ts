@@ -27,6 +27,15 @@ export interface InteractionDTO {
   createdAt: Date;
 }
 
+/** Narrows a timeline read to one linked entity's trail (13 §6) — the read an
+ *  entity's own audit card makes. `refKind` alone answers "every contract entry
+ *  for this client"; `refId` is only meaningful alongside it, which the query
+ *  validator enforces. */
+export interface InteractionRefFilter {
+  refKind?: InteractionRefKind;
+  refId?: string;
+}
+
 /** Feed row for the tenant-wide latest-activity read (utm-params 03): the
  *  timeline DTO plus the customer it belongs to, for linking out. The status
  *  rides along since the 2026-07-22 cockpit layout turn (activity table's
