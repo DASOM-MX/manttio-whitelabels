@@ -10,17 +10,6 @@ export class LoadContracts {
   constructor(public query: ContractListQuery = {}) {}
 }
 
-/** Customer-view contracts card (07 slot) and the order view's card (19 §5). */
-export class LoadCustomerContracts {
-  static readonly type = '[Contracts] Load By Customer';
-  constructor(public customerId: string) {}
-}
-
-export class LoadServiceOrderContracts {
-  static readonly type = '[Contracts] Load By Service Order';
-  constructor(public serviceOrderId: string) {}
-}
-
 export class LoadContract {
   static readonly type = '[Contracts] Load Detail';
   constructor(public id: string) {}

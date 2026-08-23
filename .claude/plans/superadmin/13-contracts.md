@@ -341,8 +341,10 @@ page of that client's history.
 
 **Both card feeds go through the HTTP service, not `ContractsState`** — that state is
 route-lazy on `/contracts` and does not exist on the customer or order view. Its
-`byCustomer`/`byServiceOrder` slices were added speculatively in CP-2 for these cards and
-turn out to be unreachable from them; they are unused as of CP-3.
+`byCustomer`/`byServiceOrder` slices were added speculatively in CP-2 for exactly these
+cards and turned out to be unreachable from them; **removed 2026-08-22** along with
+`LoadCustomerContracts`/`LoadServiceOrderContracts`. A card that lives outside a module's
+route reads through the module's HTTP service — the state is not there to read.
 
 ## Open decisions / asks
 - **Reworked 2026-07-24 (owner):** contract = **stored signed document + typed metadata**,
