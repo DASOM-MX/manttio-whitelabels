@@ -30,11 +30,20 @@ export const uniqueRecipientEmail = (scope: string) =>
 
 export const uniqueName = (scope: string) => `test-${scope}-${tag()}`;
 
-// Used for `services.name`. The catalog has no email column to isolate on, so
-// service fixtures are identified by a `test+` name prefix instead — the same
-// marker the user/customer fixtures use in their addresses. The suite
-// soft-deletes them in `afterAll`; per the no-hard-delete rule the rows stay.
-export const uniqueServiceName = (scope: string) => `test+${scope}-${tag()}`;
+/** Used for `services.name`. The catalog has no email column to isolate on, so
+ *  service fixtures carry a `test+` name prefix instead — the same marker the
+ *  user/customer fixtures use in their addresses. Suites soft-delete them in
+ *  `afterAll`; per the no-hard-delete rule the rows stay.
+ *
+ *  The **scope** segment is what makes a row its suite's own. Test files run in
+ *  parallel against one shared live DB, so a sweep must match its own fixtures
+ *  and nothing else: every `afterAll` narrows on `serviceFixturePrefix(<its
+ *  scope>)`. A bare `test+%` there tombstones other files' services while they
+ *  are still using them — an order built on one then 422s `invalid_reference`
+ *  mid-run, which is exactly the flake this replaced. */
+export const serviceFixturePrefix = (scope: string) => `test+${scope}-`;
+
+export const uniqueServiceName = (scope: string) => `${serviceFixturePrefix(scope)}${tag()}`;
 
 /** `services.internal_service_code` is unique across the live catalog, so
  *  fixtures must mint their own. The suite's soft delete releases them again

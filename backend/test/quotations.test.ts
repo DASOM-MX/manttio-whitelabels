@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-import { inArray } from 'drizzle-orm';
+import { and, inArray, isNull, like } from 'drizzle-orm';
 import { env, json, jsonHeaders, request } from './helpers/request';
 import {
   ensureFixtureTemplate,
@@ -8,11 +8,12 @@ import {
   seedOfficeAndLogin,
   seedOwnerAndLogin,
   seedTechnicianAndLogin,
+  serviceFixturePrefix,
   uniqueServiceName,
 } from './helpers/fixtures';
 import { allResendSends, lastResendSend, mockResend } from './helpers/resend';
 import { createDb } from '../src/modules/database/client';
-import { quotations, reports, serviceOrders } from '../src/modules/database/schema';
+import { quotations, reports, serviceOrders, services } from '../src/modules/database/schema';
 import { ServiceTaxRate, ServiceUom } from '../src/modules/services/enums/services.enum';
 import {
   QuotationEventType,
@@ -95,12 +96,20 @@ mockResend();
 const created: string[] = [];
 
 afterAll(async () => {
-  if (created.length === 0) return;
   const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
+  if (created.length > 0) {
+    await db
+      .update(quotations)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(inArray(quotations.id, created));
+  }
+  // The `test+quote-` catalog rows this suite mints. It used to leave them for
+  // whichever service-touching suite ran last; those sweeps are self-scoped
+  // now, so nobody else will.
   await db
-    .update(quotations)
+    .update(services)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
-    .where(inArray(quotations.id, created));
+    .where(and(like(services.name, `${serviceFixturePrefix('quote')}%`), isNull(services.deletedAt)));
 });
 
 const dayOffset = (days: number) => {

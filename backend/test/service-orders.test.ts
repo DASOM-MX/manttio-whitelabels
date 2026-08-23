@@ -9,6 +9,7 @@ import {
   ensureFixtureTemplate,
   seedTechnician,
   seedTechnicianAndLogin,
+  serviceFixturePrefix,
   uniqueServiceName,
 } from './helpers/fixtures';
 import { createDb } from '../src/modules/database/client';
@@ -95,7 +96,7 @@ afterAll(async () => {
   const fixtureServices = await conn
     .select({ id: services.id })
     .from(services)
-    .where(like(services.name, 'test+%'));
+    .where(like(services.name, `${serviceFixturePrefix('order-svc')}%`));
   const serviceIds = fixtureServices.map((s) => s.id);
 
   if (serviceIds.length > 0) {
@@ -120,7 +121,7 @@ afterAll(async () => {
   await conn
     .update(services)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
-    .where(and(like(services.name, 'test+%'), isNull(services.deletedAt)));
+    .where(and(like(services.name, `${serviceFixturePrefix('order-svc')}%`), isNull(services.deletedAt)));
 });
 
 /** The Active template every exploding line points at. Resolved once — the
