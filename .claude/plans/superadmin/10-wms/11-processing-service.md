@@ -24,9 +24,13 @@ or the API** — that is the payoff of keeping the contract DB-first.
 
 ## 1. Architecture
 
-- **Producer:** `POST /replenishments/imports/:id/process` (02 §6) stores the
-  mapping, sets `queued`, and sends `{ importId }` to the queue binding
-  (`env.WMS_IMPORT_QUEUE.send(...)`). The message carries the id only — the file
+- **Producer — BUILT 2026-08-24** (02 §6): `POST /replenishments/imports/:id/process`
+  stores the mapping, sets `queued`, and sends `{ importId }` to the queue binding
+  (`env.WMS_IMPORT_QUEUE.send(...)`). `[[queues.producers]]` is declared in
+  `wrangler.toml` for dev and production; the **consumer half, `[[queues.consumers]]`
+  and the raised `limits.cpu_ms` land with this plan's CP-1**, together with the
+  `.xlsx` reader the request path deliberately left out (02 §6) so the format is
+  read by one implementation rather than two. The message carries the id only — the file
   stays in R2 (the `manttio-wms-sheets` bucket, owner 2026-07-20), the mapping in the DB (the 128 KB message cap is never in play).
 - **Consumer:** the same Worker exports a `queue()` handler (composition root
   `src/index.ts`, delegating immediately to

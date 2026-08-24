@@ -1,11 +1,20 @@
 # 10-wms / 02 — API surface (backend)
 
 > **Status:** in-progress — **CP-1 complete** (§2 warehouses + storage nodes
-> 2026-08-21, §3 materials 2026-08-22) and **CP-2 complete** (§4 stock ops +
-> `GET /movements`, §5 reasons, the settings store — 2026-08-22), all live in
-> `modules/wms/`; CP-3 (§6 replenishments + §7 report materials) next
-> · **Depends on:** 01
-> **Owner:** — · **Last updated:** 2026-08-22
+> 2026-08-21, §3 materials 2026-08-22), **CP-2 complete** (§4 stock ops +
+> `GET /movements`, §5 reasons, the settings store — 2026-08-22), **CP-3 in
+> progress**: the §6 import LIFECYCLE landed 2026-08-24 (upload → map → queue
+> hand-off → review → decision + the audit log). Still open in CP-3 — the SSE
+> stream, the queue consumer (11), the approval promotion, and §7 report
+> materials · **Depends on:** 01
+> **Owner:** — · **Last updated:** 2026-08-24
+>
+> ⚠️ **The §6 endpoints cannot be DEPLOYED until three things are provisioned**
+> (§8 + 11 §1, asks that predate this build): the `manttio-wms-sheets` and
+> `manttio-wms-evidence` R2 buckets, the `manttio-wms-imports` queue + its DLQ,
+> and the Workers **paid** plan that Queues requires. The bindings are declared
+> in `wrangler.toml`, so miniflare simulates them and the suite is green — but
+> `wrangler deploy` fails against an account that lacks them.
 
 The complete WMS endpoint catalog: paths, role gates, validator shapes, responses, and
 error codes. Follows `backend/CLAUDE.md` to the letter: thin controllers
@@ -252,6 +261,39 @@ import emits its event in the same transaction; the log is append-only and perma
 | `POST /replenishments/imports/:id/cancel` | **owner only** (not admin/office — owner 2026-07-20) | **Full cancel** of a pre-approval import: body `{ reason }` **required** (`400` if blank); valid from any pre-approval status (`409 import_not_cancellable` on a terminal one). One transaction — **truncates the staging rows**, purges any leftover binary, sets status **`cancelled`** (record closed), emits a **`cancelled`** event (reason + actor). Immediate + reasoned + owner-gated, unlike discard. A **confirmed** replenishment can't be cancelled (permanent doc — correct via readjustment) |
 | `POST /replenishments` | **owner/admin** (approval — office excluded, §2.1e) | `{ importId }` — **the approval: promotes the staging table into the inventory tables.** Import must be `ready` (`409 import_not_ready`) with zero **fixable** row errors (`409 import_has_errors` — unprocessable rows don't block, owner 2026-07-20). One transaction: increment `wms_counters` folio → insert doc + items from **all** staged rows — serial-collision rows become **`unprocessable: true` items carrying their error code: recorded and visible in the document, but no movement, no units, no stock effect** (awareness for record review / provider follow-up) → per processable item, emit an inbound movement (`reason: replenishment`, `replenishmentId` set) through the same 01 §3 path (serialized: creates units) → **delete the staged rows and mark the import `confirmed`** (true move — owner 2026-07-19, the sanctioned staging exception; the import header row stays as the trail: file name, mapping, submission snapshot, event log) → **emit `approved`** (`{ folio, replenishmentId }`). Append-only applies to the *doc*: no PATCH/DELETE routes on replenishments |
 
+**Built 2026-08-24 — the shipped lifecycle, and what it does not yet do:**
+
+- **Shipped:** upload + field detection, `/process` (mapping validation,
+  submission snapshot, last-mapping memory, queue send, `202 queued`), the
+  one-shot status read, staged-row `PATCH`/`DELETE`, prep `PATCH`,
+  `reject`/`resubmit`/`discard`/`cancel`, and `GET .../audit`. Every mutating
+  path emits its event **in the same transaction as the change** — a state
+  change that could commit without its event is not an audit trail.
+- **Not yet:** the SSE stream (`/events`), the queue consumer that stages the
+  rows (11), and the approval (`POST /replenishments`) with its list/detail
+  reads. Until the consumer lands, an import reaches `queued` and stops there.
+- **`.xlsx` is refused for now** (`400 unparseable_file`). Reading a workbook
+  means unzipping and walking sheet XML, and the consumer has to do the
+  full-file version of the same thing — both sides land together in the
+  processing slice so the format is read by ONE implementation, not two.
+  `.csv`/`.txt` are delimiter-sniffed (tab, then semicolon, then comma; the
+  first that splits the header into more than one column wins) with RFC-4180
+  quoting.
+- **`400 file_too_large`** is its own code, not `unparseable_file`: a 3 MB sheet
+  may be perfectly well-formed and simply not belong in this flow.
+- **`pieces` is editable on a staged row** alongside the plan's listed fields —
+  the column exists (user 2026-08-08) and a reviewer correcting a lot line needs
+  it. `expiry` and `pieces` are refused as mapping targets without `lot`: both
+  are properties OF a lot and alone they describe nothing.
+- **The row PATCH re-runs the parser's own rules** (`helpers/import-rows.helpers.ts`,
+  shared with the consumer), so a fix can legitimately reveal the next problem —
+  supplying a missing serial surfaces `quantity_on_serialized` if the quantity
+  was also wrong. Validation reports **fixable errors before unprocessable
+  ones**: a reviewer can act on `quantity_on_serialized`, and being told
+  `serial_exists` while the quantity is also wrong hides the half they can fix.
+- **`409 import_in_progress` carries the existing `importId`** in the body, so
+  the client resumes that import instead of only being told no (07 §2).
+
 **Processing (owner decision 2026-07-19 — Cloudflare Queues; supersedes the
 external-service iterations):** the batch job runs in the backend's **own Queues
 consumer** (`11-processing-service.md`), same Worker deploy. The request path never
@@ -291,6 +333,15 @@ photos; the `manttio-equipment` precedent; own CDN base via env/secret like
 the single `manttio-wms` bucket split by `imports/`+`evidence/` prefixes: source-sheets
 and evidence now live in dedicated buckets.) Detail + asks: `07-replenishments.md` §4.
 
+**Declared 2026-08-24, NOT yet provisioned.** `wrangler.toml` now binds
+`MANTTIO_WMS_SHEETS` + `MANTTIO_WMS_EVIDENCE` (dev and production) and sets
+`WMS_EVIDENCE_CDN_BASE_URL`; `env.ts` types the evidence CDN base as **optional**
+for the same reason `IMAGES_CDN_BASE_URL` is — a tenant deploy without it stores
+the key and omits the URL rather than emitting `undefined/<key>`. The buckets
+themselves, the `manttio-wms-imports` queue + DLQ, and the paid plan are still
+ops asks; miniflare simulates all three locally, so the suite passes without
+them and only `wrangler deploy` is blocked.
+
 ## 9. Error-code index (module-wide)
 
 `invalid_parent` · `invalid_parent_type` · `duplicate_node_name` · `node_not_empty` ·
@@ -307,7 +358,7 @@ and evidence now live in dedicated buckets.) Detail + asks: `07-replenishments.m
 `warehouse_not_locatable` (the four added with the 2026-08-21 assignment/locatability
 columns) ·
 `same_location` · `note_required` · `invalid_idempotency_key` (2026-08-22, with the stock
-ops) — each a typed error in `wms/http-errors/`,
+ops) · `file_too_large` (2026-08-24, with the imports) — each a typed error in `wms/http-errors/`,
 mapped in the owning controller (400 validation · 403 role/scope · 404 missing ·
 409 conflict).
 
@@ -359,7 +410,20 @@ and movements.
       so `afterAll` soft-deletes the warehouses and materials and leaves their history
       behind, exactly as production does
 
-### CP-3 — Replenishments + report materials
+### CP-3 — Replenishments + report materials — **lifecycle leg done 2026-08-24**
+
+Landed: upload + field detection (csv/txt; **xlsx deferred to the processing
+slice**), process (mapping validation, `queued`, 202, last-mapping upsert),
+one-shot status read, staged-row PATCH + owner/admin row DELETE (reason
+required) + prep PATCH, reject (comment required) / resubmit / discard /
+owner-only cancel with their state gates, `GET .../audit`, and the settings
+key the mapper memory rides on. `test/wms-replenishments.test.ts` — 24 tests,
+prefix `wms-test-rp-`; the mapper-memory setting is a per-tenant singleton, so
+the suite snapshots and restores it per `backend/CLAUDE.md`.
+
+Still open below: the SSE stream, the queue consumer's half (11 CP-2), the
+approval promotion, and §7.
+
 - [ ] §6 import endpoints: upload + field detection (three formats, sample rows,
       `unparseable_file`), process (mapping validation, `queued` transition, 202),
       one-shot status read + SSE stream (change-emit, heartbeat, terminal close),

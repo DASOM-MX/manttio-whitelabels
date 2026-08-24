@@ -51,3 +51,34 @@ export enum ImportEventType {
   // Admin/owner confirmation → document created.
   Approved = 'approved',
 }
+
+// Why one staged row cannot be promoted as-is (10-wms/02 §6). Written by the
+// queue consumer at parse time and re-derived by the row PATCH, which is why
+// the rules live in one shared module (`helpers/import-rows.helpers.ts`)
+// rather than being spelled twice.
+//
+// TWO CLASSES, and the difference is what approval does with them:
+//   - FIXABLE (everything not listed as unprocessable) GATES approval —
+//     `409 import_has_errors` until the row is PATCHed clean.
+//   - UNPROCESSABLE promotes as a FLAGGED item: recorded in the document and
+//     visible for provider follow-up, but no movement, no unit, no stock
+//     effect (owner 2026-07-20).
+export enum RowErrorCode {
+  // No material matched the mapped code by SKU or by UPC.
+  UnknownSku = 'unknown_sku',
+  // Missing, unparseable, or non-positive quantity.
+  BadQuantity = 'bad_quantity',
+  MissingSerial = 'missing_serial',
+  // A lot-tracked material with no value in the mapped lot field.
+  MissingLot = 'missing_lot',
+  // The mapped expiry field held something that is not a date.
+  BadExpiry = 'bad_expiry',
+  // A serialized row is one physical piece, so a quantity other than 1 means
+  // the sheet is describing something the row cannot represent.
+  QuantityOnSerialized = 'quantity_on_serialized',
+  // Unprocessable — the serial repeats within the file (first occurrence
+  // processes, later ones are flagged).
+  DuplicateSerial = 'duplicate_serial',
+  // Unprocessable — the serial is already claimed in the database.
+  SerialExists = 'serial_exists',
+}

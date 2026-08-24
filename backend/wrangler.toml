@@ -21,6 +21,11 @@ LOGOS_CDN_BASE_URL = "https://logos.dasom.com"
 # yet. Optional in code — unset, the API omits image URLs rather than emitting
 # broken ones, so a tenant deploy without it degrades to text-only cards.
 IMAGES_CDN_BASE_URL = "https://images.dasom.com"
+# Public base of the `manttio-wms-evidence` bucket (replenishment evidence
+# photos). Repeated under [env.production.vars]: `vars` is not inheritable — a
+# production table replaces the top-level one wholesale, so anything missing
+# from it is undefined at deploy.
+WMS_EVIDENCE_CDN_BASE_URL = "https://wms.dasom.com"
 API_BASE_URL = "http://127.0.0.1:8787"
 PORTAL_BASE_URL = "http://127.0.0.1:4200"
 RESEND_FROM = "no-reply@dasom.com"
@@ -67,6 +72,29 @@ bucket_name = "manttio-images"
 binding = "MANTTIO_CONTRACTS"
 bucket_name = "manttio-contracts"
 
+# WMS import source sheets (10-wms/02 §8, owner 2026-07-20) — TRANSIENT: the
+# upload is a copy the tenant still holds, so the binary is purged once the
+# consumer has parsed it (01 §4) and only the key/name survive as the reference.
+# Private by design: no CDN base, nothing reads it but the queue consumer.
+[[r2_buckets]]
+binding = "MANTTIO_WMS_SHEETS"
+bucket_name = "manttio-wms-sheets"
+
+# WMS replenishment evidence photos — PERMANENT, and its own bucket for the same
+# reason equipment photos got one: different retention, different audience. Its
+# public base is WMS_EVIDENCE_CDN_BASE_URL (per-deploy, below).
+[[r2_buckets]]
+binding = "MANTTIO_WMS_EVIDENCE"
+bucket_name = "manttio-wms-evidence"
+
+# Import processing (11 §1). The message carries the import id only — the file
+# stays in R2 and the mapping in the DB, so the 128 KB cap is never in play.
+# Queues are ACCOUNT-level, so a second tenant on this account needs its own
+# queue name, exactly like the buckets above.
+[[queues.producers]]
+binding = "WMS_IMPORT_QUEUE"
+queue = "manttio-wms-imports"
+
 # 1 req/min per IP on POST /public/leads (Workers rate-limiting API). Best-effort
 # per-colo counting — an abuse dial, not a strict quota. Optional binding: the
 # controller fails open when it is absent.
@@ -83,6 +111,7 @@ ENVIRONMENT = "production"
 CDN_BASE_URL = "https://cdn.dasom.com"
 LOGOS_CDN_BASE_URL = "https://logos.dasom.com"
 IMAGES_CDN_BASE_URL = "https://images.dasom.com"
+WMS_EVIDENCE_CDN_BASE_URL = "https://wms.dasom.com"
 API_BASE_URL = "https://api.dasom.com"
 PORTAL_BASE_URL = "https://portal.dasom.com"
 RESEND_FROM = "no-reply@dasom.com"
@@ -107,6 +136,18 @@ bucket_name = "manttio-images"
 [[env.production.r2_buckets]]
 binding = "MANTTIO_CONTRACTS"
 bucket_name = "manttio-contracts"
+
+[[env.production.r2_buckets]]
+binding = "MANTTIO_WMS_SHEETS"
+bucket_name = "manttio-wms-sheets"
+
+[[env.production.r2_buckets]]
+binding = "MANTTIO_WMS_EVIDENCE"
+bucket_name = "manttio-wms-evidence"
+
+[[env.production.queues.producers]]
+binding = "WMS_IMPORT_QUEUE"
+queue = "manttio-wms-imports"
 
 [[env.production.unsafe.bindings]]
 name = "LEADS_RATE_LIMITER"
