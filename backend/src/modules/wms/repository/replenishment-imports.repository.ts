@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, lt } from 'drizzle-orm';
 import type { Db, DbOrTx } from '../../database/client';
 import { ReplenishmentImportStatus } from '../enums/replenishment-imports.enum';
 import { replenishmentImports } from '../models/replenishment-imports.model';
@@ -75,3 +75,25 @@ export const updateImportRow = async (
     .returning();
   return row ?? null;
 };
+
+/** Imports the retention sweep is allowed to clean up after (11 §4): the two
+ *  states that hold leftovers nobody will come back for. `confirmed` had its
+ *  rows deleted at approval and `cancelled` truncates its own in the cancel
+ *  transaction, so neither ever appears here. */
+export const listSweepableImports = async (db: Db, olderThan: Date) =>
+  db
+    .select({
+      id: replenishmentImports.id,
+      fileKey: replenishmentImports.fileKey,
+      fileDeletedAt: replenishmentImports.fileDeletedAt,
+    })
+    .from(replenishmentImports)
+    .where(
+      and(
+        inArray(replenishmentImports.status, [
+          ReplenishmentImportStatus.Stale,
+          ReplenishmentImportStatus.Failed,
+        ]),
+        lt(replenishmentImports.updatedAt, olderThan),
+      ),
+    );

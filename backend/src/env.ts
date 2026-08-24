@@ -66,6 +66,10 @@ export type Env = {
    *  emitting `undefined/<key>`. */
   WMS_EVIDENCE_CDN_BASE_URL?: string;
 
+  /** Days the daily sweep keeps an abandoned import's staged file and rows
+   *  (11 §4). Optional — unset or invalid falls back to 30. */
+  WMS_IMPORT_RETENTION_DAYS?: string;
+
   /** Transient bucket (`manttio-wms-sheets`) holding an uploaded import sheet
    *  between the upload request and the queue consumer that parses it. Private:
    *  no CDN base by design — nothing outside the Worker reads it, and the

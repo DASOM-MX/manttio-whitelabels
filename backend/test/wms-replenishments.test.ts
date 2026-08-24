@@ -759,26 +759,33 @@ describe('the lifecycle audit (02 §6)', () => {
       items: { type: string; actor?: { name: string }; reason?: string }[];
       total: number;
     }>(
-      await request(`/replenishments/imports/${imported.importId}/audit`, {
+      await request(`/replenishments/imports/${imported.importId}/audit?limit=100`, {
         headers: jsonHeaders(officeToken),
       }),
     );
-    expect(audit.total).toBe(3);
-    expect(audit.items.map((item) => item.type)).toEqual([
+
+    // Asserted over the events that HAVE an actor. A consumer is declared in
+    // wrangler.toml, so miniflare really delivers the queued message and the
+    // processor's system events (`processing_started`, `processed`) land in
+    // this same timeline at a moment nothing here controls — sometimes before
+    // this read, sometimes after. Those carry no actor by design, so filtering
+    // on that is both the deterministic cut and the thing this test is about.
+    const byHumans = audit.items.filter((item) => item.actor !== undefined);
+    expect(byHumans.map((item) => item.type)).toEqual([
       ImportEventType.Rejected,
       ImportEventType.MappingSubmitted,
       ImportEventType.Created,
     ]);
-    expect(audit.items[0]?.reason).toBe('revisar cantidades');
-    expect(audit.items[0]?.actor?.name).toBeTruthy();
+    expect(byHumans[0]?.reason).toBe('revisar cantidades');
+    expect(byHumans[0]?.actor?.name).toBeTruthy();
 
     const paged = await okJson<{ items: unknown[]; total: number }>(
       await request(`/replenishments/imports/${imported.importId}/audit?page=2&limit=2`, {
         headers: jsonHeaders(officeToken),
       }),
     );
-    expect(paged.total).toBe(3);
-    expect(paged.items).toHaveLength(1);
+    expect(paged.total).toBe(audit.total);
+    expect(paged.items.length).toBeGreaterThan(0);
   });
 
   test('technicians reach none of this', async () => {

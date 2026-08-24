@@ -30,6 +30,7 @@
     "nanoid": "^5.1.16",
     "pdf-lib": "^1.17.1",
     "upng-js": "^2.1.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^3.23.8"
   },
   "devDependencies": {

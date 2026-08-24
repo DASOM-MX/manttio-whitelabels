@@ -8,6 +8,11 @@ export const WMS_SETTING_KEYS = {
   // Days an unresolved reservation is held before the daily cron auto-returns
   // it to its source warehouse (owner 2026-07-21, 00 §6 #10).
   reservationAutoReturnDays: 'wms.reservation_auto_return_days',
+  // The CMS-manager who receives replenishment approval/failure warnings
+  // (owner 2026-07-20; 11 §2 step 4). Namespaced `notifications.` because the
+  // key belongs to that domain — it lodges in this store only until the
+  // notifications module grows one of its own (02 §1).
+  notificationsManagerUserId: 'notifications.manager_user_id',
   // Whether a physical-count session hides system quantities from the counter
   // (owner 2026-07-21, 00 §6 #29). Snapshotted onto the session at open.
   stockCountBlind: 'wms.stock_count_blind',
