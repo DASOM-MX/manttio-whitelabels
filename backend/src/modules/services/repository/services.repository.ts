@@ -10,6 +10,7 @@ import type {
   PublicServiceRow,
   ServiceEventDraft,
   ServiceEventRow,
+  ServiceOptionRow,
   ServiceRow,
   UpdateServiceFields,
 } from '../types/services.types';
@@ -56,6 +57,25 @@ export const listServices = async (db: Db, filters: { search?: string }): Promis
     .where(and(...conds))
     .orderBy(asc(services.name));
 };
+
+/** The whole active catalog, name-sorted — the unpaged read behind every
+ *  service picker (21 §3). Projected, never `select()`: `cost` is not among
+ *  the selected columns, so margin cannot reach a technician through this
+ *  route whatever the DTO layer does. */
+export const listServiceOptions = async (db: Db): Promise<ServiceOptionRow[]> =>
+  db
+    .select({
+      id: services.id,
+      name: services.name,
+      price: services.price,
+      uom: services.uom,
+      taxRate: services.taxRate,
+      internalServiceCode: services.internalServiceCode,
+      isReportSource: services.isReportSource,
+    })
+    .from(services)
+    .where(activeFilter)
+    .orderBy(asc(services.name));
 
 /** The website-listed subset (18 §4, CP-3). Only the columns the public page may
  *  ever see — `cost`, the SAT keys and the delete audit are never selected, so a

@@ -16,6 +16,7 @@ import {
   createService,
   editService,
   getServiceById,
+  getServiceOptions,
   getServices,
   getServiceTimeline,
   importServices,
@@ -47,6 +48,18 @@ services.get('/', zValidator('query', listServicesQuerySchema), async (c) => {
       isBackOfficeTier(c.get('user')),
       c.env.IMAGES_CDN_BASE_URL,
     ));
+});
+
+// The whole catalog for pickers (21 §3): a compact projection, unpaged by
+// contract. Deliberately NOT a GenericQueryResponse — no page, no limit, and a
+// `total` here could only ever be items.length. No cost tier to pass either:
+// the projection has no `cost` column at all, so margin can't leak to a
+// technician through this route.
+//
+// Declared before GET /:id so "all" is never captured as an id.
+services.get('/all', async (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  return c.json(await getServiceOptions(db));
 });
 
 services.get('/:id', async (c) => {

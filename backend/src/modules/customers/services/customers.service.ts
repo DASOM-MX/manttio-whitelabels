@@ -4,6 +4,7 @@ import {
   findCustomerById,
   findCustomerWithRelations,
   insertCustomerWithRelations,
+  listCustomerOptions,
   listCustomers,
   listRecentCustomers,
   updateCustomerWithRelations,
@@ -15,6 +16,7 @@ import { NotificationType } from '../../notifications/enums/notifications.enum';
 import { findUserById } from '../../users/repository/users.repository';
 import { displayName } from '../../users/utils/display-name';
 import type {
+  CustomerOption,
   CustomerRow,
   CustomerWithRelations,
   NewCustomer,
@@ -115,6 +117,13 @@ const auditBodyForEdit = (input: UpdateCustomerInput): string => {
 };
 
 export const getCustomers = async (db: Db): Promise<CustomerRow[]> => listCustomers(db);
+
+/** The whole roster for pickers (21 §3). Not a `GenericQueryResponse`: there is
+ *  no page, no limit, and a `total` here could only ever be `items.length` —
+ *  giving a roster a fake envelope is the mistake the generic exists to stop. */
+export const getCustomerOptions = async (
+  db: Db,
+): Promise<{ items: CustomerOption[] }> => ({ items: await listCustomerOptions(db) });
 
 /** Latest registered clients (utm-params 03 amendment — the Panel card). */
 export const getRecentCustomers = async (
