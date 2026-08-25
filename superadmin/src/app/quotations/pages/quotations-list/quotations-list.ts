@@ -14,7 +14,7 @@ import { hasRole } from '../../../guards/has-role.guard';
 import { QuotationSettingsDialog } from '../../components/quotation-settings-dialog/quotation-settings-dialog';
 import { LoadQuotations } from '../../../../state/quotations/quotations.actions';
 import { CustomersState } from '../../../../state/customers/customers.state';
-import { LoadCustomers } from '../../../../state/customers/customers.actions';
+import { LoadCustomerOptions } from '../../../../state/customers/customers.actions';
 import { ListQueryService, keyIn } from '../../../services/table/list-query.service';
 import { QUOTATION_STATUS_LABELS } from '../../../model/constants/quotation/quotation-status-labels.const';
 import { QuotationStatus } from '../../../model/enums/quotation/quotation-status.enum';
@@ -70,7 +70,7 @@ export class QuotationsList {
   protected quotations = select(QuotationsState.items);
   protected total = select(QuotationsState.total);
   protected loading = select(QuotationsState.loading);
-  private customers = select(CustomersState.items);
+  private customers = select(CustomersState.options);
 
   protected search = new FormControl('', { nonNullable: true });
   protected statusFilter = new FormControl<QuotationStatus | ''>('', { nonNullable: true });
@@ -104,7 +104,7 @@ export class QuotationsList {
   protected readonly skeletonColumns = [0, 1, 2, 3, 4, 5, 6];
 
   constructor() {
-    this.store.dispatch(new LoadCustomers({ page: 1, limit: 100 }));
+    this.store.dispatch(new LoadCustomerOptions());
     this.list.init({
       read: (params) => {
         this.search.setValue(params.get('q') ?? '', { emitEvent: false });

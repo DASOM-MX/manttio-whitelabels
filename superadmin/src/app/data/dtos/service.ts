@@ -109,6 +109,22 @@ export interface Service {
   deletedAt?: string;
 }
 
+/** `GET /services/all` (21 §3) — one entry of the whole active catalog, the
+ *  unpaged read every service picker uses. A projection of `Service`: the
+ *  label, the frozen line snapshot the builders compute from, the import
+ *  dedupe key and the explosion flag. `cost` is present only for back-office
+ *  readers — the backend omits the key entirely for technicians. */
+export interface ServiceOption {
+  id: string;
+  name: string;
+  price: string;
+  cost?: string;
+  uom: ServiceUom;
+  taxRate: ServiceTaxRate;
+  internalServiceCode?: string;
+  isReportSource: boolean;
+}
+
 /** The catalog is small enough to ship whole — search only, no pagination. */
 export interface ServiceListQuery {
   q?: string;

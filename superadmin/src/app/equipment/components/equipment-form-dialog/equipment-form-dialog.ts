@@ -9,7 +9,7 @@ import { LucideImagePlus, LucideX } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { CreateEquipment, UpdateEquipment } from '../../../../state/equipment/equipment.actions';
 import { CustomersState } from '../../../../state/customers/customers.state';
-import { LoadCustomers } from '../../../../state/customers/customers.actions';
+import { LoadCustomerOptions } from '../../../../state/customers/customers.actions';
 import { UploadService } from '../../../services/http/upload.service';
 import { EQUIPMENT_ORIGIN_LABELS } from '../../../model/constants/equipment/equipment-origin-labels.const';
 import { errorMessage } from '../../../data/utils';
@@ -56,7 +56,7 @@ export class EquipmentFormDialog {
     () => this.photos().length < MAX_PHOTOS && !this.uploadingPhoto(),
   );
 
-  private customers = select(CustomersState.items);
+  private customers = select(CustomersState.options);
 
   protected customerOptions = computed(() =>
     this.customers().map((c) => ({ label: c.name, value: c.id })),
@@ -86,7 +86,7 @@ export class EquipmentFormDialog {
     this.lockedCustomerId.set(options?.customerId ?? null);
     // Options pool for the client select when unlocked.
     if (!options?.customerId && !this.customers().length) {
-      this.store.dispatch(new LoadCustomers({ page: 1, limit: 100 }));
+      this.store.dispatch(new LoadCustomerOptions());
     }
     this.form.reset({
       customerId: options?.customerId ?? eq?.customerId ?? '',

@@ -10,6 +10,14 @@ export class LoadServices {
   constructor(public query: ServiceListQuery = {}) {}
 }
 
+/** The whole catalog for pickers (21 §3) — a separate action from
+ *  `LoadServices` on purpose: that one is the catalog browse and writes
+ *  `items`, this one writes `options`. Once CP-5 pages the browse, a picker
+ *  sharing `items` would silently see only page 1. */
+export class LoadServiceOptions {
+  static readonly type = '[Services] Load Options';
+}
+
 /** Hydrates the edit form page by id — the list ships whole, but a deep link
  *  or refresh on `/services/:id/edit` has no list to read from. */
 export class LoadService {

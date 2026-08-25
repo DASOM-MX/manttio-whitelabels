@@ -10,7 +10,7 @@ import { select, Store } from '@ngxs/store';
 import { EquipmentState } from '../../../../state/equipment/equipment.state';
 import { LoadEquipment } from '../../../../state/equipment/equipment.actions';
 import { CustomersState } from '../../../../state/customers/customers.state';
-import { LoadCustomers } from '../../../../state/customers/customers.actions';
+import { LoadCustomerOptions } from '../../../../state/customers/customers.actions';
 import { ListQueryService, keyIn } from '../../../services/table/list-query.service';
 import { EQUIPMENT_STATUS_LABELS } from '../../../model/constants/equipment/equipment-status-labels.const';
 import {
@@ -55,7 +55,7 @@ export class EquipmentList {
   protected equipment = select(EquipmentState.items);
   protected total = select(EquipmentState.total);
   protected loading = select(EquipmentState.loading);
-  private customers = select(CustomersState.items);
+  private customers = select(CustomersState.options);
 
   protected search = new FormControl('', { nonNullable: true });
   protected customerFilter = new FormControl('', { nonNullable: true });
@@ -75,7 +75,7 @@ export class EquipmentList {
   protected formDialog = viewChild<EquipmentFormDialog>('formDialog');
 
   constructor() {
-    this.store.dispatch(new LoadCustomers({ page: 1, limit: 100 }));
+    this.store.dispatch(new LoadCustomerOptions());
 
     this.list.init({
       read: (params) => {
