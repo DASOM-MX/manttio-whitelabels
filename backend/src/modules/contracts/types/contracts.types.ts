@@ -77,10 +77,3 @@ export interface ContractDTO {
   createdBy: string;
   createdAt: string;
 }
-
-export interface PagedContracts {
-  items: ContractDTO[];
-  total: number;
-  page: number;
-  limit: number;
-}

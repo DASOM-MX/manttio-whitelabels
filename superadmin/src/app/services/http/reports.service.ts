@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
-import type { PagedResponse } from '../../data/dtos/paged-response';
+import type { GenericQueryResponse } from '../../data/dtos/generic-query-response';
 import type {
   CustomerReport,
   DeleteReportRequest,
@@ -15,8 +15,8 @@ import type {
 export class ReportsService {
   private readonly remote = inject(RemoteService);
 
-  list(query: ReportListQuery): Observable<PagedResponse<ReportSummary>> {
-    return this.remote.get<PagedResponse<ReportSummary>>('/reports', {
+  list(query: ReportListQuery): Observable<GenericQueryResponse<ReportSummary>> {
+    return this.remote.get<GenericQueryResponse<ReportSummary>>('/reports', {
       page: query.page,
       limit: query.limit,
       search: query.search,

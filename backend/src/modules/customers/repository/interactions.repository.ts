@@ -12,6 +12,7 @@ import type {
   NewInteraction,
   RecentInteractionDTO,
 } from '../types/interactions.types';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
 const toDTO = (row: InteractionRowWithAuthor): InteractionDTO => ({
   id: row.id,
@@ -53,7 +54,7 @@ export const listInteractions = async (
   page: number,
   limit: number,
   ref: InteractionRefFilter = {},
-): Promise<{ items: InteractionDTO[]; total: number }> => {
+): Promise<GenericQueryResponse<InteractionDTO>> => {
   const conds = [eq(customerInteractions.customerId, customerId)];
   if (ref.refKind) conds.push(eq(customerInteractions.refKind, ref.refKind));
   if (ref.refId) conds.push(eq(customerInteractions.refId, ref.refId));
@@ -73,7 +74,7 @@ export const listInteractions = async (
     .from(customerInteractions)
     .where(where);
 
-  return { items: rows.map(toDTO), total: countRows[0]?.count ?? 0 };
+  return { items: rows.map(toDTO), total: countRows[0]?.count ?? 0, page, limit };
 };
 
 /** Tenant-wide latest activity across all customers (utm-params 03): newest

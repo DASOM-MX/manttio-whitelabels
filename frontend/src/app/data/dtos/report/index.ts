@@ -16,5 +16,4 @@ export type { DeletePicturesRequest } from './delete-pictures-request.dto';
 export type { ReportResponse } from './report-response.dto';
 export type { ReportHeaderResponse } from './report-header-response.dto';
 export type { ReportDetailsResponse } from './report-details-response.dto';
-export type { ReportListResponse } from './report-list-response.dto';
 export type { DeleteReportResponse } from './delete-report-response.dto';

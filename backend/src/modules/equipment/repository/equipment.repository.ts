@@ -10,6 +10,7 @@ import type {
   NewEquipment,
   UpdateEquipmentFields,
 } from '../types/equipment.types';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
 // A query executor: the pooled `Db` or a transaction handle.
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
@@ -45,7 +46,7 @@ export const listEquipment = async (
   filters: { search?: string; customerId?: string; status?: EquipmentStatus },
   page: number,
   limit: number,
-): Promise<{ items: EquipmentMetaRow[]; total: number }> => {
+): Promise<GenericQueryResponse<EquipmentMetaRow>> => {
   const conds = [activeFilter];
   if (filters.customerId) conds.push(eq(equipment.customerId, filters.customerId));
   if (filters.status) conds.push(eq(equipment.status, filters.status));
@@ -75,7 +76,7 @@ export const listEquipment = async (
     .from(equipment)
     .where(where);
 
-  return { items, total: countRows[0]?.count ?? 0 };
+  return { items, total: countRows[0]?.count ?? 0, page, limit };
 };
 
 /** Which of these equipment ids actually belong to the customer, ignoring

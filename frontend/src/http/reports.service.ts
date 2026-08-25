@@ -6,8 +6,10 @@ import type {
   CreateReportFields, UpdateReportRequest, UpdateAssigneeRequest,
   AddSignatureFields, DeletePicturesRequest,
   ReportResponse, ReportHeaderResponse, ReportDetailsResponse,
-  ReportListResponse, DeleteReportResponse,
+  DeleteReportResponse,
 } from '../app/data/dtos/report';
+import type { ReportRow } from '../app/data/dtos/report/report-row.dto';
+import type { GenericQueryResponse } from '../app/data/dtos/generic-query-response.dto';
 import type {
   SendReportEmailRequest, SendReportEmailResponse,
   ReportEmailListResponse, RevokeEmailResponse,
@@ -22,8 +24,8 @@ const appendIf = (fd: FormData, k: string, v: unknown): void => {
 export class ReportsService {
   private readonly remote = inject(RemoteService);
 
-  list(query?: ReportListQuery): Observable<ReportListResponse> {
-    return this.remote.get<ReportListResponse>('/reports', query as Record<string, string | undefined> | undefined);
+  list(query?: ReportListQuery): Observable<GenericQueryResponse<ReportRow>> {
+    return this.remote.get<GenericQueryResponse<ReportRow>>('/reports', query as Record<string, string | undefined> | undefined);
   }
   get(id: string): Observable<ReportResponse> {
     return this.remote.get<ReportResponse>(`/reports/${id}`);

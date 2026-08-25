@@ -181,11 +181,7 @@ customers.get('/:id/interactions', zValidator('query', listInteractionsQuerySche
   const { page, limit, refKind, refId } = c.req.valid('query');
   // `refKind`/`refId` narrow the feed to one linked entity's trail — what a
   // contract's audit card reads (13 §6). Unfiltered, this is the full timeline.
-  const { items, total } = await getInteractions(db, c.req.param('id'), page, limit, {
-    refKind,
-    refId,
-  });
-  return c.json({ items, total, page, limit });
+  return c.json(await getInteractions(db, c.req.param('id'), page, limit, { refKind, refId }));
 });
 
 // Log a manual touch (call/whatsapp/email/visit/note). `system` is rejected by

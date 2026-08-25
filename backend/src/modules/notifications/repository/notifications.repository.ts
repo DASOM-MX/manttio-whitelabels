@@ -2,7 +2,12 @@ import { and, asc, desc, eq, gt, lt, sql } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { notifications } from '../models/notifications.model';
 import { NotificationStatus } from '../enums/notifications.enum';
-import type { NewNotification, NotificationRow, NotificationView } from '../types/notifications.types';
+import type {
+  NewNotification,
+  NotificationQueryResponse,
+  NotificationRow,
+  NotificationView,
+} from '../types/notifications.types';
 
 // Every read/mutation here is scoped to one recipient — a user only ever sees
 // or flips their own rows (plan §2.2); the service never widens this.
@@ -52,7 +57,7 @@ export const listNotifications = async (
   page: number,
   limit: number,
   status?: NotificationStatus,
-): Promise<{ items: NotificationView[]; total: number; unreadCount: number }> => {
+): Promise<NotificationQueryResponse> => {
   const scope = status
     ? and(eq(notifications.recipientUserId, recipientUserId), eq(notifications.status, status))
     : eq(notifications.recipientUserId, recipientUserId);
@@ -73,6 +78,8 @@ export const listNotifications = async (
   return {
     items: rows.map(toView),
     total: countRows[0]?.count ?? 0,
+    page,
+    limit,
     unreadCount: await countUnread(db, recipientUserId),
   };
 };

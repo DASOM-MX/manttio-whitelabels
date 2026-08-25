@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
-import type { PagedResponse } from '../../data/dtos/paged-response';
+import type { GenericQueryResponse } from '../../data/dtos/generic-query-response';
 import { CustomerSource, CustomerStatus } from '../../data/dtos/customer';
 import type {
   Customer,
@@ -26,7 +26,7 @@ import type {
 export class CustomersService {
   private readonly remote = inject(RemoteService);
 
-  list(query: CustomerListQuery): Observable<PagedResponse<Customer>> {
+  list(query: CustomerListQuery): Observable<GenericQueryResponse<Customer>> {
     return this.remote
       .get<CustomerListResponse>('/customers', {
         page: query.page,
@@ -75,8 +75,8 @@ export class CustomersService {
   listInteractions(
     id: string,
     query: InteractionListQuery = {},
-  ): Observable<PagedResponse<Interaction>> {
-    return this.remote.get<PagedResponse<Interaction>>(`/customers/${id}/interactions`, {
+  ): Observable<GenericQueryResponse<Interaction>> {
+    return this.remote.get<GenericQueryResponse<Interaction>>(`/customers/${id}/interactions`, {
       page: query.page ?? 1,
       limit: query.limit ?? 10,
       refKind: query.refKind,
@@ -104,7 +104,7 @@ export class CustomersService {
   /** Legacy-backend interop (07 — backend customers migration pending): accept
    *  both the target paged envelope and today's `{ customers }` list, so the
    *  store always holds the target contract. */
-  private toPage(res: CustomerListResponse): PagedResponse<Customer> {
+  private toPage(res: CustomerListResponse): GenericQueryResponse<Customer> {
     if ('customers' in res) {
       const items = res.customers.map((row) => this.normalize(row));
       return { items, total: items.length, page: 1, limit: items.length };

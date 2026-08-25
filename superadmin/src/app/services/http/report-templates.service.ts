@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
-import type { PagedResponse } from '../../data/dtos/paged-response';
+import type { GenericQueryResponse } from '../../data/dtos/generic-query-response';
 import type {
   ReportTemplate,
   SaveTemplateRequest,
@@ -14,8 +14,8 @@ import type {
 export class ReportTemplatesService {
   private readonly remote = inject(RemoteService);
 
-  list(query: TemplateListQuery = {}): Observable<PagedResponse<ReportTemplate>> {
-    return this.remote.get<PagedResponse<ReportTemplate>>('/report-templates', {
+  list(query: TemplateListQuery = {}): Observable<GenericQueryResponse<ReportTemplate>> {
+    return this.remote.get<GenericQueryResponse<ReportTemplate>>('/report-templates', {
       page: query.page,
       limit: query.limit,
       status: query.status,

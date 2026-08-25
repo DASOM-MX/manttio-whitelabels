@@ -50,6 +50,7 @@ import type {
   ServiceOrderReportDTO,
   ServiceOrderRow,
 } from '../types/service-orders.types';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
 const activeFilter = isNull(serviceOrders.deletedAt);
 
@@ -162,7 +163,7 @@ export const listServiceOrders = async (
   filters: ServiceOrderFilters,
   page: number,
   limit: number,
-): Promise<{ items: OrderHeaderRow[]; total: number }> => {
+): Promise<GenericQueryResponse<OrderHeaderRow>> => {
   const where = buildFilters(filters);
 
   const rows = await db
@@ -180,7 +181,7 @@ export const listServiceOrders = async (
     .from(serviceOrders)
     .where(where);
 
-  return { items: rows.map(toHeader), total: countRows[0]?.count ?? 0 };
+  return { items: rows.map(toHeader), total: countRows[0]?.count ?? 0, page, limit };
 };
 
 export const findServiceOrderById = async (

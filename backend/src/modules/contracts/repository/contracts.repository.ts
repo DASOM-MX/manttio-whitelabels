@@ -21,6 +21,7 @@ import type {
   UpdateContractFields,
 } from '../types/contracts.types';
 import type { ListContractsQuery } from '../validators/contracts.validator';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
 const activeFilter = isNull(contracts.deletedAt);
 
@@ -100,7 +101,7 @@ export const listContracts = async (
   db: Db,
   q: ListContractsQuery,
   role: Role,
-): Promise<{ items: ContractMetaRow[]; total: number }> => {
+): Promise<GenericQueryResponse<ContractMetaRow>> => {
   const where = and(...listConditions(q, role));
 
   const items = await db
@@ -118,7 +119,7 @@ export const listContracts = async (
     .from(contracts)
     .where(where);
 
-  return { items, total: countRows[0]?.count ?? 0 };
+  return { items, total: countRows[0]?.count ?? 0, page: q.page, limit: q.limit };
 };
 
 /** Read one contract, role-scoped. A contract the caller may not see reads as

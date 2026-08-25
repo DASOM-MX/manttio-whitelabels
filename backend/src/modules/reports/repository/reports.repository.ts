@@ -15,6 +15,7 @@ import type {
   ReportSummaryRow,
   SignedLocation,
 } from '../types/reports.types';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
 const activeFilter = isNull(reports.deletedAt);
 
@@ -31,7 +32,7 @@ export const listReports = async (
   db: Db,
   filters: ReportFilters = {},
   opts: { page: number; limit: number },
-): Promise<{ items: ReportSummaryRow[]; total: number }> => {
+): Promise<GenericQueryResponse<ReportSummaryRow>> => {
   const conds = [activeFilter];
   if (filters.status) conds.push(eq(reports.status, filters.status));
   if (filters.clientId) conds.push(eq(reports.clientId, filters.clientId));
@@ -94,7 +95,7 @@ export const listReports = async (
     .leftJoin(users, eq(users.id, reports.assignedTo))
     .where(where);
 
-  return { items, total: count?.total ?? 0 };
+  return { items, total: count?.total ?? 0, page: opts.page, limit: opts.limit };
 };
 
 /** Compact, technician-named report list for one customer (customer 360

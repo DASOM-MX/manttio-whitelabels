@@ -42,8 +42,3 @@ export interface ReportTemplate {
   createdAt: string;
   updatedAt: string;
 }
-
-export interface ReportTemplateListResponse {
-  items: ReportTemplate[];
-  total: number;
-}

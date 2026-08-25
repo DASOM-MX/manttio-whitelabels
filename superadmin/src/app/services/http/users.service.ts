@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
-import type { PagedResponse } from '../../data/dtos/paged-response';
+import type { GenericQueryResponse } from '../../data/dtos/generic-query-response';
 import type {
   AssignableUser,
   CreateUserRequest,
@@ -17,8 +17,8 @@ import type {
 export class UsersService {
   private readonly remote = inject(RemoteService);
 
-  list(query: UserListQuery): Observable<PagedResponse<User>> {
-    return this.remote.get<PagedResponse<User>>('/users', {
+  list(query: UserListQuery): Observable<GenericQueryResponse<User>> {
+    return this.remote.get<GenericQueryResponse<User>>('/users', {
       page: query.page,
       limit: query.limit,
       search: query.search,
