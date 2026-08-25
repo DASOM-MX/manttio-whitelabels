@@ -1,6 +1,6 @@
 # 21 — List pagination (clients + catalog server-side paging)
 
-> **Status:** in progress — CP-1 + CP-2 done 2026-08-25, CP-3…CP-6 pending
+> **Status:** in progress — CP-1…CP-3 done 2026-08-25, CP-4…CP-6 pending
 > **Depends on:** 07 (clients), 18 (services) · **Touches:** `backend/`, `superadmin/`, `frontend/`
 > **Owner:** — · **Last updated:** 2026-08-25
 
@@ -394,14 +394,26 @@ CP-4 is only safe once CP-3 has removed every dependency on the unpaged endpoint
 - [x] Existing routes untouched — nothing in either app changes yet. `GET /customers` still
       returns `{ customers }` unpaged; `GET /services` still returns `{ services }`.
 
-### CP-3 — Migrate every picker onto the roster endpoints
-- [ ] `CustomersState.options` + `LoadCustomerOptions`; `ServicesState.options` + `LoadServiceOptions`
-- [ ] Superadmin pickers moved off `LoadCustomers({ page: 1, limit: 100 })` / `list({})`:
+### CP-3 — Migrate every picker onto the roster endpoints — **done 2026-08-25**
+- [x] `CustomersState.options` + `LoadCustomerOptions`; `ServicesState.options` + `LoadServiceOptions`,
+      backed by `listOptions()` on both http services. `items` is now read only by the two
+      list pages that own it.
+- [x] Superadmin pickers moved off `LoadCustomers({ page: 1, limit: 100 })` / `list({})`:
       contracts-list, quotations-list, quotation-builder, equipment-list,
       equipment-form-dialog, service-order-builder, service-import
-- [ ] Field app `customers.service.ts` + `customers.state.ts` → `/customers/all`, `{ items }`
-- [ ] `contract-form`'s incremental `p-select` left alone — it is already correct
-- [ ] After this CP, **nothing depends on `GET /customers` being unpaged**
+- [x] Field app `customers.service.ts` + `customers.state.ts` → `/customers/all`, `{ items }`;
+      the directory keeps its client-side paginator over the complete roster
+- [x] `contract-form`'s incremental `p-select` left alone — it is already correct
+- [x] After this CP, **nothing depends on `GET /customers` being unpaged** — the only
+      remaining `/customers` call in the field app is the create POST
+
+**Decision (owner, 2026-08-25):** the field app gets its own `CustomerOption` DTO
+(`data/dtos/customer/customer-option.dto.ts`) mirroring the backend projection, and
+`CustomersStateModel.entities` / `ids` / `list` are retyped to it; `selected` stays the full
+`CustomerRow` from `GET /customers/:id`. `contactName` and `status` are optional on it so the
+full row still satisfies the entity map. The alternative — widening the backend projection so
+`CustomerRow` stayed truthful — was rejected: the roster is unpaged, so every column on it is
+paid for on every load. `CustomerListResponse` (`{ customers }`) is deleted with the change.
 
 ### CP-4 — Paginate + filter `GET /customers` (the bug fix)
 - [ ] `listCustomersQuerySchema` (page/limit/search/status/source/tags)
