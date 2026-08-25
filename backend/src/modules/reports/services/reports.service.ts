@@ -205,9 +205,7 @@ export const listReportsForUser = async (
     filters.assignedTo = user.id;
   }
 
-  const { items, total } = await listReports(db, filters, { page: q.page, limit: q.limit });
-
-  return { status: 200, body: { items, total, page: q.page, limit: q.limit } };
+  return { status: 200, body: await listReports(db, filters, { page: q.page, limit: q.limit }) };
 };
 
 export const getReportForUser = async (

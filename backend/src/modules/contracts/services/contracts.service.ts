@@ -23,9 +23,9 @@ import type {
   ContractEquipmentLink,
   ContractFile,
   ContractRow,
-  PagedContracts,
   UpdateContractFields,
 } from '../types/contracts.types';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 import { ContractValidity } from '../enums/contracts.enum';
 import { ContractVisibilityForbiddenError } from '../http-errors/contract-visibility-forbidden.error';
 import { ContractEquipmentMismatchError } from '../http-errors/contract-equipment-mismatch.error';
@@ -126,9 +126,9 @@ export const getContracts = async (
   db: Db,
   q: ListContractsQuery,
   user: AuthUser,
-): Promise<PagedContracts> => {
-  const { items, total } = await listContracts(db, q, user.role);
-  return { items: await toPageDTOs(db, items), total, page: q.page, limit: q.limit };
+): Promise<GenericQueryResponse<ContractDTO>> => {
+  const page = await listContracts(db, q, user.role);
+  return { ...page, items: await toPageDTOs(db, page.items) };
 };
 
 /** Unpaged card feeds for the customer 360 (07) and the order view (19 §5).

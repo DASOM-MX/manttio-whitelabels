@@ -1,5 +1,5 @@
 import type { Customer } from './customer';
-import type { PagedResponse } from './paged-response';
+import type { GenericQueryResponse } from './generic-query-response';
 
 /** Interop shapes for today's backend (07-clients.md — backend customers
  *  migration pending): the live API still answers the field-app contract —
@@ -12,5 +12,5 @@ export type LegacyCustomerRow = Omit<Customer, 'contacts' | 'tags' | 'status' | 
 export type CustomerResponse = LegacyCustomerRow | { customer: LegacyCustomerRow };
 
 export type CustomerListResponse =
-  | PagedResponse<LegacyCustomerRow>
+  | GenericQueryResponse<LegacyCustomerRow>
   | { customers: LegacyCustomerRow[] };

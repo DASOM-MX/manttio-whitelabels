@@ -7,7 +7,7 @@ import type { SseEvent } from '../sse';
 import type {
   Notification,
   NotificationListQuery,
-  NotificationListResponse,
+  NotificationQueryResponse,
 } from '../../data/dtos/notification';
 
 @Injectable({ providedIn: 'root' })
@@ -15,8 +15,8 @@ export class NotificationsService {
   private readonly remote = inject(RemoteService);
   private readonly base = environment.apiUrl.replace(/\/$/, '');
 
-  list(query: NotificationListQuery = {}): Observable<NotificationListResponse> {
-    return this.remote.get<NotificationListResponse>('/notifications', {
+  list(query: NotificationListQuery = {}): Observable<NotificationQueryResponse> {
+    return this.remote.get<NotificationQueryResponse>('/notifications', {
       page: query.page,
       limit: query.limit,
       status: query.status,

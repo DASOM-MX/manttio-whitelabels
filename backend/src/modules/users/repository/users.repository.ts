@@ -3,6 +3,7 @@ import type { Db } from '../../database/client';
 import { users } from '../models/users.model';
 import type { Role } from '../enums/users.enum';
 import type { NewUser, UpdateUserFields, UserRow } from '../types/users.types';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
 const activeFilter = isNull(users.deletedAt);
 
@@ -29,7 +30,7 @@ export const findUserById = async (db: Db, id: string) => {
 export const listUsersPaged = async (
   db: Db,
   query: { page: number; limit: number; search?: string; role?: Role },
-): Promise<{ rows: UserRow[]; total: number }> => {
+): Promise<GenericQueryResponse<UserRow>> => {
   const filters: SQL[] = [activeFilter];
   if (query.role) filters.push(eq(users.role, query.role));
   if (query.search) {
@@ -44,7 +45,7 @@ export const listUsersPaged = async (
   }
   const where = and(...filters);
 
-  const rows = await db
+  const items = await db
     .select()
     .from(users)
     .where(where)
@@ -54,7 +55,7 @@ export const listUsersPaged = async (
 
   const countRows = await db.select({ count: sql<number>`count(*)::int` }).from(users).where(where);
 
-  return { rows, total: countRows[0]?.count ?? 0 };
+  return { items, total: countRows[0]?.count ?? 0, page: query.page, limit: query.limit };
 };
 
 /** Active users holding any of the given roles — the notifications module's

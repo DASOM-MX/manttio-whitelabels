@@ -3,6 +3,7 @@ import type { Db } from '../../database/client';
 import { reportTemplates } from '../models/report-templates.model';
 import type { NewReportTemplate, ReportTemplateRow, TemplateSection } from '../types/report-templates.types';
 import type { TemplateStatus } from '../enums/report-templates.enum';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
 export const findTemplateById = async (db: Db, id: string): Promise<ReportTemplateRow | null> => {
   const rows = await db.select().from(reportTemplates).where(eq(reportTemplates.id, id)).limit(1);
@@ -12,7 +13,7 @@ export const findTemplateById = async (db: Db, id: string): Promise<ReportTempla
 export const listTemplates = async (
   db: Db,
   opts: { status?: TemplateStatus; page: number; limit: number },
-): Promise<{ items: ReportTemplateRow[]; total: number; page: number; limit: number }> => {
+): Promise<GenericQueryResponse<ReportTemplateRow>> => {
   const where: SQL | undefined = opts.status ? eq(reportTemplates.status, opts.status) : undefined;
   const items = await db
     .select()

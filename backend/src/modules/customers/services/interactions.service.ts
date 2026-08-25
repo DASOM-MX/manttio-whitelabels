@@ -23,6 +23,7 @@ import type {
   RecentInteractionDTO,
 } from '../types/interactions.types';
 import type { AddInteractionInput, ChangeStatusInput } from '../validators/interactions.validator';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
 export const getInteractions = async (
   db: Db,
@@ -30,7 +31,7 @@ export const getInteractions = async (
   page: number,
   limit: number,
   ref: InteractionRefFilter = {},
-): Promise<{ items: InteractionDTO[]; total: number }> =>
+): Promise<GenericQueryResponse<InteractionDTO>> =>
   listInteractions(db, customerId, page, limit, ref);
 
 /** Tenant-wide latest activity (utm-params 03 — owner/admin dashboard feed). */

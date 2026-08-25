@@ -1,6 +1,7 @@
 import type { notifications } from '../models/notifications.model';
 import type { Role } from '../../users/enums/users.enum';
 import type { NotificationType } from '../enums/notifications.enum';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
 export type NotificationRow = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;
@@ -36,3 +37,11 @@ export type NotificationView = {
   readAt: Date | null;
   createdAt: Date;
 };
+
+/** `GET /notifications` (plan §2.2) — the paged list the bell opens with, plus
+ *  the badge count. Derived from the shared envelope rather than intersected at
+ *  the use site (21 §2): `unreadCount` counts the whole recipient scope, so it
+ *  is independent of `page`/`status` and NOT derivable from `items` or `total`. */
+export interface NotificationQueryResponse extends GenericQueryResponse<NotificationView> {
+  unreadCount: number;
+}

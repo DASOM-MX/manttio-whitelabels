@@ -42,9 +42,7 @@ const idSchema = z.string().uuid();
 // every money field for them.
 serviceOrders.get('/', zValidator('query', listServiceOrdersQuerySchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  const { page, limit } = c.req.valid('query');
-  const { items, total } = await getServiceOrders(db, c.get('user'), c.req.valid('query'));
-  return c.json({ items, total, page, limit });
+  return c.json(await getServiceOrders(db, c.get('user'), c.req.valid('query')));
 });
 
 serviceOrders.get('/:id', async (c) => {
@@ -88,7 +86,7 @@ serviceOrders.get('/:id/timeline', zValidator('query', listTimelineQuerySchema),
   const { page, limit } = c.req.valid('query');
   const timeline = await getServiceOrderTimeline(db, id.data, page, limit);
   if (!timeline) return c.json({ error: 'not_found' }, 404);
-  return c.json({ items: timeline.items, total: timeline.total, page, limit });
+  return c.json(timeline);
 });
 
 // Booking work is the back office's day job, so office is in — technicians are

@@ -22,8 +22,10 @@ import type {
   QuotationLineRow,
   QuotationRecipientRow,
   QuotationRow,
+  QuotationWithCustomer,
   UpdateQuotationFields,
 } from '../types/quotations.types';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
 // Anything that can run a query: the pool client, or a transaction handle.
 // Event appends and status writes are called from both — inside a transaction
@@ -251,7 +253,7 @@ export const listQuotations = async (
   },
   page: number,
   limit: number,
-): Promise<{ items: { quotation: QuotationRow; customerName: string }[]; total: number }> => {
+): Promise<GenericQueryResponse<QuotationWithCustomer>> => {
   const conds = [activeFilter];
   if (filters.customerId) conds.push(eq(quotations.customerId, filters.customerId));
   if (filters.status) conds.push(eq(quotations.status, filters.status));
@@ -294,7 +296,7 @@ export const listQuotations = async (
       .where(where),
   ]);
 
-  return { items, total: totalRow?.value ?? 0 };
+  return { items, total: totalRow?.value ?? 0, page, limit };
 };
 
 /** Upsert on (quotationId, contactId): a re-send updates the existing row and

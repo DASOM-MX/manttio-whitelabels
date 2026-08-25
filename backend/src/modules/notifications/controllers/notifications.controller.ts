@@ -34,13 +34,7 @@ const idSchema = z.string().uuid();
 // from): paged, newest first, badge count folded in.
 notifications.get('/', zValidator('query', listNotificationsQuerySchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  const { page, limit, status } = c.req.valid('query');
-  const { items, total, unreadCount } = await getNotifications(db, c.get('user').id, {
-    page,
-    limit,
-    status,
-  });
-  return c.json({ items, total, unreadCount, page, limit });
+  return c.json(await getNotifications(db, c.get('user').id, c.req.valid('query')));
 });
 
 // Live delivery (plan §2.2): session-length per-user SSE — stays open until

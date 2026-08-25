@@ -13,6 +13,7 @@ import { toPublicUser, type PublicUser } from '../dtos/users.dto';
 import { PASSWORD_RESET_PAIRINGS } from '../enums/users.enum';
 import { generateTempPassword } from '../utils/temp-password';
 import type { UpdateUserFields } from '../types/users.types';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 import type {
   CreateUserInput,
   ListUsersQuery,
@@ -39,14 +40,14 @@ export const getUserById = async (db: Db, id: string): Promise<PublicUser | null
 export const getUsersPaged = async (
   db: Db,
   query: ListUsersQuery,
-): Promise<{ items: PublicUser[]; total: number; page: number; limit: number }> => {
+): Promise<GenericQueryResponse<PublicUser>> => {
   // No deactivation column yet (05's pending leg): everyone listed is active,
   // so filtering for inactive users truthfully matches nothing.
   if (query.active === 'false') {
     return { items: [], total: 0, page: query.page, limit: query.limit };
   }
-  const { rows, total } = await listUsersPaged(db, query);
-  return { items: rows.map(toPublicUser), total, page: query.page, limit: query.limit };
+  const page = await listUsersPaged(db, query);
+  return { ...page, items: page.items.map(toPublicUser) };
 };
 
 // Temp-password model (backend plan §1): with no password supplied, generate

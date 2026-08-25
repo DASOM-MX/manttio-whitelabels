@@ -26,6 +26,7 @@ import type {
   UpdateEquipmentFields,
 } from '../types/equipment.types';
 import { ReportCustomerMismatchError } from '../http-errors/equipment.error';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
 const opt = <T>(v: T | null | undefined): T | undefined => (v == null ? undefined : v);
 
@@ -95,14 +96,14 @@ const collectUpdate = (input: UpdateEquipmentInput): UpdateEquipmentFields => {
 export const getEquipment = async (
   db: Db,
   q: ListEquipmentQuery,
-): Promise<{ items: EquipmentDTO[]; total: number; page: number; limit: number }> => {
-  const { items, total } = await listEquipment(
+): Promise<GenericQueryResponse<EquipmentDTO>> => {
+  const page = await listEquipment(
     db,
     { search: q.search, customerId: q.customerId, status: q.status },
     q.page,
     q.limit,
   );
-  return { items: items.map(metaToDTO), total, page: q.page, limit: q.limit };
+  return { ...page, items: page.items.map(metaToDTO) };
 };
 
 export const getCustomerEquipment = async (

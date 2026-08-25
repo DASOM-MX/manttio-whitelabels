@@ -7,6 +7,7 @@ import type {
   NewServiceOrderEvent,
   ServiceOrderEventDTO,
 } from '../types/service-orders.types';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
 /** Append one entry to an order's timeline (19 §7).
  *
@@ -43,7 +44,7 @@ export const listOrderEvents = async (
   serviceOrderId: string,
   page: number,
   limit: number,
-): Promise<{ items: ServiceOrderEventDTO[]; total: number }> => {
+): Promise<GenericQueryResponse<ServiceOrderEventDTO>> => {
   const rows = await db
     .select({
       id: serviceOrderEvents.id,
@@ -86,5 +87,5 @@ export const listOrderEvents = async (
     createdAt: row.createdAt.toISOString(),
   }));
 
-  return { items, total: countRows[0]?.count ?? 0 };
+  return { items, total: countRows[0]?.count ?? 0, page, limit };
 };

@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
-import type { PagedResponse } from '../../data/dtos/paged-response';
+import type { GenericQueryResponse } from '../../data/dtos/generic-query-response';
 import type { Contract } from '../../data/dtos/contract/contract';
 import type {
   ContractListQuery,
@@ -31,8 +31,8 @@ const setText = (fd: FormData, key: string, value: string | undefined): void => 
 export class ContractsService {
   private readonly remote = inject(RemoteService);
 
-  list(query: ContractListQuery): Observable<PagedResponse<Contract>> {
-    return this.remote.get<PagedResponse<Contract>>('/contracts', {
+  list(query: ContractListQuery): Observable<GenericQueryResponse<Contract>> {
+    return this.remote.get<GenericQueryResponse<Contract>>('/contracts', {
       page: query.page,
       limit: query.limit,
       search: query.search,

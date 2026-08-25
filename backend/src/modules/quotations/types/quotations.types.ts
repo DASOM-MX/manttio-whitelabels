@@ -22,6 +22,15 @@ export type NewQuotationRecipient = typeof quotationRecipients.$inferInsert;
 export type QuotationEventRow = typeof quotationEvents.$inferSelect;
 export type NewQuotationEvent = typeof quotationEvents.$inferInsert;
 
+/** A quotation joined to its customer's display name — the row shape every
+ *  quotation read that renders a client label returns. The name lives on
+ *  `customers`, so the join is unavoidable; naming the pair keeps it out of
+ *  inline positions inside `GenericQueryResponse<T>`. */
+export interface QuotationWithCustomer {
+  quotation: QuotationRow;
+  customerName: string;
+}
+
 /** Draft-only mutations (20 §9 — `PATCH` 409s once sent). Lines are replaced
  *  wholesale rather than patched field-by-field: a quote's line set is one
  *  editorial unit, and diffing it would invite partial states no reviewer ever

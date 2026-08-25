@@ -70,6 +70,7 @@ import type {
   SendQuotationInput,
   UpdateQuotationInput,
 } from '../validators/quotations.validator';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
 const opt = <T>(v: T | null | undefined): T | undefined => v ?? undefined;
 
@@ -241,14 +242,14 @@ const loadDetail = async (db: Db, id: string): Promise<QuotationDetailDTO | null
 export const getQuotations = async (
   db: Db,
   query: ListQuotationsQuery,
-): Promise<{ items: QuotationSummaryDTO[]; total: number }> => {
-  const { items, total } = await listQuotations(
+): Promise<GenericQueryResponse<QuotationSummaryDTO>> => {
+  const page = await listQuotations(
     db,
     { search: query.q, customerId: query.customerId, status: query.status, due: query.due },
     query.page,
     query.limit,
   );
-  const ids = items.map((i) => i.quotation.id);
+  const ids = page.items.map((i) => i.quotation.id);
   // Two bulk queries for the whole page — the alternative is 2N round trips.
   const [lines, recipients] = await Promise.all([
     listLinesForQuotations(db, ids),
@@ -267,7 +268,8 @@ export const getQuotations = async (
     else recipientsByQuotation.set(recipient.quotationId, [recipient]);
   }
   return {
-    items: items.map((i) =>
+    ...page,
+    items: page.items.map((i) =>
       toSummaryDTO(
         i.quotation,
         i.customerName,
@@ -275,7 +277,6 @@ export const getQuotations = async (
         recipientsByQuotation.get(i.quotation.id) ?? [],
       ),
     ),
-    total,
   };
 };
 

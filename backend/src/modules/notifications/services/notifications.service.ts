@@ -22,7 +22,12 @@ import {
 } from '../constants/stream-timing';
 import { NotificationNotFoundError } from '../http-errors/notification-not-found.error';
 import type { ListNotificationsQuery } from '../validators/notifications.validator';
-import type { NotificationRow, NotificationView, NotifyInput } from '../types/notifications.types';
+import type {
+  NotificationQueryResponse,
+  NotificationRow,
+  NotificationView,
+  NotifyInput,
+} from '../types/notifications.types';
 
 /** The one entry point callers use. Resolves recipients (direct user wins
  *  over role broadcast), then inserts one per-user row — the insert alone
@@ -88,7 +93,11 @@ export const notifyBestEffort = async (db: Db, input: NotifyInput): Promise<void
   }
 };
 
-export const getNotifications = (db: Db, userId: string, query: ListNotificationsQuery) =>
+export const getNotifications = (
+  db: Db,
+  userId: string,
+  query: ListNotificationsQuery,
+): Promise<NotificationQueryResponse> =>
   listNotifications(db, userId, query.page, query.limit, query.status);
 
 /** Idempotent; a missing or foreign id throws NotificationNotFoundError. */

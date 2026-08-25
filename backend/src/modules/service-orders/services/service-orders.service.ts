@@ -38,6 +38,7 @@ import type {
   ServiceOrderLineRow,
   ServiceOrderReportDTO,
 } from '../types/service-orders.types';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
 const opt = <T>(v: T | null | undefined): T | undefined => (v == null ? undefined : v);
 
@@ -104,8 +105,8 @@ export const getServiceOrders = async (
   db: Db,
   user: AuthUser,
   q: ListServiceOrdersQuery,
-): Promise<{ items: ServiceOrderDTO[]; total: number }> => {
-  const { items, total } = await listServiceOrders(
+): Promise<GenericQueryResponse<ServiceOrderDTO>> => {
+  const page = await listServiceOrders(
     db,
     {
       customerId: q.customerId,
@@ -120,7 +121,7 @@ export const getServiceOrders = async (
   // One follow-up query for the whole page's lines, then count and total in TS
   // — exact cents, and no CASE ladder over tax rates in SQL. The progress
   // counts ride the same pattern: one grouped query per page (CP-2b).
-  const orderIds = items.map((o) => o.id);
+  const orderIds = page.items.map((o) => o.id);
   const lines = await listLinesForOrders(db, orderIds);
   const byOrder = new Map<string, ServiceOrderLineRow[]>();
   for (const line of lines) {
@@ -133,10 +134,10 @@ export const getServiceOrders = async (
 
   const showMoney = canSeeMoney(user);
   return {
-    items: items.map((header) =>
+    ...page,
+    items: page.items.map((header) =>
       toOrderDTO(header, byOrder.get(header.id) ?? [], countsByOrder.get(header.id), showMoney),
     ),
-    total,
   };
 };
 
@@ -178,7 +179,7 @@ export const getServiceOrderTimeline = async (
   id: string,
   page: number,
   limit: number,
-): Promise<{ items: ServiceOrderEventDTO[]; total: number } | null> => {
+): Promise<GenericQueryResponse<ServiceOrderEventDTO> | null> => {
   // 404 on a missing order rather than an empty feed: an order with no timeline
   // is impossible (creation always writes one), so empty would only ever mean
   // "wrong id".

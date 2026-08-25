@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
+import type { GenericQueryResponse } from '../../data/dtos/generic-query-response';
 import type { QuotationDetail, QuotationSummary } from '../../data/dtos/quotation/quotation';
 import type { QuotationEvent } from '../../data/dtos/quotation/quotation-event';
 import type {
@@ -18,11 +19,8 @@ import type {
 export class QuotationsService {
   private readonly remote = inject(RemoteService);
 
-  /** `{ items, total }` — not the `PagedResponse` envelope: this endpoint
-   *  echoes back neither `page` nor `limit`, and inventing them here would put
-   *  a second source of truth beside the URL. */
-  list(query: QuotationListQuery): Observable<{ items: QuotationSummary[]; total: number }> {
-    return this.remote.get<{ items: QuotationSummary[]; total: number }>('/quotations', {
+  list(query: QuotationListQuery): Observable<GenericQueryResponse<QuotationSummary>> {
+    return this.remote.get<GenericQueryResponse<QuotationSummary>>('/quotations', {
       q: query.q,
       customerId: query.customerId,
       status: query.status,
@@ -39,8 +37,8 @@ export class QuotationsService {
   listForCustomer(
     customerId: string,
     query: { page?: number; limit?: number } = {},
-  ): Observable<{ items: QuotationSummary[]; total: number }> {
-    return this.remote.get<{ items: QuotationSummary[]; total: number }>(
+  ): Observable<GenericQueryResponse<QuotationSummary>> {
+    return this.remote.get<GenericQueryResponse<QuotationSummary>>(
       `/customers/${customerId}/quotations`,
       { page: query.page, limit: query.limit },
     );

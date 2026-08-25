@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
-import type { PagedResponse } from '../../data/dtos/paged-response';
+import type { GenericQueryResponse } from '../../data/dtos/generic-query-response';
 import type {
   CreateServiceOrderRequest,
   ServiceOrder,
@@ -17,8 +17,8 @@ import type {
 export class ServiceOrdersService {
   private readonly remote = inject(RemoteService);
 
-  list(query: ServiceOrderListQuery): Observable<PagedResponse<ServiceOrder>> {
-    return this.remote.get<PagedResponse<ServiceOrder>>('/service-orders', {
+  list(query: ServiceOrderListQuery): Observable<GenericQueryResponse<ServiceOrder>> {
+    return this.remote.get<GenericQueryResponse<ServiceOrder>>('/service-orders', {
       page: query.page,
       limit: query.limit,
       q: query.q,
@@ -39,8 +39,8 @@ export class ServiceOrdersService {
   }
 
   /** Paged newest-first activity feed (19 §7). */
-  timeline(id: string, page: number, limit: number): Observable<PagedResponse<ServiceOrderEvent>> {
-    return this.remote.get<PagedResponse<ServiceOrderEvent>>(`/service-orders/${id}/timeline`, {
+  timeline(id: string, page: number, limit: number): Observable<GenericQueryResponse<ServiceOrderEvent>> {
+    return this.remote.get<GenericQueryResponse<ServiceOrderEvent>>(`/service-orders/${id}/timeline`, {
       page,
       limit,
     });
