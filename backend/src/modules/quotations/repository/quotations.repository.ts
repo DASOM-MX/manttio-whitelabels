@@ -22,6 +22,7 @@ import type {
   QuotationLineRow,
   QuotationRecipientRow,
   QuotationRow,
+  QuotationWithCustomer,
   UpdateQuotationFields,
 } from '../types/quotations.types';
 import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
@@ -252,7 +253,7 @@ export const listQuotations = async (
   },
   page: number,
   limit: number,
-): Promise<GenericQueryResponse<{ quotation: QuotationRow; customerName: string }>> => {
+): Promise<GenericQueryResponse<QuotationWithCustomer>> => {
   const conds = [activeFilter];
   if (filters.customerId) conds.push(eq(quotations.customerId, filters.customerId));
   if (filters.status) conds.push(eq(quotations.status, filters.status));
