@@ -162,10 +162,14 @@ export const getServices = async (
 
 /** The whole catalog for pickers (21 §3). Not a `GenericQueryResponse`: no
  *  page, no limit, and a `total` here could only ever be `items.length`.
- *  No `includeCost` argument either — the roster has no cost column to gate,
- *  which is stronger than a role branch that has to be remembered. */
+ *
+ *  `includeCost` carries the same back-office tier rule as `getServices`
+ *  (18 §2), and it is enforced here rather than in the client: a technician's
+ *  response simply has no `cost` key. Shipping the margin and hiding it in the
+ *  UI would not be a gate at all. */
 export const getServiceOptions = async (
   db: Db,
+  includeCost: boolean,
 ): Promise<{ items: ServiceOptionDTO[] }> => {
   const rows = await listServiceOptions(db);
   return {
@@ -173,6 +177,7 @@ export const getServiceOptions = async (
       id: row.id,
       name: row.name,
       price: row.price,
+      cost: includeCost ? opt(row.cost) : undefined,
       uom: row.uom,
       taxRate: row.taxRate,
       internalServiceCode: opt(row.internalServiceCode),

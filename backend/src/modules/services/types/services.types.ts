@@ -105,13 +105,15 @@ export interface ServiceDTO {
   deletedAt?: string;
 }
 
-/** The narrow row the roster query selects — deliberately not `ServiceRow`,
- *  so `cost` is absent as a *column* and cannot reach the response whatever the
- *  DTO layer does. Same posture as `PublicServiceRow`. */
+/** The narrow row the roster query selects — deliberately not `ServiceRow`, so
+ *  the website copy, the photo and the SAT keys never reach a picker. `cost` IS
+ *  selected: the service layer decides per caller whether it ships (18 §2), and
+ *  that decision belongs on the server. */
 export interface ServiceOptionRow {
   id: string;
   name: string;
   price: string;
+  cost: string | null;
   uom: ServiceUom;
   taxRate: ServiceTaxRate;
   internalServiceCode: string | null;
@@ -121,18 +123,21 @@ export interface ServiceOptionRow {
 /** What `GET /services/all` returns per entry (21 §3) — the whole active
  *  catalog, name-sorted, behind every service picker.
  *
- *  A projection, not `ServiceDTO`: `cost` is absent **as a column**, not
- *  suppressed by a role branch, so no future DTO slip can leak margin to a
- *  technician through the roster — the same posture `PublicServiceRow` takes
- *  for the website. What is here is what the pickers read: the label
- *  (`name`), the frozen line snapshot the builders compute from (`price`,
- *  `uom`, `taxRate`), the import dedupe key (`internalServiceCode`) and the
- *  explosion flag (`isReportSource`). The website copy, the photo and the SAT
- *  keys have no picker consumer. */
+ *  A projection, not `ServiceDTO`: what is here is what the pickers read — the
+ *  label (`name`), the frozen line snapshot the builders compute from
+ *  (`price`, `uom`, `taxRate`), the import dedupe key (`internalServiceCode`)
+ *  and the explosion flag (`isReportSource`). The website copy, the photo and
+ *  the SAT keys have no picker consumer.
+ *
+ *  `cost` follows the same tier rule as `GET /services` (18 §2): present for
+ *  back-office readers, **omitted from the response entirely** for technicians.
+ *  The field never leaves the server for a caller who may not see it — it is
+ *  never shipped and then hidden client-side. */
 export interface ServiceOptionDTO {
   id: string;
   name: string;
   price: string;
+  cost?: string;
   uom: ServiceUom;
   taxRate: ServiceTaxRate;
   internalServiceCode?: string;

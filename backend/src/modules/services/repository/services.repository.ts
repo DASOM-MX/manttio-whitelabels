@@ -59,15 +59,16 @@ export const listServices = async (db: Db, filters: { search?: string }): Promis
 };
 
 /** The whole active catalog, name-sorted — the unpaged read behind every
- *  service picker (21 §3). Projected, never `select()`: `cost` is not among
- *  the selected columns, so margin cannot reach a technician through this
- *  route whatever the DTO layer does. */
+ *  service picker (21 §3). Projected, never `select()`: a picker has no use for
+ *  the website copy, the photo or the SAT keys. `cost` is selected and gated by
+ *  the service layer, exactly as `GET /services` does it (18 §2). */
 export const listServiceOptions = async (db: Db): Promise<ServiceOptionRow[]> =>
   db
     .select({
       id: services.id,
       name: services.name,
       price: services.price,
+      cost: services.cost,
       uom: services.uom,
       taxRate: services.taxRate,
       internalServiceCode: services.internalServiceCode,

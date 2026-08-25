@@ -296,14 +296,13 @@ Supersedes 18 §4's no-pagination decision (Decisions §2 above).
 - `GET /services` → `GenericQueryResponse<Service>`. Keep `q`, keep the admin-tier `cost`
   suppression and the `IMAGES_CDN_BASE_URL` materialization.
 - **`GET /services/all`** (new, before `/:id`) → `{ items: ServiceOptionDTO[] }` — the full
-  active catalog, name-sorted, for the pickers and the import dedupe.
-  **Amended at CP-2:** rather than passing the cost tier through, the roster projection has
-  **no `cost` column at all** — margin cannot reach a technician here whatever the DTO layer
-  does later. Same posture `PublicServiceRow` already takes for the website. Verified against
-  the consumers: `cost` is read only by `service-form` (single read) and `services-list` (the
-  paged list), never by a picker. The projection is
-  `{ id, name, price, uom, taxRate, internalServiceCode?, isReportSource }` — the label, the
-  frozen line snapshot the builders compute from, the import dedupe key, and the explosion flag.
+  active catalog, name-sorted, for the pickers and the import dedupe. **Same cost-tier rule**
+  as `GET /services` (18 §2), enforced **on the server**: a technician's response carries no
+  `cost` key at all. Never ship a field the caller may not see and hide it client-side
+  (owner, 2026-08-25). Projection:
+  `{ id, name, price, cost?, uom, taxRate, internalServiceCode?, isReportSource }` — the
+  label, the frozen line snapshot the builders compute from, the import dedupe key, and the
+  explosion flag. The website copy, the photo and the SAT keys have no picker consumer.
 - **`GET /public/services` is untouched** — it is a separate route with its own published
   subset and must not grow paging.
 
@@ -385,9 +384,9 @@ CP-4 is only safe once CP-3 has removed every dependency on the unpaged endpoint
 
 ### CP-2 — Roster endpoints (additive, zero behaviour change) — **done 2026-08-25**
 - [x] `GET /customers/all` + `listCustomerOptions` + `CustomerOption` projection type
-- [x] `GET /services/all` + `listServiceOptions` + `ServiceOptionRow`/`ServiceOptionDTO`.
-      Cost is excluded as a *column*, not gated by a role branch (see §6) — stronger than
-      the rule it replaces
+- [x] `GET /services/all` + `listServiceOptions` + `ServiceOptionRow`/`ServiceOptionDTO`;
+      cost-tier rule preserved, gated in the service layer so the field never leaves the
+      server for a technician
 - [x] Both registered **before** their `/:id` routes
 - [x] Projection verified against the field-app customers table, its search haystack, the
       report-add picker, the reports list's date formatting and all six superadmin pickers —
