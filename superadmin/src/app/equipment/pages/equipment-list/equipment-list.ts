@@ -9,8 +9,6 @@ import { LucideEye, LucidePlus, LucideWrench } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { EquipmentState } from '../../../../state/equipment/equipment.state';
 import { LoadEquipment } from '../../../../state/equipment/equipment.actions';
-import { CustomersState } from '../../../../state/customers/customers.state';
-import { LoadCustomerOptions } from '../../../../state/customers/customers.actions';
 import { ListQueryService, keyIn } from '../../../services/table/list-query.service';
 import { EQUIPMENT_STATUS_LABELS } from '../../../model/constants/equipment/equipment-status-labels.const';
 import {
@@ -21,6 +19,7 @@ import { EquipmentFormDialog } from '../../components/equipment-form-dialog/equi
 import { FiltersPopover } from '../../../shared/components/filters-popover/filters-popover';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { Equipment, EquipmentListQuery, EquipmentStatus } from '../../../data/dtos/equipment';
+import { CustomerSelect } from '../../../shared/components/customer-select/customer-select';
 
 /** Global equipment registry (11 §4) — a projection; the daily entry point
  *  is the customer view's equipment card. Filters + page persist as GET
@@ -28,7 +27,7 @@ import type { Equipment, EquipmentListQuery, EquipmentStatus } from '../../../da
  *  canon) — only the param mapping, query building and dispatch live here. */
 @Component({
   selector: 'app-equipment-list',
-  imports: [
+  imports: [CustomerSelect, 
     RouterLink,
     ReactiveFormsModule,
     TableModule,
@@ -55,16 +54,10 @@ export class EquipmentList {
   protected equipment = select(EquipmentState.items);
   protected total = select(EquipmentState.total);
   protected loading = select(EquipmentState.loading);
-  private customers = select(CustomersState.options);
 
   protected search = new FormControl('', { nonNullable: true });
   protected customerFilter = new FormControl('', { nonNullable: true });
   protected statusFilter = new FormControl<EquipmentStatus | ''>('', { nonNullable: true });
-
-  protected customerOptions = computed(() => [
-    { label: 'Todos los clientes', value: '' },
-    ...this.customers().map((c) => ({ label: c.name, value: c.id })),
-  ]);
   protected statusOptions = [
     { label: 'Todos los estados', value: '' },
     ...(Object.entries(EQUIPMENT_STATUS_LABELS) as [EquipmentStatus, string][]).map(
@@ -75,8 +68,6 @@ export class EquipmentList {
   protected formDialog = viewChild<EquipmentFormDialog>('formDialog');
 
   constructor() {
-    this.store.dispatch(new LoadCustomerOptions());
-
     this.list.init({
       read: (params) => {
         this.search.setValue(params.get('q') ?? '', { emitEvent: false });

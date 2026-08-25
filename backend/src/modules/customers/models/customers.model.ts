@@ -77,6 +77,10 @@ export const customers = pgTable(
     index('customers_intake_effective_idx')
       .on(sql`(coalesce(${table.statusChangedAt}, ${table.createdAt}))`)
       .where(sql`${table.deletedAt} is null and ${table.status} in ('lead', 'active')`),
+    // The clients list's tag filter is `tags && ARRAY[...]` (21 §4); a btree
+    // cannot serve array overlap, so this is the one index that filter needs.
+    // `tags` had no index at all before 21 CP-4.
+    index('customers_tags_gin_idx').using('gin', table.tags),
     check(
       'customers_status_check',
       sql`${table.status} in ('active', 'lead', 'disabled', 'blacklisted')`,

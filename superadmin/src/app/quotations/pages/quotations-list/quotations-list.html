@@ -25,14 +25,10 @@
     </div>
     <div class="field-group">
       <label class="field-label" for="quotations-customer">Cliente</label>
-      <p-select
+      <app-customer-select
         inputId="quotations-customer"
         [formControl]="customerFilter"
-        [options]="customerOptions()"
-        optionLabel="label"
-        optionValue="value"
-        [filter]="true"
-        filterBy="label"
+        allOptionLabel="Todos los clientes"
       />
     </div>
     <div class="field-group">

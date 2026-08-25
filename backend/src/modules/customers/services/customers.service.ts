@@ -5,7 +5,7 @@ import {
   findCustomerWithRelations,
   insertCustomerWithRelations,
   listCustomerOptions,
-  listCustomers,
+  listCustomersPaged,
   listRecentCustomers,
   updateCustomerWithRelations,
   type ContactInput,
@@ -23,7 +23,12 @@ import type {
   RecentCustomerRow,
   UpdateCustomerFields,
 } from '../types/customers.types';
-import type { CreateCustomerInput, UpdateCustomerInput } from '../validators/customers.validator';
+import type {
+  CreateCustomerInput,
+  ListCustomersQuery,
+  UpdateCustomerInput,
+} from '../validators/customers.validator';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
 /** Exactly one contact carries `isDefault` — the one the client marked, else the
  *  first. Empty in → empty out (backend never forces a contact; the superadmin
@@ -116,7 +121,10 @@ const auditBodyForEdit = (input: UpdateCustomerInput): string => {
   return 'Cliente actualizado';
 };
 
-export const getCustomers = async (db: Db): Promise<CustomerRow[]> => listCustomers(db);
+export const getCustomersPaged = async (
+  db: Db,
+  query: ListCustomersQuery,
+): Promise<GenericQueryResponse<CustomerRow>> => listCustomersPaged(db, query);
 
 /** The whole roster for pickers (21 §3). A bare array, not an envelope: there
  *  is no page, no limit, and a `total` could only ever be the array's own

@@ -1,6 +1,5 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
@@ -8,9 +7,9 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
 import { CheckboxModule } from 'primeng/checkbox';
-import { MessageService, type ScrollerOptions } from 'primeng/api';
+import { MessageService } from 'primeng/api';
 import { LucideFileUp, LucideX } from '@lucide/angular';
-import { catchError, debounceTime, distinctUntilChanged, of, Subject } from 'rxjs';
+import { catchError, of } from 'rxjs';
 import { select, Store } from '@ngxs/store';
 import { ContractsState } from '../../../../state/contracts/contracts.state';
 import {
@@ -35,6 +34,7 @@ import type {
   ContractVisibleRole,
   UpdateContractRequest,
 } from '../../../data/dtos/contract/contract-requests';
+import { CustomerSelect } from '../../../shared/components/customer-select/customer-select';
 
 interface Option {
   label: string;
@@ -59,23 +59,6 @@ const VISIBLE_ROLE_OPTIONS: { label: string; value: ContractVisibleRole }[] = [
 
 const DEFAULT_VISIBLE_ROLES: ContractVisibleRole[] = ['office', 'technician'];
 
-/** Clients arrive 65 at a time as the overlay scrolls (owner 2026-08-18) — the
- *  roster runs to 1000+ rows on a real tenant, and loading all of it to open a
- *  form is the thing this avoids. `p-select`'s lazy virtual scroll asks for the
- *  visible window; we translate that window into pages and fill the slots. */
-const CUSTOMER_PAGE_SIZE = 65;
-const CUSTOMER_ROW_HEIGHT = 40;
-const SEARCH_DEBOUNCE_MS = 300;
-/** Slot text before its page arrives — the scroller sizes rows off the array,
- *  so every index must hold something from the start. */
-const CUSTOMER_PLACEHOLDER: Option = { label: '…', value: '' };
-
-/** The row window the virtual scroller asks for. */
-interface ScrollerLazyLoadEvent {
-  first: number;
-  last: number;
-}
-
 /** Add/edit contract (13 §6) — a **routed page**, not a dialog: filing a
  *  contract is a real record with a document, covered units and a visibility
  *  decision, and the form is expected to keep growing (renewals, amounts,
@@ -90,7 +73,7 @@ interface ScrollerLazyLoadEvent {
  *  same act as fixing a typo in its name. */
 @Component({
   selector: 'app-contract-form',
-  imports: [
+  imports: [CustomerSelect, 
     RouterLink,
     ReactiveFormsModule,
     InputTextModule,
@@ -156,19 +139,6 @@ export class ContractForm implements HasPendingChanges {
   protected lockedOrderId = signal<string | null>(this.presetServiceOrderId);
   protected lockedOrderFolio = signal<string | null>(null);
 
-  /** Sparse: sized to the roster's total on first load, filled page by page as
-   *  the overlay scrolls. */
-  protected customerOptions = signal<Option[]>([]);
-  private loadedCustomerPages = new Set<number>();
-  private customerSearch = new Subject<string>();
-  protected readonly customerRowHeight = CUSTOMER_ROW_HEIGHT;
-  protected readonly customerScrollOptions: ScrollerOptions = {
-    delay: 250,
-    showLoader: true,
-    lazy: true,
-    onLazyLoad: (event: ScrollerLazyLoadEvent) => this.onCustomersLazyLoad(event),
-  };
-
   protected typeOptions = (Object.entries(CONTRACT_TYPE_LABELS) as [ContractType, string][]).map(
     ([value, label]) => ({ label, value }),
   );
@@ -210,14 +180,6 @@ export class ContractForm implements HasPendingChanges {
         .subscribe((res) => this.lockedOrderFolio.set(res?.order.folio ?? null));
     }
 
-    // Only the unlocked field renders a select worth seeding.
-    if (!this.customerLocked) {
-      this.seedCustomers();
-      this.customerSearch
-        .pipe(debounceTime(SEARCH_DEBOUNCE_MS), distinctUntilChanged(), takeUntilDestroyed())
-        .subscribe((term) => this.searchCustomers(term));
-    }
-
     if (this.customerLocked) this.form.controls.customerId.disable({ emitEvent: false });
 
     effect(() => {
@@ -236,90 +198,6 @@ export class ContractForm implements HasPendingChanges {
     this.loadEquipment(customerId);
   }
 
-  /** First page doubles as the roster's size probe: `total` fixes the array
-   *  length, so the scrollbar is honest before the rest has been fetched. */
-  private seedCustomers(): void {
-    this.loadedCustomerPages.clear();
-    this.loadedCustomerPages.add(1);
-    this.customersApi
-      .list({ page: 1, limit: CUSTOMER_PAGE_SIZE })
-      .pipe(catchError(() => of(null)))
-      .subscribe((res) => {
-        if (!res) {
-          this.loadedCustomerPages.delete(1);
-          return;
-        }
-        const options: Option[] = new Array(res.total).fill(CUSTOMER_PLACEHOLDER);
-        this.fill(options, 1, res.items);
-        this.customerOptions.set(options);
-      });
-  }
-
-  /** The scroller reports a row window; a window can straddle two pages. */
-  private onCustomersLazyLoad(event: ScrollerLazyLoadEvent): void {
-    const firstPage = Math.floor(event.first / CUSTOMER_PAGE_SIZE) + 1;
-    const lastRow = Math.max(event.last - 1, event.first);
-    const lastPage = Math.floor(lastRow / CUSTOMER_PAGE_SIZE) + 1;
-    for (let page = firstPage; page <= lastPage; page++) this.loadCustomerPage(page);
-  }
-
-  private loadCustomerPage(page: number): void {
-    if (this.loadedCustomerPages.has(page)) return;
-    // Claimed before the request: the scroller re-fires while one is in flight.
-    this.loadedCustomerPages.add(page);
-    this.customersApi
-      .list({ page, limit: CUSTOMER_PAGE_SIZE })
-      .pipe(catchError(() => of(null)))
-      .subscribe((res) => {
-        if (!res) {
-          this.loadedCustomerPages.delete(page);
-          return;
-        }
-        const options = [...this.customerOptions()];
-        this.fill(options, page, res.items);
-        this.customerOptions.set(options);
-      });
-  }
-
-  protected onCustomerFilter(term: string): void {
-    this.customerSearch.next(term.trim());
-  }
-
-  /** Typing queries the server instead of the loaded slice.
-   *
-   *  Results are materialized in full, with **no placeholder rows** — `p-select`
-   *  filters its options array client-side whenever a term is set, so the `…`
-   *  slots would be dropped and the sparse tail (with its lazy loading) would go
-   *  with them. Real rows survive that pass unchanged, since the server matched
-   *  on the same names the local filter re-checks.
-   *
-   *  The trade: a term shows the first `CUSTOMER_PAGE_SIZE` matches and does not
-   *  page further. Narrowing the term is the way to reach the rest — which is
-   *  what someone typing a client's name is already doing. Clearing it restores
-   *  the full lazily-paged roster. */
-  private searchCustomers(term: string): void {
-    if (!term) {
-      this.seedCustomers();
-      return;
-    }
-    this.customersApi
-      .list({ page: 1, limit: CUSTOMER_PAGE_SIZE, search: term })
-      .pipe(catchError(() => of(null)))
-      .subscribe((res) => {
-        if (!res) return;
-        this.loadedCustomerPages.clear();
-        this.customerOptions.set(
-          res.items.map((customer) => ({ label: customer.name, value: customer.id })),
-        );
-      });
-  }
-
-  private fill(options: Option[], page: number, items: { id: string; name: string }[]): void {
-    const offset = (page - 1) * CUSTOMER_PAGE_SIZE;
-    items.forEach((customer, i) => {
-      options[offset + i] = { label: customer.name, value: customer.id };
-    });
-  }
 
   private loadEquipment(customerId: string): void {
     if (!customerId) {

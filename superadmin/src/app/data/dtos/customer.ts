@@ -72,24 +72,6 @@ export interface Customer {
   deletedAt?: string;
 }
 
-/** `GET /customers/all` (21 §3) — one entry of the whole live roster, the
- *  unpaged read every customer picker uses. A projection of `Customer`, not the
- *  full row: the roster is the one customer read with no page and no limit, so
- *  it carries only what a picker renders. Nullable columns arrive as `null`,
- *  not absent — this is the raw row projection, no DTO layer in between. */
-export interface CustomerOption {
-  id: string;
-  name: string;
-  contactName: string | null;
-  razonSocial: string | null;
-  identification: string | null;
-  phone: string | null;
-  email: string | null;
-  state: string | null;
-  status: CustomerStatus;
-  timezone: string;
-}
-
 export interface CustomerListQuery {
   page?: number;
   limit?: number;

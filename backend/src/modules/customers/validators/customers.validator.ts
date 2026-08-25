@@ -55,6 +55,32 @@ export const updateCustomerSchema = createCustomerSchema
   .extend({ nextFollowUpAt: z.string().nullable().optional() })
   .refine((v) => Object.keys(v).length > 0, { message: 'no fields to update' });
 
+// The clients list read (07 §2, built 21 CP-4). Mirrors listUsersQuerySchema:
+// the same page/limit contract every other paged list already answers.
+export const listCustomersQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  // Capped so a caller cannot turn the paged list back into a full-table read.
+  // The whole roster has its own route (`GET /customers/all`).
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+  search: z.string().trim().min(1).optional(),
+  status: z.nativeEnum(CustomerStatus).optional(),
+  source: z.nativeEnum(CustomerSource).optional(),
+  // Arrives comma-joined from the client (`tags=a,b`). Split here rather than
+  // in the service so every caller of `ListCustomersQuery` sees a real array
+  // and no one has to remember the wire encoding. Empty segments are dropped,
+  // so `tags=` and `tags=,,` mean "no tag filter" rather than "match ''".
+  tags: z
+    .string()
+    .optional()
+    .transform((v) => {
+      const list = (v ?? '')
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
+      return list.length ? list : undefined;
+    }),
+});
+
 // Recent-clients card read (utm-params 03 amendment 2026-07-20).
 export const recentCustomersQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(8),
@@ -63,3 +89,4 @@ export const recentCustomersQuerySchema = z.object({
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
 export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;
 export type RecentCustomersQuery = z.infer<typeof recentCustomersQuerySchema>;
+export type ListCustomersQuery = z.infer<typeof listCustomersQuerySchema>;

@@ -13,8 +13,6 @@ import { AuthState } from '../../../../state/auth/auth.state';
 import { hasRole } from '../../../guards/has-role.guard';
 import { QuotationSettingsDialog } from '../../components/quotation-settings-dialog/quotation-settings-dialog';
 import { LoadQuotations } from '../../../../state/quotations/quotations.actions';
-import { CustomersState } from '../../../../state/customers/customers.state';
-import { LoadCustomerOptions } from '../../../../state/customers/customers.actions';
 import { ListQueryService, keyIn } from '../../../services/table/list-query.service';
 import { QUOTATION_STATUS_LABELS } from '../../../model/constants/quotation/quotation-status-labels.const';
 import { QuotationStatus } from '../../../model/enums/quotation/quotation-status.enum';
@@ -29,6 +27,7 @@ import { FiltersPopover } from '../../../shared/components/filters-popover/filte
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { QuotationListQuery } from '../../../data/dtos/quotation/quotation-requests';
 import type { QuotationSummary } from '../../../data/dtos/quotation/quotation';
+import { CustomerSelect } from '../../../shared/components/customer-select/customer-select';
 
 /** Quotations list (20 §8) — lazy server-side table with folio/client search,
  *  client and status filters, all persisted as URL query params through
@@ -39,7 +38,7 @@ import type { QuotationSummary } from '../../../data/dtos/quotation/quotation';
  *  name. */
 @Component({
   selector: 'app-quotations-list',
-  imports: [
+  imports: [CustomerSelect, 
     DatePipe,
     RouterLink,
     ReactiveFormsModule,
@@ -70,7 +69,6 @@ export class QuotationsList {
   protected quotations = select(QuotationsState.items);
   protected total = select(QuotationsState.total);
   protected loading = select(QuotationsState.loading);
-  private customers = select(CustomersState.options);
 
   protected search = new FormControl('', { nonNullable: true });
   protected statusFilter = new FormControl<QuotationStatus | ''>('', { nonNullable: true });
@@ -95,16 +93,10 @@ export class QuotationsList {
     ),
   ];
 
-  protected customerOptions = computed(() => [
-    { label: 'Todos los clientes', value: '' },
-    ...this.customers().map((c) => ({ label: c.name, value: c.id })),
-  ]);
-
   protected readonly skeletonRows = [0, 1, 2, 3, 4, 5, 6, 7];
   protected readonly skeletonColumns = [0, 1, 2, 3, 4, 5, 6];
 
   constructor() {
-    this.store.dispatch(new LoadCustomerOptions());
     this.list.init({
       read: (params) => {
         this.search.setValue(params.get('q') ?? '', { emitEvent: false });
