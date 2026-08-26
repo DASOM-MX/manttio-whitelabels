@@ -1,6 +1,7 @@
 import {
   Component,
   DestroyRef,
+  computed,
   forwardRef,
   inject,
   input,
@@ -11,7 +12,16 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule, NG_VALUE_ACCESSOR, type ControlValueAccessor } from '@angular/forms';
 import { SelectModule } from 'primeng/select';
 import type { ScrollerOptions } from 'primeng/api';
-import { Subject, catchError, debounceTime, distinctUntilChanged, of } from 'rxjs';
+import {
+  Observable,
+  Subject,
+  catchError,
+  debounceTime,
+  defer,
+  distinctUntilChanged,
+  finalize,
+  of,
+} from 'rxjs';
 import { CustomersService } from '../../../services/http/customers.service';
 import type { Option } from '../../../data/types/option';
 
@@ -75,9 +85,13 @@ export class CustomerSelect implements ControlValueAccessor {
   readonly selectionChange = output<Option | null>();
 
   protected readonly rowHeight = ROW_HEIGHT;
+  /** No `delay`/`showLoader`. The scroller's own loader is a *scroll* indicator,
+   *  not a fetch one: with a delay set it flips `d_loading` on any geometric
+   *  range change — scrolling back over rows already in hand included — and
+   *  while that flag is up the panel renders no options at all, only the mask.
+   *  The footer label below reports actual requests instead, and unfetched rows
+   *  keep showing their `…` placeholder. */
   protected readonly scrollOptions: ScrollerOptions = {
-    delay: 250,
-    showLoader: true,
     lazy: true,
     onLazyLoad: (event: ScrollerLazyLoadEvent) => this.onLazyLoad(event),
   };
@@ -87,6 +101,12 @@ export class CustomerSelect implements ControlValueAccessor {
   protected options = signal<Option[]>([]);
   protected value = signal('');
   protected disabled = signal(false);
+
+  /** Roster requests in flight. A count rather than a flag: a row window can
+   *  straddle two pages and ask for both, and the first to settle must not
+   *  clear the label while the second is still running. */
+  private readonly pending = signal(0);
+  protected readonly fetching = computed(() => this.pending() > 0);
 
   private loadedPages = new Set<number>();
   private search = new Subject<string>();
@@ -139,6 +159,16 @@ export class CustomerSelect implements ControlValueAccessor {
     this.search.next(term.trim());
   }
 
+  /** Counts a roster request for the footer label. `defer` so the increment
+   *  happens on subscribe, pairing with `finalize` on teardown — success,
+   *  error and unsubscribe alike. */
+  private track<T>(source: Observable<T>): Observable<T> {
+    return defer(() => {
+      this.pending.update((n) => n + 1);
+      return source;
+    }).pipe(finalize(() => this.pending.update((n) => n - 1)));
+  }
+
   /** How many leading slots the "all" entry occupies. */
   private get offset(): number {
     return this.allOptionLabel() ? 1 : 0;
@@ -155,19 +185,18 @@ export class CustomerSelect implements ControlValueAccessor {
     this.searching = false;
     this.loadedPages.clear();
     this.loadedPages.add(1);
-    this.api
-      .list({ page: 1, limit: PAGE_SIZE })
-      .pipe(catchError(() => of(null)))
-      .subscribe((res) => {
-        if (!res) {
-          this.loadedPages.delete(1);
-          return;
-        }
-        const options = [...this.head(), ...new Array<Option>(res.total).fill(PLACEHOLDER)];
-        this.fill(options, 1, res.items);
-        this.options.set(options);
-        this.resolveSelected();
-      });
+    this.track(
+      this.api.list({ page: 1, limit: PAGE_SIZE }).pipe(catchError(() => of(null))),
+    ).subscribe((res) => {
+      if (!res) {
+        this.loadedPages.delete(1);
+        return;
+      }
+      const options = [...this.head(), ...new Array<Option>(res.total).fill(PLACEHOLDER)];
+      this.fill(options, 1, res.items);
+      this.options.set(options);
+      this.resolveSelected();
+    });
   }
 
   /** The scroller reports a row window; a window can straddle two pages. */
@@ -185,18 +214,17 @@ export class CustomerSelect implements ControlValueAccessor {
     if (this.loadedPages.has(page)) return;
     // Claimed before the request: the scroller re-fires while one is in flight.
     this.loadedPages.add(page);
-    this.api
-      .list({ page, limit: PAGE_SIZE })
-      .pipe(catchError(() => of(null)))
-      .subscribe((res) => {
-        if (!res) {
-          this.loadedPages.delete(page);
-          return;
-        }
-        const options = [...this.options()];
-        this.fill(options, page, res.items);
-        this.options.set(options);
-      });
+    this.track(
+      this.api.list({ page, limit: PAGE_SIZE }).pipe(catchError(() => of(null))),
+    ).subscribe((res) => {
+      if (!res) {
+        this.loadedPages.delete(page);
+        return;
+      }
+      const options = [...this.options()];
+      this.fill(options, page, res.items);
+      this.options.set(options);
+    });
   }
 
   /** Typing queries the server instead of the loaded slice.
@@ -216,18 +244,17 @@ export class CustomerSelect implements ControlValueAccessor {
       this.seed();
       return;
     }
-    this.api
-      .list({ page: 1, limit: PAGE_SIZE, search: term })
-      .pipe(catchError(() => of(null)))
-      .subscribe((res) => {
-        if (!res) return;
-        this.searching = true;
-        this.loadedPages.clear();
-        this.options.set([
-          ...this.head(),
-          ...res.items.map((customer) => ({ label: customer.name, value: customer.id })),
-        ]);
-      });
+    this.track(
+      this.api.list({ page: 1, limit: PAGE_SIZE, search: term }).pipe(catchError(() => of(null))),
+    ).subscribe((res) => {
+      if (!res) return;
+      this.searching = true;
+      this.loadedPages.clear();
+      this.options.set([
+        ...this.head(),
+        ...res.items.map((customer) => ({ label: customer.name, value: customer.id })),
+      ]);
+    });
   }
 
   /** A preselected client (edit forms, `?from=` prefills) is usually not in the

@@ -22,4 +22,23 @@
   styleClass="w-full"
   (onFilter)="onFilter($event.filter)"
   (onChange)="onSelect($event.value)"
-/>
+>
+  <!-- Fetch feedback lives here rather than in the scroller's own loader, which
+       masks the whole panel on any scroll. A dim strip under the list: it never
+       hides a row, and it is absent entirely while nothing is in flight. -->
+  <ng-template #footer>
+    @if (fetching()) {
+      <p
+        class="flex items-center gap-2 border-t border-surface-200 px-3 py-2 text-xs text-surface-500 dark:border-surface-800 dark:text-surface-400"
+        role="status"
+        aria-live="polite"
+      >
+        <span
+          class="size-3.5 shrink-0 animate-spin rounded-full border-2 border-surface-300 border-t-primary-600 dark:border-surface-600 dark:border-t-primary-400"
+          aria-hidden="true"
+        ></span>
+        Cargando clientes…
+      </p>
+    }
+  </ng-template>
+</p-select>
