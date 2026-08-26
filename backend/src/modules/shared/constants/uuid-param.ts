@@ -11,7 +11,11 @@
  *  throws 22P02 and surfaces as an uncaught 500 instead of a 404.
  *
  *  Usage — the path must be a template literal:
- *    `reports.get(\`/:id{${UUID_PARAM}}/pdf\`, handler)`
+ *    `customers.get(\`/:id{${UUID_PARAM}}/equipment\`, handler)`
+ *
+ *  Not every id is a uuid: `reports.id` is the `text` folio `R-20260826-0001`,
+ *  so report routes take `REPORT_ID_PARAM` instead — constraining them here
+ *  404s every real report. Check the model's id column before reaching for this.
  *
  *  Access tokens (`/reports/download/:token`, the public quotation routes) are
  *  high-entropy strings, not uuids — they are deliberately left unconstrained.

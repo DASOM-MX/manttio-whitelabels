@@ -20,6 +20,7 @@ import {
   unlinkReportFromEquipment,
 } from '../services/equipment.service';
 import { ReportCustomerMismatchError } from '../http-errors/equipment.error';
+import { REPORT_ID_PARAM } from '../../shared/constants/report-id-param';
 import { UUID_PARAM } from '../../shared/constants/uuid-param';
 
 export const equipment = new Hono<AppBindings>();
@@ -94,7 +95,7 @@ equipment.put(
 );
 
 equipment.delete(
-  `/:id{${UUID_PARAM}}/reports/:reportId{${UUID_PARAM}}`,
+  `/:id{${UUID_PARAM}}/reports/:reportId{${REPORT_ID_PARAM}}`,
   requireRole(['owner', 'admin']),
   async (c) => {
     const db = createDb(c.env.DATABASE_URL);

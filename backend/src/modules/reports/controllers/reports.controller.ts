@@ -32,6 +32,7 @@ import {
   revokeReportEmail,
   submitReport,
 } from '../services/reports.service';
+import { REPORT_ID_PARAM } from '../../shared/constants/report-id-param';
 import { UUID_PARAM } from '../../shared/constants/uuid-param';
 
 export const reports = new Hono<AppBindings>();
@@ -76,7 +77,7 @@ reports.get('/', zValidator('query', listReportsQuerySchema), async (c) => {
 
 // In-app download: the same document the customer is mailed, rendered on demand.
 // Registered before `/:id` for clarity; the patterns do not overlap.
-reports.get(`/:id{${UUID_PARAM}}/pdf`, async (c) => {
+reports.get(`/:id{${REPORT_ID_PARAM}}/pdf`, async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const result = await renderPdfForUser(db, c.env.LOGOS_CDN_BASE_URL, c.get('user'), c.req.param('id'));
   if (!result.pdf) return c.json(result.body, result.status as 403 | 404);
@@ -91,7 +92,7 @@ reports.get(`/:id{${UUID_PARAM}}/pdf`, async (c) => {
   });
 });
 
-reports.get(`/:id{${UUID_PARAM}}`, async (c) => {
+reports.get(`/:id{${REPORT_ID_PARAM}}`, async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const { status, body } = await getReportForUser(db, c.get('user'), c.req.param('id'));
   return c.json(body, status);
@@ -147,7 +148,7 @@ reports.post('/', async (c) => {
 
 // --- PATCH header + data (editable only) ---
 
-reports.patch(`/:id{${UUID_PARAM}}`, zValidator('json', patchReportSchema), async (c) => {
+reports.patch(`/:id{${REPORT_ID_PARAM}}`, zValidator('json', patchReportSchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const gate = await ensureEditable(db, c.get('user'), c.req.param('id'), 'not_editable');
   if (!gate.ok) return c.json(gate.result.body, gate.result.status);
@@ -159,7 +160,7 @@ reports.patch(`/:id{${UUID_PARAM}}`, zValidator('json', patchReportSchema), asyn
 // --- Reassign (admin only, any status) ---
 
 reports.put(
-  `/:id{${UUID_PARAM}}/assignee`,
+  `/:id{${REPORT_ID_PARAM}}/assignee`,
   requireRole(['owner', 'admin']),
   zValidator('json', assignReportSchema),
   async (c) => {
@@ -172,7 +173,7 @@ reports.put(
 
 // --- Sign + finish ---
 
-reports.put(`/:id{${UUID_PARAM}}/signature`, async (c) => {
+reports.put(`/:id{${REPORT_ID_PARAM}}/signature`, async (c) => {
   const me = c.get('user');
   const db = createDb(c.env.DATABASE_URL);
   const gate = await ensureEditable(db, me, c.req.param('id'), 'already_signed');
@@ -201,7 +202,7 @@ reports.put(`/:id{${UUID_PARAM}}/signature`, async (c) => {
 
 // --- Pictures: append + remove (editable only) ---
 
-reports.put(`/:id{${UUID_PARAM}}/pictures`, async (c) => {
+reports.put(`/:id{${REPORT_ID_PARAM}}/pictures`, async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const gate = await ensureEditable(db, c.get('user'), c.req.param('id'), 'not_editable');
   if (!gate.ok) return c.json(gate.result.body, gate.result.status);
@@ -215,7 +216,7 @@ reports.put(`/:id{${UUID_PARAM}}/pictures`, async (c) => {
 });
 
 reports.delete(
-  `/:id{${UUID_PARAM}}/pictures`,
+  `/:id{${REPORT_ID_PARAM}}/pictures`,
   zValidator('json', removePicturesSchema),
   async (c) => {
     const db = createDb(c.env.DATABASE_URL);
@@ -230,7 +231,7 @@ reports.delete(
 
 // --- Delete (admin, soft) ---
 
-reports.delete(`/:id{${UUID_PARAM}}`, requireRole(['owner', 'admin']), async (c) => {
+reports.delete(`/:id{${REPORT_ID_PARAM}}`, requireRole(['owner', 'admin']), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const { status, body } = await deleteReport(db, c.req.param('id'));
   return c.json(body, status);
@@ -239,7 +240,7 @@ reports.delete(`/:id{${UUID_PARAM}}`, requireRole(['owner', 'admin']), async (c)
 // --- §9: email + history + revoke ---
 
 reports.post(
-  `/:id{${UUID_PARAM}}/email`,
+  `/:id{${REPORT_ID_PARAM}}/email`,
   requireRole(['owner', 'admin']),
   zValidator('json', sendReportEmailSchema),
   async (c) => {
@@ -255,7 +256,7 @@ reports.post(
   },
 );
 
-reports.get(`/:id{${UUID_PARAM}}/emails`, requireRole(['owner', 'admin']), async (c) => {
+reports.get(`/:id{${REPORT_ID_PARAM}}/emails`, requireRole(['owner', 'admin']), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const { status, body } = await listReportEmails(db, c.req.param('id'));
   return c.json(body, status);
