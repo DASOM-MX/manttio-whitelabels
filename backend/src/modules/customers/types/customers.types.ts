@@ -47,3 +47,28 @@ export type RecentCustomerRow = Pick<
   CustomerRow,
   'id' | 'name' | 'contactName' | 'clientType' | 'source' | 'createdAt'
 >;
+
+/** What `GET /customers/all` returns per row (21 §3) — the whole-roster read
+ *  behind every customer picker.
+ *
+ *  Deliberately a projection, not `CustomerRow`: this is the one customer read
+ *  with no page and no limit, so its payload grows linearly with the tenant.
+ *  It carries exactly what today's consumers render — the field app's directory
+ *  table (`identification`, `phone`, `state`) and its search haystack
+ *  (`razonSocial`, `email`), the report-add picker (`name`, `identification`),
+ *  the reports list's per-row date formatting (`timezone`), and the superadmin
+ *  pickers (`name`). Widen this rather than sending a picker back to full rows.
+ *  CRM/attribution columns are absent — no roster consumer reads them. */
+export type CustomerOption = Pick<
+  CustomerRow,
+  | 'id'
+  | 'name'
+  | 'contactName'
+  | 'razonSocial'
+  | 'identification'
+  | 'phone'
+  | 'email'
+  | 'state'
+  | 'status'
+  | 'timezone'
+>;

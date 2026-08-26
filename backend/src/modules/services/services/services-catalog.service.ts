@@ -15,6 +15,7 @@ import {
   insertServicesWithEvents,
   listPublishedServices,
   listServiceEvents,
+  listServiceOptions,
   listServices,
   softDeleteService,
   updateService,
@@ -31,6 +32,7 @@ import type {
   PublicServiceDTO,
   ServiceDTO,
   ServiceEventDTO,
+  ServiceOptionDTO,
   ServiceRow,
   UpdateServiceFields,
 } from '../types/services.types';
@@ -156,6 +158,32 @@ export const getServices = async (
 ): Promise<{ services: ServiceDTO[] }> => {
   const rows = await listServices(db, { search: q.q });
   return { services: rows.map((row) => toDTO(row, includeCost, imagesCdnBase)) };
+};
+
+/** The whole catalog for pickers (21 §3). Not a `GenericQueryResponse`: no
+ *  page, no limit, and a `total` here could only ever be `items.length`.
+ *
+ *  `includeCost` carries the same back-office tier rule as `getServices`
+ *  (18 §2), and it is enforced here rather than in the client: a technician's
+ *  response simply has no `cost` key. Shipping the margin and hiding it in the
+ *  UI would not be a gate at all. */
+export const getServiceOptions = async (
+  db: Db,
+  includeCost: boolean,
+): Promise<{ items: ServiceOptionDTO[] }> => {
+  const rows = await listServiceOptions(db);
+  return {
+    items: rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      price: row.price,
+      cost: includeCost ? opt(row.cost) : undefined,
+      uom: row.uom,
+      taxRate: row.taxRate,
+      internalServiceCode: opt(row.internalServiceCode),
+      isReportSource: row.isReportSource,
+    })),
+  };
 };
 
 /** Website listing (18 §4, CP-3). Unauthenticated: the price is dropped unless

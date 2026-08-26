@@ -1,6 +1,6 @@
 # 21 — List pagination (clients + catalog server-side paging)
 
-> **Status:** in progress — CP-1 done 2026-08-25, CP-2…CP-6 pending
+> **Status:** in progress — CP-1 + CP-2 done 2026-08-25, CP-3…CP-6 pending
 > **Depends on:** 07 (clients), 18 (services) · **Touches:** `backend/`, `superadmin/`, `frontend/`
 > **Owner:** — · **Last updated:** 2026-08-25
 
@@ -200,11 +200,17 @@ GET /customers/all
   query reads, and giving them a fake envelope is what §1 warns about.
 - **Must be registered before `GET /:id`** — same trap the controller already documents for
   `/stats/intake`, `/follow-ups`, `/recent` and `/interactions/recent`.
-- Projection: `{ id, name, contactName, identification, phone, email, state, status }`.
-  That covers every known consumer — the field app's table renders `id, identification,
-  name, phone, state`, and the superadmin pickers need `name` plus a contact line.
-  **Verify against the field-app table before merging CP-2**; widen the projection rather
-  than making a picker fetch full rows.
+- Projection (**widened at CP-2 after the verification pass**):
+  `{ id, name, contactName, razonSocial, identification, phone, email, state, status, timezone }`.
+  The two additions are load-bearing and were missing from the original list:
+  `timezone` — `frontend/.../reports/pages/reports/reports.ts:81` builds
+  `id → { name, timezone }` off the roster and formats every report date with it, so
+  without it every date silently falls back to the default zone; and `razonSocial` —
+  `frontend/.../customers/pages/customers/customers.ts:54` folds it into the directory's
+  search haystack. Everything else was confirmed in use: the field-app table renders
+  `identification, phone, state`, its search also covers `email`, the report-add picker
+  filters `name,identification`, and every superadmin picker maps `{ label: c.name, value: c.id }`.
+  Widen this rather than making a picker fetch full rows.
 - Same open read gate as `GET /customers` (the field app calls it as a technician).
 - Soft-delete rule unchanged — `isNull(deletedAt)` on every read.
 
@@ -289,8 +295,14 @@ Supersedes 18 §4's no-pagination decision (Decisions §2 above).
   `z.object({ q: z.string().optional() })` — add `page` / `limit` (max 100, default 10).
 - `GET /services` → `GenericQueryResponse<Service>`. Keep `q`, keep the admin-tier `cost`
   suppression and the `IMAGES_CDN_BASE_URL` materialization.
-- **`GET /services/all`** (new, before `/:id`) → `{ items: ServiceOption[] }` — the full
-  active catalog, name-sorted, for the pickers and the import dedupe. Same cost-tier rule.
+- **`GET /services/all`** (new, before `/:id`) → `{ items: ServiceOptionDTO[] }` — the full
+  active catalog, name-sorted, for the pickers and the import dedupe. **Same cost-tier rule**
+  as `GET /services` (18 §2), enforced **on the server**: a technician's response carries no
+  `cost` key at all. Never ship a field the caller may not see and hide it client-side
+  (owner, 2026-08-25). Projection:
+  `{ id, name, price, cost?, uom, taxRate, internalServiceCode?, isReportSource }` — the
+  label, the frozen line snapshot the builders compute from, the import dedupe key, and the
+  explosion flag. The website copy, the photo and the SAT keys have no picker consumer.
 - **`GET /public/services` is untouched** — it is a separate route with its own published
   subset and must not grow paging.
 
@@ -370,12 +382,17 @@ CP-4 is only safe once CP-3 has removed every dependency on the unpaged endpoint
       echo `page`/`limit`, which they never did. Nothing else on the wire moved — the faked
       `total` on `/customers` is still there and is CP-4's job.
 
-### CP-2 — Roster endpoints (additive, zero behaviour change)
-- [ ] `GET /customers/all` + `listCustomerOptions` + projection type
-- [ ] `GET /services/all` + service-option projection (cost-tier rule preserved)
-- [ ] Both registered **before** their `/:id` routes
-- [ ] Projection verified against the field-app customers table and report-add picker
-- [ ] Existing routes untouched — nothing in either app changes yet
+### CP-2 — Roster endpoints (additive, zero behaviour change) — **done 2026-08-25**
+- [x] `GET /customers/all` + `listCustomerOptions` + `CustomerOption` projection type
+- [x] `GET /services/all` + `listServiceOptions` + `ServiceOptionRow`/`ServiceOptionDTO`;
+      cost-tier rule preserved, gated in the service layer so the field never leaves the
+      server for a technician
+- [x] Both registered **before** their `/:id` routes
+- [x] Projection verified against the field-app customers table, its search haystack, the
+      report-add picker, the reports list's date formatting and all six superadmin pickers —
+      `timezone` and `razonSocial` added as a result (§3)
+- [x] Existing routes untouched — nothing in either app changes yet. `GET /customers` still
+      returns `{ customers }` unpaged; `GET /services` still returns `{ services }`.
 
 ### CP-3 — Migrate every picker onto the roster endpoints
 - [ ] `CustomersState.options` + `LoadCustomerOptions`; `ServicesState.options` + `LoadServiceOptions`

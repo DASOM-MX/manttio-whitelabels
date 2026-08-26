@@ -105,6 +105,45 @@ export interface ServiceDTO {
   deletedAt?: string;
 }
 
+/** The narrow row the roster query selects — deliberately not `ServiceRow`, so
+ *  the website copy, the photo and the SAT keys never reach a picker. `cost` IS
+ *  selected: the service layer decides per caller whether it ships (18 §2), and
+ *  that decision belongs on the server. */
+export interface ServiceOptionRow {
+  id: string;
+  name: string;
+  price: string;
+  cost: string | null;
+  uom: ServiceUom;
+  taxRate: ServiceTaxRate;
+  internalServiceCode: string | null;
+  isReportSource: boolean;
+}
+
+/** What `GET /services/all` returns per entry (21 §3) — the whole active
+ *  catalog, name-sorted, behind every service picker.
+ *
+ *  A projection, not `ServiceDTO`: what is here is what the pickers read — the
+ *  label (`name`), the frozen line snapshot the builders compute from
+ *  (`price`, `uom`, `taxRate`), the import dedupe key (`internalServiceCode`)
+ *  and the explosion flag (`isReportSource`). The website copy, the photo and
+ *  the SAT keys have no picker consumer.
+ *
+ *  `cost` follows the same tier rule as `GET /services` (18 §2): present for
+ *  back-office readers, **omitted from the response entirely** for technicians.
+ *  The field never leaves the server for a caller who may not see it — it is
+ *  never shipped and then hidden client-side. */
+export interface ServiceOptionDTO {
+  id: string;
+  name: string;
+  price: string;
+  cost?: string;
+  uom: ServiceUom;
+  taxRate: ServiceTaxRate;
+  internalServiceCode?: string;
+  isReportSource: boolean;
+}
+
 /** One timeline row of `GET /services/:id/timeline` (18 §6.1). Admin-tier
  *  only — `changes` carries `cost` old→new diffs and `note` carries delete
  *  comments, so this is management audit, never commercial visibility. Order

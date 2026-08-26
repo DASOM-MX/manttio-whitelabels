@@ -23,6 +23,7 @@ import {
   createCustomer,
   editCustomer,
   getCustomerById,
+  getCustomerOptions,
   getCustomers,
   getRecentCustomers,
   removeCustomer,
@@ -113,6 +114,18 @@ customers.get(
     return c.json({ items: await getRecentInteractions(db, limit) });
   },
 );
+
+// The whole roster for pickers (21 §3): a compact projection, unpaged by
+// contract. Deliberately NOT a GenericQueryResponse — no page, no limit, and a
+// `total` here could only ever be items.length. Open to any authenticated user:
+// the field app reads it as a technician.
+//
+// Declared before GET /:id so "all" is never captured as an id — the same trap
+// /stats/intake, /follow-ups, /recent and /interactions/recent already document.
+customers.get('/all', async (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  return c.json(await getCustomerOptions(db));
+});
 
 customers.get('/:id', async (c) => {
   const db = createDb(c.env.DATABASE_URL);

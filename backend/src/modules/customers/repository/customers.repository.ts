@@ -12,6 +12,7 @@ import type {
   NewContact,
   NewCustomer,
   NewFiscal,
+  CustomerOption,
   RecentCustomerRow,
   UpdateCustomerFields,
 } from '../types/customers.types';
@@ -58,6 +59,28 @@ export const findContactsForCustomer = async (
     .from(customerContacts)
     .where(and(eq(customerContacts.customerId, customerId), inArray(customerContacts.id, ids)));
 };
+
+/** The whole live roster, name-sorted — the unpaged read behind every customer
+ *  picker (21 §3). Projected rather than `select()`: a picker never needs the
+ *  CRM columns, and this response is the one that scales with the tenant.
+ *  Name-sorted because it is read as a list of choices, not a feed. */
+export const listCustomerOptions = async (db: Db): Promise<CustomerOption[]> =>
+  db
+    .select({
+      id: customers.id,
+      name: customers.name,
+      contactName: customers.contactName,
+      razonSocial: customers.razonSocial,
+      identification: customers.identification,
+      phone: customers.phone,
+      email: customers.email,
+      state: customers.state,
+      status: customers.status,
+      timezone: customers.timezone,
+    })
+    .from(customers)
+    .where(isNull(customers.deletedAt))
+    .orderBy(asc(customers.name));
 
 export const listCustomers = async (db: Db): Promise<CustomerRow[]> => {
   return db
