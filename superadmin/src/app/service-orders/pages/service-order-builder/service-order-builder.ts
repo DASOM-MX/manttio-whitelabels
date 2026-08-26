@@ -100,19 +100,13 @@ export class ServiceOrderBuilder implements HasPendingChanges {
   protected customers = toSignal(
     inject(CustomersService)
       .listOptions()
-      .pipe(
-        map((r) => r.items),
-        catchError(this.refDataFallback<CustomerOption>('los clientes')),
-      ),
+      .pipe(catchError(this.refDataFallback<CustomerOption>('los clientes'))),
     { initialValue: [] },
   );
   protected services = toSignal(
     inject(ServicesCatalogService)
       .listOptions()
-      .pipe(
-        map((r) => r.items),
-        catchError(this.refDataFallback<ServiceOption>('el catálogo de servicios')),
-      ),
+      .pipe(catchError(this.refDataFallback<ServiceOption>('el catálogo de servicios'))),
     { initialValue: [] },
   );
   /** Anyone on the roster can be assigned (the backend takes the same

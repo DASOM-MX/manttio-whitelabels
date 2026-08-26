@@ -87,7 +87,7 @@ export class ServicesState {
   loadOptions(ctx: StateContext<ServicesStateModel>) {
     return this.api
       .listOptions()
-      .pipe(tap(({ items }) => ctx.patchState({ options: items })));
+      .pipe(tap((options) => ctx.patchState({ options })));
   }
 
   @Action(LoadService)

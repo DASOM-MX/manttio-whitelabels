@@ -31,8 +31,8 @@ export class CustomersService {
    *  (21 §3). Separate from `list()` on purpose: `list()` is the paged, filtered
    *  browse for the clients page, and a picker that rides it silently shows one
    *  page of choices. Not a `GenericQueryResponse` — a roster has no page. */
-  listOptions(): Observable<{ items: CustomerOption[] }> {
-    return this.remote.get<{ items: CustomerOption[] }>('/customers/all');
+  listOptions(): Observable<CustomerOption[]> {
+    return this.remote.get<CustomerOption[]>('/customers/all');
   }
 
   list(query: CustomerListQuery): Observable<GenericQueryResponse<Customer>> {

@@ -51,10 +51,10 @@ services.get('/', zValidator('query', listServicesQuerySchema), async (c) => {
 });
 
 // The whole catalog for pickers (21 §3): a compact projection, unpaged by
-// contract. Deliberately NOT a GenericQueryResponse — no page, no limit, and a
-// `total` here could only ever be items.length. Same back-office `cost` rule as
-// GET / — the technician's response never carries the field, rather than
-// carrying it for the client to hide.
+// contract. Returns a bare array, not an envelope — there is no page, no limit,
+// and a `total` could only ever be the array's own length (owner, 2026-08-25).
+// Same back-office `cost` rule as GET / — the technician's response never
+// carries the field, rather than carrying it for the client to hide.
 //
 // Declared before GET /:id so "all" is never captured as an id.
 services.get('/all', async (c) => {

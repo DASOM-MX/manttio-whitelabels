@@ -42,7 +42,7 @@ export class CustomersState {
   loadList(ctx: StateContext<CustomersStateModel>) {
     ctx.patchState({ loading: true });
     return this.api.list().pipe(
-      tap(({ items }) => {
+      tap((items) => {
         const entities: Record<string, CustomerOption> = {};
         const ids: string[] = [];
         for (const c of items) { entities[c.id] = c; ids.push(c.id); }

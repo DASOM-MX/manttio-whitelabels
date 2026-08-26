@@ -15,8 +15,8 @@ export class CustomersService {
    *  and not `GET /customers`: that one becomes paged in CP-4, and this app
    *  needs every client at once — the directory paginates client-side and the
    *  offline queue resolves names against a complete list. */
-  list(): Observable<{ items: CustomerOption[] }> {
-    return this.remote.get<{ items: CustomerOption[] }>('/customers/all');
+  list(): Observable<CustomerOption[]> {
+    return this.remote.get<CustomerOption[]>('/customers/all');
   }
   get(id: string): Observable<CustomerResponse> {
     return this.remote.get<CustomerResponse>(`/customers/${id}`);

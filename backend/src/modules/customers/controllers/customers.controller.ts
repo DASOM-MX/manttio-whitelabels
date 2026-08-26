@@ -116,9 +116,10 @@ customers.get(
 );
 
 // The whole roster for pickers (21 §3): a compact projection, unpaged by
-// contract. Deliberately NOT a GenericQueryResponse — no page, no limit, and a
-// `total` here could only ever be items.length. Open to any authenticated user:
-// the field app reads it as a technician.
+// contract. Returns a bare array, not an envelope — there is no page, no limit,
+// and a `total` could only ever be the array's own length, so a wrapper would
+// carry nothing (owner, 2026-08-25). Open to any authenticated user: the field
+// app reads it as a technician.
 //
 // Declared before GET /:id so "all" is never captured as an id — the same trap
 // /stats/intake, /follow-ups, /recent and /interactions/recent already document.

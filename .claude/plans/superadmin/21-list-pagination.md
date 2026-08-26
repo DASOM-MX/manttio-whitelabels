@@ -38,6 +38,18 @@ Answers to the scope forks raised before this plan was written:
    single generic instead of the ~20 hand-written shapes that exist today. Named exactly
    `GenericQueryResponse<T>`; `PagedResponse<T>` is renamed into it, not kept as an alias.
 
+### Amendment (2026-08-25) — roster endpoints return a bare array
+
+Decision 1 above shipped `GET /customers/all` and `GET /services/all` as `{ items: T[] }`.
+Owner, on seeing the live response: *"too nested, make it one level object array only."*
+Both now return `CustomerOption[]` / `ServiceOptionDTO[]` directly.
+
+The reasoning that made these *not* a `GenericQueryResponse` applies one step further: with
+no page and no limit, a `total` could only restate the array's own length, so the `{ items }`
+wrapper carries no information either. Query reads keep the envelope; roster reads are a
+plain array. Consumers updated in the same change: both superadmin http services + their
+NGXS roster actions, and the field app's `customers.service.ts` + `customers.state.ts`.
+
 ---
 
 ## 1. Root cause
@@ -192,7 +204,7 @@ Matches **07 §2** (already specified) and the `users` precedent exactly.
 
 ```
 GET /customers/all
-  → { items: CustomerOption[] }        // whole live roster, name-sorted, never paged
+  → CustomerOption[]                   // whole live roster, name-sorted, never paged
 ```
 
 - Deliberately **not** a `GenericQueryResponse` — there is no page, no limit, and no
@@ -235,7 +247,7 @@ GET /customers/all
 `customers/services/customers.service.ts`:
 
 - `getCustomersPaged(db, query)` → `GenericQueryResponse<Customer>`.
-- `getCustomerOptions(db)` → `{ items }`.
+- `getCustomerOptions(db)` → `CustomerOption[]`.
 
 **Migration.** No column changes. The one index worth adding is a **GIN index on `tags`**
 for the `&&` overlap filter — `tags` has no index today. Generate it with
@@ -295,7 +307,7 @@ Supersedes 18 §4's no-pagination decision (Decisions §2 above).
   `z.object({ q: z.string().optional() })` — add `page` / `limit` (max 100, default 10).
 - `GET /services` → `GenericQueryResponse<Service>`. Keep `q`, keep the admin-tier `cost`
   suppression and the `IMAGES_CDN_BASE_URL` materialization.
-- **`GET /services/all`** (new, before `/:id`) → `{ items: ServiceOptionDTO[] }` — the full
+- **`GET /services/all`** (new, before `/:id`) → `ServiceOptionDTO[]` — the full
   active catalog, name-sorted, for the pickers and the import dedupe. **Same cost-tier rule**
   as `GET /services` (18 §2), enforced **on the server**: a technician's response carries no
   `cost` key at all. Never ship a field the caller may not see and hide it client-side
@@ -328,7 +340,7 @@ Supersedes 18 §4's no-pagination decision (Decisions §2 above).
 
 **Field app** (`frontend/`)
 
-- `src/http/customers.service.ts` `list()` → `GET /customers/all`, typed `{ items }`.
+- `src/http/customers.service.ts` `list()` → `GET /customers/all`, typed `CustomerOption[]`.
 - `src/state/customers/customers.state.ts:40` — `tap(({ customers }) => …)` → `({ items })`.
 - `app/customers/pages/customers/customers.html` keeps its client-side paginator
   (`[paginator]="customers().length > 10"`, non-lazy) — correct over a complete roster.
@@ -401,7 +413,7 @@ CP-4 is only safe once CP-3 has removed every dependency on the unpaged endpoint
 - [x] Superadmin pickers moved off `LoadCustomers({ page: 1, limit: 100 })` / `list({})`:
       contracts-list, quotations-list, quotation-builder, equipment-list,
       equipment-form-dialog, service-order-builder, service-import
-- [x] Field app `customers.service.ts` + `customers.state.ts` → `/customers/all`, `{ items }`;
+- [x] Field app `customers.service.ts` + `customers.state.ts` → `/customers/all`, bare array;
       the directory keeps its client-side paginator over the complete roster
 - [x] `contract-form`'s incremental `p-select` left alone — it is already correct
 - [x] After this CP, **nothing depends on `GET /customers` being unpaged** — the only

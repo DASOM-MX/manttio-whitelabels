@@ -118,12 +118,13 @@ const auditBodyForEdit = (input: UpdateCustomerInput): string => {
 
 export const getCustomers = async (db: Db): Promise<CustomerRow[]> => listCustomers(db);
 
-/** The whole roster for pickers (21 §3). Not a `GenericQueryResponse`: there is
- *  no page, no limit, and a `total` here could only ever be `items.length` —
- *  giving a roster a fake envelope is the mistake the generic exists to stop. */
-export const getCustomerOptions = async (
-  db: Db,
-): Promise<{ items: CustomerOption[] }> => ({ items: await listCustomerOptions(db) });
+/** The whole roster for pickers (21 §3). A bare array, not an envelope: there
+ *  is no page, no limit, and a `total` could only ever be the array's own
+ *  length, so even an `{ items }` wrapper is a level of nesting that carries no
+ *  information (owner, 2026-08-25). Roster reads and query reads are different
+ *  contracts — see `GenericQueryResponse` for the latter. */
+export const getCustomerOptions = async (db: Db): Promise<CustomerOption[]> =>
+  listCustomerOptions(db);
 
 /** Latest registered clients (utm-params 03 amendment — the Panel card). */
 export const getRecentCustomers = async (
