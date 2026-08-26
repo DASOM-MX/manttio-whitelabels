@@ -48,33 +48,36 @@ export type ReportEmailParams = {
   brand: ReportEmailBrand;
 };
 
-// Email clients want hex (Outlook's Word engine can't parse hsl()); unparsable
-// scale values fall back to a neutral gray ramp.
-const NEUTRAL_HEX_FALLBACKS: EmailPalette = {
-  accent: '#37414d',
+// The chrome neutral left the brand contract (22 § Target 3), so these stopped
+// being fallbacks and became the values: the fixed grayscale ramp's steps
+// 100 / 0 / 900 / 200 / 500 / 600 / 400, materialized as hex because email
+// clients want hex (Outlook's Word engine can't parse hsl()).
+const FIXED_NEUTRALS = {
   pageBg: '#f5f5f5',
   panelBg: '#fafafa',
-  bodyText: '#26292e',
-  border: '#e3e5e8',
-  footnote: '#7d838c',
-  closing: '#5f666f',
-  outerFooter: '#9aa0a8',
+  bodyText: '#2e2e2e',
+  border: '#e6e6e6',
+  footnote: '#8c8c8c',
+  closing: '#737373',
+  outerFooter: '#b3b3b3',
+} as const;
+
+// The two brand-driven roles still need a fail-soft: a scale value that
+// doesn't parse falls back to a neutral ink rather than dropping the style.
+const NEUTRAL_BRAND_FALLBACKS = {
+  brandInk: '#37414d',
+  accent: '#37414d',
   footerText: '#d9dde2',
-};
+} as const;
 
 const hex = (scale: HslScale, step: string, fallback: string) =>
   hslToHex(scale[step] ?? '') ?? fallback;
 
 const paletteFromBrand = (colors: BrandColors): EmailPalette => ({
-  accent: hex(colors.primary, '800', NEUTRAL_HEX_FALLBACKS.accent),
-  pageBg: hex(colors.surface, '100', NEUTRAL_HEX_FALLBACKS.pageBg),
-  panelBg: hex(colors.surface, '0', NEUTRAL_HEX_FALLBACKS.panelBg),
-  bodyText: hex(colors.surface, '900', NEUTRAL_HEX_FALLBACKS.bodyText),
-  border: hex(colors.surface, '200', NEUTRAL_HEX_FALLBACKS.border),
-  footnote: hex(colors.surface, '500', NEUTRAL_HEX_FALLBACKS.footnote),
-  closing: hex(colors.surface, '600', NEUTRAL_HEX_FALLBACKS.closing),
-  outerFooter: hex(colors.surface, '400', NEUTRAL_HEX_FALLBACKS.outerFooter),
-  footerText: hex(colors.primary, '100', NEUTRAL_HEX_FALLBACKS.footerText),
+  ...FIXED_NEUTRALS,
+  brandInk: hex(colors.primary, '800', NEUTRAL_BRAND_FALLBACKS.brandInk),
+  accent: hex(colors.accent, '800', NEUTRAL_BRAND_FALLBACKS.accent),
+  footerText: hex(colors.accent, '100', NEUTRAL_BRAND_FALLBACKS.footerText),
 });
 
 const fmtCoord = (n: number) => n.toFixed(6);

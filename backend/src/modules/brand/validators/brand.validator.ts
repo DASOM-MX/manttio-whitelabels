@@ -63,10 +63,14 @@ export const saveBrandSchema = z.object({
   isologoKey: z.string().min(1).optional(),
   faviconKey: z.string().min(1).optional(),
   // Required and fully materialized — the editor runs the palette math, the
-  // backend stores the scales verbatim (01 §1.4 reconciliation).
+  // backend stores the scales verbatim (01 §1.4 reconciliation). Both scales
+  // are mandatory (22 § Decisions ①): a writer still sending the retired
+  // `surface` key fails loudly instead of half-applying, so the manager app
+  // ships its two-picker editor in lockstep rather than pushing a key the
+  // backend silently strips.
   colors: z.object({
     primary: hslScaleSchema,
-    surface: hslScaleSchema,
+    accent: hslScaleSchema,
   }),
   // Contact info is required brand data — every consumer surface renders it.
   contact: z.object({

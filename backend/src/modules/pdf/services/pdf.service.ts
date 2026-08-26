@@ -233,14 +233,14 @@ export const drawStackedRow = (
   r.y -= height;
 };
 
-// Full-width (optionally multi-column) bold, gray-filled, centered header row.
+// Full-width (optionally multi-column) bold, accent-filled, centered header row.
 export const drawSectionHeader = (r: Renderer, label: string, totalCols = 1) => {
   const widths =
     totalCols === 1
       ? [CONTENT_WIDTH]
       : Array.from({ length: totalCols }, () => CONTENT_WIDTH / totalCols);
   drawRow(r, widths, [
-    { text: label, bold: true, fill: r.theme.fill, align: 'center', colSpan: totalCols },
+    { text: label, bold: true, fill: r.theme.accentFill, align: 'center', colSpan: totalCols },
     ...Array.from({ length: totalCols - 1 }, () => ({ text: '' }) as Cell),
   ]);
 };
