@@ -10,9 +10,9 @@
 > `rounded-control` buttons, neutral shadows, no colored glows, compact data inside airy
 > chrome. Three of its decisions are **superseded** here (§ Supersessions).
 > **Reference:** the two dashboard screenshots supplied by the owner 2026-08-26 (light SaaS
-> console — "Shopeers"). They are described exhaustively in § The reference so this plan
-> survives without them; ask the owner to commit the PNGs under
-> `.claude/plans/superadmin/assets/` if a pixel reference is wanted.
+> console — "Shopeers"), committed as **`assets/23-reference-dashboard.png`** (both
+> attachments were the same image). It is also described exhaustively in § The reference,
+> so this plan survives without opening the file.
 > **Not in scope (owner, 2026-08-26):** widget composition — the reference's "Add Widget"
 > panel, drag-and-drop placement, and per-user saved layouts. Visual language + the shared viz
 > kit only; no new backend persistence.
@@ -32,6 +32,8 @@
    differently.
 
 ## The reference (read this before touching anything)
+
+![The owner's reference dashboard: light canvas, white sidebar, KPI strip, trend and gauge cards, and the right-side widget panel](assets/23-reference-dashboard.png)
 
 Two screenshots of the same light dashboard; the first also shows an overlay panel over a
 dimmed canvas. What matters, surface by surface:
@@ -154,28 +156,87 @@ lesson from 17 CP-5).
 
 ## Checkpoints
 
-Each CP is one stacked PR, base `main`, prefix `style(superadmin)` (CP-3 is `feat(superadmin)`).
-`npm run build` green closes every CP; **no screenshots unless the owner asks** (the owner
-watches `:4200`).
+One PR per checkpoint, stacked, base `main`, prefix `style(superadmin)` except CP-3
+(`feat(superadmin)`). **CP-1 cannot start before 22 CP-2 merges.** `npm run build` green closes
+every CP, and **no screenshots unless the owner asks** — the owner watches `:4200`.
 
-- **CP-1 — language + tokens.** 01-conventions § Design language rewrite + the
-  `superadmin-design` skill mirror (same commit) + this file's supersession table; `.card`
-  border treatment in `styles.scss`; preset tokens for the accent-aware chrome; the fixed
-  neutral retune decision from 22 § Target 3 (cool the canvas or keep it).
-- **CP-2 — shell.** Sidebar → light panel (rows, active tint, hover, group collapse, count
-  badges, collapsed rail + flyouts, bottom block); topbar search field + `⌘K` affordance
-  *(see § Open)*; both modes; a11y (focus rings on the tinted rows, `aria-current`).
-- **CP-3 — viz kit.** The four components above + the table idioms, with the loading and empty
-  states each one needs.
-- **CP-4 — dashboards.** CRM cockpit onto the kit (it currently hand-rolls all four), plus any
-  other dashboard surface that exists when the CP starts.
-- **CP-5 — lists + tables.** The five list pages: header treatment, thumbnail/avatar lead cells,
-  directional numerics, status pills re-checked against the accent role, `p-table` density
-  unchanged.
-- **CP-6 — forms, dialogs, detail views + sweep.** Editors/drawers/dialog panels onto the
-  bordered-card treatment (the reference's overlay panel + option-card + tag chip styling lands
-  here); app-wide straggler audit (bracket values, weight ladder, leftover `primary-400`
-  decorative uses); full contrast pass.
+### CP-1 — Language + tokens
+- [ ] 01-conventions § Design language rewritten onto § Direction: light shell, bordered cards,
+      the three-way palette-role split, `accent` in place of the `primary-400` step
+- [ ] `.claude/skills/superadmin-design` mirror updated **in the same commit** (01's standing rule)
+- [ ] § Supersessions reflected in 17's header (done at plan time — re-verify)
+- [ ] `.card` / `.card-section` in `styles.scss`: hairline `surface-200` border + the existing
+      `shadow-card`; dark mode `surface-900` fill, `surface-800` border, deepened shadow
+- [ ] Preset tokens re-checked against the new card treatment (content/overlay borders) —
+      preset-first, no new override sheet for looks
+- [ ] Fixed-neutral retune decided (22 § Target 3): keep today's neutral or cool the canvas —
+      if cooled, one edit in each of the four configs, zero tenant impact
+- [ ] Outer app-frame decision recorded (§ Open ③)
+- [ ] Both modes eyeballed; `npm run build` green
+
+### CP-2 — Shell
+- [ ] Sidebar → `surface-0` panel with a hairline right border; the `primary-1000` panel and
+      `rounded-r-shell` retire (drop the `shell` radius token if nothing else uses it)
+- [ ] Rows: neutral hover; active = `bg-primary-100/60` (dark `bg-primary-1000/40`) with
+      `text-primary-700` / `primary-300` label **and** icon; `aria-current` preserved
+- [ ] Wordmark strip stays `h-14` and level with the topbar; group collapse chevron + indented,
+      icon-less children
+- [ ] Count-badge slot on nav entries (soft pill, right-aligned) — wired to a real count or left
+      out; no decorative placeholder
+- [ ] Collapsed rail + hover/focus flyouts inherit the light treatment; flyout overflow
+      behaviour unchanged; the floating collapse handle survives
+- [ ] Bottom block: Settings/Help separation + the promo-card decision (§ Open ②)
+- [ ] Topbar stays surfaceless; search-field decision (§ Open ①) recorded either way
+- [ ] Focus rings visible on the tinted rows; § Verification contrast checks pass in both modes
+- [ ] `npm run build` green
+
+### CP-3 — Viz kit
+- [ ] `kpi-tile` — micro-label, trailing Lucide icon, `font-data` value, delta pill (sign always
+      shown, emerald/red, arrow), muted comparison caption, `.skeleton` loading state (17 CP-3)
+- [ ] `segmented-bar` — n proportional touching segments with per-segment color role, count,
+      label, top rule; degrades to a single neutral bar at n = 1 and to a bare track at total = 0
+- [ ] `gauge-card` — segmented semicircular arc, percentage centerpiece, caption, optional footer
+      link, `role="img"` + `aria-label` carrying the value, reduced-motion-safe sweep
+- [ ] `trend-card` — `p-chart type="line"` in the `h-64` wrapper with host + inner `h-full`
+      (the PrimeNG 21 `styleClass` gotcha), faint y-grid, no point dots, `tension: 0.4`, legend
+      off, custom tooltip card, colors re-read from the brand vars on theme change
+- [ ] Table idioms documented in 01: thumbnail lead cell, directional colored numeric,
+      star + value rating
+- [ ] House rules hold: constants in `model/constants/<entity>/`, enums in `model/enums/`,
+      no barrels, no inline function calls in templates, no arbitrary `[Npx]` values,
+      Lucide stroke-2, no emojis
+- [ ] Every component is consumed by CP-4 — anything unused is cut, not shipped
+      (the `.icon-chip--soft` lesson from 17 CP-5)
+- [ ] `npm run build` green
+
+### CP-4 — Dashboards
+- [ ] CRM cockpit KPI strip → `kpi-tile`; its hand-rolled copies deleted
+- [ ] Channel-mix bars → `segmented-bar`; the six-month trend → `trend-card`
+- [ ] A `gauge-card` lands on a real rate metric (conversión / follow-up compliance) — or the
+      component is cut per CP-3's last item
+- [ ] Any other dashboard surface that exists when this CP starts
+- [ ] Chart colors verified across a theme toggle (var re-read), both modes
+- [ ] `npm run build` green
+
+### CP-5 — Lists + tables
+- [ ] The five list pages: header treatment, thumbnail/avatar lead cells, directional colored
+      numerics where a value has a direction
+- [ ] Status pills re-checked against the palette-role split; **role pills stay the static blue
+      ladder** (14 §1 / 16 § Mechanics 3) — not brand-shifting, not accent
+- [ ] `p-table` density unchanged (`py-2.5` cells, 13–14px text); skeleton `#loadingbody` rows
+      and `.empty-icon` empties kept (17 CP-3)
+- [ ] Filters-popover + paginator touched only where the border treatment demands it
+- [ ] `npm run build` green
+
+### CP-6 — Forms, dialogs, detail views + sweep
+- [ ] Editors, drawers and dialogs onto the bordered-card treatment; the reference's overlay
+      panel — scrim, option card (thumbnail + title + description + tag chip + trailing pill
+      action) — lands as shared idioms
+- [ ] Detail views re-checked: client 360, equipment, report view
+- [ ] Straggler audit: arbitrary bracket values → 0; weight ladder ≤ 500 outside the sanctioned
+      emphasis list; leftover decorative `primary-400` → `accent`
+- [ ] Full § Verification pass — contrast in both modes, reduced motion, keyboard
+- [ ] `npm run build` green
 
 ## Verification
 

@@ -166,26 +166,95 @@ never change.
 
 ## Checkpoints
 
-- **CP-1 — backend contract + migration** (`feat(backend)`): dto/validator/model/default-brand;
-  generated migration (§ Mechanics); email/PDF/icon surface reads → fixed neutrals; `/brand`
-  response no longer carries `surface`; write-path decision from § Manager-app coordination implemented; tests updated.
-  - [ ] `pnpm build` + the brand/reports/quotations suites green (live-Neon caveat: don't run casually)
-- **CP-2 — superadmin palette layer** (`feat(superadmin)`): tailwind + preset + BrandThemeService
-  + ColorScaleService + DTO + brand editor. **No page restyle** — this CP is the vocabulary, not
-  the look; every existing pixel stays put except the retired `secondary` alias.
-  - [ ] `npm run build` green · `grep -rn "brand-surface" superadmin/src` → 0
-- **CP-3 — frontend leg** (`style(frontend)`, absorbs 16 PR-1): config rewrite + the mechanical
-  legacy sweep (`navy|sky|cyan-N` → `primary-N`, `granite-N` → `surface-N`, word-boundary-safe,
-  variant prefixes and `/opacity` suffixes preserved) + `brand-css.ts` + preset + the single
-  `bg-surface` → `bg-primary-100` hand-remap + alias application (16 § Target 4).
-  - [ ] `grep -rE '\b(granite|sky|navy|cyan)-[0-9]' frontend/src` → 0 · build green
-- **CP-4 — website leg** (`style(website)`, absorbs 16 PR-3): same recipe, plus the five aliases
-  the site never had, plus `types.ts`/`theme.ts`.
-  - [ ] `grep -rE '\b(granite|sky|navy|cyan)-[0-9]' website/src` → 0 · build green
-- **CP-5 — bookkeeping** (`docs`): 16 marked fully superseded, 00-master-plan table + build
-  order, root `CLAUDE.md` if it names the old pair, manager-app coordination note closed out.
+One PR per checkpoint, stacked, base `main`, in this order. **The order is the safety
+property** — CP-1 changes the wire, so no consumer leg can land before it, and CP-2 must land
+before plan 23 writes a single line of new chrome. CP-3 and CP-4 are independent of each other.
 
-Stacked PRs, one per CP, base `main`, in order (CP-3/CP-4 are independent of each other).
+### CP-1 — Backend contract + migration (`feat(backend)`)
+- [ ] `BrandColors` in `dtos/brand.dto.ts` → `{ primary: HslScale; accent: HslScale }`;
+      `models/brand.model.ts`'s jsonb `$type` follows
+- [ ] `saveBrandSchema.colors` → `z.object({ primary: hslScaleSchema, accent: hslScaleSchema })`,
+      with the write-compat decision from § Manager-app coordination implemented
+- [ ] `DEFAULT_BRAND.colors.accent` = the same neutral ramp as primary (`neutralScale(220, 10)`) —
+      a brandless instance renders gray, never an invented hue (branding rule 3)
+- [ ] **Dump the live `brand.colors.surface` and diff it against § Target 3's fixed table before
+      generating anything**; owner signs off on any delta (§ Verification)
+- [ ] Migration generated with `pnpm db:generate` — never hand-written DDL — and its `when`
+      newer than the newest `__drizzle_migrations` row (check the *table*, not just
+      `_journal.json`; today's newest is `0041_wms_node_assignments`)
+- [ ] The migration seeds `accent` from the tenant's `primary` and leaves the legacy `surface`
+      key in place, unread. No column dropped, nothing deleted
+- [ ] Migration **not applied** — applying against the live Neon DB is the owner's call
+- [ ] `brand-icons.service.ts`: the icon plate's `colors.surface['0']` → literal white
+- [ ] `reports/helpers/report-email.helpers.ts` (7 surface reads), `report-pdf.helpers.ts` (2),
+      `quotations/helpers/quotation-email.helpers.ts` (5): brand lookup deleted, the neutral
+      constant already beside each one promoted to the value; helper signatures unchanged
+- [ ] `quotation-approval-page.helpers.ts` re-checked (primary-only today — should stay green)
+- [ ] `GET /brand` no longer emits `surface`
+- [ ] `test/brand.test.ts` + the report/quotation email+PDF fixtures updated (written, not run —
+      the suite hits live Neon)
+- [ ] `pnpm typecheck` green
+
+### CP-2 — Superadmin palette layer (`feat(superadmin)`)
+- [ ] `tailwind.config.js`: `primary` + `accent` through the existing `brandScale()` helper;
+      `surface` rebuilt from § Target 3's literal table; header comment rewritten (it currently
+      teaches `--brand-surface-*`)
+- [ ] Aliases per § Target 4 — `background` = `surface-100`, `dark` = `surface-800`,
+      `accent` DEFAULT = `accent-500`; **`secondary` deleted**; the four legacy tombstones
+      (`granite`/`sky`/`navy`/`cyan`) left exactly as they are
+- [ ] `app/theme/manttio-preset.ts`: primary keeps its vars, surface tokens become literals
+      (`surface.0` stays `#FFFFFF`); **no invented accent tokens** — 23 CP-1 owns those
+- [ ] `services/theme/brand-theme.service.ts` sets `--brand-primary-*` + `--brand-accent-*` and
+      stops emitting `--brand-surface-*` entirely (a dead var set re-invites theming)
+- [ ] `services/theme/color-scale.service.ts`: `deriveScale()` drops the `anchorZeroAtWhite`
+      argument — surface was its only caller
+- [ ] `data/dtos/brand.ts` mirrors the new `BrandColors`
+- [ ] Brand editor: `surfaceBase`/`surfaceScale` → `accentBase`/`accentScale`, the second
+      `app-scale-editor` relabelled **Acento** (`inputId="brand-accent"`), hydration reads
+      `colors.accent`, `save()` sends `{ primary, accent }`, the preview slots show an accent
+      surface
+- [ ] Editor copy states the new division of labor (two brand colors; the interface gray is
+      fixed), and the fixed-status callout gains an accent swatch + its collision warning
+- [ ] `grep -rn "brand-surface\|colors\.surface\|surfaceScale\|surfaceBase" superadmin/src` → 0
+- [ ] No `secondary` color class survives anywhere in `superadmin/src`
+- [ ] `npm run build` green — and **every existing pixel unchanged**: this CP is vocabulary,
+      not looks. Spot-check both modes
+
+### CP-3 — Frontend leg (`style(frontend)` — absorbs 16 PR-1)
+- [ ] Re-run the legacy inventory first (16's ~590 is a 2026-07-15 snapshot)
+- [ ] `tailwind.config.js` rewritten onto `primary` + `accent` + fixed `surface` + the five
+      aliases, tombstones added
+- [ ] Mechanical sweep: `navy-N`/`sky-N`/`cyan-N` → `primary-N`, `granite-N` → `surface-N`,
+      word-boundary-safe, preserving variant prefixes and `/opacity` suffixes
+      (`dark:hover:bg-sky-500`, `focus-visible:ring-sky-600/30`)
+- [ ] Sweep touched no lockfile, no `node_modules`, and no plan doc's historical text
+- [ ] Hand remap: the single `bg-surface` (old primary-tint alias) → `bg-primary-100`
+- [ ] `src/app/theme/brand-css.ts` emits primary + accent vars only
+- [ ] `src/app/theme/manttio-preset.ts`: surface literals, `surface.0` white anchor kept
+- [ ] Aliases visibly applied at the shell — `bg-background` + `text-dark` (16 § Target 4)
+- [ ] `grep -rE '\b(granite|sky|navy|cyan)-[0-9]' frontend/src` → 0
+- [ ] `npm run build` green; PWA theme color + generated manifest still brand-driven; dark mode
+      spot-checked
+
+### CP-4 — Website leg (`style(website)` — absorbs 16 PR-3)
+- [ ] Re-run the inventory (~120 snapshot)
+- [ ] `tailwind.config.mjs` rewritten, **plus the five aliases the site never had**
+- [ ] `src/lib/types.ts` `BrandColors` mirror updated; `src/lib/theme.ts` emits primary +
+      accent only
+- [ ] Same mechanical sweep + tombstones
+- [ ] `grep -rE '\b(granite|sky|navy|cyan)-[0-9]' website/src` → 0
+- [ ] `npm run build` green; a published-CMS page spot-checked against the live brand
+
+### CP-5 — Bookkeeping + docs (`docs`)
+- [ ] Plan 16 header carries the full supersession (done at plan time — re-verify nothing else
+      still teaches the old pair)
+- [ ] `00-master-plan.md` table, progress board, and build-order rationale current
+- [ ] 01-conventions § Design language + `.claude/skills/superadmin-design` — **the palette half
+      only**: `accent` replaces the `primary-400` decorative-accent step (same commit, 01's
+      standing rule). 23 CP-1 rewrites the rest of that section
+- [ ] Each package `CLAUDE.md` (+ root `CLAUDE.md`) wherever it names the old pair
+- [ ] Manager-app coordination closed out: the manager ships its two-picker editor and the
+      `{ primary, accent }` payload
 
 ## Verification
 
