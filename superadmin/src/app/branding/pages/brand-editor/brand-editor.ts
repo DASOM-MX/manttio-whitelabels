@@ -24,6 +24,7 @@ import { errorMessage } from '../../../data/utils';
 import { phoneValidator } from '../../../validators/phone.validator';
 import { FONT_PREVIEW_SIZES } from '../../../model/constants/brand/font-preview-sizes.const';
 import { BRAND_SCALE_STEPS } from '../../../model/constants/brand/scale-steps.const';
+import { FIXED_SURFACE_DARK_HEX } from '../../../model/constants/brand/fixed-surface-dark-hex.const';
 import { ScaleEditor } from '../../components/scale-editor/scale-editor';
 import { ApplyBrandDialog } from '../../components/apply-brand-dialog/apply-brand-dialog';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
@@ -112,14 +113,18 @@ export class BrandEditor {
   });
 
   protected primaryBase = this.fb.nonNullable.control('#3F7A9D');
-  protected surfaceBase = this.fb.nonNullable.control('#4C5B5C');
+  // Accent starts at the primary default on purpose — the same rule the 22 CP-1
+  // migration applies to existing tenants. An invented second hue would put a
+  // color on screen the tenant never chose (branding rule 3); the owner picks
+  // the real accent here.
+  protected accentBase = this.fb.nonNullable.control('#3F7A9D');
   protected primaryScale = this.buildScaleGroup(
     [...BRAND_SCALE_STEPS],
-    this.colorScale.deriveScale('#3F7A9D', false),
+    this.colorScale.deriveScale('#3F7A9D'),
   );
-  protected surfaceScale = this.buildScaleGroup(
+  protected accentScale = this.buildScaleGroup(
     [...BRAND_SCALE_STEPS],
-    this.colorScale.deriveScale('#4C5B5C', true),
+    this.colorScale.deriveScale('#3F7A9D'),
   );
 
   protected readonly imageSlots: { id: ImageSlot; label: string; dark: boolean }[] = [
@@ -149,20 +154,20 @@ export class BrandEditor {
     // advanced expander refines a derivation, it doesn't survive a new base).
     this.primaryBase.valueChanges.pipe(takeUntilDestroyed()).subscribe((hex) => {
       if (this.colorScale.isHex(hex)) {
-        this.primaryScale.patchValue(this.colorScale.deriveScale(hex, false));
+        this.primaryScale.patchValue(this.colorScale.deriveScale(hex));
       }
       this.updateContrast();
     });
-    this.surfaceBase.valueChanges.pipe(takeUntilDestroyed()).subscribe((hex) => {
+    this.accentBase.valueChanges.pipe(takeUntilDestroyed()).subscribe((hex) => {
       if (this.colorScale.isHex(hex)) {
-        this.surfaceScale.patchValue(this.colorScale.deriveScale(hex, true));
+        this.accentScale.patchValue(this.colorScale.deriveScale(hex));
       }
       this.updateContrast();
     });
     this.primaryScale.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.updateContrast());
-    this.surfaceScale.valueChanges
+    this.accentScale.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.updateContrast());
 
@@ -177,9 +182,9 @@ export class BrandEditor {
       if (this.readOnly()) {
         this.form.disable({ emitEvent: false });
         this.primaryBase.disable({ emitEvent: false });
-        this.surfaceBase.disable({ emitEvent: false });
+        this.accentBase.disable({ emitEvent: false });
         this.primaryScale.disable({ emitEvent: false });
-        this.surfaceScale.disable({ emitEvent: false });
+        this.accentScale.disable({ emitEvent: false });
       }
     });
 
@@ -304,8 +309,8 @@ export class BrandEditor {
       primary: this.colorScale.toWireScale(
         this.primaryScale.getRawValue() as Record<string, string>,
       ),
-      surface: this.colorScale.toWireScale(
-        this.surfaceScale.getRawValue() as Record<string, string>,
+      accent: this.colorScale.toWireScale(
+        this.accentScale.getRawValue() as Record<string, string>,
       ),
     };
   }
@@ -337,16 +342,16 @@ export class BrandEditor {
     );
     // The wire scales are HSL components (rule 2); the pickers work in hex.
     const primaryHex = this.colorScale.fromWireScale(brand.colors?.primary);
-    const surfaceHex = this.colorScale.fromWireScale(brand.colors?.surface);
+    const accentHex = this.colorScale.fromWireScale(brand.colors?.accent);
     if (Object.keys(primaryHex).length)
       this.primaryScale.patchValue(primaryHex, { emitEvent: false });
-    if (Object.keys(surfaceHex).length)
-      this.surfaceScale.patchValue(surfaceHex, { emitEvent: false });
+    if (Object.keys(accentHex).length)
+      this.accentScale.patchValue(accentHex, { emitEvent: false });
     if (primaryHex['600']) {
       this.primaryBase.setValue(primaryHex['600'], { emitEvent: false });
     }
-    if (surfaceHex['500']) {
-      this.surfaceBase.setValue(surfaceHex['500'], { emitEvent: false });
+    if (accentHex['500']) {
+      this.accentBase.setValue(accentHex['500'], { emitEvent: false });
     }
     this.images.set({
       logo: { url: brand.logoUrl, uploading: false },
@@ -369,16 +374,16 @@ export class BrandEditor {
   /** 03 §3: contrast check warns but never blocks. */
   private updateContrast(): void {
     const p = this.primaryScale.getRawValue() as Record<string, string>;
-    const s = this.surfaceScale.getRawValue() as Record<string, string>;
+    const a = this.accentScale.getRawValue() as Record<string, string>;
     const warnings: string[] = [];
     if (this.colorScale.contrastRatio(p['600'], '#FFFFFF') < 4.5) {
       warnings.push(
         'El primario 600 sobre blanco queda por debajo de 4.5:1 — el texto de botones puede costar leerse.',
       );
     }
-    if (this.colorScale.contrastRatio(p['300'], s['1000']) < 3) {
+    if (this.colorScale.contrastRatio(a['500'], FIXED_SURFACE_DARK_HEX) < 3) {
       warnings.push(
-        'El primario 300 sobre la superficie 1000 queda por debajo de 3:1 — los acentos en modo oscuro pueden perderse.',
+        'El acento 500 sobre fondo oscuro queda por debajo de 3:1 — los elementos de marca en modo oscuro pueden perderse.',
       );
     }
     this.contrastWarnings.set(warnings);

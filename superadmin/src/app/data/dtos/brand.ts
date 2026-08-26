@@ -52,14 +52,14 @@ export interface Brand {
   icons?: BrandIcons; // generated from the mark (faviconKey ?? isologoKey)
   colors?: {
     primary?: BrandColorScale;
-    surface?: BrandColorScale;
+    accent?: BrandColorScale;
   };
   contact?: BrandContact;
   social?: BrandSocial;
   font?: BrandFont;
 }
 
-/** `PUT /brand` — owner-only, direct-apply (03 §8). Images travel as R2 keys
+/** `PUT /brand` — owner-only, direct-apply (03 §8, plan 22 CP-2). Images travel as R2 keys
  *  (from `POST /upload/logo` — the brand-asset bucket); scales travel
  *  materialized as HSL 0…1000 so consumers never run palette math. */
 export interface SaveBrandRequest {
@@ -75,7 +75,7 @@ export interface SaveBrandRequest {
   faviconKey?: string;
   colors: {
     primary: BrandColorScale;
-    surface: BrandColorScale;
+    accent: BrandColorScale;
   };
   // Contact info is required brand data (the backend rejects it missing);
   // social links stay optional — blank ones are omitted, never sent empty.

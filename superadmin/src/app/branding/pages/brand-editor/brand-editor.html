@@ -132,13 +132,18 @@
       [readOnly]="readOnly()"
     />
     <app-scale-editor
-      label="Superficie (neutro)"
-      inputId="brand-surface"
-      [baseControl]="surfaceBase"
-      [scaleGroup]="surfaceScale"
+      label="Acento"
+      inputId="brand-accent"
+      [baseControl]="accentBase"
+      [scaleGroup]="accentScale"
       [steps]="BRAND_SCALE_STEPS"
       [readOnly]="readOnly()"
     />
+
+    <p class="text-sm text-surface-600 dark:text-surface-400">
+      Tu marca elige dos colores: el primario es la identidad principal (botones, enlaces,
+      encabezados), y el acento es un complemento decorativo. El gris de la interfaz es fijo.
+    </p>
 
     @for (warning of contrastWarnings(); track warning) {
       <p class="callout callout--warn flex items-start gap-2" role="status">
@@ -149,7 +154,7 @@
 
     @if (!readOnly()) {
       <!-- Static heads-up, not a computed check: the apps keep fixed status
-           colors alongside the brand, and a primary too close to them blurs
+           colors alongside the brand, and brand colors too close to them blur
            the destructive/warning/success/info affordances. -->
       <div
         class="rounded-lg border border-surface-200 px-3 py-2.5 dark:border-surface-800"
@@ -157,7 +162,7 @@
       >
         <p class="text-sm text-surface-600 dark:text-surface-400">
           Además de tu marca, las aplicaciones usan colores fijos para estados y acciones. Estos no
-          cambian con tu marca — si tu color primario se parece a alguno de ellos, los botones y
+          cambian con tu marca — si tus colores se parecen a alguno de ellos, los botones y
           avisos podrían confundirse entre sí:
         </p>
         <ul class="mt-2.5 flex flex-col gap-2 text-sm text-surface-600 dark:text-surface-400">
@@ -187,7 +192,14 @@
               class="size-6 shrink-0 rounded-lg border border-surface-200 bg-primary-500 dark:border-surface-800"
               aria-hidden="true"
             ></div>
-            Azul — confirmaciones y avisos
+            Primario — confirmaciones y avisos
+          </li>
+          <li class="flex items-center gap-2.5">
+            <div
+              class="size-6 shrink-0 rounded-lg border border-surface-200 bg-accent-500 dark:border-surface-800"
+              aria-hidden="true"
+            ></div>
+            Acento — realce secundario
           </li>
         </ul>
       </div>
