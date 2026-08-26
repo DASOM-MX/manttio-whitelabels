@@ -5,6 +5,7 @@ import { LucideHistory } from '@lucide/angular';
 import { CustomersService } from '../../../services/http/customers.service';
 import { InteractionRefKind } from '../../../model/enums/interaction/interaction-ref-kind.enum';
 import { RelativeTimePipe } from '../../../pipes/relative-time.pipe';
+import { tableLoading } from '../../../services/table/table-loading';
 import type { Interaction } from '../../../data/dtos/interaction';
 
 /** A contract's audit trail (13 §3/§6) — created, edited, document replaced,
@@ -57,12 +58,12 @@ export class ContractAuditCard {
 
   protected loadingMore = computed(() => this.inFlight() === 'more');
 
-  /** PrimeNG renders `#loadingbody` **after** the data rows and gates it on
-   *  `loading` alone (`isEmpty()` guards only the empty message), so a truthy
-   *  `[loading]` over a populated table stacks skeletons *under* real entries.
-   *  The skeleton is therefore the empty-table state only; a reload keeps the
-   *  rows it already has on screen until the new ones replace them. */
-  protected showSkeleton = computed(() => this.inFlight() === 'first' && !this.entries().length);
+  /** Only a page-1 read can replace what is on screen — "load more" appends,
+   *  and `loadingMore` is the affordance for that. */
+  protected tableBusy = tableLoading(
+    computed(() => this.inFlight() === 'first'),
+    this.entries,
+  );
 
   protected hasMore = computed(() => this.entries().length < this.total());
 

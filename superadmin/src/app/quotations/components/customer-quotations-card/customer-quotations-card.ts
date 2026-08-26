@@ -12,6 +12,7 @@ import {
   QuotationTallyPipe,
 } from '../../../pipes/quotation-status.pipe';
 import type { QuotationSummary } from '../../../data/dtos/quotation/quotation';
+import { tableLoading } from '../../../services/table/table-loading';
 
 /** The client's quotations, mounted in 07's customer view (20 §8).
  *
@@ -43,6 +44,7 @@ export class CustomerQuotationsCard {
   protected quotations = signal<QuotationSummary[]>([]);
   protected total = signal(0);
   protected loading = signal(true);
+  protected tableBusy = tableLoading(this.loading, this.quotations);
   protected readonly pageSize = 5;
   protected readonly skeletonRows = [0, 1, 2];
 

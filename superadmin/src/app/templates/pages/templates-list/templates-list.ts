@@ -15,6 +15,7 @@ import {
   TemplateStatusSeverityPipe,
 } from '../../../pipes/report-status.pipe';
 import type { ReportTemplate } from '../../../data/dtos/report-template';
+import { tableLoading } from '../../../services/table/table-loading';
 
 /** Templates list (06 §5.3) — own top-level Plantillas area, owner/admin
  *  only (route data enforces; office/tech never see the nav entry). Page
@@ -45,6 +46,7 @@ export class TemplatesList {
   protected templates = select(ReportTemplatesState.items);
   protected total = select(ReportTemplatesState.total);
   protected loading = select(ReportTemplatesState.loading);
+  protected tableBusy = tableLoading(this.loading, this.templates);
 
   constructor() {
     this.list.init({

@@ -19,6 +19,7 @@ import { FiltersPopover } from '../../../shared/components/filters-popover/filte
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { Role } from '../../../data/dtos/auth';
 import type { User, UserListQuery } from '../../../data/dtos/user';
+import { tableLoading } from '../../../services/table/table-loading';
 
 /** Users list (05 §3): lazy server-side table with search/role/active
  *  filters, role + active pills, edit/delete row actions. Owner rows never
@@ -59,6 +60,7 @@ export class UsersList {
   protected users = select(UsersState.items);
   protected total = select(UsersState.total);
   protected loading = select(UsersState.loading);
+  protected tableBusy = tableLoading(this.loading, this.users);
 
   protected search = new FormControl('', { nonNullable: true });
   protected roleFilter = new FormControl<Role | ''>('', { nonNullable: true });

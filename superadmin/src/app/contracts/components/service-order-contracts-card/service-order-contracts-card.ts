@@ -10,6 +10,7 @@ import {
   ContractValiditySeverityPipe,
 } from '../../../pipes/contract.pipe';
 import type { Contract } from '../../../data/dtos/contract/contract';
+import { tableLoading } from '../../../services/table/table-loading';
 
 /** The contracts filed against one job (13 §2, 19 §5 — CP-3).
  *
@@ -43,6 +44,7 @@ export class ServiceOrderContractsCard {
 
   protected contracts = signal<Contract[]>([]);
   protected loading = signal(true);
+  protected tableBusy = tableLoading(this.loading, this.contracts);
   protected readonly skeletonRows = [0, 1];
 
   constructor() {

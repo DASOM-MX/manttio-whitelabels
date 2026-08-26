@@ -30,6 +30,7 @@ import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { servicesToCsv } from '../../utils/services-csv-export.utils';
 import { downloadCsv } from '../../utils/csv.utils';
 import type { Service, ServiceListQuery } from '../../../data/dtos/service';
+import { tableLoading } from '../../../services/table/table-loading';
 
 /** The tenant's service catalog (18 §3) — what the business sells, priced per
  *  unit of measure.
@@ -78,6 +79,7 @@ export class ServicesList {
 
   protected services = select(ServicesState.items);
   protected loading = select(ServicesState.loading);
+  protected tableBusy = tableLoading(this.loading, this.services);
   private me = select(AuthState.me);
 
   /** Only owner/admin maintain the catalog; office and technician read it. */

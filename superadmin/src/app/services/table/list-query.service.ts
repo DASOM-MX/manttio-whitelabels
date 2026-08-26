@@ -51,6 +51,11 @@ export class ListQueryService {
   /** Paginator offset for `[first]`, kept in sync with the URL page. */
   readonly first = signal(0);
 
+  /** Row indices for the `#loadingbody` skeletons — one per row the page will
+   *  actually hold, so the table is the same height loading as loaded and
+   *  doesn't resize when the rows land. */
+  readonly skeletonRows = Array.from({ length: this.PAGE_SIZE }, (_, i) => i);
+
   private config: ListQueryConfig | null = null;
   private currentPage = 1;
 

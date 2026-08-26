@@ -28,6 +28,7 @@ import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { QuotationListQuery } from '../../../data/dtos/quotation/quotation-requests';
 import type { QuotationSummary } from '../../../data/dtos/quotation/quotation';
 import { CustomerSelect } from '../../../shared/components/customer-select/customer-select';
+import { tableLoading } from '../../../services/table/table-loading';
 
 /** Quotations list (20 §8) — lazy server-side table with folio/client search,
  *  client and status filters, all persisted as URL query params through
@@ -69,6 +70,7 @@ export class QuotationsList {
   protected quotations = select(QuotationsState.items);
   protected total = select(QuotationsState.total);
   protected loading = select(QuotationsState.loading);
+  protected tableBusy = tableLoading(this.loading, this.quotations);
 
   protected search = new FormControl('', { nonNullable: true });
   protected statusFilter = new FormControl<QuotationStatus | ''>('', { nonNullable: true });
@@ -93,7 +95,6 @@ export class QuotationsList {
     ),
   ];
 
-  protected readonly skeletonRows = [0, 1, 2, 3, 4, 5, 6, 7];
   protected readonly skeletonColumns = [0, 1, 2, 3, 4, 5, 6];
 
   constructor() {

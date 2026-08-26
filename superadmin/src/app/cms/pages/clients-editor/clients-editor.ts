@@ -21,6 +21,7 @@ import { errorMessage } from '../../../data/utils';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
 import type { CmsClient } from '../../../data/dtos/cms';
+import { tableLoading } from '../../../services/table/table-loading';
 
 /** Clients-document editor (04 §3): table of entries + drawer form; logo
  *  upload → R2 key; business relation through the constrained rich-text
@@ -52,6 +53,7 @@ export class ClientsEditor implements HasPendingChanges {
   protected clients = select(CmsState.clients);
   protected unpublished = select(CmsState.clientsUnpublished);
   protected loading = select(CmsState.loading);
+  protected tableBusy = tableLoading(this.loading, this.clients);
 
   protected drawerOpen = signal(false);
   protected busy = signal(false);

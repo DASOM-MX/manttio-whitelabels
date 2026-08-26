@@ -97,6 +97,23 @@
   }
 }
 
+/* Stale-while-revalidate for a table swapping one page of rows for another
+   (`tableLoading`, app/services/table/table-loading.ts — PrimeNG stacks
+   `#loadingbody` *under* the rows rather than replacing them, so the rows stay
+   and the skeletons sit this one out). Dim them in place and drop them out of
+   hit-testing: the height never changes, and nothing stale invites a click.
+
+   The delay is deliberately one-way: it rides on the dimmed state, so entering
+   it waits 150ms and a response that lands inside that window never blinks,
+   while leaving falls back to the undelayed transition above and restores at
+   once. */
+.p-datatable-tbody {
+  @apply transition-opacity duration-200;
+}
+.table-refreshing .p-datatable-tbody {
+  @apply opacity-60 delay-150 pointer-events-none;
+}
+
 /* Paginator (rendered when [paginator]="true") */
 .p-paginator {
   @apply flex items-center justify-end gap-1.5 px-4 py-3 bg-white

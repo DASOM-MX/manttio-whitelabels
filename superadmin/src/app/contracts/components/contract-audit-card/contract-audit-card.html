@@ -2,7 +2,8 @@
   <div class="card-flush-table">
     <p-table
       [value]="entries()"
-      [loading]="showSkeleton()"
+      [loading]="tableBusy.showSkeleton()"
+      [class.table-refreshing]="tableBusy.refreshing()"
       [showLoader]="false"
       [rowHover]="true"
       dataKey="id"

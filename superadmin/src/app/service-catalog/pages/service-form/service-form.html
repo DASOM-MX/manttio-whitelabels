@@ -165,7 +165,8 @@
       <div class="card-flush-table">
         <p-table
           [value]="timeline()"
-          [loading]="timelineLoading()"
+          [loading]="timelineBusy.showSkeleton()"
+          [class.table-refreshing]="timelineBusy.refreshing()"
           [showLoader]="false"
           dataKey="id"
         >

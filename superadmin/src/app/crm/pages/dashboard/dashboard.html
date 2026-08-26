@@ -230,7 +230,8 @@
         <div class="card-flush-table">
           <p-table
             [value]="clientRows()"
-            [loading]="clientsPending()"
+            [loading]="clientsBusy.showSkeleton()"
+            [class.table-refreshing]="clientsBusy.refreshing()"
             [showLoader]="false"
             [rowHover]="true"
             [scrollable]="true"
@@ -291,7 +292,8 @@
         <div class="card-flush-table">
           <p-table
             [value]="activityRows()"
-            [loading]="activityPending()"
+            [loading]="activityBusy.showSkeleton()"
+            [class.table-refreshing]="activityBusy.refreshing()"
             [showLoader]="false"
             [rowHover]="true"
             [scrollable]="true"

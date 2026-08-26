@@ -20,6 +20,7 @@ import { FiltersPopover } from '../../../shared/components/filters-popover/filte
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { Equipment, EquipmentListQuery, EquipmentStatus } from '../../../data/dtos/equipment';
 import { CustomerSelect } from '../../../shared/components/customer-select/customer-select';
+import { tableLoading } from '../../../services/table/table-loading';
 
 /** Global equipment registry (11 §4) — a projection; the daily entry point
  *  is the customer view's equipment card. Filters + page persist as GET
@@ -54,6 +55,7 @@ export class EquipmentList {
   protected equipment = select(EquipmentState.items);
   protected total = select(EquipmentState.total);
   protected loading = select(EquipmentState.loading);
+  protected tableBusy = tableLoading(this.loading, this.equipment);
 
   protected search = new FormControl('', { nonNullable: true });
   protected customerFilter = new FormControl('', { nonNullable: true });
