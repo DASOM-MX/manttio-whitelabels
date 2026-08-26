@@ -42,6 +42,7 @@ import {
   BlacklistReasonRequiredError,
   InvalidStatusTransitionError,
 } from '../http-errors/status-change.error';
+import { UUID_PARAM } from '../../shared/constants/uuid-param';
 
 export const customers = new Hono<AppBindings>();
 
@@ -120,15 +121,12 @@ customers.get(
 // and a `total` could only ever be the array's own length, so a wrapper would
 // carry nothing (owner, 2026-08-25). Open to any authenticated user: the field
 // app reads it as a technician.
-//
-// Declared before GET /:id so "all" is never captured as an id — the same trap
-// /stats/intake, /follow-ups, /recent and /interactions/recent already document.
 customers.get('/all', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   return c.json(await getCustomerOptions(db));
 });
 
-customers.get('/:id', async (c) => {
+customers.get(`/:id{${UUID_PARAM}}`, async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const row = await getCustomerById(db, c.req.param('id'));
   if (!row) return c.json({ error: 'not_found' }, 404);
@@ -143,7 +141,7 @@ customers.post('/', requireRole(['owner', 'admin']), zValidator('json', createCu
 });
 
 customers.patch(
-  '/:id',
+  `/:id{${UUID_PARAM}}`,
   requireRole(['owner', 'admin']),
   zValidator('json', updateCustomerSchema),
   async (c) => {
@@ -154,7 +152,7 @@ customers.patch(
   },
 );
 
-customers.delete('/:id', requireRole(['owner', 'admin']), async (c) => {
+customers.delete(`/:id{${UUID_PARAM}}`, requireRole(['owner', 'admin']), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const row = await removeCustomer(db, c.req.param('id'), c.get('user').id);
   if (!row) return c.json({ error: 'not_found' }, 404);
@@ -165,14 +163,14 @@ customers.delete('/:id', requireRole(['owner', 'admin']), async (c) => {
 
 // The client's installed units (11 §4) — the daily entry point (the customer
 // card). Reading is open to any authenticated user.
-customers.get('/:id/equipment', async (c) => {
+customers.get(`/:id{${UUID_PARAM}}/equipment`, async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   return c.json(await getCustomerEquipment(db, c.req.param('id')));
 });
 
 // The client's service reports (06) — the customer 360 "Servicios" tab and the
 // equipment retro-link picker. Compact, technician-named, newest-first.
-customers.get('/:id/reports', async (c) => {
+customers.get(`/:id{${UUID_PARAM}}/reports`, async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   return c.json(await getCustomerReports(db, c.req.param('id')));
 });
@@ -180,7 +178,7 @@ customers.get('/:id/reports', async (c) => {
 // The client's filed contracts (13 §6) — the customer 360 "Contratos" card.
 // Role-scoped: office/technician see only the contracts whose `visibleToRoles`
 // admits them.
-customers.get('/:id/contracts', async (c) => {
+customers.get(`/:id{${UUID_PARAM}}/contracts`, async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const contracts = await getCustomerContracts(db, c.req.param('id'), c.get('user'));
   return c.json({ contracts });
@@ -190,19 +188,23 @@ customers.get('/:id/contracts', async (c) => {
 
 // Activity timeline (08 §2). Reading is open to any authenticated user; the
 // paged list is newest-first.
-customers.get('/:id/interactions', zValidator('query', listInteractionsQuerySchema), async (c) => {
-  const db = createDb(c.env.DATABASE_URL);
-  const { page, limit, refKind, refId } = c.req.valid('query');
-  // `refKind`/`refId` narrow the feed to one linked entity's trail — what a
-  // contract's audit card reads (13 §6). Unfiltered, this is the full timeline.
-  return c.json(await getInteractions(db, c.req.param('id'), page, limit, { refKind, refId }));
-});
+customers.get(
+  `/:id{${UUID_PARAM}}/interactions`,
+  zValidator('query', listInteractionsQuerySchema),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    const { page, limit, refKind, refId } = c.req.valid('query');
+    // `refKind`/`refId` narrow the feed to one linked entity's trail — what a
+    // contract's audit card reads (13 §6). Unfiltered, this is the full timeline.
+    return c.json(await getInteractions(db, c.req.param('id'), page, limit, { refKind, refId }));
+  },
+);
 
 // Log a manual touch (call/whatsapp/email/visit/note). `system` is rejected by
 // the schema. The author is the authenticated user; office staff log touches
 // as part of their day job (owner, 2026-07-21 — was owner/admin).
 customers.post(
-  '/:id/interactions',
+  `/:id{${UUID_PARAM}}/interactions`,
   requireRole(['owner', 'admin', 'office']),
   zValidator('json', addInteractionSchema),
   async (c) => {
@@ -216,7 +218,7 @@ customers.post(
 // Dedicated status transition (08 §1/§4): enforces the legal transition + the
 // blacklist-reason rule and emits the `system` timeline entry server-side.
 customers.post(
-  '/:id/status',
+  `/:id{${UUID_PARAM}}/status`,
   requireRole(['owner', 'admin']),
   zValidator('json', changeStatusSchema),
   async (c) => {

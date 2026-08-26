@@ -55,6 +55,7 @@ import {
   reviseQuotation,
   sendQuotation,
 } from '../services/quotations.service';
+import { UUID_PARAM } from '../../shared/constants/uuid-param';
 
 export const quotations = new Hono<AppBindings>();
 
@@ -97,23 +98,27 @@ quotations.put(
   },
 );
 
-quotations.get('/:id', requireRole(['owner', 'admin', 'office']), async (c) => {
+quotations.get(`/:id{${UUID_PARAM}}`, requireRole(['owner', 'admin', 'office']), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const row = await getQuotationById(db, c.req.param('id'));
   if (!row) return c.json({ error: 'not_found' }, 404);
   return c.json(row);
 });
 
-quotations.get('/:id/timeline', requireRole(['owner', 'admin', 'office']), async (c) => {
-  const db = createDb(c.env.DATABASE_URL);
-  const id = c.req.param('id');
-  // Existence is checked against the quote, not the event list: a quote with an
-  // empty timeline is impossible (creation writes one), but a soft-deleted one
-  // would otherwise leak its history through this route.
-  const row = await getQuotationById(db, id);
-  if (!row) return c.json({ error: 'not_found' }, 404);
-  return c.json(await getQuotationTimeline(db, id));
-});
+quotations.get(
+  `/:id{${UUID_PARAM}}/timeline`,
+  requireRole(['owner', 'admin', 'office']),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    const id = c.req.param('id');
+    // Existence is checked against the quote, not the event list: a quote with an
+    // empty timeline is impossible (creation writes one), but a soft-deleted one
+    // would otherwise leak its history through this route.
+    const row = await getQuotationById(db, id);
+    if (!row) return c.json({ error: 'not_found' }, 404);
+    return c.json(await getQuotationTimeline(db, id));
+  },
+);
 
 quotations.post(
   '/',
@@ -134,7 +139,7 @@ quotations.post(
 );
 
 quotations.patch(
-  '/:id',
+  `/:id{${UUID_PARAM}}`,
   requireRole(['owner', 'admin', 'office']),
   zValidator('json', updateQuotationSchema),
   async (c) => {
@@ -153,7 +158,7 @@ quotations.patch(
 );
 
 quotations.post(
-  '/:id/send',
+  `/:id{${UUID_PARAM}}/send`,
   requireRole(['owner', 'admin', 'office']),
   zValidator('json', sendQuotationSchema),
   async (c) => {
@@ -182,7 +187,7 @@ quotations.post(
 // Nudge one pending reviewer (PR-C) — same token, reminder email, own
 // timeline entry. 409s name what's wrong instead of pretending it went out.
 quotations.post(
-  '/:id/remind',
+  `/:id{${UUID_PARAM}}/remind`,
   requireRole(['owner', 'admin', 'office']),
   zValidator('json', remindQuotationSchema),
   async (c) => {
@@ -217,21 +222,25 @@ quotations.post(
   },
 );
 
-quotations.post('/:id/revise', requireRole(['owner', 'admin', 'office']), async (c) => {
-  const db = createDb(c.env.DATABASE_URL);
-  try {
-    const row = await reviseQuotation(db, c.req.param('id'), c.get('user').id);
-    if (!row) return c.json({ error: 'not_found' }, 404);
-    return c.json(row, 201);
-  } catch (err) {
-    if (err instanceof QuotationNotLiveError) return notLiveResponse(c);
-    if (err instanceof QuotationServiceNotFoundError) return serviceGoneResponse(c, err);
-    throw err;
-  }
-});
+quotations.post(
+  `/:id{${UUID_PARAM}}/revise`,
+  requireRole(['owner', 'admin', 'office']),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    try {
+      const row = await reviseQuotation(db, c.req.param('id'), c.get('user').id);
+      if (!row) return c.json({ error: 'not_found' }, 404);
+      return c.json(row, 201);
+    } catch (err) {
+      if (err instanceof QuotationNotLiveError) return notLiveResponse(c);
+      if (err instanceof QuotationServiceNotFoundError) return serviceGoneResponse(c, err);
+      throw err;
+    }
+  },
+);
 
 quotations.post(
-  '/:id/cancel',
+  `/:id{${UUID_PARAM}}/cancel`,
   requireRole(['owner', 'admin', 'office']),
   zValidator('json', cancelQuotationSchema),
   async (c) => {
@@ -258,7 +267,7 @@ quotations.post(
 // conversion logic lives in the service-orders module (it owns the order
 // invariants); this route owns the HTTP mapping.
 quotations.post(
-  '/:id/order',
+  `/:id{${UUID_PARAM}}/order`,
   requireRole(['owner', 'admin', 'office']),
   zValidator('json', createOrderFromQuotationSchema),
   async (c) => {
@@ -339,7 +348,7 @@ quotations.post(
 // the row and its whole timeline stay, and every read filters them out,
 // including the recipient-token lookup, so the mailed links stop resolving.
 quotations.delete(
-  '/:id',
+  `/:id{${UUID_PARAM}}`,
   requireRole(['owner', 'admin']),
   zValidator('json', deleteQuotationSchema),
   async (c) => {

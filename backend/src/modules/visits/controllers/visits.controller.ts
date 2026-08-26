@@ -32,6 +32,7 @@ import {
   startVisit,
 } from '../services/visits.service';
 import { streamVisitEvents } from '../services/visits-stream.service';
+import { UUID_PARAM } from '../../shared/constants/uuid-param';
 
 export const visits = new Hono<AppBindings>();
 
@@ -53,7 +54,7 @@ visits.get('/stream', requireRole(VISIT_STAFF_ROLES), (c) => {
   return streamSSE(c, (stream) => streamVisitEvents(db, stream));
 });
 
-visits.get('/:id', async (c) => {
+visits.get(`/:id{${UUID_PARAM}}`, async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const visit = await getVisitById(db, c.req.param('id'));
   if (!visit) return c.json({ error: 'not_found' }, 404);
@@ -73,7 +74,7 @@ visits.post('/', requireRole(VISIT_STAFF_ROLES), zValidator('json', createVisitS
 // `/assign` and status changes are the lifecycle routes; neither is reachable
 // from here (12 §5).
 visits.patch(
-  '/:id',
+  `/:id{${UUID_PARAM}}`,
   requireRole(VISIT_STAFF_ROLES),
   zValidator('json', correctVisitSchema),
   async (c) => {
@@ -96,7 +97,7 @@ visits.patch(
 // Technicians are admitted here for the §2a swap: the service checks the visit
 // is currently theirs, so they can give one away but never take one.
 visits.post(
-  '/:id/assign',
+  `/:id{${UUID_PARAM}}/assign`,
   requireRole(VISIT_ACTOR_ROLES),
   zValidator('json', assignVisitSchema),
   async (c) => {
@@ -114,7 +115,7 @@ visits.post(
 // Iniciar. The technician's own action, so the same actor gate as respond/close
 // — the service additionally requires the visit to be theirs.
 visits.post(
-  '/:id/start',
+  `/:id{${UUID_PARAM}}/start`,
   requireRole(VISIT_ACTOR_ROLES),
   zValidator('json', startVisitSchema),
   async (c) => {
@@ -130,7 +131,7 @@ visits.post(
 );
 
 visits.post(
-  '/:id/respond',
+  `/:id{${UUID_PARAM}}/respond`,
   requireRole(VISIT_ACTOR_ROLES),
   zValidator('json', respondVisitSchema),
   async (c) => {
@@ -148,7 +149,7 @@ visits.post(
 // The narrowest gate in the module: **owner/admin only**, not office. Rewriting
 // what a technician recorded as done is a billing-grade edit (12 §2).
 visits.patch(
-  '/:id/actuals',
+  `/:id{${UUID_PARAM}}/actuals`,
   requireRole(VISIT_ACTUALS_ROLES),
   zValidator('json', correctActualsSchema),
   async (c) => {
@@ -169,7 +170,7 @@ visits.patch(
 );
 
 visits.post(
-  '/:id/close',
+  `/:id{${UUID_PARAM}}/close`,
   requireRole(VISIT_ACTOR_ROLES),
   zValidator('json', closeVisitSchema),
   async (c) => {
@@ -187,7 +188,7 @@ visits.post(
 // Returns the **successor** (201), not the closed visit it replaces — the
 // caller's next screen is the new appointment.
 visits.post(
-  '/:id/reschedule',
+  `/:id{${UUID_PARAM}}/reschedule`,
   requireRole(VISIT_ACTOR_ROLES),
   zValidator('json', rescheduleVisitSchema),
   async (c) => {

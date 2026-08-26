@@ -20,6 +20,7 @@ import {
 import { TemplateNotDraftError } from '../http-errors/template-not-draft.error';
 import { TemplateNotActiveError } from '../http-errors/template-not-active.error';
 import { TemplateAlreadyDisabledError } from '../http-errors/template-already-disabled.error';
+import { UUID_PARAM } from '../../shared/constants/uuid-param';
 
 export const reportTemplates = new Hono<AppBindings>();
 
@@ -32,7 +33,7 @@ reportTemplates.get('/', zValidator('query', listTemplatesQuerySchema), async (c
   return c.json(await getTemplates(db, c.req.valid('query')));
 });
 
-reportTemplates.get('/:id', async (c) => {
+reportTemplates.get(`/:id{${UUID_PARAM}}`, async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const template = await getTemplate(db, c.req.param('id'));
   if (!template) return c.json({ error: 'not_found' }, 404);
@@ -46,7 +47,7 @@ reportTemplates.post('/', zValidator('json', saveTemplateSchema), async (c) => {
   return c.json(await createTemplate(db, c.req.valid('json')), 201);
 });
 
-reportTemplates.patch('/:id', zValidator('json', saveTemplateSchema), async (c) => {
+reportTemplates.patch(`/:id{${UUID_PARAM}}`, zValidator('json', saveTemplateSchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   try {
     const template = await editTemplate(db, c.req.param('id'), c.req.valid('json'));
@@ -58,7 +59,7 @@ reportTemplates.patch('/:id', zValidator('json', saveTemplateSchema), async (c) 
   }
 });
 
-reportTemplates.post('/:id/activate', async (c) => {
+reportTemplates.post(`/:id{${UUID_PARAM}}/activate`, async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   try {
     const template = await activateTemplate(db, c.req.param('id'));
@@ -70,7 +71,7 @@ reportTemplates.post('/:id/activate', async (c) => {
   }
 });
 
-reportTemplates.post('/:id/deactivate', async (c) => {
+reportTemplates.post(`/:id{${UUID_PARAM}}/deactivate`, async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   try {
     const template = await deactivateTemplate(db, c.req.param('id'));
@@ -84,22 +85,26 @@ reportTemplates.post('/:id/deactivate', async (c) => {
   }
 });
 
-reportTemplates.post('/:id/disable', zValidator('json', disableTemplateSchema), async (c) => {
-  const me = c.get('user');
-  const db = createDb(c.env.DATABASE_URL);
-  try {
-    const template = await disableTemplate(
-      db,
-      c.req.param('id'),
-      c.req.valid('json').reason,
-      me.id,
-    );
-    if (!template) return c.json({ error: 'not_found' }, 404);
-    return c.json(template);
-  } catch (err) {
-    if (err instanceof TemplateAlreadyDisabledError) {
-      return c.json({ error: 'template_already_disabled' }, 409);
+reportTemplates.post(
+  `/:id{${UUID_PARAM}}/disable`,
+  zValidator('json', disableTemplateSchema),
+  async (c) => {
+    const me = c.get('user');
+    const db = createDb(c.env.DATABASE_URL);
+    try {
+      const template = await disableTemplate(
+        db,
+        c.req.param('id'),
+        c.req.valid('json').reason,
+        me.id,
+      );
+      if (!template) return c.json({ error: 'not_found' }, 404);
+      return c.json(template);
+    } catch (err) {
+      if (err instanceof TemplateAlreadyDisabledError) {
+        return c.json({ error: 'template_already_disabled' }, 409);
+      }
+      throw err;
     }
-    throw err;
-  }
-});
+  },
+);
