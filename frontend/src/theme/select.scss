@@ -7,14 +7,14 @@
   @apply flex-1 text-left truncate;
 
   &.p-placeholder {
-    @apply text-granite-400;
+    @apply text-zinc-400;
   }
 }
 .p-select-clear-icon {
-  @apply size-5 text-granite-500 hover:text-granite-700 cursor-pointer mr-2 transition-colors;
+  @apply size-5 text-zinc-500 hover:text-zinc-700 cursor-pointer mr-2 transition-colors;
 }
 .p-select-dropdown {
-  @apply ml-2 inline-flex items-center justify-center text-granite-500;
+  @apply ml-2 inline-flex items-center justify-center text-zinc-500;
 }
 /* PrimeNG's Overlay component renders a wrapper element (`.p-overlay`)
    inside `.p-select` and runs `relativePosition()` (primeng/dom.mjs) after
@@ -28,11 +28,11 @@
   @apply absolute top-full left-0 right-auto bottom-auto mt-1 min-w-full origin-top z-50 !important;
 }
 .p-select-overlay {
-  @apply bg-white border-2 border-granite-200 rounded-lg shadow-lg overflow-hidden w-full
-         dark:bg-granite-900 dark:border-granite-700;
+  @apply bg-white border-2 border-zinc-200 rounded-lg shadow-lg overflow-hidden w-full
+         dark:bg-zinc-900 dark:border-zinc-700;
 }
 .p-select-header {
-  @apply p-2 border-b border-granite-200 dark:border-granite-700;
+  @apply p-2 border-b border-zinc-200 dark:border-zinc-700;
 }
 .p-select-filter-container {
   @apply relative;
@@ -43,7 +43,7 @@
   @apply field-input pr-10 !h-11 py-1.5 text-base;
 }
 .p-select-filter-icon {
-  @apply absolute top-1/2 right-3 -translate-y-1/2 size-4 text-granite-500 pointer-events-none;
+  @apply absolute top-1/2 right-3 -translate-y-1/2 size-4 text-zinc-500 pointer-events-none;
 }
 .p-select-list-container {
   @apply max-h-72 overflow-auto py-1;
@@ -52,25 +52,25 @@
   @apply flex flex-col;
 }
 .p-select-option {
-  @apply px-5 py-3.5 text-lg text-granite-1000 cursor-pointer transition-colors
-         dark:text-granite-100;
+  @apply px-5 py-3.5 text-lg text-zinc-950 cursor-pointer transition-colors
+         dark:text-zinc-100;
 
   &:hover,
   &[data-p-focus='true'] {
-    @apply bg-sky-0 dark:bg-granite-800;
+    @apply bg-primary-0 dark:bg-zinc-800;
   }
   &[data-p-selected='true'] {
-    @apply bg-sky-100 font-bold dark:bg-granite-700;
+    @apply bg-primary-100 font-bold dark:bg-zinc-700;
   }
   &[data-p-disabled='true'] {
     @apply opacity-50 cursor-not-allowed;
   }
 }
 .p-select-option-group {
-  @apply px-5 py-2 text-sm font-bold uppercase tracking-wide text-granite-700 bg-granite-0
-         dark:text-granite-300 dark:bg-granite-800;
+  @apply px-5 py-2 text-sm font-bold uppercase tracking-wide text-zinc-700 bg-zinc-50
+         dark:text-zinc-300 dark:bg-zinc-800;
 }
 .p-select-empty-message {
-  @apply px-5 py-3.5 text-lg text-granite-700 italic
-         dark:text-granite-300;
+  @apply px-5 py-3.5 text-lg text-zinc-700 italic
+         dark:text-zinc-300;
 }

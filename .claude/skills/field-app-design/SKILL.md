@@ -98,11 +98,15 @@ Never `inject(HttpClient)` in a feature service; never build a URL by hand.
 
 ## Styling
 
-- **Palette = runtime tenant brand.** `granite` → `--brand-surface-*`; `navy` / `sky` /
-  `cyan` → `--brand-primary-*`. Steps are **`0`…`1000` by 100** — there is no `-50` or
-  `-950` on brand scales. Semantic tokens: `background`, `surface`, `primary`,
-  `secondary`, `dark`. Tailwind's stock status scales (`amber`, `red`, `emerald`) keep
-  their standard `50`…`950`.
+- **Palette = two tenant scales + stock zinc** (plan 22, 2026-08-27). `primary-*` →
+  `--brand-primary-*` and `accent-*` → `--brand-accent-*`, at steps **`0`…`1000` by 100**
+  (no `-50`/`-950` on these two). Everything neutral — page grounds, borders, body text,
+  table rules — is **stock Tailwind `zinc`** at its own `50`…`950`: the chrome neutral left
+  the brand contract, so the app defines no scale for it at all. The legacy `granite` /
+  `navy` / `sky` / `cyan` names are tombstoned (empty objects in `tailwind.config.js`) and
+  emit no CSS — never reach for them. One alias, `background` (= `zinc-50`, the page
+  ground); `surface`, `secondary` and `dark` all retired with plan 22. Tailwind's stock
+  status scales (`amber`, `red`, `emerald`) keep their standard `50`…`950`.
 - **Reuse the global classes in `styles.scss` before styling locally**: `.field-input`,
   `.field-label`, `.field-group`, `.btn-primary` / `-secondary` / `-neutral` / `-danger`,
   `.card`, `.card-section`. They already carry dark, disabled and focus states —
@@ -213,15 +217,15 @@ Global classes handle themselves. When a template hardcodes a raw color, pair it
 
 | Light | Dark |
 |---|---|
-| `bg-background` (page) | `dark:bg-granite-1000` |
-| `bg-white` (cards) | `dark:bg-granite-900` |
-| `bg-granite-0` | `dark:bg-granite-900` |
-| `bg-sky-0` / `bg-amber-50` / `bg-red-50` / `bg-emerald-50` | `dark:bg-sky-1000/40` / `dark:bg-amber-950/30` / `dark:bg-red-950/30` / `dark:bg-emerald-950/30` |
-| `text-granite-1000` (titles) | `dark:text-granite-0` |
-| `text-granite-900` / `-800` | `dark:text-granite-100` / `-200` |
-| `text-granite-700` / `-600` / `-500` (muted) | `dark:text-granite-300` / `-400` / `-400` |
-| `text-sky-800` / `-700` (accent) | `dark:text-sky-300` |
-| `border-granite-200` / `-300` | `dark:border-granite-700` |
+| `bg-background` (page) | `dark:bg-zinc-950` |
+| `bg-white` (cards) | `dark:bg-zinc-900` |
+| `bg-zinc-50` | `dark:bg-zinc-900` |
+| `bg-primary-0` / `bg-amber-50` / `bg-red-50` / `bg-emerald-50` | `dark:bg-primary-1000/40` / `dark:bg-amber-950/30` / `dark:bg-red-950/30` / `dark:bg-emerald-950/30` |
+| `text-zinc-950` (titles) | `dark:text-zinc-50` |
+| `text-zinc-900` / `-800` | `dark:text-zinc-100` / `-200` |
+| `text-zinc-700` / `-600` / `-500` (muted) | `dark:text-zinc-300` / `-400` / `-400` |
+| `text-primary-800` / `-700` (brand) | `dark:text-primary-300` |
+| `border-zinc-200` / `-300` | `dark:border-zinc-700` |
 
 **Leave alone in dark mode:** status pills (`bg-amber-100 text-amber-900` etc. — vibrant in
 both by intent) and the signature canvas / `<img>` (a dark canvas hides black strokes).
@@ -234,7 +238,7 @@ both by intent) and the signature canvas / `<img>` (a dark canvas hides black st
   `disabled:opacity-50` styling never fires.
 - **Default controls to `Validators.required`** unless explicitly optional. An empty form
   should disable submit out of the box.
-- Wrap hover/active with the **`enabled:` modifier** (`enabled:hover:bg-sky-800`) so a
+- Wrap hover/active with the **`enabled:` modifier** (`enabled:hover:bg-primary-800`) so a
   disabled button doesn't tint on hover.
 - **Never render a value in a disabled input.** Read-only data is text / display rows
   (`report-view` style). `form.disable()` is not a read-only UI.

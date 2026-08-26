@@ -1,6 +1,6 @@
 # 22 — Brand palette: **primary + accent** (surface goes fixed-neutral)
 
-> **Status:** in progress 2026-08-26 — **CP-1 + CP-2 done**, CP-3…CP-5 open
+> **Status:** in progress 2026-08-26 — **CP-1…CP-3 done**, CP-4 + CP-5 open
 > **Owner:** planning session 2026-08-26 · **Last updated:** 2026-08-26
 > **Scope:** all four packages (`backend/`, `superadmin/`, `frontend/`, `website/`) —
 > one suite, sequenced CP-1…CP-5.
@@ -41,10 +41,15 @@
 
 1. **Wire:** `BrandColors = { primary: HslScale; accent: HslScale }`. Steps `0…1000` by 100,
    HSL components `"H S% L%"` — branding rules 2–3 unchanged. `surface` leaves the contract.
-2. **`surface` stays a Tailwind scale in all three apps and in the PrimeNG presets** — same
-   utility names, same 11 steps, same `<alpha-value>` plumbing — but its values are **literal
-   HSL components**, not `hsl(var(--brand-surface-N, …))`. No sweep of the ~972 superadmin
-   `surface-*` instances: they keep working and keep meaning "chrome neutral".
+2. **`surface` stays a Tailwind scale in superadmin and the website, and in their PrimeNG
+   presets** — same utility names, same 11 steps, same `<alpha-value>` plumbing — but its
+   values are **literal HSL components**, not `hsl(var(--brand-surface-N, …))`. No sweep of
+   the ~972 superadmin `surface-*` instances: they keep working and keep meaning "chrome
+   neutral".
+   **Amended 2026-08-27 (owner) — the field app is the exception:** `frontend/` uses **stock
+   Tailwind `zinc`** instead of a bespoke `surface` scale. Once surface left the contract there
+   was nothing tenant-specific left to express, and a hand-maintained neutral that merely
+   *imitates* a stock palette is config with no payer. See § Decisions.
 3. **The fixed neutral is exactly today's default surface** — hue `0`, saturation `0%`,
    `L` by step `0:98 · 100:96 · 200:90 · 300:82 · 400:70 · 500:55 · 600:45 · 700:36 · 800:28 ·
    900:18 · 1000:10` (`backend/…/constants/default-brand.ts`, mirrored in every
@@ -253,20 +258,24 @@ before plan 23 writes a single line of new chrome. CP-3 and CP-4 are independent
 - [x] `npm run build` green — and **every existing pixel unchanged**: this CP is vocabulary,
       not looks. Spot-check both modes
 
-### CP-3 — Frontend leg (`style(frontend)` — absorbs 16 PR-1)
-- [ ] Re-run the legacy inventory first (16's ~590 is a 2026-07-15 snapshot)
-- [ ] `tailwind.config.js` rewritten onto `primary` + `accent` + fixed `surface` + the five
-      aliases, tombstones added
-- [ ] Mechanical sweep: `navy-N`/`sky-N`/`cyan-N` → `primary-N`, `granite-N` → `surface-N`,
-      word-boundary-safe, preserving variant prefixes and `/opacity` suffixes
-      (`dark:hover:bg-sky-500`, `focus-visible:ring-sky-600/30`)
-- [ ] Sweep touched no lockfile, no `node_modules`, and no plan doc's historical text
-- [ ] Hand remap: the single `bg-surface` (old primary-tint alias) → `bg-primary-100`
-- [ ] `src/app/theme/brand-css.ts` emits primary + accent vars only
-- [ ] `src/app/theme/manttio-preset.ts`: surface literals, `surface.0` white anchor kept
-- [ ] Aliases visibly applied at the shell — `bg-background` + `text-dark` (16 § Target 4)
-- [ ] `grep -rE '\b(granite|sky|navy|cyan)-[0-9]' frontend/src` → 0
-- [ ] `npm run build` green; PWA theme color + generated manifest still brand-driven; dark mode
+### CP-3 — Frontend leg (`style(frontend)` — absorbs 16 PR-1) — **done 2026-08-26**
+- [x] Re-run the legacy inventory first (16's ~590 is a 2026-07-15 snapshot)
+- [x] `tailwind.config.js` rewritten onto `primary` + `accent`; **no `surface` scale at all** —
+      the chrome neutral is stock `zinc`, so the config defines nothing for it. Tombstones added
+- [x] Mechanical sweep: `navy-N`/`sky-N`/`cyan-N` → `primary-N` (184), `granite-N` → `zinc-N`
+      (520), word-boundary-safe, preserving variant prefixes and `/opacity` suffixes
+      (`dark:hover:bg-sky-500`, `focus-visible:ring-sky-600/30`). Steps map **0 → 50** and
+      **1000 → 950**, interior one-to-one — zinc ships exactly the 11 keys the brand model has,
+      the same endpoint convention the PrimeNG preset already used
+- [x] Sweep touched no lockfile, no `node_modules`, and no plan doc's historical text
+- [x] Hand remap: the single `bg-surface` (old primary-tint alias) → `bg-primary-100`
+- [x] `src/app/theme/brand-css.ts` emits primary + accent vars only
+- [x] `src/app/theme/manttio-preset.ts`: zinc's hexes verbatim, `surface.0` white anchor kept
+- [x] `bg-background` (= `zinc-50`) applied at 13 page shells. **`dark` retired** — it was
+      defined but never used, and 16 § Target 4 is explicit that an alias has to be visible in
+      real code; templates say `text-zinc-800` directly
+- [x] `grep -rE '\b(granite|sky|navy|cyan)-[0-9]' frontend/src` → 0, and `surface-[0-9]` → 0
+- [x] `npm run build` green; PWA theme color + generated manifest still brand-driven; dark mode
       spot-checked
 
 ### CP-4 — Website leg (`style(website)` — absorbs 16 PR-3)
@@ -318,6 +327,18 @@ before plan 23 writes a single line of new chrome. CP-3 and CP-4 are independent
   surface, which makes the migration value-neutral. If that assumption is wrong, the visible
   consequence is a customized surface reverting to the fixed gray in the apps and documents —
   recoverable, because the migration leaves the legacy key in storage.
+- **Amended (2026-08-27, owner) — the field app's neutral is stock `zinc`.** The `granite` →
+  `surface` half of CP-3's sweep was 517 of its 701 instances, and once `surface` left the wire
+  its whole justification ("utility name = wire name", 16 § Problem 2) went with it — unlike
+  `sky`/`cyan`, `granite` shadows no stock Tailwind name, so there was no safety argument
+  either. Rather than rename a bespoke neutral to a name that no longer means anything on the
+  wire, the field app drops the scale and uses Tailwind's own. **This is not value-neutral:**
+  zinc is faintly cool where the fixed neutral is pure gray, and its ramp runs deeper — the
+  most-used step (`surface-700`, 107 hits) goes 36% → 26% lightness. Accepted as a deliberate
+  look change, not a regression. **Open:** whether superadmin (~972 instances) and the website
+  follow. They are on `surface-*` today and this plan does not move them; the argument that
+  killed granite applies to them equally, but the sweep is far larger and 23 is authored on
+  `surface-*`.
 - **Derived (2026-08-26, CP-1):** `GET /brand` **projects** `colors` to `{ primary, accent }`
   instead of passing the jsonb through, so the tombstoned `surface` key never reaches a
   consumer and a deploy that lands ahead of the migration still serves a complete palette

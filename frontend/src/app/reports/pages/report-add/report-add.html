@@ -1,16 +1,16 @@
-<div class="min-h-full bg-background dark:bg-granite-1000">
+<div class="min-h-full bg-background dark:bg-zinc-950">
   <div
     class="max-w-2xl mx-auto px-4 sm:px-8 py-10 sm:py-12 flex flex-col gap-8"
   >
     <!-- Header -->
     <div class="flex flex-col gap-1">
       <p
-        class="text-sm font-bold uppercase tracking-wider text-sky-800 dark:text-sky-300"
+        class="text-sm font-bold uppercase tracking-wider text-primary-800 dark:text-primary-300"
       >
         Nuevo
       </p>
       <h1
-        class="text-3xl sm:text-4xl font-extrabold text-granite-1000 dark:text-granite-0 leading-tight tracking-tight"
+        class="text-3xl sm:text-4xl font-extrabold text-zinc-950 dark:text-zinc-50 leading-tight tracking-tight"
       >
         Crear reporte
       </h1>
@@ -43,7 +43,7 @@
             <div class="field-group">
               <span class="field-label">Llegada</span>
               <span
-                class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold pt-1.5"
+                class="text-lg font-data tabular-nums text-zinc-950 dark:text-zinc-50 font-semibold pt-1.5"
               >
                 {{ arrivalAt() | date: "dd/MM/yyyy HH:mm" }}
               </span>
@@ -70,14 +70,14 @@
         @if (hasNoActiveTemplates()) {
           <!-- Zero active templates: tenant has authored none yet -->
           <div class="card-section flex flex-col gap-4 py-8">
-            <p class="text-granite-700 dark:text-granite-300">
+            <p class="text-zinc-700 dark:text-zinc-300">
               No hay plantillas de reporte disponibles. Por favor, crea una en la configuración de tu cuenta.
             </p>
           </div>
         } @else if (needsFirstSync()) {
           <!-- Cache is empty: device has never been online -->
           <div class="card-section flex flex-col gap-4 py-8">
-            <p class="text-granite-700 dark:text-granite-300">
+            <p class="text-zinc-700 dark:text-zinc-300">
               Conéctate una vez para descargar las plantillas de reporte de tu cuenta.
             </p>
           </div>

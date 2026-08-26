@@ -13,7 +13,7 @@
 - **Auth:** JWT in NGXS; guards check token presence only (no frontend JWT decoding), the interceptor handles 401s, backend is the sole authority on token validity.
 - **Offline:** report capture queues into IndexedDB (Dexie), syncs through `OfflineReportsState` when connectivity returns. On reconnect, `OfflineSyncService` pokes `SyncDialogBridge` (a root `Subject<void>`) which opens the globally-mounted `<app-sync-pending-reports-dialog />` — a multi-select dialog where the user picks which queued reports to upload or discard. `SyncOfflineReports(tempIds?)` accepts an optional id filter. PWA shell registered via `provideServiceWorker('ngsw-worker.js')`; the manifest is **dynamic** — a Cloudflare Pages Function (`functions/manifest.webmanifest.ts`) builds it per request from `GET {API_BASE_URL}/brand` (tenant name/colors + backend-generated icon set), so it is NOT in the SW prefetch group; `public/icons/` holds only the neutral fallback set.
 - **PWA / hosting:** SPA on Cloudflare Pages, root dir `frontend/`, output `dist/manttio/browser/`, SPA catch-all in `public/_redirects`.
-- **Theming:** runtime tenant brand — `BrandState` (persisted, refreshed by `LoadBrand` at boot) feeds the `App` brand effect, which injects `--brand-primary-*` / `--brand-surface-*` CSS vars (HSL components, steps 0…1000 — `src/app/theme/brand-css.ts`); Tailwind (`tailwind.config.js`) and the PrimeNG **Aura preset** (`src/app/theme/manttio-preset.ts`) both read those vars, falling back to a neutral grayscale for the pre-fetch instant. Per-component overrides in `src/theme/*.scss`; dark mode is real (Tailwind + PrimeNG) and persisted.
+- **Theming:** runtime tenant brand — `BrandState` (persisted, refreshed by `LoadBrand` at boot) feeds the `App` brand effect, which injects `--brand-primary-*` / `--brand-accent-*` CSS vars (HSL components, steps 0…1000 — `src/app/theme/brand-css.ts`); Tailwind (`tailwind.config.js`) and the PrimeNG **Aura preset** (`src/app/theme/manttio-preset.ts`) both read those vars, falling back to a neutral grayscale for the pre-fetch instant. **The chrome neutral is stock Tailwind `zinc`** — not themable, not ours to maintain (plan 22, 2026-08-27). Per-component overrides in `src/theme/*.scss`; dark mode is real (Tailwind + PrimeNG) and persisted.
 - **Feature folders:** `src/app/{auth,customers,reports,users}/` hold pages + per-feature components. Shared widgets live in `src/app/shared/components/`; cross-feature validators in `src/app/validators/` (e.g. `password-match.validator.ts`).
 - **Admin users management:** `users/` feature owns the list/add/edit pages + the canonical self-contained `delete-user-dialog` (required audit comment + typed-email confirmation → backend `DELETE /users/:id` with `{ deleteComment }`). Admin-only via `adminGuard`.
 - **Layout scroll behavior:** `AuthenticatedLayoutAdmin` resets `<main>`'s `scrollTop` on every `NavigationEnd` — the scrollable is the inner `<main>`, not `window`, so Angular's router-level `scrollPositionRestoration` doesn't reach it.
@@ -22,7 +22,7 @@
 - Use **Tailwind CSS 3.4 only**. Do not upgrade or downgrade. If a new utility/class is needed, add it to `tailwind.config.js` (extend `theme`) rather than using arbitrary values inline.
 - Prefer `size-*` over paired `w-*`/`h-*` when width and height are equal (e.g. `w-4 h-4` → `size-4`).
 - **Never** use inline `style="..."` attributes (or `[style]` / `[ngStyle]`) in Angular templates. All styling goes through Tailwind classes or component-scoped styles (`styles` / `styleUrls` on the component, or the component's `.css` file).
-- The color palette is the **runtime tenant brand** (same model as `/website`): `granite` reads the `--brand-surface-*` vars and `navy` / `sky` / `cyan` all read `--brand-primary-*`, at steps **`0`…`1000` by 100** (there is no `-50`/`-950`). Use those scales or the semantic tokens (`background`, `surface`, `primary`, `secondary`, `dark`) — never introduce ad-hoc hex values or hardcode a brand color.
+- The color palette is two **runtime tenant brand** scales — `primary-*` reads `--brand-primary-*`, `accent-*` reads `--brand-accent-*` — at steps **`0`…`1000` by 100 (there is no `-50`/`-950` on these two)**. Everything neutral is **stock Tailwind `zinc`** at its own `50`…`950`. The legacy `granite` / `navy` / `sky` / `cyan` names are tombstoned and emit no CSS. Use those, or the `background` alias (page ground) — never ad-hoc hex values, and never hardcode a brand color.
 - **Reuse global classes from `styles.scss`** before re-styling locally: `.field-input` (form controls), `.field-label`, `.field-group`, `.btn-primary` / `-secondary` / `-neutral` / `-danger`, `.card`, `.card-section`. They already carry dark variants and disabled/focus states; re-implementing them in templates almost always misses one of those.
 - `.field-input` is **fixed at 56px** (`h-14`) so every form control snaps to the same baseline — `<p-select>`, `<p-datepicker>`, `<input pInputText>`, `<p-inputnumber>` all inherit it. Textareas opt out via `!h-auto`; the paginator's compact rows-per-page select and the dropdown filter input opt down to `!h-11`. If a new control needs a non-standard height, add an `!h-*` override in its component theme sheet rather than introducing a parallel class.
 - **Dialogs** (`<p-dialog>`, `<p-confirmDialog>`) are capped at **`max-w-11/12`** (91.6667%, a `tailwind.config.js` extension) via `styleClass`. The inline pixel width (`[style]="{ width: '32rem' }"`) stays for roomy viewports; the cap keeps a ~4% gutter on each side on narrow screens so chrome never goes edge-to-edge. Apply this `styleClass` on every new dialog.
@@ -35,7 +35,7 @@
 - Inside NGXS `@Action` handlers, write the body as an **RxJS pipeline** and return the observable — do **not** mark the handler `async` and `await` Promises. Wrap any Promise-returning dependency (HTTP client, IndexedDB / Dexie, etc.) at the boundary with `from(...)` and compose with `switchMap` / `concatMap` / `mergeMap` / `tap` / `catchError` / `finalize`. Sequence multiple actions with `switchMap`, not `await firstValueFrom(this.store.dispatch(...))` — `store.dispatch(...)` already returns an `Observable`. Use `finalize` (not `try/finally`) for cleanup like clearing an in-flight flag, and `catchError` (not `try/catch`) for per-item failure handling that should not abort the rest of the run. NGXS subscribes to the returned observable the same way it does a Promise, so `ofActionSuccessful` / `ofActionErrored` semantics are preserved. See `src/state/offline-reports/offline-reports.state.ts` for the canonical shape.
 
 ## PrimeNG
-- PrimeNG **20.4** in styled mode with the Aura preset repointed to the runtime brand vars (`primary` → `--brand-primary-*`, `surface` → `--brand-surface-*`; Aura's `50`/`950` keys alias brand steps `0`/`1000`). The preset lives in `src/app/theme/manttio-preset.ts` and reads the same CSS vars as `tailwind.config.js`, so Tailwind utilities and PrimeNG component chrome follow the tenant brand together — keep the neutral fallbacks in both files in sync.
+- PrimeNG **20.4** in styled mode with the Aura preset repointed to the runtime brand vars (`primary` → `--brand-primary-*`; Aura's `50`/`950` keys alias brand steps `0`/`1000`). Aura's own `surface` token group — its name, not ours — is filled with zinc's hexes verbatim, so the preset and `bg-zinc-*` in a template resolve to the same color. The preset lives in `src/app/theme/manttio-preset.ts`.
 - `theme.options.cssLayer: { name: 'primeng' }` puts Aura's CSS into a named layer, so **per-component override sheets in `src/theme/*.scss` win** by spec without any `!important`. When restyling a PrimeNG component, edit its sheet there and `@import` it in `src/theme/_index.scss` — don't sprinkle overrides in component styles or templates.
 - Reach for PrimeNG's own components for overlays/feedback before hand-rolling: **`<p-dialog>`** for modals, **`<p-confirmDialog>`** + `ConfirmationService` for confirmations, **`<p-popover>`** for popover menus (it handles outside-click + ESC + viewport-aware positioning out of the box — don't reinvent it with `@HostListener('document:click')`), **`<p-toast>`** + `MessageService` for notifications. Never `Swal` or `alert()`.
 - For `<p-popover>` / `<p-dialog>` content, **use `appendTo="body"`** when the trigger is inside a small layout context (e.g. the bottom-nav `<li>`) — that frees the overlay from any ancestor that grows an `overflow:hidden` or `transform` later.
@@ -49,25 +49,25 @@
 
   | Light | Dark |
   |---|---|
-  | `bg-background` (page bg) | `dark:bg-granite-1000` |
-  | `bg-white` (cards/panels) | `dark:bg-granite-900` |
-  | `bg-granite-0` | `dark:bg-granite-900` |
-  | `bg-sky-0` / `bg-amber-50` / `bg-red-50` / `bg-emerald-50` (soft accent panels) | `dark:bg-sky-1000/40` / `dark:bg-amber-950/30` / `dark:bg-red-950/30` / `dark:bg-emerald-950/30` |
-  | `text-granite-1000` (titles) | `dark:text-granite-0` |
-  | `text-granite-900` | `dark:text-granite-100` |
-  | `text-granite-800` | `dark:text-granite-200` |
-  | `text-granite-700` / `-600` / `-500` (muted) | `dark:text-granite-300` / `-400` / `-400` |
-  | `text-sky-800` / `-700` (accent labels) | `dark:text-sky-300` |
-  | `border-granite-200` / `-300` | `dark:border-granite-700` |
+  | `bg-background` (page bg) | `dark:bg-zinc-950` |
+  | `bg-white` (cards/panels) | `dark:bg-zinc-900` |
+  | `bg-zinc-50` | `dark:bg-zinc-900` |
+  | `bg-primary-0` / `bg-amber-50` / `bg-red-50` / `bg-emerald-50` (soft accent panels) | `dark:bg-primary-1000/40` / `dark:bg-amber-950/30` / `dark:bg-red-950/30` / `dark:bg-emerald-950/30` |
+  | `text-zinc-950` (titles) | `dark:text-zinc-50` |
+  | `text-zinc-900` | `dark:text-zinc-100` |
+  | `text-zinc-800` | `dark:text-zinc-200` |
+  | `text-zinc-700` / `-600` / `-500` (muted) | `dark:text-zinc-300` / `-400` / `-400` |
+  | `text-primary-800` / `-700` (brand labels) | `dark:text-primary-300` |
+  | `border-zinc-200` / `-300` | `dark:border-zinc-700` |
 
-  (Only the four brand scales moved to `0`…`1000`; Tailwind's stock status scales — `amber`, `red`, `emerald` — keep their standard `50`…`950` steps.)
+  (Only the two brand scales — `primary`, `accent` — use `0`…`1000`. `zinc` and Tailwind's stock status scales — `amber`, `red`, `emerald` — keep their standard `50`…`950` steps.)
 
 - Leave **status pills** (`bg-amber-100 text-amber-900`, `bg-emerald-100 text-emerald-900`, etc.) and the **signature canvas / `<img>`** unchanged in dark mode — pills are intentionally vibrant in both modes, and a dark canvas would hide the black signature strokes.
 
 ## Forms + interactive state
 - Bind **`[disabled]="form.invalid"`** on submit buttons so the `.btn-*` `disabled:opacity-50 disabled:cursor-not-allowed` styling actually fires. Without the binding, the visual disabled state never appears even when the form is empty.
 - In `dynamic-form` and similar config-driven builders, default form controls to **`Validators.required`** unless the field is explicitly optional. An empty form should disable submit out of the box.
-- Wrap hover/active state changes with the **`enabled:` modifier** (e.g. `enabled:hover:bg-sky-800 enabled:active:bg-sky-900`) on any `.btn-*` variant so a disabled button doesn't flash a darker tint on hover. The `.btn-*` global classes already do this — match the pattern when adding new buttons.
+- Wrap hover/active state changes with the **`enabled:` modifier** (e.g. `enabled:hover:bg-primary-800 enabled:active:bg-primary-900`) on any `.btn-*` variant so a disabled button doesn't flash a darker tint on hover. The `.btn-*` global classes already do this — match the pattern when adding new buttons.
 
 ## Animations
 - **CSS / Tailwind transitions only** — e.g. `class="transition-opacity duration-300"` with

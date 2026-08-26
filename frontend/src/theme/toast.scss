@@ -16,13 +16,13 @@
   @apply flex-1 flex flex-col gap-1 min-w-0;
 }
 .p-toast-summary {
-  @apply text-base font-bold text-granite-900 dark:text-granite-100;
+  @apply text-base font-bold text-zinc-900 dark:text-zinc-100;
 }
 .p-toast-detail {
-  @apply text-sm text-granite-700 dark:text-granite-300;
+  @apply text-sm text-zinc-700 dark:text-zinc-300;
 }
 .p-toast-close-button {
-  @apply inline-flex items-center justify-center size-8 rounded-md text-granite-500 dark:text-granite-400 hover:bg-granite-100 dark:hover:bg-granite-800 hover:text-granite-900 dark:hover:text-granite-100 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-700/30;
+  @apply inline-flex items-center justify-center size-8 rounded-md text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-700/30;
 }
 .p-toast-close-icon {
   @apply size-4;
@@ -33,8 +33,8 @@
   .p-toast-message-icon { @apply text-emerald-600; }
 }
 .p-toast-message-info {
-  @apply border-sky-500;
-  .p-toast-message-icon { @apply text-sky-600; }
+  @apply border-primary-500;
+  .p-toast-message-icon { @apply text-primary-600; }
 }
 .p-toast-message-warn {
   @apply border-amber-500;
@@ -45,6 +45,6 @@
   .p-toast-message-icon { @apply text-red-600; }
 }
 .p-toast-message-secondary {
-  @apply border-granite-400;
-  .p-toast-message-icon { @apply text-granite-600; }
+  @apply border-zinc-400;
+  .p-toast-message-icon { @apply text-zinc-600; }
 }

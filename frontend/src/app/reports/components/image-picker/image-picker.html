@@ -3,8 +3,8 @@
     type="button"
     (click)="toggleSource($event)"
     class="flex items-center justify-center gap-3 w-full min-h-16 px-5 py-4 border-2 border-dashed rounded-xl cursor-pointer font-bold text-lg transition-colors
-           border-granite-300 bg-granite-0 text-granite-800 hover:bg-sky-0 hover:border-sky-700 hover:text-sky-800
-           dark:border-granite-700 dark:bg-granite-900 dark:text-granite-200 dark:hover:bg-granite-800 dark:hover:border-sky-400 dark:hover:text-sky-300"
+           border-zinc-300 bg-zinc-50 text-zinc-800 hover:bg-primary-0 hover:border-primary-700 hover:text-primary-800
+           dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:border-primary-400 dark:hover:text-primary-300"
   >
     <i class="pi pi-camera text-xl"></i>
     <span>Agregar fotos</span>
@@ -15,20 +15,20 @@
       type="button"
       (click)="openCamera()"
       class="flex w-full items-center gap-3 px-4 py-3 text-left text-base font-medium transition-colors
-             hover:bg-sky-0 active:bg-sky-100
-             dark:hover:bg-granite-800 dark:active:bg-granite-700"
+             hover:bg-primary-0 active:bg-primary-100
+             dark:hover:bg-zinc-800 dark:active:bg-zinc-700"
     >
-      <i class="pi pi-camera text-sky-700 dark:text-sky-300" aria-hidden="true"></i>
+      <i class="pi pi-camera text-primary-700 dark:text-primary-300" aria-hidden="true"></i>
       <span>Tomar foto</span>
     </button>
     <button
       type="button"
       (click)="openGallery()"
       class="flex w-full items-center gap-3 px-4 py-3 text-left text-base font-medium transition-colors
-             border-t border-granite-200 hover:bg-sky-0 active:bg-sky-100
-             dark:border-granite-700 dark:hover:bg-granite-800 dark:active:bg-granite-700"
+             border-t border-zinc-200 hover:bg-primary-0 active:bg-primary-100
+             dark:border-zinc-700 dark:hover:bg-zinc-800 dark:active:bg-zinc-700"
     >
-      <i class="pi pi-images text-sky-700 dark:text-sky-300" aria-hidden="true"></i>
+      <i class="pi pi-images text-primary-700 dark:text-primary-300" aria-hidden="true"></i>
       <span>Elegir de galería</span>
     </button>
   </p-popover>
@@ -54,7 +54,7 @@
   @if (existingImages.length > 0) {
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
       @for (img of existingImages; track img; let i = $index) {
-        <div class="relative group rounded-xl overflow-hidden border-2 border-granite-200 dark:border-granite-700 shadow-sm">
+        <div class="relative group rounded-xl overflow-hidden border-2 border-zinc-200 dark:border-zinc-700 shadow-sm">
           <img [src]="img" class="w-full aspect-square object-cover">
           <button type="button"
             class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white size-8 rounded-full shadow-md inline-flex items-center justify-center font-bold transition-colors"
@@ -69,7 +69,7 @@
   @if (previews().length > 0) {
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
       @for (preview of previews(); track preview; let i = $index) {
-        <div class="relative group rounded-xl overflow-hidden border-2 border-sky-300 shadow-sm">
+        <div class="relative group rounded-xl overflow-hidden border-2 border-primary-300 shadow-sm">
           <img [src]="preview" class="w-full aspect-square object-cover">
           <button type="button"
             class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white size-8 rounded-full shadow-md inline-flex items-center justify-center font-bold transition-colors"
