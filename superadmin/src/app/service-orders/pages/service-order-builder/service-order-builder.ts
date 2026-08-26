@@ -19,7 +19,6 @@ import { MessageService } from 'primeng/api';
 import { LucideArrowLeft, LucidePlus, LucideTrash2 } from '@lucide/angular';
 import { Store } from '@ngxs/store';
 import { CreateServiceOrder } from '../../../../state/service-orders/service-orders.actions';
-import { CustomersService } from '../../../services/http/customers.service';
 import { ServicesCatalogService } from '../../../services/http/services-catalog.service';
 import { ServiceOrdersService } from '../../../services/http/service-orders.service';
 import { UsersService } from '../../../services/http/users.service';
@@ -33,10 +32,10 @@ import { ServiceUomShortPipe } from '../../../pipes/service-uom.pipe';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { errorMessage, toCalendarDate } from '../../../data/utils';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
-import type { CustomerOption } from '../../../data/dtos/customer';
 import type { ServiceOption } from '../../../data/dtos/service';
 import type { ServiceOrderDetail } from '../../../data/dtos/service-order';
 import type { AssignableUser } from '../../../data/dtos/user';
+import { CustomerSelect } from '../../../shared/components/customer-select/customer-select';
 
 interface BuilderLineValue {
   serviceId: string;
@@ -63,7 +62,7 @@ const fromCents = (cents: number): string => (cents / 100).toFixed(2);
  *  total, and a review step before the create transaction. */
 @Component({
   selector: 'app-service-order-builder',
-  imports: [
+  imports: [CustomerSelect, 
     DatePipe,
     RouterLink,
     ReactiveFormsModule,
@@ -97,12 +96,9 @@ export class ServiceOrderBuilder implements HasPendingChanges {
    *  comes from the dedicated roster routes (21 §3), never the list reads:
    *  `list({})` here used to mean "every row" and would silently become
    *  "the first 10" the moment CP-4 lands. */
-  protected customers = toSignal(
-    inject(CustomersService)
-      .listOptions()
-      .pipe(catchError(this.refDataFallback<CustomerOption>('los clientes'))),
-    { initialValue: [] },
-  );
+  /** Resolved by `<app-customer-select>` — on a user pick and on the `?from=`
+   *  prefill alike. The builder never holds the roster: the select pages it. */
+  protected customerName = signal('');
   protected services = toSignal(
     inject(ServicesCatalogService)
       .listOptions()
@@ -287,10 +283,6 @@ export class ServiceOrderBuilder implements HasPendingChanges {
       };
     });
   });
-
-  protected customerName = computed(
-    () => this.customers().find((c) => c.id === this.formValue().customerId)?.name ?? '',
-  );
 
   protected priorityLabel = computed(
     () => SERVICE_ORDER_PRIORITY_LABELS[this.formValue().priority ?? ServiceOrderPriority.Normal],

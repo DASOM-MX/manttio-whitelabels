@@ -7,15 +7,10 @@ import type {
   Customer,
   CustomerContact,
   CustomerListQuery,
-  CustomerOption,
   DeleteCustomerRequest,
   SaveCustomerRequest,
 } from '../../data/dtos/customer';
-import type {
-  CustomerListResponse,
-  CustomerResponse,
-  LegacyCustomerRow,
-} from '../../data/dtos/customer-legacy';
+import type { CustomerResponse, LegacyCustomerRow } from '../../data/dtos/customer-legacy';
 import type {
   AddInteractionRequest,
   ChangeStatusRequest,
@@ -27,17 +22,9 @@ import type {
 export class CustomersService {
   private readonly remote = inject(RemoteService);
 
-  /** The whole live roster, name-sorted — what every customer *picker* reads
-   *  (21 §3). Separate from `list()` on purpose: `list()` is the paged, filtered
-   *  browse for the clients page, and a picker that rides it silently shows one
-   *  page of choices. Not a `GenericQueryResponse` — a roster has no page. */
-  listOptions(): Observable<CustomerOption[]> {
-    return this.remote.get<CustomerOption[]>('/customers/all');
-  }
-
   list(query: CustomerListQuery): Observable<GenericQueryResponse<Customer>> {
     return this.remote
-      .get<CustomerListResponse>('/customers', {
+      .get<GenericQueryResponse<LegacyCustomerRow>>('/customers', {
         page: query.page,
         limit: query.limit,
         search: query.search,
@@ -45,7 +32,7 @@ export class CustomersService {
         source: query.source,
         tags: query.tags?.length ? query.tags.join(',') : undefined,
       })
-      .pipe(map((res) => this.toPage(res)));
+      .pipe(map((res) => ({ ...res, items: res.items.map((row) => this.normalize(row)) })));
   }
 
   get(id: string): Observable<Customer> {
@@ -110,16 +97,6 @@ export class CustomersService {
       .pipe(map((res) => this.unwrap(res)));
   }
 
-  /** Legacy-backend interop (07 — backend customers migration pending): accept
-   *  both the target paged envelope and today's `{ customers }` list, so the
-   *  store always holds the target contract. */
-  private toPage(res: CustomerListResponse): GenericQueryResponse<Customer> {
-    if ('customers' in res) {
-      const items = res.customers.map((row) => this.normalize(row));
-      return { items, total: items.length, page: 1, limit: items.length };
-    }
-    return { ...res, items: res.items.map((row) => this.normalize(row)) };
-  }
 
   private unwrap(res: CustomerResponse): Customer {
     return this.normalize('customer' in res ? res.customer : res);

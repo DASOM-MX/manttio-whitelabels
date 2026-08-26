@@ -5,6 +5,7 @@ import { createDb } from '../../database/client';
 import { requireRole } from '../../auth/middleware/roles.middleware';
 import {
   createCustomerSchema,
+  listCustomersQuerySchema,
   recentCustomersQuerySchema,
   updateCustomerSchema,
 } from '../validators/customers.validator';
@@ -24,7 +25,7 @@ import {
   editCustomer,
   getCustomerById,
   getCustomerOptions,
-  getCustomers,
+  getCustomersPaged,
   getRecentCustomers,
   removeCustomer,
 } from '../services/customers.service';
@@ -47,9 +48,15 @@ import { UUID_PARAM } from '../../shared/constants/uuid-param';
 export const customers = new Hono<AppBindings>();
 
 // Read endpoints are open to any authenticated user (admins + technicians).
-customers.get('/', async (c) => {
+//
+// Paged + filtered (07 §2, built 21 CP-4). This route used to ignore every
+// query param and return every live row, which is what made the clients list
+// re-render page 1 forever — the paginator sized itself off a `total` the
+// client had faked from the row count. Callers that genuinely need every row
+// use GET /customers/all.
+customers.get('/', zValidator('query', listCustomersQuerySchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  return c.json({ customers: await getCustomers(db) });
+  return c.json(await getCustomersPaged(db, c.req.valid('query')));
 });
 
 // Intake stats for the CRM dashboard (utm-params 03): leads/actives per

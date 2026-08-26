@@ -8,23 +8,18 @@ import {
   CreateCustomer,
   DeleteCustomer,
   LoadCustomer,
-  LoadCustomerOptions,
   LoadCustomers,
   LoadInteractions,
   SaveCustomerContacts,
   SetFollowUp,
   UpdateCustomer,
 } from './customers.actions';
-import type { Customer, CustomerListQuery, CustomerOption } from '../../app/data/dtos/customer';
+import type { Customer, CustomerListQuery } from '../../app/data/dtos/customer';
 import type { Interaction } from '../../app/data/dtos/interaction';
 
 export interface CustomersStateModel {
   items: Customer[];
   total: number;
-  /** The whole roster (21 §3) — what pickers read. Deliberately NOT `items`:
-   *  that slice is one filtered page of the clients list, so a picker sharing
-   *  it shows whatever the list happened to fetch last. */
-  options: CustomerOption[];
   loading: boolean;
   selected: Customer | null;
   selectedError: boolean;
@@ -41,7 +36,6 @@ export interface CustomersStateModel {
   defaults: {
     items: [],
     total: 0,
-    options: [],
     loading: false,
     selected: null,
     selectedError: false,
@@ -61,9 +55,6 @@ export class CustomersState {
   }
   @Selector() static total(s: CustomersStateModel): number {
     return s.total;
-  }
-  @Selector() static options(s: CustomersStateModel): CustomerOption[] {
-    return s.options;
   }
   @Selector() static loading(s: CustomersStateModel): boolean {
     return s.loading;
@@ -102,15 +93,6 @@ export class CustomersState {
     );
   }
 
-  /** Roster fetch for pickers. No `loading` flag: it never gates a page, it
-   *  fills a select, and sharing the list's flag would flicker the clients
-   *  table whenever a dialog opened. */
-  @Action(LoadCustomerOptions)
-  loadCustomerOptions(ctx: StateContext<CustomersStateModel>) {
-    return this.api
-      .listOptions()
-      .pipe(tap((options) => ctx.patchState({ options })));
-  }
 
   @Action(LoadCustomer)
   loadCustomer(ctx: StateContext<CustomersStateModel>, { id }: LoadCustomer) {

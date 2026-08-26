@@ -1,6 +1,6 @@
 # 21 — List pagination (clients + catalog server-side paging)
 
-> **Status:** in progress — CP-1…CP-3 done 2026-08-25, CP-4…CP-6 pending
+> **Status:** in progress — CP-1…CP-3 merged 2026-08-25; CP-4 code done, **migration still to generate** (see CP-4)
 > **Depends on:** 07 (clients), 18 (services) · **Touches:** `backend/`, `superadmin/`, `frontend/`
 > **Owner:** — · **Last updated:** 2026-08-25
 
@@ -428,13 +428,41 @@ full row still satisfies the entity map. The alternative — widening the backen
 paid for on every load. `CustomerListResponse` (`{ customers }`) is deleted with the change.
 
 ### CP-4 — Paginate + filter `GET /customers` (the bug fix)
-- [ ] `listCustomersQuerySchema` (page/limit/search/status/source/tags)
-- [ ] `listCustomersPaged` + `getCustomersPaged` returning `GenericQueryResponse`; drop `listCustomers`
-- [ ] Controller returns the envelope
-- [ ] GIN index on `tags` — **generated** migration, not applied
-- [ ] Superadmin `toPage()` shim + faked `total` deleted; `CustomersState.total` wired
-- [ ] `test/customers.test.ts` paging/filter coverage green
+- [x] `listCustomersQuerySchema` (page/limit/search/status/source/tags; `tags` split in the schema)
+- [x] `listCustomersPaged` + `getCustomersPaged` returning `GenericQueryResponse`; `listCustomers` dropped
+- [x] Controller returns the envelope
+- [x] GIN index on `tags` declared on the model
+- [ ] **Migration not generated** — unblocked 2026-08-26 by the rebase onto main. See below.
+- [x] Superadmin `toPage()` shim + faked `total` deleted; `CustomerListResponse` union collapsed
+- [x] `test/customers.test.ts` paging/filter coverage **written** — not run (live Neon DB)
 - [ ] Manual check at :4200: clients, leads and blacklist views all page
+
+**Customer selects → lazy virtual scroll (owner, 2026-08-25).** Every customer select now
+pages against `GET /customers` through one shared `<app-customer-select>` (CVA, sparse
+options array sized from `total`, window→page translation, debounced server-side search).
+This **supersedes CP-3's customer half**: `CustomersState.options`, `LoadCustomerOptions` and
+`CustomersService.listOptions()` are removed — six selects that read the roster now page
+instead. `GET /customers/all` survives for the **field app only**, which stays on the roster
+because it captures reports offline. The services roster (`ServicesState.options` /
+`LoadServiceOptions`) is untouched. `contract-form` migrated onto the shared component too,
+shedding the ~130 inline lines this component was extracted from.
+
+**Migration blocker (2026-08-25) — sync cleared 2026-08-26.** `pnpm db:generate` could not
+produce a usable migration while this branch trailed `origin/main`:
+1. The branch was **5 commits behind `origin/main`**, which already ships
+   `0040_wms_data_model.sql` and `0041_wms_node_assignments.sql`. A migration generated there
+   was numbered `0040_*` and **collided**.
+2. Locally the `meta/` snapshot chain stopped at `0037_snapshot.json` — `0038` and `0039` were
+   hand-written and never wrote one. So `generate` diffed against 0037 and re-proposed their
+   DDL (`is_report_source`, `discount_amount`, the `service_order_services` alters) alongside
+   the GIN index, **without** the `IF NOT EXISTS` guards the hand-written originals carry.
+   That migration would have failed on any DB where 0038/0039 already ran.
+
+Both causes were the stale base. The branch was rebased onto `origin/main` (owner, 2026-08-26)
+after CP-3 merged, so the `meta/` chain now carries main's current `0041_snapshot.json` and a
+regenerate yields a clean `0042_*` containing only the GIN index. **Still to do:** run
+`pnpm db:generate` and commit the SQL. Generating is a separate call from applying it — the
+live Neon DB stays the owner's.
 
 ### CP-5 — Paginate `GET /services` + lazy services list
 - [ ] `page`/`limit` on `listServicesQuerySchema`; repository paged + `total`

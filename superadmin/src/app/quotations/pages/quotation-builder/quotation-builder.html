@@ -33,15 +33,9 @@
               {{ quotation()?.customerName }}
             </p>
           } @else {
-            <p-select
+            <app-customer-select
               inputId="quotation-customer"
               formControlName="customerId"
-              [options]="customerOptions()"
-              optionLabel="label"
-              optionValue="value"
-              [filter]="true"
-              filterBy="label"
-              placeholder="Elige un cliente"
             />
           }
         </div>

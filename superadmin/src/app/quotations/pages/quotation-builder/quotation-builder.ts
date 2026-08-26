@@ -18,8 +18,6 @@ import {
   LoadQuotationDetail,
   UpdateQuotation,
 } from '../../../../state/quotations/quotations.actions';
-import { CustomersState } from '../../../../state/customers/customers.state';
-import { LoadCustomerOptions } from '../../../../state/customers/customers.actions';
 import { ServicesState } from '../../../../state/services/services.state';
 import { LoadServiceOptions } from '../../../../state/services/services.actions';
 import { QuotationTotalsService } from '../../../services/quotations/quotation-totals.service';
@@ -37,6 +35,7 @@ import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
 import type { QuotationBuilderRow } from '../../../data/types/quotation/quotation-builder-row.type';
 import type { QuotationLineForm } from '../../../data/types/quotation/quotation-line-form.type';
 import type { QuotationLineRequest } from '../../../data/dtos/quotation/quotation-requests';
+import { CustomerSelect } from '../../../shared/components/customer-select/customer-select';
 
 /** `YYYY-MM-DD` from the picker's local calendar fields.
  *
@@ -68,7 +67,7 @@ const toQuantityString = (value: number): string => String(value);
  *  reprices it. The page says so rather than letting a price move silently. */
 @Component({
   selector: 'app-quotation-builder',
-  imports: [
+  imports: [CustomerSelect, 
     RouterLink,
     ReactiveFormsModule,
     CheckboxModule,
@@ -94,8 +93,6 @@ export class QuotationBuilder implements HasPendingChanges {
   private messages = inject(MessageService);
   private totalsService = inject(QuotationTotalsService);
   private quotationsService = inject(QuotationsService);
-
-  private customers = select(CustomersState.options);
   private services = select(ServicesState.options);
   protected quotation = select(QuotationsState.selected);
 
@@ -117,11 +114,6 @@ export class QuotationBuilder implements HasPendingChanges {
     comments: [''],
     lines: this.fb.array<QuotationLineForm>([]),
   });
-
-  protected customerOptions = computed(() =>
-    this.customers().map((c) => ({ label: c.name, value: c.id })),
-  );
-
   protected serviceOptions = computed(() =>
     this.services().map((s) => ({ label: s.name, value: s.id })),
   );
@@ -204,7 +196,6 @@ export class QuotationBuilder implements HasPendingChanges {
   );
 
   constructor() {
-    this.store.dispatch(new LoadCustomerOptions());
     this.store.dispatch(new LoadServiceOptions());
     if (this.editingId) this.loadDraft(this.editingId);
     else if (this.duplicateFromId) this.loadFrom(this.duplicateFromId);

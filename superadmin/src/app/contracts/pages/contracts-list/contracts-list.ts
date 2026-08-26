@@ -9,8 +9,6 @@ import { LucideEye, LucideFileSignature, LucidePlus } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { ContractsState } from '../../../../state/contracts/contracts.state';
 import { LoadContracts } from '../../../../state/contracts/contracts.actions';
-import { CustomersState } from '../../../../state/customers/customers.state';
-import { LoadCustomerOptions } from '../../../../state/customers/customers.actions';
 import { ListQueryService, keyIn } from '../../../services/table/list-query.service';
 import { CONTRACT_TYPE_LABELS } from '../../../model/constants/contract/contract-type-labels.const';
 import { CONTRACT_VALIDITY_LABELS } from '../../../model/constants/contract/contract-validity-labels.const';
@@ -25,6 +23,7 @@ import type { ContractType } from '../../../model/enums/contract/contract-type.e
 import type { ContractValidity } from '../../../model/enums/contract/contract-validity.enum';
 import type { Contract } from '../../../data/dtos/contract/contract';
 import type { ContractListQuery } from '../../../data/dtos/contract/contract-requests';
+import { CustomerSelect } from '../../../shared/components/customer-select/customer-select';
 
 /** The filing cabinet (13 §6). Filters + page persist as GET query params
  *  (?q&customer&type&validity&tag&page) through ListQueryService (05 §3 canon).
@@ -34,7 +33,7 @@ import type { ContractListQuery } from '../../../data/dtos/contract/contract-req
  *  can never disagree. */
 @Component({
   selector: 'app-contracts-list',
-  imports: [
+  imports: [CustomerSelect, 
     RouterLink,
     ReactiveFormsModule,
     TableModule,
@@ -61,18 +60,12 @@ export class ContractsList {
   protected contracts = select(ContractsState.items);
   protected total = select(ContractsState.total);
   protected loading = select(ContractsState.loading);
-  private customers = select(CustomersState.options);
 
   protected search = new FormControl('', { nonNullable: true });
   protected customerFilter = new FormControl('', { nonNullable: true });
   protected typeFilter = new FormControl<ContractType | ''>('', { nonNullable: true });
   protected validityFilter = new FormControl<ContractValidity | ''>('', { nonNullable: true });
   protected tagFilter = new FormControl('', { nonNullable: true });
-
-  protected customerOptions = computed(() => [
-    { label: 'Todos los clientes', value: '' },
-    ...this.customers().map((c) => ({ label: c.name, value: c.id })),
-  ]);
   protected typeOptions = [
     { label: 'Todos los tipos', value: '' },
     ...(Object.entries(CONTRACT_TYPE_LABELS) as [ContractType, string][]).map(([value, label]) => ({
@@ -88,8 +81,6 @@ export class ContractsList {
   ];
 
   constructor() {
-    this.store.dispatch(new LoadCustomerOptions());
-
     this.list.init({
       read: (params) => {
         this.search.setValue(params.get('q') ?? '', { emitEvent: false });

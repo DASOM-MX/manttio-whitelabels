@@ -11,15 +11,10 @@
   <form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-4 sm:grid-cols-2">
     <div class="field-group sm:col-span-2">
       <label class="field-label" for="eq-customer">Cliente<span aria-hidden="true"> *</span></label>
-      <p-select
+      <app-customer-select
         inputId="eq-customer"
         formControlName="customerId"
-        [options]="customerOptions()"
-        optionLabel="label"
-        optionValue="value"
-        [filter]="true"
         placeholder="Elegir cliente"
-        appendTo="body"
       />
     </div>
 

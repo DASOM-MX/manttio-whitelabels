@@ -14,19 +14,13 @@
           <label class="field-label" for="order-customer">
             Cliente<span aria-hidden="true"> *</span>
           </label>
-          <!-- The customer roster is 1000+ rows — virtual scroll keeps the
-               overlay light; the filter is how anyone actually picks. -->
-          <p-select
+          <!-- The customer roster is 1000+ rows, so the select pages against
+               the server as the overlay scrolls (21 §4). -->
+          <app-customer-select
             inputId="order-customer"
             formControlName="customerId"
-            [options]="customers()"
-            optionLabel="name"
-            optionValue="id"
-            [filter]="true"
-            filterBy="name"
-            [virtualScroll]="true"
-            [virtualScrollItemSize]="40"
             placeholder="Selecciona un cliente"
+            (selectionChange)="customerName.set($event?.label ?? '')"
           />
           @if (form.controls.customerId.touched && form.controls.customerId.errors?.['required']) {
             <p class="field-error" role="alert">Selecciona el cliente de la orden.</p>

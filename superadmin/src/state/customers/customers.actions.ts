@@ -11,14 +11,6 @@ export class LoadCustomers {
   constructor(public query: CustomerListQuery = {}) {}
 }
 
-/** The whole roster for pickers (21 §3) — a separate action from
- *  `LoadCustomers` on purpose: that one is the paged, filtered browse and
- *  writes `items`, this one writes `options`. Sharing a slice is how a picker
- *  ends up silently showing one page of choices. */
-export class LoadCustomerOptions {
-  static readonly type = '[Customers] Load Options';
-}
-
 export class LoadCustomer {
   static readonly type = '[Customers] Load One';
   constructor(public id: string) {}

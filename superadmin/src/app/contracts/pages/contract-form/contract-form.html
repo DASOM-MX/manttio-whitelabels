@@ -43,26 +43,10 @@
           <label class="field-label" for="contract-customer"
             >Cliente<span aria-hidden="true"> *</span></label
           >
-          <!-- Clients load 65 at a time as the overlay scrolls, and typing
-               queries the server rather than the loaded slice (owner
-               2026-08-18) — the roster is 1000+ rows on a real tenant. -->
-          <p-select
+          <app-customer-select
             inputId="contract-customer"
             formControlName="customerId"
-            [options]="customerOptions()"
-            optionLabel="label"
-            optionValue="value"
-            [virtualScroll]="true"
-            [virtualScrollItemSize]="customerRowHeight"
-            [virtualScrollOptions]="customerScrollOptions"
-            [filter]="true"
-            filterBy="label"
-            filterPlaceholder="Buscar cliente"
-            emptyFilterMessage="Ningún cliente coincide"
-            (onFilter)="onCustomerFilter($event.filter)"
-            placeholder="Elige un cliente"
-            appendTo="body"
-            (onChange)="onCustomerChange($event.value)"
+            (selectionChange)="onCustomerChange($event?.value ?? '')"
           />
           @if (form.controls.customerId.touched && form.controls.customerId.errors?.['required']) {
             <p class="field-error" role="alert">Elige el cliente del contrato.</p>

@@ -1,0 +1,25 @@
+<!-- Clients load a page at a time as the overlay scrolls, and typing queries
+     the server rather than the loaded slice — the roster is 1000+ rows on a
+     real tenant (21 §4). -->
+<p-select
+  [inputId]="inputId()"
+  [options]="options()"
+  [ngModel]="value()"
+  [ngModelOptions]="{ standalone: true }"
+  [disabled]="disabled()"
+  optionLabel="label"
+  optionValue="value"
+  [virtualScroll]="true"
+  [virtualScrollItemSize]="rowHeight"
+  [virtualScrollOptions]="scrollOptions"
+  [filter]="true"
+  filterBy="label"
+  filterPlaceholder="Buscar cliente"
+  emptyFilterMessage="Ningún cliente coincide"
+  [placeholder]="placeholder()"
+  [attr.aria-labelledby]="ariaLabelledBy()"
+  appendTo="body"
+  styleClass="w-full"
+  (onFilter)="onFilter($event.filter)"
+  (onChange)="onSelect($event.value)"
+/>

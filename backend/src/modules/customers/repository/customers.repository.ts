@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, arrayOverlaps, asc, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { customers } from '../models/customers.model';
 import { customerContacts } from '../models/customer-contacts.model';
@@ -17,6 +17,8 @@ import type {
   UpdateCustomerFields,
 } from '../types/customers.types';
 import type { SystemAudit } from '../types/interactions.types';
+import type { ListCustomersQuery } from '../validators/customers.validator';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
 // A query executor: the pooled `Db` or a transaction handle — both expose the
 // same query builder, so read helpers accept either.
@@ -82,12 +84,57 @@ export const listCustomerOptions = async (db: Db): Promise<CustomerOption[]> =>
     .where(isNull(customers.deletedAt))
     .orderBy(asc(customers.name));
 
-export const listCustomers = async (db: Db): Promise<CustomerRow[]> => {
-  return db
+/** The clients list (07 §2) — newest-first, filtered, one page at a time.
+ *  Mirrors `listUsersPaged`: one `SQL[]` filter list feeding both the page
+ *  query and the count, so `total` can never drift from what was filtered.
+ *
+ *  This replaces the former `listCustomers(db)`, which returned every live row
+ *  and made the list page render the same ten clients on every page (21 §1).
+ *  The whole roster still has a route — `listCustomerOptions` — it is just no
+ *  longer what the browse read does. */
+export const listCustomersPaged = async (
+  db: Db,
+  query: ListCustomersQuery,
+): Promise<GenericQueryResponse<CustomerRow>> => {
+  const filters: SQL[] = [isNull(customers.deletedAt)];
+  if (query.status) filters.push(eq(customers.status, query.status));
+  if (query.source) filters.push(eq(customers.source, query.source));
+  // `&&` — any of the given tags, not all of them: the filter is a chip set the
+  // user widens by adding chips.
+  if (query.tags) filters.push(arrayOverlaps(customers.tags, query.tags));
+  if (query.search) {
+    const term = `%${query.search}%`;
+    const match = or(
+      ilike(customers.name, term),
+      ilike(customers.contactName, term),
+      ilike(customers.email, term),
+      ilike(customers.phone, term),
+      ilike(customers.identification, term),
+    );
+    if (match) filters.push(match);
+  }
+  const where = and(...filters);
+
+  const items = await db
     .select()
     .from(customers)
-    .where(isNull(customers.deletedAt))
-    .orderBy(desc(customers.createdAt));
+    .where(where)
+    // Served by customers_active_idx.
+    .orderBy(desc(customers.createdAt))
+    .limit(query.limit)
+    .offset((query.page - 1) * query.limit);
+
+  const countRows = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(customers)
+    .where(where);
+
+  return {
+    items,
+    total: countRows[0]?.count ?? 0,
+    page: query.page,
+    limit: query.limit,
+  };
 };
 
 /** Newest client rows for the Panel's recent-clients card (utm-params 03

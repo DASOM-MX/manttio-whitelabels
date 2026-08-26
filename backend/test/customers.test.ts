@@ -31,24 +31,190 @@ type CustomerRow = {
 
 const headersWith = (token: string) => ({ ...jsonHeaders(token) });
 
+type Paged<T> = { items: T[]; total: number; page: number; limit: number };
+
+/** Direct-to-DB edit for filter fixtures: the columns these tests filter on
+ *  (`status`, `source`, `tags`) either move through the audited status endpoint
+ *  or are not writable at all from `seedCustomer`, and the point here is the
+ *  read path, not how a row got its value. */
+const setCustomerFields = async (
+  id: string,
+  fields: Partial<{ status: string; source: string; tags: string[]; deletedAt: Date }>,
+): Promise<void> => {
+  const db = createDb((env as WorkerEnv).DATABASE_URL);
+  await db
+    .update(customers)
+    .set(fields as never)
+    .where(eq(customers.id, id));
+};
+
 describe('GET /customers', () => {
-  test('admin gets a list including the seeded customer', async () => {
+  test('admin gets a paged envelope including the seeded customer', async () => {
     const { token } = await seedAdminAndLogin();
     const customer = await seedCustomer();
-    const res = await request('/customers', { headers: authHeader(token) });
+    const res = await request(`/customers?limit=100&search=${encodeURIComponent(customer.name)}`, {
+      headers: authHeader(token),
+    });
     expect(res.status).toBe(200);
-    const body = await json<{ customers: CustomerRow[] }>(res);
-    expect(Array.isArray(body.customers)).toBe(true);
-    expect(body.customers.some((c) => c.id === customer.id)).toBe(true);
+    const body = await json<Paged<CustomerRow>>(res);
+    expect(Array.isArray(body.items)).toBe(true);
+    expect(body.items.some((c) => c.id === customer.id)).toBe(true);
+    expect(body.page).toBe(1);
+    expect(body.limit).toBe(100);
   });
 
   test('technician can also list customers (read is open to any authed user)', async () => {
     const { token } = await seedTechnicianAndLogin();
     const customer = await seedCustomer();
-    const res = await request('/customers', { headers: authHeader(token) });
+    const res = await request(`/customers?search=${encodeURIComponent(customer.name)}`, {
+      headers: authHeader(token),
+    });
     expect(res.status).toBe(200);
-    const body = await json<{ customers: CustomerRow[] }>(res);
-    expect(body.customers.some((c) => c.id === customer.id)).toBe(true);
+    const body = await json<Paged<CustomerRow>>(res);
+    expect(body.items.some((c) => c.id === customer.id)).toBe(true);
+  });
+
+  // The regression this whole plan exists for (21 §1): the route used to ignore
+  // every query param, so page 2 re-served page 1 and the client faked `total`
+  // from the row count.
+  test('page 1 and page 2 are disjoint, and total is the filtered count', async () => {
+    const { token } = await seedAdminAndLogin();
+    await seedCustomer();
+    await seedCustomer();
+    await seedCustomer();
+
+    const first = await json<Paged<CustomerRow>>(
+      await request('/customers?page=1&limit=2', { headers: authHeader(token) }),
+    );
+    const second = await json<Paged<CustomerRow>>(
+      await request('/customers?page=2&limit=2', { headers: authHeader(token) }),
+    );
+
+    expect(first.items).toHaveLength(2);
+    expect(second.items.length).toBeGreaterThan(0);
+    const overlap = first.items.filter((a) => second.items.some((b) => b.id === a.id));
+    expect(overlap).toEqual([]);
+    // `total` counts the whole filtered set, never the page.
+    expect(first.total).toBeGreaterThan(first.items.length);
+    expect(second.total).toBe(first.total);
+  });
+
+  test('limit is capped at 100', async () => {
+    const { token } = await seedAdminAndLogin();
+    const res = await request('/customers?limit=5000', { headers: authHeader(token) });
+    expect(res.status).toBe(400);
+  });
+
+  test('search narrows to matching rows', async () => {
+    const { token } = await seedAdminAndLogin();
+    const target = await seedCustomer();
+    await seedCustomer();
+    const body = await json<Paged<CustomerRow>>(
+      await request(`/customers?search=${encodeURIComponent(target.name)}`, {
+        headers: authHeader(token),
+      }),
+    );
+    expect(body.items.map((c) => c.id)).toEqual([target.id]);
+    expect(body.total).toBe(1);
+  });
+
+  test('status and source narrow the set', async () => {
+    const { token } = await seedAdminAndLogin();
+    const target = await seedCustomer();
+    await setCustomerFields(target.id, { status: 'lead', source: 'facebook' });
+
+    const byStatus = await json<Paged<CustomerRow>>(
+      await request(
+        `/customers?status=lead&search=${encodeURIComponent(target.name)}`,
+        { headers: authHeader(token) },
+      ),
+    );
+    expect(byStatus.items.map((c) => c.id)).toEqual([target.id]);
+
+    const bySource = await json<Paged<CustomerRow>>(
+      await request(
+        `/customers?source=facebook&search=${encodeURIComponent(target.name)}`,
+        { headers: authHeader(token) },
+      ),
+    );
+    expect(bySource.items.map((c) => c.id)).toEqual([target.id]);
+
+    // A filter the row does not match excludes it.
+    const miss = await json<Paged<CustomerRow>>(
+      await request(
+        `/customers?status=blacklisted&search=${encodeURIComponent(target.name)}`,
+        { headers: authHeader(token) },
+      ),
+    );
+    expect(miss.items).toEqual([]);
+    expect(miss.total).toBe(0);
+  });
+
+  test('tags matches on overlap, not on all', async () => {
+    const { token } = await seedAdminAndLogin();
+    const target = await seedCustomer();
+    const tag = uniqueName('tag');
+    await setCustomerFields(target.id, { tags: [tag, 'otro'] });
+
+    const hit = await json<Paged<CustomerRow>>(
+      await request(`/customers?tags=${encodeURIComponent(tag)},ninguno`, {
+        headers: authHeader(token),
+      }),
+    );
+    expect(hit.items.map((c) => c.id)).toEqual([target.id]);
+
+    const miss = await json<Paged<CustomerRow>>(
+      await request('/customers?tags=etiqueta-que-no-existe', { headers: authHeader(token) }),
+    );
+    expect(miss.items.every((c) => c.id !== target.id)).toBe(true);
+  });
+
+  test('soft-deleted rows never appear', async () => {
+    const { token } = await seedAdminAndLogin();
+    const target = await seedCustomer();
+    await setCustomerFields(target.id, { deletedAt: new Date() });
+    const body = await json<Paged<CustomerRow>>(
+      await request(`/customers?search=${encodeURIComponent(target.name)}`, {
+        headers: authHeader(token),
+      }),
+    );
+    expect(body.items).toEqual([]);
+    expect(body.total).toBe(0);
+  });
+});
+
+describe('GET /customers/all', () => {
+  test('returns the whole roster unpaged, ignoring page/limit', async () => {
+    const { token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const res = await request('/customers/all?page=2&limit=1', { headers: authHeader(token) });
+    expect(res.status).toBe(200);
+    const body = await json<{ id: string; name: string; timezone: string }[]>(res);
+    // A bare array, not an envelope (21 §3 amendment): a roster has no page and
+    // no limit, and a `total` could only ever be the array's own length.
+    expect(Array.isArray(body)).toBe(true);
+    expect(body.some((c) => c.id === customer.id)).toBe(true);
+  });
+
+  test('"all" is not read as an id — it resolves to the roster route', async () => {
+    const { token } = await seedAdminAndLogin();
+    const res = await request('/customers/all', { headers: authHeader(token) });
+    expect(res.status).toBe(200);
+  });
+
+  test('projection carries the fields the field app renders', async () => {
+    const { token } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const body = await json<Record<string, unknown>[]>(
+      await request('/customers/all', { headers: authHeader(token) }),
+    );
+    const row = body.find((c) => c.id === customer.id);
+    expect(row).toBeDefined();
+    // `timezone` drives every report date in the field app; `razonSocial` feeds
+    // its directory search. Both were missing from the plan's projection.
+    for (const key of ['id', 'name', 'razonSocial', 'identification', 'phone', 'email', 'state', 'timezone']) {
+      expect(row).toHaveProperty(key);
+    }
   });
 });
 
