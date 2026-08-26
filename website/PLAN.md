@@ -10,15 +10,23 @@ Tracking the build-out of the marketing site in `/website`.
 - `penanevada-full.png` / `penanevada-full-light.png` — emblem + wordmark
 - Header & Footer use the white-bg emblem inside a `rounded-full bg-white` chip; no text wordmark.
 
-### Color palette (wired in `tailwind.config.mjs` as Tailwind steps 50–950)
-| Token     | Base (500) | Use                                   |
-|-----------|------------|---------------------------------------|
-| `granite` | `#4C5B5C`  | Neutral dark / body text / surfaces   |
-| `navy`    | `#4C6783`  | Primary brand / dark surfaces         |
-| `sky`     | `#4D91B6`  | Secondary accent / highlights         |
-| `cyan`    | `#4BA8D1`  | CTA accent / link / "Chillers" accent |
+### Color palette (wired in `tailwind.config.mjs`)
+Two tenant scales at steps 0–1000 by 100, plus stock Tailwind `zinc` for chrome.
 
-Usage: `bg-navy-900`, `text-cyan-400`, `border-sky-500`, etc. Old `coral` / `golden` / `royal` / `nuclear` scales removed.
+| Token     | Steps    | Source                            | Use                                  |
+|-----------|----------|-----------------------------------|--------------------------------------|
+| `primary` | 0–1000   | `--brand-primary-*` from `/brand` | Brand anchor: CTAs, links, emphasis  |
+| `accent`  | 0–1000   | `--brand-accent-*` from `/brand`  | Categorical / decorative             |
+| `zinc`    | 50–950   | Tailwind's own palette            | Chrome: text, borders, panels, ground |
+
+Usage: `bg-primary-900`, `text-accent-400`, `border-zinc-200`. The one alias is
+`bg-background` (= `zinc-50`), the page ground. Brand steps map onto zinc as
+0 → 50 and 1000 → 950, interior one-to-one.
+
+`granite` / `navy` / `sky` / `cyan` are **tombstoned** — declared as empty objects
+so they emit no CSS. Never delete the empty declarations: `sky` and `cyan` are
+stock Tailwind names, and `theme.extend` merges with the default theme, so a
+straggler would silently render stock blue instead of nothing.
 
 ### Typography
 - Headings: Rubik (self-hosted via Fontsource) → `font-heading`

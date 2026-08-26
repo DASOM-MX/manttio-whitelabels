@@ -27,7 +27,7 @@ export interface Brand {
   icons?: BrandIcons; // generated from the mark on brand save
   colors?: {
     primary?: BrandColorScale;
-    surface?: BrandColorScale;
+    accent?: BrandColorScale;
   };
   contact?: {
     phone?: string;

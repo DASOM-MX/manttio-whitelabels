@@ -278,14 +278,20 @@ before plan 23 writes a single line of new chrome. CP-3 and CP-4 are independent
 - [x] `npm run build` green; PWA theme color + generated manifest still brand-driven; dark mode
       spot-checked
 
-### CP-4 — Website leg (`style(website)` — absorbs 16 PR-3)
-- [ ] Re-run the inventory (~120 snapshot)
-- [ ] `tailwind.config.mjs` rewritten, **plus the five aliases the site never had**
-- [ ] `src/lib/types.ts` `BrandColors` mirror updated; `src/lib/theme.ts` emits primary +
+### CP-4 — Website leg (`style(website)` — absorbs 16 PR-3) — **done 2026-08-26, reworked onto zinc 2026-08-27**
+- [x] Re-run the inventory (~120 snapshot) — **174 found: granite 86, cyan 68, navy 9, sky 11**
+- [x] `tailwind.config.mjs` rewritten, **plus the five aliases the site never had**
+- [x] `src/lib/types.ts` `BrandColors` mirror updated; `src/lib/theme.ts` emits primary +
       accent only
-- [ ] Same mechanical sweep + tombstones
-- [ ] `grep -rE '\b(granite|sky|navy|cyan)-[0-9]' website/src` → 0
-- [ ] `npm run build` green; a published-CMS page spot-checked against the live brand
+- [x] Same mechanical sweep + tombstones
+- [x] `grep -rE '\b(granite|sky|navy|cyan)-[0-9]' website/src` → 0
+- [x] `npm run build` green; a published-CMS page spot-checked against the live brand
+- [x] **Rework (owner, 2026-08-27):** the fixed `surface` scale deleted in favour of stock
+      `zinc`, matching CP-3 — 85 instances swept (0 → 50, 1000 → 950, interior 1:1). The
+      `surface` and `dark` aliases went with it (one template call between them); `background`
+      (= `zinc-50`, the page ground) is the only alias left, so 16 § Target 4's alias set is
+      deliberately not met here — recorded, not overlooked. `website/PLAN.md`'s palette table
+      still taught `bg-navy-900` / `text-cyan-400`; rewritten onto primary + accent + zinc.
 
 ### CP-5 — Bookkeeping + docs (`docs`)
 - [ ] Plan 16 header carries the full supersession (done at plan time — re-verify nothing else
@@ -335,10 +341,11 @@ before plan 23 writes a single line of new chrome. CP-3 and CP-4 are independent
   wire, the field app drops the scale and uses Tailwind's own. **This is not value-neutral:**
   zinc is faintly cool where the fixed neutral is pure gray, and its ramp runs deeper — the
   most-used step (`surface-700`, 107 hits) goes 36% → 26% lightness. Accepted as a deliberate
-  look change, not a regression. **Open:** whether superadmin (~972 instances) and the website
-  follow. They are on `surface-*` today and this plan does not move them; the argument that
-  killed granite applies to them equally, but the sweep is far larger and 23 is authored on
-  `surface-*`.
+  look change, not a regression. **Extended to the website (2026-08-27, owner)** before CP-4
+  merged: same argument, 85 instances, and the two public-facing surfaces would otherwise read
+  as different grays. **Still open:** superadmin (~972 instances). It is on `surface-*` today
+  and this plan does not move it — the argument applies there equally, but the sweep is an
+  order of magnitude larger and plan 23 is authored on `surface-*`.
 - **Derived (2026-08-26, CP-1):** `GET /brand` **projects** `colors` to `{ primary, accent }`
   instead of passing the jsonb through, so the tombstoned `surface` key never reaches a
   consumer and a deploy that lands ahead of the migration still serves a complete palette
