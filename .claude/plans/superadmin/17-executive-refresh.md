@@ -1,6 +1,13 @@
 # 17 — Executive refresh: clean, breathable UI on stock PrimeNG ("soft-executive")
 
-> **Status:** done 2026-07-22 (all five CPs shipped) — **CP-1 done 2026-07-22** (PR #89, branch
+> **Status:** done 2026-07-22 (all five CPs shipped) — **three decisions superseded 2026-08-26 by
+> [23 — Visual language v2](23-visual-language-v2.md):** the dark brand-panel sidebar (CP-2) gives way
+> to a light `surface-0` panel with a tinted active row; shadow-only cards regain a hairline border;
+> and the "`primary-400` is the decorative accent" step retires in favor of the real `accent` scale
+> from [22](22-brand-palette-primary-accent.md). **The rest of this plan stands** — preset-first
+> chrome, breathable page rhythm, `page-header` on every route, `rounded-control` buttons, neutral
+> shadows, compact data inside airy chrome. Original status line follows.
+> **Status (2026-07-22):** done (all five CPs shipped) — **CP-1 done 2026-07-22** (PR #89, branch
 > `feature/superadmin-executive-refresh-cp1`, stacked on #88; built in the
 > `executive-refresh-cp1` worktree for fast rollback) · **CP-2 done 2026-07-22**
 > (branch `feature/superadmin-executive-refresh-cp2`, stacked on CP-1: shared
