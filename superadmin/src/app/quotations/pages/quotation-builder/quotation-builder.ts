@@ -19,9 +19,9 @@ import {
   UpdateQuotation,
 } from '../../../../state/quotations/quotations.actions';
 import { CustomersState } from '../../../../state/customers/customers.state';
-import { LoadCustomers } from '../../../../state/customers/customers.actions';
+import { LoadCustomerOptions } from '../../../../state/customers/customers.actions';
 import { ServicesState } from '../../../../state/services/services.state';
-import { LoadServices } from '../../../../state/services/services.actions';
+import { LoadServiceOptions } from '../../../../state/services/services.actions';
 import { QuotationTotalsService } from '../../../services/quotations/quotation-totals.service';
 import { QuotationsService } from '../../../services/http/quotations.service';
 import { QuotationStatus } from '../../../model/enums/quotation/quotation-status.enum';
@@ -95,8 +95,8 @@ export class QuotationBuilder implements HasPendingChanges {
   private totalsService = inject(QuotationTotalsService);
   private quotationsService = inject(QuotationsService);
 
-  private customers = select(CustomersState.items);
-  private services = select(ServicesState.items);
+  private customers = select(CustomersState.options);
+  private services = select(ServicesState.options);
   protected quotation = select(QuotationsState.selected);
 
   protected readonly editingId = this.route.snapshot.paramMap.get('id');
@@ -204,8 +204,8 @@ export class QuotationBuilder implements HasPendingChanges {
   );
 
   constructor() {
-    this.store.dispatch(new LoadCustomers({ page: 1, limit: 100 }));
-    this.store.dispatch(new LoadServices({}));
+    this.store.dispatch(new LoadCustomerOptions());
+    this.store.dispatch(new LoadServiceOptions());
     if (this.editingId) this.loadDraft(this.editingId);
     else if (this.duplicateFromId) this.loadFrom(this.duplicateFromId);
     else {

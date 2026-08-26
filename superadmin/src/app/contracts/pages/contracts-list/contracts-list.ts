@@ -10,7 +10,7 @@ import { select, Store } from '@ngxs/store';
 import { ContractsState } from '../../../../state/contracts/contracts.state';
 import { LoadContracts } from '../../../../state/contracts/contracts.actions';
 import { CustomersState } from '../../../../state/customers/customers.state';
-import { LoadCustomers } from '../../../../state/customers/customers.actions';
+import { LoadCustomerOptions } from '../../../../state/customers/customers.actions';
 import { ListQueryService, keyIn } from '../../../services/table/list-query.service';
 import { CONTRACT_TYPE_LABELS } from '../../../model/constants/contract/contract-type-labels.const';
 import { CONTRACT_VALIDITY_LABELS } from '../../../model/constants/contract/contract-validity-labels.const';
@@ -61,7 +61,7 @@ export class ContractsList {
   protected contracts = select(ContractsState.items);
   protected total = select(ContractsState.total);
   protected loading = select(ContractsState.loading);
-  private customers = select(CustomersState.items);
+  private customers = select(CustomersState.options);
 
   protected search = new FormControl('', { nonNullable: true });
   protected customerFilter = new FormControl('', { nonNullable: true });
@@ -88,7 +88,7 @@ export class ContractsList {
   ];
 
   constructor() {
-    this.store.dispatch(new LoadCustomers({ page: 1, limit: 100 }));
+    this.store.dispatch(new LoadCustomerOptions());
 
     this.list.init({
       read: (params) => {

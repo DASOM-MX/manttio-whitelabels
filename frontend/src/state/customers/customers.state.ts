@@ -7,9 +7,14 @@ import {
   CreateCustomer, UpdateCustomer, DeleteCustomer,
 } from './customers.actions';
 import type { CustomerRow } from '../../app/data/dtos/customer';
+import type { CustomerOption } from '../../app/data/dtos/customer/customer-option.dto';
 
 export interface CustomersStateModel {
-  entities: Record<string, CustomerRow>;
+  /** Roster rows (21 §3) — the narrow projection `GET /customers/all` serves.
+   *  A full `CustomerRow` from the single read satisfies it too, so `loadOne`
+   *  and the mutations keep writing here; `selected` is what the edit page
+   *  reads when it needs the columns the roster omits. */
+  entities: Record<string, CustomerOption>;
   ids: string[];
   selected: CustomerRow | null;
   loading: boolean;
@@ -23,8 +28,8 @@ export interface CustomersStateModel {
 export class CustomersState {
   private readonly api = inject(CustomersService);
 
-  @Selector() static list(s: CustomersStateModel): CustomerRow[] {
-    return s.ids.map((id) => s.entities[id]).filter(Boolean) as CustomerRow[];
+  @Selector() static list(s: CustomersStateModel): CustomerOption[] {
+    return s.ids.map((id) => s.entities[id]).filter(Boolean) as CustomerOption[];
   }
   @Selector() static selected(s: CustomersStateModel): CustomerRow | null { return s.selected; }
   @Selector() static loading(s: CustomersStateModel): boolean { return s.loading; }
@@ -37,10 +42,10 @@ export class CustomersState {
   loadList(ctx: StateContext<CustomersStateModel>) {
     ctx.patchState({ loading: true });
     return this.api.list().pipe(
-      tap(({ customers }) => {
-        const entities: Record<string, CustomerRow> = {};
+      tap((items) => {
+        const entities: Record<string, CustomerOption> = {};
         const ids: string[] = [];
-        for (const c of customers) { entities[c.id] = c; ids.push(c.id); }
+        for (const c of items) { entities[c.id] = c; ids.push(c.id); }
         ctx.patchState({ entities, ids });
       }),
       finalize(() => ctx.patchState({ loading: false })),

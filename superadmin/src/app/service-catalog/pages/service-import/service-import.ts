@@ -8,7 +8,7 @@ import { LucideRefreshCw, LucideUpload } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { AuthState } from '../../../../state/auth/auth.state';
 import { ServicesState } from '../../../../state/services/services.state';
-import { ImportServices, LoadServices } from '../../../../state/services/services.actions';
+import { ImportServices, LoadServiceOptions } from '../../../../state/services/services.actions';
 import { hasRole } from '../../../guards/has-role.guard';
 import { SERVICE_IMPORT_FIELDS } from '../../../model/constants/services/service-import-fields.const';
 import { SERVICE_IMPORT_MAX_ROWS } from '../../../model/constants/services/service-import-max-rows.const';
@@ -76,7 +76,7 @@ export class ServiceImport implements HasPendingChanges {
   private messages = inject(MessageService);
 
   private me = select(AuthState.me);
-  private services = select(ServicesState.items);
+  private services = select(ServicesState.options);
 
   protected canManage = computed(() => hasRole(this.me(), ['owner', 'admin']));
 
@@ -211,7 +211,7 @@ export class ServiceImport implements HasPendingChanges {
   constructor() {
     // The whole catalog is already list-sized — loading it here powers the
     // dup-vs-catalog preview check.
-    this.store.dispatch(new LoadServices({}));
+    this.store.dispatch(new LoadServiceOptions());
   }
 
   hasPendingChanges(): boolean {

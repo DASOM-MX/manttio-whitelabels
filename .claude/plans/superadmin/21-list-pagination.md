@@ -1,6 +1,6 @@
 # 21 — List pagination (clients + catalog server-side paging)
 
-> **Status:** in progress — CP-1 + CP-2 done 2026-08-25, CP-3…CP-6 pending
+> **Status:** in progress — CP-1…CP-3 done 2026-08-25, CP-4…CP-6 pending
 > **Depends on:** 07 (clients), 18 (services) · **Touches:** `backend/`, `superadmin/`, `frontend/`
 > **Owner:** — · **Last updated:** 2026-08-25
 
@@ -37,6 +37,18 @@ Answers to the scope forks raised before this plan was written:
    response — backend repository, backend service, and both Angular clients — uses the
    single generic instead of the ~20 hand-written shapes that exist today. Named exactly
    `GenericQueryResponse<T>`; `PagedResponse<T>` is renamed into it, not kept as an alias.
+
+### Amendment (2026-08-25) — roster endpoints return a bare array
+
+Decision 1 above shipped `GET /customers/all` and `GET /services/all` as `{ items: T[] }`.
+Owner, on seeing the live response: *"too nested, make it one level object array only."*
+Both now return `CustomerOption[]` / `ServiceOptionDTO[]` directly.
+
+The reasoning that made these *not* a `GenericQueryResponse` applies one step further: with
+no page and no limit, a `total` could only restate the array's own length, so the `{ items }`
+wrapper carries no information either. Query reads keep the envelope; roster reads are a
+plain array. Consumers updated in the same change: both superadmin http services + their
+NGXS roster actions, and the field app's `customers.service.ts` + `customers.state.ts`.
 
 ---
 
@@ -192,7 +204,7 @@ Matches **07 §2** (already specified) and the `users` precedent exactly.
 
 ```
 GET /customers/all
-  → { items: CustomerOption[] }        // whole live roster, name-sorted, never paged
+  → CustomerOption[]                   // whole live roster, name-sorted, never paged
 ```
 
 - Deliberately **not** a `GenericQueryResponse` — there is no page, no limit, and no
@@ -235,7 +247,7 @@ GET /customers/all
 `customers/services/customers.service.ts`:
 
 - `getCustomersPaged(db, query)` → `GenericQueryResponse<Customer>`.
-- `getCustomerOptions(db)` → `{ items }`.
+- `getCustomerOptions(db)` → `CustomerOption[]`.
 
 **Migration.** No column changes. The one index worth adding is a **GIN index on `tags`**
 for the `&&` overlap filter — `tags` has no index today. Generate it with
@@ -295,7 +307,7 @@ Supersedes 18 §4's no-pagination decision (Decisions §2 above).
   `z.object({ q: z.string().optional() })` — add `page` / `limit` (max 100, default 10).
 - `GET /services` → `GenericQueryResponse<Service>`. Keep `q`, keep the admin-tier `cost`
   suppression and the `IMAGES_CDN_BASE_URL` materialization.
-- **`GET /services/all`** (new, before `/:id`) → `{ items: ServiceOptionDTO[] }` — the full
+- **`GET /services/all`** (new, before `/:id`) → `ServiceOptionDTO[]` — the full
   active catalog, name-sorted, for the pickers and the import dedupe. **Same cost-tier rule**
   as `GET /services` (18 §2), enforced **on the server**: a technician's response carries no
   `cost` key at all. Never ship a field the caller may not see and hide it client-side
@@ -328,7 +340,7 @@ Supersedes 18 §4's no-pagination decision (Decisions §2 above).
 
 **Field app** (`frontend/`)
 
-- `src/http/customers.service.ts` `list()` → `GET /customers/all`, typed `{ items }`.
+- `src/http/customers.service.ts` `list()` → `GET /customers/all`, typed `CustomerOption[]`.
 - `src/state/customers/customers.state.ts:40` — `tap(({ customers }) => …)` → `({ items })`.
 - `app/customers/pages/customers/customers.html` keeps its client-side paginator
   (`[paginator]="customers().length > 10"`, non-lazy) — correct over a complete roster.
@@ -394,14 +406,26 @@ CP-4 is only safe once CP-3 has removed every dependency on the unpaged endpoint
 - [x] Existing routes untouched — nothing in either app changes yet. `GET /customers` still
       returns `{ customers }` unpaged; `GET /services` still returns `{ services }`.
 
-### CP-3 — Migrate every picker onto the roster endpoints
-- [ ] `CustomersState.options` + `LoadCustomerOptions`; `ServicesState.options` + `LoadServiceOptions`
-- [ ] Superadmin pickers moved off `LoadCustomers({ page: 1, limit: 100 })` / `list({})`:
+### CP-3 — Migrate every picker onto the roster endpoints — **done 2026-08-25**
+- [x] `CustomersState.options` + `LoadCustomerOptions`; `ServicesState.options` + `LoadServiceOptions`,
+      backed by `listOptions()` on both http services. `items` is now read only by the two
+      list pages that own it.
+- [x] Superadmin pickers moved off `LoadCustomers({ page: 1, limit: 100 })` / `list({})`:
       contracts-list, quotations-list, quotation-builder, equipment-list,
       equipment-form-dialog, service-order-builder, service-import
-- [ ] Field app `customers.service.ts` + `customers.state.ts` → `/customers/all`, `{ items }`
-- [ ] `contract-form`'s incremental `p-select` left alone — it is already correct
-- [ ] After this CP, **nothing depends on `GET /customers` being unpaged**
+- [x] Field app `customers.service.ts` + `customers.state.ts` → `/customers/all`, bare array;
+      the directory keeps its client-side paginator over the complete roster
+- [x] `contract-form`'s incremental `p-select` left alone — it is already correct
+- [x] After this CP, **nothing depends on `GET /customers` being unpaged** — the only
+      remaining `/customers` call in the field app is the create POST
+
+**Decision (owner, 2026-08-25):** the field app gets its own `CustomerOption` DTO
+(`data/dtos/customer/customer-option.dto.ts`) mirroring the backend projection, and
+`CustomersStateModel.entities` / `ids` / `list` are retyped to it; `selected` stays the full
+`CustomerRow` from `GET /customers/:id`. `contactName` and `status` are optional on it so the
+full row still satisfies the entity map. The alternative — widening the backend projection so
+`CustomerRow` stayed truthful — was rejected: the roster is unpaged, so every column on it is
+paid for on every load. `CustomerListResponse` (`{ customers }`) is deleted with the change.
 
 ### CP-4 — Paginate + filter `GET /customers` (the bug fix)
 - [ ] `listCustomersQuerySchema` (page/limit/search/status/source/tags)

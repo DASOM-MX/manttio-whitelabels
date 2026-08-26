@@ -7,14 +7,24 @@ import {
   DeleteService,
   ImportServices,
   LoadService,
+  LoadServiceOptions,
   LoadServices,
   LoadServiceTimeline,
   UpdateService,
 } from './services.actions';
-import type { Service, ServiceEvent, ServiceListQuery } from '../../app/data/dtos/service';
+import type {
+  Service,
+  ServiceEvent,
+  ServiceListQuery,
+  ServiceOption,
+} from '../../app/data/dtos/service';
 
 export interface ServicesStateModel {
   items: Service[];
+  /** The whole catalog (21 §3) — what pickers read. Deliberately NOT `items`:
+   *  CP-5 makes the catalog browse paged, and a picker sharing that slice would
+   *  silently offer only page 1. */
+  options: ServiceOption[];
   loading: boolean;
   selected: Service | null;
   query: ServiceListQuery;
@@ -26,6 +36,7 @@ export interface ServicesStateModel {
   name: 'services',
   defaults: {
     items: [],
+    options: [],
     loading: false,
     selected: null,
     query: {},
@@ -39,6 +50,9 @@ export class ServicesState {
 
   @Selector() static items(s: ServicesStateModel): Service[] {
     return s.items;
+  }
+  @Selector() static options(s: ServicesStateModel): ServiceOption[] {
+    return s.options;
   }
   @Selector() static loading(s: ServicesStateModel): boolean {
     return s.loading;
@@ -65,6 +79,15 @@ export class ServicesState {
         throw err;
       }),
     );
+  }
+
+  /** Roster fetch for pickers. No `loading` flag — it fills a select, it never
+   *  gates a page, and sharing the list's flag would flicker the catalog table. */
+  @Action(LoadServiceOptions)
+  loadOptions(ctx: StateContext<ServicesStateModel>) {
+    return this.api
+      .listOptions()
+      .pipe(tap((options) => ctx.patchState({ options })));
   }
 
   @Action(LoadService)

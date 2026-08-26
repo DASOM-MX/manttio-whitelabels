@@ -160,8 +160,9 @@ export const getServices = async (
   return { services: rows.map((row) => toDTO(row, includeCost, imagesCdnBase)) };
 };
 
-/** The whole catalog for pickers (21 §3). Not a `GenericQueryResponse`: no
- *  page, no limit, and a `total` here could only ever be `items.length`.
+/** The whole catalog for pickers (21 §3). A bare array, not an envelope: no
+ *  page, no limit, and a `total` could only ever be the array's own length
+ *  (owner, 2026-08-25).
  *
  *  `includeCost` carries the same back-office tier rule as `getServices`
  *  (18 §2), and it is enforced here rather than in the client: a technician's
@@ -170,20 +171,18 @@ export const getServices = async (
 export const getServiceOptions = async (
   db: Db,
   includeCost: boolean,
-): Promise<{ items: ServiceOptionDTO[] }> => {
+): Promise<ServiceOptionDTO[]> => {
   const rows = await listServiceOptions(db);
-  return {
-    items: rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      price: row.price,
-      cost: includeCost ? opt(row.cost) : undefined,
-      uom: row.uom,
-      taxRate: row.taxRate,
-      internalServiceCode: opt(row.internalServiceCode),
-      isReportSource: row.isReportSource,
-    })),
-  };
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    price: row.price,
+    cost: includeCost ? opt(row.cost) : undefined,
+    uom: row.uom,
+    taxRate: row.taxRate,
+    internalServiceCode: opt(row.internalServiceCode),
+    isReportSource: row.isReportSource,
+  }));
 };
 
 /** Website listing (18 §4, CP-3). Unauthenticated: the price is dropped unless

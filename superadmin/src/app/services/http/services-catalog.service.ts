@@ -7,6 +7,7 @@ import type {
   Service,
   ServiceEvent,
   ServiceListQuery,
+  ServiceOption,
 } from '../../data/dtos/service';
 import type { ServiceImportRow } from '../../data/types/services/service-import';
 
@@ -15,6 +16,14 @@ import type { ServiceImportRow } from '../../data/types/services/service-import'
 @Injectable({ providedIn: 'root' })
 export class ServicesCatalogService {
   private readonly remote = inject(RemoteService);
+
+  /** The whole active catalog, name-sorted — what every service *picker*
+   *  reads (21 §3). Separate from `list()`: `list()` is the catalog browse and
+   *  becomes paged in CP-5, at which point a picker riding it would silently
+   *  see one page. Not a `GenericQueryResponse` — a roster has no page. */
+  listOptions(): Observable<ServiceOption[]> {
+    return this.remote.get<ServiceOption[]>('/services/all');
+  }
 
   /** The whole active catalog, name-sorted — no pagination (18 §4). */
   list(query: ServiceListQuery): Observable<{ services: Service[] }> {

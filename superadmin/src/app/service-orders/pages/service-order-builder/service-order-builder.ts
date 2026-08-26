@@ -33,8 +33,8 @@ import { ServiceUomShortPipe } from '../../../pipes/service-uom.pipe';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { errorMessage, toCalendarDate } from '../../../data/utils';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
-import type { Customer } from '../../../data/dtos/customer';
-import type { Service } from '../../../data/dtos/service';
+import type { CustomerOption } from '../../../data/dtos/customer';
+import type { ServiceOption } from '../../../data/dtos/service';
 import type { ServiceOrderDetail } from '../../../data/dtos/service-order';
 import type { AssignableUser } from '../../../data/dtos/user';
 
@@ -48,7 +48,7 @@ interface BuilderLineValue {
 /** Client-side estimate of one line's money — mirrors the backend's
  *  integer-cents math (`order-money.ts`); the API resolves the authoritative
  *  totals from its own snapshots on create. */
-const lineCents = (service: Service | undefined, quantity: number) => {
+const lineCents = (service: ServiceOption | undefined, quantity: number) => {
   if (!service) return { subtotal: 0, tax: 0 };
   const subtotal = Math.round(Number(service.price) * 100) * (quantity || 0);
   return { subtotal, tax: Math.round(subtotal * TAX_RATE_MULTIPLIERS[service.taxRate]) };
@@ -93,23 +93,20 @@ export class ServiceOrderBuilder implements HasPendingChanges {
    *  list + toast on failure — an errored `toSignal` rethrows on every read,
    *  which aborts each change-detection pass and leaves the page looking
    *  frozen (the 2026-07-28 builder-freeze bug). The customer roster is NOT
-   *  catalog-sized (1000+ rows live), so its select virtual-scrolls. */
+   *  catalog-sized (1000+ rows live), so its select virtual-scrolls — and it
+   *  comes from the dedicated roster routes (21 §3), never the list reads:
+   *  `list({})` here used to mean "every row" and would silently become
+   *  "the first 10" the moment CP-4 lands. */
   protected customers = toSignal(
     inject(CustomersService)
-      .list({})
-      .pipe(
-        map((r) => r.items),
-        catchError(this.refDataFallback<Customer>('los clientes')),
-      ),
+      .listOptions()
+      .pipe(catchError(this.refDataFallback<CustomerOption>('los clientes'))),
     { initialValue: [] },
   );
   protected services = toSignal(
     inject(ServicesCatalogService)
-      .list({})
-      .pipe(
-        map((r) => r.services),
-        catchError(this.refDataFallback<Service>('el catálogo de servicios')),
-      ),
+      .listOptions()
+      .pipe(catchError(this.refDataFallback<ServiceOption>('el catálogo de servicios'))),
     { initialValue: [] },
   );
   /** Anyone on the roster can be assigned (the backend takes the same
@@ -196,7 +193,7 @@ export class ServiceOrderBuilder implements HasPendingChanges {
    *  by the exploded reports (19 §1), and the source order's assignments are
    *  stale by design; prices resolve fresh from today's catalog. Neither are
    *  priority/promise — a new job negotiates its own. */
-  private prefillFrom(source: ServiceOrderDetail, catalog: Map<string, Service>): void {
+  private prefillFrom(source: ServiceOrderDetail, catalog: Map<string, ServiceOption>): void {
     this.form.patchValue({
       customerId: source.customerId,
       location: source.location ?? '',

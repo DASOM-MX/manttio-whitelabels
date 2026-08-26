@@ -12,9 +12,9 @@ import { TooltipModule } from 'primeng/tooltip';
 import { CustomersState } from '../../../../state/customers/customers.state';
 import { DeleteCustomer, LoadCustomers } from '../../../../state/customers/customers.actions';
 import { MEXICAN_STATES } from '../../../data/constants';
-import type { CustomerRow } from '../../../data/dtos/customer';
+import type { CustomerOption } from '../../../data/dtos/customer/customer-option.dto';
 
-interface CustomerRowVM extends CustomerRow {
+interface CustomerRowVM extends CustomerOption {
   searchHaystack: string;
 }
 
@@ -130,7 +130,7 @@ export class Customers {
     this.router.navigate(['/customers', id, 'edit']);
   }
 
-  askDelete(event: Event, row: CustomerRow): void {
+  askDelete(event: Event, row: CustomerOption): void {
     event.stopPropagation();
     this.confirm.confirm({
       header: '¿Eliminar cliente?',
