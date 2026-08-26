@@ -29,6 +29,7 @@ import { ContractVisibilityForbiddenError } from '../http-errors/contract-visibi
 import { ContractEquipmentMismatchError } from '../http-errors/contract-equipment-mismatch.error';
 import { UnsupportedContractFileError } from '../http-errors/unsupported-contract-file.error';
 import type { ContractFile } from '../types/contracts.types';
+import { UUID_PARAM } from '../../shared/constants/uuid-param';
 
 export const contracts = new Hono<AppBindings>();
 
@@ -60,7 +61,7 @@ contracts.get(
   },
 );
 
-contracts.get('/:id', requireRole([...READ_ROLES]), async (c) => {
+contracts.get(`/:id{${UUID_PARAM}}`, requireRole([...READ_ROLES]), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const row = await getContractById(db, c.req.param('id'), c.get('user'));
   if (!row) return c.json({ error: 'not_found' }, 404);
@@ -70,7 +71,7 @@ contracts.get('/:id', requireRole([...READ_ROLES]), async (c) => {
 // The only way the stored document is served (13 §1.2). No public URL, no
 // pre-signed link: every download re-checks the caller's access, so revoking
 // visibility takes effect immediately.
-contracts.get('/:id/file', requireRole([...READ_ROLES]), async (c) => {
+contracts.get(`/:id{${UUID_PARAM}}/file`, requireRole([...READ_ROLES]), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const row = await getContractFile(db, c.req.param('id'), c.get('user'));
   if (!row) return c.json({ error: 'not_found' }, 404);
@@ -146,7 +147,7 @@ contracts.post('/', requireRole([...WRITE_ROLES]), async (c) => {
 // Metadata only — the document is replaced through POST /:id/file so the file
 // fields can never drift out of sync with each other.
 contracts.patch(
-  '/:id',
+  `/:id{${UUID_PARAM}}`,
   requireRole([...WRITE_ROLES]),
   zValidator('json', updateContractSchema),
   async (c) => {
@@ -174,7 +175,7 @@ contracts.patch(
 );
 
 // Replace the stored document (13 §1.2) — old versions are not kept.
-contracts.post('/:id/file', requireRole([...WRITE_ROLES]), async (c) => {
+contracts.post(`/:id{${UUID_PARAM}}/file`, requireRole([...WRITE_ROLES]), async (c) => {
   const uploaded = await readUploadedFile(c);
   if (!uploaded) return c.json({ error: 'no_file' }, 400);
 
@@ -200,7 +201,7 @@ contracts.post('/:id/file', requireRole([...WRITE_ROLES]), async (c) => {
 // Soft delete only ([[no-hard-deletes-ever]]). This is also how early
 // termination is recorded — there is no `cancelled` status.
 contracts.delete(
-  '/:id',
+  `/:id{${UUID_PARAM}}`,
   requireRole([...DELETE_ROLES]),
   zValidator('json', deleteContractSchema),
   async (c) => {

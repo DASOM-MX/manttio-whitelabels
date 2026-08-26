@@ -6,6 +6,7 @@ import { requireRole } from '../../auth/middleware/roles.middleware';
 import { findCustomerById } from '../../customers/repository/customers.repository';
 import { customerQuotationsQuerySchema } from '../validators/quotations.validator';
 import { getQuotations } from '../services/quotations.service';
+import { UUID_PARAM } from '../../shared/constants/uuid-param';
 
 /** `GET /customers/:id/quotations` (20 §9) — the client's quotations, for the
  *  customer view's card.
@@ -20,7 +21,7 @@ import { getQuotations } from '../services/quotations.service';
 export const customerQuotations = new Hono<AppBindings>();
 
 customerQuotations.get(
-  '/:id/quotations',
+  `/:id{${UUID_PARAM}}/quotations`,
   requireRole(['owner', 'admin', 'office']),
   zValidator('query', customerQuotationsQuerySchema),
   async (c) => {

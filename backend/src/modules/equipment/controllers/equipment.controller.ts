@@ -20,6 +20,7 @@ import {
   unlinkReportFromEquipment,
 } from '../services/equipment.service';
 import { ReportCustomerMismatchError } from '../http-errors/equipment.error';
+import { UUID_PARAM } from '../../shared/constants/uuid-param';
 
 export const equipment = new Hono<AppBindings>();
 
@@ -29,7 +30,7 @@ equipment.get('/', zValidator('query', listEquipmentQuerySchema), async (c) => {
   return c.json(await getEquipment(db, c.req.valid('query')));
 });
 
-equipment.get('/:id', async (c) => {
+equipment.get(`/:id{${UUID_PARAM}}`, async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const row = await getEquipmentById(db, c.req.param('id'));
   if (!row) return c.json({ error: 'not_found' }, 404);
@@ -44,7 +45,7 @@ equipment.post('/', requireRole(['owner', 'admin']), zValidator('json', createEq
 });
 
 equipment.patch(
-  '/:id',
+  `/:id{${UUID_PARAM}}`,
   requireRole(['owner', 'admin']),
   zValidator('json', updateEquipmentSchema),
   async (c) => {
@@ -56,7 +57,7 @@ equipment.patch(
 );
 
 equipment.delete(
-  '/:id',
+  `/:id{${UUID_PARAM}}`,
   requireRole(['owner', 'admin']),
   zValidator('json', deleteEquipmentSchema),
   async (c) => {
@@ -74,7 +75,7 @@ equipment.delete(
 // DELETE identifies the resource by URL and takes no body).
 
 equipment.put(
-  '/:id/reports',
+  `/:id{${UUID_PARAM}}/reports`,
   requireRole(['owner', 'admin']),
   zValidator('json', linkReportSchema),
   async (c) => {
@@ -92,9 +93,13 @@ equipment.put(
   },
 );
 
-equipment.delete('/:id/reports/:reportId', requireRole(['owner', 'admin']), async (c) => {
-  const db = createDb(c.env.DATABASE_URL);
-  const row = await unlinkReportFromEquipment(db, c.req.param('id'), c.req.param('reportId'));
-  if (!row) return c.json({ error: 'not_found' }, 404);
-  return c.json(row);
-});
+equipment.delete(
+  `/:id{${UUID_PARAM}}/reports/:reportId{${UUID_PARAM}}`,
+  requireRole(['owner', 'admin']),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    const row = await unlinkReportFromEquipment(db, c.req.param('id'), c.req.param('reportId'));
+    if (!row) return c.json({ error: 'not_found' }, 404);
+    return c.json(row);
+  },
+);

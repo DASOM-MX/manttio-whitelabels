@@ -5,6 +5,7 @@ import { ServiceCodeInUseError, ServiceImportError } from '../http-errors/servic
 import { createDb } from '../../database/client';
 import { requireRole } from '../../auth/middleware/roles.middleware';
 import { isBackOfficeTier } from '../../auth/utils/role-tier';
+import { UUID_PARAM } from '../../shared/constants/uuid-param';
 import {
   createServiceSchema,
   deleteServiceSchema,
@@ -55,14 +56,12 @@ services.get('/', zValidator('query', listServicesQuerySchema), async (c) => {
 // and a `total` could only ever be the array's own length (owner, 2026-08-25).
 // Same back-office `cost` rule as GET / — the technician's response never
 // carries the field, rather than carrying it for the client to hide.
-//
-// Declared before GET /:id so "all" is never captured as an id.
 services.get('/all', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   return c.json(await getServiceOptions(db, isBackOfficeTier(c.get('user'))));
 });
 
-services.get('/:id', async (c) => {
+services.get(`/:id{${UUID_PARAM}}`, async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const row = await getServiceById(
     db,
@@ -78,7 +77,7 @@ services.get('/:id', async (c) => {
 // carries `cost` old→new diffs and delete comments — management audit, not
 // commercial visibility (18 §6.1). Office quotes from the catalog; it has no
 // business in who repriced what.
-services.get('/:id/timeline', requireRole(['owner', 'admin']), async (c) => {
+services.get(`/:id{${UUID_PARAM}}/timeline`, requireRole(['owner', 'admin']), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const id = c.req.param('id');
   // Existence gate so an unknown id 404s rather than answering []. An empty
@@ -135,7 +134,7 @@ services.post(
 );
 
 services.patch(
-  '/:id',
+  `/:id{${UUID_PARAM}}`,
   requireRole(['owner', 'admin']),
   zValidator('json', updateServiceSchema),
   async (c) => {
@@ -160,7 +159,7 @@ services.patch(
 // Soft delete never blocks on references: quotation/order lines snapshot the
 // price and keep their FK, so history survives a removed service (18 §1).
 services.delete(
-  '/:id',
+  `/:id{${UUID_PARAM}}`,
   requireRole(['owner', 'admin']),
   zValidator('json', deleteServiceSchema),
   async (c) => {
