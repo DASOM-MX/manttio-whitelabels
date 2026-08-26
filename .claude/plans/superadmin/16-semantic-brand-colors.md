@@ -1,6 +1,15 @@
 # 16 — Semantic brand color classes (`primary-*` / `surface-*`)
 
-> **Status:** planned 2026-07-15 — ~~deferred: LAST plan of the suite~~ **partially
+> **Status: SUPERSEDED by [22 — Brand palette: primary + accent](22-brand-palette-primary-accent.md)
+> (2026-08-26).** The two-tenant-scale model this plan established (`primary` + `surface`) is replaced
+> by one tenant pair (`primary` + `accent`) with a **fixed** neutral `surface`. **PR-2 (superadmin,
+> 2026-07-21) shipped and stands** — 22 CP-2 edits its output. The still-deferred **PR-1 (frontend)**
+> and **PR-3 (website)** move to **22 CP-3/CP-4**, where their mechanical legacy sweep survives verbatim
+> (only the target names change). Everything below is kept as the historical record — the tombstone
+> rule (§ Target 2), the sweep recipe (§ Mechanics 2), and the alias table (§ Target 3, minus the
+> retiring `secondary`) are all still binding, via 22.
+>
+> **Original status:** planned 2026-07-15 — ~~deferred: LAST plan of the suite~~ **partially
 > superseded 2026-07-21 (owner):** the **superadmin leg (PR-2) was front-run** to unblock
 > the shell/nav redesign (the redesign writes new chrome styling and must be authored on
 > the semantic names, not on classes that would immediately be renamed). PR-2 landed with

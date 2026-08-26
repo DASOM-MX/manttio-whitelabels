@@ -32,11 +32,13 @@ then its own file, and touches no other module's code.
 | 13 | `13-contracts.md` | Contracts: signed document artifacts generated from service orders (guarantee / maintenance / rent / sell / buy / installation), typed + dated + audited | 07, 19; 11 opt. |
 | 14 | `14-access-control.md` | Roles + tenant-config gating matrix (reference, binding for all modules) | — |
 | 15 | `15-website.md` | Public tenant website: consumes published CMS + brand (reads only — `website/` package work, not superadmin code) | 03, 04 |
-| 16 | `16-semantic-brand-colors.md` | Semantic Tailwind color classes (`primary-*`/`surface-*` replace `sky`/`granite`/`navy`/`cyan`) across frontend + superadmin + website | **everything — deferred closing sweep, runs last** |
+| 16 | `16-semantic-brand-colors.md` | ~~Semantic Tailwind color classes (`primary-*`/`surface-*` replace `sky`/`granite`/`navy`/`cyan`)~~ — **superseded by 22** (2026-08-26); PR-2 shipped, PR-1/PR-3 absorbed there | — |
 | 17 | `17-executive-refresh.md` | Whole-app UI/UX refresh: preset-first stock Aura + "soft-executive" language + Figtree, breathable executive rhythm | shipped surfaces (02–08, 11); **runs mid-suite, before 09/10/12/13** |
 | 18 | `18-services.md` | Tenant service catalog: name/price/uom/description + website-listing flag | 02 |
 | 19 | `19-service-orders.md` | Service orders: catalog lines → exploded `pending` reports, order-bound visits (12), CRM timeline entry (08), order-level audit timeline, template↔service prefilter (06) | 07, 18, 20, 06, 12 |
 | 20 | `20-quotations.md` | Quotations: catalog-fed quotes with frozen price/uom/qty snapshots, mailed to client reviewer-contacts, token-guarded approve/decline (mutable), 7-state machine; staff create a service order (19) from an approved quote | 07, 18; feeds 19 |
+| 22 | `22-brand-palette-primary-accent.md` | Brand palette rework: tenant pair becomes `primary` + **`accent`**; `surface` becomes a fixed neutral. Fullstack — backend contract + migration, superadmin, frontend, website | **supersedes 16** (absorbs its deferred frontend/website legs); blocks 23 |
+| 23 | `23-visual-language-v2.md` | Visual language v2 "bright console": light sidebar, hairline-bordered cards, accent-carried data + a shared viz kit (KPI tile, segmented bar, gauge, trend card) | **22 CP-2**; evolves 17 |
 
 Build order **is numeric order** (renumbered 2026-07-05: branding and CMS are separate,
 independent modules — 03/04 — and access-control moved to 14 as pure reference).
@@ -57,6 +59,12 @@ MVP ships — do not start it alongside module work. **17** (executive refresh) 
 sanctioned out-of-order insertion (owner 2026-07-22): it runs immediately after PR #88
 merges and **before 09/10/12/13 start**, so the remaining modules are authored in the
 refreshed language instead of being restyled later.
+
+**22 → 23** are the 2026-08-26 palette + visual pair, and they run **in that order**: 22 changes the
+tenant color contract (primary + accent, fixed neutral surface) across all four packages, and 23's new
+chrome must be authored on those names rather than restyled twice — the same reasoning that front-ran
+16 PR-2 before the 2026-07-21 shell redesign. 23 may start once **22 CP-2** (the superadmin palette
+layer) merges; 22's frontend/website legs (CP-3/CP-4) run independently of it.
 
 **18–20** are the **operations + sales suite** — services → quotations → service orders —
 a later wave built on 07 (clients) and the refreshed language. The suite's internal build
@@ -120,11 +128,13 @@ Rules for agents:
 | 13 contracts | in-progress — CP-1 backend merged (PR #125, 2026-08-18) + CP-2 superadmin UI on `feature/superadmin-contracts-ui-cp2` | CP-2 |
 | 14 access-control | done (doc) | — |
 | 15 website | in-progress · PR #44 | CP-2 |
-| 16 semantic-brand-colors | superadmin leg (PR-2) **done** — front-run 2026-07-21, PR #87; frontend/website legs deferred, run last (post-MVP) | — |
+| 16 semantic-brand-colors | **superseded by 22** (2026-08-26). PR-2 (superadmin, 2026-07-21) shipped and stands; its deferred frontend/website legs move to 22 CP-3/CP-4 | — |
 | 17 executive-refresh | planned (doc) — **runs next, after PR #88 merges** | — |
 | 18 services | not-started (planned doc) | — |
 | 19 service-orders | not-started (planned doc) | — |
 | 20 quotations | not-started (planned doc) | — |
+| 22 brand-palette (primary+accent) | not-started (planned doc 2026-08-26) — supersedes 16 | — |
+| 23 visual-language-v2 | not-started (planned doc 2026-08-26) — starts after 22 CP-2 | — |
 
 *(Owning agents update their row when they update their file's status header.)*
 
