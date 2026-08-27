@@ -6,11 +6,13 @@
 /* Self-hosted fonts — no CDN, ever (offline, CSP, no FOUT). Figtree
    Variable is the product voice (owner 2026-07-22, plan 17 — supersedes
    Nunito Sans, which superseded Quicksand/Commissioner; geometric-clean
-   with a touch of warmth for the executive turn); Atkinson Hyperlegible
-   backs the numeric `font-data` stack (01 Typography fallback). */
+   with a touch of warmth for the executive turn); Work Sans Variable heads
+   the numeric `font-data` stack (owner 2026-08-27 — supersedes Atkinson
+   Hyperlegible, whose 400/700-only faces could not follow the +200 weight
+   ladder). Both are single variable woff2 files covering 300–900 / 100–900,
+   so the whole ladder is real faces and nothing is ever synthesized. */
 @import '@fontsource-variable/figtree';
-@import '@fontsource/atkinson-hyperlegible/400.css';
-@import '@fontsource/atkinson-hyperlegible/700.css';
+@import '@fontsource-variable/work-sans';
 
 /* CSS layer order (plan 17 CP-2 follow-up): Tailwind's preflight reset is
    unlayered by default, which silently beat Aura's `primeng` layer and
@@ -79,9 +81,9 @@
      700 labels/buttons/headings**, 800+ for the wordmark and rare emphasis. The
      600 baseline is set once on `body`, so text that states no weight inherits
      it; Figtree Variable covers 300–900, so every rung is a real face.
-     `font-data` (Atkinson Hyperlegible) ships only 400 and 700 — CSS font
-     matching snaps every rung ≥ 600 to its 700 face, which keeps numerals in
-     step with the heavier chrome instead of synthesizing a weight. */
+     `font-data` follows the same rungs exactly since the Work Sans swap
+     (owner 2026-08-27) — the numeric face is variable too, so a 600 numeral
+     is a real 600 rather than the nearest available face. */
   .field-label {
     @apply block text-sm font-bold text-surface-800 dark:text-surface-200;
   }

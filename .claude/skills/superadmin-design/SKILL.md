@@ -44,10 +44,13 @@ the target and the code is the backlog.
    emphasis (owner 2026-08-27 "use 200 more points" — the 2026-07-22 400/500
    ladder moved up two steps wholesale; size + tracking still carry hierarchy
    and no active state bumps weight). The 600 baseline lives on `body`; write a
-   weight utility only where a rung differs. `font-data` (Atkinson, 400/700)
-   snaps everything ≥ 600 to 700.
-   Numeric table/money cells use the
-   `font-data` stack with `tnum` (Atkinson Hyperlegible head — unchanged).
+   weight utility only where a rung differs.
+   Numeric table/money cells use the **`font-data` stack with `tnum`, headed by
+   Work Sans Variable** (owner 2026-08-27 — supersedes Atkinson Hyperlegible,
+   whose 400/700-only faces could not follow the ladder). Both faces are
+   variable, so `font-data` tracks the same rungs as the body text.
+   Adopting a numeric face means **measuring** its digits, never reading its
+   feature list — Commissioner declared `tnum` and it was a no-op (2026-07-06).
    Self-hosted only — never `fonts.googleapis.com`.
 4. **Motion = Angular's native `animate.enter`/`animate.leave` + `src/animations.scss`**
    (revised 2026-07-06; supersedes the original anime.js mandate). Keyframes and

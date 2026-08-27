@@ -163,6 +163,8 @@ has two brand colors plus a fixed status set to speak with.**
 | § Direction 1's own "no weight bump — the tinted row carries the active cue" | § Decisions 2026-08-27 — marker bar + one weight step on the active child |
 | 17 + § Direction 1 "topbar stays surfaceless" | § Decisions 2026-08-27 — a `surface-0` bar with a hairline bottom rule |
 | 01 weight ladder "400 body · 500 labels/buttons/headings" (owner 2026-07-22) | § Decisions 2026-08-27 — every rung +200 |
+| 01 "`font-data` heads with Atkinson Hyperlegible" (2026-07-06) | § Decisions 2026-08-27 — Work Sans Variable, so the numeric face follows the ladder |
+| 01 "the product voice's tnum can't be trusted" | 01 § Typography correction 2026-08-27 — that was Commissioner's failure; Figtree's tnum is real |
 | 2026-07-22 "the theme switcher lives in the account popover" | § Decisions 2026-08-27 — it is the first of the topbar's three action buttons |
 
 Everything else in 17 and 01 stands. Both documents are edited **in CP-1**, together with the
@@ -272,6 +274,10 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
       circles trailing (theme · bell · account) instead of a shared shell; the search
       becomes a filled borderless pill, because on a white bar the fill states the field
       and a border would compete with the action rings
+- [x] **Numeric face → Work Sans Variable** (owner 2026-08-27): `font-data` follows
+      the ladder instead of snapping to Atkinson's only Bold, and reads as a quiet
+      grotesque beside Figtree rather than a second product's voice. Tabular digits
+      verified in the binary *and* in the browser before the swap (§ Decisions)
 - [x] **Weight ladder +200** (owner 2026-08-27, "font weights are off, use 200 more
       points"): 600 body · 700 labels/buttons/headings · 800+ wordmark. Applied at the
       call sites, not by redefining Tailwind's scale — `font-medium` that renders 700
@@ -512,7 +518,25 @@ of breaking behind it.
     snaps every rung ≥ 600 to the 700 face — numerals, money columns and select values all
     land on Atkinson Bold. That reads *in step* with the heavier chrome rather than broken,
     but it is a real change to every data cell in the app and the cheapest place to walk it
-    back is the one `font-semibold` on `body`.
+    back is the one `font-semibold` on `body`. **(b) was closed the same day** —
+    see the Work Sans swap below.
+  - **The numeric face becomes Work Sans Variable** (owner, immediately after seeing
+    the ladder land: "can we use a different font for numbers? maybe work sans").
+    Atkinson Hyperlegible had two problems at once: it ships only 400 and 700, so
+    every rung of the new ladder snapped to Bold, and its high-legibility letterforms
+    read as a different product sitting inside a Figtree cell. Work Sans is variable
+    100–900, so `font-data` now tracks the same rungs as the body text, and it sits
+    beside Figtree as a quiet grotesque.
+    **Verified before adopting, not assumed** — the repo's own 2026-07-06 lesson is
+    that Commissioner *declared* `tnum` and it was a no-op. Checked twice: in the
+    binary, `tnum` maps every digit to a `.tf` glyph at a uniform 604/1000 advance;
+    in the browser, every digit measures 80px per 10 at both 600 and 700, and
+    90/60/80… with the feature off — so the feature is what aligns the columns, not
+    an accidentally monospaced face.
+    **Side finding, recorded in 01:** Figtree's `tnum` is real too (uniform 620/1000).
+    The old rule "the product voice's tnum can't be trusted" was a generalization of
+    Commissioner's failure and expired when Figtree replaced it; a separate numeric
+    face is now a design choice, not a workaround.
   - **The topbar is sectioned, and the actions are three separate circles.** First pass
     gathered bell + account into one bordered pill; the reference crops show otherwise and
     the owner rejected it. What the reference actually draws: a white bar with a hairline

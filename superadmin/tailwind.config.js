@@ -111,11 +111,15 @@ module.exports = {
         // Quicksand/Commissioner) — constant across tenants, a deliberate
         // deviation from frontend parity.
         sans: ['"Figtree Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        // Numeric/data stack: Atkinson Hyperlegible heads it (verified
-        // tabular digits — 01 Typography fallback, 2026-07-06); the product
-        // voice only backs it up for non-digit glyphs.
+        // Numeric/data stack: Work Sans heads it (owner 2026-08-27 —
+        // supersedes Atkinson Hyperlegible). Verified before the swap, not
+        // assumed: its `tnum` maps every digit to a `.tf` glyph at a uniform
+        // 604/1000 advance, so columns align. Variable 100–900, which is why
+        // it replaced Atkinson — Atkinson shipped only 400 and 700, so every
+        // rung of the +200 ladder snapped to Bold. The product voice only
+        // backs it up for non-digit glyphs.
         data: [
-          '"Atkinson Hyperlegible"',
+          '"Work Sans Variable"',
           '"Figtree Variable"',
           'ui-sans-serif',
           'system-ui',

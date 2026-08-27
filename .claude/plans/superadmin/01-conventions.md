@@ -34,16 +34,27 @@ before writing any component.
   *within* the ladder, size + tracking still carry hierarchy and no active state
   bumps weight, the whole thing just sits two steps heavier). The 600 baseline is
   set once on `body`, so anything that states no weight inherits it — utilities
-  are written only where a rung differs. Figtree Variable covers 300–900, so
-  every rung is a real face; `font-data` (Atkinson Hyperlegible, 400/700 only)
-  snaps every rung ≥ 600 to its 700 face, which keeps numerals in step with the
-  heavier chrome rather than synthesizing a weight.
+  are written only where a rung differs. Both faces are variable (Figtree
+  300–900, Work Sans 100–900), so every rung is a real face and nothing is ever
+  synthesized or snapped.
+- **Numeric/data face: Work Sans Variable** (`@fontsource-variable/work-sans`,
+  owner 2026-08-27 — supersedes Atkinson Hyperlegible). Two reasons: it follows
+  the weight ladder (Atkinson shipped only 400 and 700, so every rung ≥ 600
+  snapped to Bold), and it sits beside Figtree as a quiet grotesque rather than
+  Atkinson's high-legibility letterforms, which read as a different product
+  inside the same cell.
 - **Tabular numerals:** data cells set `font-feature-settings: 'tnum'`.
-  **Resolved at CP-2 (2026-07-06): the product voice's tnum can't be trusted**
-  (Commissioner's was a no-op — digit widths measured unequal with the feature on),
-  so `font-data` heads with **Atkinson Hyperlegible** (the frontend's existing
-  numeric stack — tnum verified: all digit groups measure identically) with the
-  product voice everywhere else. Unchanged under Figtree.
+  **Verify the face before adopting it, never trust the feature list** — the
+  2026-07-06 finding stands as method: Commissioner *declared* `tnum` and it was
+  a no-op. Work Sans was checked both ways before the swap: its `tnum` maps every
+  digit to a `.tf` glyph at a uniform 604/1000 advance, and in-browser every digit
+  measures 80px per 10 at both 600 and 700 (proportional — 90/60/80… — with the
+  feature off, so the feature is what does the work).
+  **Correction (2026-08-27):** the old line generalized Commissioner's failure into
+  "the product voice's tnum can't be trusted". Figtree's is real (uniform 620/1000),
+  so that rationale expired when Figtree replaced Commissioner on 2026-07-22. A
+  separate numeric face is now a **design** choice — data should read in its own
+  voice — not a workaround for a broken feature.
 - PrimeNG inherits the body font — no per-component font overrides.
 
 ## Design language — bright console (decided 2026-07-05 · identity revised 2026-07-22 plan 17 · re-lit 2026-08-27 plan 23)
