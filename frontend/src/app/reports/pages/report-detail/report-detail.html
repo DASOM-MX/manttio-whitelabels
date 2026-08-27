@@ -1,4 +1,4 @@
-<div class="min-h-full bg-background dark:bg-granite-1000">
+<div class="min-h-full bg-background dark:bg-zinc-950">
     <div>
         <form [formGroup]="reportForm">
             @if (report(); as report) {
@@ -6,9 +6,9 @@
                 <!-- Header -->
                 <div class="flex flex-wrap items-start justify-between gap-5">
                     <div class="flex flex-col gap-1">
-                        <p class="text-sm font-bold uppercase tracking-wider text-sky-800 dark:text-sky-300">Detalle del reporte</p>
-                        <h1 class="text-3xl sm:text-4xl font-extrabold text-granite-1000 dark:text-granite-0 leading-tight tracking-tight">
-                            <span class="font-data tabular-nums text-sky-800 dark:text-sky-300">#{{ report.id | slice:0:8 }}</span>
+                        <p class="text-sm font-bold uppercase tracking-wider text-primary-800 dark:text-primary-300">Detalle del reporte</p>
+                        <h1 class="text-3xl sm:text-4xl font-extrabold text-zinc-950 dark:text-zinc-50 leading-tight tracking-tight">
+                            <span class="font-data tabular-nums text-primary-800 dark:text-primary-300">#{{ report.id | slice:0:8 }}</span>
                         </h1>
                     </div>
                     @if (report.report_status) {
@@ -29,23 +29,23 @@
                 <!-- Información del cliente -->
                 @if (customer(); as customer) {
                 <section class="card-section">
-                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-1000 dark:text-granite-0 mb-6 tracking-tight">Información del cliente</h2>
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-zinc-950 dark:text-zinc-50 mb-6 tracking-tight">Información del cliente</h2>
                     <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
                         <div class="field-group">
                             <dt class="field-label">Nombre</dt>
-                            <dd class="text-lg text-granite-1000 dark:text-granite-0">{{ customer.name }}</dd>
+                            <dd class="text-lg text-zinc-950 dark:text-zinc-50">{{ customer.name }}</dd>
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Identificación</dt>
-                            <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ customer.identification }}</dd>
+                            <dd class="text-lg font-data tabular-nums text-zinc-950 dark:text-zinc-50 font-semibold">{{ customer.identification }}</dd>
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Teléfono</dt>
-                            <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ customer.phone }}</dd>
+                            <dd class="text-lg font-data tabular-nums text-zinc-950 dark:text-zinc-50 font-semibold">{{ customer.phone }}</dd>
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Email</dt>
-                            <dd class="text-lg text-granite-1000 dark:text-granite-0 break-words">{{ customer.email }}</dd>
+                            <dd class="text-lg text-zinc-950 dark:text-zinc-50 break-words">{{ customer.email }}</dd>
                         </div>
                     </dl>
                 </section>
@@ -53,27 +53,27 @@
 
                 <!-- Información del reporte -->
                 <section class="card-section">
-                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-1000 dark:text-granite-0 mb-6 tracking-tight">Información de las actividades</h2>
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-zinc-950 dark:text-zinc-50 mb-6 tracking-tight">Información de las actividades</h2>
                     <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
                         <div class="field-group">
                             <dt class="field-label">Tipo</dt>
-                            <dd class="text-lg text-granite-1000 dark:text-granite-0 capitalize">{{ report.manttio_type }}</dd>
+                            <dd class="text-lg text-zinc-950 dark:text-zinc-50 capitalize">{{ report.manttio_type }}</dd>
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Técnico</dt>
-                            <dd class="text-lg text-granite-1000 dark:text-granite-0">{{ technicianName() }}</dd>
+                            <dd class="text-lg text-zinc-950 dark:text-zinc-50">{{ technicianName() }}</dd>
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Fecha</dt>
-                            <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.date_arrival | dateInTz: customerTimezone() : 'mediumDate' }}</dd>
+                            <dd class="text-lg font-data tabular-nums text-zinc-950 dark:text-zinc-50 font-semibold">{{ report.date_arrival | dateInTz: customerTimezone() : 'mediumDate' }}</dd>
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Llegada</dt>
-                            <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ report.date_arrival | dateInTz: customerTimezone() : 'medium' }}</dd>
+                            <dd class="text-lg font-data tabular-nums text-zinc-950 dark:text-zinc-50 font-semibold">{{ report.date_arrival | dateInTz: customerTimezone() : 'medium' }}</dd>
                         </div>
                         <div class="field-group">
                             <dt class="field-label">Salida</dt>
-                            <dd class="text-lg font-data tabular-nums text-granite-1000 dark:text-granite-0 font-semibold">{{ (report.date_departure | dateInTz: customerTimezone() : 'medium') || 'Pendiente' }}</dd>
+                            <dd class="text-lg font-data tabular-nums text-zinc-950 dark:text-zinc-50 font-semibold">{{ (report.date_departure | dateInTz: customerTimezone() : 'medium') || 'Pendiente' }}</dd>
                         </div>
                     </dl>
                 </section>
@@ -87,7 +87,7 @@
 
                 @for (section of sectionViews(); track section.title) {
                 <section class="card-section">
-                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-1000 dark:text-granite-0 mb-6 tracking-tight">{{ section.title }}</h2>
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-zinc-950 dark:text-zinc-50 mb-6 tracking-tight">{{ section.title }}</h2>
                     <div [class]="section.gridClasses">
                         @for (answer of section.answers; track answer.questionId) {
                             <div class="field-group">
@@ -147,7 +147,7 @@
                                                             [name]="answer.questionId" [value]="opt.value"
                                                             [formControlName]="answer.questionId" />
                                                         <label [for]="answer.questionId + '-' + opt.value"
-                                                            class="cursor-pointer text-granite-800 dark:text-granite-200">{{ opt.label }}</label>
+                                                            class="cursor-pointer text-zinc-800 dark:text-zinc-200">{{ opt.label }}</label>
                                                     </div>
                                                 }
                                             </div>
@@ -159,14 +159,14 @@
                                                         <p-checkbox [inputId]="answer.questionId + '-' + opt.value"
                                                             [value]="opt.value" [formControlName]="answer.questionId" />
                                                         <label [for]="answer.questionId + '-' + opt.value"
-                                                            class="cursor-pointer text-granite-800 dark:text-granite-200">{{ opt.label }}</label>
+                                                            class="cursor-pointer text-zinc-800 dark:text-zinc-200">{{ opt.label }}</label>
                                                     </div>
                                                 }
                                             </div>
                                         }
                                     }
                                 } @else {
-                                    <div class="text-lg text-granite-1000 dark:text-granite-0">
+                                    <div class="text-lg text-zinc-950 dark:text-zinc-50">
                                         @switch (answer.kind) {
                                             @case ('boolean') {
                                                 <p-tag [severity]="answer.checked ? 'success' : 'danger'"
@@ -212,16 +212,16 @@
                 </section>
                 } @else {
                 <section class="imagenes-reporte card-section">
-                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-1000 dark:text-granite-0 mb-6 tracking-tight">Fotos</h2>
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-zinc-950 dark:text-zinc-50 mb-6 tracking-tight">Fotos</h2>
                     @if (report.pictures.length) {
                         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                             @for (pic of report.pictures; track pic) {
                                 <img [src]="pic"
-                                    class="w-full aspect-square object-cover rounded-xl border-2 border-granite-200 dark:border-granite-700 shadow-sm" />
+                                    class="w-full aspect-square object-cover rounded-xl border-2 border-zinc-200 dark:border-zinc-700 shadow-sm" />
                             }
                         </div>
                     } @else {
-                        <p class="text-lg text-granite-700 dark:text-granite-300 italic">No hay imágenes aún.</p>
+                        <p class="text-lg text-zinc-700 dark:text-zinc-300 italic">No hay imágenes aún.</p>
                     }
                 </section>
                 }
@@ -237,37 +237,37 @@
                                 class="field-input !h-auto" rows="4"></textarea>
                         </div>
                     } @else if (report.comments) {
-                        <p class="text-lg text-granite-1000 dark:text-granite-0 whitespace-pre-line">{{ report.comments }}</p>
+                        <p class="text-lg text-zinc-950 dark:text-zinc-50 whitespace-pre-line">{{ report.comments }}</p>
                     } @else {
-                        <p class="text-lg text-granite-700 dark:text-granite-300 italic">Sin comentarios.</p>
+                        <p class="text-lg text-zinc-700 dark:text-zinc-300 italic">Sin comentarios.</p>
                     }
                 </section>
 
                 <!-- Firma del cliente -->
                 <section class="card-section">
-                    <h2 class="text-xl sm:text-2xl font-extrabold text-granite-1000 dark:text-granite-0 mb-4 tracking-tight">Firma del cliente</h2>
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-zinc-950 dark:text-zinc-50 mb-4 tracking-tight">Firma del cliente</h2>
                     @if (report.signature) {
                         <div class="text-center">
                             <img [src]="report.signature" alt="Firma del cliente"
-                                class="mx-auto max-h-48 border-2 border-granite-200 dark:border-granite-700 p-3 rounded-xl bg-white" />
-                            <p class="mt-4 text-lg font-bold text-granite-1000 dark:text-granite-0">Iniciado por: {{ technicianName() }}</p>
-                            <p class="mt-1 text-lg font-bold text-granite-1000 dark:text-granite-0">Finalizado por: {{ report.signed_by }}</p>
+                                class="mx-auto max-h-48 border-2 border-zinc-200 dark:border-zinc-700 p-3 rounded-xl bg-white" />
+                            <p class="mt-4 text-lg font-bold text-zinc-950 dark:text-zinc-50">Iniciado por: {{ technicianName() }}</p>
+                            <p class="mt-1 text-lg font-bold text-zinc-950 dark:text-zinc-50">Finalizado por: {{ report.signed_by }}</p>
                             @if (report.signed_maps_url) {
-                                <p class="mt-2 text-sm text-granite-700 dark:text-granite-300">
+                                <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">
                                     Ubicación de firma:
                                     <a [href]="report.signed_maps_url" target="_blank" rel="noopener"
-                                        class="text-sky-700 dark:text-sky-300 font-semibold underline">
+                                        class="text-primary-700 dark:text-primary-300 font-semibold underline">
                                         {{ report.signed_latitude | number:'1.6-6' }}, {{ report.signed_longitude | number:'1.6-6' }}
                                     </a>
                                     @if (report.signed_accuracy && report.signed_accuracy > 0) {
-                                        <span class="text-granite-600 dark:text-granite-400">(±{{ report.signed_accuracy | number:'1.0-0' }} m)</span>
+                                        <span class="text-zinc-600 dark:text-zinc-400">(±{{ report.signed_accuracy | number:'1.0-0' }} m)</span>
                                     }
                                 </p>
                             }
                         </div>
                     } @else {
-                        <p class="text-lg text-granite-700 dark:text-granite-300 italic">
-                            Sin firma todavía. Usa el botón <span class="font-semibold not-italic text-granite-900 dark:text-granite-100">Terminar y enviar</span> para que el cliente firme y cerrar el reporte.
+                        <p class="text-lg text-zinc-700 dark:text-zinc-300 italic">
+                            Sin firma todavía. Usa el botón <span class="font-semibold not-italic text-zinc-900 dark:text-zinc-100">Terminar y enviar</span> para que el cliente firme y cerrar el reporte.
                         </p>
                     }
                 </section>
@@ -306,15 +306,15 @@
             </div>
             } @else if (pendingNotFound()) {
             <div class="max-w-4xl mx-auto px-4 sm:px-8 py-16 flex flex-col items-center gap-3 text-center">
-                <i class="pi pi-inbox text-4xl text-granite-400 dark:text-granite-500"></i>
-                <p class="text-lg font-semibold text-granite-800 dark:text-granite-200">Este reporte ya no está disponible.</p>
-                <p class="text-granite-600 dark:text-granite-400">Es posible que ya se haya subido o descartado.</p>
+                <i class="pi pi-inbox text-4xl text-zinc-400 dark:text-zinc-500"></i>
+                <p class="text-lg font-semibold text-zinc-800 dark:text-zinc-200">Este reporte ya no está disponible.</p>
+                <p class="text-zinc-600 dark:text-zinc-400">Es posible que ya se haya subido o descartado.</p>
             </div>
             }
 
             <!-- Sticky action bar -->
             @if (report()) {
-            <div class="sticky bottom-0 z-40 bg-white/95 dark:bg-granite-900/95 backdrop-blur border-t-2 border-granite-200 dark:border-granite-700 shadow-lg">
+            <div class="sticky bottom-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur border-t-2 border-zinc-200 dark:border-zinc-700 shadow-lg">
                 <div class="max-w-4xl mx-auto px-4 sm:px-8 py-4 flex flex-wrap justify-end gap-3">
                     @if (isPending) {
                         <p-button type="button" (onClick)="uploadPending()" [disabled]="uploadingPending()" [loading]="uploadingPending()" icon="pi pi-cloud-upload" label="Subir"></p-button>
@@ -340,7 +340,7 @@
 <p-dialog header="Terminar y enviar reporte" [(visible)]="signModalVisible" [modal]="true"
     [closable]="true" [draggable]="false" [resizable]="false" [style]="{ width: '36rem' }"
     styleClass="max-w-11/12">
-    <p class="text-base text-granite-900 dark:text-granite-100 mb-4">
+    <p class="text-base text-zinc-900 dark:text-zinc-100 mb-4">
         El cliente debe firmar para confirmar el servicio y cerrar el reporte.
     </p>
     @if (signModalVisible()) {
@@ -352,7 +352,7 @@
 <p-dialog header="¿Descargar PDF?" [(visible)]="pdfDialogVisible" [modal]="true"
     [closable]="false" [draggable]="false" [resizable]="false" [style]="{ width: '28rem' }"
     styleClass="max-w-11/12">
-    <p class="text-base text-granite-900 dark:text-granite-100">
+    <p class="text-base text-zinc-900 dark:text-zinc-100">
         El reporte fue firmado y enviado al cliente. ¿Quieres descargar una copia en PDF?
     </p>
     <ng-template pTemplate="footer">

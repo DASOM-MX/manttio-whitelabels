@@ -8,9 +8,9 @@
 }
 
 .p-carousel-indicator-button {
-  @apply h-1.5 w-4 rounded-full bg-granite-300 dark:bg-granite-600;
+  @apply h-1.5 w-4 rounded-full bg-zinc-300 dark:bg-zinc-600;
 }
 
 .p-carousel-indicator-active .p-carousel-indicator-button {
-  @apply bg-sky-700 dark:bg-sky-300;
+  @apply bg-primary-700 dark:bg-primary-300;
 }

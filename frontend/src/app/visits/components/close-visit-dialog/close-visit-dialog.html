@@ -12,22 +12,22 @@
   @if (target(); as visit) {
     <form [formGroup]="form" (ngSubmit)="confirm()" class="flex flex-col gap-5">
       <div
-        class="flex items-start gap-3 rounded-lg px-4 py-3 bg-granite-100 dark:bg-granite-800"
+        class="flex items-start gap-3 rounded-lg px-4 py-3 bg-zinc-100 dark:bg-zinc-800"
       >
-        <i class="pi pi-info-circle text-sky-800 dark:text-sky-300 text-xl mt-0.5"></i>
+        <i class="pi pi-info-circle text-primary-800 dark:text-primary-300 text-xl mt-0.5"></i>
         <div class="flex flex-col gap-0.5 min-w-0">
-          <span class="font-bold text-granite-1000 dark:text-granite-0 truncate">
+          <span class="font-bold text-zinc-950 dark:text-zinc-50 truncate">
             {{ visit.customerName ?? "Cliente" }}
           </span>
           <span
-            class="font-data tabular-nums text-sm text-granite-700 dark:text-granite-300 truncate"
+            class="font-data tabular-nums text-sm text-zinc-700 dark:text-zinc-300 truncate"
           >
             {{ visit.internalCode }}
           </span>
         </div>
       </div>
 
-      <p class="text-sm text-granite-700 dark:text-granite-300">
+      <p class="text-sm text-zinc-700 dark:text-zinc-300">
         Cerrar registra que la visita no se realizó. Es definitivo — para reprogramarla, la
         oficina creará una nueva visita ligada a esta.
       </p>
@@ -60,7 +60,7 @@
           class="!h-auto"
         ></textarea>
         @if (noteRequired()) {
-          <small class="text-sm text-granite-700 dark:text-granite-300">
+          <small class="text-sm text-zinc-700 dark:text-zinc-300">
             "Otro motivo" necesita una explicación.
           </small>
         }

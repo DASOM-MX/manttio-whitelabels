@@ -1,11 +1,24 @@
-// Whitelabel palette repoint (field-app-whitelabeling 02 §1.3): every scale
-// reads a --brand-* CSS variable injected at runtime by the App brand effect
-// (built in src/app/theme/brand-css.ts) from GET /brand. Values are HSL
-// components ("H S% L%") at steps 0…1000 by 100 (branding rule 2). Fallbacks
-// are a minimal neutral grayscale for the pre-fetch instant only — the real
-// default palette comes from the backend (rule 3). Mapping: granite → surface
-// scale; navy / sky / cyan → primary scale (the brand materializes exactly two
-// scales). Mirrors website/tailwind.config.mjs.
+// Palette: plan 22 — two tenant scales, `primary` and `accent`, reading
+// --brand-primary-* / --brand-accent-* CSS variables injected at runtime by the
+// App brand effect (src/app/theme/brand-css.ts) from GET /brand. Values are HSL
+// components ("H S% L%") at steps 0…1000 by 100 (branding rule 2). Fallbacks are
+// a neutral grayscale for the pre-fetch instant only — the real default palette
+// comes from the backend (rule 3), and accent's fallback is deliberately the
+// same neutral as primary, so a brandless instance renders gray chrome rather
+// than an invented second hue.
+//
+// The chrome neutral is **stock Tailwind `zinc`** (owner, 2026-08-27). Surface
+// left the brand contract, so there is nothing tenant-specific left to express
+// and no reason to ship a bespoke neutral: `zinc-*` needs no config, no
+// fallbacks, and no explanation to a new dev. Nothing here defines it — it is
+// Tailwind's own. Steps map 0→50 and 1000→950 with the interior one-to-one, the
+// same endpoint convention the PrimeNG preset uses, because zinc happens to
+// ship exactly the 11 keys the brand model has.
+//
+// Legacy names (granite, sky, navy, cyan) are tombstoned as empty objects and
+// must never be deleted: theme.extend merges with the default theme, and `sky`
+// and `cyan` are stock Tailwind names, so deletion would silently render stock
+// blue for any straggler instead of emitting nothing.
 
 const NEUTRAL_L_BY_STEP = {
     0: 98,
@@ -26,6 +39,10 @@ const neutralScale = (hue, saturation) =>
         Object.entries(NEUTRAL_L_BY_STEP).map(([step, l]) => [step, `${hue} ${saturation}% ${l}%`]),
     );
 
+// Read from Tailwind's own palette so the two aliases below can never drift
+// from what `bg-zinc-50` / `text-zinc-800` resolve to in a template.
+const { zinc } = require('tailwindcss/colors');
+
 const brandScale = (name, fallbacks) =>
     Object.fromEntries(
         Object.entries(fallbacks).map(([step, hsl]) => [
@@ -34,10 +51,10 @@ const brandScale = (name, fallbacks) =>
         ]),
     );
 
-// A whisper of blue on primary so interactive chrome still reads as such;
-// surface is pure grayscale (mirrors the backend's neutral default brand).
-const granite = brandScale('surface', neutralScale(0, 0));
-const navy = brandScale('primary', neutralScale(220, 10));
+// Primary scale: tenant-configurable brand color (or neutral fallback).
+// Accent scale: tenant-configurable decorative/categorical color (or neutral fallback).
+const primary = brandScale('primary', neutralScale(220, 10));
+const accent = brandScale('accent', neutralScale(220, 10));
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -50,15 +67,18 @@ module.exports = {
     theme: {
         extend: {
             colors: {
-                background: granite['0'],   // page bg
-                surface: navy['100'],
-                primary: navy['600'],
-                secondary: navy['300'],
-                dark: granite['800'],       // texts
-                granite,
-                navy,
-                sky: navy,
-                cyan: navy,
+                primary: { ...primary, DEFAULT: primary['600'] },
+                accent: { ...accent, DEFAULT: accent['500'] },
+                // The one alias worth keeping: `background` names the page
+                // ground, and 13 templates say it. `dark` (body text) retired
+                // with the neutral going stock — templates say `text-zinc-800`
+                // directly, and an alias nothing calls is just indirection.
+                background: zinc[50],
+                // Legacy tombstones: must never be deleted (see comment above).
+                granite: {},
+                navy: {},
+                sky: {},
+                cyan: {},
             },
 
             fontFamily: {

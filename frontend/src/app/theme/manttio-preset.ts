@@ -2,20 +2,23 @@ import { definePreset } from '@primeng/themes';
 import Aura from '@primeng/themes/aura';
 
 /**
- * PrimeNG Aura preset repointed to the runtime tenant brand (plan 02 §1.3).
+ * PrimeNG Aura preset repointed to the runtime tenant brand (plan 22 CP-3).
  *
- * `primary` → the `--brand-primary-*` CSS variables, `surface` → the
- * `--brand-surface-*` variables — the same vars Tailwind's scales read
- * (`tailwind.config.js`), injected at runtime by the App brand effect, so
- * Tailwind utilities and PrimeNG component chrome follow the brand together.
+ * `primary` → the `--brand-primary-*` CSS variables. The chrome neutral is
+ * **stock Tailwind `zinc`** (owner, 2026-08-27): the neutral left the brand
+ * contract, so the field app stopped carrying a bespoke scale and uses the one
+ * every dev already knows. These are zinc's own hexes, verbatim — the same
+ * values `bg-zinc-700` resolves to in a template, so the preset and the utility
+ * layer cannot drift.
  *
  * The brand model is HSL components at steps 0…1000 by 100 (branding rule 2),
  * but Aura's internal token references resolve against the 50…950 keys — so
  * the endpoint keys alias the brand endpoints (50 → step 0, 950 → step 1000)
- * and the interior steps map one-to-one. `surface.0` stays pure white: the
- * templates pair PrimeNG panels with Tailwind `bg-white` cards, and white is
- * neutral, not brand. Fallbacks are the same neutral grayscale as
- * `tailwind.config.js` — for the pre-fetch instant only (rule 3).
+ * and the interior steps map one-to-one; zinc already ships exactly those 11
+ * keys, which is what makes the swap a straight substitution. Aura's own token
+ * group is called `surface` — that name is PrimeNG's, not ours — and its step 0
+ * stays pure white: cards are white, the page tint is `zinc-50`. Fallbacks for primary
+ * are a neutral grayscale for the pre-fetch instant only (rule 3).
  */
 
 const NEUTRAL_L_BY_STEP: Record<string, number> = {
@@ -23,7 +26,7 @@ const NEUTRAL_L_BY_STEP: Record<string, number> = {
   '600': 45, '700': 36, '800': 28, '900': 18, '1000': 10,
 };
 
-const brandScale = (name: 'primary' | 'surface', hue: number, saturation: number) => {
+const brandScale = (name: 'primary', hue: number, saturation: number) => {
   const at = (step: string) =>
     `hsl(var(--brand-${name}-${step}, ${hue} ${saturation}% ${NEUTRAL_L_BY_STEP[step]}%))`;
   return {
@@ -41,14 +44,30 @@ const brandScale = (name: 'primary' | 'surface', hue: number, saturation: number
   };
 };
 
-const surface = { 0: '#FFFFFF', ...brandScale('surface', 0, 0) };
+// Tailwind's zinc, verbatim. Kept as literals rather than imported so the
+// preset carries no build-time dependency on the Tailwind config.
+const zinc = {
+  0: '#FFFFFF',
+  50: '#FAFAFA',
+  100: '#F4F4F5',
+  200: '#E4E4E7',
+  300: '#D4D4D8',
+  400: '#A1A1AA',
+  500: '#71717A',
+  600: '#52525B',
+  700: '#3F3F46',
+  800: '#27272A',
+  900: '#18181B',
+  950: '#09090B',
+};
 
 export const ManttioPreset = definePreset(Aura, {
   semantic: {
     primary: brandScale('primary', 220, 10),
     colorScheme: {
-      light: { surface },
-      dark: { surface },
+      // `surface` is Aura's token name for the chrome neutral; we fill it with zinc.
+      light: { surface: zinc },
+      dark: { surface: zinc },
     },
   },
 });

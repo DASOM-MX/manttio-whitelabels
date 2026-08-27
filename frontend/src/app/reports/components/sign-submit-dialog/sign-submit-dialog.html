@@ -4,16 +4,16 @@
     styleClass="max-w-11/12">
     @if (loading()) {
         <div class="flex flex-col items-center gap-4 py-6">
-            <i class="pi pi-spin pi-spinner text-4xl text-sky-600 dark:text-sky-400"></i>
-            <p class="text-lg font-semibold text-granite-900 dark:text-granite-100">
+            <i class="pi pi-spin pi-spinner text-4xl text-primary-600 dark:text-primary-400"></i>
+            <p class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 Guardando reporte…
             </p>
-            <p class="text-sm text-granite-700 dark:text-granite-300 text-center">
+            <p class="text-sm text-zinc-700 dark:text-zinc-300 text-center">
                 No cierres esta ventana mientras se guarda el reporte.
             </p>
         </div>
     } @else {
-        <p class="text-base text-granite-900 dark:text-granite-100 mb-4">
+        <p class="text-base text-zinc-900 dark:text-zinc-100 mb-4">
             El cliente debe firmar para confirmar el servicio y cerrar el reporte.
         </p>
         @if (visible()) {

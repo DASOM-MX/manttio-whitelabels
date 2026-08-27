@@ -29,9 +29,12 @@ export class App {
 
   /** Browser chrome (Chrome/Firefox address bar, PWA status bar) HSL components
    *  per mode when no brand is loaded yet (rule 3 — neutral pre-fetch instant).
-   *  Light = a primary-800 frame matching the bottom nav; dark = surface-1000
+   *  Light = a primary-800 frame matching the bottom nav; dark = zinc-950
    *  page bg so the toolbar blends into the dark app. */
-  private static readonly THEME_COLOR_FALLBACK = { light: '220 10% 28%', dark: '0 0% 10%' };
+  // `light` is the pre-brand neutral standing in for the tenant's primary-800.
+  // `dark` is not a fallback but the value: it must match the dark page ground,
+  // `bg-zinc-950` (#09090B), or the browser chrome banks against the page.
+  private static readonly THEME_COLOR_FALLBACK = { light: '220 10% 28%', dark: '240 10% 3.9%' };
 
   constructor() {
     effect(() => {
@@ -47,7 +50,7 @@ export class App {
 
   private applyThemeColor(dark: boolean, brand: Brand | null): void {
     const components = dark
-      ? (brand?.colors.surface?.['1000'] ?? App.THEME_COLOR_FALLBACK.dark)
+      ? App.THEME_COLOR_FALLBACK.dark
       : (brand?.colors.primary?.['800'] ?? App.THEME_COLOR_FALLBACK.light);
     this.document
       .querySelector('meta[name="theme-color"]')

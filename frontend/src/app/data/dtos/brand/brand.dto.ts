@@ -12,7 +12,7 @@ export interface HslScale {
 
 export interface BrandColors {
   primary: HslScale;
-  surface: HslScale;
+  accent: HslScale;
 }
 
 export interface BrandContact {

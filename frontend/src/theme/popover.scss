@@ -1,7 +1,7 @@
 /* PrimeNG Popover (<p-popover>) — used for the "Otros" bottom-nav menu. */
 .p-popover {
-  @apply rounded-xl border shadow-xl bg-white border-granite-200
-         dark:bg-granite-900 dark:border-granite-700;
+  @apply rounded-xl border shadow-xl bg-white border-zinc-200
+         dark:bg-zinc-900 dark:border-zinc-700;
 
   /* Aura ships a caret/arrow on the popover via ::before + ::after. Our
      design is a clean panel without a pointer, so collapse them. */

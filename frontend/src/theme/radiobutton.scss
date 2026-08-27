@@ -21,11 +21,11 @@
   @apply absolute inset-0 size-full m-0 p-0 opacity-0 cursor-pointer;
 }
 .p-radiobutton-box {
-  @apply size-7 rounded-full border-2 border-granite-400 bg-white flex items-center justify-center transition-colors cursor-pointer;
+  @apply size-7 rounded-full border-2 border-zinc-400 bg-white flex items-center justify-center transition-colors cursor-pointer;
 }
 .p-radiobutton.p-radiobutton-checked .p-radiobutton-box,
 .p-radiobutton-box[data-p-checked='true'] {
-  @apply bg-sky-700 border-sky-700;
+  @apply bg-primary-700 border-primary-700;
 }
 .p-radiobutton-icon {
   @apply size-3 rounded-full bg-transparent transition-colors;
@@ -36,7 +36,7 @@
 }
 .p-radiobutton.p-focus .p-radiobutton-box,
 .p-radiobutton-box[data-p-focus='true'] {
-  @apply ring-4 ring-sky-700/25;
+  @apply ring-4 ring-primary-700/25;
 }
 .p-radiobutton.p-disabled,
 .p-radiobutton[data-p-disabled='true'] {

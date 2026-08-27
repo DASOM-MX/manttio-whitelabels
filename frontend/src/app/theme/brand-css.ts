@@ -30,7 +30,7 @@ function cssEscape(value: string): string {
 export function buildBrandCss(brand: Brand, fonts: FontCatalogEntry[]): string {
   const rootVars: string[] = [
     ...scaleVars('primary', brand.colors?.primary),
-    ...scaleVars('surface', brand.colors?.surface),
+    ...scaleVars('accent', brand.colors?.accent),
   ];
   const fontFaces: string[] = [];
 

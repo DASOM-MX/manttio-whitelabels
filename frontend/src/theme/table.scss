@@ -1,7 +1,7 @@
 /* PrimeNG Table */
 .p-datatable {
-  @apply block w-full max-w-full bg-white border border-granite-200 rounded-2xl shadow-sm overflow-hidden
-         dark:bg-granite-900 dark:border-granite-700;
+  @apply block w-full max-w-full bg-white border border-zinc-200 rounded-2xl shadow-sm overflow-hidden
+         dark:bg-zinc-900 dark:border-zinc-700;
 }
 
 /* Wrappers PrimeNG always renders but that should stay hidden until active. */
@@ -21,7 +21,7 @@
   @apply w-full border-collapse;
 }
 .p-datatable-thead {
-  @apply bg-navy-900 text-white;
+  @apply bg-primary-900 text-white;
 
   > tr > th {
     @apply px-5 sm:px-8 py-5 text-left text-sm font-bold uppercase tracking-wider;
@@ -30,63 +30,63 @@
       @apply cursor-pointer select-none;
 
       &:hover {
-        @apply bg-navy-800;
+        @apply bg-primary-800;
       }
     }
   }
 }
 .p-sortable-column-icon {
-  @apply ml-1 inline-block align-middle size-3.5 text-sky-300;
+  @apply ml-1 inline-block align-middle size-3.5 text-primary-300;
 }
 .p-datatable-sort-badge {
-  @apply ml-1 inline-flex items-center justify-center size-5 rounded-full bg-sky-600 text-white text-xs font-bold;
+  @apply ml-1 inline-flex items-center justify-center size-5 rounded-full bg-primary-600 text-white text-xs font-bold;
 }
 .p-datatable-tbody {
-  @apply bg-white dark:bg-granite-900;
+  @apply bg-white dark:bg-zinc-900;
 
   > tr {
-    @apply transition-colors duration-100 border-t border-granite-200 dark:border-granite-700;
+    @apply transition-colors duration-100 border-t border-zinc-200 dark:border-zinc-700;
 
     &:first-child {
       @apply border-t-0;
     }
     &:hover {
-      @apply bg-sky-0 dark:bg-granite-800;
+      @apply bg-primary-0 dark:bg-zinc-800;
     }
     &:active {
-      @apply bg-sky-100 dark:bg-granite-700;
+      @apply bg-primary-100 dark:bg-zinc-700;
     }
     &.p-row-selected {
-      @apply bg-sky-100 dark:bg-granite-700;
+      @apply bg-primary-100 dark:bg-zinc-700;
     }
     &.p-datatable-emptymessage {
       @apply hover:bg-transparent dark:hover:bg-transparent;
 
       > td {
-        @apply px-6 py-14 text-center text-lg text-granite-700 whitespace-normal dark:text-granite-300;
+        @apply px-6 py-14 text-center text-lg text-zinc-700 whitespace-normal dark:text-zinc-300;
       }
     }
     > td {
-      @apply px-5 sm:px-8 py-6 whitespace-nowrap text-lg text-granite-900 dark:text-granite-100;
+      @apply px-5 sm:px-8 py-6 whitespace-nowrap text-lg text-zinc-900 dark:text-zinc-100;
     }
   }
 }
 
 /* Paginator (rendered when [paginator]="true") */
 .p-paginator {
-  @apply flex items-center justify-end gap-2 px-5 py-4 border-t border-granite-200 bg-white
-         dark:bg-granite-900 dark:border-granite-700;
+  @apply flex items-center justify-end gap-2 px-5 py-4 border-t border-zinc-200 bg-white
+         dark:bg-zinc-900 dark:border-zinc-700;
 }
 .p-paginator-page,
 .p-paginator-prev,
 .p-paginator-next,
 .p-paginator-first,
 .p-paginator-last {
-  @apply size-11 inline-flex items-center justify-center rounded-lg text-base font-semibold text-granite-800 hover:bg-sky-0 cursor-pointer transition-colors
-         dark:text-granite-200 dark:hover:bg-granite-800;
+  @apply size-11 inline-flex items-center justify-center rounded-lg text-base font-semibold text-zinc-800 hover:bg-primary-0 cursor-pointer transition-colors
+         dark:text-zinc-200 dark:hover:bg-zinc-800;
 
   &.p-paginator-page-selected {
-    @apply bg-sky-700 text-white font-bold hover:bg-sky-800 dark:bg-sky-600 dark:hover:bg-sky-500;
+    @apply bg-primary-700 text-white font-bold hover:bg-primary-800 dark:bg-primary-600 dark:hover:bg-primary-500;
   }
   &.p-disabled {
     @apply opacity-30 cursor-not-allowed;
@@ -112,9 +112,9 @@
   @apply hidden;
 }
 .p-datatable-header {
-  @apply bg-granite-0 dark:bg-granite-900;
+  @apply bg-zinc-50 dark:bg-zinc-900;
 }
 .p-datatable-footer {
-  @apply px-5 py-4 border-t border-granite-200 bg-granite-0
-         dark:bg-granite-900 dark:border-granite-700;
+  @apply px-5 py-4 border-t border-zinc-200 bg-zinc-50
+         dark:bg-zinc-900 dark:border-zinc-700;
 }
