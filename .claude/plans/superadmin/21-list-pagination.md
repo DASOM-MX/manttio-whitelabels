@@ -5,7 +5,8 @@
 > bug is fixed and verified against the live backend: the clients, leads and blacklist views
 > all page, and page 2 renders page-2 rows. The services catalog is now paged too, and 18 §4's
 > no-pagination decision is formally superseded. **CP-6 (the Playwright regression guard)
-> remains.**
+> remains**, plus the standing wrapper backlog in §9 (opened 2026-08-27, owner) — worked one
+> slice per PR, never batched.
 > **Depends on:** 07 (clients), 18 (services) · **Touches:** `backend/`, `superadmin/`, `frontend/`
 > **Owner:** — · **Last updated:** 2026-08-25
 
@@ -372,6 +373,41 @@ Supersedes 18 §4's no-pagination decision (Decisions §2 above).
   would have caught this bug. Stub the API host (`http://127.0.0.1:8788/...`), not a bare
   `/customers` regex, or the route intercepts the document navigation itself.
 - Reuse the `e2e/support/superadmin.ts` `signIn` + `page.route` pattern.
+
+---
+
+## 9. Ongoing — the wrapper backlog (opened 2026-08-27, owner)
+
+**Not a checkpoint.** This is a standing task worked **one slice per PR**, never as a
+big-bang sweep: each slice moves one module's wire shape, deletes the client-side shim that
+existed to absorb it, and ticks its line here. A slice may ride along in an unrelated PR
+touching the same module — it may not be batched into a "migrate everything" PR.
+
+**Where the envelope already stands (2026-08-27, verified):** every paged list read in
+superadmin is on the generic — customers, users, equipment, reports, report-templates,
+contracts, quotations, service-orders (+ its timeline), customer interactions, and services
+(CP-5) — plus `NotificationQueryResponse`, the sanctioned derived interface (§2). **There is
+no paged read left in superadmin answering a hand-written shape.** What follows is the
+*other* half of §2's promise: the single-object and half-envelope wrappers that never carried
+paging at all.
+
+**What must stay a bare array, and is not backlog:** rosters (`/customers/all`,
+`/services/all`, `listAssignable`, `reportOptions`, `getFonts`), by-parent reads
+(`byCustomer`, `listForCustomer`, `listForServiceOrder`), and the catalog/quotation
+timelines. A roster has no page and a `total` could only restate the array's own length —
+giving one an envelope is the exact mistake §2 exists to prevent (backend `CLAUDE.md`).
+
+| # | Wire shape today | Should be | Blast radius |
+|---|---|---|---|
+| 1 | `GET/POST/PATCH /customers/:id` + `/status` → `{ customer }` (4 routes) | the row itself | Backend 4 sites + the `unwrap()` shim in superadmin `customers.service.ts` (5 call sites) — the shim is the tell |
+| 2 | `GET/POST/PATCH /service-orders/:id`, `/status` → `{ order }` (4 routes) | the row itself | Backend 4 sites + 4 `Observable<{ order: … }>` signatures and their `.order` reads |
+| 3 | `GET /service-orders/:id/reports` → `{ reports: [...] }` | a bare array (a by-parent read) | Backend 1 site + 1 client signature |
+| 4 | `POST /notifications/:id/read` → `{ notification }` | the row itself | Backend 1 site + 1 client signature |
+| 5 | `GET /customers/recent`, `/customers/interactions/recent` → `{ items: [...] }` | a bare array — these are `limit`-bounded card reads, **not** query reads: `items` with no `total`/`page`/`limit` is a half-envelope, the worst of both | Backend 2 sites + `RecentItemsResponse<T>` and its two `map(res => res.items)` shims |
+| 6 | `GET /visits` → `VisitDTO[]` | **decide, don't assume** | It is a date-range window read for the calendar, which is legitimately bounded — but it also takes `technicianId`/`internalCode` filters. If 12 ever grows a flat visit *list*, that read pages; the calendar window does not. Settle it in 12, not here |
+
+`GET /public/services` → `{ services: [...] }` is **out of scope**: a published public
+contract the website consumes, versioned on its own terms.
 
 ---
 
