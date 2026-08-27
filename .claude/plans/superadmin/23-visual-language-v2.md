@@ -149,6 +149,7 @@ has two brand colors plus a fixed status set to speak with.**
 | 17 CP-2 dark brand-panel sidebar (`primary-1000`, `rounded-r-shell`, solid `primary-600` active row) | § Direction 1 — light panel, tinted active row |
 | 17 "hairline borders retire to internal dividers; cards are shadow-only" | § Direction 2 — hairline border **and** soft shadow |
 | 01 § Design language "Accent step: `primary-400` is the decorative accent" | § Direction 3 — `accent` scale (22) |
+| § Direction 1's own "no weight bump — the tinted row carries the active cue" | § Decisions 2026-08-27 — marker bar + one weight step on the active child |
 
 Everything else in 17 and 01 stands. Both documents are edited **in CP-1**, together with the
 committed `.claude/skills/superadmin-design` mirror (same commit — 01's standing rule).
@@ -222,14 +223,27 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
       app** (`routerLinkActive` does not set it — `ariaCurrentWhenActive="page"` is now
       on all three link forms: leaf rows, expanded children, flyout links), and
       `.nav-item:hover` did not exclude `.nav-active`, so hovering the current row
-      replaced its background (harmless against the old solid row, fatal to a soft tint)
+      replaced its background (harmless against the old solid row, fatal to a soft tint).
+      At the owner's direction (2026-08-27, second reference screenshot) the row also
+      gained a **left marker bar** standing in the nav gutter and **one weight step on
+      the active child** — see § Decisions; both are cues that survive a tenant with no
+      brand loaded, which the tint alone does not
+- [x] **Expanded groups draw a tree** (owner 2026-08-27, first reference screenshot):
+      a hairline rail dropping from the parent icon's centre with a rounded elbow into
+      each child row, `.nav-tree` on the children list. Geometry is derived from the
+      existing gutters rather than eyeballed — 22px to the rail (nav `px-3` + row `px-3`
+      + half a `size-5` icon), 14px of elbow reach against `.nav-child`'s `pl-11`, and
+      the rail stops 18px off the bottom, which is half a uniform `h-9` row
 - [x] Wordmark strip stays `h-14` and level with the topbar; group collapse chevron +
       indented, icon-less children — unchanged, recolored for the light panel
-- [x] Count-badge slot — **left out.** Nothing in the app produces a per-entry count:
-      the owner/admin nav is four *groups* (Negocio · Operaciones · CRM · CMS), and a
-      badge on a group would have to sum children no endpoint counts. Shipping the slot
-      with nothing behind it is exactly the decorative placeholder this line forbids, so
-      it is not in the `NavEntry` type either
+- [x] Count-badge slot — **built at the owner's request (2026-08-27), dormant by
+      design.** `NavBadge.badge?: number` on both `NavEntry` and `NavChild`, `.nav-badge`
+      styled to the reference, and the row renders no pill when the count is absent or
+      zero. **Nothing sets it yet** — the app still has no per-module count endpoint, and
+      a fabricated number is worse than an empty slot. The reference paints the pill
+      green; ours rides **`accent`**, because emerald is a fixed *status* colour here
+      (positive/up) and a queue length is information, not good news — § Direction 3
+      hands informational badges to `accent`, and this is the app's first use of it
 - [x] Collapsed rail + hover/focus flyouts inherit the light treatment; flyout overflow
       behaviour unchanged; the floating collapse handle survives. The flyout's hairline
       ring now runs in **both** modes (it was dark-only, because the rail it escaped
@@ -327,6 +341,9 @@ tenant hue is what saves a number. Light panel = `surface-0`, dark panel = `surf
 | Group-active label (`surface-1000` / `surface-0`) | 16.90:1 | 13.35:1 | 4.5 |
 | Identity card: tenant name | 16.13:1 | 11.59:1 | 4.5 |
 | Identity card: caption (`surface-600` / `surface-400`) | 4.66:1 | 5.55:1 | 4.5 |
+| Active marker bar (`primary-600` / `primary-400`) on the panel | **4.83:1** | **6.42:1** | 3.0 |
+| Count badge label (`accent-700` on `accent-100` / `accent-300` on `accent-1000/40`) | 6.45:1 | 9.98:1 | 4.5 |
+| Tree rail + elbows (`surface-200` / `surface-800`) on the panel | 1.21:1 | 1.44:1 | — |
 
 Every AA bar in § Verification clears. Three things the sweep turned up that the numbers
 alone do not explain:
@@ -340,9 +357,11 @@ alone do not explain:
    value as the idle `surface-700`, so the active row reads as ordinary. The old solid
    `primary-600` row did not have that failure mode. The fallback palette exists "for the
    no-brand instant only" (`manttio-preset.ts`), so this is a broken-`/brand` state, not
-   a steady one — flagged rather than fixed, because no tint choice survives a grey
-   palette and the alternatives (a weight bump, a left marker bar) each break a rule this
-   plan or 17 already settled.
+   a steady one. **Closed the same day** by the owner's marker-bar + weight-step turn
+   (§ Decisions): `primary-600` is a mid grey at the fallback palette, so the bar still
+   measures 4.83:1 against the panel, and the child's 400→500 step carries no colour at
+   all. The tint is now the *third* cue rather than the only one. Verified on screen with
+   `/brand` answering 404.
 2. **`.micro-label`'s house `text-surface-500` measures 3.41:1 on a light panel** — under
    the 4.5 bar for text. That is app-wide and predates this CP (91 template instances),
    so CP-2 did not sweep it; the two *new* micro-labels it adds (the "Admin" tag, the
@@ -351,7 +370,9 @@ alone do not explain:
 3. **The panel hairline is 1.16:1 against the canvas** (1.83:1 dark) — the same
    `surface-200`-on-`surface-100` pairing CP-1 shipped on every card border with the
    owner's sign-off. Consistent by construction; changing it here would fork the card
-   treatment.
+   treatment. The **tree rail and elbows** ride the same step for the same reason, and
+   carry no bar of their own: they are decorative connectors restating the nesting that
+   indentation already conveys, so nothing is lost when they fall below threshold.
 
 The topbar search stub is a `disabled` control, which WCAG 1.4.3 exempts from contrast
 ("inactive user interface component") — its `surface-400` placeholder is deliberate, and
@@ -377,6 +398,14 @@ Three things the review turned up that reading the code did not:
 2. **Operaciones and CRM wore the same icon** (`LucideHeartHandshake`), which on a light
    panel reads as one group with a duplicated row. Operaciones is `LucideClipboardList`.
 3. **`surface-0` is `hsl(240 5% 98%)`, not white** — see the note above the table.
+
+A fourth arrived with the owner's second turn, and only a screenshot could have caught
+it: the active-row marker and the tree elbow were both written as `li::before`. An
+element has exactly one, the marker's selector outranks the elbow's, so **the active row
+silently lost its elbow** — the tree looked correct on every row except the one the user
+is standing on. The marker moved to `::after`, and both pseudo-elements now carry a
+`z-index: 1` so the rail and elbow read as continuous *through* the tinted pill instead
+of breaking behind it.
 
 ## Decisions
 
@@ -417,5 +446,25 @@ Three things the review turned up that reading the code did not:
     rule. Gated on `BrandState.loaded`, so a branded tenant never flashes the manttio
     fallback; the collapsed rail shows the square isologo alone, and nothing at all when
     the tenant has no isologo.
+- **Decided 2026-08-27 (owner, reviewing CP-2 against the reference) — the active row
+  gets two more cues, and § Direction 1's "no weight bump" is superseded:**
+  - **A left marker bar.** A `primary-600` (dark `primary-400`) 3×20px pill standing in
+    the nav's `px-3` gutter, left of the tinted row and clear of it. Drawn on the row's
+    `li` — `.nav-item`/`.nav-child` are `overflow-hidden` for the rail's width ease and
+    would clip it — and selected with `:has(> .nav-active)`, since the active class lands
+    on the link. This is the cue that does **not** depend on the tenant's hue: 4.83:1
+    against the panel at the neutral fallback, where the tint measures 1.03:1. It is
+    therefore also the answer to § CP-2 contrast measurements finding ①.
+  - **One weight step on the active child.** `.nav-child` idles at 400 while `.nav-item`
+    already sits at 500; the active child now matches its parent. Still inside the ≤500
+    ladder, and colour-free. § Direction 1's "no weight bump — the tinted row carries the
+    active cue" is retired: the tinted row could not carry it alone.
+  - **The count badge rides `accent`, not the reference's green.** Emerald is a fixed
+    status colour in this app (positive/up) and a queue length is neither good nor bad;
+    § Direction 3 already assigns "informational badges" to `accent`. The slot ships
+    dormant — no entry sets a count, because no endpoint produces one.
 - **Open — decide at the CP that needs it:** ④ Whether the gauge's default fill is
-  `accent` or emerald when the metric has no good/bad direction (CP-3).
+  `accent` or emerald when the metric has no good/bad direction (CP-3). ⑤ **What feeds
+  `NavBadge.badge`** — the slot is built and styled but nothing sets it; a real source
+  needs an endpoint that counts (open orders? quotes awaiting approval? unread per
+  module?), which is its own small plan rather than a CP-2 afterthought.

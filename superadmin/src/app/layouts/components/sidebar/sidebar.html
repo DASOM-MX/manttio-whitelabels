@@ -45,7 +45,7 @@
 <nav class="nav-rail flex-1 px-3 py-3" [class.overflow-y-auto]="!collapsed()" aria-label="Módulos">
   <ul class="flex flex-col gap-1">
     @for (entry of navView(); track entry.label) {
-      <li [class.nav-flyout-host]="collapsed()">
+      <li class="relative" [class.nav-flyout-host]="collapsed()">
         @if (entry.children) {
           @if (collapsed()) {
             <!-- Rail icon navigates to the group's landing route; the
@@ -90,6 +90,9 @@
             >
               <svg lucideIcon [lucideIcon]="entry.icon" class="nav-icon" aria-hidden="true"></svg>
               <span class="flex-1 text-left">{{ entry.label }}</span>
+              @if (entry.badge) {
+                <span class="nav-badge">{{ entry.badge }}</span>
+              }
               <svg
                 lucideChevronDown
                 class="size-4 shrink-0 text-surface-400 transition-transform dark:text-surface-500"
@@ -98,7 +101,7 @@
               ></svg>
             </button>
             @if (entry.expanded) {
-              <ul class="pt-1 flex flex-col gap-0.5" animate.enter="anim-fade-enter">
+              <ul class="nav-tree pt-1 flex flex-col gap-0.5" animate.enter="anim-fade-enter">
                 @for (child of entry.children; track child.route) {
                   <li>
                     <a
@@ -108,7 +111,10 @@
                       ariaCurrentWhenActive="page"
                       [routerLinkActiveOptions]="{ exact: child.exact ?? false }"
                     >
-                      {{ child.label }}
+                      <span class="flex-1">{{ child.label }}</span>
+                      @if (child.badge) {
+                        <span class="nav-badge">{{ child.badge }}</span>
+                      }
                     </a>
                   </li>
                 }
@@ -128,7 +134,10 @@
           >
             <svg lucideIcon [lucideIcon]="entry.icon" class="nav-icon" aria-hidden="true"></svg>
             @if (!collapsed()) {
-              {{ entry.label }}
+              <span class="flex-1">{{ entry.label }}</span>
+              @if (entry.badge) {
+                <span class="nav-badge">{{ entry.badge }}</span>
+              }
             }
           </a>
           @if (collapsed()) {

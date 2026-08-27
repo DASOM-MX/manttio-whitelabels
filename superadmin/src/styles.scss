@@ -348,8 +348,94 @@
     @apply text-primary-700 dark:text-primary-300;
   }
   .nav-active {
-    // No weight bump — the tinted row carries the active cue (weight ladder).
     @apply bg-primary-100/60 text-primary-700 dark:bg-primary-1000/40 dark:text-primary-300;
+  }
+  /* One weight step on the active CHILD only (owner 2026-08-27, reference):
+     children idle at 400 while `.nav-item` already sits at 500, so this brings
+     the active row up to the parent's weight — still inside the ≤500 ladder,
+     and unlike the tint it survives a tenant with no brand loaded. */
+  .nav-child.nav-active {
+    @apply font-medium;
+  }
+
+  /* Active-row marker (owner 2026-08-27, reference screenshot): a solid primary
+     bar standing in the nav's gutter, left of the tinted pill. Drawn on the ROW
+     — `.nav-item`/`.nav-child` are `overflow-hidden` for the rail's width ease
+     and would clip anything outside their own box — and selected with `:has()`
+     because the active class lands on the link, the same mechanism the flyouts
+     already use. This is the cue that does NOT depend on the tenant's hue: at
+     the neutral fallback palette `primary-600` is still a mid grey against the
+     panel, where the tint alone all but vanishes.
+
+     `::after`, not `::before`: an element has exactly one of each, and a child
+     row's `::before` is already the tree elbow — this rule outranks it, so
+     sharing the pseudo-element silently ATE the elbow on whichever row was
+     active. */
+  .nav-rail li:has(> .nav-active)::after {
+    content: '';
+    position: absolute;
+    left: -0.5rem; /* into the nav's px-3 gutter, ~5px clear of the pill */
+    top: 50%;
+    width: 0.1875rem; /* 3px */
+    height: 1.25rem;
+    transform: translateY(-50%);
+    border-radius: 9999px;
+    @apply bg-primary-600 dark:bg-primary-400;
+  }
+
+  /* Expanded-group tree (owner 2026-08-27, reference screenshot): a hairline
+     rail dropping from the parent icon's centre, with a rounded elbow into each
+     child row. The geometry is derived, not eyeballed — the nav gutter is
+     `px-3` and `.nav-item` adds another `px-3` before its `size-5` icon, so the
+     icon's centre lands 22px from the child list's own left edge, and
+     `.nav-child`'s `pl-11` puts the label at 44px: 14px of elbow reach leaves an
+     8px gap before the text. The rail stops at the LAST child's centre — rows
+     are a uniform `h-9` with `gap-0.5`, so that is exactly 18px off the bottom.
+     Plain CSS rather than @apply: a template cannot express either
+     pseudo-element, and these are derived offsets, not palette choices. */
+  .nav-tree {
+    @apply relative;
+  }
+  .nav-tree::before {
+    content: '';
+    position: absolute;
+    left: 1.375rem; /* 22px — the parent icon's centre */
+    top: 0;
+    bottom: 1.125rem; /* half a row: the rail dies into the last elbow */
+    border-left-width: 1px;
+    /* Same lift as the elbows: a rail that breaks behind the active pill reads
+       as a rendering fault, not as a design. */
+    z-index: 1;
+    @apply border-surface-200 dark:border-surface-800;
+  }
+  .nav-tree > li {
+    @apply relative;
+  }
+  .nav-tree > li::before {
+    content: '';
+    position: absolute;
+    left: 1.375rem;
+    top: calc(50% - 0.5rem);
+    width: 0.875rem; /* 14px of reach */
+    height: 0.5rem; /* the curve's rise */
+    border-left-width: 1px;
+    border-bottom-width: 1px;
+    border-bottom-left-radius: 0.5rem;
+    /* Over the active row's tint, never under it — the connector has to read as
+       continuous through the pill. */
+    z-index: 1;
+    @apply border-surface-200 dark:border-surface-800;
+  }
+
+  /* Nav count badge (owner 2026-08-27, reference screenshot). The reference
+     paints this green; ours rides `accent`, because emerald is a FIXED status
+     colour here (positive/up) and a queue length is information, not good news
+     — plan 23 § Direction 3 hands "informational badges" to `accent`. `font-data`
+     for the numeral, like every other number in the app. Renders only when an
+     entry actually carries a count: no zero pills, no placeholders. */
+  .nav-badge {
+    @apply ml-auto shrink-0 rounded-chip px-1.5 py-0.5 font-data text-2xs font-medium tabular-nums;
+    @apply bg-accent-100 text-accent-700 dark:bg-accent-1000/40 dark:text-accent-300;
   }
 
   /* The global focus ring offsets against the CANVAS (`ring-offset-background`

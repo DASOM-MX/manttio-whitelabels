@@ -1,7 +1,16 @@
 import type { LucideIcon } from '@lucide/angular';
 import type { ModuleKey } from './module-key.type';
 
-export interface NavChild {
+/** Optional right-aligned count on a nav row (23 CP-2, reference screenshot).
+ *  **Only ever a real number from a real read.** The row renders no pill when
+ *  it is absent or zero — an empty badge is the decorative placeholder the plan
+ *  forbids, and a fabricated one is worse. Nothing sets it yet: the app has no
+ *  per-module count endpoint, so the slot waits for a source. */
+export interface NavBadge {
+  badge?: number;
+}
+
+export interface NavChild extends NavBadge {
   label: string;
   route: string;
   /** Exact-match highlight — set when sibling routes nest under this one. */
@@ -12,7 +21,7 @@ export interface NavChild {
   module?: ModuleKey;
 }
 
-export interface NavEntry {
+export interface NavEntry extends NavBadge {
   label: string;
   icon: LucideIcon;
   route: string;

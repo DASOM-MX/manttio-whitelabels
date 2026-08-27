@@ -200,7 +200,21 @@ auto-loads it — **edit both in the same commit.**
   `primary-300`) on **both** label and `.nav-icon`, active-trail group carrying the
   same emphasis one step quieter, `aria-current` on the active row
   (`ariaCurrentWhenActive="page"`, wired at CP-2 — `routerLinkActive` does not set it
-  for you), no shadows inside the nav. **Shipped at 23 CP-2 (2026-08-27)** — this
+  for you), no shadows inside the nav. **The tint is never the only cue** (owner
+  2026-08-27, superseding 23 § Direction 1's "no weight bump"): the active row also
+  carries a `primary-600` / `primary-400` **marker bar** in the nav gutter and, on a
+  child, one weight step to its parent's 500. Both are hue-independent — at the neutral
+  fallback palette the bar still measures 4.83:1 where the tint measures 1.03:1. The
+  marker is drawn on the row's `li` (`:has(> .nav-active)::after`) because the links are
+  `overflow-hidden` for the rail's width ease; **`::after`, since `::before` is the tree
+  elbow** — sharing it silently deletes the elbow on the active row.
+  **Expanded groups draw a tree** (`.nav-tree` on the children list): a hairline rail
+  from the parent icon's centre with a rounded elbow into each child, geometry derived
+  from the existing gutters, both pseudo-elements lifted over the active tint so the
+  rail reads continuous. **Count badges** (`NavBadge.badge`, `.nav-badge`) render only
+  when an entry carries a real number — the slot is built and currently dormant, and it
+  rides **`accent`**, never emerald: emerald is a status colour here, and a count is
+  information (23 § Direction 3). **Shipped at 23 CP-2 (2026-08-27)** — this
   paragraph is the inventory now. Both hover rules exclude `.nav-active`, or hovering
   the current row washes its tint away (`:hover` outranks a bare class). The global
   focus ring re-offsets against the panel inside `app-sidebar`, since

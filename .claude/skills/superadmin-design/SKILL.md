@@ -209,7 +209,16 @@ the target and the code is the backlog.
   row = `bg-primary-100/60` (dark `bg-primary-1000/40`) with `text-primary-700` (dark
   `primary-300`) on **both** label and `.nav-icon`, and `aria-current` on the active row
   (`ariaCurrentWhenActive="page"` — `routerLinkActive` does not set it for you). No
-  shadows inside the nav. **Shipped 2026-08-27 at 23 CP-2.** Both hover rules exclude
+  shadows inside the nav — and the tint is **never the only cue**: the active row also
+  carries a `primary-600`/`primary-400` marker bar in the nav gutter, and an active child
+  steps up one weight to its parent's 500 (owner 2026-08-27; supersedes 23 § Direction 1's
+  "no weight bump" — the tint measures 1.03:1 at the neutral fallback palette, the bar
+  4.83:1). The marker lives on the row's `li` as `:has(> .nav-active)::after`; `::before`
+  is the **tree elbow** of `.nav-tree`, the hairline rail + rounded connectors expanded
+  groups draw, and sharing the pseudo-element deletes the elbow on the active row.
+  **Count badges** (`.nav-badge`) render only for a real number and ride `accent`, never
+  emerald — emerald is a status colour, a count is information.
+  **Shipped 2026-08-27 at 23 CP-2.** Both hover rules exclude
   `.nav-active` (`:hover` outranks a bare class, so an un-excluded hover washes the
   active tint away), and the focus ring re-offsets against the panel inside
   `app-sidebar`. The footer carries the **tenant identity card** — logo (dark variant by
