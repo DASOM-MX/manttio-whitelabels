@@ -213,7 +213,10 @@ the target and the code is the backlog.
   carries a `primary-600`/`primary-400` marker bar in the nav gutter, and an active child
   steps up one weight to its parent's 500 (owner 2026-08-27; supersedes 23 § Direction 1's
   "no weight bump" — the tint measures 1.03:1 at the neutral fallback palette, the bar
-  4.83:1). The marker lives on the row's `li` as `:has(> .nav-active)::after`; `::before`
+  4.83:1). The **parent of the current page is highlighted like the row itself**, and the
+  **bar is top-level only** — an active child gets the tint and the weight step, never a
+  bar, so the gutter stays clear of the tree. The marker lives on the row's `li` as
+  `.nav-rail > ul > li:has(> .nav-active, > .nav-group-active)::after`; `::before`
   is the **tree elbow** of `.nav-tree`, the hairline rail + rounded connectors expanded
   groups draw, and sharing the pseudo-element deletes the elbow on the active row.
   **Count badges** (`.nav-badge`) render only for a real number and ride `accent`, never

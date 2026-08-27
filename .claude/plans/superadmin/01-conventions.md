@@ -198,16 +198,24 @@ auto-loads it — **edit both in the same commit.**
   furniture. Flat `rounded-control` rows, neutral hover tint, active row =
   `bg-primary-100/60` (dark `bg-primary-1000/40`) with `text-primary-700` (dark
   `primary-300`) on **both** label and `.nav-icon`, active-trail group carrying the
-  same emphasis one step quieter, `aria-current` on the active row
+  same treatment — the parent of the current page is highlighted exactly like the row
+  itself (owner 2026-08-27, superseding the "one step quieter" trail: it is where you
+  are, one level up), `aria-current` on the active row
   (`ariaCurrentWhenActive="page"`, wired at CP-2 — `routerLinkActive` does not set it
   for you), no shadows inside the nav. **The tint is never the only cue** (owner
   2026-08-27, superseding 23 § Direction 1's "no weight bump"): the active row also
   carries a `primary-600` / `primary-400` **marker bar** in the nav gutter and, on a
   child, one weight step to its parent's 500. Both are hue-independent — at the neutral
-  fallback palette the bar still measures 4.83:1 where the tint measures 1.03:1. The
-  marker is drawn on the row's `li` (`:has(> .nav-active)::after`) because the links are
-  `overflow-hidden` for the rail's width ease; **`::after`, since `::before` is the tree
-  elbow** — sharing it silently deletes the elbow on the active row.
+  fallback palette the bar still measures 4.83:1 where the tint measures 1.03:1.
+  **The bar is a top-level cue only** (`.nav-rail > ul > li:has(> .nav-active,
+  > .nav-group-active)::after`, owner 2026-08-27): it marks the entry you are *inside*,
+  so an active child is carried by its tint and weight alone and the gutter stays clear
+  of the tree. It hangs off the row's `li` because the links are `overflow-hidden` for
+  the rail's width ease, offsets from the **top** (a group's `li` wraps its whole
+  children list, so `top: 50%` lands in the middle of the group), and lives on
+  **`::after`, since `::before` is the tree elbow** — sharing it silently deletes the
+  elbow on the active row. Hover excludes `.nav-group-active` as well as `.nav-active`,
+  or hovering either highlighted row washes its tint away.
   **Expanded groups draw a tree** (`.nav-tree` on the children list): a hairline rail
   from the parent icon's centre with a rounded elbow into each child, geometry derived
   from the existing gutters, both pseudo-elements lifted over the active tint so the

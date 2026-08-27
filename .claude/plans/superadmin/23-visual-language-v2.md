@@ -448,13 +448,23 @@ of breaking behind it.
     the tenant has no isologo.
 - **Decided 2026-08-27 (owner, reviewing CP-2 against the reference) — the active row
   gets two more cues, and § Direction 1's "no weight bump" is superseded:**
-  - **A left marker bar.** A `primary-600` (dark `primary-400`) 3×20px pill standing in
-    the nav's `px-3` gutter, left of the tinted row and clear of it. Drawn on the row's
-    `li` — `.nav-item`/`.nav-child` are `overflow-hidden` for the rail's width ease and
-    would clip it — and selected with `:has(> .nav-active)`, since the active class lands
-    on the link. This is the cue that does **not** depend on the tenant's hue: 4.83:1
-    against the panel at the neutral fallback, where the tint measures 1.03:1. It is
-    therefore also the answer to § CP-2 contrast measurements finding ①.
+  - **A left marker bar, on top-level rows only.** A `primary-600` (dark `primary-400`)
+    3×20px pill standing in the nav's `px-3` gutter, left of the tinted row and clear of
+    it. **Highlight-only for the active child; highlight + bar for the parent it sits
+    under** (owner, refining the same day) — the bar marks the entry you are *inside*,
+    and keeping it off children leaves the gutter to the tree. Selected as
+    `.nav-rail > ul > li:has(> .nav-active, > .nav-group-active)::after`, drawn on the
+    `li` because `.nav-item`/`.nav-child` are `overflow-hidden` for the rail's width ease,
+    and offset from the **top** rather than centred: an expanded group's `li` wraps its
+    whole children list, so `top: 50%` would drop the bar into the middle of the group.
+    This is the cue that does **not** depend on the tenant's hue: 4.83:1 against the panel
+    at the neutral fallback, where the tint measures 1.03:1. It is therefore also the
+    answer to § CP-2 contrast measurements finding ①.
+  - **The active-trail parent is highlighted, not muted.** § Direction 1 had the group
+    holding the current page carry "the same emphasis one step quieter"; it now takes the
+    same tint and the same primary label as an active row. Hover had to learn about it
+    too — `.nav-item:not(.nav-active):not(.nav-group-active):hover`, or hovering the
+    parent washes its tint away, the same bug the active row had.
   - **One weight step on the active child.** `.nav-child` idles at 400 while `.nav-item`
     already sits at 500; the active child now matches its parent. Still inside the ≤500
     ladder, and colour-free. § Direction 1's "no weight bump — the tinted row carries the

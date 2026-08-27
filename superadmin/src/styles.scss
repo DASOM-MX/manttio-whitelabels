@@ -333,15 +333,18 @@
   .nav-child {
     @apply relative flex h-9 items-center overflow-hidden whitespace-nowrap rounded-control pl-11 pr-3 text-sm text-surface-600 transition-colors dark:text-surface-400;
   }
-  .nav-item:not(.nav-active):hover,
+  .nav-item:not(.nav-active):not(.nav-group-active):hover,
   .nav-child:not(.nav-active):hover {
     @apply bg-surface-100 text-surface-900 dark:bg-surface-800 dark:text-surface-100;
   }
   .nav-icon {
     @apply size-5 shrink-0 text-surface-500 transition-colors dark:text-surface-400;
   }
+  /* The parent of the current page is highlighted too (owner 2026-08-27):
+     same tint and same primary label as an active row — it is where you are,
+     one level up. It is also the row that carries the marker bar. */
   .nav-group-active {
-    @apply text-surface-1000 dark:text-surface-0;
+    @apply bg-primary-100/60 text-primary-700 dark:bg-primary-1000/40 dark:text-primary-300;
   }
   .nav-group-active .nav-icon,
   .nav-active .nav-icon {
@@ -358,27 +361,37 @@
     @apply font-medium;
   }
 
-  /* Active-row marker (owner 2026-08-27, reference screenshot): a solid primary
-     bar standing in the nav's gutter, left of the tinted pill. Drawn on the ROW
-     — `.nav-item`/`.nav-child` are `overflow-hidden` for the rail's width ease
-     and would clip anything outside their own box — and selected with `:has()`
-     because the active class lands on the link, the same mechanism the flyouts
-     already use. This is the cue that does NOT depend on the tenant's hue: at
-     the neutral fallback palette `primary-600` is still a mid grey against the
-     panel, where the tint alone all but vanishes.
+  /* Active marker (owner 2026-08-27, reference screenshot): a solid primary bar
+     standing in the nav's gutter, left of the tinted pill. **Top-level rows
+     only** (owner, same day) — `.nav-rail > ul > li`, so an active *child* is
+     highlighted by its tint alone and the bar marks the entry you are inside.
+     That also means the bar never competes with the tree elbows for the
+     gutter.
 
-     `::after`, not `::before`: an element has exactly one of each, and a child
-     row's `::before` is already the tree elbow — this rule outranks it, so
-     sharing the pseudo-element silently ATE the elbow on whichever row was
-     active. */
-  .nav-rail li:has(> .nav-active)::after {
+     Drawn on the ROW, not the link: `.nav-item`/`.nav-child` are
+     `overflow-hidden` for the rail's width ease and would clip anything outside
+     their own box. `:has()` because the active class lands on the link — the
+     same mechanism the flyouts already use — and it matches both an active leaf
+     (`.nav-active`) and a group holding the current page (`.nav-group-active`).
+
+     `::after`, not `::before`: a child row's `::before` is already the tree
+     elbow, and this rule outranks it, so sharing the pseudo-element silently ATE
+     the elbow on whichever row was active. Kept on `::after` even now that the
+     selector is scoped away from children, so the two can never collide again.
+
+     Offset from the TOP, not the centre: an expanded group's `li` wraps the row
+     *and* its whole children list, so `top: 50%` would drop the bar into the
+     middle of the group. 10px + a 20px bar centres it on the `h-10` row whatever
+     the `li` grew to. This is also the cue that does NOT depend on the tenant's
+     hue: at the neutral fallback palette `primary-600` is still a mid grey
+     against the panel, where the tint alone all but vanishes. */
+  .nav-rail > ul > li:has(> .nav-active, > .nav-group-active)::after {
     content: '';
     position: absolute;
     left: -0.5rem; /* into the nav's px-3 gutter, ~5px clear of the pill */
-    top: 50%;
+    top: 0.625rem; /* (h-10 − 20px) / 2 — centred on the row, not the group */
     width: 0.1875rem; /* 3px */
     height: 1.25rem;
-    transform: translateY(-50%);
     border-radius: 9999px;
     @apply bg-primary-600 dark:bg-primary-400;
   }
