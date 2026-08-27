@@ -1,7 +1,18 @@
 # 23 — Visual language v2: bright console (light nav, accent-carried data)
 
-> **Status:** planned 2026-08-26 — not started
-> **Owner:** planning session 2026-08-26 · **Last updated:** 2026-08-26
+> **Status:** in progress — **CP-1 done 2026-08-27** (branch
+> `style/superadmin-visual-language-cp1`, built in the `bright-console` worktree for fast
+> rollback): the language is rewritten onto § Direction across `01-conventions.md`, the
+> committed `superadmin-design` skill mirror, and 17's header; `.card`/`.card-section`
+> and the standalone `p-table` shell gain a hairline `surface-200` border under the
+> existing `shadow-card` (dark `surface-800`), while `.card-flush-table` sheds the whole
+> treatment; the preset pulls dark content/overlay borders from Aura's `{surface.700}`
+> down to `{surface.800}` so PrimeNG panels draw the card's hairline (preset-first — no
+> new override sheet); the fixed chrome neutral is cooled from pure gray to
+> `hsl(240 5% L%)` with the lightness ladder — and therefore every contrast ratio —
+> untouched. Both § Open items due at CP-1 are answered (§ Decisions). **CP-2 (light
+> shell) next.**
+> **Owner:** planning session 2026-08-26 · **Last updated:** 2026-08-27
 > **Scope:** `superadmin/` only. **Depends on 22 CP-2** — every surface this plan writes must
 > be authored on `primary`/`accent`/fixed-`surface`, never on names 22 is about to change
 > (the same reasoning that front-ran 16 PR-2 for the 2026-07-21 shell redesign).
@@ -161,18 +172,34 @@ One PR per checkpoint, stacked, base `main`, prefix `style(superadmin)` except C
 every CP, and **no screenshots unless the owner asks** — the owner watches `:4200`.
 
 ### CP-1 — Language + tokens
-- [ ] 01-conventions § Design language rewritten onto § Direction: light shell, bordered cards,
-      the three-way palette-role split, `accent` in place of the `primary-400` step
-- [ ] `.claude/skills/superadmin-design` mirror updated **in the same commit** (01's standing rule)
-- [ ] § Supersessions reflected in 17's header (done at plan time — re-verify)
-- [ ] `.card` / `.card-section` in `styles.scss`: hairline `surface-200` border + the existing
-      `shadow-card`; dark mode `surface-900` fill, `surface-800` border, deepened shadow
-- [ ] Preset tokens re-checked against the new card treatment (content/overlay borders) —
-      preset-first, no new override sheet for looks
-- [ ] Fixed-neutral retune decided (22 § Target 3): keep today's neutral or cool the canvas —
-      if cooled, one edit in each of the four configs, zero tenant impact
-- [ ] Outer app-frame decision recorded (§ Open ③)
-- [ ] Both modes eyeballed; `npm run build` green
+- [x] 01-conventions § Design language rewritten onto § Direction: light shell, bordered cards,
+      the three-way palette-role split, `accent` in place of the `primary-400` step.
+      Section retitled "bright console"; the two bullets describing surfaces not yet shipped
+      (light nav → CP-2, `primary-400` sweep → CP-6) say so in place, so the doc reads as the
+      target and never as an inventory of the running app
+- [x] `.claude/skills/superadmin-design` mirror updated **in the same commit** (01's standing rule)
+      — title, frontmatter description, surfaces, palette roles, nav, stat cards, data-viz,
+      radius boundary, and the pre-close checklist
+- [x] § Supersessions reflected in 17's header — it had **not** been done at plan time; the
+      header now names all three dead decisions and points each at its § Direction replacement
+- [x] `.card` / `.card-section` in `styles.scss`: hairline `surface-200` border + the existing
+      `shadow-card`; dark mode `surface-900` fill, `surface-800` border, deepened shadow.
+      Extended to the standalone `p-table` shell (`theme/table.scss`) — a table IS a card, and
+      list pages would otherwise show a borderless card beside bordered ones; `.card-flush-table`
+      now cancels `border-0` along with the radius and shadow
+- [x] Preset tokens re-checked against the new card treatment (content/overlay borders) —
+      preset-first, no new override sheet for looks. Light needed nothing: stock Aura already
+      resolves content/overlay borders to `{surface.200}`, exactly the card hairline. Dark did:
+      Aura draws `{surface.700}`, two steps brighter than the card's `surface-800`, so a dialog
+      out-lined the card behind it — `content` + `overlay.select/popover/modal` now say
+      `{surface.800}`
+- [x] Fixed-neutral retune decided (22 § Target 3) — **cooled** (owner, § Decisions): hue 0/0% →
+      **hue 240 / 5%**, lightness ladder untouched. Two edits, not four: `frontend/` and
+      `website/` no longer own a neutral scale (22 § Target 2 amendment), so only
+      `superadmin/tailwind.config.js` and `manttio-preset.ts` carry it — both now build it from
+      the one lightness table, so they cannot drift
+- [x] Outer app-frame decision recorded (§ Open ③) — **declined**, the shell stays edge-to-edge
+- [x] Both modes eyeballed; `npm run build` green
 
 ### CP-2 — Shell
 - [ ] Sidebar → `surface-0` panel with a hairline right border; the `primary-1000` panel and
@@ -255,6 +282,19 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
 - **Locked (2026-08-26, owner):** adopt the **light sidebar** (supersedes 17's dark brand
   panel) · scope = visual language **+ the shared viz kit**, no widget composition, no
   per-user dashboard layouts · superadmin only.
+- **Decided 2026-08-27 (owner, at CP-1) — both § Open items due here:**
+  - ③ **The outer rounded app frame is declined.** The shell stays edge-to-edge: 17
+    § Direction 6's full-width main (owner 2026-07-21, "as much space as possible from the
+    main container") still holds, and an inset frame spends 16–24px a side plus a scrollbar
+    gutter — most costly on the 1366px laptops this app actually runs on. Breathing room
+    keeps coming from gutters and rhythm.
+  - **The fixed neutral is retuned: hue 0 / 0% → hue 240 / 5%**, the lightness ladder
+    untouched. That is the reference console's cool canvas and the same cast stock `zinc`
+    gives the field app and the website, at zero tenant impact (surface left the brand
+    contract in 22) and zero contrast movement (nothing but hue and saturation moved).
+    **Adopting zinc's lightness ladder wholesale was considered and rejected:** it deepens
+    dark mode hard (`900` 18% → 10% L, `1000` 10% → 4% L) and would force a full dark-mode
+    contrast re-measure across ~972 `surface-*` instances to buy nothing visible.
 - **Derived (2026-08-26, planning):** cards regain a hairline border · `accent` never carries
   a status meaning alone · 17's `primary-400` accent step retires · the viz kit ships only
   what CP-4 actually uses.

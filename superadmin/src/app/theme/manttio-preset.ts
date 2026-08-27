@@ -8,7 +8,8 @@ import Aura from '@primeuix/themes/aura';
  *
  * `primary` → the `--brand-primary-*` CSS variables (tenant-configurable);
  * `surface` → **fixed literal HSL values** (no variables — plan 22 §Target) —
- * set at build time, not by `BrandThemeService`. Tailwind utilities and PrimeNG
+ * set at build time, not by `BrandThemeService`, and cooled to hue 240 / 5% at
+ * plan 23 CP-1. Tailwind utilities and PrimeNG
  * component chrome follow the brand together (no runtime `updatePreset` calls needed).
  *
  * The brand model is HSL components at steps 0…1000 by 100 (branding rule 2),
@@ -43,20 +44,31 @@ const brandScale = (name: 'primary', hue: number, saturation: number) => {
   };
 };
 
-// Fixed neutral surface (plan 22 §Target) — literal values, no CSS variables.
+/* Fixed neutral surface (plan 22 §Target) — literal values, no CSS variables.
+ * Cooled from pure gray to hue 240 / 5% at plan 23 CP-1 (owner 2026-08-27) to
+ * match the bright-console reference's canvas; the lightness ladder is untouched,
+ * so no contrast ratio moved. Built from the same table `tailwind.config.js` uses,
+ * so the two files cannot drift, and aliased onto Aura's 50…950 keys the same way
+ * `brandScale` is (50 → step 0, 950 → step 1000). */
+const NEUTRAL_HUE = 240;
+const NEUTRAL_SATURATION = 5;
+
+const neutral = (step: string) =>
+  `hsl(${NEUTRAL_HUE} ${NEUTRAL_SATURATION}% ${NEUTRAL_L_BY_STEP[step]}%)`;
+
 const surface = {
   0: '#FFFFFF',
-  50: 'hsl(0 0% 98%)',
-  100: 'hsl(0 0% 96%)',
-  200: 'hsl(0 0% 90%)',
-  300: 'hsl(0 0% 82%)',
-  400: 'hsl(0 0% 70%)',
-  500: 'hsl(0 0% 55%)',
-  600: 'hsl(0 0% 45%)',
-  700: 'hsl(0 0% 36%)',
-  800: 'hsl(0 0% 28%)',
-  900: 'hsl(0 0% 18%)',
-  950: 'hsl(0 0% 10%)',
+  50: neutral('0'),
+  100: neutral('100'),
+  200: neutral('200'),
+  300: neutral('300'),
+  400: neutral('400'),
+  500: neutral('500'),
+  600: neutral('600'),
+  700: neutral('700'),
+  800: neutral('800'),
+  900: neutral('900'),
+  950: neutral('1000'),
 };
 
 /* Preset-first chrome (plan 17, owner 2026-07-22): component shape/spacing
@@ -107,6 +119,18 @@ export const ManttioPreset = definePreset(Aura, {
       },
       dark: {
         surface,
+        // Bordered surfaces (plan 23 CP-1): `.card` regains a hairline, so the
+        // PrimeNG panels sitting beside it must draw the same one. Light mode
+        // needs no override — stock Aura already resolves content/overlay borders
+        // to `{surface.200}`, exactly the card hairline. Dark does: Aura draws
+        // `{surface.700}`, two steps brighter than the card's `surface-800`, so a
+        // dialog would out-line the card behind it.
+        content: { borderColor: '{surface.800}' },
+        overlay: {
+          select: { borderColor: '{surface.800}' },
+          popover: { borderColor: '{surface.800}' },
+          modal: { borderColor: '{surface.800}' },
+        },
         primary: {
           color: '{primary.600}',
           contrastColor: '#ffffff',

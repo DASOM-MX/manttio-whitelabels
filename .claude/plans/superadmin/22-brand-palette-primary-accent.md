@@ -57,6 +57,9 @@
    that never customized surface** (§ Verification catches the ones that did). Retuning the
    neutral (e.g. the reference's slightly cool canvas) is a **plan 23 CP-1** decision — by then
    it is a four-line edit with zero tenant impact.
+   **Retuned 2026-08-27 at 23 CP-1 (owner): hue 0/0% → hue 240 / 5%, lightness ladder
+   untouched** — and it was two edits, not four, because `frontend/` and `website/` no
+   longer own a neutral scale (the § Target 2 amendment above).
    Exception kept: the presets' `surface.0` stays pure `#FFFFFF` (frontend `manttio-preset.ts`
    already anchors it) — cards are white, the page tint is `surface-100`.
 4. **Single-value aliases (16 § Target 3) survive, repointed:** `background` = `surface-100`

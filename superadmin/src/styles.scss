@@ -149,18 +149,21 @@
     @apply inline-flex items-center gap-2 text-sm font-medium text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200;
   }
 
-  /* Soft elevation (owner 2026-07-22, Purity-style soft UI — supersedes
-     borders-not-shadows for cards): white rounded-card surfaces float on the
-     tinted page background with a soft neutral shadow; hairlines retire to
-     internal dividers. Neutral black alpha only — colored glows stay
-     banned. */
+  /* Bordered elevation (plan 23 CP-1, owner 2026-08-27 — supersedes plan 17's
+     shadow-only cards, which had superseded borders-not-shadows): white
+     rounded-card surfaces on the tinted page background carry a hairline
+     `surface-200` border AND the soft neutral `shadow-card`. The border does the
+     separating; the shadow is only a lift, which is what keeps cards legible where
+     the canvas tint is nearly white. Dark mode: `surface-900` fill, `surface-800`
+     border (the preset draws PrimeNG panels with the same one), deepened shadow
+     below. Neutral black alpha only — colored glows stay banned. */
   .card {
-    @apply bg-white rounded-card shadow-card dark:bg-surface-900;
+    @apply rounded-card border border-surface-200 bg-white shadow-card dark:border-surface-800 dark:bg-surface-900;
   }
   .card-section {
     // p-6 since plan 17 (breathable executive rhythm — air lives in the
     // chrome, data stays dense inside tables).
-    @apply bg-white rounded-card shadow-card p-6 dark:bg-surface-900;
+    @apply rounded-card border border-surface-200 bg-white p-6 shadow-card dark:border-surface-800 dark:bg-surface-900;
   }
   .app-dark .card,
   .app-dark .card-section {
