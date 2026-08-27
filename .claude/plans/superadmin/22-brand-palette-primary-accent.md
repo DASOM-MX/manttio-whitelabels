@@ -160,9 +160,15 @@ only becomes visible once the owner picks a real second color.
    plumbing, new name); `surface` becomes a literal-value scale built from the fixed table;
    aliases per § Target 4; tombstones untouched; rewrite the header comment (it currently
    teaches `--brand-surface-*`).
+   > **Amended for the field app + website (owner, 2026-08-27):** they carry no `surface`
+   > scale and no fixed table — they deleted it and use stock Tailwind `zinc-50…950`, with
+   > `background` as the only surviving alias. As written above this step now describes
+   > **superadmin only.** See § Decisions → *the field app's neutral is stock `zinc`*.
 2. PrimeNG preset: `primary` reads `--brand-primary-*` (unchanged), `surface` reads the fixed
    literals, `accent` is exposed only where Aura has a slot for it (do **not** invent
-   semantic tokens the components ignore — plan 23 CP-1 owns any real accent tokens).
+   semantic tokens the components ignore — plan 23 CP-1 owns any real accent tokens). In the
+   field app that same Aura `surface` token group is filled with zinc's hexes — the name is
+   PrimeNG's, not ours.
 3. Runtime apply: `BrandThemeService` / `brand-css.ts` / `theme.ts` set `--brand-primary-*` +
    `--brand-accent-*` and **stop emitting `--brand-surface-*`** (leaving a dead var set would
    re-invite theming).
@@ -287,16 +293,33 @@ before plan 23 writes a single line of new chrome. CP-3 and CP-4 are independent
 - [ ] `grep -rE '\b(granite|sky|navy|cyan)-[0-9]' website/src` → 0
 - [ ] `npm run build` green; a published-CMS page spot-checked against the live brand
 
-### CP-5 — Bookkeeping + docs (`docs`)
-- [ ] Plan 16 header carries the full supersession (done at plan time — re-verify nothing else
-      still teaches the old pair)
-- [ ] `00-master-plan.md` table, progress board, and build-order rationale current
-- [ ] 01-conventions § Design language + `.claude/skills/superadmin-design` — **the palette half
-      only**: `accent` replaces the `primary-400` decorative-accent step (same commit, 01's
-      standing rule). 23 CP-1 rewrites the rest of that section
-- [ ] Each package `CLAUDE.md` (+ root `CLAUDE.md`) wherever it names the old pair
-- [ ] Manager-app coordination closed out: the manager ships its two-picker editor and the
-      `{ primary, accent }` payload
+### CP-5 — Bookkeeping + docs (`docs`) — **done 2026-08-26** (bar the manager release)
+- [x] Plan 16 header carries the full supersession (done at plan time — re-verified: nothing
+      else still teaches the old pair)
+- [x] `00-master-plan.md` table, progress board, and build-order rationale current
+- [x] 01-conventions § Design language + `.claude/skills/superadmin-design` — **the palette half
+      only**: `accent` is now a real scale, replacing the `primary-400` decorative-accent step.
+      Which surfaces actually move onto it is left to 23 CP-1, which rewrites the rest
+- [x] `frontend/CLAUDE.md` + `.claude/skills/field-app-design` — **moved into CP-3**, where
+      they belong once the field app went to stock `zinc` (2026-08-27): those two docs are
+      frontend-specific, and the plan-suite rule puts doc updates in the same commit as the
+      code they describe. Editing them here as well would have shipped two contradictory
+      versions of the same page. `superadmin/CLAUDE.md`, `website/CLAUDE.md` and root
+      `CLAUDE.md` name no palette scales — nothing to change there
+- [x] **Cross-app palette claims corrected (2026-08-27), after CP-3 and CP-4 went to zinc.**
+      01-conventions and the `superadmin-design` skill both said the neutral was shared by all
+      three apps; `superadmin/tailwind.config.js` said the same in a header comment. It is
+      superadmin's alone now — neutral classes no longer port between the apps, only
+      `primary-*`/`accent-*` do. § Per-app palette layer 1 was likewise still prescribing the
+      fixed-table `surface` for every app; annotated as superadmin-only
+- [x] `00-master-plan.md` said the brand migration was **0042** — it is **0043**
+      (`0043_brand_colors_primary_accent.sql`; it was renumbered on the 2026-08-26 rebase when
+      #168 landed a 0042 of its own, and plan 22 § CP-1 already recorded that). Row also now
+      tracks what is merged vs. open rather than claiming CP-1…CP-4 all done
+- [ ] **Manager-app coordination — open, and the one thing that can break a tenant.** The
+      manager still pushes `colors.surface` and will take a 400 from `PUT /brand` the moment
+      CP-1 deploys. It needs the two-picker editor and the `{ primary, accent }` payload,
+      released in the same window
 
 ## Verification
 

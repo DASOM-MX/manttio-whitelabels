@@ -121,14 +121,22 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   banned AI-slop.
 - Nested grouping inside a card = background shift (`bg-surface-100 dark:bg-surface-800/40`)
   or a hairline divider — not another shadowed box.
-- **Accent step:** `primary-400` is the decorative accent (the reference's teal,
-  brand-mapped) — `.icon-chip` (filled; the unused `--soft` variant was removed at
+- **Accent scale (plan 22):** the decorative accent is a real tenant scale, `accent-*`
+  (DEFAULT `accent-500`) — `primary-400` was the workaround for a second brand color the
+  contract didn't have. Which surfaces move onto it is plan 23 CP-1's call; today
+  `primary-400` still fills `.icon-chip` (filled; the unused `--soft` variant was removed at
   plan 17 CP-5), single-hue chart area fills, progress bars, highlight numbers.
   Interactive solids stay `primary-600`/`700` — white text on 400 fails 4.5:1.
-- The palette is the two semantic brand scales only — `primary-*` / `surface-*`, steps
-  0…1000 by 100 (no `-50`/`-950`; plan 16 tombstoned `sky`/`granite`/`navy`/`cyan` —
-  those classes emit no CSS). Sole literal-hex island: the static role-pill ladder
+- The palette is `primary-*` and `accent-*` (tenant-configured, via `--brand-primary-*` /
+  `--brand-accent-*`) plus `surface-*` — same utility names and steps, but **fixed literal
+  values**: surface is the chrome neutral, reads no CSS variable, and no tenant retunes it.
+  Steps 0…1000 by 100 (no `-50`/`-950`; plan 16 tombstoned `sky`/`granite`/`navy`/`cyan` —
+  those classes emit no CSS). `secondary` retired with plan 22. Sole literal-hex island:
+  the static role-pill ladder
   (`.role-pill--*` in `styles.scss`).
+  **`surface-*` is superadmin's alone.** The field app and the website deleted their copies
+  on 2026-08-27 and use stock Tailwind `zinc-50…950` for chrome, so neutral classes no
+  longer port between the apps — only `primary-*`/`accent-*` do.
 - **Default-PrimeNG buttons** (owner 2026-07-22: "blob-like buttons do not look
   clean" — supersedes the 2026-07-21 blob/pill buttons): actions are
   `rounded-control` rectangles at the input radius, stock-Aura `px-4` — the

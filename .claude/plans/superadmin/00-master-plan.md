@@ -133,8 +133,8 @@ Rules for agents:
 | 18 services | not-started (planned doc) | — |
 | 19 service-orders | not-started (planned doc) | — |
 | 20 quotations | not-started (planned doc) | — |
-| 22 brand-palette (primary+accent) | not-started (planned doc 2026-08-26) — supersedes 16 | — |
-| 23 visual-language-v2 | not-started (planned doc 2026-08-26) — starts after 22 CP-2 | — |
+| 22 brand-palette (primary+accent) | **CP-1…CP-3 merged** (backend contract + migration **0043**, superadmin, frontend); **CP-4 (website) + CP-5 (this bookkeeping pass) open**. Field app and website run on stock Tailwind `zinc` for chrome (owner, 2026-08-27); superadmin keeps its fixed `surface` scale — supersedes 16 | — |
+| 23 visual-language-v2 | not-started (planned doc 2026-08-26) — **unblocked**: 22 CP-2 landed 2026-08-26 | — |
 
 *(Owning agents update their row when they update their file's status header.)*
 
