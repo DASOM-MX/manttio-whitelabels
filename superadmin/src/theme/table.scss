@@ -1,12 +1,13 @@
 /* PrimeNG Table — compact operations-console density (01 Design language):
    micro-label headers, 13–14px cell text, tabular numerals via `font-data`
-   on numeric columns (module templates opt in per column). Borderless since
-   the soft-UI pass (owner 2026-07-22): the table is a floating shadow-card
-   surface; rows separate via whitespace + hover, the header via its
+   on numeric columns (module templates opt in per column). A standalone
+   table IS a card (owner 2026-07-22, soft-UI pass), so it carries the card
+   treatment — which since plan 23 CP-1 means a hairline border as well as the
+   lift shadow; rows still separate via whitespace + hover, the header via its
    surface tint. */
 .p-datatable {
-  @apply block w-full max-w-full bg-white rounded-card shadow-card overflow-hidden
-         dark:bg-surface-900;
+  @apply block w-full max-w-full border border-surface-200 bg-white rounded-card shadow-card
+         overflow-hidden dark:border-surface-800 dark:bg-surface-900;
 }
 .app-dark .p-datatable {
   box-shadow:
@@ -25,7 +26,9 @@
   @apply -mx-6;
 
   .p-datatable {
-    @apply rounded-none shadow-none;
+    // Sheds the whole standalone-card treatment — border included since plan 23
+    // CP-1 — because the card around it already draws one.
+    @apply rounded-none border-0 shadow-none;
   }
 }
 .app-dark .card-flush-table .p-datatable {

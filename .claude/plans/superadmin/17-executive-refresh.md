@@ -1,5 +1,16 @@
 # 17 — Executive refresh: clean, breathable UI on stock PrimeNG ("soft-executive")
 
+> **Superseded in part by plan 23 ("bright console", 2026-08-26/27).** 17's skeleton
+> stands — preset-first chrome, breathable page rhythm, `page-header` on every route,
+> `rounded-control` buttons, neutral shadows, compact data inside airy chrome. **Three
+> decisions below are dead** and must not be followed: ① the **dark brand-panel sidebar**
+> from CP-2 (`primary-1000` both modes, `rounded-r-shell`, solid `primary-600` active
+> row) → 23 § Direction 1, a light `surface-0` panel with a tinted active row (lands at
+> 23 CP-2); ② **shadow-only cards** ("hairline borders retire to internal dividers") →
+> 23 § Direction 2, hairline border **and** soft shadow (landed at 23 CP-1); ③
+> **`primary-400` as the decorative accent** → 23 § Direction 3, the `accent` scale
+> (sweep lands at 23 CP-6). Everything else here is still canon.
+>
 > **Status:** done 2026-07-22 (all five CPs shipped) — **three decisions superseded 2026-08-26 by
 > [23 — Visual language v2](23-visual-language-v2.md):** the dark brand-panel sidebar (CP-2) gives way
 > to a light `surface-0` panel with a tinted active row; shadow-only cards regain a hairline border;

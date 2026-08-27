@@ -4,8 +4,9 @@
  * Whitelabel: tenant configures two brand colors via CSS variables:
  * - `primary` (brand anchor — buttons, links, focus; `--brand-primary-*` variables)
  * - `accent` (brand accent — new in plan 22; `--brand-accent-*` variables)
- * The `surface` scale is a **fixed chrome neutral** (hue 0°, 0% saturation) set at
- * build time — no CSS variables, no tenant editor control. The `BrandThemeService`
+ * The `surface` scale is a **fixed chrome neutral** (hue 240°, 5% saturation —
+ * cooled from pure gray at plan 23 CP-1) set at build time — no CSS variables, no
+ * tenant editor control. The `BrandThemeService`
  * sets `--brand-primary-*` and `--brand-accent-*` on `:root` at boot/save/preview.
  * Values are HSL components ("H S% L%") at steps 0…1000 by 100 (branding rule 2).
  * Fallbacks are a minimal neutral grayscale for the no-brand instant only (rule 3).
@@ -52,10 +53,20 @@ const accent = brandScale('accent', neutralScale(220, 10));
 // Fixed neutral surface (plan 22 §Target) — no CSS variables. Literal HSL values
 // built from the fixed lightness table. <alpha-value> support persists for utility
 // variants like `bg-surface-200/60`.
+//
+// Cooled from pure gray to hue 240 / 5% at plan 23 CP-1 (owner 2026-08-27): the
+// bright-console reference's canvas is a cool near-white, and it is the cast the
+// field app and the website already inherit from stock Tailwind `zinc`. Only hue
+// and saturation moved — the **lightness ladder is untouched**, so every contrast
+// ratio in the app stays exactly where it was, and no tenant is affected (surface
+// left the brand contract in plan 22). Mirrored in `app/theme/manttio-preset.ts`.
+const NEUTRAL_HUE = 240;
+const NEUTRAL_SATURATION = 5;
+
 const surface = Object.fromEntries(
   Object.entries(NEUTRAL_L_BY_STEP).map(([step, l]) => [
     step,
-    `hsl(0 0% ${l}% / <alpha-value>)`,
+    `hsl(${NEUTRAL_HUE} ${NEUTRAL_SATURATION}% ${l}% / <alpha-value>)`,
   ]),
 );
 

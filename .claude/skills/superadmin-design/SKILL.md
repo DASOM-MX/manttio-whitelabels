@@ -1,21 +1,31 @@
 ---
 name: superadmin-design
-description: Design language + UI/UX rules for the superadmin/ Angular app. Use whenever creating or editing any superadmin component, page, template, style sheet, or animation — it encodes the "solid & tight" visual language every module agent must follow.
+description: Design language + UI/UX rules for the superadmin/ Angular app. Use whenever creating or editing any superadmin component, page, template, style sheet, or animation — it encodes the "bright console" visual language every module agent must follow.
 ---
 
-# Superadmin design language — solid & tight
+# Superadmin design language — bright console
 
 Canonical source: `.claude/plans/superadmin/01-conventions.md` (this skill mirrors its
 Typography, Design language, Accessibility, Layout & responsive, Animations, and
 Forms & feedback sections — if they disagree, the plan file wins and this skill needs
 updating in the same commit).
 
-The look (revised 2026-07-22, plan 17 — **soft-executive**): a clean, breathable
-business console — stock PrimeNG Aura chrome carried on the soft personality: white
-`rounded-2xl` cards floating on the tinted page background with soft neutral shadows,
-pill actions, brand-accent chips, airy chrome around dense data, strong status cues,
-and restrained motion — never decoration. (Supersedes the field-app-derived
-"solid & tight" density heritage; WCAG contrast rules are untouched.)
+The look (re-lit 2026-08-27, plan 23 — **bright console**; evolves plan 17's
+soft-executive, which superseded the field-app-derived "solid & tight" density
+heritage — WCAG contrast rules untouched throughout): a clean, breathable business
+console — stock PrimeNG Aura chrome on a **light shell**, white `rounded-card`
+surfaces separated by a **hairline border** under a soft neutral lift shadow, airy
+chrome around dense data, strong status cues, restrained motion — never decoration.
+Data speaks with **two brand colours (`primary` + `accent`) plus a fixed
+emerald/red/amber status set**, never with tints of one hue.
+
+Plan 17's skeleton stands (preset-first chrome, page rhythm, `page-header` everywhere,
+`rounded-control` buttons, neutral shadows, compact data). Three things it decided are
+superseded here and marked in place: the dark brand-panel sidebar, shadow-only cards,
+and `primary-400` as the decorative accent. **Two of the three are still being
+implemented** — the shipped app carries the light shell from 23 CP-2 and the
+`primary-400` sweep from 23 CP-6, so if the code disagrees with those two bullets
+today, the doc is the target and the code is the backlog.
 
 ## Hard rules (non-negotiable)
 
@@ -103,14 +113,22 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
 - Prefer one dense, well-grouped screen over two airy ones — but never sacrifice the
   baseline alignment: every control on a row snaps to the same height.
 
-## Surfaces — soft elevation (owner 2026-07-22, supersedes borders-not-shadows)
+## Surfaces — bordered elevation (owner 2026-08-27, plan 23 CP-1; supersedes 17's shadow-only cards)
 
-- Cards/panels: white `rounded-card` (1rem — the tokenized radius, see boundary
-  below) floating on the tinted page bg with the soft neutral `shadow-card` (`.card`/`.card-section` carry it; `dark:bg-surface-900` with a
-  deepened `.app-dark` shadow). **No hairline borders on card edges** — hairlines
-  retire to *internal* dividers. The shell chrome keeps its 2026-07-21 shadows
-  (`.shell-sidebar` — the topbar is SURFACELESS since 2026-07-22: no shadow, no
-  background, the bell + user pill float on the canvas).
+- Cards/panels: white `rounded-card` (1rem — the tokenized radius, see boundary below)
+  on the tinted page bg with **a hairline `surface-200` border AND the soft neutral
+  `shadow-card`** (`.card`/`.card-section` carry both; dark = `surface-900` fill,
+  `surface-800` border, deepened `.app-dark` shadow). The border separates; the shadow
+  only lifts — on a near-white canvas a shadow alone stops reading. A standalone
+  `p-table` is a card and gets the same treatment (`theme/table.scss`); inside a padded
+  card, `.card-flush-table` sheds the whole treatment, border included. Hairlines are
+  also still the *internal* divider. PrimeNG panels match without an override sheet:
+  Aura's content/overlay border is already `{surface.200}` in light, and the preset
+  pulls dark from `{surface.700}` to `{surface.800}`.
+  The shell chrome keeps its 2026-07-21 sidebar shadow (the topbar is SURFACELESS since
+  2026-07-22: no shadow, no background, the bell + user pill float on the canvas), and
+  the shell stays **edge-to-edge** — the reference's inset rounded app frame was
+  declined (owner 2026-08-27, 23 § Open ③).
   **Depth needs contrast:** the `background` alias
   sits at `surface-100` in superadmin (one step under card whites, owner 2026-07-22) —
   keep page-level surfaces on `bg-background`, never on `bg-white`.
@@ -121,15 +139,28 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   banned AI-slop.
 - Nested grouping inside a card = background shift (`bg-surface-100 dark:bg-surface-800/40`)
   or a hairline divider — not another shadowed box.
-- **Accent scale (plan 22):** the decorative accent is a real tenant scale, `accent-*`
-  (DEFAULT `accent-500`) — `primary-400` was the workaround for a second brand color the
-  contract didn't have. Which surfaces move onto it is plan 23 CP-1's call; today
-  `primary-400` still fills `.icon-chip` (filled; the unused `--soft` variant was removed at
-  plan 17 CP-5), single-hue chart area fills, progress bars, highlight numbers.
-  Interactive solids stay `primary-600`/`700` — white text on 400 fails 4.5:1.
+- **Palette roles (plan 23, decided 2026-08-27)** — three voices that never trade places:
+  - **`primary`** = interactive + identity: buttons, links, focus, active nav row, hero
+    chart series, the one highlighted bar in a comparison.
+  - **`accent`** (real tenant scale, DEFAULT `accent-500`) = the second brand voice:
+    secondary chart series, the second segment of a segmented bar, informational badges,
+    decorative chips, a gauge fill when the metric is neutral rather than good/bad.
+    **Never the sole carrier of a status meaning.**
+  - **Fixed semantic set** (not brand-derived): emerald = positive/up, red =
+    negative/down, amber = warning/pending. Deltas, revenue direction, good/bad gauges.
+    A tenant's hue must never be able to make "down" look green.
+
+  `primary-400`-as-decorative-accent is retired. Interactive solids stay
+  `primary-600`/`700` — white text on 400 fails 4.5:1. The straggler sweep (`.icon-chip`
+  — the unused `--soft` variant went at 17 CP-5 — progress bars, highlight numbers) lands
+  at **23 CP-6**; until then those still read `primary-400`. A tenant that never set
+  `accent` renders it as the neutral fallback ramp (branding rule 3) — gray, not an
+  invented hue, and that is correct.
 - The palette is `primary-*` and `accent-*` (tenant-configured, via `--brand-primary-*` /
   `--brand-accent-*`) plus `surface-*` — same utility names and steps, but **fixed literal
-  values**: surface is the chrome neutral, reads no CSS variable, and no tenant retunes it.
+  values**: surface is the chrome neutral, reads no CSS variable, and no tenant retunes it
+  (`hsl(240 5% L%)` — cooled from pure gray at 23 CP-1; only hue/saturation moved, the
+  lightness ladder and every contrast ratio stayed put).
   Steps 0…1000 by 100 (no `-50`/`-950`; plan 16 tombstoned `sky`/`granite`/`navy`/`cyan` —
   those classes emit no CSS). `secondary` retired with plan 22. Sole literal-hex island:
   the static role-pill ladder
@@ -149,8 +180,9 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   view. Nav rows are flat `rounded-control`
   (Diamond turn, owner 2026-07-22). Boundary (tokenized 2026-07-22 in
   `tailwind.config.js`): inputs/buttons/nav `rounded-control` (0.5rem),
-  cards/dialogs/table shells `rounded-card` (1rem, sidebar edge
-  `rounded-r-card`), icon chips + popovers `rounded-chip` (0.75rem), status/role
+  cards/dialogs/table shells `rounded-card` (1rem; the sidebar's `rounded-r-shell`
+  edge retires at 23 CP-2 — a light panel has a border, not a curve), icon chips +
+  popovers `rounded-chip` (0.75rem), status/role
   pills + chrome icon-circles `rounded-full` — never raw `rounded-lg`/`xl`/`2xl`
   in new chrome.
 
@@ -164,32 +196,40 @@ and restrained motion — never decoration. (Supersedes the field-app-derived
   Title-only — no breadcrumbs unless the owner opts in.
 - **Status pills** everywhere state exists (CRM status, billing, stock, visit status) —
   vibrant in both modes per the dark-mode rules; pill + label, never color alone.
-- **Active nav**: Diamond-style flat rows on the dark brand panel (owner
-  2026-07-22, Diamond turn v2 per reference screenshot — supersedes the
-  elevated-pill/chip nav): the sidebar is `primary-1000` in **both modes** with a
-  rounded right edge + hairline `primary-800/50` outline; light-on-dark
-  `rounded-control` rows (`primary-100`/`200` text, `primary-300` `.nav-icon`s), hover
-  `white/10`, active child = solid `primary-600` row with white text
-  (`.nav-active`), active-trail group = white text/icon (`.nav-group-active`).
-  No shadows inside the nav. The panel is the `app-sidebar` component
+- **Active nav**: a soft tinted row on a **light panel** (owner 2026-08-26, plan 23 —
+  supersedes the 2026-07-22 dark brand panel, which superseded the elevated-pill/chip
+  nav): the sidebar is a `surface-0` panel with a hairline right border (dark:
+  `surface-900` panel, `surface-800` border) and **no** rounded shell edge — brand rides
+  the state, not the furniture. Flat `rounded-control` rows, neutral hover tint, active
+  row = `bg-primary-100/60` (dark `bg-primary-1000/40`) with `text-primary-700` (dark
+  `primary-300`) on **both** label and `.nav-icon`, `aria-current` preserved. No shadows
+  inside the nav. **Lands at 23 CP-2** — until that PR the shipped panel is still
+  `primary-1000` + `rounded-r-shell` with a solid `primary-600` active row. The panel is the `app-sidebar` component
   (`layouts/components/sidebar/`); desktop collapses to a `w-20` icon rail
   (owner 2026-07-23, persisted `AppState.sidebarCollapsed`) whose rows reveal
   `.nav-flyout` submenus on hover/focus — CSS-only, width snaps (no width
   animation per transform-performance).
-- **Stat cards** (reference idiom): micro-label + `font-data` value + signed delta
-  (`text-emerald-600`/`text-red-600`) with an `.icon-chip` on the trailing edge;
-  timelines pair small accent icons with micro-label timestamps.
-- **Data-viz** (owner 2026-07-22, CRM-cockpit turn): time series are
-  `p-chart type="line"` — hero series `primary-600` (dark `primary-400`) with the
-  sole tolerated gradient (a `primary-400` single-hue area fill fading to
-  transparent), secondary series on the scale's neutral end (`primary-1000` light /
-  `primary-100` dark), `tension: 0.4`, no point dots, faint y-grid only, chart.js
+- **Stat cards** (reference idiom): micro-label + trailing Lucide icon, `font-data`
+  value, a delta pill (emerald/red from the fixed semantic set, arrow, **sign always
+  shown**) and a muted comparison caption under it. Tiles are the one unit tighter than
+  the page rhythm: `p-5`, label → value → caption, no extra air. The shared `kpi-tile`
+  (23 CP-3) owns this — don't hand-roll a sixth copy; timelines pair small accent icons
+  with micro-label timestamps.
+- **Data-viz** (owner 2026-07-22, CRM-cockpit turn; re-coloured by plan 23's palette
+  roles 2026-08-27): time series are `p-chart type="line"` — hero series `primary-600`
+  (dark `primary-400`) with the sole tolerated gradient (a single-hue area fill of the
+  hero colour fading to transparent), **secondary series `accent-500`** (the old
+  neutral-end `primary-1000`/`primary-100` trick existed only because there was no
+  second brand colour), `tension: 0.4`, no point dots, faint y-grid only, chart.js
   legend OFF — the legend is dot chips in the card header. Categorical mixes are
-  **never pies**: proportional single-hue bars (`bg-primary-400` on a surface
-  track, width relative to the top row, `font-data` counts). Chart canvases live
-  in a fixed-height wrapper (`h-64`), host + inner div `h-full` (PrimeNG 21
-  ignores `styleClass` on `p-chart`); colors re-read the brand CSS vars on theme
-  change (canon: `crm/pages/dashboard`).
+  **never pies**: proportional bars on a surface track, width relative to the top row,
+  `font-data` counts, reading `primary` → `accent` → neutral; where one member is *the*
+  answer (peak day, top channel) that bar alone is `primary-600` and the rest go
+  neutral. Good/bad numbers never take a brand colour — fixed semantic set only. Chart
+  canvases live in a fixed-height wrapper (`h-64`), host + inner div `h-full` (PrimeNG 21
+  ignores `styleClass` on `p-chart`); colors re-read the brand CSS vars on theme change
+  (canon: `crm/pages/dashboard`). The shared `kpi-tile` / `segmented-bar` / `gauge-card`
+  / `trend-card` land at **23 CP-3** and are mandatory from then on.
 - **List filters live in a popover** (owner 2026-07-22, Chakra-style): the shared
   `shared/components/filters-popover` trigger (filter icon + active-count badge) sits
   left of the page's primary action; pass the page's URL param names as `[params]`
@@ -415,8 +455,12 @@ reorder/remove and toolbar icon-ghosts reuse `.row-action` (+ `--danger`/`--grab
 - [ ] Responsive pass: no page-level horizontal scroll at 375px, inputs ≥16px on
       mobile, wide tables in `overflow-x-auto`, `min-h-dvh` not `100vh`
 - [ ] Controls snap to the `h-11 sm:h-10` baseline (or `!h-9` compact)
-- [ ] Soft elevation: cards `rounded-card` + neutral `shadow-card`, no edge borders;
-      hairlines only as internal dividers; dark-mode pairings applied
+- [ ] Bordered elevation: cards `rounded-card` + hairline `surface-200` border +
+      neutral `shadow-card` (dark `surface-900`/`surface-800`); no second bordered box
+      nested inside a card; dark-mode pairings applied
+- [ ] Palette roles honoured: `primary` interactive/identity, `accent` the second
+      brand voice, emerald/red/amber for anything good/bad — and `accent` never
+      carries a status meaning on its own
 - [ ] Radius tokens only in new chrome (`rounded-card`/`chip`/`control`/`full`) —
       no raw `rounded-lg`/`xl`/`2xl`
 - [ ] Status rendered as pills; numeric columns `font-data`/tnum

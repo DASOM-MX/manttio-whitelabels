@@ -129,12 +129,12 @@ Rules for agents:
 | 14 access-control | done (doc) | — |
 | 15 website | in-progress · PR #44 | CP-2 |
 | 16 semantic-brand-colors | **superseded by 22** (2026-08-26). PR-2 (superadmin, 2026-07-21) shipped and stands; its deferred frontend/website legs move to 22 CP-3/CP-4 | — |
-| 17 executive-refresh | planned (doc) — **runs next, after PR #88 merges** | — |
+| 17 executive-refresh | **done 2026-07-22** (all five CPs shipped) — **partly superseded by 23**: the dark brand-panel sidebar, shadow-only cards, and `primary-400`-as-accent are dead (see 17's header) | — |
 | 18 services | not-started (planned doc) | — |
 | 19 service-orders | not-started (planned doc) | — |
 | 20 quotations | not-started (planned doc) | — |
-| 22 brand-palette (primary+accent) | **CP-1…CP-3 merged** (backend contract + migration **0043**, superadmin, frontend); **CP-4 (website) + CP-5 (this bookkeeping pass) open**. Field app and website run on stock Tailwind `zinc` for chrome (owner, 2026-08-27); superadmin keeps its fixed `surface` scale — supersedes 16 | — |
-| 23 visual-language-v2 | not-started (planned doc 2026-08-26) — **unblocked**: 22 CP-2 landed 2026-08-26 | — |
+| 22 brand-palette (primary+accent) | **done 2026-08-27 — all five CPs merged** (backend contract + migration **0043** #170, superadmin #171, frontend #172, website #173, bookkeeping #174). Field app and website run on stock Tailwind `zinc` for chrome (owner, 2026-08-27); superadmin keeps its fixed `surface` scale, cooled to hue 240/5% at 23 CP-1 — supersedes 16 | — |
+| 23 visual-language-v2 | **in-progress** — **CP-1 done 2026-08-27** (language + tokens: 01/skill/17 rewritten onto "bright console", `.card` + table shell get a hairline border, PrimeNG dark panel borders aligned, chrome neutral cooled to hue 240/5%, edge-to-edge shell kept). CP-2 (light shell) next | CP-2 |
 
 *(Owning agents update their row when they update their file's status header.)*
 

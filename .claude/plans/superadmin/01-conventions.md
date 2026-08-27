@@ -41,14 +41,22 @@ before writing any component.
   product voice everywhere else. Unchanged under Figtree.
 - PrimeNG inherits the body font — no per-component font overrides.
 
-## Design language — soft-executive (decided 2026-07-05 · identity revised 2026-07-22, plan 17)
+## Design language — bright console (decided 2026-07-05 · identity revised 2026-07-22 plan 17 · re-lit 2026-08-27 plan 23)
 
 The superadmin reads as a clean, breathable **business console** (PrimeNG Diamond
 reference; supersedes the field-app-derived "solid & tight" operations-console
 identity — this app serves office/executive users, not sunlight-and-gloves field
 techs; WCAG contrast rules are untouched). Confidence comes from stock Aura chrome,
-generous page-level rhythm, soft-elevated cards, strong status cues, and restrained
-motion — never decoration. The committed skill
+generous page-level rhythm, hairline-bordered cards, strong status cues, and restrained
+motion — never decoration.
+
+**Re-lit at plan 23 ("bright console", owner 2026-08-26):** plan 17's soft-executive
+skeleton stands — preset-first chrome, breathable page rhythm, `page-header` on every
+route, `rounded-control` buttons, neutral shadows, compact data inside airy chrome.
+What changed is the light: the shell goes **light** (the dark brand panel retires), cards
+regain a **hairline border** under the shadow, and data finally speaks with **two brand
+colors plus a fixed status set** instead of tints of one hue. Three of 17's decisions are
+superseded — each is marked below. The committed skill
 **`.claude/skills/superadmin-design`** mirrors this section so every module agent
 auto-loads it — **edit both in the same commit.**
 
@@ -75,47 +83,90 @@ auto-loads it — **edit both in the same commit.**
   Title-only by default: no breadcrumbs (the two-level nav already locates you;
   owner may opt in later). Dynamic titles/descriptions bind computeds or signal
   ternaries, never method calls.
-- **Soft elevation (owner, 2026-07-22 — Purity-style soft-UI reference; supersedes
-  borders-not-shadows):** cards are white `rounded-card` surfaces floating on the tinted
-  page background with a soft neutral shadow (`.card`/`.card-section` → `shadow-card`);
-  hairline borders retire to *internal* dividers and nested grouping. The shell keeps
-  its 2026-07-21 sidebar shadow (`.shell-sidebar`); the topbar is SURFACELESS —
-  no shadow, no background: the bell + user pill float directly on the canvas
-  (owner 2026-07-22, slim-topbar turn — content scrolls in a separate region,
-  nothing passes under it). Shadows are always
-  **neutral black alpha** — colored glows stay banned (AI-slop rule). **Depth needs
-  contrast:** superadmin's `background` alias repoints to `surface-100` (one step
-  under the card whites; owner 2026-07-22) — a deliberate superadmin-only divergence
-  from plan 16's shared `surface-0` value, or the elevation never reads.
+- **Bordered elevation (owner 2026-08-27, plan 23 CP-1 — supersedes plan 17's
+  shadow-only cards, which superseded borders-not-shadows):** cards are white
+  `rounded-card` surfaces on the tinted page background carrying **both** a hairline
+  `surface-200` border and the soft neutral `shadow-card` (`.card`/`.card-section`;
+  dark = `surface-900` fill, `surface-800` border, deepened `.app-dark` shadow). The
+  border does the separating, the shadow only lifts — on a near-white canvas a shadow
+  alone stops reading. A standalone `p-table` **is** a card and carries the same
+  treatment (`theme/table.scss`); inside a padded card `.card-flush-table` sheds all of
+  it, border included. Nested grouping inside a card is still a background shift
+  (`bg-surface-100 dark:bg-surface-800/40`) or an internal divider — never a second
+  bordered box. PrimeNG panels draw the same hairline without an override sheet: stock
+  Aura's content/overlay border already resolves to `{surface.200}` in light, and the
+  preset pulls dark from Aura's `{surface.700}` down to `{surface.800}` to match
+  (`manttio-preset.ts` — preset-first, plan 23 CP-1). The shell keeps its 2026-07-21
+  sidebar shadow (`.shell-sidebar`); the topbar is SURFACELESS — no shadow, no
+  background: the bell + user pill float directly on the canvas (owner 2026-07-22,
+  slim-topbar turn — content scrolls in a separate region, nothing passes under it).
+  Shadows are always **neutral black alpha** — colored glows stay banned (AI-slop rule).
+  **Depth needs contrast:** superadmin's `background` alias repoints to `surface-100`
+  (one step under the card whites; owner 2026-07-22) — a deliberate superadmin-only
+  divergence from plan 16's shared `surface-0` value, or the elevation never reads.
+  **The shell stays edge-to-edge** (owner 2026-08-27, plan 23 § Open ③ — the reference's
+  inset rounded app frame is *not* adopted): full-width main since 2026-07-21, breathing
+  room comes from gutters and rhythm, never from a boxed canvas.
+- **The chrome neutral is fixed, and slightly cool (plan 22 § Target; cooled at 23 CP-1,
+  owner 2026-08-27):** `surface-*` reads no CSS variable and no tenant retunes it —
+  literal `hsl(240 5% L%)` across the 11 steps, mirrored in `tailwind.config.js` and
+  `manttio-preset.ts` (both build it from one lightness table, so they cannot drift).
+  Only hue and saturation moved on 2026-08-27 — the lightness ladder, and therefore
+  every contrast ratio in the app, is exactly where it was. `surface-*` is
+  **superadmin's alone**: the field app and the website deleted their copies on
+  2026-08-27 and take stock Tailwind `zinc` for chrome, so neutral classes no longer
+  port between the apps — only `primary-*`/`accent-*` do.
 - **Entity rows lead with an initials avatar** (`size-9 rounded-full bg-primary-100
   text-primary-800` + the `initials` pipe, dark `primary-1000/60`/`primary-300`) —
   the reference's row identity, brand-tinted (canon: customers-list Cliente column).
-- **Accent scale (plan 22, 2026-08-26 — supersedes the 2026-07-22 "accent step"):** the
-  decorative accent is a **real tenant-configured scale**, `accent-*`, DEFAULT `accent-500`
-  — not a step of primary. `primary-400` was the single-hue workaround for a second brand
-  color that did not exist. Which surfaces move onto `accent` is **plan 23 CP-1's** call;
-  until then the `primary-400` usages below stand as written — icon
-  chips (`.icon-chip`; the unused `--soft` variant was removed at plan 17 CP-5,
-  2026-07-22), single-hue chart area fills, progress bars,
-  highlight numbers. Interactive solids (buttons,
-  the filled nav chip's container aside) stay on `primary-600`/`700` — white text on
-  400 doesn't clear 4.5:1.
-- **Stat cards (reference idiom):** micro-label + `font-data` value + delta
-  (`text-emerald-600`/`text-red-600`, sign always shown) with an `.icon-chip` on the
-  trailing edge; timelines pair small accent icons with micro-label timestamps.
+- **Palette roles (plan 23 § Direction 3, decided 2026-08-27 — supersedes the
+  2026-07-22 "accent step" and closes plan 22's open question):** three voices, and they
+  never trade places.
+  - **`primary`** — interactive + identity: buttons, links, focus rings, the active nav
+    row, the hero chart series, the one highlighted bar in a comparison.
+  - **`accent`** (a real tenant-configured scale, DEFAULT `accent-500` — not a step of
+    primary): the second brand voice — secondary chart series, the second segment of a
+    segmented bar, informational badges, decorative chips, and a gauge fill *when the
+    metric is neutral rather than good/bad*. **Never the sole carrier of a status
+    meaning.**
+  - **A fixed semantic set**, not brand-derived: emerald = positive/up, red =
+    negative/down, amber = warning/pending. Deltas, revenue direction and any good/bad
+    gauge ride these — so a tenant's hue can never make "down" look green.
+
+  `primary-400`-as-decorative-accent is **retired**; that role is `accent`. Interactive
+  solids stay `primary-600`/`700` — white text on 400 never cleared 4.5:1. The straggler
+  sweep (`.icon-chip` — the unused `--soft` variant was removed at plan 17 CP-5 —
+  progress bars, highlight numbers) lands at **23 CP-6**; until that PR those surfaces
+  still read `primary-400`, and the doc is the target, not the inventory.
+  **A tenant that has never set `accent` renders it as the neutral fallback ramp**
+  (branding rule 3 — no invented hue), so accent-carried surfaces read gray there until
+  the brand is filled in; that is correct behavior, not a regression.
+- **Stat cards (reference idiom):** micro-label + trailing Lucide icon, `font-data`
+  value, a delta pill beside it (emerald/red per the fixed semantic set, arrow icon,
+  **sign always shown**) and a muted comparison caption underneath ("vs. 14,553 el
+  periodo anterior"). Tiles are the one unit tighter than the page rhythm: `p-5`, label →
+  value → caption stacked with no extra air. `kpi-tile` (23 CP-3) owns all of it —
+  including the `.skeleton` loading state; timelines pair small accent icons with
+  micro-label timestamps.
 - **Data-viz (owner 2026-07-22, CRM-cockpit turn — supersedes utm-params 03's
-  2026-07-20 pies):** time series are `p-chart type="line"` — hero series
-  `primary-600` (dark `primary-400`) with the sole tolerated gradient (a
-  `primary-400` single-hue area fill fading to transparent), secondary series on
-  the scale's neutral end (`primary-1000` light / `primary-100` dark), smooth
-  `tension: 0.4`, no point dots, faint y-grid only, chart.js legend OFF — the
-  legend is dot chips in the card header. Categorical mixes (channels, sources)
-  are **never pies**: proportional single-hue bars (`bg-primary-400` fill on a
-  `surface-100`/`surface-800` track, width relative to the top row, `font-data`
-  counts, a muted split line beneath). Chart canvases live in a fixed-height
-  wrapper (`h-64`) with host + inner div `h-full` (PrimeNG 21 ignores
-  `styleClass` on `p-chart`); chart colors re-read the brand CSS vars on theme
-  change (canon: `crm/pages/dashboard`).
+  2026-07-20 pies; re-coloured by plan 23's palette roles, 2026-08-27):** time series
+  are `p-chart type="line"` — hero series `primary-600` (dark `primary-400`) with the
+  sole tolerated gradient (a single-hue area fill of the hero colour fading to
+  transparent), **secondary series `accent-500`** (superseding the old neutral-end
+  `primary-1000`/`primary-100` trick, which existed only because there was no second
+  brand colour), smooth `tension: 0.4`, no point dots, faint y-grid only, chart.js
+  legend OFF — the legend is dot chips in the card header. Categorical mixes (channels,
+  sources) are **never pies**: proportional bars on a `surface-100`/`surface-800`
+  track, width relative to the top row, `font-data` counts, a muted split line beneath
+  — the mix reads `primary` → `accent` → neutral, and where one member is *the* answer
+  (a peak day, a top channel) that bar alone is `primary-600` and the rest are neutral.
+  Good/bad numbers never take a brand colour: they ride the fixed semantic set. Chart
+  canvases live in a fixed-height wrapper (`h-64`) with host + inner div `h-full`
+  (PrimeNG 21 ignores `styleClass` on `p-chart`); chart colors re-read the brand CSS
+  vars on theme change (canon: `crm/pages/dashboard`). The shared components that
+  package all of this — `kpi-tile`, `segmented-bar`, `gauge-card`, `trend-card` —
+  arrive at **23 CP-3**; hand-rolling a fifth copy of a KPI strip after that is a
+  review failure.
 - **Default-PrimeNG buttons (owner 2026-07-22: "blob-like buttons do not look
   clean" — supersedes the 2026-07-21 blob/pill buttons):** actions are
   `rounded-control` rectangles at the input radius, stock-Aura `px-4` — the
@@ -134,14 +185,18 @@ auto-loads it — **edit both in the same commit.**
   (draft-vs-publish stays clear because "Publicar" sits alongside). Qualify
   only when two same-verb actions share a view.
 - **Strong cues:** status pills wherever state exists (never color alone); active nav =
-  **Diamond-style flat rows on the dark brand panel** (owner 2026-07-22, Diamond turn
-  v2 per reference screenshot — supersedes the elevated-pill/chip nav, which
-  superseded the solid-primary block): the sidebar is `primary-1000` in **both
-  modes** with a rounded right edge and hairline `primary-800/50` outline;
-  light-on-dark `rounded-control` rows (`primary-100`/`200` text, `primary-300`
-  `.nav-icon`s), hover `white/10`, active child = solid `primary-600` row with white
-  text (`.nav-active`), active-trail group = white text/icon (`.nav-group-active`),
-  no shadows inside the nav. The panel lives in its own `app-sidebar` component
+  **a soft tinted row on a light panel** (owner 2026-08-26, plan 23 § Direction 1 —
+  supersedes the 2026-07-22 dark brand panel, which superseded the elevated-pill/chip
+  nav, which superseded the solid-primary block): the sidebar is a `surface-0` panel
+  with a hairline right border (dark: `surface-900` panel, `surface-800` border) and
+  **no** rounded shell edge — the tenant's hue belongs on the state, not on the
+  furniture. Flat `rounded-control` rows, neutral hover tint, active row =
+  `bg-primary-100/60` (dark `bg-primary-1000/40`) with `text-primary-700` (dark
+  `primary-300`) on **both** label and `.nav-icon`, active-trail group carrying the
+  same emphasis one step quieter, `aria-current` preserved, no shadows inside the nav.
+  **Lands at 23 CP-2** — until that PR the shipped panel is still `primary-1000` with
+  `rounded-r-shell`, a solid `primary-600` active row and light-on-dark text, and this
+  paragraph is the target rather than the inventory. The panel lives in its own `app-sidebar` component
   (`layouts/components/sidebar/`, extracted 2026-07-23) rendered by both the desktop
   aside and the mobile drawer; desktop collapses to a `w-20` **icon rail** (owner
   2026-07-23, toggled by a floating `size-4` chevron handle straddling the panel's
@@ -271,7 +326,9 @@ Binding for every component; the skill carries the same list with implementation
   contract rework 2026-07-12, accent added by plan 22 on 2026-08-26). Those two are the
   whole tenant contract — **the chrome neutral is not shared any more.** Superadmin keeps
   a third scale, `surface-*`, same utility names and steps but fixed literal values: it
-  reads no CSS variable and no tenant can retune it. `frontend/` and `website/` deleted
+  reads no CSS variable and no tenant can retune it (`hsl(240 5% L%)` — cooled from pure
+  gray at 23 CP-1, which is both the reference console's canvas and the cast `zinc` gives
+  the other two apps; the lightness ladder never moved). `frontend/` and `website/` deleted
   theirs and use **stock Tailwind `zinc`** instead (owner, 2026-08-27) — same idea, no
   config to maintain, but `zinc-50…950`, not `surface-0…1000`. Do not copy neutral classes
   between the apps; whether superadmin follows them onto zinc is still open (22 § Decisions).
