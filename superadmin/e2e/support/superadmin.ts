@@ -12,6 +12,29 @@ import type { SaveServiceRequest, Service } from '../../src/app/data/dtos/servic
 const AUTH_STORAGE_KEY = 'auth.token';
 const AUTH_TOKEN = 'e2e-superadmin-token';
 
+/** The dev API origin every superadmin HTTP call goes to
+ *  (`environment.development.ts`). Route patterns anchor on it deliberately: a
+ *  bare `/customers` regex also matches the SPA's own document navigation, and
+ *  fulfilling a page navigation with JSON white-screens the test. */
+export const API_ORIGIN = 'http://127.0.0.1:8788';
+
+/**
+ * Catch-all for the API host: answer anything a test did not stub with an empty
+ * envelope. Without it, a page that fetches more than the spec cares about
+ * (any real shell page does) reaches a dev backend on :8788, which answers the
+ * fake e2e token with a genuine 401 — and the interceptor logs the session out
+ * from under the assertions. That failure only reproduces when a backend
+ * happens to be running, which is the worst kind of red.
+ *
+ * Register it FIRST — before `signIn` and before any per-test stub. Later
+ * routes win in Playwright, so everything specific keeps precedence over this.
+ */
+export async function stubIdleApi(page: Page): Promise<void> {
+  await page.route(`${API_ORIGIN}/**`, (route) =>
+    route.fulfill({ json: { items: [], total: 0, page: 1, limit: 10 } }),
+  );
+}
+
 export const ADMIN_ME: MeResponse = {
   user: { id: 'u-e2e', name: 'E2E Admin', email: 'admin@e2e.test' },
   role: 'admin',
@@ -156,6 +179,7 @@ export async function mockServicesApi(page: Page, seed: Service[] = []): Promise
         websiteImageKey: lastCreateBody.websiteImageKey || undefined,
         internalServiceCode: lastCreateBody.internalServiceCode || undefined,
         taxRate: lastCreateBody.taxRate,
+        isReportSource: lastCreateBody.isReportSource,
         isListableInWebsite: lastCreateBody.isListableInWebsite,
         isPriceVisibleInWebsite: lastCreateBody.isPriceVisibleInWebsite,
         createdAt: now,

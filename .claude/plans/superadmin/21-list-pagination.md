@@ -8,7 +8,7 @@
 > remains**, plus the standing wrapper backlog in §9 (opened 2026-08-27, owner) — worked one
 > slice per PR, never batched.
 > **Depends on:** 07 (clients), 18 (services) · **Touches:** `backend/`, `superadmin/`, `frontend/`
-> **Owner:** — · **Last updated:** 2026-08-25
+> **Owner:** — · **Last updated:** 2026-08-27
 
 Fixes the reported bug: **on the clients list, moving to any page never changes the
 rows.** The investigation (below) found the frontend pagination layer to be correct and
@@ -559,9 +559,39 @@ from applying it; the live Neon DB remains the owner's.
       the 7 real catalog rows were untouched
 - [x] `pnpm typecheck` green; superadmin `npm run build` green
 
-### CP-6 — Regression guard
-- [ ] Playwright spec per lazy list page: page 2 issues `?page=2` **and renders page-2 rows**
-- [ ] Suite green against a running `ng serve`
+### CP-6 — Regression guard — **done 2026-08-27**
+- [x] `e2e/lists/list-pagination.spec.ts` — one case per lazy list page, **all nine**:
+      clients, users, plantillas, reportes, equipos, catálogo, cotizaciones, órdenes de
+      servicio, contratos. Each turns to page 2 and asserts three things together: the URL
+      carries `page=2` (so browser back walks the filter history), the request the client
+      issued carried `page=2&limit=10`, and the row **leading the table is row 11**, not
+      row 1
+- [x] `e2e/support/paged-list.ts` — the scenario, extracted because every lazy list is the
+      same three parts (a `ListQueryService`, a `[lazy]` `p-table`, a `GenericQueryResponse`
+      read). `mockPagedEndpoint` slices its fixed row set by the `page`/`limit` it was
+      *asked* for: a stub that replayed the whole store would let the exact regression this
+      guard exists for pass green — which is how the clients list shipped broken (§1)
+- [x] Routes are anchored on the API origin (`http://127.0.0.1:8788`), never a bare
+      `/customers` regex: the SPA serves the same path as a document, and fulfilling a page
+      navigation with JSON white-screens the test. `stubIdleApi` (in `support/superadmin.ts`,
+      the general module — it is not paging-specific) answers **anything** on that origin a
+      test did not stub, and is registered **before** `signIn` so every specific route keeps
+      precedence
+- [x] **The guard was proved, not assumed.** Mutating the stub to ignore `page` (serve
+      `[0, limit)` always) fails all nine on the row assertion — "Expected `Cliente 011`,
+      received `Cliente 001`" — which is precisely the reported bug's signature. The URL and
+      request halves stay green under that mutation, which is why the rendered row is the
+      assertion that matters
+- [x] **Suite green: 23/23** against a running `ng serve`, and
+      `tsc -p e2e/tsconfig.json` clean. Four specs were red on `main` before this CP for
+      reasons unrelated to paging; both causes are fixed here rather than excused (below)
+
+**The four pre-existing failures, and what they actually were:**
+
+| Spec | Cause | Fix |
+|---|---|---|
+| `services/import-services.spec.ts` ×2 | Stale expectations: the import payload gained `isReportSource` (19 §2) and the two `toEqual` row assertions never followed. The same drift showed as 5 `tsc -p e2e/tsconfig.json` errors — the `Service` seeds in `sat-codes`, `duplicate-service`, `import-services` and `support/superadmin.ts` all predate the field | Seeds and expectations carry the flag. The export→re-import round trip now seeds the two rows with **different** values (`true`/`false`), so it proves the column survives the trip instead of agreeing by default. No product bug: `SERVICE_CSV_COLUMNS` already exports `isReportSource` — the old seed just left the cell empty |
+| `notifications/notification-center.spec.ts` ×2 | These are the only specs that load a **real shell page** (`/dashboard`), so they fetch far more than they stub. The unstubbed dashboard reads reached the dev backend on `:8788`, which answered the fake e2e token with a genuine 401 — and the interceptor logged the session out from under the assertions. The bell resolved, then detached with the whole shell | `stubIdleApi` in their `beforeEach`. Note the failure only reproduced when a backend happened to be running locally, which is why it read as flake |
 
 ---
 

@@ -428,6 +428,16 @@ Binding for every component; the skill carries the same list with implementation
   everything else — garbage never reaches state or the API), typed query building, and
   the dispatch. Never hand-roll filter/pagination wiring in a component. Canon consumer:
   `users/pages/users-list/users-list.ts` (05 §3).
+  **A new lazy list page also gets a case in `e2e/lists/list-pagination.spec.ts`**
+  (21 CP-6, added 2026-08-27): route, endpoint, a 25-row seed and the row's first-cell
+  reader — two lines of fixture. The guard turns to page 2 and asserts the URL, the
+  issued request *and* the leading row together, because PrimeNG in lazy mode renders
+  whatever it is handed: a list whose request never carried `page=2` re-renders page 1
+  and looks perfectly healthy. That is exactly how the clients list shipped broken.
+  Any spec that loads a **real shell page** also calls `stubIdleApi(page)` *before*
+  `signIn` — unstubbed reads otherwise reach a dev backend on `:8788`, which answers the
+  fake e2e token with a real 401 and logs the session out mid-test (a red that only
+  appears when a backend happens to be running).
 - **Filters live in a popover (owner, 2026-07-22 — Chakra-style):** list pages render
   their filter fields inside the shared
   `shared/components/filters-popover` component — a `Filtros` trigger (filter icon +
