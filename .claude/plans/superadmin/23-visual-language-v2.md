@@ -308,25 +308,30 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
 
 Measured against the **neutral default brand** exactly as § Verification demands — hue
 220 / 10% for `primary`, hue 240 / 5% for `surface`, the shared lightness ladder — so no
-tenant hue is what saves a number. Light panel = `surface-0` (#FFF), dark panel =
-`surface-900`.
+tenant hue is what saves a number. Light panel = `surface-0`, dark panel = `surface-900`.
+
+> **`surface-0` is not white.** `tailwind.config.js` builds the whole scale from the one
+> lightness table, so `surface-0` is `hsl(240 5% 98%)`; only the PrimeNG preset's parallel
+> `surface` map pins `0` to `#FFFFFF`. Measuring against white overstates every light-mode
+> number by ~2%, which is how the first pass of this table was wrong. The figures below
+> are against 98% L.
 
 | Pair | Light | Dark | Bar |
 |---|---|---|---|
-| Active row label on the tint (`primary-700` / `primary-300`) | **6.69:1** | **9.98:1** | 4.5 |
-| Active row icon on the tint | 6.69:1 | 9.98:1 | 3.0 |
-| Idle `.nav-item` (`surface-700` / `surface-300`) | 7.12:1 | 8.98:1 | 4.5 |
-| Idle `.nav-child` (`surface-600` / `surface-400`) | 5.11:1 | 6.39:1 | 4.5 |
-| Idle `.nav-icon` (`surface-500` / `surface-400`) | 3.57:1 | 6.39:1 | 3.0 |
+| Active row label on the tint (`primary-700` / `primary-300`) | **6.57:1** | **9.98:1** | 4.5 |
+| Active row icon on the tint | 6.57:1 | 9.98:1 | 3.0 |
+| Idle `.nav-item` (`surface-700` / `surface-300`) | 6.81:1 | 8.98:1 | 4.5 |
+| Idle `.nav-child` (`surface-600` / `surface-400`) | 4.88:1 | 6.39:1 | 4.5 |
+| Idle `.nav-icon` (`surface-500` / `surface-400`) | 3.41:1 | 6.39:1 | 3.0 |
 | Hover row text on the hover fill | 12.75:1 | 8.83:1 | 4.5 |
-| Group-active label (`surface-1000` / `surface-0`) | 17.68:1 | 13.97:1 | 4.5 |
-| Identity card: tenant name | 16.13:1 | 12.13:1 | 4.5 |
+| Group-active label (`surface-1000` / `surface-0`) | 16.90:1 | 13.35:1 | 4.5 |
+| Identity card: tenant name | 16.13:1 | 11.59:1 | 4.5 |
 | Identity card: caption (`surface-600` / `surface-400`) | 4.66:1 | 5.55:1 | 4.5 |
 
 Every AA bar in § Verification clears. Three things the sweep turned up that the numbers
 alone do not explain:
 
-1. **The tint itself is 1.06:1 against the panel at the neutral default** (1.11:1 dark).
+1. **The tint itself is 1.03:1 against the panel at the neutral default** (1.11:1 dark).
    That is not an AA failure — WCAG sets no contrast bar between two backgrounds, and
    1.4.11 covers component *boundaries*, not fills — and the row's state is carried by
    the label + icon hue shift and by `aria-current`, both measured above. But it is worth
@@ -338,7 +343,7 @@ alone do not explain:
    a steady one — flagged rather than fixed, because no tint choice survives a grey
    palette and the alternatives (a weight bump, a left marker bar) each break a rule this
    plan or 17 already settled.
-2. **`.micro-label`'s house `text-surface-500` measures 3.57:1 on a light panel** — under
+2. **`.micro-label`'s house `text-surface-500` measures 3.41:1 on a light panel** — under
    the 4.5 bar for text. That is app-wide and predates this CP (91 template instances),
    so CP-2 did not sweep it; the two *new* micro-labels it adds (the "Admin" tag, the
    identity-card caption) sit at `surface-600` instead, and the sweep belongs in **CP-6's
@@ -351,6 +356,27 @@ alone do not explain:
 The topbar search stub is a `disabled` control, which WCAG 1.4.3 exempts from contrast
 ("inactive user interface component") — its `surface-400` placeholder is deliberate, and
 it stops being an exemption the moment plan 24 makes it live.
+
+## CP-2 review passes (2026-08-27, owner asked)
+
+The shell was reviewed against a running `:4200` — light and dark, expanded and rail,
+flyouts, mobile drawer, keyboard focus, and the identity card in all three brand states
+(logo, name-only, no brand at all). Everything the checklist claims holds up in the
+browser, and the grey-fallback caveat in § CP-2 contrast measurements reproduces exactly
+as described: the active row is discernible but weak with no tenant hue loaded.
+
+Three things the review turned up that reading the code did not:
+
+1. **No nav group was expanded on a cold load.** `autoExpandActiveGroup()` ran only from
+   the `NavigationEnd` subscription, and the panel mounts *after* that first navigation
+   fires (the layout gates the whole shell on `/auth/me`). So arriving at `/customers`
+   painted four collapsed groups and no active row at all — the tinted row this checkpoint
+   is *about* was invisible until the user opened a group by hand. Pre-existing since the
+   2026-07-23 extraction, invisible while the active cue was a solid block on a dark panel
+   you had already opened. Now expanded once in the constructor.
+2. **Operaciones and CRM wore the same icon** (`LucideHeartHandshake`), which on a light
+   panel reads as one group with a duplicated row. Operaciones is `LucideClipboardList`.
+3. **`surface-0` is `hsl(240 5% 98%)`, not white** — see the note above the table.
 
 ## Decisions
 

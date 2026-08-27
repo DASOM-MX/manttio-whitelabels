@@ -93,6 +93,14 @@ export class Sidebar {
   });
 
   constructor() {
+    // The panel mounts *after* the first NavigationEnd has already fired (the
+    // layout gates the whole shell on `/auth/me`), so the subscription below
+    // never sees the navigation that brought us here — a cold load used to
+    // paint every group collapsed, hiding the active row entirely until the
+    // user opened a group by hand. Expand once up front (found reviewing the
+    // 23 CP-2 shell against a running server, 2026-08-27).
+    this.autoExpandActiveGroup();
+
     this.router.events
       .pipe(
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
