@@ -96,10 +96,15 @@ auto-loads it — **edit both in the same commit.**
   bordered box. PrimeNG panels draw the same hairline without an override sheet: stock
   Aura's content/overlay border already resolves to `{surface.200}` in light, and the
   preset pulls dark from Aura's `{surface.700}` down to `{surface.800}` to match
-  (`manttio-preset.ts` — preset-first, plan 23 CP-1). The shell keeps its 2026-07-21
-  sidebar shadow (`.shell-sidebar`); the topbar is SURFACELESS — no shadow, no
-  background: the bell + user pill float directly on the canvas (owner 2026-07-22,
-  slim-topbar turn — content scrolls in a separate region, nothing passes under it).
+  (`manttio-preset.ts` — preset-first, plan 23 CP-1). The shell follows the same
+  rule since 23 CP-2: `.shell-sidebar` dropped its 2026-07-21 shadow for a hairline
+  right border, because a shadow between two near-white surfaces separates nothing.
+  The topbar stays SURFACELESS — no shadow, no
+  background: the search field, bell + user pill float directly on the canvas (owner
+  2026-07-22, slim-topbar turn — content scrolls in a separate region, nothing passes
+  under it). **`.topbar-search` is a deliberately `disabled` stub** (owner 2026-08-27,
+  23 § Open ①): the chrome ships now, the capability is **plan 24** — do not quietly
+  enable it, and do not treat the `⌘K` hint as a live binding until 24 CP-2 lands.
   Shadows are always **neutral black alpha** — colored glows stay banned (AI-slop rule).
   **Depth needs contrast:** superadmin's `background` alias repoints to `surface-100`
   (one step under the card whites; owner 2026-07-22) — a deliberate superadmin-only
@@ -193,10 +198,19 @@ auto-loads it — **edit both in the same commit.**
   furniture. Flat `rounded-control` rows, neutral hover tint, active row =
   `bg-primary-100/60` (dark `bg-primary-1000/40`) with `text-primary-700` (dark
   `primary-300`) on **both** label and `.nav-icon`, active-trail group carrying the
-  same emphasis one step quieter, `aria-current` preserved, no shadows inside the nav.
-  **Lands at 23 CP-2** — until that PR the shipped panel is still `primary-1000` with
-  `rounded-r-shell`, a solid `primary-600` active row and light-on-dark text, and this
-  paragraph is the target rather than the inventory. The panel lives in its own `app-sidebar` component
+  same emphasis one step quieter, `aria-current` on the active row
+  (`ariaCurrentWhenActive="page"`, wired at CP-2 — `routerLinkActive` does not set it
+  for you), no shadows inside the nav. **Shipped at 23 CP-2 (2026-08-27)** — this
+  paragraph is the inventory now. Both hover rules exclude `.nav-active`, or hovering
+  the current row washes its tint away (`:hover` outranks a bare class). The global
+  focus ring re-offsets against the panel inside `app-sidebar`, since
+  `ring-offset-background` would halo every focused row in canvas grey.
+  **The panel's footer carries the tenant identity card** (owner 2026-08-27, plan 23
+  § Open ②): the reference's dark promo card has no honest job in a tenant admin, so
+  the slot answers *whose* admin this is — tenant logo (dark variant by theme) or name,
+  plus a muted caption, behind `BrandState.loaded` so it never flashes the manttio
+  fallback at a branded tenant; the collapsed rail shows the square mark alone, and
+  nothing at all when the tenant has no isologo. The panel lives in its own `app-sidebar` component
   (`layouts/components/sidebar/`, extracted 2026-07-23) rendered by both the desktop
   aside and the mobile drawer; desktop collapses to a `w-20` **icon rail** (owner
   2026-07-23, toggled by a floating `size-4` chevron handle straddling the panel's
@@ -305,8 +319,9 @@ Binding for every component; the skill carries the same list with implementation
 - **Tailwind CSS 3.4 only.** Do not upgrade or downgrade. If a new utility/class is needed,
   add it to `tailwind.config.js` (extend `theme`) rather than using arbitrary values inline.
 - **Radius language is tokenized (owner 2026-07-22, plan 17):** `rounded-card`
-  (1rem — cards, panels, dialogs, table shells; the sidebar edge is
-  `rounded-r-card`) · `rounded-chip` (0.75rem — icon chips, popovers) ·
+  (1rem — cards, panels, dialogs, table shells; the sidebar has **no** rounded edge
+  since 23 CP-2, and the `shell` step that curved it was deleted with it — a token
+  with no users is debt) · `rounded-chip` (0.75rem — icon chips, popovers) ·
   `rounded-control` (0.5rem — inputs, **buttons** (2026-07-22, default-PrimeNG
   turn), nav rows, small in-card surfaces) · `rounded-full` (status/role pills +
   chrome icon-circles only). New chrome uses these — never raw

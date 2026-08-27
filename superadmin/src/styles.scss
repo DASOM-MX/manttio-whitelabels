@@ -295,17 +295,19 @@
     @apply inline-flex size-12 items-center justify-center rounded-full bg-surface-100 text-surface-500 dark:bg-surface-800 dark:text-surface-400;
   }
 
-  /* Shell chrome (owner 2026-07-22, Diamond turn v2 — reference screenshot):
-     the sidebar is the tenant's DARK brand panel — `primary-1000` in both
-     modes with a rounded right edge and a hairline `primary-800/50` outline —
-     floating over the canvas. The topbar has NO surface of its own (owner
-     2026-07-22, two steps the same day: shadow removed, then the white bg) —
-     the bell + user pill float directly on the canvas; content scrolls in a
-     separate region below, so nothing ever passes under it. Neutral black
-     alpha shadows only — never a colored glow. */
+  /* Shell chrome (owner 2026-08-26, bright console — plan 23 § Direction 1;
+     supersedes the 2026-07-22 dark brand panel): the sidebar is a LIGHT
+     `surface-0` panel, separated from the canvas by a hairline right border
+     (dark: `surface-900` panel, `surface-800` border). No rounded shell edge
+     and no shadow — the border does the separating, and the tenant's hue is
+     spent on the active row rather than on furniture. The topbar has NO
+     surface of its own (owner 2026-07-22, two steps the same day: shadow
+     removed, then the white bg) — the search stub, bell + user pill float
+     directly on the canvas; content scrolls in a separate region below, so
+     nothing ever passes under it. Neutral black alpha shadows only — never a
+     colored glow. */
   .shell-sidebar {
-    @apply bg-primary-1000 border border-l-0 border-primary-800/50 rounded-r-shell;
-    box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.12);
+    @apply border-r border-surface-200 bg-surface-0 dark:border-surface-800 dark:bg-surface-900;
     /* Rail collapse/expand eases the width between w-64 and w-20 (owner
        2026-07-24, supersedes the earlier width-snap): a deliberate,
        single-element exception to the transform-only motion rule — the shell
@@ -313,53 +315,61 @@
        animations.scss, where it snaps as before. */
     transition: width var(--motion-base) var(--ease-enter);
   }
-  .app-dark .shell-sidebar {
-    box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.5);
-  }
 
-  /* Sidebar nav — Diamond-style flat rows on the dark brand panel (owner
-     2026-07-22, Diamond turn v2; supersedes the elevated-pill/blob nav and
-     its icon chips): light-on-dark rounded-control rows, plain outlined icons,
-     hover = white/10, active child = solid primary-600 row (interactive-solid
-     step, white text clears 4.5:1), active trail = white text/icon. The
-     panel is `primary-1000` in BOTH modes, so no dark: variants here. No
-     shadows anywhere in the nav. Idle/hover chrome lives here, not as
-     template utilities, so hover can't outrank `.nav-active` in the
-     cascade. */
+  /* Sidebar nav — flat rows on the LIGHT panel (owner 2026-08-26, bright
+     console; supersedes the light-on-dark rows of the Diamond turn, which
+     superseded the elevated-pill/blob nav): dark-on-light `rounded-control`
+     rows, plain outlined icons, NEUTRAL hover tint, and an active row that is
+     a soft `primary-100/60` fill with a `primary-700` label AND icon — the
+     brand hue marks state, never furniture. Active trail (a group holding the
+     active child) carries the same emphasis one step quieter: neutral-strong
+     label, primary icon, no fill. No shadows anywhere in the nav. Idle/hover
+     chrome lives here, not as template utilities, so hover can't outrank
+     `.nav-active` in the cascade — and both hover rules exclude `.nav-active`
+     so hovering the current row can't wash its tint away. */
   .nav-item {
-    @apply relative flex h-10 w-full items-center gap-3 overflow-hidden whitespace-nowrap rounded-control px-3 text-sm font-medium text-primary-100 transition-colors;
+    @apply relative flex h-10 w-full items-center gap-3 overflow-hidden whitespace-nowrap rounded-control px-3 text-sm font-medium text-surface-700 transition-colors dark:text-surface-300;
   }
   .nav-child {
-    @apply relative flex h-9 items-center overflow-hidden whitespace-nowrap rounded-control pl-11 pr-3 text-sm text-primary-200 transition-colors;
+    @apply relative flex h-9 items-center overflow-hidden whitespace-nowrap rounded-control pl-11 pr-3 text-sm text-surface-600 transition-colors dark:text-surface-400;
   }
-  .nav-item:hover,
+  .nav-item:not(.nav-active):hover,
   .nav-child:not(.nav-active):hover {
-    @apply bg-white/10;
+    @apply bg-surface-100 text-surface-900 dark:bg-surface-800 dark:text-surface-100;
   }
   .nav-icon {
-    @apply size-5 shrink-0 text-primary-300 transition-colors;
+    @apply size-5 shrink-0 text-surface-500 transition-colors dark:text-surface-400;
   }
   .nav-group-active {
-    @apply text-white;
+    @apply text-surface-1000 dark:text-surface-0;
   }
   .nav-group-active .nav-icon,
   .nav-active .nav-icon {
-    @apply text-white;
+    @apply text-primary-700 dark:text-primary-300;
   }
   .nav-active {
-    // No weight bump — the solid row carries the active cue (weight ladder).
-    @apply bg-primary-600 text-white;
+    // No weight bump — the tinted row carries the active cue (weight ladder).
+    @apply bg-primary-100/60 text-primary-700 dark:bg-primary-1000/40 dark:text-primary-300;
+  }
+
+  /* The global focus ring offsets against the CANVAS (`ring-offset-background`
+     = surface-100). Inside the nav that reads as a faint halo, because the
+     panel is surface-0 — so the offset re-anchors on the panel here. Scoped to
+     the component element, which wraps the desktop aside, the mobile drawer
+     and the rail flyouts alike. */
+  app-sidebar :focus-visible {
+    @apply ring-offset-surface-0 dark:ring-offset-surface-900;
   }
 
   /* Collapsed-rail flyouts (owner 2026-07-23): with the sidebar collapsed
-     to its icon rail, each row reveals a WHITE overlay submenu beside it on
-     hover/focus — separated from the dark rail by a 4px gap and a neutral
-     shadow (owner, same day: white + shadow, not the brand panel).
+     to its icon rail, each row reveals an overlay submenu beside it on
+     hover/focus — separated from the rail by a 16px gap and a neutral shadow.
      CSS-only (:hover / :focus-visible), so the keyboard path is the normal
      tab order and no JS state is needed. The pl-1 bridge is part of the
      flyout element, keeping hover continuous across the gap. True overlay →
-     the shadow is allowed; dark mode adds a hairline ring (shadows vanish
-     on the dark canvas). */
+     the shadow is allowed; since 23 CP-2 the rail is itself a light panel, so
+     the hairline ring runs in BOTH modes (a white panel floating over a white
+     rail needs the border, not just the penumbra) at the card's border step. */
   .nav-flyout-host {
     @apply relative;
   }
@@ -391,13 +401,13 @@
     // two-column grid at the call site, min-w keeps even a two-child group
     // wide. The ::before is the speech-bubble tail: a rotated square tucked
     // BEHIND the panel (-z-10 inside the flyout's stacking context), aimed
-    // at the rail icon; it rides the panel surface + dark hairline, no
+    // at the rail icon; it rides the panel surface + the same hairline, no
     // shadow of its own (it lives inside the panel's penumbra).
-    @apply relative w-max min-w-64 rounded-chip bg-white p-2 shadow-xl dark:bg-surface-900 dark:ring-1 dark:ring-surface-700;
+    @apply relative w-max min-w-64 rounded-chip bg-surface-0 p-2 shadow-xl ring-1 ring-surface-200 dark:bg-surface-900 dark:ring-surface-800;
 
     &::before {
       content: '';
-      @apply absolute -left-1.5 top-3.5 -z-10 size-3 rotate-45 rounded-sm bg-white dark:bg-surface-900 dark:ring-1 dark:ring-surface-700;
+      @apply absolute -left-1.5 top-3.5 -z-10 size-3 rotate-45 rounded-sm bg-surface-0 ring-1 ring-surface-200 dark:bg-surface-900 dark:ring-surface-800;
     }
   }
   .nav-flyout-title {
@@ -414,20 +424,48 @@
       @apply border-l border-surface-200 dark:border-surface-800;
     }
   }
-  /* Flyout links ride the light surface (not `.nav-child`, which is
-     light-on-dark for the brand panel); active keeps `.nav-active`. */
+  /* Flyout links ride the panel surface; active keeps `.nav-active`. */
   .nav-flyout-link {
     @apply flex h-9 items-center rounded-control px-3 text-sm text-surface-700 transition-colors dark:text-surface-300;
   }
   .nav-flyout-link:not(.nav-active):hover {
     @apply bg-surface-100 text-surface-900 dark:bg-surface-800 dark:text-surface-100;
   }
-  /* Active flyout link keeps white text on its solid primary-600 row. Both
-     `.nav-flyout-link` and `.nav-active` are single-class, so source order
-     (flyout-link is defined later) would otherwise let the light-surface text
-     beat `.nav-active`'s white — the compound selector outranks it in both
-     modes. */
+  /* Both `.nav-flyout-link` and `.nav-active` are single-class, so source
+     order (flyout-link is defined later) would otherwise let the idle
+     `surface-700` beat the active row's `primary-700` — the compound selector
+     outranks it in both modes. Kept as a compound after 23 CP-2 for exactly
+     the same reason the white version needed it. */
   .nav-flyout-link.nav-active {
-    @apply text-white;
+    @apply text-primary-700 dark:text-primary-300;
+  }
+
+  /* Topbar global search (plan 23 CP-2, § Open ① — a VISUAL STUB until plan
+     24 wires a real cross-module search): a field-shaped control on the
+     surfaceless strip, `disabled` on purpose. The chrome previews; a live box
+     that answers nothing would be a lie, and a disabled control says so
+     without a tooltip anyone has to hover to read. */
+  .topbar-search {
+    @apply h-10 w-full max-w-md cursor-not-allowed items-center gap-2.5 rounded-control border border-surface-200 bg-surface-0 px-3 text-sm text-surface-400 dark:border-surface-800 dark:bg-surface-900 dark:text-surface-500;
+  }
+  .topbar-search-hint {
+    @apply rounded-chip border border-surface-200 px-1.5 py-0.5 font-data text-2xs dark:border-surface-800;
+  }
+
+  /* Sidebar footer — the tenant identity card (owner 2026-08-27, plan 23
+     § Open ②: the reference's dark promo card has no honest job in a tenant
+     admin, so the slot carries WHOSE admin this is instead). A `surface-100`
+     tile — the house in-card grouping shift — separated from the nav by a
+     hairline top rule; the
+     rail shows the square mark alone. Brand-driven with the login screen's
+     manttio fallback — nothing renders until `/brand` settles. */
+  .nav-brand-card {
+    @apply flex flex-col gap-1.5 rounded-card bg-surface-100 p-3 dark:bg-surface-800/40;
+  }
+  .nav-brand-logo {
+    @apply h-7 w-auto max-w-full self-start object-contain;
+  }
+  .nav-brand-mark {
+    @apply size-9 rounded-chip bg-surface-100 object-contain p-1 dark:bg-surface-800/40;
   }
 }

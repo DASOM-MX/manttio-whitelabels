@@ -129,21 +129,21 @@ module.exports = {
       },
 
       // Semantic radius tokens (owner 2026-07-22): the shape boundary as
-      // utilities — `rounded-card` for cards/panels/dialogs/table shells
-      // (the sidebar edge rides `rounded-r-shell`), `rounded-chip` for icon
-      // chips + popovers, `rounded-control` for inputs/buttons/nav rows
-      // (buttons joined 2026-07-22 — default-PrimeNG shape, no more pills).
-      // Status/role pills + chrome icon-circles stay `rounded-full`. New
-      // chrome uses these, never raw rounded-lg/xl/2xl;
+      // utilities — `rounded-card` for cards/panels/dialogs/table shells,
+      // `rounded-chip` for icon chips + popovers, `rounded-control` for
+      // inputs/buttons/nav rows (buttons joined 2026-07-22 — default-PrimeNG
+      // shape, no more pills). Status/role pills + chrome icon-circles stay
+      // `rounded-full`. New chrome uses these, never raw rounded-lg/xl/2xl;
       // page templates migrate as CP-3..5 touch them. Values mirror the
       // preset's border.radius tokens (formField lg=0.5rem, dialog 1rem).
+      //
+      // The `shell: 2.35rem` step is GONE (plan 23 CP-2): it existed only for
+      // the dark brand panel's rounded right edge, and the light sidebar has
+      // no rounded edge at all — a token with no users is debt.
       borderRadius: {
         card: '1rem',
         chip: '0.75rem',
         control: '0.5rem',
-        // Sidebar right edge only (owner 2026-07-23): a deeper curve than
-        // the shared card radius so the brand panel reads as its own shape.
-        shell: '2.35rem',
       },
 
       // Soft-elevation card shadow (owner 2026-07-22, Purity-style soft UI):

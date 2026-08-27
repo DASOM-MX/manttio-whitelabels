@@ -9,6 +9,7 @@ import {
   LucideMenu,
   LucideMoon,
   LucideRefreshCw,
+  LucideSearch,
   LucideSun,
   LucideUserRound,
 } from '@lucide/angular';
@@ -33,6 +34,7 @@ import { Sidebar } from '../components/sidebar/sidebar';
     LucideChevronDown,
     LucideUserRound,
     LucideRefreshCw,
+    LucideSearch,
     ForcePasswordDialog,
     NotificationCenter,
     Sidebar,

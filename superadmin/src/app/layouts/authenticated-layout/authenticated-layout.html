@@ -32,9 +32,9 @@
   </div>
 } @else {
   <div class="flex h-dvh bg-background dark:bg-surface-1000">
-    <!-- Desktop sidebar: shares the page background — a smooth neutral shadow
-         (not a hairline) separates it from the content column (owner
-         redesign 2026-07-21). z-20 so it casts over the z-10 topbar.
+    <!-- Desktop sidebar: a light `surface-0` panel with a hairline right
+         border (owner 2026-08-26, plan 23 CP-2 — supersedes the dark brand
+         panel and its shadow). z-20 so it stays over the z-10 topbar.
          Collapsible into an icon rail (owner 2026-07-23); the w-64⇄w-20 change
          eases via .shell-sidebar's width transition (owner 2026-07-24,
          supersedes the width-snap), snapping under reduced motion. -->
@@ -57,7 +57,7 @@
         aria-hidden="true"
       ></div>
       <aside
-        class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-11/12 flex-col rounded-r-shell border border-l-0 border-primary-800/50 bg-primary-1000 shadow-xl lg:hidden"
+        class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-11/12 flex-col border-r border-surface-200 bg-surface-0 shadow-xl lg:hidden dark:border-surface-800 dark:bg-surface-900"
         animate.enter="anim-drawer-enter"
         animate.leave="anim-drawer-leave"
         aria-label="Navegación principal"
@@ -79,6 +79,24 @@
           aria-label="Abrir menú"
         >
           <svg lucideMenu class="size-5" aria-hidden="true"></svg>
+        </button>
+
+        <!-- Global search (owner 2026-08-27, plan 23 § Open ①): the
+             reference's headline topbar affordance, shipped as a VISUAL STUB —
+             superadmin has no cross-module search yet, so the control is
+             `disabled` rather than a live box that swallows keystrokes and
+             answers nothing. Plan 24 owns the real one. Hidden below `md`,
+             where the strip has no room for it. -->
+        <button
+          type="button"
+          class="topbar-search hidden md:flex"
+          disabled
+          title="Búsqueda global — próximamente"
+          aria-label="Búsqueda global — próximamente"
+        >
+          <svg lucideSearch class="size-4 shrink-0" aria-hidden="true"></svg>
+          <span class="flex-1 text-left">Buscar…</span>
+          <kbd class="topbar-search-hint">⌘K</kbd>
         </button>
 
         <div class="flex-1"></div>

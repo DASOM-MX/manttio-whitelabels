@@ -22,10 +22,10 @@ emerald/red/amber status set**, never with tints of one hue.
 Plan 17's skeleton stands (preset-first chrome, page rhythm, `page-header` everywhere,
 `rounded-control` buttons, neutral shadows, compact data). Three things it decided are
 superseded here and marked in place: the dark brand-panel sidebar, shadow-only cards,
-and `primary-400` as the decorative accent. **Two of the three are still being
-implemented** — the shipped app carries the light shell from 23 CP-2 and the
-`primary-400` sweep from 23 CP-6, so if the code disagrees with those two bullets
-today, the doc is the target and the code is the backlog.
+and `primary-400` as the decorative accent. Two of the three have shipped (bordered
+cards at 23 CP-1, the light shell at 23 CP-2); **the `primary-400` sweep is still
+pending at 23 CP-6**, so if the code disagrees with that one bullet today, the doc is
+the target and the code is the backlog.
 
 ## Hard rules (non-negotiable)
 
@@ -125,10 +125,14 @@ today, the doc is the target and the code is the backlog.
   also still the *internal* divider. PrimeNG panels match without an override sheet:
   Aura's content/overlay border is already `{surface.200}` in light, and the preset
   pulls dark from `{surface.700}` to `{surface.800}`.
-  The shell chrome keeps its 2026-07-21 sidebar shadow (the topbar is SURFACELESS since
-  2026-07-22: no shadow, no background, the bell + user pill float on the canvas), and
-  the shell stays **edge-to-edge** — the reference's inset rounded app frame was
-  declined (owner 2026-08-27, 23 § Open ③).
+  The shell follows the same rule: since 23 CP-2 the sidebar dropped its 2026-07-21
+  shadow for a hairline right border (a shadow between two near-white surfaces
+  separates nothing). The topbar stays SURFACELESS since
+  2026-07-22 — no shadow, no background, the search field, bell + user pill float on the
+  canvas. `.topbar-search` is a deliberately **`disabled` stub** (owner 2026-08-27, 23
+  § Open ①): the chrome ships, the capability is **plan 24** — never quietly enable it,
+  and the `⌘K` hint is not a live binding yet. The shell also stays **edge-to-edge** —
+  the reference's inset rounded app frame was declined (owner 2026-08-27, 23 § Open ③).
   **Depth needs contrast:** the `background` alias
   sits at `surface-100` in superadmin (one step under card whites, owner 2026-07-22) —
   keep page-level surfaces on `bg-background`, never on `bg-white`.
@@ -180,8 +184,9 @@ today, the doc is the target and the code is the backlog.
   view. Nav rows are flat `rounded-control`
   (Diamond turn, owner 2026-07-22). Boundary (tokenized 2026-07-22 in
   `tailwind.config.js`): inputs/buttons/nav `rounded-control` (0.5rem),
-  cards/dialogs/table shells `rounded-card` (1rem; the sidebar's `rounded-r-shell`
-  edge retires at 23 CP-2 — a light panel has a border, not a curve), icon chips +
+  cards/dialogs/table shells `rounded-card` (1rem; the sidebar has no rounded edge
+  since 23 CP-2 — a light panel has a border, not a curve — and the `shell` radius
+  step was deleted with it), icon chips +
   popovers `rounded-chip` (0.75rem), status/role
   pills + chrome icon-circles `rounded-full` — never raw `rounded-lg`/`xl`/`2xl`
   in new chrome.
@@ -202,9 +207,15 @@ today, the doc is the target and the code is the backlog.
   `surface-900` panel, `surface-800` border) and **no** rounded shell edge — brand rides
   the state, not the furniture. Flat `rounded-control` rows, neutral hover tint, active
   row = `bg-primary-100/60` (dark `bg-primary-1000/40`) with `text-primary-700` (dark
-  `primary-300`) on **both** label and `.nav-icon`, `aria-current` preserved. No shadows
-  inside the nav. **Lands at 23 CP-2** — until that PR the shipped panel is still
-  `primary-1000` + `rounded-r-shell` with a solid `primary-600` active row. The panel is the `app-sidebar` component
+  `primary-300`) on **both** label and `.nav-icon`, and `aria-current` on the active row
+  (`ariaCurrentWhenActive="page"` — `routerLinkActive` does not set it for you). No
+  shadows inside the nav. **Shipped 2026-08-27 at 23 CP-2.** Both hover rules exclude
+  `.nav-active` (`:hover` outranks a bare class, so an un-excluded hover washes the
+  active tint away), and the focus ring re-offsets against the panel inside
+  `app-sidebar`. The footer carries the **tenant identity card** — logo (dark variant by
+  theme) or name plus a muted caption, gated on `BrandState.loaded`, square mark only in
+  the rail (owner 2026-08-27, § Open ②: a tenant admin has nothing honest to promote, so
+  the reference's promo slot answers *whose* admin this is). The panel is the `app-sidebar` component
   (`layouts/components/sidebar/`); desktop collapses to a `w-20` icon rail
   (owner 2026-07-23, persisted `AppState.sidebarCollapsed`) whose rows reveal
   `.nav-flyout` submenus on hover/focus — CSS-only, width snaps (no width

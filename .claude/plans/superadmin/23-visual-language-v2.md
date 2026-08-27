@@ -10,8 +10,15 @@
 > down to `{surface.800}` so PrimeNG panels draw the card's hairline (preset-first — no
 > new override sheet); the fixed chrome neutral is cooled from pure gray to
 > `hsl(240 5% L%)` with the lightness ladder — and therefore every contrast ratio —
-> untouched. Both § Open items due at CP-1 are answered (§ Decisions). **CP-2 (light
-> shell) next.**
+> untouched. Both § Open items due at CP-1 are answered (§ Decisions).
+> **CP-2 done 2026-08-27** (branch `style/superadmin-visual-language-cp2`, same
+> worktree): the sidebar is a light `surface-0` panel with a hairline right border in
+> both the desktop aside and the mobile drawer, the `rounded-r-shell` edge and its
+> radius token are deleted, rows carry a neutral hover and a `primary-100/60` active
+> tint with a primary label *and* icon, `aria-current` is wired for the first time, the
+> footer carries the tenant identity card, and the topbar gained the reference's search
+> field as a deliberately **disabled** stub. Both § Open items due at CP-2 are answered
+> (§ Decisions), and the real search became **plan 24**. **CP-3 (viz kit) next.**
 > **Owner:** planning session 2026-08-26 · **Last updated:** 2026-08-27
 > **Scope:** `superadmin/` only. **Depends on 22 CP-2** — every surface this plan writes must
 > be authored on `primary`/`accent`/fixed-`surface`, never on names 22 is about to change
@@ -202,20 +209,40 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
 - [x] Both modes eyeballed; `npm run build` green
 
 ### CP-2 — Shell
-- [ ] Sidebar → `surface-0` panel with a hairline right border; the `primary-1000` panel and
-      `rounded-r-shell` retire (drop the `shell` radius token if nothing else uses it)
-- [ ] Rows: neutral hover; active = `bg-primary-100/60` (dark `bg-primary-1000/40`) with
-      `text-primary-700` / `primary-300` label **and** icon; `aria-current` preserved
-- [ ] Wordmark strip stays `h-14` and level with the topbar; group collapse chevron + indented,
-      icon-less children
-- [ ] Count-badge slot on nav entries (soft pill, right-aligned) — wired to a real count or left
-      out; no decorative placeholder
-- [ ] Collapsed rail + hover/focus flyouts inherit the light treatment; flyout overflow
-      behaviour unchanged; the floating collapse handle survives
-- [ ] Bottom block: Settings/Help separation + the promo-card decision (§ Open ②)
-- [ ] Topbar stays surfaceless; search-field decision (§ Open ①) recorded either way
-- [ ] Focus rings visible on the tinted rows; § Verification contrast checks pass in both modes
-- [ ] `npm run build` green
+- [x] Sidebar → `surface-0` panel with a hairline right border (dark `surface-900` /
+      `surface-800`); the `primary-1000` panel, its `rounded-r-shell` edge **and** the
+      2026-07-21 sidebar shadow all retire — a shadow between two near-white surfaces
+      separates nothing. The `shell: 2.35rem` radius token had no other users and was
+      deleted with it. The **mobile drawer** takes the same treatment (same
+      `app-sidebar` component, but the drawer's panel chrome lives on the layout's own
+      `<aside>` and had to move with it)
+- [x] Rows: neutral hover; active = `bg-primary-100/60` (dark `bg-primary-1000/40`) with
+      `text-primary-700` / `primary-300` label **and** icon. Two things this line assumed
+      were already true and were not: **`aria-current` did not exist anywhere in the
+      app** (`routerLinkActive` does not set it — `ariaCurrentWhenActive="page"` is now
+      on all three link forms: leaf rows, expanded children, flyout links), and
+      `.nav-item:hover` did not exclude `.nav-active`, so hovering the current row
+      replaced its background (harmless against the old solid row, fatal to a soft tint)
+- [x] Wordmark strip stays `h-14` and level with the topbar; group collapse chevron +
+      indented, icon-less children — unchanged, recolored for the light panel
+- [x] Count-badge slot — **left out.** Nothing in the app produces a per-entry count:
+      the owner/admin nav is four *groups* (Negocio · Operaciones · CRM · CMS), and a
+      badge on a group would have to sum children no endpoint counts. Shipping the slot
+      with nothing behind it is exactly the decorative placeholder this line forbids, so
+      it is not in the `NavEntry` type either
+- [x] Collapsed rail + hover/focus flyouts inherit the light treatment; flyout overflow
+      behaviour unchanged; the floating collapse handle survives. The flyout's hairline
+      ring now runs in **both** modes (it was dark-only, because the rail it escaped
+      used to be dark) and moved from `surface-700` to the card's `surface-800`
+- [x] Bottom block: **the tenant identity card** (§ Open ② — owner 2026-08-27)
+- [x] Topbar stays surfaceless; the search field ships as a **disabled visual stub**
+      (§ Open ① — owner 2026-08-27), and the real one is now **plan 24**
+- [x] Focus rings visible on the tinted rows — the global ring offsets against
+      `background` (surface-100), which halos every focused row on a `surface-0` panel,
+      so `app-sidebar :focus-visible` re-offsets on the panel. § Verification contrast
+      measured in both modes (§ CP-2 contrast measurements)
+- [x] `npm run build` green; the Playwright suite still 23/23 (two specs load the real
+      shell, so a broken drawer or bell would have surfaced there)
 
 ### CP-3 — Viz kit
 - [ ] `kpi-tile` — micro-label, trailing Lucide icon, `font-data` value, delta pill (sign always
@@ -277,6 +304,54 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
 - Keyboard: nav group collapse, card overflow menus, and the search field are reachable and
   escapable; `aria-current` on the active nav row.
 
+## CP-2 contrast measurements (2026-08-27)
+
+Measured against the **neutral default brand** exactly as § Verification demands — hue
+220 / 10% for `primary`, hue 240 / 5% for `surface`, the shared lightness ladder — so no
+tenant hue is what saves a number. Light panel = `surface-0` (#FFF), dark panel =
+`surface-900`.
+
+| Pair | Light | Dark | Bar |
+|---|---|---|---|
+| Active row label on the tint (`primary-700` / `primary-300`) | **6.69:1** | **9.98:1** | 4.5 |
+| Active row icon on the tint | 6.69:1 | 9.98:1 | 3.0 |
+| Idle `.nav-item` (`surface-700` / `surface-300`) | 7.12:1 | 8.98:1 | 4.5 |
+| Idle `.nav-child` (`surface-600` / `surface-400`) | 5.11:1 | 6.39:1 | 4.5 |
+| Idle `.nav-icon` (`surface-500` / `surface-400`) | 3.57:1 | 6.39:1 | 3.0 |
+| Hover row text on the hover fill | 12.75:1 | 8.83:1 | 4.5 |
+| Group-active label (`surface-1000` / `surface-0`) | 17.68:1 | 13.97:1 | 4.5 |
+| Identity card: tenant name | 16.13:1 | 12.13:1 | 4.5 |
+| Identity card: caption (`surface-600` / `surface-400`) | 4.66:1 | 5.55:1 | 4.5 |
+
+Every AA bar in § Verification clears. Three things the sweep turned up that the numbers
+alone do not explain:
+
+1. **The tint itself is 1.06:1 against the panel at the neutral default** (1.11:1 dark).
+   That is not an AA failure — WCAG sets no contrast bar between two backgrounds, and
+   1.4.11 covers component *boundaries*, not fills — and the row's state is carried by
+   the label + icon hue shift and by `aria-current`, both measured above. But it is worth
+   saying plainly: with **no tenant brand loaded**, `primary-100` is a 10%-saturation
+   grey and the active fill is invisible; the label's `primary-700` is then the same
+   value as the idle `surface-700`, so the active row reads as ordinary. The old solid
+   `primary-600` row did not have that failure mode. The fallback palette exists "for the
+   no-brand instant only" (`manttio-preset.ts`), so this is a broken-`/brand` state, not
+   a steady one — flagged rather than fixed, because no tint choice survives a grey
+   palette and the alternatives (a weight bump, a left marker bar) each break a rule this
+   plan or 17 already settled.
+2. **`.micro-label`'s house `text-surface-500` measures 3.57:1 on a light panel** — under
+   the 4.5 bar for text. That is app-wide and predates this CP (91 template instances),
+   so CP-2 did not sweep it; the two *new* micro-labels it adds (the "Admin" tag, the
+   identity-card caption) sit at `surface-600` instead, and the sweep belongs in **CP-6's
+   straggler audit**.
+3. **The panel hairline is 1.16:1 against the canvas** (1.83:1 dark) — the same
+   `surface-200`-on-`surface-100` pairing CP-1 shipped on every card border with the
+   owner's sign-off. Consistent by construction; changing it here would fork the card
+   treatment.
+
+The topbar search stub is a `disabled` control, which WCAG 1.4.3 exempts from contrast
+("inactive user interface component") — its `surface-400` placeholder is deliberate, and
+it stops being an exemption the moment plan 24 makes it live.
+
 ## Decisions
 
 - **Locked (2026-08-26, owner):** adopt the **light sidebar** (supersedes 17's dark brand
@@ -298,11 +373,23 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
 - **Derived (2026-08-26, planning):** cards regain a hairline border · `accent` never carries
   a status meaning alone · 17's `primary-400` accent step retires · the viz kit ships only
   what CP-4 actually uses.
-- **Open — decide at the CP that needs it:** ① **topbar global search** — the reference's
-  headline affordance, but superadmin has no cross-module search today: build it (its own
-  plan), stub it visually, or leave the topbar as-is (CP-2). *Recommendation:* leave it out
-  until there is something to search; a decorative search box is a lie. ② The sidebar's
-  **bottom promo card** — what goes there in a tenant admin (support link? plan/usage? nothing)?
-  (CP-2). ③ The **outer rounded app frame** — adopt the inset frame or keep the current
-  edge-to-edge shell (CP-1). ④ Whether the gauge's default fill is `accent` or emerald when the
-  metric has no good/bad direction (CP-3).
+- **Decided 2026-08-27 (owner, at CP-2) — both § Open items due here:**
+  - ① **The topbar search ships as a visual stub, and the real one becomes plan 24.**
+    The owner overrode the recommendation to leave it out: the chrome lands now, the
+    capability is planned rather than deferred indefinitely. The stub is a `disabled`
+    field-shaped control (`.topbar-search`, `md:` and up) with the magnifier, the
+    placeholder and the `⌘K` hint — **disabled on purpose**, so it previews the chrome
+    without being a live box that swallows keystrokes and answers nothing. Plan 24 owns
+    the endpoint, the palette, the shortcut and the scope; until it lands the `⌘K` hint
+    is chrome, not a working binding.
+  - ② **The sidebar's bottom block is the tenant identity card**, not a promo card. A
+    tenant admin has nothing honest to promote — no plan/usage to upsell, no marketing
+    slot — so the space answers a question the app never answered before: *whose* admin
+    am I inside. Tenant logo (the dark variant picked by theme, exactly as the login
+    brand panel picks it) or the tenant name when there is no logo, plus a muted
+    "Panel de administración" caption, on a `surface-100` tile behind a hairline top
+    rule. Gated on `BrandState.loaded`, so a branded tenant never flashes the manttio
+    fallback; the collapsed rail shows the square isologo alone, and nothing at all when
+    the tenant has no isologo.
+- **Open — decide at the CP that needs it:** ④ Whether the gauge's default fill is
+  `accent` or emerald when the metric has no good/bad direction (CP-3).
