@@ -1,6 +1,6 @@
 import { test } from '@playwright/test';
-import { signIn } from '../support/superadmin';
-import { expectServerSidePaging, stubIdleApi } from '../support/paged-list';
+import { signIn, stubIdleApi } from '../support/superadmin';
+import { expectServerSidePaging } from '../support/paged-list';
 import { CustomerSource, CustomerStatus } from '../../src/app/data/dtos/customer';
 import type { LegacyCustomerRow } from '../../src/app/data/dtos/customer-legacy';
 import type { User } from '../../src/app/data/dtos/user';

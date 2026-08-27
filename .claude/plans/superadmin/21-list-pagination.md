@@ -573,25 +573,25 @@ from applying it; the live Neon DB remains the owner's.
       guard exists for pass green — which is how the clients list shipped broken (§1)
 - [x] Routes are anchored on the API origin (`http://127.0.0.1:8788`), never a bare
       `/customers` regex: the SPA serves the same path as a document, and fulfilling a page
-      navigation with JSON white-screens the test. A `stubIdleApi` catch-all on that origin
-      is registered **before** `signIn`, so no unstubbed call reaches a dev backend that
-      would answer the fake e2e token with a real 401 and log the session out mid-test
+      navigation with JSON white-screens the test. `stubIdleApi` (in `support/superadmin.ts`,
+      the general module — it is not paging-specific) answers **anything** on that origin a
+      test did not stub, and is registered **before** `signIn` so every specific route keeps
+      precedence
 - [x] **The guard was proved, not assumed.** Mutating the stub to ignore `page` (serve
       `[0, limit)` always) fails all nine on the row assertion — "Expected `Cliente 011`,
       received `Cliente 001`" — which is precisely the reported bug's signature. The URL and
       request halves stay green under that mutation, which is why the rendered row is the
       assertion that matters
-- [x] Suite run against a running `ng serve`: **19 passed, 4 failed** — the 9 new cases and
-      every other spec green; the 4 reds are **pre-existing on `main` and unrelated to
-      paging**, unchanged by this CP (see below)
+- [x] **Suite green: 23/23** against a running `ng serve`, and
+      `tsc -p e2e/tsconfig.json` clean. Four specs were red on `main` before this CP for
+      reasons unrelated to paging; both causes are fixed here rather than excused (below)
 
-**Pre-existing e2e failures, unrelated to this plan** (recorded so "suite green" isn't
-silently claimed):
+**The four pre-existing failures, and what they actually were:**
 
-| Spec | Cause |
-|---|---|
-| `services/import-services.spec.ts` ×2 | Stale expectations: the import payload gained `isReportSource` (19 §2) and the two `toEqual` row assertions were never updated. The same drift shows up as 5 `tsc -p e2e/tsconfig.json` errors — the `Service` seeds in `sat-codes`, `duplicate-service`, `import-services` and `support/superadmin.ts` all predate the field |
-| `notifications/notification-center.spec.ts` ×2 | The shell bell resolves and then detaches; serially, `getByRole('button', { name: /^Notificaciones/ })` is never found at all. Needs its own look — nothing here touches the notification shell |
+| Spec | Cause | Fix |
+|---|---|---|
+| `services/import-services.spec.ts` ×2 | Stale expectations: the import payload gained `isReportSource` (19 §2) and the two `toEqual` row assertions never followed. The same drift showed as 5 `tsc -p e2e/tsconfig.json` errors — the `Service` seeds in `sat-codes`, `duplicate-service`, `import-services` and `support/superadmin.ts` all predate the field | Seeds and expectations carry the flag. The export→re-import round trip now seeds the two rows with **different** values (`true`/`false`), so it proves the column survives the trip instead of agreeing by default. No product bug: `SERVICE_CSV_COLUMNS` already exports `isReportSource` — the old seed just left the cell empty |
+| `notifications/notification-center.spec.ts` ×2 | These are the only specs that load a **real shell page** (`/dashboard`), so they fetch far more than they stub. The unstubbed dashboard reads reached the dev backend on `:8788`, which answered the fake e2e token with a genuine 401 — and the interceptor logged the session out from under the assertions. The bell resolved, then detached with the whole shell | `stubIdleApi` in their `beforeEach`. Note the failure only reproduced when a backend happened to be running locally, which is why it read as flake |
 
 ---
 

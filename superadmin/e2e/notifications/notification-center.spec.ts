@@ -1,8 +1,15 @@
 import { expect, test } from '@playwright/test';
-import { mockNotificationsApi, signIn } from '../support/superadmin';
+import { mockNotificationsApi, signIn, stubIdleApi } from '../support/superadmin';
 
 test.describe('Notification center — shell bell', () => {
   test.beforeEach(async ({ page }) => {
+    // The bell lives in the shell, so these tests load a real page (/dashboard)
+    // and everything *it* fetches has to be answered too — an unstubbed call
+    // reaching a dev backend on :8788 gets a real 401 for the fake e2e token,
+    // and the interceptor logs the session out from under the assertions.
+    // Registered before signIn: later routes win, so the specific stubs keep
+    // precedence over this catch-all.
+    await stubIdleApi(page);
     await signIn(page);
   });
 

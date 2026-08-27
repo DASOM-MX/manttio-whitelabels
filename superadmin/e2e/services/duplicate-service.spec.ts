@@ -14,6 +14,7 @@ const SOURCE: Service = {
   websiteImageUrl: 'https://images.example/website/foto.jpg',
   internalServiceCode: 'MP-001',
   taxRate: ServiceTaxRate.Iva16,
+  isReportSource: true,
   isListableInWebsite: true,
   isPriceVisibleInWebsite: true,
   createdAt: '2026-07-10T16:00:00.000Z',

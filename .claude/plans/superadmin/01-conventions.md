@@ -434,6 +434,10 @@ Binding for every component; the skill carries the same list with implementation
   issued request *and* the leading row together, because PrimeNG in lazy mode renders
   whatever it is handed: a list whose request never carried `page=2` re-renders page 1
   and looks perfectly healthy. That is exactly how the clients list shipped broken.
+  Any spec that loads a **real shell page** also calls `stubIdleApi(page)` *before*
+  `signIn` — unstubbed reads otherwise reach a dev backend on `:8788`, which answers the
+  fake e2e token with a real 401 and logs the session out mid-test (a red that only
+  appears when a backend happens to be running).
 - **Filters live in a popover (owner, 2026-07-22 — Chakra-style):** list pages render
   their filter fields inside the shared
   `shared/components/filters-popover` component — a `Filtros` trigger (filter icon +

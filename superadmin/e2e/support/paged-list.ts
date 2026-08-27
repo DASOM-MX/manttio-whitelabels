@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { API_ORIGIN } from './superadmin';
 import type { GenericQueryResponse } from '../../src/app/data/dtos/generic-query-response';
 
 /**
@@ -13,30 +14,12 @@ import type { GenericQueryResponse } from '../../src/app/data/dtos/generic-query
 /** Rows per page, mirroring `ListQueryService.PAGE_SIZE`. */
 export const ROWS_PER_PAGE = 10;
 
-/** The dev API origin every superadmin HTTP call goes to
- *  (`environment.development.ts`). Routes are anchored on it deliberately: a
- *  bare `/customers` regex also matches the SPA's own document navigation, and
- *  fulfilling a page navigation with JSON white-screens the test. */
-export const API_ORIGIN = 'http://127.0.0.1:8788';
-
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** Exactly this API path, with or without a query string — never a sibling.
  *  `/services` must not answer for `/services/all` or `/service-orders`. */
 const endpointPattern = (path: string) =>
   new RegExp(`^${escapeRegExp(API_ORIGIN + path)}(\\?.*)?$`);
-
-/**
- * Catch-all for the API host, so no unstubbed call reaches a dev backend that
- * would answer the fake e2e token with a real 401 — the interceptor logs the
- * session out mid-test. Register it FIRST: later routes win in Playwright, so
- * `signIn`'s stubs and the per-test list stub both keep precedence over this.
- */
-export async function stubIdleApi(page: Page): Promise<void> {
-  await page.route(`${API_ORIGIN}/**`, (route) =>
-    route.fulfill({ json: { items: [], total: 0, page: 1, limit: ROWS_PER_PAGE } }),
-  );
-}
 
 export interface PagedCalls {
   /** Query strings the list endpoint was called with, in order. */

@@ -14,6 +14,7 @@ const NO_KEYS: Service = {
   price: '1500.00',
   uom: ServiceUom.Hora,
   taxRate: ServiceTaxRate.Iva16,
+  isReportSource: false,
   isListableInWebsite: false,
   isPriceVisibleInWebsite: false,
   createdAt: '2026-07-10T16:00:00.000Z',
