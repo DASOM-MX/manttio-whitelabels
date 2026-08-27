@@ -337,8 +337,13 @@
   .nav-item {
     @apply relative flex h-10 w-full items-center gap-3 overflow-hidden whitespace-nowrap rounded-control px-3 text-sm font-bold text-surface-700 transition-colors dark:text-surface-300;
   }
+  /* The child pill starts where the elbow ENDS (owner 2026-08-27): `ml-9`
+     (36px) = the 22px rail + the elbow's 14px of reach, so the connector runs
+     into the tint's edge instead of across its face. `pl-2` then puts the label
+     back at the same 44px it sat at under `pl-11` — the row did not move, only
+     the fill's left edge did. */
   .nav-child {
-    @apply relative flex h-9 items-center overflow-hidden whitespace-nowrap rounded-control pl-11 pr-3 text-sm text-surface-600 transition-colors dark:text-surface-400;
+    @apply relative ml-9 flex h-9 items-center overflow-hidden whitespace-nowrap rounded-control pl-2 pr-3 text-sm text-surface-600 transition-colors dark:text-surface-400;
   }
   .nav-item:not(.nav-active):not(.nav-group-active):hover,
   .nav-child:not(.nav-active):hover {
@@ -408,8 +413,9 @@
      child row. The geometry is derived, not eyeballed — the nav gutter is
      `px-3` and `.nav-item` adds another `px-3` before its `size-5` icon, so the
      icon's centre lands 22px from the child list's own left edge, and
-     `.nav-child`'s `pl-11` puts the label at 44px: 14px of elbow reach leaves an
-     8px gap before the text. The rail stops at the LAST child's centre — rows
+     the elbow's 14px of reach ends at 36px, which is exactly where the child
+     pill now begins (`.nav-child`'s `ml-9`), and its `pl-2` leaves the label at
+     44px. The rail stops at the LAST child's centre — rows
      are a uniform `h-9` with `gap-0.5`, so that is exactly 18px off the bottom.
      Plain CSS rather than @apply: a template cannot express either
      pseudo-element, and these are derived offsets, not palette choices. */
@@ -423,8 +429,9 @@
     top: 0;
     bottom: 1.125rem; /* half a row: the rail dies into the last elbow */
     border-left-width: 1px;
-    /* Same lift as the elbows: a rail that breaks behind the active pill reads
-       as a rendering fault, not as a design. */
+    /* Same lift as the elbows. Since 2026-08-27 the pill starts clear of the
+       rail, so nothing can paint over it — the lift stays as the guard on that
+       joint, and on any future row that reclaims the gutter. */
     z-index: 1;
     @apply border-surface-200 dark:border-surface-800;
   }
@@ -441,8 +448,9 @@
     border-left-width: 1px;
     border-bottom-width: 1px;
     border-bottom-left-radius: 0.5rem;
-    /* Over the active row's tint, never under it — the connector has to read as
-       continuous through the pill. */
+    /* The elbow no longer crosses the tint — it stops at the pill's left edge
+       (owner 2026-08-27, supersedes drawing it over the fill). The lift only
+       guards the 1px joint where the two meet. */
     z-index: 1;
     @apply border-surface-200 dark:border-surface-800;
   }

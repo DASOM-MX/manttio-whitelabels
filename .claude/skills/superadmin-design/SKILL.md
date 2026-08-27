@@ -231,6 +231,9 @@ the target and the code is the backlog.
   `.nav-rail > ul > li:has(> .nav-active, > .nav-group-active)::after`; `::before`
   is the **tree elbow** of `.nav-tree`, the hairline rail + rounded connectors expanded
   groups draw, and sharing the pseudo-element deletes the elbow on the active row.
+  **The child pill starts where the elbow ends** (owner 2026-08-27): `.nav-child` is
+  `ml-9` + `pl-2` — 22px rail + 14px reach = 36px — so the connector leads into the tint
+  instead of across it, and the label sits at the same 44px as before.
   **Count badges** (`.nav-badge`) render only for a real number and ride `accent`, never
   emerald — emerald is a status colour, a count is information.
   **Shipped 2026-08-27 at 23 CP-2.** Both hover rules exclude

@@ -244,8 +244,12 @@ auto-loads it — **edit both in the same commit.**
   or hovering either highlighted row washes its tint away.
   **Expanded groups draw a tree** (`.nav-tree` on the children list): a hairline rail
   from the parent icon's centre with a rounded elbow into each child, geometry derived
-  from the existing gutters, both pseudo-elements lifted over the active tint so the
-  rail reads continuous. **Count badges** (`NavBadge.badge`, `.nav-badge`) render only
+  from the existing gutters. **The child pill starts where the elbow ends** (owner
+  2026-08-27 — supersedes running the tint under the connector): `.nav-child` is `ml-9`
+  (22px rail + 14px reach = 36px) with `pl-2`, so the label stays at the same 44px it sat
+  at under `pl-11` and only the fill's left edge moved. The connector now leads *into* the
+  highlight instead of crossing its face; the pseudo-elements keep their `z-index: 1` as
+  a guard on that joint. **Count badges** (`NavBadge.badge`, `.nav-badge`) render only
   when an entry carries a real number — the slot is built and stays **dormant** until the
   owner wires a counting source (23 § Open ⑤, closed 2026-08-27: deferred, owner-owned —
   never fill it with a placeholder or an invented count), and it

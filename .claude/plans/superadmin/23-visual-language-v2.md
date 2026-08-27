@@ -249,8 +249,10 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
       a hairline rail dropping from the parent icon's centre with a rounded elbow into
       each child row, `.nav-tree` on the children list. Geometry is derived from the
       existing gutters rather than eyeballed — 22px to the rail (nav `px-3` + row `px-3`
-      + half a `size-5` icon), 14px of elbow reach against `.nav-child`'s `pl-11`, and
-      the rail stops 18px off the bottom, which is half a uniform `h-9` row
+      + half a `size-5` icon), 14px of elbow reach, and the rail stops 18px off the
+      bottom, which is half a uniform `h-9` row. **The child pill starts where the elbow
+      ends** (owner 2026-08-27, fourth round): `.nav-child` moved from `pl-11` to
+      `ml-9` + `pl-2`, so the fill begins at 36px and the label stays at 44px
 - [x] Wordmark strip stays `h-14` and level with the topbar; group collapse chevron +
       indented, icon-less children — unchanged, recolored for the light panel
 - [x] Count-badge slot — **built at the owner's request (2026-08-27), dormant by
@@ -443,7 +445,8 @@ element has exactly one, the marker's selector outranks the elbow's, so **the ac
 silently lost its elbow** — the tree looked correct on every row except the one the user
 is standing on. The marker moved to `::after`, and both pseudo-elements now carry a
 `z-index: 1` so the rail and elbow read as continuous *through* the tinted pill instead
-of breaking behind it.
+of breaking behind it. (The owner later moved the pill clear of the connector entirely —
+§ Decisions, fourth round — so the lift now only guards the joint where the two meet.)
 
 ## Decisions
 
@@ -575,5 +578,13 @@ of breaking behind it.
   placeholder count, no invented source — a badge that shows a number nobody can act on is
   worse than an empty rail. Whatever counting endpoint eventually feeds it is the owner's
   to pick and implement; CP-2 is done at the slot.
+- **Decided 2026-08-27 (owner, fourth review round) — the child highlight starts where
+  the connector ends.** The tint used to span the full child row, so the tree's rail ran
+  straight down the face of the active pill and the elbow crossed into it; lifting both
+  over the fill made that legible, not correct. `.nav-child` moves from `pl-11` to
+  **`ml-9` + `pl-2`**: 22px of rail plus the elbow's 14px of reach is exactly 36px, so
+  the elbow now terminates *at* the pill's left edge and the highlight begins there. The
+  label does not move — 36 + 8 is the same 44px `pl-11` gave it — so this changes only
+  where the fill starts, in both the active tint and the hover tint.
 - **Open — decide at the CP that needs it:** ④ Whether the gauge's default fill is
   `accent` or emerald when the metric has no good/bad direction (CP-3).
