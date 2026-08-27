@@ -33,7 +33,7 @@
                there is no full options list to resolve a name from anyway. -->
           <span class="field-label" id="contract-customer-label">Cliente</span>
           <p
-            class="flex min-h-11 items-center rounded-control bg-surface-100 px-3 py-2 text-sm font-medium sm:min-h-10 dark:bg-surface-800/40"
+            class="flex min-h-11 items-center rounded-control bg-surface-100 px-3 py-2 text-sm font-bold sm:min-h-10 dark:bg-surface-800/40"
             aria-labelledby="contract-customer-label"
           >
             {{ customerName() ?? '—' }}
@@ -75,7 +75,7 @@
              time (13 §5) and a display row is the honest rendering of that. -->
         <span class="field-label" id="contract-order-label">Orden de servicio</span>
         <p
-          class="flex min-h-11 items-center rounded-control bg-surface-100 px-3 py-2 text-sm font-medium sm:min-h-10 dark:bg-surface-800/40"
+          class="flex min-h-11 items-center rounded-control bg-surface-100 px-3 py-2 text-sm font-bold sm:min-h-10 dark:bg-surface-800/40"
           aria-labelledby="contract-order-label"
         >
           <a [routerLink]="['/service-orders', orderId]" class="link-action font-data tabular-nums">
@@ -155,7 +155,7 @@
           class="flex cursor-pointer items-center gap-3 rounded-control border border-dashed border-surface-300 px-3 py-4 text-surface-600 transition-colors hover:border-primary-500 hover:text-primary-700 dark:border-surface-700 dark:text-surface-400 dark:hover:border-primary-500"
         >
           <svg lucideFileUp class="size-5" aria-hidden="true"></svg>
-          <span class="text-sm font-medium">
+          <span class="text-sm font-bold">
             @if (isEdit) {
               Reemplazar el documento
             } @else {
@@ -175,7 +175,7 @@
       <p class="field-hint">
         @if (isEdit) {
           @if (currentFileName(); as current) {
-            Actual: <span class="font-medium">{{ current }}</span> — se conserva si no eliges otro.
+            Actual: <span class="font-bold">{{ current }}</span> — se conserva si no eliges otro.
             Al reemplazarlo, la versión anterior no se guarda.
           } @else {
             Se conserva el actual si no eliges otro.

@@ -23,11 +23,17 @@ const PANEL_LIMIT = 15;
 
 /** The topbar bell (plan §3.3): unread badge + a dense recent-notifications
  *  panel. Mounted once in the authenticated layout, so the SSE feed opens at
- *  shell init and closes on shell teardown. */
+ *  shell init and closes on shell teardown.
+ *
+ *  `display: contents` on the host: the bell is one of the topbar's three
+ *  rounded action buttons (23 CP-2), and the host box would otherwise sit
+ *  between that flex row and the button, taking the row's `gap-2` and
+ *  line-height instead of the circle itself. */
 @Component({
   selector: 'app-notification-center',
   imports: [PopoverModule, LucideBell, LucideBellOff, LucideDynamicIcon, RelativeTimePipe, NotificationTypeIconPipe],
   templateUrl: './notification-center.html',
+  host: { class: 'contents' },
 })
 export class NotificationCenter {
   private readonly store = inject(Store);

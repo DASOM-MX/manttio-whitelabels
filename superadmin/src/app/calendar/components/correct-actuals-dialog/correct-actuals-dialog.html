@@ -13,7 +13,7 @@
     <form [formGroup]="form" (ngSubmit)="confirm()" class="grid gap-4">
       <p class="text-sm text-surface-500 dark:text-surface-400">
         Ajusta lo que quedó mal registrado en la visita
-        <span class="font-data font-medium">{{ visit.internalCode }}</span
+        <span class="font-data font-bold">{{ visit.internalCode }}</span
         >. La corrección queda en la bitácora de la orden, con el valor anterior y el nuevo.
       </p>
 
@@ -48,9 +48,9 @@
         </div>
       } @else if (previewDuration(); as duration) {
         <div class="callout callout--info">
-          Duración real con estos tiempos: <span class="font-data font-medium">{{ duration }}</span>
+          Duración real con estos tiempos: <span class="font-data font-bold">{{ duration }}</span>
           · estimada
-          <span class="font-data font-medium">{{ visit.expectedDurationMinutes }} min</span>
+          <span class="font-data font-bold">{{ visit.expectedDurationMinutes }} min</span>
         </div>
       }
 

@@ -31,9 +31,9 @@
     <section class="card-section mt-4 flex max-w-4xl items-center justify-between gap-4">
       <div>
         <p class="field-label">Archivo</p>
-        <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+        <p class="mt-1 text-sm font-bold text-surface-900 dark:text-surface-100">
           {{ fileName() }}
-          <span class="font-normal text-surface-500 dark:text-surface-400">
+          <span class="font-semibold text-surface-500 dark:text-surface-400">
             · {{ rowCount() }} filas
           </span>
         </p>
@@ -85,7 +85,7 @@
         <p class="mb-3 text-sm text-surface-600 dark:text-surface-400">
           {{ rowCount() }} filas ·
           @if (errorCount() > 0) {
-            <span class="font-medium text-red-600 dark:text-red-400">
+            <span class="font-bold text-red-600 dark:text-red-400">
               {{ errorCount() }} con errores
             </span>
           } @else {

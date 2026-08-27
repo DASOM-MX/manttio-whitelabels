@@ -19,7 +19,7 @@
       <!-- Not a UI shortcut: recipients are customer_contacts rows, so a client
            with none has nobody to mail. -->
       <div class="callout callout--warn" role="alert">
-        <p class="font-medium">Este cliente no tiene contactos registrados.</p>
+        <p class="font-bold">Este cliente no tiene contactos registrados.</p>
         <p class="mt-1">
           La cotización se envía a los contactos del cliente, así que primero agrega uno con su
           correo.
@@ -35,7 +35,7 @@
         <div>
           <h3 class="section-heading">Destinatarios</h3>
           <p class="mt-1 text-sm text-surface-600 dark:text-surface-400">
-            Marca a quién se le envía. Solo los <span class="font-medium">revisores</span>
+            Marca a quién se le envía. Solo los <span class="font-bold">revisores</span>
             pueden aprobar o rechazar; el resto recibe una copia informativa.
           </p>
 
@@ -55,7 +55,7 @@
                   class="min-w-0 flex-1 cursor-pointer"
                   [class.opacity-60]="!row.hasEmail"
                 >
-                  <span class="block text-sm font-medium text-surface-1000 dark:text-surface-0">
+                  <span class="block text-sm font-bold text-surface-1000 dark:text-surface-0">
                     {{ row.name }}
                   </span>
                   @if (row.hasEmail) {
@@ -94,8 +94,8 @@
           <!-- The tally is re-derived over the FULL reviewer set, so a reviewer
                who hasn't answered makes "todos aprobaron" false again. -->
           <div class="callout callout--warn" role="alert">
-            Esta cotización ya está <span class="font-medium">aprobada</span>. Al agregar un revisor
-            que aún no responde, vuelve a <span class="font-medium">aprobada en parte</span> hasta
+            Esta cotización ya está <span class="font-bold">aprobada</span>. Al agregar un revisor
+            que aún no responde, vuelve a <span class="font-bold">aprobada en parte</span> hasta
             que él también apruebe.
           </div>
         }
@@ -103,7 +103,7 @@
         @if (reviewerCount() === 0 && selected().length > 0) {
           <div class="callout callout--info">
             Sin revisores, nadie puede aprobar ni rechazar: la cotización queda
-            <span class="font-medium">en espera</span> hasta que la canceles o la conviertas en
+            <span class="font-bold">en espera</span> hasta que la canceles o la conviertas en
             orden. Úsalo solo para envíos informativos.
           </div>
         }

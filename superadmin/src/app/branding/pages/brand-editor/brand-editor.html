@@ -61,14 +61,14 @@
       <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
         <div>
           <dt class="micro-label">Nombre</dt>
-          <dd class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
+          <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
             {{ b.name }}
           </dd>
         </div>
         @if (b.slogan) {
           <div>
             <dt class="micro-label">Eslogan</dt>
-            <dd class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
+            <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
               {{ b.slogan }}
             </dd>
           </div>
@@ -76,7 +76,7 @@
         @if (b.description) {
           <div class="sm:col-span-2">
             <dt class="micro-label">Descripción del negocio</dt>
-            <dd class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
+            <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
               {{ b.description }}
             </dd>
           </div>
@@ -92,7 +92,7 @@
           [href]="siteUrl"
           target="_blank"
           rel="noopener"
-          class="self-start text-sm font-medium text-primary-700 underline-offset-2 hover:underline dark:text-primary-300"
+          class="self-start text-sm font-bold text-primary-700 underline-offset-2 hover:underline dark:text-primary-300"
           >{{ siteUrl }}</a
         >
         <p class="field-hint">
@@ -265,7 +265,7 @@
             <div>
               <dt class="micro-label">Teléfono</dt>
               <dd
-                class="mt-0.5 font-data text-sm font-medium tabular-nums text-surface-1000 dark:text-surface-0"
+                class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
               >
                 {{ phone }}
               </dd>
@@ -275,7 +275,7 @@
             <div>
               <dt class="micro-label">WhatsApp</dt>
               <dd
-                class="mt-0.5 font-data text-sm font-medium tabular-nums text-surface-1000 dark:text-surface-0"
+                class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
               >
                 {{ whatsapp }}
               </dd>
@@ -284,7 +284,7 @@
           @if (b.contact?.email; as email) {
             <div>
               <dt class="micro-label">Correo</dt>
-              <dd class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
+              <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
                 {{ email }}
               </dd>
             </div>
@@ -292,7 +292,7 @@
           @if (b.contact?.address; as address) {
             <div>
               <dt class="micro-label">Dirección</dt>
-              <dd class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
+              <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
                 {{ address }}
               </dd>
             </div>
@@ -305,7 +305,7 @@
                   [href]="url"
                   target="_blank"
                   rel="noopener"
-                  class="text-sm font-medium text-primary-700 underline-offset-2 hover:underline dark:text-primary-300"
+                  class="text-sm font-bold text-primary-700 underline-offset-2 hover:underline dark:text-primary-300"
                   >{{ url }}</a
                 >
               </dd>
@@ -319,7 +319,7 @@
                   [href]="url"
                   target="_blank"
                   rel="noopener"
-                  class="text-sm font-medium text-primary-700 underline-offset-2 hover:underline dark:text-primary-300"
+                  class="text-sm font-bold text-primary-700 underline-offset-2 hover:underline dark:text-primary-300"
                   >{{ url }}</a
                 >
               </dd>
@@ -333,7 +333,7 @@
                   [href]="url"
                   target="_blank"
                   rel="noopener"
-                  class="text-sm font-medium text-primary-700 underline-offset-2 hover:underline dark:text-primary-300"
+                  class="text-sm font-bold text-primary-700 underline-offset-2 hover:underline dark:text-primary-300"
                   >{{ url }}</a
                 >
               </dd>
@@ -347,7 +347,7 @@
                   [href]="url"
                   target="_blank"
                   rel="noopener"
-                  class="text-sm font-medium text-primary-700 underline-offset-2 hover:underline dark:text-primary-300"
+                  class="text-sm font-bold text-primary-700 underline-offset-2 hover:underline dark:text-primary-300"
                   >{{ url }}</a
                 >
               </dd>
@@ -499,7 +499,7 @@
       } @else {
         <div>
           <p class="micro-label">Cuerpo</p>
-          <p class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
+          <p class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
             {{ bodyFontLabel() }}
           </p>
         </div>
@@ -542,7 +542,7 @@
       } @else {
         <div>
           <p class="micro-label">Encabezados</p>
-          <p class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
+          <p class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
             {{ headingFontLabel() }}
           </p>
         </div>
@@ -552,7 +552,7 @@
           <li class="flex items-baseline gap-8 {{ size.gap }}">
             <span class="micro-label w-12 shrink-0 text-right font-data">{{ size.label }}</span>
             <p
-              class="{{ size.class }} truncate font-bold text-surface-900 dark:text-surface-100"
+              class="{{ size.class }} truncate font-black text-surface-900 dark:text-surface-100"
               [style.font-family]="headingFontFamily()"
             >
               Climatización industrial sin paros

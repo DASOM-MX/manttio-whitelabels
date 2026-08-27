@@ -1,7 +1,7 @@
 <div class="field-shell flex min-h-11 flex-wrap items-center gap-1.5 px-2.5 py-1.5 sm:min-h-10">
   @for (tag of tags(); track tag; let i = $index) {
     <span
-      class="inline-flex items-center gap-1 rounded-full bg-primary-100 px-2.5 py-0.5 text-xs font-medium text-primary-900 ring-1 ring-primary-300"
+      class="inline-flex items-center gap-1 rounded-full bg-primary-100 px-2.5 py-0.5 text-xs font-bold text-primary-900 ring-1 ring-primary-300"
     >
       {{ tag }}
       @if (!disabled()) {

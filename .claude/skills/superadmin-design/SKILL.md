@@ -40,9 +40,12 @@ the target and the code is the backlog.
 3. **Typeface is Figtree** (variable, self-hosted
    `@fontsource-variable/figtree`; owner 2026-07-22, plan 17 — supersedes
    Nunito Sans/Quicksand/Commissioner).
-   400 body · 500 labels/buttons/headings (owner 2026-07-22 "cleaner look":
-   headings dropped from 600–700 — size + tracking carry hierarchy, solid fills
-   carry active states; 600+ only for the wordmark and rare emphasis).
+   **600 body · 700 labels/buttons/headings**, 800+ for the wordmark and rare
+   emphasis (owner 2026-08-27 "use 200 more points" — the 2026-07-22 400/500
+   ladder moved up two steps wholesale; size + tracking still carry hierarchy
+   and no active state bumps weight). The 600 baseline lives on `body`; write a
+   weight utility only where a rung differs. `font-data` (Atkinson, 400/700)
+   snaps everything ≥ 600 to 700.
    Numeric table/money cells use the
    `font-data` stack with `tnum` (Atkinson Hyperlegible head — unchanged).
    Self-hosted only — never `fonts.googleapis.com`.
@@ -105,9 +108,8 @@ the target and the code is the backlog.
 - Cards: `p-6` (plan 17 breathable rhythm — supersedes the soft-UI turn's `p-5`).
   Section gaps `gap-5`/`gap-6`. Page gutters `px-4 sm:px-6 md:px-8` + `py-6`
   (shell-owned, CP-2); topbar and sidebar header strips sit at `h-14` (slimmed from
-  `h-16`, owner 2026-07-22 — the strip holds only the notification bell + user pill;
-  the theme switcher lives in the user popover).
-  Airy chrome, dense data.
+  `h-16`, owner 2026-07-22) and level, so the topbar's hairline bottom rule runs
+  unbroken across both. Airy chrome, dense data.
 - Tables are compact: `py-2.5` cells, 13–14px cell text, header row as a
   micro-label (see cues below).
 - Prefer one dense, well-grouped screen over two airy ones — but never sacrifice the
@@ -127,9 +129,13 @@ the target and the code is the backlog.
   pulls dark from `{surface.700}` to `{surface.800}`.
   The shell follows the same rule: since 23 CP-2 the sidebar dropped its 2026-07-21
   shadow for a hairline right border (a shadow between two near-white surfaces
-  separates nothing). The topbar stays SURFACELESS since
-  2026-07-22 — no shadow, no background, the search field, bell + user pill float on the
-  canvas. `.topbar-search` is a deliberately **`disabled` stub** (owner 2026-08-27, 23
+  separates nothing). **The topbar is SECTIONED** since 2026-08-27 (23 CP-2, supersedes
+  the 2026-07-22 surfaceless strip): a `surface-0` bar with a hairline bottom rule
+  continuous with the sidebar panel, the sidebar's `border-r` as the vertical seam, a
+  **filled borderless** search pill, and **three separate ringed circles** trailing
+  (`.topbar-action` ×2 + `.topbar-avatar`, `size-10`, `gap-2`: theme · bell · account) —
+  never a shared pill, and the account circle carries no name or chevron.
+  `.topbar-search` is a deliberately **`disabled` stub** (owner 2026-08-27, 23
   § Open ①): the chrome ships, the capability is **plan 24** — never quietly enable it,
   and the `⌘K` hint is not a live binding yet. The shell also stays **edge-to-edge** —
   the reference's inset rounded app frame was declined (owner 2026-08-27, 23 § Open ③).
@@ -259,7 +265,7 @@ the target and the code is the backlog.
   (count + Limpiar derive from the URL). Controls projected inside must not use
   `appendTo="body"` — their overlay must live inside the popover DOM.
 - **Micro-labels** for card/section/table headers (`.micro-label`:
-  `text-2xs font-medium text-surface-500 dark:text-surface-400`) — authored
+  `text-2xs font-bold text-surface-500 dark:text-surface-400`) — authored
   title/sentence case, never `uppercase` (QA 2026-07-07: uppercase is reserved for
   warnings or explicit requests).
 - **Tabular numerals** (`font-data`) for every numeric column — digits align vertically.

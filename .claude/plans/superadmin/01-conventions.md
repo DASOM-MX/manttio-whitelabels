@@ -27,12 +27,17 @@ before writing any component.
   snippets get translated to the fontsource equivalent.
 - Stacks in `tailwind.config.js`:
   `sans: ['"Figtree Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif']`,
-  plus a `data` stack for numeric table/money columns. Weights: **400 body ·
-  500 labels/buttons/headings** (owner 2026-07-22, "too bold — cleaner look":
-  headings dropped from 600–700 to 500 — size + tracking carry hierarchy, and
-  solid fills carry active states with no weight bump. 600+ is reserved for the
-  wordmark and rare emphasis, e.g. the tiny sort-order badge; never routine
-  chrome).
+  plus a `data` stack for numeric table/money columns. Weights: **600 body ·
+  700 labels/buttons/headings**, 800+ for the wordmark and rare emphasis (owner
+  2026-08-27, "font weights are off, use 200 more points" — every rung of the
+  2026-07-22 400/500 ladder moved up 200; that turn's reasoning still holds
+  *within* the ladder, size + tracking still carry hierarchy and no active state
+  bumps weight, the whole thing just sits two steps heavier). The 600 baseline is
+  set once on `body`, so anything that states no weight inherits it — utilities
+  are written only where a rung differs. Figtree Variable covers 300–900, so
+  every rung is a real face; `font-data` (Atkinson Hyperlegible, 400/700 only)
+  snaps every rung ≥ 600 to its 700 face, which keeps numerals in step with the
+  heavier chrome rather than synthesizing a weight.
 - **Tabular numerals:** data cells set `font-feature-settings: 'tnum'`.
   **Resolved at CP-2 (2026-07-06): the product voice's tnum can't be trusted**
   (Commissioner's was a no-op — digit widths measured unequal with the feature on),
@@ -68,13 +73,13 @@ auto-loads it — **edit both in the same commit.**
 - **Density (breathable — plan 17, supersedes the soft-UI turn's `p-5`):** cards
   `p-6`; section gaps `gap-5`/`gap-6`; page gutters `px-4 sm:px-6 md:px-8` with
   `py-6` (shell-owned, CP-2); topbar + sidebar header strips `h-14` (slimmed from
-  `h-16`, owner 2026-07-22 — the strip holds only the notification bell + user
-  pill; the theme switcher lives in the user popover); tables stay compact
+  `h-16`, owner 2026-07-22) and level, so the topbar's hairline bottom rule runs
+  unbroken across both; tables stay compact
   (`py-2.5` cells, 13–14px text). Airy chrome, dense data — the air lives at the
   page level, never inside the data.
 - **Page-header pattern (plan 17 §5, CP-2):** every routed page opens with the
   shared `shared/components/page-header` (`app-page-header`) — the page's single
-  `h1` (`text-2xl font-medium tracking-tight` — 500 since the weight-ladder turn),
+  `h1` (`text-2xl font-bold tracking-tight` — 700 since the +200 weight-ladder turn),
   optional muted description,
   optional `backLink`/`backLabel` (detail/form pages), a `meta` slot for status
   tags beside the title, and the default slot for right-aligned actions (the
@@ -99,10 +104,16 @@ auto-loads it — **edit both in the same commit.**
   (`manttio-preset.ts` — preset-first, plan 23 CP-1). The shell follows the same
   rule since 23 CP-2: `.shell-sidebar` dropped its 2026-07-21 shadow for a hairline
   right border, because a shadow between two near-white surfaces separates nothing.
-  The topbar stays SURFACELESS — no shadow, no
-  background: the search field, bell + user pill float directly on the canvas (owner
-  2026-07-22, slim-topbar turn — content scrolls in a separate region, nothing passes
-  under it). **`.topbar-search` is a deliberately `disabled` stub** (owner 2026-08-27,
+  **The topbar is SECTIONED** (owner 2026-08-27, 23 CP-2 — supersedes the 2026-07-22
+  surfaceless strip): a `surface-0` bar with a hairline bottom rule, continuous with the
+  sidebar panel, so the chrome reads as one white L against the content well. The vertical
+  seam between the wordmark and the search is the sidebar's own `border-r` — never a rule
+  of its own. Trailing edge = **three separate ringed circles** (`.topbar-action`, `size-10`,
+  `gap-2`: theme · bell · account) — never a shared pill; the account one is
+  `.topbar-avatar`, brand-tinted, and carries no name or chevron (the popover states name +
+  email + role; `aria-label`/`title` carry the name). The search is a **filled, borderless**
+  pill — on a white bar the fill states the field and a border competes with the action
+  rings. **`.topbar-search` is a deliberately `disabled` stub** (owner 2026-08-27,
   23 § Open ①): the chrome ships now, the capability is **plan 24** — do not quietly
   enable it, and do not treat the `⌘K` hint as a live binding until 24 CP-2 lands.
   Shadows are always **neutral black alpha** — colored glows stay banned (AI-slop rule).
@@ -240,7 +251,7 @@ auto-loads it — **edit both in the same commit.**
   rail icons link to the group's landing route and reveal a `.nav-flyout` submenu on
   hover/focus (CSS-only `:hover`/`:focus-within` — keyboard path is the normal tab
   order; width snaps, no width animation per the transform/opacity motion rule);
-  micro-labels (`text-2xs font-medium`) for
+  micro-labels (`text-2xs font-bold`) for
   card/section/table headers — **title/sentence case, never uppercase** (QA 2026-07-07:
   uppercase is reserved for warnings or explicit requests; headings/labels render in
   their authored case);

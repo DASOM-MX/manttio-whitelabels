@@ -1,15 +1,17 @@
 <!-- Header row: wordmark (expanded) + drawer close (mobile) / rail toggle
      (desktop). h-14 to stay level with the topbar strip (slim-topbar turn
-     2026-07-22). -->
+     2026-07-22), and since the sectioned-topbar turn (2026-08-27) it carries
+     the same hairline bottom rule, so that rule runs unbroken across the full
+     width of the shell — the reference's horizontal seam. -->
 <div
-  class="flex h-14 shrink-0 items-center"
+  class="flex h-14 shrink-0 items-center border-b border-surface-200 dark:border-surface-800"
   [class.gap-2]="!collapsed()"
   [class.px-4]="!collapsed()"
   [class.justify-center]="collapsed()"
 >
   @if (!collapsed()) {
-    <p class="text-lg font-bold tracking-tight text-surface-1000 dark:text-surface-0">manttio</p>
-    <p class="mt-0.5 text-2xs font-medium text-surface-600 dark:text-surface-400">Admin</p>
+    <p class="text-lg font-black tracking-tight text-surface-1000 dark:text-surface-0">manttio</p>
+    <p class="mt-0.5 text-2xs font-bold text-surface-600 dark:text-surface-400">Admin</p>
     <div class="flex-1"></div>
   }
   <button
@@ -169,11 +171,11 @@
         @if (brandLogoUrl(); as logo) {
           <img [src]="logo" [alt]="brandName()" class="nav-brand-logo" />
         } @else {
-          <p class="truncate text-sm font-medium text-surface-1000 dark:text-surface-0">
+          <p class="truncate text-sm font-bold text-surface-1000 dark:text-surface-0">
             {{ brandName() }}
           </p>
         }
-        <p class="text-2xs font-medium text-surface-600 dark:text-surface-400">
+        <p class="text-2xs font-bold text-surface-600 dark:text-surface-400">
           Panel de administración
         </p>
       </div>

@@ -9,14 +9,14 @@
       <div class="grid gap-4 sm:grid-cols-2">
         <div>
           <p class="field-label">Nombre</p>
-          <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+          <p class="mt-1 text-sm font-bold text-surface-900 dark:text-surface-100">
             {{ svc.name }}
           </p>
         </div>
         <div>
           <p class="field-label">Precio</p>
           <p
-            class="mt-1 font-data text-sm font-medium tabular-nums text-surface-900 dark:text-surface-100"
+            class="mt-1 font-data text-sm font-bold tabular-nums text-surface-900 dark:text-surface-100"
           >
             {{ svc.price | money }}
           </p>
@@ -25,7 +25,7 @@
           <div>
             <p class="field-label">Costo interno</p>
             <p
-              class="mt-1 font-data text-sm font-medium tabular-nums text-surface-900 dark:text-surface-100"
+              class="mt-1 font-data text-sm font-bold tabular-nums text-surface-900 dark:text-surface-100"
             >
               {{ svc.cost | money }}
             </p>
@@ -33,20 +33,20 @@
         }
         <div>
           <p class="field-label">Unidad</p>
-          <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+          <p class="mt-1 text-sm font-bold text-surface-900 dark:text-surface-100">
             {{ svc.uom | serviceUomLabel }}
           </p>
         </div>
         <div>
           <p class="field-label">IVA</p>
-          <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+          <p class="mt-1 text-sm font-bold text-surface-900 dark:text-surface-100">
             {{ svc.taxRate | serviceTaxRateLabel }}
           </p>
         </div>
         <div>
           <p class="field-label">Código interno</p>
           <p
-            class="mt-1 font-data text-sm font-medium tabular-nums text-surface-900 dark:text-surface-100"
+            class="mt-1 font-data text-sm font-bold tabular-nums text-surface-900 dark:text-surface-100"
           >
             {{ svc.internalServiceCode || '—' }}
           </p>
@@ -75,7 +75,7 @@
         </div>
         <div>
           <p class="field-label">Alta</p>
-          <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+          <p class="mt-1 text-sm font-bold text-surface-900 dark:text-surface-100">
             {{ svc.createdAt | date: 'dd/MM/y' }}
           </p>
         </div>
@@ -83,7 +83,7 @@
 
       <div>
         <p class="field-label">Descripción interna</p>
-        <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+        <p class="mt-1 text-sm font-bold text-surface-900 dark:text-surface-100">
           {{ svc.description || '—' }}
         </p>
       </div>
@@ -96,13 +96,13 @@
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
             <p class="field-label">Clave SAT (producto/servicio)</p>
-            <p class="mt-1 font-data text-sm font-medium tabular-nums text-surface-900 dark:text-surface-100">
+            <p class="mt-1 font-data text-sm font-bold tabular-nums text-surface-900 dark:text-surface-100">
               {{ svc.satProdServCode || '—' }}
             </p>
           </div>
           <div>
             <p class="field-label">Clave SAT (unidad)</p>
-            <p class="mt-1 font-data text-sm font-medium tabular-nums text-surface-900 dark:text-surface-100">
+            <p class="mt-1 font-data text-sm font-bold tabular-nums text-surface-900 dark:text-surface-100">
               {{ svc.satUnitCode || '—' }}
             </p>
           </div>
@@ -112,7 +112,7 @@
       @if (svc.isListableInWebsite) {
         <div>
           <p class="field-label">Descripción para el sitio</p>
-          <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+          <p class="mt-1 text-sm font-bold text-surface-900 dark:text-surface-100">
             {{ svc.websiteDescription || '—' }}
           </p>
         </div>
@@ -181,7 +181,7 @@
           <ng-template #body let-event>
             <tr>
               <td>
-                <span class="inline-flex items-center gap-2 font-medium">
+                <span class="inline-flex items-center gap-2 font-bold">
                   <svg
                     lucideIcon
                     [lucideIcon]="event.type | serviceEventIcon"

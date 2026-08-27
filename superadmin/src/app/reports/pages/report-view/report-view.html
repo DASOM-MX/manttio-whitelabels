@@ -28,34 +28,34 @@
     <dl class="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
       <div>
         <dt class="micro-label">Cliente</dt>
-        <dd class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
+        <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
           {{ r.customerName }}
         </dd>
       </div>
       <div>
         <dt class="micro-label">Técnico</dt>
-        <dd class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
+        <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
           {{ r.technicianName }}
         </dd>
       </div>
       <div>
         <dt class="micro-label">Fecha de servicio</dt>
         <dd
-          class="mt-0.5 font-data text-sm font-medium tabular-nums text-surface-1000 dark:text-surface-0"
+          class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
         >
           {{ r.serviceDate }}
         </dd>
       </div>
       <div>
         <dt class="micro-label">Plantilla</dt>
-        <dd class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
+        <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
           {{ r.templateName }}
         </dd>
       </div>
       <div>
         <dt class="micro-label">Folio</dt>
         <dd
-          class="mt-0.5 font-data text-sm font-medium tabular-nums text-surface-1000 dark:text-surface-0"
+          class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
         >
           {{ r.folio || '—' }}
         </dd>
@@ -78,7 +78,7 @@
           @for (answer of section.answers; track answer.questionId) {
             <div class="grid grid-cols-2 gap-3 py-2">
               <dt class="text-sm text-surface-600 dark:text-surface-400">{{ answer.label }}</dt>
-              <dd class="text-sm font-medium text-surface-1000 dark:text-surface-0">
+              <dd class="text-sm font-bold text-surface-1000 dark:text-surface-0">
                 {{ answer | answerValue }}
               </dd>
             </div>
@@ -89,7 +89,7 @@
           @for (answer of section.answers; track answer.questionId) {
             <div>
               <dt class="micro-label">{{ answer.label }}</dt>
-              <dd class="mt-0.5 text-sm font-medium text-surface-1000 dark:text-surface-0">
+              <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
                 {{ answer | answerValue }}
               </dd>
             </div>

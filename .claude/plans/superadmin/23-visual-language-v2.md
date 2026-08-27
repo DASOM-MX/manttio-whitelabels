@@ -69,9 +69,15 @@ label** (not a solid primary block). A count badge sits right-aligned on rows th
 chevron and indented, icon-less children. A separated block at the bottom holds Settings +
 Help & Support, then a dark promotional card (title, one line of copy, full-width CTA button).
 
-**Topbar — surfaceless.** Left: a wide search field with a leading magnifier, placeholder, and
-a `⌘K` hint chip. Right: theme toggle (sun), notification bell, avatar. No background, no
-shadow — it floats on the canvas.
+**Topbar.** Left: a wide search field with a leading magnifier, placeholder, and a `⌘K` hint
+chip. Right: theme toggle (sun), notification bell, avatar.
+
+> **Corrected 2026-08-27** — this read "surfaceless … it floats on the canvas", which was a
+> misreading of the first two screenshots at their scale. Two close crops the owner supplied
+> at CP-2 show the bar plainly: it is a **white plane with a hairline bottom rule**, split by
+> a **vertical seam** between the wordmark cell and the search, the search is a **filled,
+> borderless** pill (no outline), and the three trailing actions are **separate circles, each
+> with its own hairline ring** — not one grouped control. § Direction 1 follows the crops.
 
 **Page header.** `Dashboard` as a plain title on the left; on the right a row of controls —
 a date-range chip (calendar icon + range), a period select ("Last 30 days"), a ghost
@@ -117,7 +123,11 @@ has two brand colors plus a fixed status set to speak with.**
    Active row = `primary-50`-equivalent tint (`bg-primary-100/60` light, `bg-primary-1000/40`
    dark) with `text-primary-700`/`primary-300` label + icon; hover = neutral tint; the
    collapsed rail and its flyouts inherit the same treatment. The floating collapse handle
-   stays. Topbar stays surfaceless (17).
+   stays. **The topbar is a section of that same white plane** (owner 2026-08-27, reference
+   crops — supersedes 17's surfaceless strip): `surface-0` fill, hairline bottom rule
+   running unbroken across the wordmark strip *and* the topbar, with the sidebar's own
+   `border-r` as the vertical seam between them. Trailing edge = three separate ringed
+   circles (theme · bell · account); the search is a filled, borderless pill.
 2. **Card treatment (supersedes 17's shadow-only cards).** `.card` = white, `rounded-card`,
    **hairline `surface-200` border + the existing soft `shadow-card`**, `p-6`. Borders come
    back as the primary separator; the shadow drops to a lift. Dark mode: `surface-900` fill,
@@ -137,8 +147,9 @@ has two brand colors plus a fixed status set to speak with.**
    `px-4 sm:px-6 md:px-8` + `py-6`, `h-14` strips, `py-2.5` table cells). KPI tiles are the one
    tighter unit: `p-5`, label → value → caption stacked with no extra air.
 5. **Shape + type unchanged:** `rounded-card` / `rounded-chip` / `rounded-control` /
-   `rounded-full` boundary, Figtree, `font-data` for every numeral, weight ladder capped at 500
-   outside sanctioned emphasis, no arbitrary bracket values, no emojis, Lucide stroke-2.
+   `rounded-full` boundary, Figtree, `font-data` for every numeral, no arbitrary bracket
+   values, no emojis, Lucide stroke-2. **The weight ladder moved +200 at CP-2** (owner
+   2026-08-27): 600 body · 700 labels/buttons/headings · 800+ wordmark and rare emphasis.
 6. **Dark mode is a first-class pass, not a follow-up** — every CP closes with both modes
    eyeballed and the contrast checks in § Verification run.
 
@@ -150,6 +161,9 @@ has two brand colors plus a fixed status set to speak with.**
 | 17 "hairline borders retire to internal dividers; cards are shadow-only" | § Direction 2 — hairline border **and** soft shadow |
 | 01 § Design language "Accent step: `primary-400` is the decorative accent" | § Direction 3 — `accent` scale (22) |
 | § Direction 1's own "no weight bump — the tinted row carries the active cue" | § Decisions 2026-08-27 — marker bar + one weight step on the active child |
+| 17 + § Direction 1 "topbar stays surfaceless" | § Decisions 2026-08-27 — a `surface-0` bar with a hairline bottom rule |
+| 01 weight ladder "400 body · 500 labels/buttons/headings" (owner 2026-07-22) | § Decisions 2026-08-27 — every rung +200 |
+| 2026-07-22 "the theme switcher lives in the account popover" | § Decisions 2026-08-27 — it is the first of the topbar's three action buttons |
 
 Everything else in 17 and 01 stands. Both documents are edited **in CP-1**, together with the
 committed `.claude/skills/superadmin-design` mirror (same commit — 01's standing rule).
@@ -249,8 +263,21 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
       ring now runs in **both** modes (it was dark-only, because the rail it escaped
       used to be dark) and moved from `surface-700` to the card's `surface-800`
 - [x] Bottom block: **the tenant identity card** (§ Open ② — owner 2026-08-27)
-- [x] Topbar stays surfaceless; the search field ships as a **disabled visual stub**
-      (§ Open ① — owner 2026-08-27), and the real one is now **plan 24**
+- [x] Topbar: the search field ships as a **disabled visual stub** (§ Open ① — owner
+      2026-08-27), and the real one is now **plan 24**
+- [x] **Sectioned topbar** (owner 2026-08-27, second reference crop — replaced a first
+      pass that gathered the actions into one grouped pill): `surface-0` bar + hairline
+      bottom rule continued across the sidebar's wordmark strip, so the seam runs the
+      full width and the chrome reads as one white L; three separate ringed `size-10`
+      circles trailing (theme · bell · account) instead of a shared shell; the search
+      becomes a filled borderless pill, because on a white bar the fill states the field
+      and a border would compete with the action rings
+- [x] **Weight ladder +200** (owner 2026-08-27, "font weights are off, use 200 more
+      points"): 600 body · 700 labels/buttons/headings · 800+ wordmark. Applied at the
+      call sites, not by redefining Tailwind's scale — `font-medium` that renders 700
+      would be a lie every future reader trips on — so the sweep renamed every utility
+      (`font-medium`→`font-bold` ×207, and the three rungs above it) and set the 600
+      baseline once on `body`. Mirrored in 01 + the skill
 - [x] Focus rings visible on the tinted rows — the global ring offsets against
       `background` (surface-100), which halos every focused row on a `surface-0` panel,
       so `app-sidebar :focus-visible` re-offsets on the panel. § Verification contrast
@@ -301,8 +328,8 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
       panel — scrim, option card (thumbnail + title + description + tag chip + trailing pill
       action) — lands as shared idioms
 - [ ] Detail views re-checked: client 360, equipment, report view
-- [ ] Straggler audit: arbitrary bracket values → 0; weight ladder ≤ 500 outside the sanctioned
-      emphasis list; leftover decorative `primary-400` → `accent`
+- [ ] Straggler audit: arbitrary bracket values → 0; weight ladder ≤ 700 outside the sanctioned
+      emphasis list (post-CP-2 ladder); leftover decorative `primary-400` → `accent`
 - [ ] Full § Verification pass — contrast in both modes, reduced motion, keyboard
 - [ ] `npm run build` green
 
@@ -465,14 +492,42 @@ of breaking behind it.
     same tint and the same primary label as an active row. Hover had to learn about it
     too — `.nav-item:not(.nav-active):not(.nav-group-active):hover`, or hovering the
     parent washes its tint away, the same bug the active row had.
-  - **One weight step on the active child.** `.nav-child` idles at 400 while `.nav-item`
-    already sits at 500; the active child now matches its parent. Still inside the ≤500
-    ladder, and colour-free. § Direction 1's "no weight bump — the tinted row carries the
+  - **One weight step on the active child.** `.nav-child` idles one rung below `.nav-item`;
+    the active child now matches its parent. Colour-free, and still inside the ladder —
+    400/500 when decided, 600/700 after the same day's +200 turn. § Direction 1's "no weight bump — the tinted row carries the
     active cue" is retired: the tinted row could not carry it alone.
   - **The count badge rides `accent`, not the reference's green.** Emerald is a fixed
     status colour in this app (positive/up) and a queue length is neither good nor bad;
     § Direction 3 already assigns "informational badges" to `accent`. The slot ships
     dormant — no entry sets a count, because no endpoint produces one.
+- **Decided 2026-08-27 (owner, second review round) — type weight and the topbar:**
+  - **The weight ladder moves +200, wholesale.** "Font weights are off — use 200 more
+    points." Every rung of the 2026-07-22 400/500 ladder shifts two steps: **600 body ·
+    700 labels/buttons/headings · 800+ wordmark and rare emphasis.** That turn's
+    *reasoning* survives inside the ladder — size and tracking still carry hierarchy, no
+    active state bumps weight — the whole thing just sits heavier. Two consequences worth
+    knowing: (a) the 600 baseline is set once on `body`, so everything that states no
+    weight inherits it, which is why the sweep is 207 renamed utilities and not 800; and
+    (b) `font-data` (Atkinson Hyperlegible) ships only 400 and 700, so CSS font matching
+    snaps every rung ≥ 600 to the 700 face — numerals, money columns and select values all
+    land on Atkinson Bold. That reads *in step* with the heavier chrome rather than broken,
+    but it is a real change to every data cell in the app and the cheapest place to walk it
+    back is the one `font-semibold` on `body`.
+  - **The topbar is sectioned, and the actions are three separate circles.** First pass
+    gathered bell + account into one bordered pill; the reference crops show otherwise and
+    the owner rejected it. What the reference actually draws: a white bar with a hairline
+    bottom rule, a vertical seam between the wordmark and the search, a *filled borderless*
+    search pill, and three detached ringed circles on the trailing edge. Ours reproduces
+    each — the vertical seam for free (the sidebar's `border-r`, since the strips are
+    already level at `h-14`), the horizontal rule by giving the sidebar's wordmark strip
+    the same `border-b` so it runs unbroken across the full width.
+  - **The theme switcher comes back out of the account popover.** It is the first of the
+    reference's three circles. Kept in *one* place, not both — two controls for one setting
+    is how a shell rots. Supersedes the 2026-07-22 slim-topbar decision.
+  - **The account button loses its name and chevron.** The reference's avatar carries
+    neither, and the popover it opens already states name + email + role. The name reaches
+    assistive tech and the tooltip through `aria-label`/`title` instead, so nothing that was
+    readable stopped being readable.
 - **Open — decide at the CP that needs it:** ④ Whether the gauge's default fill is
   `accent` or emerald when the metric has no good/bad direction (CP-3). ⑤ **What feeds
   `NavBadge.badge`** — the slot is built and styled but nothing sets it; a real source

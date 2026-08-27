@@ -34,7 +34,7 @@
         @if (visit.serviceOrderId) {
           <div>
             <dt class="micro-label">Orden</dt>
-            <dd class="mt-0.5 text-sm font-medium">
+            <dd class="mt-0.5 text-sm font-bold">
               <a [routerLink]="['/service-orders', visit.serviceOrderId]" class="link-action">
                 {{ visit.serviceOrderFolio || 'Ver orden' }}
               </a>
@@ -43,7 +43,7 @@
         }
         <div>
           <dt class="micro-label">Cliente</dt>
-          <dd class="mt-0.5 text-sm font-medium">
+          <dd class="mt-0.5 text-sm font-bold">
             <a [routerLink]="['/customers', visit.customerId]" class="link-action">
               {{ visit.customerName || '—' }}
             </a>
@@ -104,7 +104,7 @@
           </dl>
           @if (summary.variance) {
             <p
-              class="mt-2 text-sm font-medium"
+              class="mt-2 text-sm font-bold"
               [class.text-amber-600]="summary.over"
               [class.dark:text-amber-400]="summary.over"
               [class.text-green-600]="!summary.over"
@@ -127,7 +127,7 @@
           @if (lockedOrder(); as order) {
             <div>
               <p class="micro-label">Orden</p>
-              <p class="mt-0.5 text-sm font-medium">{{ order.folio }} — {{ order.customerName }}</p>
+              <p class="mt-0.5 text-sm font-bold">{{ order.folio }} — {{ order.customerName }}</p>
             </div>
           } @else {
             <div class="field-group">
@@ -307,7 +307,7 @@
 
       @if (isClosed() && visit.closeReason) {
         <div class="callout callout--warn">
-          <span class="font-medium">Cerrada:</span>
+          <span class="font-bold">Cerrada:</span>
           {{ visit.closeReason | visitCloseReasonLabel }}
           @if (visit.closeNote) {
             — {{ visit.closeNote }}

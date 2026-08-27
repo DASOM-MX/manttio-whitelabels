@@ -82,7 +82,7 @@
     <ng-template #body let-report>
       <tr class="cursor-pointer" (click)="openReport(report)">
         <td class="font-data tabular-nums">{{ report.folio || '—' }}</td>
-        <td class="font-medium">{{ report.customerName }}</td>
+        <td class="font-bold">{{ report.customerName }}</td>
         <td>{{ report.technicianName }}</td>
         <td>{{ report.templateName }}</td>
         <td class="font-data tabular-nums">{{ report.serviceDate }}</td>
