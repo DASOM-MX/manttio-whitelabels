@@ -1,6 +1,8 @@
 # 07 — Clients (directory + Mexican invoicing info)
 
-> **Status:** done (frontend side — backend customers migration pending)
+> **Status:** **done 2026-08-27** — the backend customers migration this line waited on
+> landed with plan 21 CP-4 (`GET /customers` paged + filtered, `GenericQueryResponse`,
+> the `tags` GIN index applied). Clients, leads and blacklist all page against the live API.
 > **Depends on:** 02 (CP-3, done)
 > **Owner:** branch `feature/superadmin-customers` (stacked on the 02 shell PR) · **Last updated:** 2026-07-17
 >

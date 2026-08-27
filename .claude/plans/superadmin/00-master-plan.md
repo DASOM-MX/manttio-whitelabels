@@ -37,6 +37,7 @@ then its own file, and touches no other module's code.
 | 18 | `18-services.md` | Tenant service catalog: name/price/uom/description + website-listing flag | 02 |
 | 19 | `19-service-orders.md` | Service orders: catalog lines → exploded `pending` reports, order-bound visits (12), CRM timeline entry (08), order-level audit timeline, template↔service prefilter (06) | 07, 18, 20, 06, 12 |
 | 20 | `20-quotations.md` | Quotations: catalog-fed quotes with frozen price/uom/qty snapshots, mailed to client reviewer-contacts, token-guarded approve/decline (mutable), 7-state machine; staff create a service order (19) from an approved quote | 07, 18; feeds 19 |
+| 21 | `21-list-pagination.md` | List pagination: `GET /customers` + `GET /services` server-side paged behind one `GenericQueryResponse<T>` envelope, with dedicated roster endpoints for the pickers that need every row | 07, 18 |
 | 22 | `22-brand-palette-primary-accent.md` | Brand palette rework: tenant pair becomes `primary` + **`accent`**; `surface` becomes a fixed neutral. Fullstack — backend contract + migration, superadmin, frontend, website | **supersedes 16** (absorbs its deferred frontend/website legs); blocks 23 |
 | 23 | `23-visual-language-v2.md` | Visual language v2 "bright console": light sidebar, hairline-bordered cards, accent-carried data + a shared viz kit (KPI tile, segmented bar, gauge, trend card) | **22 CP-2**; evolves 17 |
 
@@ -119,7 +120,7 @@ Rules for agents:
 | 04 cms | **done** (frontend side; branch `feature/superadmin-cms`) | CP-3 |
 | 05 users | **done** (frontend side; branch `feature/superadmin-users`) | CP-3 |
 | 06 reports | **done** (frontend side; branch `feature/superadmin-reports`) | CP-5 |
-| 07 clients | **done** (frontend side; branch `feature/superadmin-customers`) | CP-3 |
+| 07 clients | **done 2026-08-27** — the pending backend customers migration closed with 21 CP-4 (paged + filtered `GET /customers`, `tags` GIN index applied) | — |
 | 08 crm | **done** (frontend side; branch `feature/superadmin-crm`) | CP-4 |
 | 09 billing | not-started | — |
 | 10 wms | not-started (plan expanded 2026-07-19 → `10-wms/` suite) | — |
@@ -133,6 +134,7 @@ Rules for agents:
 | 18 services | not-started (planned doc) | — |
 | 19 service-orders | not-started (planned doc) | — |
 | 20 quotations | not-started (planned doc) | — |
+| 21 list-pagination | **in-progress — CP-1…CP-4 done** (#162 envelope, #163 rosters, #164 pickers, #165 paged `GET /customers` + lazy customer selects; CP-4 closed 2026-08-27 — migration `0042` shipped inside #168 and is applied, all three clients views verified paging against the live API). **CP-5** (services paging) + **CP-6** (Playwright regression guard) open | CP-5 |
 | 22 brand-palette (primary+accent) | **done 2026-08-27 — all five CPs merged** (backend contract + migration **0043** #170, superadmin #171, frontend #172, website #173, bookkeeping #174). Field app and website run on stock Tailwind `zinc` for chrome (owner, 2026-08-27); superadmin keeps its fixed `surface` scale, cooled to hue 240/5% at 23 CP-1 — supersedes 16 | — |
 | 23 visual-language-v2 | **in-progress** — **CP-1 done 2026-08-27** (language + tokens: 01/skill/17 rewritten onto "bright console", `.card` + table shell get a hairline border, PrimeNG dark panel borders aligned, chrome neutral cooled to hue 240/5%, edge-to-edge shell kept). CP-2 (light shell) next | CP-2 |
 
