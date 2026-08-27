@@ -119,12 +119,14 @@ auto-loads it — **edit both in the same commit.**
   surfaceless strip): a `surface-0` bar with a hairline bottom rule, continuous with the
   sidebar panel, so the chrome reads as one white L against the content well. The vertical
   seam between the wordmark and the search is the sidebar's own `border-r` — never a rule
-  of its own. Trailing edge = **three separate ringed circles** (`.topbar-action`, `size-10`,
-  `gap-2`: theme · bell · account) — never a shared pill; the account one is
-  `.topbar-avatar`, brand-tinted, and carries no name or chevron (the popover states name +
-  email + role; `aria-label`/`title` carry the name). The search is a **filled, borderless**
-  pill — on a white bar the fill states the field and a border competes with the action
-  rings. **`.topbar-search` is a deliberately `disabled` stub** (owner 2026-08-27,
+  of its own. Trailing edge = **three separate circles, each with a 2px border**
+  (`.topbar-action`, `size-10`, `gap-2`: theme · bell · account) — never a shared pill; the
+  account one is `.topbar-avatar`, brand-tinted, and carries no name or chevron (the popover
+  states name + email + role; `aria-label`/`title` carry the name). The stroke is
+  `border-2`, **not `ring-2`** (owner 2026-08-27): a border sits inside the 40px box, so the
+  row's `gap-2` stays a true 8px between edges instead of the 4px a ring's outward spread
+  would leave. The search is a **filled, borderless** pill — on a white bar the fill states
+  the field and a border there would compete with the action circles. **`.topbar-search` is a deliberately `disabled` stub** (owner 2026-08-27,
   23 § Open ①): the chrome ships now, the capability is **plan 24** — do not quietly
   enable it, and do not treat the `⌘K` hint as a live binding until 24 CP-2 lands.
   Shadows are always **neutral black alpha** — colored glows stay banned (AI-slop rule).

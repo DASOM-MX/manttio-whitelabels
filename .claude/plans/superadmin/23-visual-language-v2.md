@@ -126,8 +126,8 @@ has two brand colors plus a fixed status set to speak with.**
    stays. **The topbar is a section of that same white plane** (owner 2026-08-27, reference
    crops — supersedes 17's surfaceless strip): `surface-0` fill, hairline bottom rule
    running unbroken across the wordmark strip *and* the topbar, with the sidebar's own
-   `border-r` as the vertical seam between them. Trailing edge = three separate ringed
-   circles (theme · bell · account); the search is a filled, borderless pill.
+   `border-r` as the vertical seam between them. Trailing edge = three separate circles
+   with a **2px border** (theme · bell · account); the search is a filled, borderless pill.
 2. **Card treatment (supersedes 17's shadow-only cards).** `.card` = white, `rounded-card`,
    **hairline `surface-200` border + the existing soft `shadow-card`**, `p-6`. Borders come
    back as the primary separator; the shadow drops to a lift. Dark mode: `surface-900` fill,
@@ -166,6 +166,7 @@ has two brand colors plus a fixed status set to speak with.**
 | 01 "`font-data` heads with Atkinson Hyperlegible" (2026-07-06) | § Decisions 2026-08-27 — Work Sans Variable, so the numeric face follows the ladder |
 | 01 "the product voice's tnum can't be trusted" | 01 § Typography correction 2026-08-27 — that was Commissioner's failure; Figtree's tnum is real |
 | 2026-07-22 "the theme switcher lives in the account popover" | § Decisions 2026-08-27 — it is the first of the topbar's three action buttons |
+| § Direction 1's own "three separate **ringed** circles" (`ring-1`) | § Decisions 2026-08-27 — a 2px `border`, inside the box |
 
 Everything else in 17 and 01 stands. Both documents are edited **in CP-1**, together with the
 committed `.claude/skills/superadmin-design` mirror (same commit — 01's standing rule).
@@ -270,10 +271,11 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
 - [x] **Sectioned topbar** (owner 2026-08-27, second reference crop — replaced a first
       pass that gathered the actions into one grouped pill): `surface-0` bar + hairline
       bottom rule continued across the sidebar's wordmark strip, so the seam runs the
-      full width and the chrome reads as one white L; three separate ringed `size-10`
-      circles trailing (theme · bell · account) instead of a shared shell; the search
-      becomes a filled borderless pill, because on a white bar the fill states the field
-      and a border would compete with the action rings
+      full width and the chrome reads as one white L; three separate `size-10` circles
+      trailing (theme · bell · account) instead of a shared shell, each drawn with a
+      **2px border** (owner 2026-08-27, third round — `ring-1` was too faint to hold a
+      circle at this diameter); the search becomes a filled borderless pill, because on a
+      white bar the fill states the field and a border would compete with the circles
 - [x] **Numeric face → Work Sans Variable** (owner 2026-08-27): `font-data` follows
       the ladder instead of snapping to Atkinson's only Bold, and reads as a quiet
       grotesque beside Figtree rather than a second product's voice. Tabular digits
@@ -552,6 +554,15 @@ of breaking behind it.
     neither, and the popover it opens already states name + email + role. The name reaches
     assistive tech and the tooltip through `aria-label`/`title` instead, so nothing that was
     readable stopped being readable.
+- **Decided 2026-08-27 (owner, third review round) — the action circles get a 2px
+  border.** The sectioned strip was accepted ("this is good"); the stroke was not. At
+  `size-10` a `ring-1` hairline dissolved into the white bar and the three circles read as
+  smudges rather than buttons — the reference draws a stroke you can see. **`border-2`, not
+  `ring-2`:** Tailwind's ring is an outward box-shadow spread, so a 2px ring would grow each
+  circle to 44px visually and shrink the row's `gap-2` to 4px of daylight; a border sits
+  inside the 40px box and leaves the 8px gap intact. Hover moves the border one step darker
+  (`surface-300`, `primary-300`) instead of only the fill, so the stroke stays the thing the
+  eye tracks. Applies to `.topbar-avatar` too — same circle, brand-tinted.
 - **Open — decide at the CP that needs it:** ④ Whether the gauge's default fill is
   `accent` or emerald when the metric has no good/bad direction (CP-3). ⑤ **What feeds
   `NavBadge.badge`** — the slot is built and styled but nothing sets it; a real source

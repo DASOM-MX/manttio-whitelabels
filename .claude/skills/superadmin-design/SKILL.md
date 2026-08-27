@@ -135,9 +135,11 @@ the target and the code is the backlog.
   separates nothing). **The topbar is SECTIONED** since 2026-08-27 (23 CP-2, supersedes
   the 2026-07-22 surfaceless strip): a `surface-0` bar with a hairline bottom rule
   continuous with the sidebar panel, the sidebar's `border-r` as the vertical seam, a
-  **filled borderless** search pill, and **three separate ringed circles** trailing
+  **filled borderless** search pill, and **three separate 2px-bordered circles** trailing
   (`.topbar-action` ×2 + `.topbar-avatar`, `size-10`, `gap-2`: theme · bell · account) —
-  never a shared pill, and the account circle carries no name or chevron.
+  never a shared pill, and the account circle carries no name or chevron. The circles use
+  `border-2`, **not `ring-2`** (owner 2026-08-27) — the stroke belongs inside the 40px box
+  so `gap-2` stays a true 8px between edges.
   `.topbar-search` is a deliberately **`disabled` stub** (owner 2026-08-27, 23
   § Open ①): the chrome ships, the capability is **plan 24** — never quietly enable it,
   and the `⌘K` hint is not a live binding yet. The shell also stays **edge-to-edge** —
