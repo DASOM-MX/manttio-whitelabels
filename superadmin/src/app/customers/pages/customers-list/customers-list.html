@@ -54,6 +54,8 @@
 <div>
   <p-table
     [value]="customers()"
+    styleClass="table-paged table-paged--tall"
+    [style.--table-page-rows]="list.PAGE_SIZE"
     [lazy]="true"
     (onLazyLoad)="list.onLazyLoad($event)"
     [paginator]="true"

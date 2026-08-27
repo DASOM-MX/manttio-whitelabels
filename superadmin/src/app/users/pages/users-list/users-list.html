@@ -40,6 +40,8 @@
 <div>
   <p-table
     [value]="users()"
+    styleClass="table-paged"
+    [style.--table-page-rows]="list.PAGE_SIZE"
     [lazy]="true"
     (onLazyLoad)="list.onLazyLoad($event)"
     [paginator]="true"

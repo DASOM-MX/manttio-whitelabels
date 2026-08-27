@@ -101,17 +101,58 @@
    (`tableLoading`, app/services/table/table-loading.ts — PrimeNG stacks
    `#loadingbody` *under* the rows rather than replacing them, so the rows stay
    and the skeletons sit this one out). Dim them in place and drop them out of
-   hit-testing: the height never changes, and nothing stale invites a click.
+   hit-testing: nothing stale invites a click.
 
-   The delay is deliberately one-way: it rides on the dimmed state, so entering
-   it waits 150ms and a response that lands inside that window never blinks,
-   while leaving falls back to the undelayed transition above and restores at
-   once. */
+   Read the two rules as one cross-fade, because that is what they are. The
+   rows fade *down* while the request is out, are replaced at their faintest —
+   which is what hides the swap; a hard cut at full opacity is the jump the eye
+   catches — then ease back up carrying the new page.
+
+   Timing follows the motion tokens (animations.scss): out is `fast` on
+   `ease-exit`, back is `base` on `ease-enter`, exits quicker than enters. The
+   150ms delay rides on the dimmed state only, so it applies going out — a
+   response landing inside that window never dims at all — while the return
+   inherits the undelayed rule above and starts the moment rows arrive. */
 .p-datatable-tbody {
-  @apply transition-opacity duration-200;
+  transition: opacity var(--motion-base) var(--ease-enter);
 }
 .table-refreshing .p-datatable-tbody {
-  @apply opacity-60 delay-150 pointer-events-none;
+  @apply pointer-events-none;
+
+  opacity: 0.45;
+  transition: opacity var(--motion-fast) var(--ease-exit) 150ms;
+}
+
+/* Reduced motion takes the fade, not the feedback: the dim still marks the
+   rows as stale, it just stops moving (same bargain as `.skeleton`). */
+@media (prefers-reduced-motion: reduce) {
+  .p-datatable-tbody,
+  .table-refreshing .p-datatable-tbody {
+    transition: none;
+  }
+}
+
+/* A paged table holds a full page of rows whether or not the page is full, so
+   the paginator sits at the same y on every page and the eye has one fixed
+   thing to aim at. Without it the short last page collapses the table and
+   drags the controls up under the cursor mid-click.
+
+   A floor, not a fixed height — a page whose rows wrap taller simply grows
+   past it. `--table-page-rows` is bound from `ListQueryService.PAGE_SIZE` so
+   the reservation and the request can't drift apart; the row heights are the
+   cell box, which is padding plus the tallest content the column carries. */
+.table-paged .p-datatable-table-container {
+  --table-row-h: 2.5rem; /* px-4 py-2.5 + one line of text-sm */
+  --table-header-h: 2.75rem; /* px-4 py-3 + one micro-label line */
+
+  /* Fallback keeps the floor if the binding is ever dropped — an unset
+     custom property makes the whole calc invalid, not just that term. */
+  min-height: calc(var(--table-page-rows, 10) * var(--table-row-h) + var(--table-header-h));
+}
+
+/* Rows built around a size-9 avatar or a two-line cell (clients). */
+.table-paged--tall .p-datatable-table-container {
+  --table-row-h: 3.5rem;
 }
 
 /* Paginator (rendered when [paginator]="true") */
