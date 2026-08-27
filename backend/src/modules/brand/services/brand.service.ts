@@ -4,15 +4,31 @@ import { FONT_CATALOG } from '../constants/font-catalog';
 import { findBrand, upsertBrand } from '../repository/brand.repository';
 import { generateBrandIcons } from './brand-icons.service';
 import type { Db } from '../../database/client';
-import type { Brand, FontCatalogEntry } from '../dtos/brand.dto';
+import type { Brand, BrandColors, FontCatalogEntry, HslScale } from '../dtos/brand.dto';
 import type { BrandRow } from '../types/brand.types';
 import type { SaveBrandInput } from '../validators/brand.validator';
+
+/** What the jsonb may actually hold during the 22 CP-1 rollout: a row written
+ *  before the accent migration has no `accent` and still carries the retired
+ *  `surface` key. */
+type StoredBrandColors = { primary: HslScale; accent?: HslScale };
+
+// The read contract is exactly the two brand scales (22 § Target 1), so colors
+// are projected rather than passed through — the tombstoned `surface` key the
+// migration deliberately leaves in storage never reaches a consumer. An accent
+// that has not been seeded yet mirrors the migration's own rule (accent starts
+// as primary), so a deploy landing ahead of the migration still serves a
+// complete palette instead of a half-empty one.
+const brandColors = (stored: StoredBrandColors): BrandColors => ({
+  primary: stored.primary,
+  accent: stored.accent ?? stored.primary,
+});
 
 // Read materialization (rule 6): R2 keys → finished CDN URLs, and only fields
 // that actually carry a value make it into the payload — absent identity is
 // omitted so consumers hide it instead of rendering placeholders (rule 5).
 const materializeBrand = (row: BrandRow, cdnBase: string): Brand => {
-  const result: Brand = { name: row.name, colors: row.colors };
+  const result: Brand = { name: row.name, colors: brandColors(row.colors) };
   if (row.slogan) result.slogan = row.slogan;
   if (row.description) result.description = row.description;
   if (row.siteUrl) result.siteUrl = row.siteUrl;
@@ -47,15 +63,12 @@ export const saveBrand = async (
   input: SaveBrandInput,
 ): Promise<Brand> => {
   const existing = await findBrand(db);
-  // The PWA icon set is regenerated from the mark on every save — the mark,
-  // its bytes, or the maskable surface-0 background may all have changed, and
-  // saves are rare admin writes. A failed generation (missing object, non-PNG
-  // source) saves the brand without icons; the manifest then serves its
-  // neutral bundled set (rule 5).
+  // The PWA icon set is regenerated from the mark on every save — the mark or
+  // its bytes may have changed, and saves are rare admin writes. A failed
+  // generation (missing object, non-PNG source) saves the brand without icons;
+  // the manifest then serves its neutral bundled set (rule 5).
   const iconSourceKey = input.faviconKey ?? input.isologoKey ?? null;
-  const icons = iconSourceKey
-    ? await generateBrandIcons(bucket, iconSourceKey, input.colors)
-    : null;
+  const icons = iconSourceKey ? await generateBrandIcons(bucket, iconSourceKey) : null;
   const row = await upsertBrand(db, {
     name: input.name,
     slogan: input.slogan,

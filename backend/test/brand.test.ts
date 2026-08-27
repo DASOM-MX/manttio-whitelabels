@@ -60,7 +60,7 @@ const SAVE_BODY = {
   slogan: 'Frío confiable',
   siteUrl: 'https://acme.example.com',
   logoKey: 'brand/acme-logo.png',
-  colors: { primary: hslScale(210), surface: hslScale(0) },
+  colors: { primary: hslScale(210), accent: hslScale(28) },
   contact: {
     phone: '+52 81 1234 5678',
     whatsapp: '8112345678',
@@ -96,7 +96,7 @@ describe('brand module', () => {
     const body = await json<Brand>(res);
     for (const step of BRAND_SCALE_STEPS) {
       expect(body.colors.primary[step]).toMatch(HSL_COMPONENTS);
-      expect(body.colors.surface[step]).toMatch(HSL_COMPONENTS);
+      expect(body.colors.accent[step]).toMatch(HSL_COMPONENTS);
     }
   });
 
@@ -109,7 +109,7 @@ describe('brand module', () => {
     expect(DEFAULT_BRAND.logoUrl).toBeUndefined();
     for (const step of BRAND_SCALE_STEPS) {
       expect(DEFAULT_BRAND.colors.primary[step]).toMatch(HSL_COMPONENTS);
-      expect(DEFAULT_BRAND.colors.surface[step]).toMatch(HSL_COMPONENTS);
+      expect(DEFAULT_BRAND.colors.accent[step]).toMatch(HSL_COMPONENTS);
     }
   });
 
@@ -193,10 +193,15 @@ describe('brand module', () => {
     expect(await attempt(SAVE_BODY)).toBe(200);
 
     const hexScale = Object.fromEntries(BRAND_SCALE_STEPS.map((s) => [s, '#243345']));
-    expect(await attempt({ ...SAVE_BODY, colors: { primary: hexScale, surface: hslScale(0) } })).toBe(400);
+    expect(await attempt({ ...SAVE_BODY, colors: { primary: hexScale, accent: hslScale(28) } })).toBe(400);
 
     const { '1000': _dropped, ...partialScale } = hslScale(210);
-    expect(await attempt({ ...SAVE_BODY, colors: { primary: partialScale, surface: hslScale(0) } })).toBe(400);
+    expect(await attempt({ ...SAVE_BODY, colors: { primary: partialScale, accent: hslScale(28) } })).toBe(400);
+
+    // Both brand scales are mandatory (22 § Decisions ①): a writer still on
+    // the retired `primary` + `surface` pair — the manager app until it ships
+    // its two-picker editor — is rejected outright rather than half-applied.
+    expect(await attempt({ ...SAVE_BODY, colors: { primary: hslScale(210), surface: hslScale(0) } })).toBe(400);
 
     // All four contact fields are required — a partial block is a 400, never a
     // partial save.

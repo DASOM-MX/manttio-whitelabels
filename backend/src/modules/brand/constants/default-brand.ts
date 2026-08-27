@@ -31,9 +31,12 @@ const neutralScale = (hue: number, saturation: number): HslScale =>
 export const DEFAULT_BRAND: Brand = {
   name: '',
   colors: {
-    // A whisper of blue on primary so interactive chrome still reads as such;
-    // surface is pure grayscale.
+    // A whisper of blue so interactive chrome still reads as such. Accent gets
+    // the *same* neutral ramp rather than an invented hue (rule 3) — a
+    // brandless instance renders gray, never a fake second brand color. The
+    // chrome neutral is not here any more: it left the contract and is fixed
+    // in each app's palette layer (22 § Target 3).
     primary: neutralScale(220, 10),
-    surface: neutralScale(0, 0),
+    accent: neutralScale(220, 10),
   },
 };

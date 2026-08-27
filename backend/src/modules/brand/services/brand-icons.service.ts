@@ -9,10 +9,8 @@
 import UPNG from 'upng-js';
 import { putObject } from '../../storage/services/storage.service';
 import { BRAND_ICON_SPECS } from '../constants/icon-specs';
-import { hslToRgb01 } from '../utils/hsl-color';
 import { compositeIcon } from '../utils/rgba-image';
 import type { IconBackground, RgbaImage } from '../utils/rgba-image';
-import type { BrandColors } from '../dtos/brand.dto';
 import type { BrandIconsRecord } from '../types/brand-icons.types';
 
 /** Maskable spec: content must survive any platform mask inside the inner 80%. */
@@ -20,19 +18,15 @@ const MASKABLE_SAFE_ZONE = 0.8;
 
 const iconKey = (filename: string) => `icons/${Date.now()}-${filename}`;
 
-/** Solid tile behind the maskable icons — the brand's surface-0, white when
- *  the scale value doesn't parse. */
-const maskableBackground = (colors: BrandColors): IconBackground => {
-  const rgb = hslToRgb01(colors.surface['0'] ?? '');
-  if (!rgb) return { r: 255, g: 255, b: 255 };
-  const channel = (n: number) => Math.round(Math.min(1, Math.max(0, n)) * 255);
-  return { r: channel(rgb.r), g: channel(rgb.g), b: channel(rgb.b) };
-};
+/** Solid tile behind the maskable icons. Literal white since 22 CP-1: the
+ *  chrome neutral left the brand contract, and an icon plate is a plate — the
+ *  platform mask crops it, so it must be the one color every launcher reads
+ *  as "no plate". */
+const MASKABLE_BACKGROUND: IconBackground = { r: 255, g: 255, b: 255 };
 
 export const generateBrandIcons = async (
   bucket: R2Bucket,
   sourceKey: string,
-  colors: BrandColors,
 ): Promise<BrandIconsRecord | null> => {
   const object = await bucket.get(sourceKey);
   if (!object) return null;
@@ -49,11 +43,10 @@ export const generateBrandIcons = async (
     return null; // not a decodable PNG — icon set skipped, manifest goes neutral
   }
 
-  const background = maskableBackground(colors);
   const record: Partial<Record<keyof BrandIconsRecord, string>> = {};
   for (const spec of BRAND_ICON_SPECS) {
     const image = spec.maskable
-      ? compositeIcon(src, spec.size, MASKABLE_SAFE_ZONE, background)
+      ? compositeIcon(src, spec.size, MASKABLE_SAFE_ZONE, MASKABLE_BACKGROUND)
       : compositeIcon(src, spec.size, 1, null);
     const bytes = UPNG.encode([image.data.buffer as ArrayBuffer], spec.size, spec.size, 0);
     record[spec.field] = await putObject(bucket, iconKey(spec.filename), bytes, 'image/png');

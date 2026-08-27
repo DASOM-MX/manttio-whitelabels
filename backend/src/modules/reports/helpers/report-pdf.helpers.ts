@@ -31,18 +31,21 @@ const formatDate = (d: Date | null, timezone: string) => {
   }).format(d);
 };
 
-// Brand scales → document theme (the whitelabel-PDF hook). Steps chosen to sit
-// closest to the pre-brand constants; any unparsable value falls back to the
-// matching neutral default component.
+// Brand scales → document theme (the whitelabel-PDF hook). Since 22 CP-1 only
+// two roles are tenant-driven: the body ink (primary) and the section-header
+// band (accent). Table fills and rules are the fixed chrome neutrals, taken
+// straight from DEFAULT_PDF_THEME. Any unparsable scale value falls back to
+// the matching neutral component.
 const themeColor = (scale: HslScale, step: string, fallback: PdfTheme[keyof PdfTheme]) => {
   const color = hslToRgb01(scale[step] ?? '');
   return color ? rgb(color.r, color.g, color.b) : fallback;
 };
 
 export const pdfThemeFromBrand = (brand: Brand): PdfTheme => ({
-  fill: themeColor(brand.colors.surface, '100', DEFAULT_PDF_THEME.fill),
-  border: themeColor(brand.colors.surface, '300', DEFAULT_PDF_THEME.border),
+  fill: DEFAULT_PDF_THEME.fill,
+  border: DEFAULT_PDF_THEME.border,
   text: themeColor(brand.colors.primary, '900', DEFAULT_PDF_THEME.text),
+  accentFill: themeColor(brand.colors.accent, '100', DEFAULT_PDF_THEME.accentFill),
 });
 
 export type RenderReportPdfParams = {

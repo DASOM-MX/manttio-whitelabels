@@ -7,7 +7,11 @@
 // blocks. Nothing here is shared with the app's CSS on purpose.
 
 export type QuotationEmailPalette = {
-  /** Headings, the CTA button, the footer band (brand primary). */
+  /** The brand name, the total, the CTA button (brand primary — primary is
+   *  what the reader is meant to act on). */
+  brandInk: string;
+  /** The footer band (brand accent) — this document's one categorical cue
+   *  (22 CP-1, plan 23 § palette roles). */
   accent: string;
   pageBg: string;
   panelBg: string;
@@ -53,7 +57,7 @@ export const quotationEmailHtml = (p: QuotationEmailHtmlParams): string => {
 
   const logoBlock = p.logoUrl
     ? `<img src="${escapeHtml(p.logoUrl)}" alt="${brand}" height="40" style="display:block;border:0;max-height:40px" />`
-    : `<span style="font-size:18px;font-weight:600;color:${c.accent}">${brand}</span>`;
+    : `<span style="font-size:18px;font-weight:600;color:${c.brandInk}">${brand}</span>`;
 
   const greeting = p.greetingName
     ? `<p style="margin:0 0 16px;font-size:15px;color:${c.bodyText}">Hola ${escapeHtml(p.greetingName)},</p>`
@@ -66,7 +70,7 @@ export const quotationEmailHtml = (p: QuotationEmailHtmlParams): string => {
   const row = (label: string, value: string, strong = false) => `
         <tr>
           <td style="padding:6px 0;font-size:13px;color:${c.muted}">${label}</td>
-          <td style="padding:6px 0;font-size:${strong ? '16px' : '13px'};font-weight:${strong ? '600' : '400'};color:${strong ? c.accent : c.bodyText};text-align:right">${value}</td>
+          <td style="padding:6px 0;font-size:${strong ? '16px' : '13px'};font-weight:${strong ? '600' : '400'};color:${strong ? c.brandInk : c.bodyText};text-align:right">${value}</td>
         </tr>`;
 
   return `<!doctype html>
@@ -87,7 +91,7 @@ export const quotationEmailHtml = (p: QuotationEmailHtmlParams): string => {
             ${row('Total', escapeHtml(p.total), true)}
           </table>
           <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 8px">
-            <tr><td style="background:${c.accent};border-radius:8px">
+            <tr><td style="background:${c.brandInk};border-radius:8px">
               <a href="${escapeHtml(p.link)}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none">${cta}</a>
             </td></tr>
           </table>

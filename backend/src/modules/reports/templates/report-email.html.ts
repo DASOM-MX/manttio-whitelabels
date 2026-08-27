@@ -11,7 +11,11 @@
 // an absent logo/name/site renders nothing (rule 5 — hide, never fake).
 
 export type EmailPalette = {
-  /** Headings, labels, button + footer background (brand primary). */
+  /** Headings, labels, the download button (brand primary — primary is what
+   *  the reader is meant to act on). */
+  brandInk: string;
+  /** The footer band (brand accent) — this document's one categorical cue
+   *  (22 CP-1, plan 23 § palette roles). */
   accent: string;
   pageBg: string;
   panelBg: string;
@@ -23,7 +27,7 @@ export type EmailPalette = {
   closing: string;
   /** Outer copyright line. */
   outerFooter: string;
-  /** Footer base text over the accent background. */
+  /** Footer base text over the accent band. */
   footerText: string;
 };
 
@@ -61,7 +65,7 @@ export const reportEmailHtml = (v: ReportEmailHtmlView): string => {
   const p = v.palette;
 
   const locationRow = v.location
-    ? `<br><strong style="color:${p.accent};">Ubicación de firma:</strong> <a href="${escapeHtml(v.location.url)}" target="_blank" rel="noopener" style="color:${p.accent};text-decoration:underline;">${escapeHtml(v.location.coords)}</a>`
+    ? `<br><strong style="color:${p.brandInk};">Ubicación de firma:</strong> <a href="${escapeHtml(v.location.url)}" target="_blank" rel="noopener" style="color:${p.brandInk};text-decoration:underline;">${escapeHtml(v.location.coords)}</a>`
     : '';
 
   const logoHeader = v.brand.logoUrl
@@ -104,7 +108,7 @@ export const reportEmailHtml = (v: ReportEmailHtmlView): string => {
           ${logoHeader}
           <tr>
             <td style="padding:32px;">
-              <h1 style="margin:0 0 16px;font-size:22px;color:${p.accent};font-weight:600;">Reporte de servicio listo</h1>
+              <h1 style="margin:0 0 16px;font-size:22px;color:${p.brandInk};font-weight:600;">Reporte de servicio listo</h1>
               <p style="margin:0 0 16px;font-size:15px;line-height:1.5;">
                 Estimado/a ${escapeHtml(v.customerName)},
               </p>
@@ -115,12 +119,12 @@ export const reportEmailHtml = (v: ReportEmailHtmlView): string => {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:${p.panelBg};border-radius:6px;margin-bottom:8px;">
                 <tr>
                   <td style="padding:20px;font-size:14px;line-height:1.7;color:${p.bodyText};">
-                    <strong style="color:${p.accent};">Folio:</strong> ${escapeHtml(v.folio)}<br>
-                    <strong style="color:${p.accent};">Tipo de servicio:</strong> ${escapeHtml(v.work)}<br>
-                    <strong style="color:${p.accent};">Inicio del servicio:</strong> ${escapeHtml(v.arrival)}<br>
-                    <strong style="color:${p.accent};">Iniciado por:</strong> ${escapeHtml(v.createdByName)}<br>
-                    <strong style="color:${p.accent};">Finalización:</strong> ${escapeHtml(v.finished)}<br>
-                    <strong style="color:${p.accent};">Finalizado por:</strong> ${escapeHtml(v.finishedBy)}${locationRow}
+                    <strong style="color:${p.brandInk};">Folio:</strong> ${escapeHtml(v.folio)}<br>
+                    <strong style="color:${p.brandInk};">Tipo de servicio:</strong> ${escapeHtml(v.work)}<br>
+                    <strong style="color:${p.brandInk};">Inicio del servicio:</strong> ${escapeHtml(v.arrival)}<br>
+                    <strong style="color:${p.brandInk};">Iniciado por:</strong> ${escapeHtml(v.createdByName)}<br>
+                    <strong style="color:${p.brandInk};">Finalización:</strong> ${escapeHtml(v.finished)}<br>
+                    <strong style="color:${p.brandInk};">Finalizado por:</strong> ${escapeHtml(v.finishedBy)}${locationRow}
                   </td>
                 </tr>
               </table>
@@ -130,7 +134,7 @@ export const reportEmailHtml = (v: ReportEmailHtmlView): string => {
 
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:32px auto;">
                 <tr>
-                  <td align="center" style="border-radius:6px;background-color:${p.accent};">
+                  <td align="center" style="border-radius:6px;background-color:${p.brandInk};">
                     <a href="${escapeHtml(v.downloadUrl)}" target="_blank"
                        style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:6px;">
                       Descargar reporte en PDF

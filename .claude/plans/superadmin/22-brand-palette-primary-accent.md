@@ -1,6 +1,6 @@
 # 22 — Brand palette: **primary + accent** (surface goes fixed-neutral)
 
-> **Status:** planned 2026-08-26 — not started
+> **Status:** in progress 2026-08-26 — **CP-1 done**, CP-2…CP-5 open
 > **Owner:** planning session 2026-08-26 · **Last updated:** 2026-08-26
 > **Scope:** all four packages (`backend/`, `superadmin/`, `frontend/`, `website/`) —
 > one suite, sequenced CP-1…CP-5.
@@ -120,10 +120,24 @@ newest entry today is `0041_wms_node_assignments`; check the live table, not jus
 
 Every `colors.surface` read in emails/PDF/icons already has a neutral constant beside it
 (`NEUTRAL_HEX_FALLBACKS`, `DEFAULT_PDF_THEME`). **Promote the fallback to the value**: delete
-the brand lookup, keep the constant, keep the shape of the helper. `brand-icons.service.ts`'s
-icon plate becomes literal white. Emails/PDFs keep reading `colors.primary` for their brand
-cues, and **may** adopt accent later — not in this plan (`accent` is defined but unused
-server-side; plan 23 decides where it earns a role in documents).
+the brand lookup, keep the constant, keep the shape of the helper — with the constants retuned
+to the fixed table's actual steps, so a default-surface tenant renders what it renders today.
+`brand-icons.service.ts`'s icon plate becomes literal white.
+
+**Documents adopt accent in this plan** (§ Decisions ②, owner 2026-08-26). One structural role
+per document, and the same role in all of them — the band, never the button, because
+primary stays what the reader is meant to act on (plan 23 § palette roles):
+
+| Document | `primary` | `accent` |
+|---|---|---|
+| Report email | headings, labels, the download button (`primary-800`) | the footer band (`accent-800`) + its text (`accent-100`) |
+| Quotation email | brand name, total, the CTA button (`primary-800`) | the footer band (`accent-800`) + its text (`accent-100`) |
+| Report + quotation PDF | body ink (`primary-900`) | the section-header band (`accent-100`) |
+
+The palettes' `accent` key — which meant *primary*-800 all along — is renamed `brandInk` in the
+same pass; a key called `accent` that reads from `primary` is exactly the dishonesty this plan
+exists to remove. With accent seeded from primary the first render is unchanged; the split
+only becomes visible once the owner picks a real second color.
 
 ### Per-app palette layer
 
@@ -170,30 +184,39 @@ One PR per checkpoint, stacked, base `main`, in this order. **The order is the s
 property** — CP-1 changes the wire, so no consumer leg can land before it, and CP-2 must land
 before plan 23 writes a single line of new chrome. CP-3 and CP-4 are independent of each other.
 
-### CP-1 — Backend contract + migration (`feat(backend)`)
-- [ ] `BrandColors` in `dtos/brand.dto.ts` → `{ primary: HslScale; accent: HslScale }`;
-      `models/brand.model.ts`'s jsonb `$type` follows
-- [ ] `saveBrandSchema.colors` → `z.object({ primary: hslScaleSchema, accent: hslScaleSchema })`,
-      with the write-compat decision from § Manager-app coordination implemented
-- [ ] `DEFAULT_BRAND.colors.accent` = the same neutral ramp as primary (`neutralScale(220, 10)`) —
+### CP-1 — Backend contract + migration (`feat(backend)`) — **done 2026-08-26**
+- [x] `BrandColors` in `dtos/brand.dto.ts` → `{ primary: HslScale; accent: HslScale }`;
+      `models/brand.model.ts`'s jsonb `$type` follows (it types off the DTO — no edit needed)
+- [x] `saveBrandSchema.colors` → `z.object({ primary: hslScaleSchema, accent: hslScaleSchema })`,
+      both required per § Decisions ①
+- [x] `DEFAULT_BRAND.colors.accent` = the same neutral ramp as primary (`neutralScale(220, 10)`) —
       a brandless instance renders gray, never an invented hue (branding rule 3)
-- [ ] **Dump the live `brand.colors.surface` and diff it against § Target 3's fixed table before
-      generating anything**; owner signs off on any delta (§ Verification)
-- [ ] Migration generated with `pnpm db:generate` — never hand-written DDL — and its `when`
-      newer than the newest `__drizzle_migrations` row (check the *table*, not just
-      `_journal.json`; today's newest is `0041_wms_node_assignments`)
-- [ ] The migration seeds `accent` from the tenant's `primary` and leaves the legacy `surface`
+- [x] ~~Dump the live `brand.colors.surface`~~ — **skipped by owner decision ③**; the tenant is
+      assumed to be on the default surface, which makes the migration value-neutral
+- [x] Migration generated with `drizzle-kit generate --custom` (the change is jsonb *data*, so a
+      schema diff emits nothing) → `0043_brand_colors_primary_accent.sql`, `when`
+      `1787803283253` — newer than `0042_bumpy_greymalkin` (renumbered from 0042 on the
+      2026-08-26 rebase, when #168 landed a 0042 of its own; drizzle-kit skips any entry
+      older than the newest applied row, so the regenerate was mandatory, not cosmetic).
+      **Check the live `__drizzle_migrations` table before applying**, not just `_journal.json`
+- [x] The migration seeds `accent` from the tenant's `primary` and leaves the legacy `surface`
       key in place, unread. No column dropped, nothing deleted
-- [ ] Migration **not applied** — applying against the live Neon DB is the owner's call
-- [ ] `brand-icons.service.ts`: the icon plate's `colors.surface['0']` → literal white
-- [ ] `reports/helpers/report-email.helpers.ts` (7 surface reads), `report-pdf.helpers.ts` (2),
-      `quotations/helpers/quotation-email.helpers.ts` (5): brand lookup deleted, the neutral
-      constant already beside each one promoted to the value; helper signatures unchanged
-- [ ] `quotation-approval-page.helpers.ts` re-checked (primary-only today — should stay green)
-- [ ] `GET /brand` no longer emits `surface`
-- [ ] `test/brand.test.ts` + the report/quotation email+PDF fixtures updated (written, not run —
-      the suite hits live Neon)
-- [ ] `pnpm typecheck` green
+- [x] Migration **not applied** — applying against the live Neon DB is the owner's call
+- [x] `brand-icons.service.ts`: the icon plate's `colors.surface['0']` → literal white; the
+      now-dead `colors` parameter dropped rather than left as a stale flag
+- [x] `reports/helpers/report-email.helpers.ts`, `report-pdf.helpers.ts`,
+      `quotations/helpers/quotation-email.helpers.ts`: brand surface lookups deleted, their
+      neutral constants promoted to values and retuned to the fixed table's steps; helper
+      signatures unchanged
+- [x] Accent adopted per § Mechanics' table; each palette's misnamed `accent` key (it read
+      `primary`) renamed `brandInk`; `PdfTheme` gains `accentFill` and `drawSectionHeader`
+      uses it
+- [x] `quotation-approval-page.helpers.ts` re-checked (primary-only — stayed green)
+- [x] `GET /brand` no longer emits `surface` — `materializeBrand` projects `colors` to the
+      two contract scales instead of passing the stored jsonb through
+- [x] `test/brand.test.ts` updated, including a case proving the retired `primary` + `surface`
+      payload is a 400 (written, not run — the suite hits live Neon)
+- [x] `pnpm typecheck` green
 
 ### CP-2 — Superadmin palette layer (`feat(superadmin)`)
 - [ ] `tailwind.config.js`: `primary` + `accent` through the existing `brandScale()` helper;
@@ -276,8 +299,16 @@ before plan 23 writes a single line of new chrome. CP-3 and CP-4 are independent
   accent seeded from primary in the migration · legacy `surface` jsonb key tombstoned, not
   deleted · `secondary` alias retires in favor of `accent` · backend documents keep primary-only
   brand cues for now.
-- **Open — needs an owner answer before CP-1:** ① **manager-app write compat**: does
-  `PUT /brand` require `accent` immediately (manager ships in lockstep) or accept a payload
-  without it for one release, falling back to primary? *Recommendation:* require it, and
-  coordinate the manager release — one deployment per tenant, same team, and a silent fallback
-  hides a broken push. ② Does accent earn a role in **emails/PDFs**, or stay app-chrome-only?
+- **Answered (2026-08-26, owner):** ① **manager-app write compat — require `accent`
+  immediately.** `saveBrandSchema` takes both scales, no optional phase: a manager still
+  pushing `primary` + `surface` gets a 400 rather than a half-applied save, and the manager
+  release is coordinated (§ Manager-app coordination). ② **Accent earns a role in the documents
+  now** — one band per document, per the table in § Mechanics. ③ The pre-migration dump of the
+  live `brand.colors.surface` is **skipped**: the tenant is assumed to be on the default
+  surface, which makes the migration value-neutral. If that assumption is wrong, the visible
+  consequence is a customized surface reverting to the fixed gray in the apps and documents —
+  recoverable, because the migration leaves the legacy key in storage.
+- **Derived (2026-08-26, CP-1):** `GET /brand` **projects** `colors` to `{ primary, accent }`
+  instead of passing the jsonb through, so the tombstoned `surface` key never reaches a
+  consumer and a deploy that lands ahead of the migration still serves a complete palette
+  (absent `accent` mirrors the migration's rule and reads as `primary`).

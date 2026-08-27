@@ -11,7 +11,7 @@ export type HslScale = { [step: string]: string };
 
 export type BrandColors = {
   primary: HslScale;
-  surface: HslScale;
+  accent: HslScale;
 };
 
 export type BrandContact = {
