@@ -68,8 +68,11 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // The two tenant-configurable brand scales + fixed neutral surface
-        // (plan 22 §Target): identical names across frontend / superadmin / website.
+        // The two tenant-configurable brand scales + a fixed neutral surface
+        // (plan 22 §Target). `primary`/`accent` carry identical names across
+        // frontend / superadmin / website; `surface` does NOT — the field app
+        // and the website deleted their neutral scale on 2026-08-27 and use
+        // stock Tailwind `zinc` instead, so this one is superadmin's alone.
         primary: { ...primary, DEFAULT: primary['600'] }, // brand anchor (buttons, links, focus)
         accent: { ...accent, DEFAULT: accent['500'] }, // brand accent (new plan 22)
         surface: { ...surface, DEFAULT: surface['100'] }, // fixed chrome neutral

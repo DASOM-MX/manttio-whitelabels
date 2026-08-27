@@ -90,10 +90,14 @@ auto-loads it — **edit both in the same commit.**
 - **Entity rows lead with an initials avatar** (`size-9 rounded-full bg-primary-100
   text-primary-800` + the `initials` pipe, dark `primary-1000/60`/`primary-300`) —
   the reference's row identity, brand-tinted (canon: customers-list Cliente column).
-- **Accent step (owner, 2026-07-22):** `primary-400` is the *decorative* accent — icon
+- **Accent scale (plan 22, 2026-08-26 — supersedes the 2026-07-22 "accent step"):** the
+  decorative accent is a **real tenant-configured scale**, `accent-*`, DEFAULT `accent-500`
+  — not a step of primary. `primary-400` was the single-hue workaround for a second brand
+  color that did not exist. Which surfaces move onto `accent` is **plan 23 CP-1's** call;
+  until then the `primary-400` usages below stand as written — icon
   chips (`.icon-chip`; the unused `--soft` variant was removed at plan 17 CP-5,
   2026-07-22), single-hue chart area fills, progress bars,
-  highlight numbers (the reference's teal, brand-mapped). Interactive solids (buttons,
+  highlight numbers. Interactive solids (buttons,
   the filled nav chip's container aside) stay on `primary-600`/`700` — white text on
   400 doesn't clear 4.5:1.
 - **Stat cards (reference idiom):** micro-label + `font-data` value + delta
@@ -262,12 +266,20 @@ Binding for every component; the skill carries the same list with implementation
   utility classes. The old dialog-width `[style]` exception was retired at CP-4
   (2026-07-22) — see Dialogs below. Nothing else qualifies.)
 - The color palette is the **runtime tenant brand**, shared with `frontend/` and `website/`:
-  exactly two scales, `primary` and `surface`, reading `--brand-primary-*`/
-  `--brand-surface-*` (HSL components, steps **0…1000 by 100** — no `-50`/`-950`;
-  contract rework 2026-07-12). Utility name = wire name (plan 16, superadmin leg landed
+  **two tenant scales, `primary` and `accent`**, reading `--brand-primary-*`/
+  `--brand-accent-*` (HSL components, steps **0…1000 by 100** — no `-50`/`-950`;
+  contract rework 2026-07-12, accent added by plan 22 on 2026-08-26). Those two are the
+  whole tenant contract — **the chrome neutral is not shared any more.** Superadmin keeps
+  a third scale, `surface-*`, same utility names and steps but fixed literal values: it
+  reads no CSS variable and no tenant can retune it. `frontend/` and `website/` deleted
+  theirs and use **stock Tailwind `zinc`** instead (owner, 2026-08-27) — same idea, no
+  config to maintain, but `zinc-50…950`, not `surface-0…1000`. Do not copy neutral classes
+  between the apps; whether superadmin follows them onto zinc is still open (22 § Decisions).
+  Utility name = wire name (plan 16, superadmin leg landed
   2026-07-21; the legacy `sky`/`granite`/`navy`/`cyan` names are tombstoned in
   `tailwind.config.js` — they emit no CSS). Use those scales or the semantic aliases
-  (`background`, `surface`, `primary`, `secondary`, `dark`). The role-pill blue ladder is
+  (`background`, `surface`, `primary`, `accent`, `dark` — `secondary` retired with plan 22:
+  it was `primary-300`, the missing-accent workaround). The role-pill blue ladder is
   the one sanctioned literal-hex island (`.role-pill--*` in `styles.scss` — static across
   tenants by design, 14 §1). **Do not introduce new ad-hoc hex values.**
 - **Reuse the global classes from `styles.scss`** before re-styling locally: `.field-input`
