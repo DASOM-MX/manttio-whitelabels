@@ -8,7 +8,7 @@
 > remains**, plus the standing wrapper backlog in §9 (opened 2026-08-27, owner) — worked one
 > slice per PR, never batched.
 > **Depends on:** 07 (clients), 18 (services) · **Touches:** `backend/`, `superadmin/`, `frontend/`
-> **Owner:** — · **Last updated:** 2026-08-25
+> **Owner:** — · **Last updated:** 2026-08-27
 
 Fixes the reported bug: **on the clients list, moving to any page never changes the
 rows.** The investigation (below) found the frontend pagination layer to be correct and
@@ -559,9 +559,39 @@ from applying it; the live Neon DB remains the owner's.
       the 7 real catalog rows were untouched
 - [x] `pnpm typecheck` green; superadmin `npm run build` green
 
-### CP-6 — Regression guard
-- [ ] Playwright spec per lazy list page: page 2 issues `?page=2` **and renders page-2 rows**
-- [ ] Suite green against a running `ng serve`
+### CP-6 — Regression guard — **done 2026-08-27**
+- [x] `e2e/lists/list-pagination.spec.ts` — one case per lazy list page, **all nine**:
+      clients, users, plantillas, reportes, equipos, catálogo, cotizaciones, órdenes de
+      servicio, contratos. Each turns to page 2 and asserts three things together: the URL
+      carries `page=2` (so browser back walks the filter history), the request the client
+      issued carried `page=2&limit=10`, and the row **leading the table is row 11**, not
+      row 1
+- [x] `e2e/support/paged-list.ts` — the scenario, extracted because every lazy list is the
+      same three parts (a `ListQueryService`, a `[lazy]` `p-table`, a `GenericQueryResponse`
+      read). `mockPagedEndpoint` slices its fixed row set by the `page`/`limit` it was
+      *asked* for: a stub that replayed the whole store would let the exact regression this
+      guard exists for pass green — which is how the clients list shipped broken (§1)
+- [x] Routes are anchored on the API origin (`http://127.0.0.1:8788`), never a bare
+      `/customers` regex: the SPA serves the same path as a document, and fulfilling a page
+      navigation with JSON white-screens the test. A `stubIdleApi` catch-all on that origin
+      is registered **before** `signIn`, so no unstubbed call reaches a dev backend that
+      would answer the fake e2e token with a real 401 and log the session out mid-test
+- [x] **The guard was proved, not assumed.** Mutating the stub to ignore `page` (serve
+      `[0, limit)` always) fails all nine on the row assertion — "Expected `Cliente 011`,
+      received `Cliente 001`" — which is precisely the reported bug's signature. The URL and
+      request halves stay green under that mutation, which is why the rendered row is the
+      assertion that matters
+- [x] Suite run against a running `ng serve`: **19 passed, 4 failed** — the 9 new cases and
+      every other spec green; the 4 reds are **pre-existing on `main` and unrelated to
+      paging**, unchanged by this CP (see below)
+
+**Pre-existing e2e failures, unrelated to this plan** (recorded so "suite green" isn't
+silently claimed):
+
+| Spec | Cause |
+|---|---|
+| `services/import-services.spec.ts` ×2 | Stale expectations: the import payload gained `isReportSource` (19 §2) and the two `toEqual` row assertions were never updated. The same drift shows up as 5 `tsc -p e2e/tsconfig.json` errors — the `Service` seeds in `sat-codes`, `duplicate-service`, `import-services` and `support/superadmin.ts` all predate the field |
+| `notifications/notification-center.spec.ts` ×2 | The shell bell resolves and then detaches; serially, `getByRole('button', { name: /^Notificaciones/ })` is never found at all. Needs its own look — nothing here touches the notification shell |
 
 ---
 
