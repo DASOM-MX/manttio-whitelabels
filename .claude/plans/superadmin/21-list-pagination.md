@@ -1,6 +1,9 @@
 # 21 — List pagination (clients + catalog server-side paging)
 
-> **Status:** in progress — CP-1…CP-3 merged 2026-08-25; CP-4 code done, **migration still to generate** (see CP-4)
+> **Status:** in progress — **CP-1…CP-4 done** (CP-1…CP-3 merged 2026-08-25; CP-4 closed
+> 2026-08-27). The reported bug is fixed and verified against the live backend: the clients,
+> leads and blacklist views all page, and page 2 renders page-2 rows. **CP-5 (services paging)
+> and CP-6 (regression guard) remain.**
 > **Depends on:** 07 (clients), 18 (services) · **Touches:** `backend/`, `superadmin/`, `frontend/`
 > **Owner:** — · **Last updated:** 2026-08-25
 
@@ -432,10 +435,29 @@ paid for on every load. `CustomerListResponse` (`{ customers }`) is deleted with
 - [x] `listCustomersPaged` + `getCustomersPaged` returning `GenericQueryResponse`; `listCustomers` dropped
 - [x] Controller returns the envelope
 - [x] GIN index on `tags` declared on the model
-- [ ] **Migration not generated** — unblocked 2026-08-26 by the rebase onto main. See below.
+- [x] **Migration generated + applied** — `0042_bumpy_greymalkin.sql`, one statement:
+      `CREATE INDEX IF NOT EXISTS "customers_tags_gin_idx" ON "customers" USING gin ("tags")`.
+      Exactly what this plan predicted a clean regenerate would produce. **It did not ship in a
+      21 PR:** it was committed in `0314b18` (#168, the superadmin skeleton fix) — generated in
+      that worktree and carried along — which is why this box stayed unticked. Verified applied
+      on the live DB 2026-08-27: journal entry 42 is in `__drizzle_migrations` and
+      `customers_tags_gin_idx` exists in `pg_indexes`. Nothing left to generate; `pnpm
+      db:generate` on current main answers *"No schema changes, nothing to migrate"*.
 - [x] Superadmin `toPage()` shim + faked `total` deleted; `CustomerListResponse` union collapsed
 - [x] `test/customers.test.ts` paging/filter coverage **written** — not run (live Neon DB)
-- [ ] Manual check at :4200: clients, leads and blacklist views all page
+- [x] Manual check at :4200: clients, leads and blacklist views all page — verified
+      2026-08-27 against the **live backend** (no stubs), driving the real UI:
+
+      | view | rows | pages | page 2 |
+      |---|---|---|---|
+      | clientes (no preset) | 102 | 11 | `?page=2&limit=10` · first row `María Hernández López` → `Patricia Ramírez Torres` |
+      | leads (`status=lead`) | 30 | 3 | `?page=2&limit=10&status=lead` · rows change; `status` correctly stays **out** of the URL (preset views don't write it) |
+      | blacklist (`status=blacklisted`) | 5 | 1 | single page — nothing to click |
+
+      The API was checked underneath the UI too: page 2 shares no row with page 1, `total`
+      stays 102 across pages (never `items.length`), preset filters hold on every page, and
+      the envelope is `{ items, limit, page, total }`. The original symptom — *"moving to any
+      page never changes the rows"* — is gone.
 
 **Customer selects → lazy virtual scroll (owner, 2026-08-25).** Every customer select now
 pages against `GET /customers` through one shared `<app-customer-select>` (CVA, sparse
@@ -447,7 +469,8 @@ because it captures reports offline. The services roster (`ServicesState.options
 `LoadServiceOptions`) is untouched. `contract-form` migrated onto the shared component too,
 shedding the ~130 inline lines this component was extracted from.
 
-**Migration blocker (2026-08-25) — sync cleared 2026-08-26.** `pnpm db:generate` could not
+**Migration blocker (2026-08-25) — sync cleared 2026-08-26; migration landed and applied,
+confirmed 2026-08-27 (see CP-4's checklist: it rode into main inside #168, not a 21 PR).** `pnpm db:generate` could not
 produce a usable migration while this branch trailed `origin/main`:
 1. The branch was **5 commits behind `origin/main`**, which already ships
    `0040_wms_data_model.sql` and `0041_wms_node_assignments.sql`. A migration generated there
@@ -459,10 +482,10 @@ produce a usable migration while this branch trailed `origin/main`:
    That migration would have failed on any DB where 0038/0039 already ran.
 
 Both causes were the stale base. The branch was rebased onto `origin/main` (owner, 2026-08-26)
-after CP-3 merged, so the `meta/` chain now carries main's current `0041_snapshot.json` and a
-regenerate yields a clean `0042_*` containing only the GIN index. **Still to do:** run
-`pnpm db:generate` and commit the SQL. Generating is a separate call from applying it — the
-live Neon DB stays the owner's.
+after CP-3 merged, so the `meta/` chain carried main's current snapshot and a regenerate yielded
+a clean `0042_*` containing only the GIN index — which is exactly what shipped. **Closed
+2026-08-27:** the SQL is on main and applied to the live DB. Generating stayed a separate call
+from applying it; the live Neon DB remains the owner's.
 
 ### CP-5 — Paginate `GET /services` + lazy services list
 - [ ] `page`/`limit` on `listServicesQuerySchema`; repository paged + `total`
