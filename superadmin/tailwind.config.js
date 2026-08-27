@@ -1,16 +1,17 @@
 /**
- * Superadmin Tailwind config — semantic brand scales (plan 16).
+ * Superadmin Tailwind config — semantic brand scales (plan 22 CP-2).
  *
- * Whitelabel (02-app-shell.md §5): the `primary` and `surface` scales resolve
- * through CSS variables so the boot-time `GET /brand` fetch (module 03) can
- * re-theme the app at runtime — the `BrandThemeService` sets
- * `--brand-primary-*` / `--brand-surface-*` on `:root`. Values are HSL
- * components ("H S% L%") at steps 0…1000 by 100 (branding rule 2). Fallbacks
- * are a minimal neutral grayscale for the no-brand instant only — the real
- * default palette comes from the backend (rule 3).
+ * Whitelabel: tenant configures two brand colors via CSS variables:
+ * - `primary` (brand anchor — buttons, links, focus; `--brand-primary-*` variables)
+ * - `accent` (brand accent — new in plan 22; `--brand-accent-*` variables)
+ * The `surface` scale is a **fixed chrome neutral** (hue 0°, 0% saturation) set at
+ * build time — no CSS variables, no tenant editor control. The `BrandThemeService`
+ * sets `--brand-primary-*` and `--brand-accent-*` on `:root` at boot/save/preview.
+ * Values are HSL components ("H S% L%") at steps 0…1000 by 100 (branding rule 2).
+ * Fallbacks are a minimal neutral grayscale for the no-brand instant only (rule 3).
  *
  * Utility name = scale name = wire name (`bg-primary-600`,
- * `dark:bg-surface-800`) — no mapping table to carry in your head.
+ * `dark:bg-surface-800`, `bg-accent-500`) — no mapping table to carry in your head.
  */
 
 const NEUTRAL_L_BY_STEP = {
@@ -42,10 +43,21 @@ const brandScale = (name, fallbacks) =>
     ]),
   );
 
-// A whisper of blue on primary so interactive chrome still reads as such;
-// surface is pure grayscale (mirrors the backend's neutral default brand).
-const surface = brandScale('surface', neutralScale(0, 0));
+// Brand colors read `--brand-<name>-*` CSS variables with neutral fallbacks.
+// Accent's default is the same neutral ramp as primary (branding rule 3) — a
+// brandless instance renders gray chrome, never an invented hue.
 const primary = brandScale('primary', neutralScale(220, 10));
+const accent = brandScale('accent', neutralScale(220, 10));
+
+// Fixed neutral surface (plan 22 §Target) — no CSS variables. Literal HSL values
+// built from the fixed lightness table. <alpha-value> support persists for utility
+// variants like `bg-surface-200/60`.
+const surface = Object.fromEntries(
+  Object.entries(NEUTRAL_L_BY_STEP).map(([step, l]) => [
+    step,
+    `hsl(0 0% ${l}% / <alpha-value>)`,
+  ]),
+);
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -56,16 +68,15 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // The two brand scales + single-value semantic aliases (plan 16 §Target):
-        // identical across frontend / superadmin / website.
+        // The two tenant-configurable brand scales + fixed neutral surface
+        // (plan 22 §Target): identical names across frontend / superadmin / website.
         primary: { ...primary, DEFAULT: primary['600'] }, // brand anchor (buttons, links, focus)
-        surface: { ...surface, DEFAULT: surface['100'] }, // card/panel tint
+        accent: { ...accent, DEFAULT: accent['500'] }, // brand accent (new plan 22)
+        surface: { ...surface, DEFAULT: surface['100'] }, // fixed chrome neutral
         // Page bg sits one step under the card whites so the soft-UI
         // elevation actually reads (owner 2026-07-22) — a deliberate
-        // superadmin-only divergence from the shared surface-0 value
-        // (plan 16 §Target 3 note).
+        // superadmin-only divergence from the shared surface-0 value.
         background: surface['100'],
-        secondary: primary['300'], // soft/secondary accent
         dark: surface['800'], // body text
 
         // Tombstones (plan 16 §Target 2) — the legacy palette names must stay

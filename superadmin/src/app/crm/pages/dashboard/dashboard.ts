@@ -90,11 +90,18 @@ const areaFill =
     return gradient;
   };
 
+// Chart chrome rides the **fixed** neutral (22 § Target 3), so these are
+// literals: surface stopped being tenant-themable and emits no CSS variable to
+// read. Steps 400/500 for ticks, 800/200 for grid lines — the same values the
+// old `--brand-surface-*` lookups fell back to.
+const SURFACE_TICK = { dark: '0 0% 70%', light: '0 0% 55%' };
+const SURFACE_GRID = { dark: '0 0% 28%', light: '0 0% 90%' };
+
 const buildLineOptions = (dark: boolean): ChartOptions<'line'> => {
-  const tick = dark ? hslVar('--brand-surface-400', '0 0% 70%') : hslVar('--brand-surface-500', '0 0% 55%');
+  const tick = `hsl(${dark ? SURFACE_TICK.dark : SURFACE_TICK.light})`;
   const grid = dark
-    ? hslVarAlpha('--brand-surface-800', '0 0% 28%', 0.6)
-    : hslVarAlpha('--brand-surface-200', '0 0% 90%', 0.8);
+    ? `hsl(${SURFACE_GRID.dark} / 0.6)`
+    : `hsl(${SURFACE_GRID.light} / 0.8)`;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   return {
     maintainAspectRatio: false,

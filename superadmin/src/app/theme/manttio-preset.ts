@@ -2,22 +2,21 @@ import { definePreset } from '@primeuix/themes';
 import Aura from '@primeuix/themes/aura';
 
 /**
- * PrimeNG Aura preset repointed to the runtime tenant brand (03 §4; same
- * pattern as `frontend/src/app/theme/manttio-preset.ts` — PrimeNG 21 moved
+ * PrimeNG Aura preset repointed to the runtime tenant brand (03 §4; plan 22 CP-2;
+ * same pattern as `frontend/src/app/theme/manttio-preset.ts` — PrimeNG 21 moved
  * the theme toolkit to `@primeuix/themes`).
  *
- * `primary` → the `--brand-primary-*` CSS variables, `surface` → the
- * `--brand-surface-*` variables — the same vars Tailwind's scales read
- * (`tailwind.config.js`), set at boot/save/preview by `BrandThemeService`, so
- * Tailwind utilities and PrimeNG component chrome follow the brand together
- * (no runtime `updatePreset` calls needed).
+ * `primary` → the `--brand-primary-*` CSS variables (tenant-configurable);
+ * `surface` → **fixed literal HSL values** (no variables — plan 22 §Target) —
+ * set at build time, not by `BrandThemeService`. Tailwind utilities and PrimeNG
+ * component chrome follow the brand together (no runtime `updatePreset` calls needed).
  *
  * The brand model is HSL components at steps 0…1000 by 100 (branding rule 2),
  * but Aura's internal token references resolve against the 50…950 keys — so
  * the endpoint keys alias the brand endpoints (50 → step 0, 950 → step 1000)
  * and the interior steps map one-to-one. `surface.0` stays pure white: the
  * templates pair PrimeNG panels with Tailwind `bg-white` cards, and white is
- * neutral, not brand. Fallbacks are the same neutral grayscale as
+ * neutral, not brand. Fallbacks for primary are the same neutral grayscale as
  * `tailwind.config.js` — for the no-brand instant only (rule 3).
  */
 
@@ -26,7 +25,7 @@ const NEUTRAL_L_BY_STEP: Record<string, number> = {
   '600': 45, '700': 36, '800': 28, '900': 18, '1000': 10,
 };
 
-const brandScale = (name: 'primary' | 'surface', hue: number, saturation: number) => {
+const brandScale = (name: 'primary', hue: number, saturation: number) => {
   const at = (step: string) =>
     `hsl(var(--brand-${name}-${step}, ${hue} ${saturation}% ${NEUTRAL_L_BY_STEP[step]}%))`;
   return {
@@ -44,7 +43,21 @@ const brandScale = (name: 'primary' | 'surface', hue: number, saturation: number
   };
 };
 
-const surface = { 0: '#FFFFFF', ...brandScale('surface', 0, 0) };
+// Fixed neutral surface (plan 22 §Target) — literal values, no CSS variables.
+const surface = {
+  0: '#FFFFFF',
+  50: 'hsl(0 0% 98%)',
+  100: 'hsl(0 0% 96%)',
+  200: 'hsl(0 0% 90%)',
+  300: 'hsl(0 0% 82%)',
+  400: 'hsl(0 0% 70%)',
+  500: 'hsl(0 0% 55%)',
+  600: 'hsl(0 0% 45%)',
+  700: 'hsl(0 0% 36%)',
+  800: 'hsl(0 0% 28%)',
+  900: 'hsl(0 0% 18%)',
+  950: 'hsl(0 0% 10%)',
+};
 
 /* Preset-first chrome (plan 17, owner 2026-07-22): component shape/spacing
  * decisions live HERE as design tokens, not in override sheets — a value we

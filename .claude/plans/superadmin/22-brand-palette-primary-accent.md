@@ -1,6 +1,6 @@
 # 22 — Brand palette: **primary + accent** (surface goes fixed-neutral)
 
-> **Status:** in progress 2026-08-26 — **CP-1 done**, CP-2…CP-5 open
+> **Status:** in progress 2026-08-26 — **CP-1 + CP-2 done**, CP-3…CP-5 open
 > **Owner:** planning session 2026-08-26 · **Last updated:** 2026-08-26
 > **Scope:** all four packages (`backend/`, `superadmin/`, `frontend/`, `website/`) —
 > one suite, sequenced CP-1…CP-5.
@@ -74,6 +74,16 @@
 
 **Re-run both counts when the CP starts** — 16's frontend/website figures are a 2026-07-15
 snapshot.
+
+**Correction (2026-08-26, CP-2):** superadmin's legacy count is **not** 0. Four constants
+written after 16 PR-2 reach for stock Tailwind names the tombstones kill —
+`service-order-event-chip-classes.const.ts` (`sky` chip), `service-order-priority-flag-classes`
+and `-label-classes` (`sky` = Low), `technician-dot-palette.const.ts` (`bg-cyan-500`). Verified
+against the built stylesheet: `.bg-sky-100` and `.bg-cyan-500` emit **zero** rules, so those
+chips, flags and dots render colorless in the shipped app today. This is the tombstones working
+as designed (16 § Target 2 chose silence over stock blue), and it is **out of scope here** —
+CP-2 is vocabulary-only. Fixing it is a design call about which non-brand hue those categorical
+cues should use, and it belongs with plan 23's palette-roles pass or its own fix PR.
 
 Wire-contract consumers found (`colors.surface` / `colors.primary` reads):
 
@@ -218,29 +228,29 @@ before plan 23 writes a single line of new chrome. CP-3 and CP-4 are independent
       payload is a 400 (written, not run — the suite hits live Neon)
 - [x] `pnpm typecheck` green
 
-### CP-2 — Superadmin palette layer (`feat(superadmin)`)
-- [ ] `tailwind.config.js`: `primary` + `accent` through the existing `brandScale()` helper;
+### CP-2 — Superadmin palette layer (`feat(superadmin)`) — **done 2026-08-26**
+- [x] `tailwind.config.js`: `primary` + `accent` through the existing `brandScale()` helper;
       `surface` rebuilt from § Target 3's literal table; header comment rewritten (it currently
       teaches `--brand-surface-*`)
-- [ ] Aliases per § Target 4 — `background` = `surface-100`, `dark` = `surface-800`,
+- [x] Aliases per § Target 4 — `background` = `surface-100`, `dark` = `surface-800`,
       `accent` DEFAULT = `accent-500`; **`secondary` deleted**; the four legacy tombstones
       (`granite`/`sky`/`navy`/`cyan`) left exactly as they are
-- [ ] `app/theme/manttio-preset.ts`: primary keeps its vars, surface tokens become literals
+- [x] `app/theme/manttio-preset.ts`: primary keeps its vars, surface tokens become literals
       (`surface.0` stays `#FFFFFF`); **no invented accent tokens** — 23 CP-1 owns those
-- [ ] `services/theme/brand-theme.service.ts` sets `--brand-primary-*` + `--brand-accent-*` and
+- [x] `services/theme/brand-theme.service.ts` sets `--brand-primary-*` + `--brand-accent-*` and
       stops emitting `--brand-surface-*` entirely (a dead var set re-invites theming)
-- [ ] `services/theme/color-scale.service.ts`: `deriveScale()` drops the `anchorZeroAtWhite`
+- [x] `services/theme/color-scale.service.ts`: `deriveScale()` drops the `anchorZeroAtWhite`
       argument — surface was its only caller
-- [ ] `data/dtos/brand.ts` mirrors the new `BrandColors`
-- [ ] Brand editor: `surfaceBase`/`surfaceScale` → `accentBase`/`accentScale`, the second
+- [x] `data/dtos/brand.ts` mirrors the new `BrandColors`
+- [x] Brand editor: `surfaceBase`/`surfaceScale` → `accentBase`/`accentScale`, the second
       `app-scale-editor` relabelled **Acento** (`inputId="brand-accent"`), hydration reads
       `colors.accent`, `save()` sends `{ primary, accent }`, the preview slots show an accent
       surface
-- [ ] Editor copy states the new division of labor (two brand colors; the interface gray is
+- [x] Editor copy states the new division of labor (two brand colors; the interface gray is
       fixed), and the fixed-status callout gains an accent swatch + its collision warning
-- [ ] `grep -rn "brand-surface\|colors\.surface\|surfaceScale\|surfaceBase" superadmin/src` → 0
-- [ ] No `secondary` color class survives anywhere in `superadmin/src`
-- [ ] `npm run build` green — and **every existing pixel unchanged**: this CP is vocabulary,
+- [x] `grep -rn "brand-surface\|colors\.surface\|surfaceScale\|surfaceBase" superadmin/src` → 0
+- [x] No `secondary` color class survives anywhere in `superadmin/src`
+- [x] `npm run build` green — and **every existing pixel unchanged**: this CP is vocabulary,
       not looks. Spot-check both modes
 
 ### CP-3 — Frontend leg (`style(frontend)` — absorbs 16 PR-1)

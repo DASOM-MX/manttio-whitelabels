@@ -34,15 +34,13 @@ export class ColorScaleService {
   }
 
   /** Two pickers in, materialized editor-internal **hex** ramps out (03 §3),
-   *  keyed 0…1000. Surface anchors step 0 at white; the advanced expander can
-   *  override any step afterwards. */
-  deriveScale(baseHex: string, anchorZeroAtWhite: boolean): Record<string, string> {
+   *  keyed 0…1000. The advanced expander can override any step afterwards. */
+  deriveScale(baseHex: string): Record<string, string> {
     const ramp = palette(this.normalize(baseHex)) as Record<string, string>;
     const scale: Record<string, string> = {};
     for (const step of BRAND_SCALE_STEPS) {
       scale[step] = this.normalize(ramp[PALETTE_STEP_BY_BRAND_STEP[step]]);
     }
-    if (anchorZeroAtWhite) scale['0'] = '#FFFFFF';
     return scale;
   }
 
