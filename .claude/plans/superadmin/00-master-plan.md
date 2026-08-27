@@ -40,6 +40,7 @@ then its own file, and touches no other module's code.
 | 21 | `21-list-pagination.md` | List pagination: `GET /customers` + `GET /services` server-side paged behind one `GenericQueryResponse<T>` envelope, with dedicated roster endpoints for the pickers that need every row | 07, 18 |
 | 22 | `22-brand-palette-primary-accent.md` | Brand palette rework: tenant pair becomes `primary` + **`accent`**; `surface` becomes a fixed neutral. Fullstack — backend contract + migration, superadmin, frontend, website | **supersedes 16** (absorbs its deferred frontend/website legs); blocks 23 |
 | 23 | `23-visual-language-v2.md` | Visual language v2 "bright console": light sidebar, hairline-bordered cards, accent-carried data + a shared viz kit (KPI tile, segmented bar, gauge, trend card) | **22 CP-2**; evolves 17 |
+| 24 | `24-global-search.md` | Global search: one gated `GET /search` across every module the caller can read, behind the topbar's ⌘K palette — folio-first ranking, tombstones excluded | 23 CP-2 (the stub it replaces), 14, 21 |
 
 Build order **is numeric order** (renumbered 2026-07-05: branding and CMS are separate,
 independent modules — 03/04 — and access-control moved to 14 as pure reference).
@@ -137,6 +138,7 @@ Rules for agents:
 | 21 list-pagination | **checkpoints done — CP-1…CP-6** (#162 envelope, #163 rosters, #164 pickers, #165 paged `GET /customers` + lazy customer selects, #176 CP-4 closure, #177 paged `GET /services` + lazy catalog list — supersedes 18 §4; CP-6 adds the nine-page Playwright paging guard). Still open: the standing **wrapper backlog** (§9, opened 2026-08-27) — one slice per PR, never batched | §9 backlog |
 | 22 brand-palette (primary+accent) | **done 2026-08-27 — all five CPs merged** (backend contract + migration **0043** #170, superadmin #171, frontend #172, website #173, bookkeeping #174). Field app and website run on stock Tailwind `zinc` for chrome (owner, 2026-08-27); superadmin keeps its fixed `surface` scale, cooled to hue 240/5% at 23 CP-1 — supersedes 16 | — |
 | 23 visual-language-v2 | **in-progress** — **CP-1 + CP-2 done 2026-08-27** (CP-1 language + tokens: 01/skill/17 rewritten onto "bright console", `.card` + table shell get a hairline border, PrimeNG dark panel borders aligned, chrome neutral cooled to hue 240/5%, edge-to-edge shell kept. CP-2 light shell: `surface-0` sidebar + hairline border in aside and drawer, `rounded-r-shell` and its radius token deleted, tinted active row with `aria-current` wired for the first time, tenant identity card in the footer, topbar search shipped as a disabled stub → **plan 24**). CP-3 (viz kit) next | CP-3 |
+| 24 global-search | **planned 2026-08-27** — opened out of 23 § Open ①; three CPs (backend `GET /search`, the ⌘K palette, recents + reach). Nothing started | CP-1 |
 
 *(Owning agents update their row when they update their file's status header.)*
 
