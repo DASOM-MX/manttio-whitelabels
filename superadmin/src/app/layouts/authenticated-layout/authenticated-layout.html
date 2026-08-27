@@ -86,7 +86,7 @@
           (click)="drawerOpen.set(true)"
           aria-label="Abrir menú"
         >
-          <svg lucideMenu class="size-5" aria-hidden="true"></svg>
+          <svg lucideMenu class="size-4" aria-hidden="true"></svg>
         </button>
 
         <!-- Global search (owner 2026-08-27, plan 23 § Open ①): the
@@ -122,9 +122,9 @@
             [title]="themeLabel()"
           >
             @if (darkMode()) {
-              <svg lucideSun class="size-5" aria-hidden="true"></svg>
+              <svg lucideSun class="size-4" aria-hidden="true"></svg>
             } @else {
-              <svg lucideMoon class="size-5" aria-hidden="true"></svg>
+              <svg lucideMoon class="size-4" aria-hidden="true"></svg>
             }
           </button>
 
@@ -138,7 +138,7 @@
             [attr.aria-label]="accountLabel()"
             [title]="accountLabel()"
           >
-            <svg lucideUserRound class="size-5" aria-hidden="true"></svg>
+            <svg lucideUserRound class="size-4" aria-hidden="true"></svg>
           </button>
         </div>
         <p-popover #userMenu appendTo="body">

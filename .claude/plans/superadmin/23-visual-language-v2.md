@@ -276,7 +276,7 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
 - [x] **Sectioned topbar** (owner 2026-08-27, second reference crop — replaced a first
       pass that gathered the actions into one grouped pill): `surface-0` bar + hairline
       bottom rule continued across the sidebar's wordmark strip, so the seam runs the
-      full width and the chrome reads as one white L; three separate `size-10` circles
+      full width and the chrome reads as one white L; three separate `size-8` circles
       trailing (theme · bell · account) instead of a shared shell, each drawn with a
       **2px border** (owner 2026-08-27, third round — `ring-1` was too faint to hold a
       circle at this diameter); the search becomes a filled borderless pill, because on a
@@ -565,8 +565,8 @@ of breaking behind it. (The owner later moved the pill clear of the connector en
   `size-10` a `ring-1` hairline dissolved into the white bar and the three circles read as
   smudges rather than buttons — the reference draws a stroke you can see. **`border-2`, not
   `ring-2`:** Tailwind's ring is an outward box-shadow spread, so a 2px ring would grow each
-  circle to 44px visually and shrink the row's `gap-2` to 4px of daylight; a border sits
-  inside the 40px box and leaves the 8px gap intact. Hover moves the border one step darker
+  circle by 4px visually and shrink the row's `gap-2` to 4px of daylight; a border sits
+  inside the box and leaves the 8px gap intact. Hover moves the border one step darker
   (`surface-300`, `primary-300`) instead of only the fill, so the stroke stays the thing the
   eye tracks. Applies to `.topbar-avatar` too — same circle, brand-tinted.
   - **The `⌘K` chip stays in the search stub** (owner: "no", asked whether to drop it
@@ -586,5 +586,12 @@ of breaking behind it. (The owner later moved the pill clear of the connector en
   the elbow now terminates *at* the pill's left edge and the highlight begins there. The
   label does not move — 36 + 8 is the same 44px `pl-11` gave it — so this changes only
   where the fill starts, in both the active tint and the hover tint.
+- **Decided 2026-08-27 (owner, fifth review round) — the action circles are `size-8`
+  (32px), not `size-10`.** The icons drop with them, `size-5` → `size-4`, keeping the
+  half-diameter proportion the 40px circles had — a 20px glyph in a 28px content box would
+  have left 4px of air and read as a cramped button rather than a small one. The bell's
+  unread badge rescales too (`h-4` → `h-3.5`) and moves onto the circle's upper-right arc
+  (`-right-0.5 -top-0.5`): at the old size it covered half the smaller bell. **The search
+  pill is still `h-10`** — flagged to the owner, not changed unasked.
 - **Open — decide at the CP that needs it:** ④ Whether the gauge's default fill is
   `accent` or emerald when the metric has no good/bad direction (CP-3).

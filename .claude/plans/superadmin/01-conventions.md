@@ -120,10 +120,11 @@ auto-loads it — **edit both in the same commit.**
   sidebar panel, so the chrome reads as one white L against the content well. The vertical
   seam between the wordmark and the search is the sidebar's own `border-r` — never a rule
   of its own. Trailing edge = **three separate circles, each with a 2px border**
-  (`.topbar-action`, `size-10`, `gap-2`: theme · bell · account) — never a shared pill; the
+  (`.topbar-action`, `size-8` — 32px, owner 2026-08-27, with `size-4` icons; `gap-2`:
+  theme · bell · account) — never a shared pill; the
   account one is `.topbar-avatar`, brand-tinted, and carries no name or chevron (the popover
   states name + email + role; `aria-label`/`title` carry the name). The stroke is
-  `border-2`, **not `ring-2`** (owner 2026-08-27): a border sits inside the 40px box, so the
+  `border-2`, **not `ring-2`** (owner 2026-08-27): a border sits inside the box, so the
   row's `gap-2` stays a true 8px between edges instead of the 4px a ring's outward spread
   would leave. The search is a **filled, borderless** pill — on a white bar the fill states
   the field and a border there would compete with the action circles. **`.topbar-search` is a deliberately `disabled` stub** (owner 2026-08-27,

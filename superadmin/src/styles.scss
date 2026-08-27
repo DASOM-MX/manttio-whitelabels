@@ -569,19 +569,21 @@
      Actions are SEPARATE circles, each with its own 2px border (owner
      2026-08-27 — supersedes the `ring-1` hairline: at this diameter a
      hairline dissolved into the white bar and the circles read as smudges).
-     `border-*`, not `ring-*`, so the stroke sits INSIDE the 40px box and the
-     row's `gap-2` stays a true 8px between edges. Never a shared shell.
-     `size-10` with `gap-2` between them; the trailing avatar is the same
-     circle so the set reads as one row of buttons. */
+     `border-*`, not `ring-*`, so the stroke sits INSIDE the box and the row's
+     `gap-2` stays a true 8px between edges. Never a shared shell.
+     `size-8` (32px, owner 2026-08-27 — supersedes `size-10`; the icons follow
+     it down to `size-4` to hold the same half-diameter proportion) with
+     `gap-2` between them; the trailing avatar is the same circle so the set
+     reads as one row of buttons. */
   .topbar-action {
-    @apply relative inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-0 text-surface-600 border-2 border-surface-200 transition-colors hover:border-surface-300 hover:bg-surface-100 hover:text-surface-1000 dark:border-surface-700 dark:bg-surface-900 dark:text-surface-400 dark:hover:border-surface-600 dark:hover:bg-surface-800 dark:hover:text-surface-0;
+    @apply relative inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-0 text-surface-600 border-2 border-surface-200 transition-colors hover:border-surface-300 hover:bg-surface-100 hover:text-surface-1000 dark:border-surface-700 dark:bg-surface-900 dark:text-surface-400 dark:hover:border-surface-600 dark:hover:bg-surface-800 dark:hover:text-surface-0;
   }
   /* The account trigger — the same circle, brand-tinted so the row ends on
      identity rather than a fourth grey glyph. The name is not in the strip
      (the reference's avatar carries none, and the popover opens on it with
      name + email + role); it rides `aria-label`/`title` instead. */
   .topbar-avatar {
-    @apply inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary-800 border-2 border-primary-200 transition-colors hover:border-primary-300 hover:bg-primary-200 dark:border-primary-800 dark:bg-primary-1000/60 dark:text-primary-300 dark:hover:border-primary-700 dark:hover:bg-primary-900/60;
+    @apply inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary-800 border-2 border-primary-200 transition-colors hover:border-primary-300 hover:bg-primary-200 dark:border-primary-800 dark:bg-primary-1000/60 dark:text-primary-300 dark:hover:border-primary-700 dark:hover:bg-primary-900/60;
   }
 
   /* Topbar global search (plan 23 CP-2, § Open ① — a VISUAL STUB until plan
