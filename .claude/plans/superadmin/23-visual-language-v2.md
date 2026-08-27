@@ -257,7 +257,8 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
       design.** `NavBadge.badge?: number` on both `NavEntry` and `NavChild`, `.nav-badge`
       styled to the reference, and the row renders no pill when the count is absent or
       zero. **Nothing sets it yet** — the app still has no per-module count endpoint, and
-      a fabricated number is worse than an empty slot. The reference paints the pill
+      a fabricated number is worse than an empty slot. **§ Open ⑤ closed 2026-08-27:** the
+      owner wires the source later; it stays dormant for the whole of 23. The reference paints the pill
       green; ours rides **`accent`**, because emerald is a fixed *status* colour here
       (positive/up) and a queue length is information, not good news — § Direction 3
       hands informational badges to `accent`, and this is the app's first use of it
@@ -267,7 +268,9 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
       used to be dark) and moved from `surface-700` to the card's `surface-800`
 - [x] Bottom block: **the tenant identity card** (§ Open ② — owner 2026-08-27)
 - [x] Topbar: the search field ships as a **disabled visual stub** (§ Open ① — owner
-      2026-08-27), and the real one is now **plan 24**
+      2026-08-27), and the real one is now **plan 24**. The `⌘K` chip **stays** (owner
+      2026-08-27, asked): it is part of the affordance the chrome is previewing, and the
+      control is `disabled`, so the hint can't be pressed into silence
 - [x] **Sectioned topbar** (owner 2026-08-27, second reference crop — replaced a first
       pass that gathered the actions into one grouped pill): `surface-0` bar + hairline
       bottom rule continued across the sidebar's wordmark strip, so the seam runs the
@@ -563,8 +566,14 @@ of breaking behind it.
   inside the 40px box and leaves the 8px gap intact. Hover moves the border one step darker
   (`surface-300`, `primary-300`) instead of only the fill, so the stroke stays the thing the
   eye tracks. Applies to `.topbar-avatar` too — same circle, brand-tinted.
+  - **The `⌘K` chip stays in the search stub** (owner: "no", asked whether to drop it
+    while the binding does not exist). It is part of what the control *shows* — the chrome
+    is previewing the affordance the way the reference draws it, and the button is
+    `disabled`, so nobody can press the hint and get silence. Plan 24 makes it true.
+- **⑤ closed 2026-08-27 (owner) — `NavBadge.badge` is deferred, and the owner will wire
+  it.** The slot ships **dormant**: styled, `accent`-tinted, and set by nothing. No
+  placeholder count, no invented source — a badge that shows a number nobody can act on is
+  worse than an empty rail. Whatever counting endpoint eventually feeds it is the owner's
+  to pick and implement; CP-2 is done at the slot.
 - **Open — decide at the CP that needs it:** ④ Whether the gauge's default fill is
-  `accent` or emerald when the metric has no good/bad direction (CP-3). ⑤ **What feeds
-  `NavBadge.badge`** — the slot is built and styled but nothing sets it; a real source
-  needs an endpoint that counts (open orders? quotes awaiting approval? unread per
-  module?), which is its own small plan rather than a CP-2 afterthought.
+  `accent` or emerald when the metric has no good/bad direction (CP-3).

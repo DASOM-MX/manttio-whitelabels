@@ -128,7 +128,9 @@ auto-loads it — **edit both in the same commit.**
   would leave. The search is a **filled, borderless** pill — on a white bar the fill states
   the field and a border there would compete with the action circles. **`.topbar-search` is a deliberately `disabled` stub** (owner 2026-08-27,
   23 § Open ①): the chrome ships now, the capability is **plan 24** — do not quietly
-  enable it, and do not treat the `⌘K` hint as a live binding until 24 CP-2 lands.
+  enable it, and do not treat the `⌘K` hint as a live binding until 24 CP-2 lands. The chip
+  itself **stays** (owner 2026-08-27) — it is part of the affordance the stub previews, and
+  a `disabled` control cannot swallow the keystroke it advertises.
   Shadows are always **neutral black alpha** — colored glows stay banned (AI-slop rule).
   **Depth needs contrast:** superadmin's `background` alias repoints to `surface-100`
   (one step under the card whites; owner 2026-07-22) — a deliberate superadmin-only
@@ -244,7 +246,9 @@ auto-loads it — **edit both in the same commit.**
   from the parent icon's centre with a rounded elbow into each child, geometry derived
   from the existing gutters, both pseudo-elements lifted over the active tint so the
   rail reads continuous. **Count badges** (`NavBadge.badge`, `.nav-badge`) render only
-  when an entry carries a real number — the slot is built and currently dormant, and it
+  when an entry carries a real number — the slot is built and stays **dormant** until the
+  owner wires a counting source (23 § Open ⑤, closed 2026-08-27: deferred, owner-owned —
+  never fill it with a placeholder or an invented count), and it
   rides **`accent`**, never emerald: emerald is a status colour here, and a count is
   information (23 § Direction 3). **Shipped at 23 CP-2 (2026-08-27)** — this
   paragraph is the inventory now. Both hover rules exclude `.nav-active`, or hovering

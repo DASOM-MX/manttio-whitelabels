@@ -142,7 +142,8 @@ the target and the code is the backlog.
   so `gap-2` stays a true 8px between edges.
   `.topbar-search` is a deliberately **`disabled` stub** (owner 2026-08-27, 23
   § Open ①): the chrome ships, the capability is **plan 24** — never quietly enable it,
-  and the `⌘K` hint is not a live binding yet. The shell also stays **edge-to-edge** —
+  and the `⌘K` hint is not a live binding yet — but the chip **stays** (owner 2026-08-27):
+  it previews the affordance, and a `disabled` control cannot swallow the keystroke. The shell also stays **edge-to-edge** —
   the reference's inset rounded app frame was declined (owner 2026-08-27, 23 § Open ③).
   **Depth needs contrast:** the `background` alias
   sits at `surface-100` in superadmin (one step under card whites, owner 2026-07-22) —
