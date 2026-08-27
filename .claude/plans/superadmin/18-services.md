@@ -154,9 +154,17 @@ history; the field inventory and disclosure rules they document carried over unc
 
 ## 4. Expected API surface
 
-- `GET /services?q=` → `{ services: [...] }` — active only, name-sorted; no pagination
-  (catalog-sized). Any authenticated role (pickers). `cost` is present **only for
-  admin tier** — office/technician get the DTO without it.
+- `GET /services?q=` → ~~`{ services: [...] }` — no pagination (catalog-sized)~~
+  **Superseded 2026-08-27 by 21 CP-5:** the catalog browse is **paged** —
+  `?page&limit&q` → `GenericQueryResponse<Service>` (`{ items, total, page, limit }`),
+  `limit` capped at 100. CSV import made an unbounded catalog a matter of time, which is
+  the reasoning 21 § Decisions 2 recorded. Active only, name-sorted; any authenticated
+  role. `cost` is present **only for back-office tier** — technicians get the DTO
+  without it.
+- `GET /services/all` → `ServiceOptionDTO[]` (21 §3, CP-2) — the **whole** active catalog
+  as a compact projection, unpaged by contract: this is what pickers and the import
+  dedupe read, and it is a bare array, not an envelope. Same back-office `cost` rule,
+  enforced on the server.
 - `GET /services/:id`
 - `POST /services` · `PATCH /services/:id` — owner/admin.
 - `DELETE /services/:id` — owner/admin, body `{ deleteComment }` (audited soft delete).
@@ -240,9 +248,15 @@ today that means hand-typing the catalog.
   internalServiceCode, description, websiteDescription, satProdServCode, satUnitCode,
   isListableInWebsite, isPriceVisibleInWebsite` — codes are the wire enums
   (`servicio`, `iva_16`…), not labels.
-- **Export** is client-side — the catalog ships whole (`GET /services`, no pagination),
-  so an **Exportar CSV** toolbar action on the list serializes the loaded rows;
-  admin-tier action, file includes `cost`. No backend surface.
+- **Export** is client-side, but **no longer serializes the rows on screen**
+  (amended 2026-08-27, 21 CP-5): once `GET /services` became paged, exporting the loaded
+  rows would have produced a ten-row file that looked like a full export. The
+  **Exportar CSV** action re-reads the whole *filtered* catalog through
+  `ServicesCatalogService.listAll()`, which walks pages at the server's `limit` cap until
+  it has `total` rows — one request for any ordinary catalog. The roster (`/services/all`)
+  cannot serve it: the export carries `description`, `websiteDescription` and the SAT
+  codes, none of which the picker projection has. Admin-tier action, file includes
+  `cost`. Still no backend surface.
 - **Import** is a dedicated page (`/services/import`, admin tier,
   `pendingChangesGuard`): upload → client-side parse → **field mapper** → **preview
   p-table with per-row validation** (unknown uom/taxRate codes, non-numeric price,

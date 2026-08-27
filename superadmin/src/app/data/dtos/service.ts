@@ -125,8 +125,12 @@ export interface ServiceOption {
   isReportSource: boolean;
 }
 
-/** The catalog is small enough to ship whole — search only, no pagination. */
+/** The catalog browse read. Paged at 21 CP-5 — the catalog is no longer assumed
+ *  small enough to ship whole (18 §4 superseded); CSV import made an unbounded
+ *  fetch a matter of time. Pickers use `ServiceOption[]` from `/services/all`. */
 export interface ServiceListQuery {
+  page?: number;
+  limit?: number;
   q?: string;
 }
 

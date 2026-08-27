@@ -1,4 +1,4 @@
-import { Component, computed, inject, viewChild } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -17,6 +17,7 @@ import {
 import { select, Store } from '@ngxs/store';
 import { ServicesState } from '../../../../state/services/services.state';
 import { LoadServices } from '../../../../state/services/services.actions';
+import { ServicesCatalogService } from '../../../services/http/services-catalog.service';
 import { AuthState } from '../../../../state/auth/auth.state';
 import { ListQueryService } from '../../../services/table/list-query.service';
 import { hasRole } from '../../../guards/has-role.guard';
@@ -42,9 +43,11 @@ import { tableLoading } from '../../../services/table/table-loading';
  *  own Editar, which only admins see. `cost` is redacted by the API itself,
  *  not hidden here — the column simply renders an em dash for technicians.
  *
- *  Paging is client-side: `GET /services` returns the whole catalog (no
- *  pagination — it's tens of rows), so the table isn't `[lazy]` and only `q`
- *  persists in the URL. */
+ *  Paging is server-side since 21 CP-5 (supersedes 18 §4): the table is
+ *  `[lazy]`, and `q` + `page` persist in the URL through `ListQueryService`
+ *  like every other list page. Service *pickers* do not read this slice — they
+ *  read the unpaged roster (`ServicesState.options`), or they would offer page
+ *  one of the catalog and nothing else. */
 @Component({
   selector: 'app-services-list',
   imports: [
@@ -77,13 +80,20 @@ export class ServicesList {
   private router = inject(Router);
   protected list = inject(ListQueryService);
 
+  private api = inject(ServicesCatalogService);
+
   protected services = select(ServicesState.items);
+  protected total = select(ServicesState.total);
   protected loading = select(ServicesState.loading);
   protected tableBusy = tableLoading(this.loading, this.services);
   private me = select(AuthState.me);
 
   /** Only owner/admin maintain the catalog; office and technician read it. */
   protected canManage = computed(() => hasRole(this.me(), ['owner', 'admin']));
+
+  /** Set while the export walks the catalog — the button reports it rather
+   *  than looking inert on a large catalog. */
+  protected exporting = signal(false);
 
   /** The API omits `cost` below back-office tier, so one probe of the loaded
    *  rows tells us whether the column is worth rendering at all. */
@@ -102,8 +112,6 @@ export class ServicesList {
     Array.from({ length: this.columnCount() }, (_, i) => i),
   );
 
-  protected readonly skeletonRows = [0, 1, 2, 3, 4, 5, 6, 7];
-
   protected search = new FormControl('', { nonNullable: true });
 
   protected deleteDialog = viewChild<DeleteServiceDialog>('deleteDialog');
@@ -112,18 +120,19 @@ export class ServicesList {
     this.list.init({
       read: (params) => this.search.setValue(params.get('q') ?? '', { emitEvent: false }),
       write: () => ({ q: this.search.value || null }),
-      load: () => this.store.dispatch(new LoadServices(this.query())),
+      load: (page) => this.store.dispatch(new LoadServices(this.query(page))),
     });
     this.list.bindFilters({ debounced: [this.search] });
   }
 
-  private query(): ServiceListQuery {
-    return { q: this.search.value || undefined };
+  private query(page: number): ServiceListQuery {
+    return { page, limit: this.list.PAGE_SIZE, q: this.search.value || undefined };
   }
 
-  /** Refetch after a delete through the dialog. */
+  /** Refetch after a delete through the dialog; steps back a page when the
+   *  last row on this one was the one deleted. */
   protected refresh(): void {
-    this.store.dispatch(new LoadServices(this.query()));
+    this.list.refresh(this.services().length);
   }
 
   protected openService(service: Service): void {
@@ -134,13 +143,20 @@ export class ServicesList {
     this.deleteDialog()?.open(service);
   }
 
-  /** Exportar CSV (18 §6.3): serializes the rows already on screen — the list
-   *  holds the whole catalog, so no request. Wire-enum codes, cost included
-   *  (the button only renders for admin tier). */
+  /** Exportar CSV (18 §6.3): the whole filtered catalog, not the page on
+   *  screen. Before CP-5 the list held every row and this could serialize
+   *  `services()` directly; now that would export ten rows and look like it
+   *  worked, so it re-reads the catalog through `listAll`. Wire-enum codes,
+   *  cost included (the button only renders for admin tier). The current
+   *  filter is honoured — you export what you are looking at, all of it. */
   protected exportCsv(): void {
-    downloadCsv(
-      `servicios-${new Date().toISOString().slice(0, 10)}.csv`,
-      servicesToCsv(this.services()),
-    );
+    this.exporting.set(true);
+    this.api.listAll(this.query(1)).subscribe({
+      next: (rows) => {
+        downloadCsv(`servicios-${new Date().toISOString().slice(0, 10)}.csv`, servicesToCsv(rows));
+        this.exporting.set(false);
+      },
+      error: () => this.exporting.set(false),
+    });
   }
 }

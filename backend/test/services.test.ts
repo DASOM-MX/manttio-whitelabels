@@ -107,6 +107,18 @@ const seedService = async (over: ServiceOverrides = {}): Promise<Service> => {
 const findById = (list: Service[] | PublicService[], id: string) =>
   (list as { id: string }[]).find((s) => s.id === id);
 
+/** The one envelope every paged read answers (21 §2). */
+type Paged<T> = { items: T[]; total: number; page: number; limit: number };
+
+/** `GET /services` is paged (21 CP-5), so a test can no longer scan the whole
+ *  catalog for its fixture — it filters down to it. Every fixture name carries a
+ *  unique scope tag, which `q` matches. */
+const listServices = async (token: string, query = ''): Promise<Paged<Service>> => {
+  const res = await request(`/services?${query}`, { headers: jsonHeaders(token) });
+  expect(res.status).toBe(200);
+  return json<Paged<Service>>(res);
+};
+
 describe('POST /services', () => {
   test('creates with defaults; price normalizes to a fixed-2 string', async () => {
     const { token } = await seedOwnerAndLogin();
@@ -192,11 +204,11 @@ describe('GET /services — cost follows the back-office line (18 §2)', () => {
   test('owner, admin and office see cost; technicians see the price but not cost', async () => {
     const svc = await seedService({ price: 2000, cost: 900 });
 
+    // Filtered to this fixture by name: the catalog is paged since CP-5, so a
+    // scan of page 1 would find the row only by luck of alphabetical order.
     const readAs = async (token: string) => {
-      const res = await request('/services', { headers: jsonHeaders(token) });
-      expect(res.status).toBe(200);
-      const body = await json<{ services: Service[] }>(res);
-      const found = findById(body.services, svc.id) as Service | undefined;
+      const body = await listServices(token, `q=${encodeURIComponent(svc.name)}`);
+      const found = findById(body.items, svc.id) as Service | undefined;
       expect(found).toBeDefined();
       return found!;
     };
@@ -225,6 +237,119 @@ describe('GET /services — cost follows the back-office line (18 §2)', () => {
 
   test('requires authentication', async () => {
     expect((await request('/services')).status).toBe(401);
+  });
+});
+
+describe('GET /services — paging (21 CP-5)', () => {
+  /** Three fixtures sharing one scope tag, so `q` isolates exactly them and the
+   *  live catalog's other rows cannot drift the assertions. Names are ordered
+   *  a/b/c because the catalog sorts by name — that is what makes "page 2 holds
+   *  the next row, not the same one" checkable. */
+  const seedTrio = async () => {
+    const scope = uniqueServiceName('paging');
+    const { token } = await seedOwnerAndLogin();
+    for (const suffix of ['a', 'b', 'c']) {
+      const res = await createService(token, serviceBody({ name: `${scope}-${suffix}` }));
+      expect(res.status).toBe(201);
+    }
+    return { scope, token };
+  };
+
+  test('page 1 and page 2 are disjoint, and total is the filtered count', async () => {
+    const { scope, token } = await seedTrio();
+    const q = `q=${encodeURIComponent(scope)}`;
+
+    const first = await listServices(token, `${q}&page=1&limit=2`);
+    const second = await listServices(token, `${q}&page=2&limit=2`);
+
+    expect(first.items).toHaveLength(2);
+    expect(second.items).toHaveLength(1);
+    expect(first.page).toBe(1);
+    expect(second.page).toBe(2);
+
+    // The bug this plan was opened for: page 2 re-serving page 1.
+    const firstIds = new Set(first.items.map((s) => s.id));
+    expect(second.items.every((s) => !firstIds.has(s.id))).toBe(true);
+
+    // `total` counts the whole filtered set, never the page (21 §2).
+    expect(first.total).toBe(3);
+    expect(second.total).toBe(3);
+    expect(first.total).not.toBe(first.items.length);
+  });
+
+  test('defaults to page 1 with a limit of 10, and caps limit at 100', async () => {
+    const { token } = await seedOwnerAndLogin();
+
+    const defaults = await listServices(token);
+    expect(defaults.page).toBe(1);
+    expect(defaults.limit).toBe(10);
+    expect(defaults.items.length).toBeLessThanOrEqual(10);
+
+    // Above the cap the schema rejects rather than quietly serving everything —
+    // the route must not be convertible back into a full-table read.
+    expect((await request('/services?limit=101', { headers: jsonHeaders(token) })).status).toBe(400);
+    expect((await listServices(token, 'limit=100')).limit).toBe(100);
+  });
+
+  test('q narrows the set, and the count narrows with it', async () => {
+    const { scope, token } = await seedTrio();
+
+    const all = await listServices(token, `q=${encodeURIComponent(scope)}`);
+    const one = await listServices(token, `q=${encodeURIComponent(`${scope}-b`)}`);
+
+    expect(all.total).toBe(3);
+    expect(one.total).toBe(1);
+    expect(one.items[0]?.name).toBe(`${scope}-b`);
+  });
+
+  test('a soft-deleted service leaves the page and the count', async () => {
+    const { scope, token } = await seedTrio();
+    const q = `q=${encodeURIComponent(scope)}`;
+    const before = await listServices(token, q);
+    const victim = before.items[0]!;
+
+    const res = await request(`/services/${victim.id}`, {
+      method: 'DELETE',
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ deleteComment: 'test+paging cleanup' }),
+    });
+    expect(res.status).toBe(200);
+
+    const after = await listServices(token, q);
+    expect(after.total).toBe(before.total - 1);
+    expect(findById(after.items, victim.id)).toBeUndefined();
+  });
+
+  test('the roster stays unpaged and ignores page/limit', async () => {
+    const { scope, token } = await seedTrio();
+
+    const res = await request('/services/all?page=2&limit=1', { headers: jsonHeaders(token) });
+    expect(res.status).toBe(200);
+
+    // A bare array, not an envelope (21 §3 amendment) — a roster has no page.
+    const roster = await json<{ id: string; name: string; cost?: string }[]>(res);
+    expect(Array.isArray(roster)).toBe(true);
+    expect(roster.filter((s) => s.name.startsWith(scope))).toHaveLength(3);
+  });
+
+  test('the roster redacts cost below back-office tier, like the paged list', async () => {
+    const svc = await seedService({ price: 2000, cost: 900 });
+
+    const rosterAs = async (token: string) => {
+      const res = await request('/services/all', { headers: jsonHeaders(token) });
+      expect(res.status).toBe(200);
+      const roster = await json<{ id: string; cost?: string }[]>(res);
+      const found = roster.find((s) => s.id === svc.id);
+      expect(found).toBeDefined();
+      return found!;
+    };
+
+    const { token: officeToken } = await seedOfficeAndLogin();
+    const { token: techToken } = await seedTechnicianAndLogin();
+
+    expect((await rosterAs(officeToken)).cost).toBe('900.00');
+    // Not shipped-and-hidden: the key is absent (owner, 2026-08-25).
+    expect((await rosterAs(techToken)).cost).toBeUndefined();
   });
 });
 
@@ -429,11 +554,8 @@ describe('internalServiceCode', () => {
     expect(svc.internalServiceCode).toBe(code);
 
     const { token } = await seedOwnerAndLogin();
-    const res = await request(`/services?q=${encodeURIComponent(code)}`, {
-      headers: jsonHeaders(token),
-    });
-    const body = await json<{ services: Service[] }>(res);
-    expect(findById(body.services, svc.id)).toBeDefined();
+    const body = await listServices(token, `q=${encodeURIComponent(code)}`);
+    expect(findById(body.items, svc.id)).toBeDefined();
   });
 
   test('rejects a duplicate code with 409', async () => {
@@ -498,10 +620,11 @@ describe('DELETE /services/:id', () => {
 
     expect((await request(`/services/${svc.id}`, { headers: jsonHeaders(token) })).status).toBe(404);
 
-    const list = await json<{ services: Service[] }>(
-      await request('/services', { headers: jsonHeaders(token) }),
-    );
-    expect(findById(list.services, svc.id)).toBeUndefined();
+    // Filtered to the fixture — the catalog is paged (21 CP-5), so "absent from
+    // page 1" would not have meant "absent".
+    const list = await listServices(token, `q=${encodeURIComponent(svc.name)}`);
+    expect(findById(list.items, svc.id)).toBeUndefined();
+    expect(list.total).toBe(0);
 
     const publicList = await json<{ services: PublicService[] }>(await request('/public/services'));
     expect(findById(publicList.services, svc.id)).toBeUndefined();
@@ -542,11 +665,12 @@ describe('POST /services/import (18 §6.3)', () => {
       body: JSON.stringify({ rows }),
     });
 
-  const listNames = async (token: string): Promise<string[]> => {
-    const body = await json<{ services: Service[] }>(
-      await request('/services', { headers: jsonHeaders(token) }),
-    );
-    return body.services.map((s) => s.name);
+  /** Names matching `term`. Takes a filter because the catalog is paged since
+   *  21 CP-5: an unfiltered read is one page of ten, and "not in that page" is
+   *  not the same claim as "not imported". */
+  const listNames = async (token: string, term: string): Promise<string[]> => {
+    const body = await listServices(token, `q=${encodeURIComponent(term)}&limit=100`);
+    return body.items.map((s) => s.name);
   };
 
   test('imports the file whole; every row gets its via-import event', async () => {
@@ -558,11 +682,9 @@ describe('POST /services/import (18 §6.3)', () => {
     expect(res.status).toBe(201);
     expect(await json<{ imported: number }>(res)).toEqual({ imported: 2 });
 
-    const list = await json<{ services: Service[] }>(
-      await request('/services', { headers: jsonHeaders(token) }),
-    );
-    const rowA = list.services.find((s) => s.name === a.name);
-    const rowB = list.services.find((s) => s.name === b.name);
+    const list = await listServices(token, 'q=test%2B&limit=100');
+    const rowA = list.items.find((s) => s.name === a.name);
+    const rowB = list.items.find((s) => s.name === b.name);
     expect(rowA).toBeDefined();
     expect(rowB!.cost).toBe('90.00');
 
@@ -591,7 +713,7 @@ describe('POST /services/import (18 §6.3)', () => {
 
     // The good row must NOT have slipped in — a partial import that silently
     // skipped rows would read as "imported everything".
-    expect(await listNames(token)).not.toContain(good.name);
+    expect(await listNames(token, good.name)).not.toContain(good.name);
   });
 
   test('422 on duplicate códigos — repeated in-file and taken by the live catalog', async () => {

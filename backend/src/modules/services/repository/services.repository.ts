@@ -1,5 +1,7 @@
-import { and, asc, eq, ilike, inArray, isNull, or } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { Db } from '../../database/client';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
+import type { ListServicesQuery } from '../validators/services.validator';
 import { services } from '../models/services.model';
 import { serviceEvents } from '../models/service-events.model';
 import { users } from '../../users/models/users.model';
@@ -36,12 +38,18 @@ export const appendServiceEvents = async (
   await runner.insert(serviceEvents).values(events);
 };
 
-/** The whole active catalog, name-sorted. No pagination — a service catalog is
- *  tens of rows, and every picker wants all of them (18 §4). */
-export const listServices = async (db: Db, filters: { search?: string }): Promise<ServiceRow[]> => {
+/** One page of the active catalog, name-sorted (18 §3; paged at 21 CP-5 —
+ *  supersedes 18 §4's "no pagination"). `total` is the filtered row count, never
+ *  `items.length`: that equation is the defect this plan exists to remove.
+ *  Pickers do **not** read this — they have `listServiceOptions` below, which
+ *  stays unpaged by contract. */
+export const listServicesPaged = async (
+  db: Db,
+  query: ListServicesQuery,
+): Promise<GenericQueryResponse<ServiceRow>> => {
   const conds = [activeFilter];
-  if (filters.search) {
-    const q = `%${filters.search}%`;
+  if (query.q) {
+    const q = `%${query.q}%`;
     // The catalog code is searchable too — a unique code is exactly what
     // people paste in to find one service.
     const match = or(
@@ -51,11 +59,27 @@ export const listServices = async (db: Db, filters: { search?: string }): Promis
     );
     if (match) conds.push(match);
   }
-  return db
+  const where = and(...conds);
+
+  const items = await db
     .select()
     .from(services)
-    .where(and(...conds))
-    .orderBy(asc(services.name));
+    .where(where)
+    .orderBy(asc(services.name))
+    .limit(query.limit)
+    .offset((query.page - 1) * query.limit);
+
+  const countRows = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(services)
+    .where(where);
+
+  return {
+    items,
+    total: countRows[0]?.count ?? 0,
+    page: query.page,
+    limit: query.limit,
+  };
 };
 
 /** The whole active catalog, name-sorted — the unpaged read behind every

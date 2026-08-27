@@ -1,9 +1,12 @@
 # 21 — List pagination (clients + catalog server-side paging)
 
-> **Status:** in progress — **CP-1…CP-4 done** (CP-1…CP-3 merged 2026-08-25; CP-4 closed
-> 2026-08-27). The reported bug is fixed and verified against the live backend: the clients,
-> leads and blacklist views all page, and page 2 renders page-2 rows. **CP-5 (services paging)
-> and CP-6 (regression guard) remain.**
+> **Status:** in progress — **CP-1…CP-5 done** (CP-1…CP-3 merged 2026-08-25; CP-4 closed
+> 2026-08-27; CP-5 built 2026-08-27 on `feature/fullstack-services-pagination`). The reported
+> bug is fixed and verified against the live backend: the clients, leads and blacklist views
+> all page, and page 2 renders page-2 rows. The services catalog is now paged too, and 18 §4's
+> no-pagination decision is formally superseded. **CP-6 (the Playwright regression guard)
+> remains**, plus the standing wrapper backlog in §9 (opened 2026-08-27, owner) — worked one
+> slice per PR, never batched.
 > **Depends on:** 07 (clients), 18 (services) · **Touches:** `backend/`, `superadmin/`, `frontend/`
 > **Owner:** — · **Last updated:** 2026-08-25
 
@@ -373,6 +376,41 @@ Supersedes 18 §4's no-pagination decision (Decisions §2 above).
 
 ---
 
+## 9. Ongoing — the wrapper backlog (opened 2026-08-27, owner)
+
+**Not a checkpoint.** This is a standing task worked **one slice per PR**, never as a
+big-bang sweep: each slice moves one module's wire shape, deletes the client-side shim that
+existed to absorb it, and ticks its line here. A slice may ride along in an unrelated PR
+touching the same module — it may not be batched into a "migrate everything" PR.
+
+**Where the envelope already stands (2026-08-27, verified):** every paged list read in
+superadmin is on the generic — customers, users, equipment, reports, report-templates,
+contracts, quotations, service-orders (+ its timeline), customer interactions, and services
+(CP-5) — plus `NotificationQueryResponse`, the sanctioned derived interface (§2). **There is
+no paged read left in superadmin answering a hand-written shape.** What follows is the
+*other* half of §2's promise: the single-object and half-envelope wrappers that never carried
+paging at all.
+
+**What must stay a bare array, and is not backlog:** rosters (`/customers/all`,
+`/services/all`, `listAssignable`, `reportOptions`, `getFonts`), by-parent reads
+(`byCustomer`, `listForCustomer`, `listForServiceOrder`), and the catalog/quotation
+timelines. A roster has no page and a `total` could only restate the array's own length —
+giving one an envelope is the exact mistake §2 exists to prevent (backend `CLAUDE.md`).
+
+| # | Wire shape today | Should be | Blast radius |
+|---|---|---|---|
+| 1 | `GET/POST/PATCH /customers/:id` + `/status` → `{ customer }` (4 routes) | the row itself | Backend 4 sites + the `unwrap()` shim in superadmin `customers.service.ts` (5 call sites) — the shim is the tell |
+| 2 | `GET/POST/PATCH /service-orders/:id`, `/status` → `{ order }` (4 routes) | the row itself | Backend 4 sites + 4 `Observable<{ order: … }>` signatures and their `.order` reads |
+| 3 | `GET /service-orders/:id/reports` → `{ reports: [...] }` | a bare array (a by-parent read) | Backend 1 site + 1 client signature |
+| 4 | `POST /notifications/:id/read` → `{ notification }` | the row itself | Backend 1 site + 1 client signature |
+| 5 | `GET /customers/recent`, `/customers/interactions/recent` → `{ items: [...] }` | a bare array — these are `limit`-bounded card reads, **not** query reads: `items` with no `total`/`page`/`limit` is a half-envelope, the worst of both | Backend 2 sites + `RecentItemsResponse<T>` and its two `map(res => res.items)` shims |
+| 6 | `GET /visits` → `VisitDTO[]` | **decide, don't assume** | It is a date-range window read for the calendar, which is legitimately bounded — but it also takes `technicianId`/`internalCode` filters. If 12 ever grows a flat visit *list*, that read pages; the calendar window does not. Settle it in 12, not here |
+
+`GET /public/services` → `{ services: [...] }` is **out of scope**: a published public
+contract the website consumes, versioned on its own terms.
+
+---
+
 ## Checkpoints
 
 One PR per checkpoint, stacked, in this order. **The order is the safety property** —
@@ -487,11 +525,39 @@ a clean `0042_*` containing only the GIN index — which is exactly what shipped
 2026-08-27:** the SQL is on main and applied to the live DB. Generating stayed a separate call
 from applying it; the live Neon DB remains the owner's.
 
-### CP-5 — Paginate `GET /services` + lazy services list
-- [ ] `page`/`limit` on `listServicesQuerySchema`; repository paged + `total`
-- [ ] Controller returns the envelope; `/public/services` untouched
-- [ ] `services-list` becomes lazy (`[lazy]`, `onLazyLoad`, `[first]`, `[totalRecords]`)
-- [ ] `test/services.test.ts` coverage green
+### CP-5 — Paginate `GET /services` + lazy services list — **done 2026-08-27**
+- [x] `page`/`limit` on `listServicesQuerySchema` (defaults 1/10, `limit` capped at 100);
+      `listServices` → `listServicesPaged`, returning `GenericQueryResponse<ServiceRow>`
+      with a real filtered count. `q` deliberately keeps its bare `.optional()` shape —
+      tightening it to `.min(1)` like `search` would turn a stray `?q=` into a 400
+- [x] Controller returns the envelope; `/public/services` untouched, and `GET /services/all`
+      stays the unpaged roster
+- [x] `services-list` becomes lazy — `[lazy]`, `(onLazyLoad)`, `[first]`, `[totalRecords]`,
+      plus `table-paged` so the page turns without the card resizing, and `list.skeletonRows`
+      so the skeleton matches the page size. `ServicesState` gains `total`; `refresh()` moves
+      to `list.refresh()` so deleting the last row on a page steps back instead of stranding
+      you on an empty one
+- [x] **CSV export rescued from silent truncation (not in the original checklist).**
+      `exportCsv()` serialized "the rows already on screen" — correct while the list held the
+      whole catalog, a ten-row file the moment it did not. It now re-reads the whole
+      *filtered* catalog via `ServicesCatalogService.listAll()`, which walks pages at the
+      server's `limit` cap until it has `total` rows (one request for any ordinary catalog)
+      and reports progress on the button. The roster cannot serve it — the export carries
+      `description`, `websiteDescription` and the SAT codes, none of which the picker
+      projection has. 18 §4's export bullet amended to match
+- [x] The e2e services stub answers the envelope **and honours `page`/`limit`/`q`** — a stub
+      that always replayed page 1 would let a paging spec pass against the very bug this plan
+      exists to remove (CP-6 builds on this)
+- [x] `test/services.test.ts` coverage **written** — paging (disjoint pages, `total` as the
+      filtered count and never `items.length`, defaults, the 100 cap rejecting 101, `q`
+      narrowing, soft-deleted rows leaving both page and count) and the roster (unpaged,
+      ignores `page`/`limit`, `cost` suppressed below back-office tier on **both** routes).
+      Four existing tests that scanned the unpaged list were filtered down to their fixture —
+      "absent from page 1" is not the claim they were making. **Run and green** (owner asked,
+      2026-08-27): **48/48** against the live Neon DB in 99s. `afterAll` soft-deleted every
+      `test+` fixture (0 left active), the tombstones stay per the no-hard-deletes rule, and
+      the 7 real catalog rows were untouched
+- [x] `pnpm typecheck` green; superadmin `npm run build` green
 
 ### CP-6 — Regression guard
 - [ ] Playwright spec per lazy list page: page 2 issues `?page=2` **and renders page-2 rows**

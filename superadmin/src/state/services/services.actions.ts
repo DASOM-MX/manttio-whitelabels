@@ -12,7 +12,7 @@ export class LoadServices {
 
 /** The whole catalog for pickers (21 §3) — a separate action from
  *  `LoadServices` on purpose: that one is the catalog browse and writes
- *  `items`, this one writes `options`. Once CP-5 pages the browse, a picker
+ *  `items`, this one writes `options`. Since CP-5 paged the browse, a picker
  *  sharing `items` would silently see only page 1. */
 export class LoadServiceOptions {
   static readonly type = '[Services] Load Options';
