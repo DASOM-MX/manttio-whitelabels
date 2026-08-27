@@ -40,6 +40,7 @@ import type {
   RecentClientVM,
   TrendSeriesChip,
 } from '../../../data/types/crm/panel.types';
+import { tableLoading } from '../../../services/table/table-loading';
 
 /** Effective palette color: the runtime brand CSS var when set, else the
  *  neutral fallback baked into tailwind.config.js (same "H S% L%" scheme). */
@@ -402,6 +403,9 @@ export class CrmDashboard {
       createdAt: c.createdAt,
     })),
   );
+
+  protected clientsBusy = tableLoading(this.clientsPending, this.clientRows);
+  protected activityBusy = tableLoading(this.activityPending, this.activityRows);
 
   protected readonly skeletonRows = [0, 1, 2, 3, 4];
 

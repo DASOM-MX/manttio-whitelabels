@@ -4,7 +4,8 @@
   <div class="card-flush-table">
     <p-table
       [value]="quotations()"
-      [loading]="loading()"
+      [loading]="tableBusy.showSkeleton()"
+      [class.table-refreshing]="tableBusy.refreshing()"
       [showLoader]="false"
       [rowHover]="true"
       dataKey="id"

@@ -21,6 +21,7 @@ import { FiltersPopover } from '../../../shared/components/filters-popover/filte
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { ReportListQuery, ReportSummary } from '../../../data/dtos/report';
 import type { ReportStatus } from '../../../model/enums/report/report-status.enum';
+import { tableLoading } from '../../../services/table/table-loading';
 
 /** Reports browser (06 §3). Technicians get the exact same page as
  *  "Mis reportes": the backend scopes their query; the UI locks the filters
@@ -59,6 +60,7 @@ export class ReportsList {
   protected reports = select(ReportsState.items);
   protected total = select(ReportsState.total);
   protected loading = select(ReportsState.loading);
+  protected tableBusy = tableLoading(this.loading, this.reports);
   private me = select(AuthState.me);
   private templates = select(ReportTemplatesState.items);
 

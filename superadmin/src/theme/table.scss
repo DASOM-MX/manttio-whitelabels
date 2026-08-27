@@ -97,6 +97,90 @@
   }
 }
 
+/* A table swapping one page of rows for another keeps the rows it already has,
+   at full brightness (`tableLoading`, app/services/table/table-loading.ts —
+   PrimeNG stacks `#loadingbody` *under* the rows rather than replacing them, so
+   the skeletons sit a page change out).
+
+   Nothing about the rows themselves animates, deliberately. Dipping the whole
+   body's opacity is a brightness pulse across the entire card whose depth is
+   set by however long that one request happened to take: the same click looks
+   different every time, and a response landing inside the dim's delay still
+   hard-cuts at full opacity. Over ten page changes that reads as a strobe —
+   the thing it was meant to prevent. With the height pinned (`.table-paged`
+   below) the quietest possible page change is to swap the text outright and
+   move nothing: the page just turns.
+
+   What a refresh does change is hit-testing — nothing stale should invite a
+   click — plus a hairline that sweeps the card's top edge. It waits out
+   `--table-busy-delay` first, so an ordinary page change resolves before any
+   cue appears at all and only a genuinely slow one draws the eye. `backwards`
+   fill parks the bar off the left edge for the duration of that delay (the
+   same trick the enter keyframes use, animations.scss) and the card's own
+   `overflow-hidden` clips it at both ends. */
+.p-datatable.table-refreshing {
+  /* Scoped to the refreshing state on purpose: `.table-refreshing` and the
+     loading mask are mutually exclusive by construction (skeletons XOR
+     refresh), so this never becomes the containing block for an overlay. */
+  position: relative;
+
+  --table-busy-delay: 400ms;
+  --table-busy-color: hsl(var(--brand-primary-600, 220 10% 45%));
+
+  .p-datatable-tbody {
+    @apply pointer-events-none;
+  }
+
+  &::before {
+    content: '';
+
+    @apply absolute top-0 left-0 z-10 h-0.5;
+
+    /* Travel is expressed against the bar's own width, so the two must agree:
+       250% of 40% is exactly one card width. */
+    width: 40%;
+    background-image: linear-gradient(90deg, transparent, var(--table-busy-color), transparent);
+    animation: anim-table-busy 1.1s linear var(--table-busy-delay) infinite backwards;
+  }
+}
+.app-dark .p-datatable.table-refreshing {
+  --table-busy-color: hsl(var(--brand-primary-400, 220 10% 70%));
+}
+
+/* Reduced motion takes the travel, not the feedback (same bargain as
+   `.skeleton`): a zero-length single run leaves the bar parked off-screen for
+   the delay, then resting static at the top-left corner while the request is
+   out. No new keyframes needed — only the timing changes. */
+@media (prefers-reduced-motion: reduce) {
+  .p-datatable.table-refreshing::before {
+    animation-duration: 0s;
+    animation-iteration-count: 1;
+  }
+}
+
+/* A paged table holds a full page of rows whether or not the page is full, so
+   the paginator sits at the same y on every page and the eye has one fixed
+   thing to aim at. Without it the short last page collapses the table and
+   drags the controls up under the cursor mid-click.
+
+   A floor, not a fixed height — a page whose rows wrap taller simply grows
+   past it. `--table-page-rows` is bound from `ListQueryService.PAGE_SIZE` so
+   the reservation and the request can't drift apart; the row heights are the
+   cell box, which is padding plus the tallest content the column carries. */
+.table-paged .p-datatable-table-container {
+  --table-row-h: 2.5rem; /* px-4 py-2.5 + one line of text-sm */
+  --table-header-h: 2.75rem; /* px-4 py-3 + one micro-label line */
+
+  /* Fallback keeps the floor if the binding is ever dropped — an unset
+     custom property makes the whole calc invalid, not just that term. */
+  min-height: calc(var(--table-page-rows, 10) * var(--table-row-h) + var(--table-header-h));
+}
+
+/* Rows built around a size-9 avatar or a two-line cell (clients). */
+.table-paged--tall .p-datatable-table-container {
+  --table-row-h: 3.5rem;
+}
+
 /* Paginator (rendered when [paginator]="true") */
 .p-paginator {
   @apply flex items-center justify-end gap-1.5 px-4 py-3 bg-white

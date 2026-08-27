@@ -6,7 +6,8 @@
   <div class="card-flush-table">
     <p-table
       [value]="rows()"
-      [loading]="loading()"
+      [loading]="tableBusy.showSkeleton()"
+      [class.table-refreshing]="tableBusy.refreshing()"
       [showLoader]="false"
       [rowHover]="true"
       [scrollable]="true"

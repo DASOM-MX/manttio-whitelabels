@@ -11,13 +11,16 @@
 <div>
   <p-table
     [value]="templates()"
+    styleClass="table-paged"
+    [style.--table-page-rows]="list.PAGE_SIZE"
     [lazy]="true"
     (onLazyLoad)="list.onLazyLoad($event)"
     [paginator]="true"
     [rows]="list.PAGE_SIZE"
     [first]="list.first()"
     [totalRecords]="total()"
-    [loading]="loading()"
+    [loading]="tableBusy.showSkeleton()"
+    [class.table-refreshing]="tableBusy.refreshing()"
     [showLoader]="false"
     [rowHover]="true"
     dataKey="id"
@@ -65,7 +68,7 @@
       </tr>
     </ng-template>
     <ng-template #loadingbody>
-      @for (r of [0, 1, 2, 3, 4, 5, 6, 7]; track r) {
+      @for (r of list.skeletonRows; track r) {
         <tr>
           @for (c of [0, 1, 2, 3, 4, 5]; track c) {
             <td><span class="skeleton"></span></td>

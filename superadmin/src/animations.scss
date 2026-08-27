@@ -51,6 +51,20 @@
   }
 }
 
+/* Table refresh bar — the hairline that sweeps the top edge of a `p-table`
+   whose rows are being swapped for another page (`.table-refreshing`,
+   theme/table.scss, which owns the width the percentages are measured
+   against). Both ends sit clear of the card so the bar enters and leaves
+   rather than popping. */
+@keyframes anim-table-busy {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
 /* Skeleton pulse (skeletons over spinners, 01 Design language; plan 17
    CP-3). Consumed by `.skeleton` in styles.scss — opacity only, no reflow. */
 @keyframes anim-skeleton-pulse {

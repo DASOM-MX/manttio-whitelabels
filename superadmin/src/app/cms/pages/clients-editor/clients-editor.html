@@ -10,7 +10,13 @@
 </app-page-header>
 
 <div>
-  <p-table [value]="clients()" [loading]="loading()" [showLoader]="false" dataKey="id">
+  <p-table
+    [value]="clients()"
+    [loading]="tableBusy.showSkeleton()"
+    [class.table-refreshing]="tableBusy.refreshing()"
+    [showLoader]="false"
+    dataKey="id"
+  >
     <ng-template #header>
       <tr>
         <th scope="col">Logotipo</th>

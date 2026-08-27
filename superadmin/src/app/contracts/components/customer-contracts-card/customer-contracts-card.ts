@@ -10,6 +10,7 @@ import {
   ContractValiditySeverityPipe,
 } from '../../../pipes/contract.pipe';
 import type { Contract } from '../../../data/dtos/contract/contract';
+import { tableLoading } from '../../../services/table/table-loading';
 
 /** The client's filed contracts, mounted in 07's customer view (13 §6, CP-3).
  *
@@ -41,6 +42,7 @@ export class CustomerContractsCard {
 
   protected contracts = signal<Contract[]>([]);
   protected loading = signal(true);
+  protected tableBusy = tableLoading(this.loading, this.contracts);
   protected readonly skeletonRows = [0, 1, 2];
 
   constructor() {

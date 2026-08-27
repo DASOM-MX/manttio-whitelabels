@@ -24,6 +24,7 @@ import type { ContractValidity } from '../../../model/enums/contract/contract-va
 import type { Contract } from '../../../data/dtos/contract/contract';
 import type { ContractListQuery } from '../../../data/dtos/contract/contract-requests';
 import { CustomerSelect } from '../../../shared/components/customer-select/customer-select';
+import { tableLoading } from '../../../services/table/table-loading';
 
 /** The filing cabinet (13 §6). Filters + page persist as GET query params
  *  (?q&customer&type&validity&tag&page) through ListQueryService (05 §3 canon).
@@ -60,6 +61,7 @@ export class ContractsList {
   protected contracts = select(ContractsState.items);
   protected total = select(ContractsState.total);
   protected loading = select(ContractsState.loading);
+  protected tableBusy = tableLoading(this.loading, this.contracts);
 
   protected search = new FormControl('', { nonNullable: true });
   protected customerFilter = new FormControl('', { nonNullable: true });

@@ -13,6 +13,7 @@ import {
 import { VisitsService } from '../../../services/http/visits.service';
 import { VisitStatusLabelPipe, VisitStatusSeverityPipe } from '../../../pipes/visit.pipe';
 import { VisitStatus } from '../../../model/enums/visit/visit-status.enum';
+import { tableLoading } from '../../../services/table/table-loading';
 
 /** Dashboard "Visitas de hoy" (12 CP-4b): today's schedule at a glance, live.
  *  It rides the SAME state machinery as the calendar page — LoadVisits for
@@ -55,6 +56,8 @@ export class TodayVisitsCard {
   protected rows = computed(() =>
     [...this.items()].sort((a, b) => a.scheduledStart.localeCompare(b.scheduledStart)),
   );
+
+  protected tableBusy = tableLoading(this.loading, this.rows);
 
   private accuracy = signal<{ count: number; avg: number } | null>(null);
 

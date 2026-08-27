@@ -53,6 +53,7 @@ import { CancelQuotationDialog } from '../../components/cancel-quotation-dialog/
 import { DeleteQuotationDialog } from '../../components/delete-quotation-dialog/delete-quotation-dialog';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { errorMessage } from '../../../data/utils';
+import { tableLoading } from '../../../services/table/table-loading';
 
 /** Quotation detail (20 §8) — header with the tally, the frozen lines,
  *  recipients with each reviewer's standing, and the append-only timeline.
@@ -112,6 +113,7 @@ export class QuotationView {
   protected loadFailed = select(QuotationsState.selectedError);
   protected timeline = select(QuotationsState.timeline);
   protected timelineLoading = select(QuotationsState.timelineLoading);
+  protected timelineBusy = tableLoading(this.timelineLoading, this.timeline);
   private me = select(AuthState.me);
 
   /** Recipients / timeline tab. Recipients leads: "did it reach them, and what

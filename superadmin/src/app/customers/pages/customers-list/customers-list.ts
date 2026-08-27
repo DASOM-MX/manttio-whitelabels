@@ -19,6 +19,7 @@ import { select, Store } from '@ngxs/store';
 import { CustomersState } from '../../../../state/customers/customers.state';
 import { LoadCustomers } from '../../../../state/customers/customers.actions';
 import { ListQueryService, keyIn } from '../../../services/table/list-query.service';
+import { tableLoading } from '../../../services/table/table-loading';
 import { CUSTOMER_STATUS_LABELS } from '../../../model/constants/customer/customer-status-labels.const';
 import { CUSTOMER_SOURCE_LABELS } from '../../../model/constants/customer/customer-source-labels.const';
 import {
@@ -81,6 +82,7 @@ export class CustomersList {
   protected customers = select(CustomersState.items);
   protected total = select(CustomersState.total);
   protected loading = select(CustomersState.loading);
+  protected tableBusy = tableLoading(this.loading, this.customers);
   protected knownTags = select(CustomersState.knownTags);
 
   /** Preset from route data (leads / blacklist views). */

@@ -57,13 +57,16 @@
 <div>
   <p-table
     [value]="quotations()"
+    styleClass="table-paged"
+    [style.--table-page-rows]="list.PAGE_SIZE"
     [lazy]="true"
     (onLazyLoad)="list.onLazyLoad($event)"
     [paginator]="true"
     [rows]="list.PAGE_SIZE"
     [first]="list.first()"
     [totalRecords]="total()"
-    [loading]="loading()"
+    [loading]="tableBusy.showSkeleton()"
+    [class.table-refreshing]="tableBusy.refreshing()"
     [showLoader]="false"
     [rowHover]="true"
     dataKey="id"
@@ -108,7 +111,7 @@
     </ng-template>
 
     <ng-template #loadingbody>
-      @for (r of skeletonRows; track r) {
+      @for (r of list.skeletonRows; track r) {
         <tr>
           @for (c of skeletonColumns; track c) {
             <td><span class="skeleton"></span></td>

@@ -29,6 +29,7 @@ import { isCalendarDatePast } from '../../../data/utils';
 import type { ServiceOrder, ServiceOrderListQuery } from '../../../data/dtos/service-order';
 import { ServiceOrderPriority } from '../../../model/enums/service-order/service-order-priority.enum';
 import { ServiceOrderStatus } from '../../../model/enums/service-order/service-order-status.enum';
+import { tableLoading } from '../../../services/table/table-loading';
 
 /** Service orders list (19 §5): lazy server-side p-table — folio, cliente,
  *  servicios count, status pill, total, fecha — with `q`/`status` in the
@@ -120,7 +121,7 @@ export class ServiceOrdersList {
     { label: 'Solo vencidas', value: 'true' },
   ];
 
-  protected readonly skeletonRows = [0, 1, 2, 3, 4, 5, 6, 7];
+  protected tableBusy = tableLoading(this.loading, this.rows);
 
   constructor() {
     this.list.init({

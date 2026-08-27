@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS "customers_tags_gin_idx" ON "customers" USING gin ("tags");

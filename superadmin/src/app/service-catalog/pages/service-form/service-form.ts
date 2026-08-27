@@ -50,6 +50,7 @@ import { PageHeader } from '../../../shared/components/page-header/page-header';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
 import { ServiceTaxRate, ServiceUom, type Service } from '../../../data/dtos/service';
 import type { ServiceWebsiteImage } from '../../../data/types/services/service-website-image';
+import { tableLoading } from '../../../services/table/table-loading';
 
 /** Add + detail/edit in one page (user-form idiom); the route param decides.
  *  The detail is **view-first (QA 2026-07-09)**: static labels until "Editar"
@@ -110,6 +111,7 @@ export class ServiceForm implements HasPendingChanges {
   protected selected = select(ServicesState.selected);
   protected timeline = select(ServicesState.timeline);
   protected timelineLoading = select(ServicesState.timelineLoading);
+  protected timelineBusy = tableLoading(this.timelineLoading, this.timeline);
   protected readonly skeletonRows = [0, 1, 2];
   /** One dispatch per visit — the effect below re-runs whenever `me()`
    *  hydrates, and the trail shouldn't reload on every auth-state tick. */
