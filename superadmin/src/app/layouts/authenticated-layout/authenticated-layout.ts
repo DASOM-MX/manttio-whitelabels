@@ -59,12 +59,16 @@ export class AuthenticatedLayout {
   protected sidebarCollapsed = select(AppState.sidebarCollapsed);
 
   /** The actual scrollable element is the layout's <main>, not the window —
-   *  reset scroll-to-top on every navigation so each page lands at its
+   *  reset scroll-to-top on every route change so each page lands at its
    *  header (frontend parity). */
   private scrollContainer = viewChild<ElementRef<HTMLElement>>('scrollContainer');
   /** Route-content wrapper — re-triggers the page-enter animation per
    *  navigation by re-adding the CSS class (animations.scss). */
   private pageContainer = viewChild<ElementRef<HTMLElement>>('pageContainer');
+  /** Path of the last navigation, query string stripped. A list page keeps its
+   *  filters and page number in the query params, so paging through a table
+   *  fires NavigationEnd on the page you are already standing on. */
+  private lastRoutePath = '';
 
   constructor() {
     this.router.events
@@ -72,9 +76,20 @@ export class AuthenticatedLayout {
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
         takeUntilDestroyed(),
       )
-      .subscribe(() => {
-        this.scrollContainer()?.nativeElement.scrollTo({ top: 0 });
+      .subscribe((event) => {
         this.drawerOpen.set(false);
+
+        // Same page, new query params (a table changing page, a filter being
+        // applied): the content is being updated in place, not entered. Both
+        // of the below would fight that — replaying the enter animation fades
+        // and lifts the whole page under the reader, and the scroll reset
+        // throws the paginator out from under the cursor that just clicked
+        // it. Neither is a page change; only a route change is.
+        const path = event.urlAfterRedirects.split(/[?#]/)[0];
+        if (path === this.lastRoutePath) return;
+        this.lastRoutePath = path;
+
+        this.scrollContainer()?.nativeElement.scrollTo({ top: 0 });
         this.replayPageEnter();
       });
   }

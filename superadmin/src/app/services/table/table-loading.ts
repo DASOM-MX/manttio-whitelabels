@@ -4,7 +4,7 @@ import { computed, type Signal } from '@angular/core';
 export interface TableLoadingFlags {
   /** Bind to `[loading]` — drives the `#loadingbody` skeletons. */
   showSkeleton: Signal<boolean>;
-  /** Bind to `[class.table-refreshing]` — dims the rows being replaced. */
+  /** Bind to `[class.table-refreshing]` — marks the rows on screen as stale. */
   refreshing: Signal<boolean>;
 }
 
@@ -23,11 +23,12 @@ export interface TableLoadingFlags {
  *  - `showSkeleton` — nothing to show yet (first load, or filters that cleared
  *    the rows). Skeletons stand in for content, which is what they are for.
  *  - `refreshing` — rows are being swapped for other rows. They stay put and
- *    the stylesheet dims them out of hit-testing, so the height never changes
- *    and no stale row reads as clickable-and-current.
+ *    stay lit; the stylesheet only takes them out of hit-testing so no stale
+ *    row reads as clickable-and-current, and runs a delayed hairline on the
+ *    card's top edge for the loads slow enough to need a cue.
  *
- *  The two are mutually exclusive by construction, so the skeletons never dim
- *  and the rows never stack. */
+ *  The two are mutually exclusive by construction, so the skeletons never
+ *  stack under the rows and a refresh never draws a loading body. */
 export const tableLoading = (
   loading: Signal<boolean>,
   rows: Signal<readonly unknown[]>,

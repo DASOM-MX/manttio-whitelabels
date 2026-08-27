@@ -97,38 +97,64 @@
   }
 }
 
-/* Stale-while-revalidate for a table swapping one page of rows for another
-   (`tableLoading`, app/services/table/table-loading.ts — PrimeNG stacks
-   `#loadingbody` *under* the rows rather than replacing them, so the rows stay
-   and the skeletons sit this one out). Dim them in place and drop them out of
-   hit-testing: nothing stale invites a click.
+/* A table swapping one page of rows for another keeps the rows it already has,
+   at full brightness (`tableLoading`, app/services/table/table-loading.ts —
+   PrimeNG stacks `#loadingbody` *under* the rows rather than replacing them, so
+   the skeletons sit a page change out).
 
-   Read the two rules as one cross-fade, because that is what they are. The
-   rows fade *down* while the request is out, are replaced at their faintest —
-   which is what hides the swap; a hard cut at full opacity is the jump the eye
-   catches — then ease back up carrying the new page.
+   Nothing about the rows themselves animates, deliberately. Dipping the whole
+   body's opacity is a brightness pulse across the entire card whose depth is
+   set by however long that one request happened to take: the same click looks
+   different every time, and a response landing inside the dim's delay still
+   hard-cuts at full opacity. Over ten page changes that reads as a strobe —
+   the thing it was meant to prevent. With the height pinned (`.table-paged`
+   below) the quietest possible page change is to swap the text outright and
+   move nothing: the page just turns.
 
-   Timing follows the motion tokens (animations.scss): out is `fast` on
-   `ease-exit`, back is `base` on `ease-enter`, exits quicker than enters. The
-   150ms delay rides on the dimmed state only, so it applies going out — a
-   response landing inside that window never dims at all — while the return
-   inherits the undelayed rule above and starts the moment rows arrive. */
-.p-datatable-tbody {
-  transition: opacity var(--motion-base) var(--ease-enter);
+   What a refresh does change is hit-testing — nothing stale should invite a
+   click — plus a hairline that sweeps the card's top edge. It waits out
+   `--table-busy-delay` first, so an ordinary page change resolves before any
+   cue appears at all and only a genuinely slow one draws the eye. `backwards`
+   fill parks the bar off the left edge for the duration of that delay (the
+   same trick the enter keyframes use, animations.scss) and the card's own
+   `overflow-hidden` clips it at both ends. */
+.p-datatable.table-refreshing {
+  /* Scoped to the refreshing state on purpose: `.table-refreshing` and the
+     loading mask are mutually exclusive by construction (skeletons XOR
+     refresh), so this never becomes the containing block for an overlay. */
+  position: relative;
+
+  --table-busy-delay: 400ms;
+  --table-busy-color: hsl(var(--brand-primary-600, 220 10% 45%));
+
+  .p-datatable-tbody {
+    @apply pointer-events-none;
+  }
+
+  &::before {
+    content: '';
+
+    @apply absolute top-0 left-0 z-10 h-0.5;
+
+    /* Travel is expressed against the bar's own width, so the two must agree:
+       250% of 40% is exactly one card width. */
+    width: 40%;
+    background-image: linear-gradient(90deg, transparent, var(--table-busy-color), transparent);
+    animation: anim-table-busy 1.1s linear var(--table-busy-delay) infinite backwards;
+  }
 }
-.table-refreshing .p-datatable-tbody {
-  @apply pointer-events-none;
-
-  opacity: 0.45;
-  transition: opacity var(--motion-fast) var(--ease-exit) 150ms;
+.app-dark .p-datatable.table-refreshing {
+  --table-busy-color: hsl(var(--brand-primary-400, 220 10% 70%));
 }
 
-/* Reduced motion takes the fade, not the feedback: the dim still marks the
-   rows as stale, it just stops moving (same bargain as `.skeleton`). */
+/* Reduced motion takes the travel, not the feedback (same bargain as
+   `.skeleton`): a zero-length single run leaves the bar parked off-screen for
+   the delay, then resting static at the top-left corner while the request is
+   out. No new keyframes needed — only the timing changes. */
 @media (prefers-reduced-motion: reduce) {
-  .p-datatable-tbody,
-  .table-refreshing .p-datatable-tbody {
-    transition: none;
+  .p-datatable.table-refreshing::before {
+    animation-duration: 0s;
+    animation-iteration-count: 1;
   }
 }
 
