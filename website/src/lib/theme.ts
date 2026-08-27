@@ -1,8 +1,10 @@
-// Brand → CSS: custom properties for the Tailwind palette repoint plus
-// @font-face rules for catalog fonts (plan 15 §3). Emits only what the fetched
-// brand actually carries — an empty string means "run on the built-in fallbacks".
-// Scale values arrive as HSL components ("H S% L%", steps 0…1000 — branding
-// rule 2) and drop into the vars verbatim; anything else (hex, rgb) is skipped.
+// Brand → CSS: custom properties for the Tailwind palette plus @font-face rules
+// for catalog fonts (plan 22 CP-4). Emits only what the fetched brand carries —
+// an empty string means "run on the built-in fallbacks". Scale values arrive as
+// HSL components ("H S% L%", steps 0…1000 — branding rule 2) and drop into the
+// vars verbatim; anything else (hex, rgb) is skipped. `primary` and `accent` are
+// the only customizable scales — chrome is stock Tailwind `zinc`, which reads no
+// variable and so is never emitted here.
 
 import type { Brand, BrandColorScale, FontCatalogEntry } from './types';
 
@@ -29,7 +31,7 @@ function cssEscape(value: string): string {
 export function buildBrandCss(brand: Brand, fonts: FontCatalogEntry[]): string {
   const rootVars: string[] = [
     ...scaleVars('primary', brand.colors?.primary),
-    ...scaleVars('surface', brand.colors?.surface),
+    ...scaleVars('accent', brand.colors?.accent),
   ];
   const fontFaces: string[] = [];
 

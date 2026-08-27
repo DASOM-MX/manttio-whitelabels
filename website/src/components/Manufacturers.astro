@@ -22,16 +22,16 @@ const manufacturers = home.manufacturers?.length ? home.manufacturers : DEFAULT_
 const mc = home.manufacturers_content;
 ---
 
-<section id="marcas" class="bg-granite-0 py-20 lg:py-24" data-manufacturers-section>
+<section id="marcas" class="bg-zinc-50 py-20 lg:py-24" data-manufacturers-section>
   <div class="mx-auto max-w-7xl px-6 lg:px-10">
     <div class="max-w-3xl">
-      <p class="text-sm font-semibold uppercase tracking-caps text-navy-600" data-manufacturers-eyebrow>
+      <p class="text-sm font-semibold uppercase tracking-caps text-primary-600" data-manufacturers-eyebrow>
         {filled(mc?.eyebrow) ?? 'Marcas'}
       </p>
-      <h2 class="mt-3 font-heading text-3xl font-bold text-granite-900 sm:text-4xl lg:text-5xl" data-manufacturers-heading>
+      <h2 class="mt-3 font-heading text-3xl font-bold text-zinc-900 sm:text-4xl lg:text-5xl" data-manufacturers-heading>
         {filled(mc?.title) ?? 'Expertos en los equipos de las marcas líderes del mercado'}
       </h2>
-      <p class="mt-5 text-lg text-granite-700" data-manufacturers-lede>
+      <p class="mt-5 text-lg text-zinc-700" data-manufacturers-lede>
         {filled(mc?.description) ??
           'Damos servicio, mantenimiento y renta a equipos originales de las marcas más reconocidas del sector — la experiencia técnica que tu operación necesita, sin importar la antigüedad del equipo.'}
       </p>
@@ -40,7 +40,7 @@ const mc = home.manufacturers_content;
     <div class="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:mt-14" data-manufacturers-grid>
       {manufacturers.map((m) => (
         <div
-          class="group flex h-24 items-center justify-center rounded-xl border border-granite-200 bg-white px-6 transition duration-300 hover:-translate-y-0.5 hover:border-granite-300 hover:shadow-lg hover:shadow-granite-900/5 sm:h-28"
+          class="group flex h-24 items-center justify-center rounded-xl border border-zinc-200 bg-white px-6 transition duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-lg hover:shadow-zinc-900/5 sm:h-28"
           data-manufacturer-logo
         >
           {m.logoUrl ? (
@@ -52,7 +52,7 @@ const mc = home.manufacturers_content;
               class="max-h-10 w-auto max-w-full object-contain opacity-70 grayscale transition duration-300 group-hover:opacity-100 group-hover:grayscale-0 sm:max-h-12"
             />
           ) : (
-            <span class="text-base font-semibold text-granite-500 transition duration-300 group-hover:text-granite-700">
+            <span class="text-base font-semibold text-zinc-500 transition duration-300 group-hover:text-zinc-700">
               {m.name}
             </span>
           )}
@@ -60,7 +60,7 @@ const mc = home.manufacturers_content;
       ))}
     </div>
 
-    <p class="mt-10 text-sm text-granite-500">
+    <p class="mt-10 text-sm text-zinc-500">
       Las marcas y logos mostrados son propiedad de sus respectivos dueños.
     </p>
   </div>

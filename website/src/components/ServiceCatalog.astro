@@ -64,19 +64,19 @@ const entries = services.map((service) => ({
 // image". Do not reintroduce a placeholder tile here.
 ---
 
-<section id="catalogo" class="bg-granite-100 py-20 lg:py-24" data-catalog-section>
+<section id="catalogo" class="bg-zinc-100 py-20 lg:py-24" data-catalog-section>
   <div class="mx-auto w-full max-w-7xl px-6 lg:px-10">
     <div class="max-w-3xl">
-      <p class="text-sm font-semibold uppercase tracking-caps text-cyan-600" data-catalog-eyebrow>
+      <p class="text-sm font-semibold uppercase tracking-caps text-primary-600" data-catalog-eyebrow>
         {content.eyebrow}
       </p>
       <h2
-        class="mt-3 font-heading text-3xl font-bold text-granite-900 sm:text-4xl"
+        class="mt-3 font-heading text-3xl font-bold text-zinc-900 sm:text-4xl"
         data-catalog-heading
       >
         {content.title}
       </h2>
-      <p class="mt-4 text-base text-granite-700 sm:text-lg" data-catalog-lede>
+      <p class="mt-4 text-base text-zinc-700 sm:text-lg" data-catalog-lede>
         {content.description}
       </p>
     </div>
@@ -84,7 +84,7 @@ const entries = services.map((service) => ({
     <ul class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {entries.map((service) => (
         <li
-          class="flex flex-col overflow-hidden rounded-2xl border border-granite-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-granite-300 hover:shadow-lg hover:shadow-granite-900/10"
+          class="flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg hover:shadow-zinc-900/10"
           data-catalog-card
         >
           {service.imageUrl && (
@@ -98,28 +98,28 @@ const entries = services.map((service) => ({
           )}
 
           <div class="flex flex-1 flex-col p-7">
-            <h3 class="font-heading text-xl font-bold text-granite-900">
+            <h3 class="font-heading text-xl font-bold text-zinc-900">
               {service.name}
             </h3>
 
             {service.description && (
-              <p class="mt-3 text-sm leading-relaxed text-granite-600">
+              <p class="mt-3 text-sm leading-relaxed text-zinc-600">
                 {service.description}
               </p>
             )}
 
-            <div class="mt-auto border-t border-granite-200 pt-5">
+            <div class="mt-auto border-t border-zinc-200 pt-5">
               {service.formattedPrice ? (
                 <p class="flex flex-wrap items-baseline gap-x-2">
-                  <span class="text-2xl font-bold text-granite-900">
+                  <span class="text-2xl font-bold text-zinc-900">
                     {service.formattedPrice}
                   </span>
-                  <span class="text-sm text-granite-500">MXN / {service.uomLabel}</span>
+                  <span class="text-sm text-zinc-500">MXN / {service.uomLabel}</span>
                 </p>
               ) : (
                 <p class="flex flex-wrap items-baseline gap-x-2">
-                  <span class="text-base font-semibold text-cyan-700">Precio a consultar</span>
-                  <span class="text-sm text-granite-500">por {service.uomLabel}</span>
+                  <span class="text-base font-semibold text-primary-700">Precio a consultar</span>
+                  <span class="text-sm text-zinc-500">por {service.uomLabel}</span>
                 </p>
               )}
             </div>
@@ -129,12 +129,12 @@ const entries = services.map((service) => ({
     </ul>
 
     <div class="mt-12 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <p class="text-sm text-granite-600">
+      <p class="text-sm text-zinc-600">
         Precios de referencia sin IVA. El alcance final se confirma en la cotización.
       </p>
       <a
         href="/contact-us"
-        class="inline-flex items-center justify-center gap-2 self-start rounded-md bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 sm:self-auto"
+        class="inline-flex items-center justify-center gap-2 self-start rounded-md bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:ring-offset-2 sm:self-auto"
       >
         Solicitar una cotización
         <svg
