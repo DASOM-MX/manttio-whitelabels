@@ -37,6 +37,12 @@ const codeInUse = (c: Context<AppBindings>, err: ServiceCodeInUseError) =>
     409,
   );
 
+// The catalog browse — paged since 21 CP-5 (supersedes 18 §4's "no pagination",
+// which CSV import made a matter of time), answering the one envelope every
+// paged read answers. `page`/`limit` default to 1/10 and `limit` caps at 100,
+// so this route can never be turned back into a full-table read; anything that
+// genuinely needs the whole catalog uses `GET /services/all` below.
+//
 // Reads are open to any authenticated role — office and technician both work
 // from this catalog, prices included (18 §2). The internal `cost` is the one
 // field held back, and only from technicians: office quotes and invoices from

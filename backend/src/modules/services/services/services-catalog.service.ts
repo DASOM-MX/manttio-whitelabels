@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { Db } from '../../database/client';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 import { isUniqueViolation } from '../../database/db-errors';
 import { cdnUrl } from '../../storage/services/storage.service';
 import {
@@ -16,7 +17,7 @@ import {
   listPublishedServices,
   listServiceEvents,
   listServiceOptions,
-  listServices,
+  listServicesPaged,
   softDeleteService,
   updateService,
 } from '../repository/services.repository';
@@ -150,14 +151,24 @@ const diffChanges = (
   return changes;
 };
 
+/** The catalog browse, one page at a time (21 CP-5 — supersedes 18 §4's
+ *  no-pagination decision). Answers the one envelope every paged read answers
+ *  (21 §2); `cost` still follows the back-office tier (18 §2), and the CDN
+ *  materialization is unchanged. Pickers read `getServiceOptions` instead — a
+ *  picker on this route would silently offer page 1 only. */
 export const getServices = async (
   db: Db,
   q: ListServicesQuery,
   includeCost: boolean,
   imagesCdnBase?: string,
-): Promise<{ services: ServiceDTO[] }> => {
-  const rows = await listServices(db, { search: q.q });
-  return { services: rows.map((row) => toDTO(row, includeCost, imagesCdnBase)) };
+): Promise<GenericQueryResponse<ServiceDTO>> => {
+  const { items, total, page, limit } = await listServicesPaged(db, q);
+  return {
+    items: items.map((row) => toDTO(row, includeCost, imagesCdnBase)),
+    total,
+    page,
+    limit,
+  };
 };
 
 /** The whole catalog for pickers (21 §3). A bare array, not an envelope: no

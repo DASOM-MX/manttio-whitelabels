@@ -166,7 +166,30 @@ export async function mockServicesApi(page: Page, seed: Service[] = []): Promise
       return;
     }
 
-    await route.fulfill({ json: { services: [...store] } });
+    // The catalog browse is paged since 21 CP-5, so the stub answers the
+    // envelope — and honours `page`/`limit`/`q` rather than replaying the whole
+    // store, or a paging spec would pass against a stub that always serves
+    // page 1. That is the exact shape of the bug plan 21 was opened for.
+    const url = new URL(request.url());
+    const pageNum = Math.max(1, Number(url.searchParams.get('page') ?? '1') || 1);
+    const limit = Math.max(1, Number(url.searchParams.get('limit') ?? '10') || 10);
+    const term = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+    const matched = term
+      ? store.filter((s) =>
+          [s.name, s.description, s.internalServiceCode].some((field) =>
+            (field ?? '').toLowerCase().includes(term),
+          ),
+        )
+      : store;
+    const start = (pageNum - 1) * limit;
+    await route.fulfill({
+      json: {
+        items: matched.slice(start, start + limit),
+        total: matched.length,
+        page: pageNum,
+        limit,
+      },
+    });
   });
 
   return {

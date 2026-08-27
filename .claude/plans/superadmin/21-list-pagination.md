@@ -1,9 +1,11 @@
 # 21 — List pagination (clients + catalog server-side paging)
 
-> **Status:** in progress — **CP-1…CP-4 done** (CP-1…CP-3 merged 2026-08-25; CP-4 closed
-> 2026-08-27). The reported bug is fixed and verified against the live backend: the clients,
-> leads and blacklist views all page, and page 2 renders page-2 rows. **CP-5 (services paging)
-> and CP-6 (regression guard) remain.**
+> **Status:** in progress — **CP-1…CP-5 done** (CP-1…CP-3 merged 2026-08-25; CP-4 closed
+> 2026-08-27; CP-5 built 2026-08-27 on `feature/fullstack-services-pagination`). The reported
+> bug is fixed and verified against the live backend: the clients, leads and blacklist views
+> all page, and page 2 renders page-2 rows. The services catalog is now paged too, and 18 §4's
+> no-pagination decision is formally superseded. **CP-6 (the Playwright regression guard)
+> remains.**
 > **Depends on:** 07 (clients), 18 (services) · **Touches:** `backend/`, `superadmin/`, `frontend/`
 > **Owner:** — · **Last updated:** 2026-08-25
 
@@ -487,11 +489,39 @@ a clean `0042_*` containing only the GIN index — which is exactly what shipped
 2026-08-27:** the SQL is on main and applied to the live DB. Generating stayed a separate call
 from applying it; the live Neon DB remains the owner's.
 
-### CP-5 — Paginate `GET /services` + lazy services list
-- [ ] `page`/`limit` on `listServicesQuerySchema`; repository paged + `total`
-- [ ] Controller returns the envelope; `/public/services` untouched
-- [ ] `services-list` becomes lazy (`[lazy]`, `onLazyLoad`, `[first]`, `[totalRecords]`)
-- [ ] `test/services.test.ts` coverage green
+### CP-5 — Paginate `GET /services` + lazy services list — **done 2026-08-27**
+- [x] `page`/`limit` on `listServicesQuerySchema` (defaults 1/10, `limit` capped at 100);
+      `listServices` → `listServicesPaged`, returning `GenericQueryResponse<ServiceRow>`
+      with a real filtered count. `q` deliberately keeps its bare `.optional()` shape —
+      tightening it to `.min(1)` like `search` would turn a stray `?q=` into a 400
+- [x] Controller returns the envelope; `/public/services` untouched, and `GET /services/all`
+      stays the unpaged roster
+- [x] `services-list` becomes lazy — `[lazy]`, `(onLazyLoad)`, `[first]`, `[totalRecords]`,
+      plus `table-paged` so the page turns without the card resizing, and `list.skeletonRows`
+      so the skeleton matches the page size. `ServicesState` gains `total`; `refresh()` moves
+      to `list.refresh()` so deleting the last row on a page steps back instead of stranding
+      you on an empty one
+- [x] **CSV export rescued from silent truncation (not in the original checklist).**
+      `exportCsv()` serialized "the rows already on screen" — correct while the list held the
+      whole catalog, a ten-row file the moment it did not. It now re-reads the whole
+      *filtered* catalog via `ServicesCatalogService.listAll()`, which walks pages at the
+      server's `limit` cap until it has `total` rows (one request for any ordinary catalog)
+      and reports progress on the button. The roster cannot serve it — the export carries
+      `description`, `websiteDescription` and the SAT codes, none of which the picker
+      projection has. 18 §4's export bullet amended to match
+- [x] The e2e services stub answers the envelope **and honours `page`/`limit`/`q`** — a stub
+      that always replayed page 1 would let a paging spec pass against the very bug this plan
+      exists to remove (CP-6 builds on this)
+- [x] `test/services.test.ts` coverage **written** — paging (disjoint pages, `total` as the
+      filtered count and never `items.length`, defaults, the 100 cap rejecting 101, `q`
+      narrowing, soft-deleted rows leaving both page and count) and the roster (unpaged,
+      ignores `page`/`limit`, `cost` suppressed below back-office tier on **both** routes).
+      Four existing tests that scanned the unpaged list were filtered down to their fixture —
+      "absent from page 1" is not the claim they were making. **Run and green** (owner asked,
+      2026-08-27): **48/48** against the live Neon DB in 99s. `afterAll` soft-deleted every
+      `test+` fixture (0 left active), the tombstones stay per the no-hard-deletes rule, and
+      the 7 real catalog rows were untouched
+- [x] `pnpm typecheck` green; superadmin `npm run build` green
 
 ### CP-6 — Regression guard
 - [ ] Playwright spec per lazy list page: page 2 issues `?page=2` **and renders page-2 rows**

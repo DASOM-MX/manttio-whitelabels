@@ -134,7 +134,7 @@ Rules for agents:
 | 18 services | not-started (planned doc) | — |
 | 19 service-orders | not-started (planned doc) | — |
 | 20 quotations | not-started (planned doc) | — |
-| 21 list-pagination | **in-progress — CP-1…CP-4 done** (#162 envelope, #163 rosters, #164 pickers, #165 paged `GET /customers` + lazy customer selects; CP-4 closed 2026-08-27 — migration `0042` shipped inside #168 and is applied, all three clients views verified paging against the live API). **CP-5** (services paging) + **CP-6** (Playwright regression guard) open | CP-5 |
+| 21 list-pagination | **in-progress — CP-1…CP-5 done** (#162 envelope, #163 rosters, #164 pickers, #165 paged `GET /customers` + lazy customer selects, #176 CP-4 closure; CP-5 pages `GET /services` + the catalog list, supersedes 18 §4). **CP-6** (Playwright regression guard) open | CP-6 |
 | 22 brand-palette (primary+accent) | **done 2026-08-27 — all five CPs merged** (backend contract + migration **0043** #170, superadmin #171, frontend #172, website #173, bookkeeping #174). Field app and website run on stock Tailwind `zinc` for chrome (owner, 2026-08-27); superadmin keeps its fixed `surface` scale, cooled to hue 240/5% at 23 CP-1 — supersedes 16 | — |
 | 23 visual-language-v2 | **in-progress** — **CP-1 done 2026-08-27** (language + tokens: 01/skill/17 rewritten onto "bright console", `.card` + table shell get a hairline border, PrimeNG dark panel borders aligned, chrome neutral cooled to hue 240/5%, edge-to-edge shell kept). CP-2 (light shell) next | CP-2 |
 

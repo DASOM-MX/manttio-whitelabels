@@ -62,7 +62,18 @@ export const importServicesSchema = z.object({
 });
 
 // Catalog-sized: a search box, no pagination (18 §4).
-export const listServicesQuerySchema = z.object({ q: z.string().optional() });
+// The catalog browse read (18 §3), paged at 21 CP-5 — supersedes 18 §4's
+// "no pagination (catalog-sized)". Mirrors `listCustomersQuerySchema`: the same
+// page/limit contract every other paged list already answers. `q` keeps its
+// bare `.optional()` shape on purpose — the client drops the param when the box
+// is empty, and tightening it to `.min(1)` would turn a stray `?q=` into a 400.
+export const listServicesQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  // Capped so a caller cannot turn the paged list back into a full-table read.
+  // The whole catalog has its own route (`GET /services/all`).
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+  q: z.string().optional(),
+});
 
 // Audited soft delete, same contract as users/equipment.
 export const deleteServiceSchema = z.object({ deleteComment: z.string().min(1) });

@@ -21,6 +21,10 @@ import type {
 
 export interface ServicesStateModel {
   items: Service[];
+  /** Filtered row count from the server (21 §2) — **never** `items.length`,
+   *  which is one page since CP-5 and would leave the paginator with a single
+   *  page forever. */
+  total: number;
   /** The whole catalog (21 §3) — what pickers read. Deliberately NOT `items`:
    *  CP-5 makes the catalog browse paged, and a picker sharing that slice would
    *  silently offer only page 1. */
@@ -36,6 +40,7 @@ export interface ServicesStateModel {
   name: 'services',
   defaults: {
     items: [],
+    total: 0,
     options: [],
     loading: false,
     selected: null,
@@ -50,6 +55,9 @@ export class ServicesState {
 
   @Selector() static items(s: ServicesStateModel): Service[] {
     return s.items;
+  }
+  @Selector() static total(s: ServicesStateModel): number {
+    return s.total;
   }
   @Selector() static options(s: ServicesStateModel): ServiceOption[] {
     return s.options;
@@ -67,13 +75,14 @@ export class ServicesState {
     return s.timelineLoading;
   }
 
-  /** No `total` selector: the catalog endpoint has no pagination, so the row
-   *  count is just `items.length` and a second source of truth would drift. */
+  /** One page of the catalog browse (21 CP-5). `total` comes off the wire —
+   *  the paginator reads it, and deriving it from `items.length` is the exact
+   *  defect plan 21 exists to remove. */
   @Action(LoadServices)
   load(ctx: StateContext<ServicesStateModel>, { query }: LoadServices) {
     ctx.patchState({ loading: true, query });
     return this.api.list(query).pipe(
-      tap(({ services }) => ctx.patchState({ items: services, loading: false })),
+      tap(({ items, total }) => ctx.patchState({ items, total, loading: false })),
       catchError((err) => {
         ctx.patchState({ loading: false });
         throw err;
