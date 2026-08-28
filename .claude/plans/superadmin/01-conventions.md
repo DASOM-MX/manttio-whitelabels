@@ -202,8 +202,10 @@ auto-loads it — **edit both in the same commit.**
   Good/bad numbers never take a brand colour: they ride the fixed semantic set. Chart
   canvases live in a fixed-height wrapper (`h-64`) with host + inner div `h-full`
   (PrimeNG 21 ignores `styleClass` on `p-chart`); chart colors re-read the brand CSS
-  vars on theme change (canon: `crm/pages/dashboard`). The shared components that
-  package all of this — `kpi-tile`, `segmented-bar`, `gauge-card`, `trend-card` —
+  vars on theme change (canon: `crm/pages/dashboard` — the kit's first consumer at 23
+  CP-4; no page builds a chart by hand any more). **A rate reads as a `gauge-card`, not a
+  numeral tile** (CP-4: conversión left the KPI strip to get one). The shared components
+  that package all of this — `kpi-tile`, `segmented-bar`, `gauge-card`, `trend-card` —
   **shipped 2026-08-27 at 23 CP-3** under `shared/components/`; hand-rolling a fifth
   copy of a KPI strip after that is a review failure.
   - **They take a `VizTone`, never a class** (`model/enums/viz/viz-tone.enum.ts`):

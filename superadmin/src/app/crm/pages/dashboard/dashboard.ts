@@ -1,19 +1,16 @@
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { ChartModule } from 'primeng/chart';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import {
   LucideCalendarClock,
   LucideDynamicIcon,
-  LucidePercent,
   LucideShare2,
   LucideTrendingUp,
   LucideUserCheck,
   LucideUserPlus,
 } from '@lucide/angular';
-import type { ChartData, ChartOptions, ScriptableContext } from 'chart.js';
 import { select, Store } from '@ngxs/store';
 import { CustomerStatsState } from '../../../../state/customer-stats/customer-stats.state';
 import {
@@ -24,106 +21,39 @@ import {
   LoadRecentInteractions,
 } from '../../../../state/customer-stats/customer-stats.actions';
 import { CUSTOMER_SOURCE_LABELS } from '../../../model/constants/customer/customer-source-labels.const';
+import { DeltaDirection } from '../../../model/enums/viz/delta-direction.enum';
+import { VizTone } from '../../../model/enums/viz/viz-tone.enum';
 import {
   CustomerStatusLabelPipe,
   CustomerStatusSeverityPipe,
 } from '../../../pipes/customer-status.pipe';
 import { InteractionTypeIconPipe, InteractionTypeLabelPipe } from '../../../pipes/interaction.pipe';
 import { RelativeTimePipe } from '../../../pipes/relative-time.pipe';
+import { GaugeCard } from '../../../shared/components/gauge-card/gauge-card';
+import { KpiTile } from '../../../shared/components/kpi-tile/kpi-tile';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
+import { SegmentedBar } from '../../../shared/components/segmented-bar/segmented-bar';
+import { TrendCard } from '../../../shared/components/trend-card/trend-card';
 import type { IntakeStats } from '../../../data/dtos/customer-stats';
+import type { BarSegment } from '../../../data/types/viz/bar-segment.type';
+import type { KpiDelta } from '../../../data/types/viz/kpi-delta.type';
+import type { TrendSeries } from '../../../data/types/viz/trend-series.type';
 import type {
-  ChannelBarVM,
+  ChannelRowVM,
   KpiCardVM,
-  KpiDeltaVM,
   PanelPeriodLabels,
   RecentClientVM,
-  TrendSeriesChip,
 } from '../../../data/types/crm/panel.types';
 import { tableLoading } from '../../../services/table/table-loading';
 
-/** Effective palette color: the runtime brand CSS var when set, else the
- *  neutral fallback baked into tailwind.config.js (same "H S% L%" scheme). */
-const hslVar = (name: string, fallback: string): string => {
-  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return `hsl(${value || fallback})`;
-};
-
-/** Same var, with an alpha channel (modern space-separated hsl syntax —
- *  canvas gradients parse it fine). */
-const hslVarAlpha = (name: string, fallback: string, alpha: number): string => {
-  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return `hsl(${value || fallback} / ${alpha})`;
-};
-
-// tailwind.config.js neutralScale lightness per step — the no-brand fallback.
-const PRIMARY_FALLBACK_L: Record<number, number> = {
-  0: 98,
-  100: 96,
-  200: 90,
-  300: 82,
-  400: 70,
-  500: 55,
-  600: 45,
-  700: 36,
-  800: 28,
-  900: 18,
-  1000: 10,
-};
-
-const primaryStep = (step: number): string =>
-  hslVar(`--brand-primary-${step}`, `220 10% ${PRIMARY_FALLBACK_L[step]}%`);
-
-const primaryStepAlpha = (step: number, alpha: number): string =>
-  hslVarAlpha(`--brand-primary-${step}`, `220 10% ${PRIMARY_FALLBACK_L[step]}%`, alpha);
-
-/** The one sanctioned gradient (01 Design language): a subtle single-hue
- *  area fill under the hero trend line, fading to transparent. */
-const areaFill =
-  (topColor: string) =>
-  (context: ScriptableContext<'line'>): string | CanvasGradient => {
-    const { ctx, chartArea } = context.chart;
-    if (!chartArea) return 'transparent';
-    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-    gradient.addColorStop(0, topColor);
-    gradient.addColorStop(1, 'transparent');
-    return gradient;
-  };
-
-// Chart chrome rides the **fixed** neutral (22 § Target 3), so these are
-// literals: surface stopped being tenant-themable and emits no CSS variable to
-// read. Steps 400/500 for ticks, 800/200 for grid lines — the same values the
-// old `--brand-surface-*` lookups fell back to.
-const SURFACE_TICK = { dark: '0 0% 70%', light: '0 0% 55%' };
-const SURFACE_GRID = { dark: '0 0% 28%', light: '0 0% 90%' };
-
-const buildLineOptions = (dark: boolean): ChartOptions<'line'> => {
-  const tick = `hsl(${dark ? SURFACE_TICK.dark : SURFACE_TICK.light})`;
-  const grid = dark
-    ? `hsl(${SURFACE_GRID.dark} / 0.6)`
-    : `hsl(${SURFACE_GRID.light} / 0.8)`;
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  return {
-    maintainAspectRatio: false,
-    animation: reduced ? false : { duration: 400, easing: 'easeOutCubic' },
-    interaction: { mode: 'index', intersect: false },
-    plugins: { legend: { display: false } },
-    scales: {
-      x: {
-        grid: { display: false },
-        border: { display: false },
-        ticks: { color: tick },
-      },
-      y: {
-        beginAtZero: true,
-        grid: { color: grid },
-        border: { display: false },
-        ticks: { color: tick, precision: 0, maxTicksLimit: 5 },
-      },
-    },
-    elements: { point: { radius: 0, hoverRadius: 4, hitRadius: 12 } },
-  };
-};
+/** How many channels keep their own named segment before the tail pools into
+ *  "Otros" (23 CP-4). Two named plus the pool is the reference's three-segment
+ *  bar, and it is also the palette's limit: the mix reads `primary` → `accent`
+ *  → neutral, so a fourth distinct member would have to invent a colour role,
+ *  and at a quarter-width card the labels stop fitting anyway. Nothing is
+ *  hidden — every channel keeps its own row, with its split, in the detail
+ *  list under the bar. */
+const CHANNEL_SEGMENTS = 2;
 
 /** Honest period naming (settled decision): the current MTD period reads
  *  "1–16 jul", a complete month reads its name. Dates are UTC buckets, so
@@ -149,48 +79,51 @@ const trendMonthLabel = (key: string): string => {
   return year === new Date().getUTCFullYear() ? label : `${label} ${String(year).slice(2)}`;
 };
 
-// Stat-card deltas are signed colored text, never pills (01 stat-card idiom).
-const DELTA_TONE_CLASSES = {
-  up: 'text-emerald-600 dark:text-emerald-400',
-  down: 'text-red-600 dark:text-red-400',
-  flat: 'text-surface-500 dark:text-surface-400',
-} as const;
-
-const VALUE_NEUTRAL = 'text-surface-1000 dark:text-surface-0';
-const VALUE_DANGER = 'text-red-600 dark:text-red-400';
-
-const countDelta = (diff: number): KpiDeltaVM => ({
+/** A period-over-period count difference, as the tile's delta: the sign is
+ *  always shown, and the direction carries the colour (23 CP-3). */
+const countDelta = (diff: number): KpiDelta => ({
   text: diff > 0 ? `+${diff}` : `${diff}`,
-  textClass: DELTA_TONE_CLASSES[diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat'],
+  direction: diff > 0 ? DeltaDirection.Up : diff < 0 ? DeltaDirection.Down : DeltaDirection.Flat,
 });
 
 /** Share of the period's intake already active, in whole percent (null when
- *  the period has no intake at all). */
+ *  the period has no intake at all — which is not 0 %). */
 const conversionRate = (active: number, leads: number): number | null => {
   const total = active + leads;
   return total === 0 ? null : Math.round((active / total) * 100);
 };
 
 /** Clientes › Dashboard — the CRM cockpit (executive redesign 2026-07-22,
- *  supersedes the two-pie layout): KPI strip (leads / nuevos activos /
- *  conversión / seguimientos vencidos), six-month intake trend with the
- *  sanctioned single-hue area fill + newest clients on its rail, and
- *  channel-mix bars + the detailed activity table (customer status + author).
- *  The follow-ups fetch now backs only its KPI count — the agenda table was
+ *  supersedes the two-pie layout; onto the shared viz kit at 23 CP-4): KPI
+ *  strip (leads / nuevos activos / seguimientos vencidos), the six-month
+ *  intake trend beside the channel mix and the conversión gauge, then newest
+ *  clients + the detailed activity table.
+ *
+ *  Every hand-rolled chart surface is gone: the tiles are `kpi-tile`, the mix
+ *  is `segmented-bar` over a detail list, the trend is `trend-card` — which
+ *  took the chart plumbing (palette reads, the area fill, axis chrome, the
+ *  tooltip, the theme-change re-read) with it, along with this file's
+ *  `MutationObserver`. Conversión moved out of the strip and into a gauge:
+ *  it is the only *rate* on the page, and a rate reads better as an arc than
+ *  as a numeral.
+ *
+ *  The follow-ups fetch backs only its KPI count — the agenda table was
  *  dropped on the owner's ask. Data lives in `CustomerStatsState` so revisits
  *  render from cache. */
 @Component({
   selector: 'app-crm-dashboard',
   imports: [
     RouterLink,
-    ChartModule,
     TableModule,
     TagModule,
     TooltipModule,
     PageHeader,
+    GaugeCard,
+    KpiTile,
+    SegmentedBar,
+    TrendCard,
     LucideDynamicIcon,
     LucideShare2,
-    LucideTrendingUp,
     CustomerStatusLabelPipe,
     CustomerStatusSeverityPipe,
     InteractionTypeIconPipe,
@@ -222,13 +155,6 @@ export class CrmDashboard {
   private readonly recentClients = select(CustomerStatsState.recentClients);
   private readonly clientsLoading = select(CustomerStatsState.recentClientsLoading);
   protected readonly clientsError = signal(false);
-
-  /** `<html>.app-dark` is the single dark-mode source of truth — watch it so
-   *  chart colors follow the theme toggle live. */
-  private readonly dark = signal(document.documentElement.classList.contains('app-dark'));
-  private readonly themeObserver = new MutationObserver(() =>
-    this.dark.set(document.documentElement.classList.contains('app-dark')),
-  );
 
   /** Skeletons cover both the in-flight fetch and the pre-dispatch instant
    *  (no cache, no error yet). */
@@ -262,51 +188,32 @@ export class CrmDashboard {
       : 'Captación, seguimientos y actividad de tus clientes.';
   });
 
-  /** Cards 1–3 of the KPI strip (intake-backed); the follow-ups KPI rides
-   *  its own endpoint below. */
+  /** The intake-backed tiles. Conversión left the strip at 23 CP-4 — it is a
+   *  rate, and it reads as the gauge below. */
   protected readonly intakeKpis = computed<KpiCardVM[]>(() => {
     const stats = this.stats();
     const labels = this.periodLabels();
     if (!stats || !labels) return [];
     const t = stats.totals;
     const vs = `contra ${labels.previous}`;
-    const rate = conversionRate(t.active, t.leads);
-    const prevRate = conversionRate(t.prevActive, t.prevLeads);
-    const rateDelta: KpiDeltaVM | null =
-      rate !== null && prevRate !== null
-        ? {
-            text: `${rate - prevRate > 0 ? '+' : ''}${rate - prevRate} pp`,
-            textClass:
-              DELTA_TONE_CLASSES[rate > prevRate ? 'up' : rate < prevRate ? 'down' : 'flat'],
-          }
-        : null;
     return [
       {
         id: 'leads',
         label: 'Leads',
         value: `${t.leads}`,
-        valueClass: VALUE_NEUTRAL,
         icon: LucideUserPlus,
         delta: countDelta(t.leads - t.prevLeads),
-        sub: vs,
+        caption: vs,
+        tone: VizTone.Neutral,
       },
       {
         id: 'active',
         label: 'Nuevos activos',
         value: `${t.active}`,
-        valueClass: VALUE_NEUTRAL,
         icon: LucideUserCheck,
         delta: countDelta(t.active - t.prevActive),
-        sub: vs,
-      },
-      {
-        id: 'conversion',
-        label: 'Conversión',
-        value: rate === null ? '—' : `${rate}%`,
-        valueClass: VALUE_NEUTRAL,
-        icon: LucidePercent,
-        delta: rateDelta,
-        sub: 'De la captación del periodo',
+        caption: vs,
+        tone: VizTone.Neutral,
       },
     ];
   });
@@ -318,11 +225,33 @@ export class CrmDashboard {
       id: 'follow-ups',
       label: 'Seguimientos vencidos',
       value: `${followUps.overdueCount}`,
-      valueClass: followUps.overdueCount > 0 ? VALUE_DANGER : VALUE_NEUTRAL,
       icon: LucideCalendarClock,
       delta: null,
-      sub: `De ${followUps.scheduledCount} programados`,
+      caption: `De ${followUps.scheduledCount} programados`,
+      // Overdue follow-ups above zero are bad *right now* — the one numeral on
+      // the strip that reads red on its own value, not on a delta.
+      tone: followUps.overdueCount > 0 ? VizTone.Negative : VizTone.Neutral,
     };
+  });
+
+  /** Conversión as a gauge (23 CP-4). Its tone stays the `accent` default: the
+   *  share of intake that turned active is higher-is-better but has no target
+   *  to be good or bad against, and inventing a threshold here would be
+   *  inventing a business rule. */
+  protected readonly conversionValue = computed(() => {
+    const stats = this.stats();
+    return stats ? conversionRate(stats.totals.active, stats.totals.leads) : null;
+  });
+
+  protected readonly conversionCaption = computed(() => {
+    const stats = this.stats();
+    const labels = this.periodLabels();
+    if (!stats || !labels) return 'De la captación del periodo';
+    const rate = conversionRate(stats.totals.active, stats.totals.leads);
+    const prev = conversionRate(stats.totals.prevActive, stats.totals.prevLeads);
+    if (rate === null || prev === null) return 'De la captación del periodo';
+    const diff = rate - prev;
+    return `${diff > 0 ? '+' : ''}${diff} pp contra ${labels.previous}`;
   });
 
   /** Both periods all-zero → the channel card shows the share-links CTA. */
@@ -333,72 +262,58 @@ export class CrmDashboard {
     return t.leads + t.active + t.prevLeads + t.prevActive === 0;
   });
 
-  protected readonly chartOptions = computed<ChartOptions<'line'>>(() =>
-    buildLineOptions(this.dark()),
+  protected readonly trendLabels = computed(() =>
+    (this.trend()?.months ?? []).map((p) => trendMonthLabel(p.month)),
   );
 
-  /** Legend chips mirror the dataset colors (hero = brand primary, secondary
-   *  = the dark/light neutral end of the same scale). */
-  protected readonly trendSeries: TrendSeriesChip[] = [
-    { label: 'Leads', dotClass: 'bg-primary-600 dark:bg-primary-400' },
-    { label: 'Nuevos activos', dotClass: 'bg-primary-1000 dark:bg-primary-100' },
-  ];
-
-  protected readonly trendEmpty = computed(() => {
-    const trend = this.trend();
-    return !!trend && trend.months.every((p) => p.leads + p.active === 0);
+  /** Hero series is the brand voice and carries the one sanctioned area fill;
+   *  the second is `accent` — which is what plan 22 gave us in place of the
+   *  old neutral-end `primary-1000` trick. */
+  protected readonly trendSeries = computed<TrendSeries[]>(() => {
+    const months = this.trend()?.months ?? [];
+    return [
+      { label: 'Leads', data: months.map((p) => p.leads), tone: VizTone.Brand, fill: true },
+      { label: 'Nuevos activos', data: months.map((p) => p.active), tone: VizTone.Accent },
+    ];
   });
 
-  protected readonly trendChart = computed<ChartData<'line', number[], string> | null>(() => {
-    const trend = this.trend();
-    if (!trend || this.trendEmpty()) return null;
-    const dark = this.dark();
-    const leadsColor = dark ? primaryStep(400) : primaryStep(600);
-    const activeColor = dark ? primaryStep(100) : primaryStep(1000);
-    // Fill rides the decorative accent step (01: primary-400 owns chart fills).
-    const fillTop = primaryStepAlpha(400, dark ? 0.25 : 0.2);
-    return {
-      labels: trend.months.map((p) => trendMonthLabel(p.month)),
-      datasets: [
-        {
-          label: 'Leads',
-          data: trend.months.map((p) => p.leads),
-          borderColor: leadsColor,
-          pointBackgroundColor: leadsColor,
-          borderWidth: 2,
-          tension: 0.4,
-          fill: true,
-          backgroundColor: areaFill(fillTop),
-        },
-        {
-          label: 'Nuevos activos',
-          data: trend.months.map((p) => p.active),
-          borderColor: activeColor,
-          pointBackgroundColor: activeColor,
-          backgroundColor: activeColor,
-          borderWidth: 2,
-          tension: 0.4,
-          fill: false,
-        },
-      ],
-    };
+  /** The mix, as the bar reads it: the top channels keep their own segment and
+   *  the tail pools into "Otros", because past three members the palette has
+   *  no distinct role left to give (and the labels stop fitting). Rows arrive
+   *  sorted by current-period total (backend contract). */
+  protected readonly channelSegments = computed<BarSegment[]>(() => {
+    const rows = this.channelRows();
+    const lead = rows.slice(0, CHANNEL_SEGMENTS).map((row, index) => ({
+      id: row.source,
+      label: row.source,
+      count: row.total,
+      tone: index === 0 ? VizTone.Brand : VizTone.Accent,
+    }));
+    const tail = rows.slice(CHANNEL_SEGMENTS);
+    if (tail.length === 0) return lead;
+    return [
+      ...lead,
+      {
+        id: 'otros',
+        label: tail.length === 1 ? tail[0]!.source : 'Otros',
+        count: tail.reduce((sum, row) => sum + row.total, 0),
+        tone: VizTone.Neutral,
+      },
+    ];
   });
 
-  /** Channel-mix bars — the intake rows arrive sorted by current-period
-   *  total already (backend contract); width is relative to the top one. */
-  protected readonly channelBars = computed<ChannelBarVM[]>(() => {
+  /** Every channel, with its leads/activos split — the detail under the bar. */
+  protected readonly channelRows = computed<ChannelRowVM[]>(() => {
     const stats = this.stats();
     if (!stats) return [];
-    const rows = stats.rows
+    return stats.rows
       .map((r) => ({ ...r, total: r.leads + r.active }))
-      .filter((r) => r.total > 0);
-    const max = Math.max(...rows.map((r) => r.total), 1);
-    return rows.map((r) => ({
-      source: CUSTOMER_SOURCE_LABELS[r.source] ?? r.source,
-      total: r.total,
-      split: `${r.leads} leads · ${r.active} activos`,
-      widthPct: Math.max(Math.round((r.total / max) * 100), 4),
-    }));
+      .filter((r) => r.total > 0)
+      .map((r) => ({
+        source: CUSTOMER_SOURCE_LABELS[r.source] ?? r.source,
+        total: r.total,
+        split: `${r.leads} leads · ${r.active} activos`,
+      }));
   });
 
   protected readonly clientRows = computed<RecentClientVM[]>(() =>
@@ -415,13 +330,12 @@ export class CrmDashboard {
   protected activityBusy = tableLoading(this.activityPending, this.activityRows);
 
   protected readonly skeletonRows = [0, 1, 2, 3, 4];
+  /** Passed to `trend-card` as data, not rendered here — which is why
+   *  `LucideTrendingUp` is imported but is not one of the component's
+   *  template `imports` (NG8113). */
+  protected readonly emptyTrendIcon = LucideTrendingUp;
 
   constructor() {
-    this.themeObserver.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-    inject(DestroyRef).onDestroy(() => this.themeObserver.disconnect());
     this.loadStats();
     this.loadTrend();
     this.loadFollowUps();
