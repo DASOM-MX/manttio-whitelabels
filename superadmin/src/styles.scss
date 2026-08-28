@@ -671,9 +671,14 @@
      previews; a live box that answers nothing would be a lie, and a disabled
      control says so without a tooltip anyone has to hover to read. A FILLED
      pill, borderless (reference 2026-08-27) — on a white bar the fill alone
-     states the field, and a border here would compete with the action rings. */
+     states the field, and a border here would compete with the action rings.
+     `h-8` since 2026-08-28 (owner): the action circles dropped to 32px at CP-2
+     and the pill stayed at 40, so the strip's two halves sat at different
+     heights. Its placeholder keeps the low-contrast `surface-400` — the stub is
+     genuinely `disabled`, which WCAG 1.4.3 exempts, and darkening it would make
+     a dead control look live. */
   .topbar-search {
-    @apply h-10 w-full max-w-md cursor-not-allowed items-center gap-2.5 rounded-full bg-surface-100 pl-4 pr-2 text-sm text-surface-400 dark:bg-surface-800/60 dark:text-surface-500;
+    @apply h-8 w-full max-w-md cursor-not-allowed items-center gap-2.5 rounded-full bg-surface-100 pl-4 pr-2 text-sm text-surface-400 dark:bg-surface-800/60 dark:text-surface-500;
   }
   .topbar-search-hint {
     @apply rounded-chip border border-surface-300 px-1.5 py-0.5 font-data text-2xs dark:border-surface-700;
