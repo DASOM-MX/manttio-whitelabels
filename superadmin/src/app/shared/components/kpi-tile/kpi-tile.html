@@ -23,11 +23,10 @@
     }
   </div>
   @if (icon(); as glyph) {
-    <svg
-      lucideIcon
-      [lucideIcon]="glyph"
-      class="size-4 shrink-0 text-accent-600 dark:text-accent-400"
-      aria-hidden="true"
-    ></svg>
+    <span
+      class="icon-chip bg-white text-primary-600 shadow-sm dark:bg-surface-800 dark:text-primary-400"
+    >
+      <svg lucideIcon [lucideIcon]="glyph" class="size-5" aria-hidden="true"></svg>
+    </span>
   }
 }

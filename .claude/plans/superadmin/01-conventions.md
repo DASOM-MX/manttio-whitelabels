@@ -158,10 +158,9 @@ auto-loads it — **edit both in the same commit.**
     row, the hero chart series, the one highlighted bar in a comparison.
   - **`accent`** (a real tenant-configured scale, DEFAULT `accent-500` — not a step of
     primary): the second brand voice — secondary chart series, the second segment of a
-    segmented bar, informational badges, decorative chips (the `kpi-tile`'s trailing
-    glyph), and a gauge fill *when the metric is neutral rather than good/bad* — which
-    is `gauge-card`'s default tone, settled at 23 CP-3. **Never the sole carrier of a
-    status meaning.**
+    segmented bar, informational badges, decorative chips, and a gauge fill *when the
+    metric is neutral rather than good/bad* — which is `gauge-card`'s default tone,
+    settled at 23 CP-3. **Never the sole carrier of a status meaning.**
   - **A fixed semantic set**, not brand-derived: emerald = positive/up, red =
     negative/down, amber = warning/pending. Deltas, revenue direction and any good/bad
     gauge ride these — so a tenant's hue can never make "down" look green.
@@ -171,6 +170,13 @@ auto-loads it — **edit both in the same commit.**
   sweep (`.icon-chip` — the unused `--soft` variant was removed at plan 17 CP-5 —
   progress bars, highlight numbers) lands at **23 CP-6**; until that PR those surfaces
   still read `primary-400`, and the doc is the target, not the inventory.
+  **Stat-card chips left that queue early** (owner 2026-08-27): they are a **white
+  `.icon-chip` with `shadow-sm` and a `primary-600` glyph** (dark: `surface-800` chip,
+  `primary-400` glyph). On a white chip the glyph *is* the coloured element, and it
+  rides `primary` rather than `accent` precisely because every tenant has set
+  `primary` — an accent mark would render unthemed grey on the tenants that haven't.
+  `kpi-tile` owns the treatment; the one filled `primary-400` chip still standing is
+  contract-view's, and it stays CP-6's.
   **A tenant that has never set `accent` renders it as the neutral fallback ramp**
   (branding rule 3 — no invented hue), so accent-carried surfaces read gray there until
   the brand is filled in; that is correct behavior, not a regression.

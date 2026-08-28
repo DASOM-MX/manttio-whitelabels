@@ -641,8 +641,18 @@ of breaking behind it. (The owner later moved the pill clear of the connector en
   - **The kit prints strings, not numbers.** Currency, percent points and locale
     separators stay at the call site — a shared tile that guessed would be wrong on
     half the dashboards.
-  - **The KPI tile's trailing glyph rides `accent`**, per § Direction 3's "decorative
-    chips": it is a category marker, not an interactive or status cue.
+  - **The KPI tile's trailing glyph is a white chip with a `primary` mark** (owner
+    2026-08-27, reviewing the live dashboard against CP-3 — supersedes both 17's filled
+    `primary-400` square and CP-3's own first pass, a bare `accent` glyph). `bg-white` +
+    `shadow-sm` + `text-primary-600` (dark: `surface-800` + `primary-400`): once the chip
+    is white the glyph *is* the coloured element, and `accent` would leave it an unthemed
+    grey on every tenant that has not filled that scale in — exactly where a *themed*
+    mark must not land. Applied to the live dashboard's two tiles in the same pass, so
+    CP-4's swap to `kpi-tile` changes nothing visible.
+  - **The channel-mix list scrolls at the chart's height** (owner 2026-08-27):
+    `max-h-64` + `overflow-y-auto` on the `<ul>`, matching the `h-64` canvas beside it,
+    so a tenant with a dozen channels cannot stretch the row and leave dead space under
+    the trend. Lands on the dashboard now; `segmented-bar` inherits the cap at CP-4.
   - **Component render specs enter the repo.** The kit ships before any page consumes
     it, so "it compiles" was the only evidence CP-3 would otherwise have. Vitest +
     `TestBed` (the `@angular/build:unit-test` builder already runs) covers a render per

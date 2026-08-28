@@ -20,9 +20,12 @@ import type { KpiDelta } from '../../../data/types/viz/kpi-delta.type';
  *  palette — pass a `VizTone`, never a class. Hand-rolling a fifth copy of a
  *  KPI strip after this exists is a review failure (01 § Data-viz).
  *
- *  The trailing glyph rides `accent`: it is decorative, and decoration is the
- *  second brand voice (§ Direction 3). A tenant with no accent set renders it
- *  in the neutral fallback ramp — correct, not a regression (branding rule 3). */
+ *  The trailing glyph sits in a **white `.icon-chip` with a soft shadow**, drawn
+ *  in `primary` (owner 2026-08-27 — supersedes both the filled `primary-400`
+ *  square and this component's first pass, a bare accent glyph). On a white
+ *  chip the glyph *is* the colored element, and `primary` is the one brand
+ *  scale every tenant has set: `accent` would render an unthemed gray mark on
+ *  any tenant that hasn't filled it in. */
 @Component({
   selector: 'app-kpi-tile',
   imports: [LucideDynamicIcon],

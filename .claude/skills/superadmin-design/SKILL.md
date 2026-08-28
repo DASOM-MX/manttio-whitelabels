@@ -251,9 +251,11 @@ the target and the code is the backlog.
 - **Stat cards** (reference idiom): micro-label + trailing Lucide icon, `font-data`
   value, a delta pill (emerald/red from the fixed semantic set, arrow, **sign always
   shown**) and a muted comparison caption under it. Tiles are the one unit tighter than
-  the page rhythm: `p-5`, label → value → caption, no extra air. The shared `kpi-tile`
-  (shipped 23 CP-3) owns this — don't hand-roll a sixth copy; timelines pair small
-  accent icons with micro-label timestamps.
+  the page rhythm: `p-5`, label → value → caption, no extra air. The trailing glyph is a
+  **white `.icon-chip` with `shadow-sm` and a `primary-600` mark** (dark: `surface-800`
+  chip, `primary-400` mark) — owner 2026-08-27, superseding the filled `primary-400`
+  square. The shared `kpi-tile` (shipped 23 CP-3) owns all of it — don't hand-roll a
+  sixth copy; timelines pair small accent icons with micro-label timestamps.
 - **Data-viz** (owner 2026-07-22, CRM-cockpit turn; re-coloured by plan 23's palette
   roles 2026-08-27): time series are `p-chart type="line"` — hero series `primary-600`
   (dark `primary-400`) with the sole tolerated gradient (a single-hue area fill of the
