@@ -5,7 +5,7 @@ import { TableModule } from 'primeng/table';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
-import { LucideEye, LucidePlus, LucideWrench } from '@lucide/angular';
+import { LucideAirVent, LucideEye, LucidePlus, LucideWrench } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { EquipmentState } from '../../../../state/equipment/equipment.state';
 import { LoadEquipment } from '../../../../state/equipment/equipment.actions';
@@ -28,7 +28,8 @@ import { tableLoading } from '../../../services/table/table-loading';
  *  canon) — only the param mapping, query building and dispatch live here. */
 @Component({
   selector: 'app-equipment-list',
-  imports: [CustomerSelect, 
+  imports: [
+    CustomerSelect,
     RouterLink,
     ReactiveFormsModule,
     TableModule,
@@ -40,6 +41,7 @@ import { tableLoading } from '../../../services/table/table-loading';
     EquipmentFormDialog,
     FiltersPopover,
     PageHeader,
+    LucideAirVent,
     LucidePlus,
     LucideEye,
     LucideWrench,

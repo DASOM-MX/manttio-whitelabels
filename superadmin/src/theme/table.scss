@@ -100,6 +100,17 @@
   }
 }
 
+/* Numeric cells: `font-data` names the face, but `tabular-nums` is what
+   actually aligns the column — Work Sans's `tnum` is real (01 § Typography)
+   and it is a font *feature*, not the family's default. Setting it here means
+   a numeric cell cannot forget it, which is what the sheet's own header has
+   claimed since it was written (plan 23 CP-5). Harmless on the folio columns
+   that ride `font-data` for the face alone: the feature only touches digits. */
+th.font-data,
+td.font-data {
+  @apply tabular-nums;
+}
+
 /* A table swapping one page of rows for another keeps the rows it already has,
    at full brightness (`tableLoading`, app/services/table/table-loading.ts —
    PrimeNG stacks `#loadingbody` *under* the rows rather than replacing them, so

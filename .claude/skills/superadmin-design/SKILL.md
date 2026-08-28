@@ -286,12 +286,16 @@ the target and the code is the backlog.
     `--brand-*` through `services/theme/chart-palette.service.ts`; the floating tooltip
     card is `services/chart/chart-tooltip.service.ts` and chart.js's canvas tooltip is
     switched off.
-- **Table idioms** (reference crops, 23 CP-3) — idioms, not components: **thumbnail
-  lead cell** (`size-9 rounded-control` `object-cover` image + name on one flex row;
-  entities with no picture keep the initials avatar), **directional numeric**
-  (`font-data tabular-nums` in the fixed semantic set with a `size-3` arrow — only
-  where the value *has* a direction, never brand-coloured), **rating cell** (one amber
-  star + the value, not five stars — five reads as a control).
+- **Table idioms** (reference crops, 23 CP-3; applied at CP-5) — idioms, not components.
+  **The lead cell follows what the entity is:** people and companies → `.lead-avatar`
+  (initials, canon: customers + users), photographable things → `.lead-thumb` (services'
+  `websiteImageUrl`, equipment's `photos[0]`), missing photo → `.lead-thumb-fallback`
+  (the entity's Lucide glyph on the same tile — never an empty grey square, never initials
+  on a chiller); a list with these rows takes `table-paged--tall`. **Directional numeric**
+  = `font-data tabular-nums` in the fixed semantic set with a `size-3` arrow, and *only*
+  where the value has a direction — the CP-5 audit found none in the nine lists, so no
+  column was coloured. **Rating cell** = one amber star + the value; no call site yet.
+  Numeric cells inherit `tabular-nums` from `table.scss`.
 - **List filters live in a popover** (owner 2026-07-22, Chakra-style): the shared
   `shared/components/filters-popover` trigger (filter icon + active-count badge) sits
   left of the page's primary action; pass the page's URL param names as `[params]`

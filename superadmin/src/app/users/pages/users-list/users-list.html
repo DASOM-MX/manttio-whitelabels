@@ -1,46 +1,46 @@
 <app-page-header title="Usuarios" description="El personal de tu negocio y sus roles de acceso.">
-    <app-filters-popover [params]="['q', 'role', 'active']">
-      <div class="field-group">
-        <label class="field-label" for="users-search">Buscar</label>
-        <input
-          id="users-search"
-          pInputText
-          type="search"
-          [formControl]="search"
-          placeholder="Nombre o correo"
-        />
-      </div>
-      <div class="field-group">
-        <label class="field-label" for="users-role">Rol</label>
-        <p-select
-          inputId="users-role"
-          [formControl]="roleFilter"
-          [options]="roleOptions"
-          optionLabel="label"
-          optionValue="value"
-        />
-      </div>
-      <div class="field-group">
-        <label class="field-label" for="users-active">Estado</label>
-        <p-select
-          inputId="users-active"
-          [formControl]="activeFilter"
-          [options]="activeOptions"
-          optionLabel="label"
-          optionValue="value"
-        />
-      </div>
-    </app-filters-popover>
-    <a routerLink="/users/new" class="btn-primary">
-      <svg lucidePlus class="size-4" aria-hidden="true"></svg>
-      Nuevo usuario
-    </a>
+  <app-filters-popover [params]="['q', 'role', 'active']">
+    <div class="field-group">
+      <label class="field-label" for="users-search">Buscar</label>
+      <input
+        id="users-search"
+        pInputText
+        type="search"
+        [formControl]="search"
+        placeholder="Nombre o correo"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="users-role">Rol</label>
+      <p-select
+        inputId="users-role"
+        [formControl]="roleFilter"
+        [options]="roleOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="users-active">Estado</label>
+      <p-select
+        inputId="users-active"
+        [formControl]="activeFilter"
+        [options]="activeOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
+  </app-filters-popover>
+  <a routerLink="/users/new" class="btn-primary">
+    <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+    Nuevo usuario
+  </a>
 </app-page-header>
 
 <div>
   <p-table
     [value]="users()"
-    styleClass="table-paged"
+    styleClass="table-paged--tall"
     [style.--table-page-rows]="list.PAGE_SIZE"
     [lazy]="true"
     (onLazyLoad)="list.onLazyLoad($event)"
@@ -68,8 +68,15 @@
       <!-- Whole row opens the user (QA 2026-07-08); the action links stay as
            the keyboard path. Owner rows link too — their page is read-only. -->
       <tr class="cursor-pointer" (click)="openUser(user)">
-        <td class="font-bold">
-          {{ user.name }} {{ user.paternalLastName }} {{ user.maternalLastName }}
+        <td>
+          <span class="flex items-center gap-3">
+            <span class="lead-avatar" aria-hidden="true">
+              {{ user.name + ' ' + user.paternalLastName | initials }}
+            </span>
+            <span class="font-bold">
+              {{ user.name }} {{ user.paternalLastName }} {{ user.maternalLastName }}
+            </span>
+          </span>
         </td>
         <td>{{ user.email }}</td>
         <td>

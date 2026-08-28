@@ -41,7 +41,7 @@
 <div>
   <p-table
     [value]="services()"
-    styleClass="table-paged"
+    styleClass="table-paged--tall"
     [style.--table-page-rows]="list.PAGE_SIZE"
     [lazy]="true"
     (onLazyLoad)="list.onLazyLoad($event)"
@@ -76,12 +76,25 @@
            action links stay as the keyboard path. -->
       <tr class="cursor-pointer" (click)="openService(svc)">
         <td>
-          <span class="font-bold">{{ svc.name }}</span>
-          @if (svc.description) {
-            <span class="block text-xs text-surface-500 dark:text-surface-400">
-              {{ svc.description }}
+          <!-- Lead cell: the catalog photo the website already shows, or the
+               service glyph on the same tile (01 § Table idioms). -->
+          <span class="flex items-center gap-3">
+            @if (svc.websiteImageUrl) {
+              <img class="lead-thumb" [src]="svc.websiteImageUrl" alt="" loading="lazy" />
+            } @else {
+              <span class="lead-thumb-fallback" aria-hidden="true">
+                <svg lucideWrench class="size-4"></svg>
+              </span>
+            }
+            <span class="min-w-0">
+              <span class="font-bold">{{ svc.name }}</span>
+              @if (svc.description) {
+                <span class="block text-xs text-surface-500 dark:text-surface-400">
+                  {{ svc.description }}
+                </span>
+              }
             </span>
-          }
+          </span>
         </td>
         <td class="font-data tabular-nums">{{ svc.internalServiceCode || '—' }}</td>
         <td class="font-data tabular-nums">{{ svc.price | money }}</td>

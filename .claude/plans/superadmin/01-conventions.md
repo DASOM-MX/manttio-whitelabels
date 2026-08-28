@@ -227,16 +227,25 @@ auto-loads it — **edit both in the same commit.**
   reference's *Best Selling Products* table draws. They stay idioms, not components — a
   `p-table` column is already the unit, and wrapping one buys a host box and nothing
   else. Use them where the data exists; none is mandatory.
-  - **Thumbnail lead cell** — a `size-9 rounded-control` image (`object-cover`, over a
-    `bg-surface-100` placeholder while it loads) on a flex row with the name. An entity
-    that has no picture keeps the initials avatar (`size-9 rounded-full bg-primary-100`,
-    the customers-list canon) — never an empty grey square.
+  - **Thumbnail lead cell** — `.lead-thumb`: a `size-9 rounded-control` image
+    (`object-cover`, over a `bg-surface-100` placeholder while it loads) on a flex row with
+    the name. **The lead cell is chosen by what the entity *is*** (23 CP-5): people and
+    companies take the initials avatar `.lead-avatar` (customers, users), photographable
+    things take their photo (services' `websiteImageUrl`, equipment's `photos[0]`), and a
+    thing whose photo is missing falls back to `.lead-thumb-fallback` — its own Lucide glyph
+    on the same tile. Never an empty grey square, and never initials on a chiller. A list
+    whose rows carry one moves to `table-paged--tall` so the page reservation matches.
   - **Directional numeric** — a numeric column whose value has a *direction* (revenue
     against last period, stock movement) reads `font-data tabular-nums` in the fixed
     semantic set with a `size-3` arrow ahead of it: emerald up, red down. A column with
-    no direction stays neutral, which is most of them. Never brand-coloured.
+    no direction stays neutral, which is most of them. Never brand-coloured. **The 23 CP-5
+    audit found none in the nine lists** — prices, costs, totals, counts, progress and
+    folios have no up or down — so nothing was coloured; the idiom waits for the first
+    column that earns it. (Numeric cells get `tabular-nums` from `table.scss` now:
+    `font-data` names the face, `tnum` is what aligns the column.)
   - **Rating cell** — one amber star glyph plus the value in `font-data` ("4,8"), not a
-    row of five: five stars reads as a control you can set, and this is a reading.
+    row of five: five stars reads as a control you can set, and this is a reading. Nothing
+    in the product is rated yet, so this one has no call site (23 CP-5).
 - **Default-PrimeNG buttons (owner 2026-07-22: "blob-like buttons do not look
   clean" — supersedes the 2026-07-21 blob/pill buttons):** actions are
   `rounded-control` rectangles at the input radius, stock-Aura `px-4` — the

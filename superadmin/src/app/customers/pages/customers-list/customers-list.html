@@ -1,54 +1,54 @@
 <app-page-header [title]="title" description="El directorio de clientes de tu negocio.">
-    <app-filters-popover [params]="filterParams">
+  <app-filters-popover [params]="filterParams">
+    <div class="field-group">
+      <label class="field-label" for="customers-search">Buscar</label>
+      <input
+        id="customers-search"
+        pInputText
+        type="search"
+        [formControl]="search"
+        placeholder="Nombre, contacto o RFC"
+      />
+    </div>
+    @if (!presetStatus) {
       <div class="field-group">
-        <label class="field-label" for="customers-search">Buscar</label>
-        <input
-          id="customers-search"
-          pInputText
-          type="search"
-          [formControl]="search"
-          placeholder="Nombre, contacto o RFC"
-        />
-      </div>
-      @if (!presetStatus) {
-        <div class="field-group">
-          <label class="field-label" for="customers-status">Estado</label>
-          <p-select
-            inputId="customers-status"
-            [formControl]="statusFilter"
-            [options]="statusOptions"
-            optionLabel="label"
-            optionValue="value"
-          />
-        </div>
-      }
-      <div class="field-group">
-        <label class="field-label" for="customers-source">Origen</label>
+        <label class="field-label" for="customers-status">Estado</label>
         <p-select
-          inputId="customers-source"
-          [formControl]="sourceFilter"
-          [options]="sourceOptions"
+          inputId="customers-status"
+          [formControl]="statusFilter"
+          [options]="statusOptions"
           optionLabel="label"
           optionValue="value"
         />
       </div>
-      <div class="field-group">
-        <label class="field-label" for="customers-tags">Etiquetas</label>
-        <p-multiselect
-          inputId="customers-tags"
-          [formControl]="tagsFilter"
-          [options]="tagOptions()"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="Todas"
-          display="chip"
-        />
-      </div>
-    </app-filters-popover>
-    <a routerLink="/customers/new" class="btn-primary">
-      <svg lucidePlus class="size-4" aria-hidden="true"></svg>
-      Nuevo cliente
-    </a>
+    }
+    <div class="field-group">
+      <label class="field-label" for="customers-source">Origen</label>
+      <p-select
+        inputId="customers-source"
+        [formControl]="sourceFilter"
+        [options]="sourceOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="customers-tags">Etiquetas</label>
+      <p-multiselect
+        inputId="customers-tags"
+        [formControl]="tagsFilter"
+        [options]="tagOptions()"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Todas"
+        display="chip"
+      />
+    </div>
+  </app-filters-popover>
+  <a routerLink="/customers/new" class="btn-primary">
+    <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+    Nuevo cliente
+  </a>
 </app-page-header>
 
 <div>
@@ -92,11 +92,7 @@
       <tr class="cursor-pointer" (click)="openCustomer(customer)">
         <td>
           <span class="flex items-center gap-3">
-            <span
-              class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-800 dark:bg-primary-1000/60 dark:text-primary-300"
-              aria-hidden="true"
-              >{{ customer.name | initials }}</span
-            >
+            <span class="lead-avatar" aria-hidden="true">{{ customer.name | initials }}</span>
             <span class="font-bold">{{ customer.name }}</span>
           </span>
         </td>
