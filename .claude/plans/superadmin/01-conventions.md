@@ -158,9 +158,10 @@ auto-loads it — **edit both in the same commit.**
     row, the hero chart series, the one highlighted bar in a comparison.
   - **`accent`** (a real tenant-configured scale, DEFAULT `accent-500` — not a step of
     primary): the second brand voice — secondary chart series, the second segment of a
-    segmented bar, informational badges, decorative chips, and a gauge fill *when the
-    metric is neutral rather than good/bad*. **Never the sole carrier of a status
-    meaning.**
+    segmented bar, informational badges, decorative chips (the `kpi-tile`'s trailing
+    glyph), and a gauge fill *when the metric is neutral rather than good/bad* — which
+    is `gauge-card`'s default tone, settled at 23 CP-3. **Never the sole carrier of a
+    status meaning.**
   - **A fixed semantic set**, not brand-derived: emerald = positive/up, red =
     negative/down, amber = warning/pending. Deltas, revenue direction and any good/bad
     gauge ride these — so a tenant's hue can never make "down" look green.
@@ -197,8 +198,37 @@ auto-loads it — **edit both in the same commit.**
   (PrimeNG 21 ignores `styleClass` on `p-chart`); chart colors re-read the brand CSS
   vars on theme change (canon: `crm/pages/dashboard`). The shared components that
   package all of this — `kpi-tile`, `segmented-bar`, `gauge-card`, `trend-card` —
-  arrive at **23 CP-3**; hand-rolling a fifth copy of a KPI strip after that is a
-  review failure.
+  **shipped 2026-08-27 at 23 CP-3** under `shared/components/`; hand-rolling a fifth
+  copy of a KPI strip after that is a review failure.
+  - **They take a `VizTone`, never a class** (`model/enums/viz/viz-tone.enum.ts`):
+    `Brand`/`Accent` are the two tenant voices, `Positive`/`Negative`/`Warning` the
+    fixed set, `Neutral` the surface. Class maps live in `model/constants/viz/`, one
+    per surface kind — a fill (`RULE_*`), an SVG stroke (`STROKE_*`), a numeral
+    (`VALUE_*`), a pill (`DELTA_*`) — because one tone needs different steps at 3:1
+    and at 4.5:1.
+  - **Values arrive formatted.** The kit prints the strings it is given; currency,
+    percent points and locale separators stay the call site's business.
+  - The view-model math is pure and specced (`services/viz/*.ts`): segment shares and
+    their narrow-member floor, the gauge's fill count, the delta pill's direction →
+    tone reading. Canvas colours resolve through
+    `services/theme/chart-palette.service.ts`, which reads `--brand-*` live and falls
+    back to the neutral ramp baked into the Tailwind config; the floating tooltip card
+    is `services/chart/chart-tooltip.service.ts` (chart.js's canvas tooltip is off —
+    it can carry neither the card treatment nor `font-data`).
+- **Table idioms (reference crops, documented at 23 CP-3):** three cell shapes the
+  reference's *Best Selling Products* table draws. They stay idioms, not components — a
+  `p-table` column is already the unit, and wrapping one buys a host box and nothing
+  else. Use them where the data exists; none is mandatory.
+  - **Thumbnail lead cell** — a `size-9 rounded-control` image (`object-cover`, over a
+    `bg-surface-100` placeholder while it loads) on a flex row with the name. An entity
+    that has no picture keeps the initials avatar (`size-9 rounded-full bg-primary-100`,
+    the customers-list canon) — never an empty grey square.
+  - **Directional numeric** — a numeric column whose value has a *direction* (revenue
+    against last period, stock movement) reads `font-data tabular-nums` in the fixed
+    semantic set with a `size-3` arrow ahead of it: emerald up, red down. A column with
+    no direction stays neutral, which is most of them. Never brand-coloured.
+  - **Rating cell** — one amber star glyph plus the value in `font-data` ("4,8"), not a
+    row of five: five stars reads as a control you can set, and this is a reading.
 - **Default-PrimeNG buttons (owner 2026-07-22: "blob-like buttons do not look
   clean" — supersedes the 2026-07-21 blob/pill buttons):** actions are
   `rounded-control` rectangles at the input radius, stock-Aura `px-4` — the

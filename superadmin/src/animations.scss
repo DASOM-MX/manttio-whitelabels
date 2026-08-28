@@ -112,6 +112,23 @@
   animation-delay: 240ms;
 }
 
+/* Gauge fill sweep (plan 23 CP-3): filled ticks fade in left to right, the
+   delay coming from the tick's index (12ms apart, set inline by the
+   component). `backwards` holds each tick invisible through its delay, so the
+   arc fills instead of blinking on. Unfilled ticks carry no animation at all,
+   which is why this keys off the `--on` class rather than the group. */
+@keyframes anim-gauge-tick {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.gauge-tick--on {
+  animation: anim-gauge-tick var(--motion-fast) var(--ease-enter) backwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .anim-page-enter,
   .anim-enter,
@@ -120,8 +137,15 @@
   .anim-drawer-enter,
   .anim-drawer-leave,
   .anim-stagger > *,
+  .gauge-tick--on,
   .skeleton {
     animation: none !important;
+  }
+  /* The gauge arc renders filled, and the chart tooltip appears rather than
+     fading (23 § Verification: reduced motion collapses the gauge sweep and
+     the chart animations — chart.js's own are switched off in trend-card). */
+  .chart-tooltip {
+    transition: none !important;
   }
   /* The sidebar rail's width ease (styles.scss) snaps under reduced motion. */
   .shell-sidebar {

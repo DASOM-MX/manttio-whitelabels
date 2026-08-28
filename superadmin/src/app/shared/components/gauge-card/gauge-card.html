@@ -1,0 +1,44 @@
+<h2 class="section-heading">{{ title() }}</h2>
+
+@if (loading()) {
+  <div class="flex flex-1 flex-col items-center justify-center gap-3 py-4" aria-hidden="true">
+    <span class="skeleton !h-2 !max-w-none"></span>
+    <span class="skeleton !h-8 !max-w-20"></span>
+    <span class="skeleton !max-w-40"></span>
+  </div>
+} @else {
+  <div class="relative mx-auto w-full max-w-xs">
+    <svg viewBox="0 0 200 108" class="w-full" role="img" [attr.aria-label]="ariaLabel()">
+      @for (tick of ticks(); track tick.index) {
+        <line
+          class="gauge-tick"
+          [class]="tick.class"
+          [attr.x1]="tick.x1"
+          [attr.y1]="tick.y1"
+          [attr.x2]="tick.x2"
+          [attr.y2]="tick.y2"
+          [style.animation-delay.ms]="tick.delay"
+        />
+      }
+    </svg>
+    <!-- The numeral sits in the arc's opening, not on the canvas: SVG text
+         would miss `font-data` and the tabular figures. -->
+    <div class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center pb-1">
+      <span
+        class="font-data text-4xl font-extrabold leading-none tabular-nums text-surface-1000 dark:text-surface-0"
+      >
+        {{ valueText() }}
+      </span>
+    </div>
+  </div>
+
+  @if (caption()) {
+    <p class="mt-3 text-center text-sm text-surface-600 dark:text-surface-400">{{ caption() }}</p>
+  }
+
+  @if (hasLink()) {
+    <a [routerLink]="linkRoute()" class="link-action mt-3 justify-center text-xs">
+      {{ linkLabel() }}
+    </a>
+  }
+}

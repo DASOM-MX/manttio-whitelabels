@@ -1,0 +1,57 @@
+<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+  <h2 class="section-heading !pb-0">{{ title() }}</h2>
+  <div class="flex items-center gap-4">
+    @for (chip of legend(); track chip.label) {
+      <span class="inline-flex items-center gap-1.5 text-xs text-surface-600 dark:text-surface-400">
+        <span class="size-2 rounded-full {{ chip.dotClass }}" aria-hidden="true"></span>
+        {{ chip.label }}
+      </span>
+    }
+  </div>
+</div>
+
+@if (value()) {
+  <p class="mt-4 flex flex-wrap items-baseline gap-2">
+    <span
+      class="font-data text-3xl font-extrabold leading-none tabular-nums text-surface-1000 dark:text-surface-0"
+    >
+      {{ value() }}
+    </span>
+    @if (deltaView(); as delta) {
+      <span class="delta-pill {{ delta.pillClass }}">
+        <svg lucideIcon [lucideIcon]="delta.icon" class="size-3" aria-hidden="true"></svg>
+        {{ delta.text }}
+      </span>
+    }
+    @if (caption()) {
+      <span class="text-xs text-surface-500 dark:text-surface-400">{{ caption() }}</span>
+    }
+  </p>
+}
+
+@if (loading()) {
+  <div
+    class="mt-4 h-64 rounded-card bg-surface-100 motion-safe:animate-pulse dark:bg-surface-800/60"
+    aria-hidden="true"
+  ></div>
+} @else if (chartData(); as data) {
+  <!-- Fixed-height, positioned wrapper: PrimeNG 21 ignores `styleClass` on
+       `p-chart`, and the tooltip card is placed against this box. -->
+  <div #chartHost class="relative mt-4 h-64">
+    <p-chart
+      type="line"
+      [data]="data"
+      [options]="chartOptions()"
+      class="block h-full [&>div]:h-full"
+    />
+  </div>
+} @else {
+  <div class="flex h-64 flex-col items-center justify-center gap-3 text-center">
+    @if (emptyIcon(); as glyph) {
+      <span class="empty-icon">
+        <svg lucideIcon [lucideIcon]="glyph" class="size-5" aria-hidden="true"></svg>
+      </span>
+    }
+    <p class="max-w-sm text-sm text-surface-600 dark:text-surface-400">{{ emptyMessage() }}</p>
+  </div>
+}
