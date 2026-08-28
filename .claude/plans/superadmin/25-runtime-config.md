@@ -1,6 +1,6 @@
 # 25 — Runtime config (SSR shell on Workers, `apiUrl` from CF vars)
 
-> **Status:** in progress — **CP-1 done 2026-08-28**; CP-2…CP-7 pending
+> **Status:** in progress — **CP-1 + CP-2 done 2026-08-28**; CP-3…CP-7 pending
 > **Depends on:** 02 (app shell) · **Touches:** `superadmin/`, `frontend/` (no `backend/` change)
 > **Owner:** — · **Last updated:** 2026-08-28
 
@@ -161,14 +161,26 @@ is enough.
 - [x] Verified safe to merge onto the *current* Pages deploy with no visible change
 
 ### CP-2 — superadmin: SSR scaffolding, all routes CSR
-- [ ] `ng add @angular/ssr` (Angular 21 line)
-- [ ] `app.routes.server.ts` = single `{ path: '**', renderMode: RenderMode.Client }`
-- [ ] Confirm `outputMode: server` + `ssr.entry` landed in `angular.json`
-- [ ] Build green; browser output now emits `index.csr.html`; `ng serve` unaffected
+- [x] `ng add @angular/ssr` (Angular 21 line)
+- [x] `app.routes.server.ts` = single `{ path: '**', renderMode: RenderMode.Client }`
+- [x] Confirm `outputMode: server` + `ssr.entry` landed in `angular.json`
+- [x] Build green; browser output now emits `index.csr.html`; `ng serve` unaffected
+- [x] Schematic default was `RenderMode.Prerender` — replaced with `Client`, else the
+      build renders every route under Node
+- [x] Boot work guarded to the browser (`isPlatformBrowser`): the build boots the app in
+      Node to extract the route tree, which made the CP-1 initializer run there and threw
+      `document is not defined` from the brand theme service. Build log is clean now
+- [x] Deps installed with `--legacy-peer-deps` at a matched **21.2.17** set. npm otherwise
+      insists on pulling `@angular/router@21.2.22` against `core@21.2.17`; the installed
+      combination is the correct matched one, and no Angular version was bumped
 
 ### CP-3 — superadmin: Worker entry + wrangler config
 - [ ] `cloudflare/worker.ts` — `fetch(request, env, ctx)`: `/__config` from `env.API_URL`
-      (`Cache-Control: no-store`), everything else delegated to `AngularAppEngine`
+      (`Cache-Control: no-store`), everything else delegated to `AngularAppEngine`.
+      **`/__config` must be answered before the engine is consulted** — verified at CP-2
+      that the engine 302s unknown paths to `/`, so delegating first loses the route
+- [ ] Replace the schematic's Express `src/server.ts` with the Worker entry and drop the
+      `express` / `@types/express` dependencies it pulled in
 - [ ] `wrangler.jsonc` — `main`, `assets` (directory + `ASSETS` binding),
       `compatibility_flags: ["nodejs_compat"]`, `define` shim for `import.meta.url`
 - [ ] `not_found_handling` left at default (§1 — setting it would bypass the Worker)
@@ -250,7 +262,7 @@ Legend: ☐ not started · ◐ in progress · ☑ done
 | CP | App | Scope | State | PR |
 |---|---|---|---|---|
 | CP-1 | superadmin | runtime-config layer + folded initializer + 2 call sites | ☑ | — |
-| CP-2 | superadmin | `@angular/ssr`, all routes `RenderMode.Client` | ☐ | — |
+| CP-2 | superadmin | `@angular/ssr`, all routes `RenderMode.Client` | ☑ | — |
 | CP-3 | superadmin | Worker entry + `wrangler.jsonc` + `/__config` | ☐ | — |
 | CP-4 | superadmin | CF project, vars, deploy, domain cutover, delete `_routes.json`/`_redirects` | ☐ | — |
 | CP-5 | frontend | runtime-config layer + `localStorage` offline persistence | ☐ | — |
