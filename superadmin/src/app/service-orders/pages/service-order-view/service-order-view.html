@@ -175,11 +175,11 @@
               @if (showsMoney()) {
                 <dl class="mt-4 flex flex-col items-end gap-1 text-sm">
                   <div class="flex gap-6">
-                    <dt class="text-surface-500 dark:text-surface-400">Subtotal</dt>
+                    <dt class="text-surface-600 dark:text-surface-400">Subtotal</dt>
                     <dd class="font-data w-28 text-right">{{ order.amounts?.subtotal | money }}</dd>
                   </div>
                   <div class="flex gap-6">
-                    <dt class="text-surface-500 dark:text-surface-400">IVA</dt>
+                    <dt class="text-surface-600 dark:text-surface-400">IVA</dt>
                     <dd class="font-data w-28 text-right">{{ order.amounts?.tax | money }}</dd>
                   </div>
                   <div class="flex gap-6 font-bold">
@@ -224,7 +224,7 @@
                             <span class="empty-icon">
                               <svg lucideFileText class="size-5" aria-hidden="true"></svg>
                             </span>
-                            <p class="text-sm text-surface-500 dark:text-surface-400">
+                            <p class="text-sm text-surface-600 dark:text-surface-400">
                               Esta orden no tiene reportes.
                             </p>
                           </div>
@@ -282,14 +282,16 @@
                         {{ event.type | serviceOrderEventLabel }}
                       </p>
                       @if (event.note) {
-                        <p class="truncate text-sm text-surface-500 dark:text-surface-400">
+                        <p class="truncate text-sm text-surface-600 dark:text-surface-400">
                           {{ event.note }}
                         </p>
                       }
                     </div>
                     <p class="micro-label shrink-0 text-right">
-                      {{ event.createdAt | relativeTime
-                      }}@if (event.actorName) {<span> · {{ event.actorName }}</span>}
+                      {{ event.createdAt | relativeTime }}
+                      @if (event.actorName) {
+                        <span> · {{ event.actorName }}</span>
+                      }
                     </p>
                   </li>
                 }
@@ -454,7 +456,7 @@
     <span class="empty-icon">
       <svg lucideSearchX class="size-5" aria-hidden="true"></svg>
     </span>
-    <p class="text-sm text-surface-500 dark:text-surface-400">No se encontró la orden.</p>
+    <p class="text-sm text-surface-600 dark:text-surface-400">No se encontró la orden.</p>
     <a routerLink="/service-orders" class="btn-secondary">Volver a órdenes</a>
   </div>
 } @else {

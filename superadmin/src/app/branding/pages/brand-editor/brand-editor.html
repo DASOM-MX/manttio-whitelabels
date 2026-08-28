@@ -162,8 +162,8 @@
       >
         <p class="text-sm text-surface-600 dark:text-surface-400">
           Además de tu marca, las aplicaciones usan colores fijos para estados y acciones. Estos no
-          cambian con tu marca — si tus colores se parecen a alguno de ellos, los botones y
-          avisos podrían confundirse entre sí:
+          cambian con tu marca — si tus colores se parecen a alguno de ellos, los botones y avisos
+          podrían confundirse entre sí:
         </p>
         <ul class="mt-2.5 flex flex-col gap-2 text-sm text-surface-600 dark:text-surface-400">
           <li class="flex items-center gap-2.5">
@@ -406,9 +406,7 @@
             autocomplete="email"
           />
           @if (contactControls.email.touched && contactControls.email.errors?.['email']) {
-            <p class="field-error" role="alert">
-              Ingresa un correo válido.
-            </p>
+            <p class="field-error" role="alert">Ingresa un correo válido.</p>
           }
         </div>
         <div class="field-group">
@@ -552,7 +550,7 @@
           <li class="flex items-baseline gap-8 {{ size.gap }}">
             <span class="micro-label w-12 shrink-0 text-right font-data">{{ size.label }}</span>
             <p
-              class="{{ size.class }} truncate font-black text-surface-900 dark:text-surface-100"
+              class="{{ size.class }} truncate font-bold text-surface-900 dark:text-surface-100"
               [style.font-family]="headingFontFamily()"
             >
               Climatización industrial sin paros

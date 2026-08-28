@@ -69,7 +69,7 @@
                 [value]="svc.isPriceVisibleInWebsite ? 'Listado con precio' : 'Listado sin precio'"
               />
             } @else {
-              <span class="text-sm text-surface-500 dark:text-surface-400">No listado</span>
+              <span class="text-sm text-surface-600 dark:text-surface-400">No listado</span>
             }
           </p>
         </div>
@@ -96,13 +96,17 @@
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
             <p class="field-label">Clave SAT (producto/servicio)</p>
-            <p class="mt-1 font-data text-sm font-bold tabular-nums text-surface-900 dark:text-surface-100">
+            <p
+              class="mt-1 font-data text-sm font-bold tabular-nums text-surface-900 dark:text-surface-100"
+            >
               {{ svc.satProdServCode || '—' }}
             </p>
           </div>
           <div>
             <p class="field-label">Clave SAT (unidad)</p>
-            <p class="mt-1 font-data text-sm font-bold tabular-nums text-surface-900 dark:text-surface-100">
+            <p
+              class="mt-1 font-data text-sm font-bold tabular-nums text-surface-900 dark:text-surface-100"
+            >
               {{ svc.satUnitCode || '—' }}
             </p>
           </div>
@@ -185,7 +189,7 @@
                   <svg
                     lucideIcon
                     [lucideIcon]="event.type | serviceEventIcon"
-                    class="size-4 text-surface-500 dark:text-surface-400"
+                    class="size-4 text-surface-600 dark:text-surface-400"
                     aria-hidden="true"
                   ></svg>
                   {{ event.type | serviceEventLabel }}

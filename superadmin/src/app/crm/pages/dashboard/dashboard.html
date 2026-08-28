@@ -115,7 +115,7 @@
                 <span class="min-w-0 truncate text-sm text-surface-800 dark:text-surface-200">
                   {{ row.source }}
                   <span
-                    class="block font-data text-xs tabular-nums text-surface-500 dark:text-surface-400"
+                    class="block font-data text-xs tabular-nums text-surface-600 dark:text-surface-400"
                   >
                     {{ row.split }}
                   </span>
@@ -191,7 +191,7 @@
               <tr class="cursor-pointer" (click)="openCustomer(row.id)">
                 <td class="font-bold">
                   {{ row.title }}
-                  <span class="block text-xs font-semibold text-surface-500 dark:text-surface-400">
+                  <span class="block text-xs font-semibold text-surface-600 dark:text-surface-400">
                     {{ row.subtitle || row.sourceLabel }}
                   </span>
                 </td>
@@ -212,7 +212,7 @@
             </ng-template>
             <ng-template #emptymessage>
               <tr>
-                <td colspan="2" class="py-6 text-center text-surface-500 dark:text-surface-400">
+                <td colspan="2" class="py-6 text-center text-surface-600 dark:text-surface-400">
                   Sin clientes registrados todavía.
                 </td>
               </tr>
@@ -274,7 +274,7 @@
                     <svg
                       lucideIcon
                       [lucideIcon]="entry.type | interactionTypeIcon"
-                      class="size-4 shrink-0 text-surface-500 dark:text-surface-400"
+                      class="size-4 shrink-0 text-surface-600 dark:text-surface-400"
                       aria-hidden="true"
                     ></svg>
                     {{ entry.type | interactionTypeLabel }}
@@ -291,7 +291,7 @@
                     {{ entry.createdAt | relativeTime }}
                   </span>
                   @if (entry.userName) {
-                    <span class="block text-xs text-surface-500 dark:text-surface-400">
+                    <span class="block text-xs text-surface-600 dark:text-surface-400">
                       {{ entry.userName }}
                     </span>
                   }
@@ -311,7 +311,7 @@
             </ng-template>
             <ng-template #emptymessage>
               <tr>
-                <td colspan="5" class="py-6 text-center text-surface-500 dark:text-surface-400">
+                <td colspan="5" class="py-6 text-center text-surface-600 dark:text-surface-400">
                   Sin actividad todavía — registra la primera llamada desde un cliente.
                 </td>
               </tr>

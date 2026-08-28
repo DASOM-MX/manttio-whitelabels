@@ -27,24 +27,27 @@
                 <span class="font-data text-sm font-bold text-surface-1000 dark:text-surface-0">{{
                   r.folio
                 }}</span>
-                <span class="text-xs text-surface-500 dark:text-surface-400">{{
+                <span class="text-xs text-surface-600 dark:text-surface-400">{{
                   r.workType || r.reportType
                 }}</span>
               </p>
               @if (r.technicianName) {
-                <p class="text-xs text-surface-500 dark:text-surface-400">{{ r.technicianName }}</p>
+                <p class="text-xs text-surface-600 dark:text-surface-400">{{ r.technicianName }}</p>
               }
             </div>
             <span class="font-data text-sm tabular-nums text-surface-600 dark:text-surface-400">{{
               r.serviceDate
             }}</span>
-            <p-tag [severity]="r.status | reportStatusSeverity" [value]="r.status | reportStatusLabel" />
+            <p-tag
+              [severity]="r.status | reportStatusSeverity"
+              [value]="r.status | reportStatusLabel"
+            />
           </a>
         </li>
       } @empty {
         <li class="flex flex-col items-center gap-2 py-8 text-center">
           <svg lucideFileText class="size-6 text-surface-400" aria-hidden="true"></svg>
-          <p class="text-sm text-surface-500 dark:text-surface-400">
+          <p class="text-sm text-surface-600 dark:text-surface-400">
             Sin servicios registrados para este cliente.
           </p>
         </li>

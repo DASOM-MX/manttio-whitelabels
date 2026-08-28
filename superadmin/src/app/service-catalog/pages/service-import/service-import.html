@@ -13,8 +13,8 @@
         <svg lucideUpload class="size-5" aria-hidden="true"></svg>
       </span>
       <p class="text-sm text-surface-600 dark:text-surface-400">
-        Elige el archivo CSV con tu lista de precios. La primera fila debe tener los
-        encabezados de columna.
+        Elige el archivo CSV con tu lista de precios. La primera fila debe tener los encabezados de
+        columna.
       </p>
       <label class="btn-primary cursor-pointer">
         <svg lucideUpload class="size-4" aria-hidden="true"></svg>
@@ -22,8 +22,8 @@
         <input type="file" class="sr-only" accept=".csv,text/csv" (change)="onFile($event)" />
       </label>
       <p class="field-hint">
-        En Excel: Archivo → Guardar como → CSV UTF-8. No importa cómo se llamen las
-        columnas — en el siguiente paso las asignas.
+        En Excel: Archivo → Guardar como → CSV UTF-8. No importa cómo se llamen las columnas — en el
+        siguiente paso las asignas.
       </p>
     </section>
   } @else {
@@ -33,7 +33,7 @@
         <p class="field-label">Archivo</p>
         <p class="mt-1 text-sm font-bold text-surface-900 dark:text-surface-100">
           {{ fileName() }}
-          <span class="font-semibold text-surface-500 dark:text-surface-400">
+          <span class="font-semibold text-surface-600 dark:text-surface-400">
             · {{ rowCount() }} filas
           </span>
         </p>
@@ -47,14 +47,17 @@
     <section class="card-section mt-4 max-w-4xl">
       <h2 class="section-heading">Columnas</h2>
       <p class="mb-4 text-sm text-surface-600 dark:text-surface-400">
-        Indica de qué columna del archivo sale cada dato del catálogo. Donde tu lista no
-        tenga columna, puedes fijar un mismo valor para todas las filas u omitir el dato.
+        Indica de qué columna del archivo sale cada dato del catálogo. Donde tu lista no tenga
+        columna, puedes fijar un mismo valor para todas las filas u omitir el dato.
       </p>
       <div class="grid gap-3">
         @for (row of mapperRows(); track row.field) {
           <div class="grid items-center gap-2 sm:grid-cols-2">
             <label class="field-label !mb-0" [for]="'map-' + row.field">
-              {{ row.label }}@if (row.requiresColumn) {<span aria-hidden="true"> *</span>}
+              {{ row.label }}
+              @if (row.requiresColumn) {
+                <span aria-hidden="true"> *</span>
+              }
             </label>
             <p-select
               [inputId]="'map-' + row.field"
@@ -127,14 +130,14 @@
 
         @if (errorCount() > 0) {
           <p class="callout callout--warn mt-4" role="alert">
-            No se importa nada mientras haya errores — corrige el archivo y súbelo de
-            nuevo, o ajusta las columnas.
+            No se importa nada mientras haya errores — corrige el archivo y súbelo de nuevo, o
+            ajusta las columnas.
           </p>
         }
         @if (tooManyRows()) {
           <p class="callout callout--warn mt-4" role="alert">
-            El archivo tiene {{ rowCount() }} filas y el máximo por importación es
-            {{ maxRows }}. Divide la lista en archivos más pequeños.
+            El archivo tiene {{ rowCount() }} filas y el máximo por importación es {{ maxRows }}.
+            Divide la lista en archivos más pequeños.
           </p>
         }
         @if (serverErrorRows().length > 0) {

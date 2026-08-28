@@ -1,6 +1,7 @@
 # 23 — Visual language v2: bright console (light nav, accent-carried data)
 
-> **Status:** in progress — **CP-1 done 2026-08-27** (branch
+> **Status:** **complete 2026-08-28** (CP-1 → CP-6; CP-1…CP-5 merged, CP-6 open) —
+> **CP-1 done 2026-08-27** (branch
 > `style/superadmin-visual-language-cp1`, built in the `bright-console` worktree for fast
 > rollback): the language is rewritten onto § Direction across `01-conventions.md`, the
 > committed `superadmin-design` skill mirror, and 17's header; `.card`/`.card-section`
@@ -40,7 +41,16 @@
 > glyph-tile fallback), the initials avatar becomes a `.lead-avatar` class instead of an
 > inline copy, `font-data` cells finally carry `tabular-nums`, and the two idioms with no
 > honest home — directional numerics and the rating cell — were **not** forced onto columns
-> that have no direction and no rating. **CP-6 (forms, dialogs, detail views + sweep) next.**
+> that have no direction and no rating.
+> **CP-6 done 2026-08-28** (branch `feature/superadmin-visual-language-cp6`, same worktree) —
+> **the plan is complete.** The sweep found the app already on the bordered treatment
+> (dialogs, drawers, detail views measured, not eyeballed) and zero arbitrary bracket values,
+> so the checkpoint's real yield was the verification pass: **two AA failures fixed** — muted
+> text at `surface-500` measured 3.57:1 on white and moved to `surface-600` (5.11:1) across 73
+> template instances and 5 stylesheet idioms, and the CP-5 thumbnail fallback's glyph measured
+> 2.00:1 and moved to `surface-500`/`dark:surface-400`. Plus the last decorative
+> `primary-400` (`.icon-chip` → `accent-600`) and a type specimen that was previewing headings
+> two weights heavier than headings actually render.
 > **Owner:** planning session 2026-08-26 · **Last updated:** 2026-08-28
 > **Scope:** `superadmin/` only. **Depends on 22 CP-2** — every surface this plan writes must
 > be authored on `primary`/`accent`/fixed-`surface`, never on names 22 is about to change
@@ -382,14 +392,30 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
 - [x] `npm run build` green, `npm test` 62 green
 
 ### CP-6 — Forms, dialogs, detail views + sweep
-- [ ] Editors, drawers and dialogs onto the bordered-card treatment; the reference's overlay
-      panel — scrim, option card (thumbnail + title + description + tag chip + trailing pill
-      action) — lands as shared idioms
-- [ ] Detail views re-checked: client 360, equipment, report view
-- [ ] Straggler audit: arbitrary bracket values → 0; weight ladder ≤ 700 outside the sanctioned
-      emphasis list (post-CP-2 ladder); leftover decorative `primary-400` → `accent`
-- [ ] Full § Verification pass — contrast in both modes, reduced motion, keyboard
-- [ ] `npm run build` green
+- [x] Editors, drawers and dialogs — **audited, already on the treatment**: the dialog measures
+      `1px solid` in both modes (light `rgb(228,228,231)`, dark `rgb(68,68,75)`) — the exact
+      values the card and the table shell carry — over a scrim that settles at 40 % black light
+      / 60 % dark. Nothing to change. *(Measure overlays after their fade: a probe taken mid-
+      enter read the mask at 1.6 % and would have "found" a missing scrim.)*
+- [x] The reference's overlay panel — **documented, not shipped**: the product has one drawer
+      (a form) and fourteen dialogs (forms and confirms), and **no surface anywhere lists
+      selectable option cards**. The recipe lives in 01 for the first surface that needs it;
+      shipping the CSS now would be `.icon-chip--soft` again
+- [x] Detail views re-checked — client 360, equipment, report view are already `card-section`,
+      and their two inner panels already carry the hairline. No change
+- [x] Straggler audit: **arbitrary bracket values = 0**; weight ladder — 8 uses of 800+, seven
+      sanctioned (three viz numerals, four wordmarks) and one fixed: the brand editor's type
+      specimen previewed the tenant's headings at `font-black` when headings ride 700, so the
+      preview was lying about what the tenant gets; decorative `primary-400` → `accent` on
+      `.icon-chip` (`bg-accent-600` — see § Decisions for why 600), while the calendar's
+      selected-day border went to `primary-600`/`dark:primary-400` because it is a **state**
+      cue, not decoration. Every other `primary-400` left standing is a dark-mode variant or a
+      preset token
+- [x] Full § Verification pass — **two contrast failures found and fixed** (§ CP-6 contrast
+      measurements), reduced motion re-audited, keyboard verified: `aria-current="page"` on the
+      active row, the dialog traps focus on open and after Tab, Escape closes it, and the
+      search stub is `disabled` so it is not a tab trap
+- [x] `npm run build` green, `npm test` 62 green
 
 ## Verification
 
@@ -462,6 +488,42 @@ alone do not explain:
 The topbar search stub is a `disabled` control, which WCAG 1.4.3 exempts from contrast
 ("inactive user interface component") — its `surface-400` placeholder is deliberate, and
 it stops being an exemption the moment plan 24 makes it live.
+
+## CP-6 contrast measurements (2026-08-28)
+
+Every pair below is computed against the **neutral default brand** (hue 220 / 10 %, the
+no-brand fallback ramp) and the fixed surface neutral (hue 240 / 5 %) — a tenant's hue must
+never be what saves a ratio. Non-text needs 3:1, text 4.5:1.
+
+| Pair | Ratio | |
+|---|---|---|
+| `.icon-chip` white glyph on `accent-600` | 5.06:1 | pass (500 would be 3.54:1) |
+| `.lead-thumb-fallback` glyph `surface-400` on `surface-100` | **2.00:1** | **FAIL → fixed** |
+| …fixed to `surface-500` on `surface-100` | 3.26:1 | pass |
+| …dark: `surface-400` on `surface-800` | 4.43:1 | pass |
+| `.micro-label` / muted text `surface-500` on white | **3.57:1** | **FAIL → fixed** |
+| …fixed to `surface-600` on white | 5.11:1 | pass |
+| …on the page tint (`surface-100`) | 4.66:1 | pass |
+| …dark: `surface-300` on `surface-900` | 8.98:1 | pass |
+| …dark on the lightest surface it is set on (`surface-800`) | 6.22:1 | pass |
+| segmented-bar / gauge fill `accent-500` on white (non-text) | 3.54:1 | pass |
+| …dark: `accent-400` on `surface-900` | 6.42:1 | pass |
+| KPI numeral `surface-1000` on white | 17.68:1 | pass |
+| KPI chip glyph `primary-600` on white | 5.06:1 | pass |
+| …dark: `primary-400` on `surface-800` | 4.45:1 | pass |
+| `.lead-avatar` `primary-800` initials on `primary-100` | 8.78:1 | pass |
+
+**Reduced motion.** Every class this app animates is in the `prefers-reduced-motion` block
+(`anim-*`, `.skeleton`, `.gauge-tick--on`, `.chart-tooltip`, `.shell-sidebar`), plus
+`table.scss`'s own guard for the refresh bar and `trend-card`'s `matchMedia` check, which
+switches chart.js animation off. **Known gap:** PrimeNG's own dialog/drawer/popover motion is
+library CSS and is not covered — the blanket `*` override that would reach it also reaches
+Angular's `animate.leave`, which needs animation end events to remove elements.
+
+**Keyboard.** `aria-current="page"` resolves on the active nav row (verified in the browser —
+`routerLinkActive` applies it a tick after navigation, so a probe without a wait reads zero and
+lies); the dialog holds focus on open and after Tab, and Escape closes it; the topbar search is
+`disabled`, so the stub cannot swallow a tab.
 
 ## CP-2 review passes (2026-08-27, owner asked)
 
@@ -648,6 +710,26 @@ of breaking behind it. (The owner later moved the pill clear of the connector en
   target, overdue share) passes `Positive`/`Warning`/`Negative` explicitly. On a tenant
   that has never set `accent`, the arc renders in the neutral fallback ramp — correct
   under branding rule 3, not a regression.
+- **Decided 2026-08-28 (at CP-6) — the sweep's judgment calls.**
+  - **`.icon-chip` rides `accent-600`, not `accent-500`.** The scales are lightness-fixed by
+    construction (0…1000 map to a fixed lightness ladder on every tenant), so 600 is ~45 % L
+    everywhere and a white glyph clears 4.5:1 there — 500 sits at 3.54:1, which passes the
+    non-text floor but leaves nothing for a chip that ever carries a letter or a label. Stat-
+    card chips are **not** this: they are white with a `primary` mark, and `kpi-tile` owns them.
+  - **The calendar's selected-day border is `primary`, not `accent`.** It marks *where you
+    are*, and state is `primary`'s job (§ Direction 3). Only the step moved — 400 → 600 light,
+    400 kept in dark, where the light end is what reads.
+  - **Muted text moved a step darker, app-wide.** `surface-500` on white measures 3.57:1 —
+    below AA for text at any size we set it — and it was the app's standard muted pairing (73
+    template instances plus `.micro-label`, the field hint, the nav section label and the chart
+    tooltip title). `surface-600` measures 5.11:1 on white and 4.66:1 on the page tint, and the
+    dark side (`surface-300`/`surface-400`) already passed and is untouched. This is the one
+    change in CP-6 that touches nearly every page, and it is a legibility fix, not a
+    restyle — the labels are the same size, weight and position.
+  - **PrimeNG's own overlay motion stays uncovered by our reduced-motion block.** Every class
+    *we* animate is in it. A blanket `*, *::before, *::after` override would also reach
+    Angular's `animate.leave`, which depends on animation end events to remove elements, so the
+    fix is worse than the gap. Recorded, not papered over.
 - **Decided 2026-08-28 (at CP-5) — what the list audit did *not* change.**
   - **`p-tag-info` stays on `primary`, not `accent`.** § Direction 3 assigns "informational
     badges" to accent, and the re-check says this is the exception: accent's no-brand

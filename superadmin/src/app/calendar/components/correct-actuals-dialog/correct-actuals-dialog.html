@@ -11,7 +11,7 @@
 >
   @if (target(); as visit) {
     <form [formGroup]="form" (ngSubmit)="confirm()" class="grid gap-4">
-      <p class="text-sm text-surface-500 dark:text-surface-400">
+      <p class="text-sm text-surface-600 dark:text-surface-400">
         Ajusta lo que quedó mal registrado en la visita
         <span class="font-data font-bold">{{ visit.internalCode }}</span
         >. La corrección queda en la bitácora de la orden, con el valor anterior y el nuevo.
@@ -43,9 +43,7 @@
       </div>
 
       @if (incoherent()) {
-        <div class="callout callout--danger">
-          El fin no puede ser anterior al inicio.
-        </div>
+        <div class="callout callout--danger">El fin no puede ser anterior al inicio.</div>
       } @else if (previewDuration(); as duration) {
         <div class="callout callout--info">
           Duración real con estos tiempos: <span class="font-data font-bold">{{ duration }}</span>

@@ -73,7 +73,7 @@
                 @if (visit.scheduledEnd) {
                   – {{ visit.scheduledEnd | date: 'HH:mm' }}
                 }
-                <span class="text-surface-500 dark:text-surface-400">
+                <span class="text-surface-600 dark:text-surface-400">
                   · {{ summary.plannedDuration }}
                 </span>
               </dd>
@@ -82,7 +82,11 @@
               <dt class="micro-label">Real</dt>
               <dd class="mt-0.5 font-data text-sm">
                 @if (visit.actualStart || visit.actualEnd) {
-                  {{ visit.actualStart ? (visit.actualStart | date: 'dd/MM/yyyy HH:mm') : 'sin inicio' }}
+                  {{
+                    visit.actualStart
+                      ? (visit.actualStart | date: 'dd/MM/yyyy HH:mm')
+                      : 'sin inicio'
+                  }}
                   –
                   @if (visit.actualEnd) {
                     {{ visit.actualEnd | date: 'HH:mm' }}
@@ -92,12 +96,12 @@
                     sin fin
                   }
                   @if (summary.actualDuration) {
-                    <span class="text-surface-500 dark:text-surface-400">
+                    <span class="text-surface-600 dark:text-surface-400">
                       · {{ summary.actualDuration }}
                     </span>
                   }
                 } @else {
-                  <span class="text-surface-500 dark:text-surface-400">Sin registro</span>
+                  <span class="text-surface-600 dark:text-surface-400">Sin registro</span>
                 }
               </dd>
             </div>
@@ -113,9 +117,7 @@
               {{ summary.variance }} {{ summary.over ? 'sobre lo estimado' : 'bajo lo estimado' }}
             </p>
           } @else if (summary.onEstimate) {
-            <p class="mt-2 text-sm text-surface-500 dark:text-surface-400">
-              Justo en el estimado.
-            </p>
+            <p class="mt-2 text-sm text-surface-600 dark:text-surface-400">Justo en el estimado.</p>
           }
         </div>
       }
@@ -205,7 +207,9 @@
               filterBy="label"
             />
             @if (!isCreate()) {
-              <p class="field-hint">Cambiarlo reasigna la visita; queda en la bitácora de la orden.</p>
+              <p class="field-hint">
+                Cambiarlo reasigna la visita; queda en la bitácora de la orden.
+              </p>
             }
           </div>
         }
@@ -262,7 +266,12 @@
             >
               Cerrar visita
             </button>
-            <button type="button" class="btn-secondary" (click)="respond()" [disabled]="submitting()">
+            <button
+              type="button"
+              class="btn-secondary"
+              (click)="respond()"
+              [disabled]="submitting()"
+            >
               Marcar realizada
             </button>
           }
@@ -315,7 +324,7 @@
         </div>
       }
 
-      <p class="text-xs text-surface-500 dark:text-surface-400">
+      <p class="text-xs text-surface-600 dark:text-surface-400">
         La historia completa de esta visita vive en la bitácora de su orden.
       </p>
 

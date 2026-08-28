@@ -133,12 +133,12 @@
             <td>
               <span class="font-bold">{{ line.serviceName }}</span>
               @if (!line.serviceId) {
-                <span class="block text-xs text-surface-500 dark:text-surface-400">
+                <span class="block text-xs text-surface-600 dark:text-surface-400">
                   Fuera de catálogo
                 </span>
               }
               @if (line.description) {
-                <span class="block text-xs text-surface-500 dark:text-surface-400">
+                <span class="block text-xs text-surface-600 dark:text-surface-400">
                   {{ line.description }}
                 </span>
               }
@@ -288,7 +288,7 @@
                       <svg
                         lucideIcon
                         [lucideIcon]="event.type | quotationEventIcon"
-                        class="size-4 text-surface-500 dark:text-surface-400"
+                        class="size-4 text-surface-600 dark:text-surface-400"
                         aria-hidden="true"
                       ></svg>
                       {{ event.type | quotationEventLabel }}
@@ -327,7 +327,7 @@
   <app-delete-quotation-dialog #deleteDialog (deleted)="onDeleted()" />
 } @else if (loadFailed()) {
   <div class="mt-10 flex flex-col items-center gap-3" role="alert">
-    <p class="text-sm text-surface-500 dark:text-surface-400">
+    <p class="text-sm text-surface-600 dark:text-surface-400">
       No encontramos esta cotización. Puede que se haya eliminado.
     </p>
     <a routerLink="/quotations" class="btn-neutral">Volver a cotizaciones</a>
