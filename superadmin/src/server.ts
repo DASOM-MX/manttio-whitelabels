@@ -1,66 +1,39 @@
-import {
-  AngularNodeAppEngine,
-  createNodeRequestHandler,
-  isMainModule,
-  writeResponseToNodeResponse,
-} from '@angular/ssr/node';
-import express from 'express';
-import { join } from 'node:path';
+import { AngularAppEngine } from '@angular/ssr';
 
-const browserDistFolder = join(import.meta.dirname, '../browser');
-
-const app = express();
-const angularApp = new AngularNodeAppEngine();
-
-/**
- * Example Express Rest API endpoints can be defined here.
- * Uncomment and define endpoints as necessary.
+/** Cloudflare bindings this Worker reads.
  *
- * Example:
- * ```ts
- * app.get('/api/{*splat}', (req, res) => {
- *   // Handle API request
- * });
- * ```
- */
-
-/**
- * Serve static files from /browser
- */
-app.use(
-  express.static(browserDistFolder, {
-    maxAge: '1y',
-    index: false,
-    redirect: false,
-  }),
-);
-
-/**
- * Handle all other requests by rendering the Angular application.
- */
-app.use((req, res, next) => {
-  angularApp
-    .handle(req)
-    .then((response) => (response ? writeResponseToNodeResponse(response, res) : next()))
-    .catch(next);
-});
-
-/**
- * Start the server if this module is the main entry point, or it is ran via PM2.
- * The server listens on the port defined by the `PORT` environment variable, or defaults to 4000.
- */
-if (isMainModule(import.meta.url) || process.env['pm_id']) {
-  const port = process.env['PORT'] || 4000;
-  app.listen(port, (error) => {
-    if (error) {
-      throw error;
-    }
-
-    console.log(`Node Express server listening on http://localhost:${port}`);
-  });
+ *  `API_URL` is a plain dashboard environment variable, not a secret: it ships
+ *  to every browser regardless, and encrypting it would only cost the ability
+ *  to read it back while debugging a deploy (plan 25 §2). */
+interface Env {
+  API_URL?: string;
 }
 
-/**
- * Request handler used by the Angular CLI (for dev-server and during build) or Firebase Cloud Functions.
- */
-export const reqHandler = createNodeRequestHandler(app);
+const angularApp = new AngularAppEngine();
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+
+    // Answered *before* the engine is consulted. The engine matches unknown
+    // paths against the Angular router, which 302s them to `/` — delegating
+    // first would lose this route entirely (verified at CP-2).
+    if (url.pathname === '/__config') {
+      // `no-store` is what makes a dashboard change take effect on the next
+      // page load instead of the next build. It is the whole point of plan 25.
+      // An unset binding yields `null`, which the client rejects and falls
+      // back from, rather than pinning the app to a broken host.
+      return new Response(JSON.stringify({ apiUrl: env.API_URL ?? null }), {
+        headers: {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'no-store',
+        },
+      });
+    }
+
+    // Static assets never reach here — Cloudflare serves a matching asset first
+    // and only invokes the Worker when none matches, so this handles the CSR
+    // shell for `/` and every deep link.
+    return (await angularApp.handle(request)) ?? new Response('Not found', { status: 404 });
+  },
+};

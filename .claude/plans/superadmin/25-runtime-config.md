@@ -1,6 +1,6 @@
 # 25 — Runtime config (SSR shell on Workers, `apiUrl` from CF vars)
 
-> **Status:** in progress — **CP-1 + CP-2 done 2026-08-28**; CP-3…CP-7 pending
+> **Status:** in progress — **CP-1…CP-3 done 2026-08-28**; CP-4…CP-7 pending
 > **Depends on:** 02 (app shell) · **Touches:** `superadmin/`, `frontend/` (no `backend/` change)
 > **Owner:** — · **Last updated:** 2026-08-28
 
@@ -175,25 +175,37 @@ is enough.
       combination is the correct matched one, and no Angular version was bumped
 
 ### CP-3 — superadmin: Worker entry + wrangler config
-- [ ] `cloudflare/worker.ts` — `fetch(request, env, ctx)`: `/__config` from `env.API_URL`
+- [x] `cloudflare/worker.ts` — `fetch(request, env, ctx)`: `/__config` from `env.API_URL`
       (`Cache-Control: no-store`), everything else delegated to `AngularAppEngine`.
       **`/__config` must be answered before the engine is consulted** — verified at CP-2
       that the engine 302s unknown paths to `/`, so delegating first loses the route
-- [ ] Replace the schematic's Express `src/server.ts` with the Worker entry and drop the
+- [x] Replace the schematic's Express `src/server.ts` with the Worker entry and drop the
       `express` / `@types/express` dependencies it pulled in
-- [ ] `wrangler.jsonc` — `main`, `assets` (directory + `ASSETS` binding),
+- [x] `wrangler.jsonc` — `main`, `assets` (directory + `ASSETS` binding),
       `compatibility_flags: ["nodejs_compat"]`, `define` shim for `import.meta.url`
-- [ ] `not_found_handling` left at default (§1 — setting it would bypass the Worker)
-- [ ] `wrangler dev`: deep link renders, `/__config` returns the var, hashed assets bypass
+- [x] `not_found_handling` left at default (§1 — setting it would bypass the Worker)
+- [x] `wrangler dev`: deep link renders, `/__config` returns the var, hashed assets bypass
       the Worker, boot smoke test passes (§5.2)
-- [ ] Worker bundle size measured against the limit (§5.5)
+- [x] Worker bundle size measured against the limit (§5.5) — **4684 KiB raw / 1013 KiB
+      gzipped**, inside the limit but already ~1 MB for zero rendering benefit, which is
+      the concrete price of the scaffolding decision
+- [x] The `define` shim is **required**, not optional: without it Angular's
+      `createRequire(import.meta.url)` gets `undefined` and workerd refuses to boot with
+      `The argument 'path' ... Received 'undefined'`
+- [x] Unset-binding path verified: `/__config` answers `{"apiUrl": null}`, the client
+      rejects a non-string and falls back, and the app still serves. A deploy that forgets
+      the variable degrades instead of breaking
 
 ### CP-4 — superadmin: cutover
 - [ ] Worker project created; `API_URL` set for production **and** preview scopes
 - [ ] Deployed; full login → dashboard → list-page flow verified on `workers.dev` **before**
       any DNS change
 - [ ] Domain re-pointed
-- [ ] Delete `public/_routes.json` + `public/_redirects`
+- [ ] Delete `public/_redirects` (`_routes.json` was already removed). It is kept until
+      cutover so the live Pages deploy keeps working, but it is **already dead under the
+      Worker**: wrangler parses it and reports "Infinite loop detected in this rule and has
+      been ignored" — it points at `/index.html`, which no longer exists (the shell is
+      `index.csr.html`). Harmless where it is; must not survive the cutover
 - [ ] Pages project retired only after the Worker serves the domain
 
 ### CP-5 — frontend: runtime-config layer + offline persistence
@@ -263,7 +275,7 @@ Legend: ☐ not started · ◐ in progress · ☑ done
 |---|---|---|---|---|
 | CP-1 | superadmin | runtime-config layer + folded initializer + 2 call sites | ☑ | — |
 | CP-2 | superadmin | `@angular/ssr`, all routes `RenderMode.Client` | ☑ | — |
-| CP-3 | superadmin | Worker entry + `wrangler.jsonc` + `/__config` | ☐ | — |
+| CP-3 | superadmin | Worker entry + `wrangler.jsonc` + `/__config` | ☑ | — |
 | CP-4 | superadmin | CF project, vars, deploy, domain cutover, delete `_routes.json`/`_redirects` | ☐ | — |
 | CP-5 | frontend | runtime-config layer + `localStorage` offline persistence | ☐ | — |
 | CP-6 | frontend | `@angular/ssr@20` + `ngsw-config.json` reconciliation | ☐ | — |
