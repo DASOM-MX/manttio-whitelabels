@@ -10,13 +10,13 @@
 >
   <div class="grid gap-4">
     <p class="text-sm text-surface-700 dark:text-surface-300">
-      <span class="font-bold">{{ target()?.name }}</span> dejará de aparecer al crear
-      cotizaciones y órdenes.
+      <span class="font-bold">{{ target()?.name }}</span> dejará de aparecer al crear cotizaciones y
+      órdenes.
     </p>
 
     <div class="callout callout--info">
-      Las cotizaciones y órdenes que ya lo incluyen no cambian: conservan el servicio y el
-      precio con el que se vendieron.
+      Las cotizaciones y órdenes que ya lo incluyen no cambian: conservan el servicio y el precio
+      con el que se vendieron.
     </div>
 
     <form [formGroup]="form" (ngSubmit)="confirm()" class="grid gap-4">

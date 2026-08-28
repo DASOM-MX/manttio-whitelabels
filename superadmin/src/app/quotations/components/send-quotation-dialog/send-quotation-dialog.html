@@ -59,7 +59,7 @@
                     {{ row.name }}
                   </span>
                   @if (row.hasEmail) {
-                    <span class="block text-xs text-surface-500 dark:text-surface-400">
+                    <span class="block text-xs text-surface-600 dark:text-surface-400">
                       {{ row.email }}
                     </span>
                   } @else {
@@ -68,7 +68,7 @@
                     </span>
                   }
                   @if (row.alreadySent) {
-                    <span class="block text-xs text-surface-500 dark:text-surface-400">
+                    <span class="block text-xs text-surface-600 dark:text-surface-400">
                       Ya la recibió · conserva su misma liga
                     </span>
                   }
@@ -95,16 +95,16 @@
                who hasn't answered makes "todos aprobaron" false again. -->
           <div class="callout callout--warn" role="alert">
             Esta cotización ya está <span class="font-bold">aprobada</span>. Al agregar un revisor
-            que aún no responde, vuelve a <span class="font-bold">aprobada en parte</span> hasta
-            que él también apruebe.
+            que aún no responde, vuelve a <span class="font-bold">aprobada en parte</span> hasta que
+            él también apruebe.
           </div>
         }
 
         @if (reviewerCount() === 0 && selected().length > 0) {
           <div class="callout callout--info">
             Sin revisores, nadie puede aprobar ni rechazar: la cotización queda
-            <span class="font-bold">en espera</span> hasta que la canceles o la conviertas en
-            orden. Úsalo solo para envíos informativos.
+            <span class="font-bold">en espera</span> hasta que la canceles o la conviertas en orden.
+            Úsalo solo para envíos informativos.
           </div>
         }
 

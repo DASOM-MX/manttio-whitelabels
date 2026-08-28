@@ -128,255 +128,257 @@
         <p-tab value="contratos">Contratos</p-tab>
         <p-tab value="actividad">Actividad</p-tab>
       </p-tablist>
-    <p-tabpanels>
-      <p-tabpanel value="general">
-        <!-- General data first, then the primary-contact card, then metrics. -->
-        <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-          <div>
-            <dt class="micro-label">Dirección</dt>
-            <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
-              {{ c.address || '—' }}
-            </dd>
-          </div>
-          <div>
-            <dt class="micro-label">Origen</dt>
-            <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
-              {{ c.source | customerSourceLabel }}
-            </dd>
-          </div>
-          <div>
-            <dt class="micro-label">Alta</dt>
-            <dd
-              class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
-            >
-              {{ c.createdAt | slice: 0 : 10 }}
-            </dd>
-          </div>
-        </dl>
-
-        <h3 class="micro-label mt-6">Contacto principal</h3>
-        <div
-          class="mt-2 flex flex-wrap items-start justify-between gap-2 rounded-lg border border-surface-200 bg-surface-0 p-4 dark:border-surface-800 dark:bg-surface-800/40"
-        >
-          <div>
-            <p class="text-sm font-bold text-surface-1000 dark:text-surface-0">
-              {{ c.contactName || '—' }}
-            </p>
-            <p class="text-xs text-surface-500 dark:text-surface-400">Contacto principal</p>
-          </div>
-          <div class="text-right">
-            @if (c.phone) {
-              <p class="font-data text-sm tabular-nums text-surface-700 dark:text-surface-300">
-                {{ c.phone }}
-              </p>
-            }
-            @if (c.email) {
-              <p class="text-sm text-surface-700 dark:text-surface-300">{{ c.email }}</p>
-            }
-          </div>
-        </div>
-
-        @if (c.observation) {
-          <h3 class="micro-label mt-6">Comentarios</h3>
-          <p class="mt-2 whitespace-pre-line text-sm text-surface-700 dark:text-surface-300">
-            {{ c.observation }}
-          </p>
-        }
-
-        <!-- Account metrics (figures compose from 06/09 once they land — "—"
-             until then). -->
-        <h3 class="micro-label mt-6">Resumen</h3>
-        <dl
-          class="mt-2 grid grid-cols-2 gap-3 border-t border-surface-200 pt-3 sm:grid-cols-4 dark:border-surface-800"
-        >
-          <div>
-            <dt class="micro-label">Último servicio</dt>
-            <dd
-              class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
-            >
-              {{ c.lastServiceDate || '—' }}
-            </dd>
-          </div>
-          <div>
-            <dt class="micro-label">Trabajos totales</dt>
-            <dd
-              class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
-            >
-              {{ c.totalJobs ?? '—' }}
-            </dd>
-          </div>
-          <div>
-            <dt class="micro-label">Facturado</dt>
-            <dd
-              class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
-            >
-              {{ c.totalBilled ?? '—' }}
-            </dd>
-          </div>
-          <div>
-            <dt class="micro-label">Seguimiento</dt>
-            <dd
-              class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
-            >
-              {{ (c.nextFollowUpAt | slice: 0 : 10) || '—' }}
-            </dd>
-          </div>
-        </dl>
-      </p-tabpanel>
-
-      <p-tabpanel value="contactos">
-        <!-- The client's full contact list; the primary contact lives in
-             General. Add inline so users don't have to open the edit form. -->
-        <div class="mb-3 flex justify-end">
-          <button type="button" class="btn-secondary" (click)="openAddContact()">
-            <svg lucidePlus class="size-4" aria-hidden="true"></svg>
-            Agregar contacto
-          </button>
-        </div>
-        @if (c.contacts.length) {
-          <ul class="divide-y divide-surface-200 dark:divide-surface-800">
-            @for (contact of c.contacts; track contact.id ?? contact.name) {
-              <li class="flex flex-wrap items-center justify-between gap-2 py-2">
-                <div>
-                  <p
-                    class="flex items-center gap-1.5 text-sm font-bold text-surface-1000 dark:text-surface-0"
-                  >
-                    {{ contact.name }}
-                    @if (contact.isDefault) {
-                      <span
-                        class="inline-flex items-center gap-1 rounded-full bg-primary-100 px-2 py-0.5 text-xs font-bold text-primary-800 dark:bg-primary-1000/40 dark:text-primary-300"
-                      >
-                        <svg lucideStar class="size-3" aria-hidden="true"></svg>
-                        Principal
-                      </span>
-                    }
-                  </p>
-                  @if (contact.role) {
-                    <p class="text-xs text-surface-500 dark:text-surface-400">{{ contact.role }}</p>
-                  }
-                </div>
-                <div class="flex items-center gap-3">
-                  <div class="text-right">
-                    @if (contact.phone) {
-                      <p class="font-data text-sm tabular-nums text-surface-700 dark:text-surface-300">
-                        {{ contact.phone }}
-                      </p>
-                    }
-                    @if (contact.email) {
-                      <p class="text-sm text-surface-700 dark:text-surface-300">
-                        {{ contact.email }}
-                      </p>
-                    }
-                  </div>
-                  @if (!contact.isDefault) {
-                    <button
-                      type="button"
-                      class="row-action"
-                      (click)="makeDefault(contact)"
-                      [attr.aria-label]="'Marcar a ' + contact.name + ' como contacto principal'"
-                      [attr.title]="'Marcar como principal'"
-                    >
-                      <svg lucideStar class="size-4" aria-hidden="true"></svg>
-                    </button>
-                  }
-                </div>
-              </li>
-            }
-          </ul>
-        } @else {
-          <p class="text-sm text-surface-500 dark:text-surface-400">
-            Sin contactos adicionales.
-          </p>
-        }
-      </p-tabpanel>
-
-      <p-tabpanel value="fiscal">
-        @if (c.fiscal; as f) {
+      <p-tabpanels>
+        <p-tabpanel value="general">
+          <!-- General data first, then the primary-contact card, then metrics. -->
           <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
             <div>
-              <dt class="micro-label">RFC</dt>
-              <dd
-                class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
-              >
-                {{ f.rfc }}
-              </dd>
-            </div>
-            <div>
-              <dt class="micro-label">Razón social</dt>
+              <dt class="micro-label">Dirección</dt>
               <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
-                {{ f.legalName }}
+                {{ c.address || '—' }}
               </dd>
             </div>
             <div>
-              <dt class="micro-label">Régimen</dt>
-              <dd
-                class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
-              >
-                {{ f.taxRegimeCode }}
-              </dd>
-            </div>
-            <div>
-              <dt class="micro-label">CP fiscal</dt>
-              <dd
-                class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
-              >
-                {{ f.fiscalZip }}
-              </dd>
-            </div>
-            <div>
-              <dt class="micro-label">Uso CFDI</dt>
-              <dd
-                class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
-              >
-                {{ f.cfdiUseCode }}
-              </dd>
-            </div>
-            <div>
-              <dt class="micro-label">Correo de facturación</dt>
+              <dt class="micro-label">Origen</dt>
               <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
-                {{ f.billingEmail || '—' }}
+                {{ c.source | customerSourceLabel }}
+              </dd>
+            </div>
+            <div>
+              <dt class="micro-label">Alta</dt>
+              <dd
+                class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
+              >
+                {{ c.createdAt | slice: 0 : 10 }}
               </dd>
             </div>
           </dl>
-        } @else {
-          <p class="text-sm text-surface-500 dark:text-surface-400">
-            Sin datos fiscales. Agrégalos desde Editar cuando el cliente requiera factura.
-          </p>
-        }
-      </p-tabpanel>
 
-      <p-tabpanel value="equipos">
-        <!-- The client's installed units (11): compact list + add. Service
+          <h3 class="micro-label mt-6">Contacto principal</h3>
+          <div
+            class="mt-2 flex flex-wrap items-start justify-between gap-2 rounded-lg border border-surface-200 bg-surface-0 p-4 dark:border-surface-800 dark:bg-surface-800/40"
+          >
+            <div>
+              <p class="text-sm font-bold text-surface-1000 dark:text-surface-0">
+                {{ c.contactName || '—' }}
+              </p>
+              <p class="text-xs text-surface-600 dark:text-surface-400">Contacto principal</p>
+            </div>
+            <div class="text-right">
+              @if (c.phone) {
+                <p class="font-data text-sm tabular-nums text-surface-700 dark:text-surface-300">
+                  {{ c.phone }}
+                </p>
+              }
+              @if (c.email) {
+                <p class="text-sm text-surface-700 dark:text-surface-300">{{ c.email }}</p>
+              }
+            </div>
+          </div>
+
+          @if (c.observation) {
+            <h3 class="micro-label mt-6">Comentarios</h3>
+            <p class="mt-2 whitespace-pre-line text-sm text-surface-700 dark:text-surface-300">
+              {{ c.observation }}
+            </p>
+          }
+
+          <!-- Account metrics (figures compose from 06/09 once they land — "—"
+             until then). -->
+          <h3 class="micro-label mt-6">Resumen</h3>
+          <dl
+            class="mt-2 grid grid-cols-2 gap-3 border-t border-surface-200 pt-3 sm:grid-cols-4 dark:border-surface-800"
+          >
+            <div>
+              <dt class="micro-label">Último servicio</dt>
+              <dd
+                class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
+              >
+                {{ c.lastServiceDate || '—' }}
+              </dd>
+            </div>
+            <div>
+              <dt class="micro-label">Trabajos totales</dt>
+              <dd
+                class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
+              >
+                {{ c.totalJobs ?? '—' }}
+              </dd>
+            </div>
+            <div>
+              <dt class="micro-label">Facturado</dt>
+              <dd
+                class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
+              >
+                {{ c.totalBilled ?? '—' }}
+              </dd>
+            </div>
+            <div>
+              <dt class="micro-label">Seguimiento</dt>
+              <dd
+                class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
+              >
+                {{ (c.nextFollowUpAt | slice: 0 : 10) || '—' }}
+              </dd>
+            </div>
+          </dl>
+        </p-tabpanel>
+
+        <p-tabpanel value="contactos">
+          <!-- The client's full contact list; the primary contact lives in
+             General. Add inline so users don't have to open the edit form. -->
+          <div class="mb-3 flex justify-end">
+            <button type="button" class="btn-secondary" (click)="openAddContact()">
+              <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+              Agregar contacto
+            </button>
+          </div>
+          @if (c.contacts.length) {
+            <ul class="divide-y divide-surface-200 dark:divide-surface-800">
+              @for (contact of c.contacts; track contact.id ?? contact.name) {
+                <li class="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <div>
+                    <p
+                      class="flex items-center gap-1.5 text-sm font-bold text-surface-1000 dark:text-surface-0"
+                    >
+                      {{ contact.name }}
+                      @if (contact.isDefault) {
+                        <span
+                          class="inline-flex items-center gap-1 rounded-full bg-primary-100 px-2 py-0.5 text-xs font-bold text-primary-800 dark:bg-primary-1000/40 dark:text-primary-300"
+                        >
+                          <svg lucideStar class="size-3" aria-hidden="true"></svg>
+                          Principal
+                        </span>
+                      }
+                    </p>
+                    @if (contact.role) {
+                      <p class="text-xs text-surface-600 dark:text-surface-400">
+                        {{ contact.role }}
+                      </p>
+                    }
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <div class="text-right">
+                      @if (contact.phone) {
+                        <p
+                          class="font-data text-sm tabular-nums text-surface-700 dark:text-surface-300"
+                        >
+                          {{ contact.phone }}
+                        </p>
+                      }
+                      @if (contact.email) {
+                        <p class="text-sm text-surface-700 dark:text-surface-300">
+                          {{ contact.email }}
+                        </p>
+                      }
+                    </div>
+                    @if (!contact.isDefault) {
+                      <button
+                        type="button"
+                        class="row-action"
+                        (click)="makeDefault(contact)"
+                        [attr.aria-label]="'Marcar a ' + contact.name + ' como contacto principal'"
+                        [attr.title]="'Marcar como principal'"
+                      >
+                        <svg lucideStar class="size-4" aria-hidden="true"></svg>
+                      </button>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="text-sm text-surface-600 dark:text-surface-400">Sin contactos adicionales.</p>
+          }
+        </p-tabpanel>
+
+        <p-tabpanel value="fiscal">
+          @if (c.fiscal; as f) {
+            <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              <div>
+                <dt class="micro-label">RFC</dt>
+                <dd
+                  class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
+                >
+                  {{ f.rfc }}
+                </dd>
+              </div>
+              <div>
+                <dt class="micro-label">Razón social</dt>
+                <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
+                  {{ f.legalName }}
+                </dd>
+              </div>
+              <div>
+                <dt class="micro-label">Régimen</dt>
+                <dd
+                  class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
+                >
+                  {{ f.taxRegimeCode }}
+                </dd>
+              </div>
+              <div>
+                <dt class="micro-label">CP fiscal</dt>
+                <dd
+                  class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
+                >
+                  {{ f.fiscalZip }}
+                </dd>
+              </div>
+              <div>
+                <dt class="micro-label">Uso CFDI</dt>
+                <dd
+                  class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
+                >
+                  {{ f.cfdiUseCode }}
+                </dd>
+              </div>
+              <div>
+                <dt class="micro-label">Correo de facturación</dt>
+                <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
+                  {{ f.billingEmail || '—' }}
+                </dd>
+              </div>
+            </dl>
+          } @else {
+            <p class="text-sm text-surface-600 dark:text-surface-400">
+              Sin datos fiscales. Agrégalos desde Editar cuando el cliente requiera factura.
+            </p>
+          }
+        </p-tabpanel>
+
+        <p-tabpanel value="equipos">
+          <!-- The client's installed units (11): compact list + add. Service
              history per unit lives on the equipment view. -->
-        <app-customer-equipment-card [customerId]="c.id" />
-      </p-tabpanel>
+          <app-customer-equipment-card [customerId]="c.id" />
+        </p-tabpanel>
 
-      <p-tabpanel value="cotizaciones">
-        <!-- Pre-sale (20 §8): the client's proposals and where each one stands.
+        <p-tabpanel value="cotizaciones">
+          <!-- Pre-sale (20 §8): the client's proposals and where each one stands.
              Reads the dedicated `GET /customers/:id/quotations` (20 §9). -->
-        <app-customer-quotations-card [customerId]="c.id" />
-      </p-tabpanel>
+          <app-customer-quotations-card [customerId]="c.id" />
+        </p-tabpanel>
 
-      <p-tabpanel value="servicios">
-        <!-- Service history (06): the client's reports as a flat ledger; each
+        <p-tabpanel value="servicios">
+          <!-- Service history (06): the client's reports as a flat ledger; each
              row links through to the report view. The trail (Actividad) shows
              the same reports as "service performed" entries. -->
-        <app-customer-reports-card [customerId]="c.id" />
-      </p-tabpanel>
+          <app-customer-reports-card [customerId]="c.id" />
+        </p-tabpanel>
 
-      <p-tabpanel value="contratos">
-        <!-- Filed contracts (13 §6): guarantees, pólizas, rental and sale
+        <p-tabpanel value="contratos">
+          <!-- Filed contracts (13 §6): guarantees, pólizas, rental and sale
              documents — order-generated or imported. Role-scoped backend-side,
              so office sees only what its role may view. -->
-        <app-customer-contracts-card [customerId]="c.id" />
-      </p-tabpanel>
+          <app-customer-contracts-card [customerId]="c.id" />
+        </p-tabpanel>
 
-      <p-tabpanel value="actividad">
-        <!-- CRM activity timeline (08 §2): manual touches (calls/visits/…) +
+        <p-tabpanel value="actividad">
+          <!-- CRM activity timeline (08 §2): manual touches (calls/visits/…) +
              system audit entries, newest first. -->
-        <app-customer-timeline #timeline [customerId]="c.id" />
-      </p-tabpanel>
-    </p-tabpanels>
+          <app-customer-timeline #timeline [customerId]="c.id" />
+        </p-tabpanel>
+      </p-tabpanels>
     </p-tabs>
   </section>
 
@@ -387,7 +389,7 @@
 } @else if (loadFailed()) {
   <div class="mt-10 flex flex-col items-center gap-3" role="alert">
     <svg lucideSearchX class="size-6 text-surface-400" aria-hidden="true"></svg>
-    <p class="text-sm text-surface-500 dark:text-surface-400">
+    <p class="text-sm text-surface-600 dark:text-surface-400">
       No se pudo cargar el cliente — puede haber sido eliminado.
     </p>
     <a routerLink="/customers" class="btn-secondary">Volver a clientes</a>

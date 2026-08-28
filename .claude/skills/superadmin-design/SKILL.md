@@ -302,7 +302,8 @@ the target and the code is the backlog.
   (count + Limpiar derive from the URL). Controls projected inside must not use
   `appendTo="body"` — their overlay must live inside the popover DOM.
 - **Micro-labels** for card/section/table headers (`.micro-label`:
-  `text-2xs font-bold text-surface-500 dark:text-surface-400`) — authored
+  `text-2xs font-bold text-surface-600 dark:text-surface-300` — the light step moved off
+  `surface-500` at 23 CP-6, which measured 3.57:1 and failed AA for text) — authored
   title/sentence case, never `uppercase` (QA 2026-07-07: uppercase is reserved for
   warnings or explicit requests).
 - **Tabular numerals** (`font-data`) for every numeric column — digits align vertically.

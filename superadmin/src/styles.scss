@@ -119,7 +119,7 @@
      message — rendered on `touched && errors`, always with role="alert".
      Invalid *borders* come free from Aura (`.ng-invalid.ng-dirty`). */
   .field-hint {
-    @apply text-sm text-surface-500 dark:text-surface-400;
+    @apply text-sm text-surface-600 dark:text-surface-400;
   }
   .field-error {
     @apply text-sm font-bold text-red-700 dark:text-red-400;
@@ -179,13 +179,21 @@
       0 2px 6px -2px rgb(0 0 0 / 0.4);
   }
 
-  /* Icon chip (Purity reference): the teal accent squares, mapped to
-     primary-400 — decorative markers on stat cards / timelines / feature
-     blurbs, never buttons. Glyph rides `currentColor`; keep it aria-hidden
-     with the label alongside. (`--soft` variant removed at plan 17 CP-5 —
-     never adopted.) */
+  /* Icon chip (Purity reference): decorative markers on timelines, document
+     headers and feature blurbs — never buttons. Glyph rides `currentColor`;
+     keep it aria-hidden with the label alongside. (`--soft` variant removed at
+     plan 17 CP-5 — never adopted.)
+
+     Rides `accent` since plan 23 CP-6 (the last of the `primary-400`
+     decorative sweep): decoration is the second brand voice, and 400 stopped
+     being an accent step. **600, not 500**: the scales are lightness-fixed by
+     construction, so 600 is ~45% L on every tenant and the white glyph clears
+     4.5:1 there — a 500 chip would ride the 3:1 non-text floor and a pale
+     tenant accent would put it under. Stat-card chips are NOT this: they are
+     white with a `primary` mark (owner 2026-08-27), and `kpi-tile` owns
+     them. */
   .icon-chip {
-    @apply inline-flex size-10 shrink-0 items-center justify-center rounded-chip bg-primary-400 text-white;
+    @apply inline-flex size-10 shrink-0 items-center justify-center rounded-chip bg-accent-600 text-white;
   }
 
   /* Micro-label for card/section/table headers (01 Design language).
@@ -194,7 +202,7 @@
      ever set on, which is `surface-800` (the year calendar's mini-months), not
      just on the page. `400` measures ~4.2:1 there and fails. */
   .micro-label {
-    @apply text-2xs font-bold text-surface-500 dark:text-surface-300;
+    @apply text-2xs font-bold text-surface-600 dark:text-surface-300;
   }
 
   /* Role pill — the app-wide role visual language (QA 2026-07-08): one blue
@@ -321,7 +329,7 @@
   /* …and what a row without a photo falls back to: the entity's own Lucide
      glyph on the same tile. */
   .lead-thumb-fallback {
-    @apply inline-flex size-9 shrink-0 items-center justify-center rounded-control bg-surface-100 text-surface-400 dark:bg-surface-800 dark:text-surface-500;
+    @apply inline-flex size-9 shrink-0 items-center justify-center rounded-control bg-surface-100 text-surface-500 dark:bg-surface-800 dark:text-surface-400;
   }
 
   /* ---- Viz kit (plan 23 CP-3) -------------------------------------------
@@ -356,7 +364,7 @@
     transition: opacity var(--motion-fast) var(--ease-enter);
   }
   .chart-tooltip-title {
-    @apply mb-1.5 text-2xs font-bold text-surface-500 dark:text-surface-300;
+    @apply mb-1.5 text-2xs font-bold text-surface-600 dark:text-surface-300;
   }
   .chart-tooltip-row {
     @apply flex items-center gap-2 text-xs text-surface-700 dark:text-surface-300;
@@ -597,7 +605,7 @@
     }
   }
   .nav-flyout-title {
-    @apply px-3 pb-1 pt-1.5 text-2xs font-bold text-surface-500 dark:text-surface-400;
+    @apply px-3 pb-1 pt-1.5 text-2xs font-bold text-surface-600 dark:text-surface-400;
   }
   /* Flyout children grid — two columns separated by a subtle hairline
      (owner 2026-07-23): no column gap so the divider runs continuous at
@@ -663,9 +671,14 @@
      previews; a live box that answers nothing would be a lie, and a disabled
      control says so without a tooltip anyone has to hover to read. A FILLED
      pill, borderless (reference 2026-08-27) — on a white bar the fill alone
-     states the field, and a border here would compete with the action rings. */
+     states the field, and a border here would compete with the action rings.
+     `h-8` since 2026-08-28 (owner): the action circles dropped to 32px at CP-2
+     and the pill stayed at 40, so the strip's two halves sat at different
+     heights. Its placeholder keeps the low-contrast `surface-400` — the stub is
+     genuinely `disabled`, which WCAG 1.4.3 exempts, and darkening it would make
+     a dead control look live. */
   .topbar-search {
-    @apply h-10 w-full max-w-md cursor-not-allowed items-center gap-2.5 rounded-full bg-surface-100 pl-4 pr-2 text-sm text-surface-400 dark:bg-surface-800/60 dark:text-surface-500;
+    @apply h-8 w-full max-w-md cursor-not-allowed items-center gap-2.5 rounded-full bg-surface-100 pl-4 pr-2 text-sm text-surface-400 dark:bg-surface-800/60 dark:text-surface-500;
   }
   .topbar-search-hint {
     @apply rounded-chip border border-surface-300 px-1.5 py-0.5 font-data text-2xs dark:border-surface-700;

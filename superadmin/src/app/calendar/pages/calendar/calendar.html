@@ -60,7 +60,7 @@
   <!-- Search mode: a code match can be in any week, so the grid steps aside for
        a plain result list. Picking one goes to its week and opens it. -->
   <div class="mb-3 flex items-center gap-2">
-    <p class="text-sm text-surface-500 dark:text-surface-400">
+    <p class="text-sm text-surface-600 dark:text-surface-400">
       Resultados para <span class="font-data font-bold">{{ codeQuery() }}</span>
     </p>
     <button type="button" class="btn-neutral !px-2" (click)="clearSearch()">
@@ -70,7 +70,13 @@
   </div>
 
   <div class="card p-0">
-    <p-table [value]="results()" [loading]="loading()" rowHover [scrollable]="true" scrollHeight="28rem">
+    <p-table
+      [value]="results()"
+      [loading]="loading()"
+      rowHover
+      [scrollable]="true"
+      scrollHeight="28rem"
+    >
       <ng-template #header>
         <tr>
           <th class="w-40">Código</th>
@@ -98,7 +104,7 @@
       </ng-template>
       <ng-template #emptymessage>
         <tr>
-          <td colspan="6" class="py-10 text-center text-sm text-surface-500 dark:text-surface-400">
+          <td colspan="6" class="py-10 text-center text-sm text-surface-600 dark:text-surface-400">
             Ninguna visita con ese código.
           </td>
         </tr>
@@ -191,7 +197,9 @@
               [class.dark:bg-surface-900]="day.isToday"
             >
               @for (label of hourLabels; track label) {
-                <div class="calendar-hour border-t border-surface-100 dark:border-surface-800"></div>
+                <div
+                  class="calendar-hour border-t border-surface-100 dark:border-surface-800"
+                ></div>
               }
 
               @for (block of day.blocks; track block.visit.id) {
@@ -243,7 +251,7 @@
                     <!-- The time the block is drawn at: the real start once
                          there is one, the booking until then. -->
                     <span class="font-data font-bold">
-                      {{ (block.visit.actualStart || block.visit.scheduledStart) | date: 'HH:mm' }}
+                      {{ block.visit.actualStart || block.visit.scheduledStart | date: 'HH:mm' }}
                     </span>
                   </span>
                   @if (block.laneCount === 1) {
@@ -274,7 +282,8 @@
             <button
               type="button"
               class="flex shrink-0 flex-col items-center rounded-lg border px-3 py-1.5"
-              [class.border-primary-400]="day.key === agendaDay().key"
+              [class.border-primary-600]="day.key === agendaDay().key"
+              [class.dark:border-primary-400]="day.key === agendaDay().key"
               [class.bg-primary-100]="day.key === agendaDay().key"
               [class.dark:bg-primary-1000]="day.key === agendaDay().key"
               [class.border-surface-200]="day.key !== agendaDay().key"
@@ -312,14 +321,14 @@
                     [class]="block.visit.technicianId | technicianDotClass"
                   ></span>
                   <span class="font-data text-sm font-bold">
-                    {{ (block.visit.actualStart || block.visit.scheduledStart) | date: 'HH:mm' }}
+                    {{ block.visit.actualStart || block.visit.scheduledStart | date: 'HH:mm' }}
                   </span>
                   <span class="truncate text-sm">
                     {{ block.visit.title || block.visit.customerName }}
                   </span>
                   <span class="ml-auto shrink-0 font-data text-xs">
                     {{
-                      (block.visit.actualDurationMinutes || block.visit.expectedDurationMinutes)
+                      block.visit.actualDurationMinutes || block.visit.expectedDurationMinutes
                         | visitDuration
                     }}
                   </span>
@@ -332,7 +341,7 @@
           }
         </ul>
       } @else {
-        <p class="py-8 text-center text-sm text-surface-500 dark:text-surface-400">
+        <p class="py-8 text-center text-sm text-surface-600 dark:text-surface-400">
           Nada programado este día.
         </p>
       }
@@ -348,9 +357,7 @@
     <div class="card p-0" [class.opacity-60]="loading()">
       <div class="grid grid-cols-7">
         @for (label of weekdayLabels; track label) {
-          <div
-            class="border-b border-surface-200 px-2 py-1.5 text-center dark:border-surface-700"
-          >
+          <div class="border-b border-surface-200 px-2 py-1.5 text-center dark:border-surface-700">
             <span class="micro-label">{{ label }}</span>
           </div>
         }

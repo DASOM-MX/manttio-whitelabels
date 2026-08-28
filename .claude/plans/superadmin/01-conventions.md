@@ -168,15 +168,20 @@ auto-loads it — **edit both in the same commit.**
   `primary-400`-as-decorative-accent is **retired**; that role is `accent`. Interactive
   solids stay `primary-600`/`700` — white text on 400 never cleared 4.5:1. The straggler
   sweep (`.icon-chip` — the unused `--soft` variant was removed at plan 17 CP-5 —
-  progress bars, highlight numbers) lands at **23 CP-6**; until that PR those surfaces
-  still read `primary-400`, and the doc is the target, not the inventory.
+  progress bars, highlight numbers) **landed at 23 CP-6**: `.icon-chip` rides
+  `bg-accent-600` (600, not 500 — the scales are lightness-fixed by construction, so 600 is
+  ~45 % L on every tenant and a white glyph clears 4.5:1 there, where 500 sits at 3.54:1),
+  the progress bars went with the dashboard's channel rows, and the only `primary-400` left
+  anywhere is a dark-mode variant or a preset token. **State cues did not move to accent** —
+  the calendar's selected-day border went `primary-600` / `dark:primary-400`, because state
+  is `primary`'s job.
   **Stat-card chips left that queue early** (owner 2026-08-27): they are a **white
   `.icon-chip` with `shadow-sm` and a `primary-600` glyph** (dark: `surface-800` chip,
   `primary-400` glyph). On a white chip the glyph *is* the coloured element, and it
   rides `primary` rather than `accent` precisely because every tenant has set
   `primary` — an accent mark would render unthemed grey on the tenants that haven't.
-  `kpi-tile` owns the treatment; the one filled `primary-400` chip still standing is
-  contract-view's, and it stays CP-6's.
+  `kpi-tile` owns the treatment; contract-view's chip — the last filled one — became
+  `accent-600` in the CP-6 sweep.
   **A tenant that has never set `accent` renders it as the neutral fallback ramp**
   (branding rule 3 — no invented hue), so accent-carried surfaces read gray there until
   the brand is filled in; that is correct behavior, not a regression.
@@ -246,6 +251,16 @@ auto-loads it — **edit both in the same commit.**
   - **Rating cell** — one amber star glyph plus the value in `font-data` ("4,8"), not a
     row of five: five stars reads as a control you can set, and this is a reading. Nothing
     in the product is rated yet, so this one has no call site (23 CP-5).
+- **Overlay panel (reference, documented at 23 CP-6 — no call site yet):** the right-side
+  panel over a dimmed canvas. Ours already has the chrome: PrimeNG's dialog/drawer draws the
+  card treatment (hairline + `rounded-card` + shadow, both modes, measured) over a 40 %-black
+  scrim (60 % dark), and widths come from the `dialog-sm/md/lg` + `drawer-form` steps in
+  `overlays.scss` — never an inline width. What has **no** consumer is the reference's
+  *option card*: thumbnail, title, two-line description, a tag chip, and a small solid pill
+  action on the trailing edge, listed one per row inside the panel. When a picker finally
+  needs it, that is the recipe — `.card` + `.lead-thumb` + `.p-tag` + `.btn-primary` at
+  `text-sm`, no new classes required. It was **not** shipped as CSS at CP-6 precisely because
+  nothing uses it (the `.icon-chip--soft` lesson from 17 CP-5).
 - **Default-PrimeNG buttons (owner 2026-07-22: "blob-like buttons do not look
   clean" — supersedes the 2026-07-21 blob/pill buttons):** actions are
   `rounded-control` rectangles at the input radius, stock-Aura `px-4` — the
@@ -366,7 +381,12 @@ auto-loads it — **edit both in the same commit.**
 
 Binding for every component; the skill carries the same list with implementation notes.
 
-- **color-contrast** — ≥4.5:1 normal text, ≥3:1 large text.
+- **color-contrast** — ≥4.5:1 normal text, ≥3:1 large text and non-text (borders, rules,
+  gauge arcs, icon glyphs). Measure against the **neutral default brand**, never a tenant's
+  hue. **Muted text is `surface-600` on light, `surface-400` on dark** (23 CP-6): the old
+  `surface-500` measured 3.57:1 on white and failed — it is fine as a *non-text* step (icons,
+  rules) and nowhere else. Placement matters as much as the pair: a glyph on a
+  `surface-100` tile needs `surface-500`, not `surface-400` (2.00:1).
 - **focus-states** — visible `:focus-visible` ring (2–4px, primary) on every
   interactive element; never remove an outline without replacing it.
 - **alt-text** — descriptive `alt` on meaningful images; `alt=""` on decorative.

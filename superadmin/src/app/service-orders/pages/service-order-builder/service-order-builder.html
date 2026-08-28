@@ -172,7 +172,9 @@
                 </button>
               </div>
             </div>
-            <p class="font-data text-right text-sm text-surface-500 dark:text-surface-400 sm:col-span-2 lg:col-span-5">
+            <p
+              class="font-data text-right text-sm text-surface-600 dark:text-surface-400 sm:col-span-2 lg:col-span-5"
+            >
               Importe: {{ lineAmounts()[i] | money }}
             </p>
           </div>
@@ -186,13 +188,15 @@
       }
 
       <!-- Running total -->
-      <dl class="mt-5 flex flex-col items-end gap-1 border-t border-surface-200 pt-4 text-sm dark:border-surface-700">
+      <dl
+        class="mt-5 flex flex-col items-end gap-1 border-t border-surface-200 pt-4 text-sm dark:border-surface-700"
+      >
         <div class="flex gap-6">
-          <dt class="text-surface-500 dark:text-surface-400">Subtotal</dt>
+          <dt class="text-surface-600 dark:text-surface-400">Subtotal</dt>
           <dd class="font-data w-28 text-right">{{ totals().subtotal | money }}</dd>
         </div>
         <div class="flex gap-6">
-          <dt class="text-surface-500 dark:text-surface-400">IVA</dt>
+          <dt class="text-surface-600 dark:text-surface-400">IVA</dt>
           <dd class="font-data w-28 text-right">{{ totals().tax | money }}</dd>
         </div>
         <div class="flex gap-6 font-bold">
@@ -267,11 +271,11 @@
 
     <dl class="mt-5 flex flex-col items-end gap-1 text-sm">
       <div class="flex gap-6">
-        <dt class="text-surface-500 dark:text-surface-400">Subtotal</dt>
+        <dt class="text-surface-600 dark:text-surface-400">Subtotal</dt>
         <dd class="font-data w-28 text-right">{{ totals().subtotal | money }}</dd>
       </div>
       <div class="flex gap-6">
-        <dt class="text-surface-500 dark:text-surface-400">IVA</dt>
+        <dt class="text-surface-600 dark:text-surface-400">IVA</dt>
         <dd class="font-data w-28 text-right">{{ totals().tax | money }}</dd>
       </div>
       <div class="flex gap-6 font-bold">

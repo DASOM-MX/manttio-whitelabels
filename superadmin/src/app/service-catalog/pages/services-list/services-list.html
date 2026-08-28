@@ -89,7 +89,7 @@
             <span class="min-w-0">
               <span class="font-bold">{{ svc.name }}</span>
               @if (svc.description) {
-                <span class="block text-xs text-surface-500 dark:text-surface-400">
+                <span class="block text-xs text-surface-600 dark:text-surface-400">
                   {{ svc.description }}
                 </span>
               }
@@ -112,7 +112,7 @@
               [value]="svc.isPriceVisibleInWebsite ? 'Listado con precio' : 'Listado sin precio'"
             />
           } @else {
-            <span class="text-surface-500 dark:text-surface-400">No listado</span>
+            <span class="text-surface-600 dark:text-surface-400">No listado</span>
           }
         </td>
         <td class="font-data tabular-nums">{{ svc.updatedAt | relativeTime }}</td>
