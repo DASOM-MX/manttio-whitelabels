@@ -269,9 +269,10 @@ the target and the code is the backlog.
   neutral. Good/bad numbers never take a brand colour — fixed semantic set only. Chart
   canvases live in a fixed-height wrapper (`h-64`), host + inner div `h-full` (PrimeNG 21
   ignores `styleClass` on `p-chart`); colors re-read the brand CSS vars on theme change
-  (canon: `crm/pages/dashboard`). The shared `kpi-tile` / `segmented-bar` / `gauge-card`
-  / `trend-card` **shipped 2026-08-27 at 23 CP-3** under `shared/components/` and are
-  mandatory from then on.
+  (canon: `crm/pages/dashboard` — the kit's first consumer at 23 CP-4; no page builds a
+  chart by hand any more). **A rate reads as a `gauge-card`, not a numeral tile.** The
+  shared `kpi-tile` / `segmented-bar` / `gauge-card` / `trend-card` **shipped 2026-08-27
+  at 23 CP-3** under `shared/components/` and are mandatory from then on.
   - They take a **`VizTone`, never a class** (`model/enums/viz/viz-tone.enum.ts`):
     `Brand`/`Accent` = the two tenant voices, `Positive`/`Negative`/`Warning` = the
     fixed semantic set, `Neutral` = surface. Class maps sit in `model/constants/viz/`,

@@ -27,8 +27,14 @@
 > `--brand-*` by `ChartPaletteService`, and the reference's floating tooltip rendered as
 > a real card by `ChartTooltipService` instead of chart.js's canvas box. The three table
 > idioms are documented in 01 + the skill mirror. § Open ④ (the gauge's default fill) is
-> answered. **They are consumed by CP-4, which is next** — anything CP-4 does not use
-> gets cut there rather than shipped unused (the `.icon-chip--soft` lesson).
+> answered.
+> **CP-4 done 2026-08-27** (branch `feature/superadmin-visual-language-cp4`, same worktree):
+> the CRM cockpit is the kit's first consumer and every hand-rolled copy is deleted — three
+> `kpi-tile`s, the mix as a `segmented-bar` over its detail list, the six-month trend as a
+> `trend-card` (which took ~120 lines of chart plumbing and this page's `MutationObserver`
+> with it), and conversión out of the strip and into a `gauge-card`, because it is the only
+> *rate* on the page. All four components are consumed, so nothing is cut. **CP-5 (lists +
+> tables) next.**
 > **Owner:** planning session 2026-08-26 · **Last updated:** 2026-08-27
 > **Scope:** `superadmin/` only. **Depends on 22 CP-2** — every surface this plan writes must
 > be authored on `primary`/`accent`/fixed-`surface`, never on names 22 is about to change
@@ -331,13 +337,17 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
       yet have still been rendered once)
 
 ### CP-4 — Dashboards
-- [ ] CRM cockpit KPI strip → `kpi-tile`; its hand-rolled copies deleted
-- [ ] Channel-mix bars → `segmented-bar`; the six-month trend → `trend-card`
-- [ ] A `gauge-card` lands on a real rate metric (conversión / follow-up compliance) — or the
-      component is cut per CP-3's last item
-- [ ] Any other dashboard surface that exists when this CP starts
-- [ ] Chart colors verified across a theme toggle (var re-read), both modes
-- [ ] `npm run build` green
+- [x] CRM cockpit KPI strip → `kpi-tile`; its hand-rolled copies deleted
+- [x] Channel-mix bars → `segmented-bar`; the six-month trend → `trend-card`
+- [x] A `gauge-card` lands on a real rate metric — **conversión**, which left the KPI strip to
+      get it (§ Decisions); nothing was cut, all four components are consumed
+- [x] Any other dashboard surface that exists when this CP starts — there is none: `/dashboard`
+      ("Panel") is a card-slot page whose only card is the today-visits **table**, and no other
+      page draws a chart, a tile or a mix
+- [x] Chart colors verified across a theme toggle (var re-read), both modes — captured light,
+      dark, and **toggled in place**: the hero line lifts `primary-600`→`400`, the second
+      series `accent-500`→`400` and the grid deepens, without a reload
+- [x] `npm run build` green (no NG8113 stragglers), `npm test` 62 green
 
 ### CP-5 — Lists + tables
 - [ ] The five list pages: header treatment, thumbnail/avatar lead cells, directional colored
@@ -616,6 +626,28 @@ of breaking behind it. (The owner later moved the pill clear of the connector en
   target, overdue share) passes `Positive`/`Warning`/`Negative` explicitly. On a tenant
   that has never set `accent`, the arc renders in the neutral fallback ramp — correct
   under branding rule 3, not a regression.
+- **Decided 2026-08-27 (at CP-4) — how the cockpit consumes the kit.**
+  - **A rate reads as an arc, not a numeral.** Conversión left the KPI strip for a
+    `gauge-card`: it was the one *rate* among four counts, and a percentage in a tile
+    wastes the one component built to show a percentage. The strip is three tiles now
+    (leads · nuevos activos · seguimientos vencidos) and nothing was lost — the gauge
+    carries the pp delta against the previous period in its caption. Its tone stays the
+    `accent` default: higher is better, but there is no target to be good or bad
+    against, and inventing a threshold here would be inventing a business rule.
+  - **The segmented bar names two channels and pools the tail.** Two named plus "Otros"
+    is the reference's three-segment bar and the palette's limit (`primary` → `accent` →
+    neutral — a fourth member would need an invented role), and at a quarter-width card
+    the labels stop fitting anyway. **The bar did not replace the channel list**, it
+    summarizes it: the owner asked for that list an hour earlier, so the card now reads
+    shape-then-detail, with the list scrolling at `max-h-40` so the card stays level with
+    the chart. Where the pooled segment is the largest — it is, at 18 against 17 and 13 —
+    that is the truth about the mix, not a rendering artifact.
+  - **The channel rows lost their own progress bars.** They were the last decorative
+    `primary-400` on this page (a CP-6 straggler, cleared early): under a segmented bar
+    they said the same thing twice, in a card too narrow to say it twice.
+  - **`trend-card` took the plumbing.** The page no longer knows what a chart is: no
+    `hslVar`, no fallback ramp, no `areaFill`, no axis literals, no options builder — and
+    no `MutationObserver` on `<html>`, since the card reads `AppState.darkMode` directly.
 - **Decided 2026-08-27 (at CP-3) — the rest of the kit's contract.**
   - **One tone vocabulary, not a color per call site.** Every component takes a
     `VizTone` (`Brand`/`Accent` = the two tenant voices, `Positive`/`Negative`/`Warning`

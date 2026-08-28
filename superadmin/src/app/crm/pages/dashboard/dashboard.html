@@ -1,14 +1,15 @@
 <!-- The CRM cockpit (executive redesign 2026-07-22; row order per the owner's
-     layout turn the same day): KPI strip → trend + newest clients → channel
-     mix + activity (status + author details). Follow-ups survive as the
-     fourth KPI only — the agenda table was dropped on the owner's ask.
-     Each region loads/fails independently; feeds use the CP-3 p-table idiom
-     (#loadingbody skeletons, whole-row click). -->
+     layout turn the same day; onto the shared viz kit at 23 CP-4): KPI strip →
+     trend + channel mix + conversión gauge → newest clients + activity.
+     Follow-ups survive as a KPI only — the agenda table was dropped on the
+     owner's ask. Each region loads/fails independently; the feeds use the CP-3
+     p-table idiom (#loadingbody skeletons, whole-row click), and every card
+     that draws data is now a viz-kit component rather than a hand-rolled copy. -->
 <app-page-header title="Dashboard" [description]="headerDescription()" />
 
 <div class="flex flex-col gap-4">
   <!-- KPI strip -->
-  <div class="anim-stagger grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <div class="anim-stagger grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
     @if (statsError()) {
       <section class="card-section col-span-full">
         <p class="text-sm text-surface-600 dark:text-surface-400">
@@ -19,80 +20,32 @@
         </button>
       </section>
     } @else if (statsPending()) {
-      @for (row of skeletonRows.slice(0, 3); track row) {
-        <section class="card-section !p-5" aria-hidden="true">
-          <span class="skeleton !max-w-24"></span>
-          <span class="skeleton mt-4 !h-8 !max-w-16"></span>
-          <span class="skeleton mt-3 !h-2.5 !max-w-28"></span>
-        </section>
+      @for (row of skeletonRows.slice(0, 2); track row) {
+        <app-kpi-tile label="" value="" [loading]="true" />
       }
     } @else {
       @for (kpi of intakeKpis(); track kpi.id) {
-        <section
-          class="card-section flex items-start justify-between gap-4 !p-5"
-          [attr.aria-labelledby]="'panel-kpi-' + kpi.id"
-        >
-          <div class="min-w-0">
-            <h2 class="micro-label" [id]="'panel-kpi-' + kpi.id">{{ kpi.label }}</h2>
-            <p class="mt-2 flex flex-wrap items-baseline gap-2">
-              <span
-                class="font-data text-3xl font-extrabold leading-none tabular-nums {{
-                  kpi.valueClass
-                }}"
-              >
-                {{ kpi.value }}
-              </span>
-              @if (kpi.delta; as delta) {
-                <span class="font-data text-xs font-bold tabular-nums {{ delta.textClass }}">
-                  {{ delta.text }}
-                </span>
-              }
-            </p>
-            @if (kpi.sub) {
-              <p class="mt-2 text-xs text-surface-500 dark:text-surface-400">{{ kpi.sub }}</p>
-            }
-          </div>
-          <span
-            class="icon-chip bg-white text-primary-600 shadow-md dark:bg-surface-800 dark:text-primary-400"
-          >
-            <svg lucideIcon [lucideIcon]="kpi.icon" class="size-5" aria-hidden="true"></svg>
-          </span>
-        </section>
+        <app-kpi-tile
+          [label]="kpi.label"
+          [value]="kpi.value"
+          [icon]="kpi.icon"
+          [delta]="kpi.delta"
+          [caption]="kpi.caption"
+          [tone]="kpi.tone"
+        />
       }
     }
 
     @if (followUpsPending()) {
-      <section class="card-section !p-5" aria-hidden="true">
-        <span class="skeleton !max-w-24"></span>
-        <span class="skeleton mt-4 !h-8 !max-w-16"></span>
-        <span class="skeleton mt-3 !h-2.5 !max-w-28"></span>
-      </section>
+      <app-kpi-tile label="" value="" [loading]="true" />
     } @else if (followUpKpi(); as kpi) {
-      <section
-        class="card-section flex items-start justify-between gap-4 !p-5"
-        aria-labelledby="panel-kpi-follow-ups"
-      >
-        <div class="min-w-0">
-          <h2 class="micro-label" id="panel-kpi-follow-ups">{{ kpi.label }}</h2>
-          <p class="mt-2">
-            <span
-              class="font-data text-3xl font-extrabold leading-none tabular-nums {{
-                kpi.valueClass
-              }}"
-            >
-              {{ kpi.value }}
-            </span>
-          </p>
-          @if (kpi.sub) {
-            <p class="mt-2 text-xs text-surface-500 dark:text-surface-400">{{ kpi.sub }}</p>
-          }
-        </div>
-        <span
-          class="icon-chip bg-white text-primary-600 shadow-md border-surface-200 dark:border-surface-800 dark:bg-surface-800 dark:text-primary-400"
-        >
-          <svg lucideIcon [lucideIcon]="kpi.icon" class="size-5" aria-hidden="true"></svg>
-        </span>
-      </section>
+      <app-kpi-tile
+        [label]="kpi.label"
+        [value]="kpi.value"
+        [icon]="kpi.icon"
+        [caption]="kpi.caption"
+        [tone]="kpi.tone"
+      />
     } @else {
       <!-- Follow-ups endpoint failed — this card owns the retry now that the
            agenda table is gone. -->
@@ -106,68 +59,35 @@
     }
   </div>
 
-  <!-- The two captación charts share a row (2026-07-24 layout turn): the
-       trend hero on the col-span-2 rail, channel-mix bars alongside. -->
-  <div class="anim-stagger grid gap-4 lg:grid-cols-3">
-    <section class="card-section lg:col-span-2" aria-labelledby="panel-trend-title">
-      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <h2 id="panel-trend-title" class="section-heading !pb-0">Tendencia de captación</h2>
-        <div class="flex items-center gap-4">
-          @for (serie of trendSeries; track serie.label) {
-            <span
-              class="inline-flex items-center gap-1.5 text-xs text-surface-600 dark:text-surface-400"
-            >
-              <span class="size-2 rounded-full {{ serie.dotClass }}" aria-hidden="true"></span>
-              {{ serie.label }}
-            </span>
-          }
-        </div>
-      </div>
-      @if (trendPending()) {
-        <div
-          class="mt-4 h-64 rounded-card bg-surface-100 motion-safe:animate-pulse dark:bg-surface-800/60"
-          aria-hidden="true"
-        ></div>
-      } @else if (trendError()) {
-        <p class="mt-4 text-sm text-surface-600 dark:text-surface-400">
+  <!-- The captación row (2026-07-24 layout turn, widened at 23 CP-4): the
+       trend hero on a two-column rail, then the channel mix and the conversión
+       gauge. Below `xl` the two narrow cards drop under the full-width trend. -->
+  <div class="anim-stagger grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+    @if (trendError()) {
+      <section class="card-section lg:col-span-2" aria-labelledby="panel-trend-title">
+        <h2 id="panel-trend-title" class="section-heading">Tendencia de captación</h2>
+        <p class="text-sm text-surface-600 dark:text-surface-400">
           No se pudo cargar la tendencia.
         </p>
         <button type="button" class="btn-secondary mt-3" (click)="loadTrend(true)">
           Reintentar
         </button>
-      } @else if (trendChart(); as data) {
-        <div class="mt-4 h-64">
-          <p-chart
-            type="line"
-            [data]="data"
-            [options]="chartOptions()"
-            class="block h-full [&>div]:h-full"
-          />
-        </div>
-      } @else {
-        <div class="flex h-64 flex-col items-center justify-center gap-3 text-center">
-          <span class="empty-icon">
-            <svg lucideTrendingUp class="size-5" aria-hidden="true"></svg>
-          </span>
-          <p class="max-w-sm text-sm text-surface-600 dark:text-surface-400">
-            Sin captación en los últimos seis meses.
-          </p>
-        </div>
-      }
-    </section>
+      </section>
+    } @else {
+      <app-trend-card
+        class="lg:col-span-2"
+        title="Tendencia de captación"
+        [labels]="trendLabels()"
+        [series]="trendSeries()"
+        [loading]="trendPending()"
+        [emptyIcon]="emptyTrendIcon"
+        emptyMessage="Sin captación en los últimos seis meses."
+      />
+    }
 
     <section class="card-section" aria-labelledby="panel-channels-title">
       <h2 id="panel-channels-title" class="section-heading">Canales de captación</h2>
-      @if (statsPending()) {
-        <div class="flex flex-col gap-5" aria-hidden="true">
-          @for (row of skeletonRows.slice(0, 4); track row) {
-            <div>
-              <span class="skeleton !max-w-28"></span>
-              <span class="skeleton mt-2 !h-1.5 !max-w-none"></span>
-            </div>
-          }
-        </div>
-      } @else if (statsError()) {
+      @if (statsError()) {
         <p class="text-sm text-surface-600 dark:text-surface-400">
           No se pudieron cargar los canales.
         </p>
@@ -183,37 +103,50 @@
           <a routerLink="/dashboard" class="btn-secondary">Ir a los enlaces</a>
         </div>
       } @else {
-        <!-- The list scrolls at the trend chart's own height (owner
-             2026-08-27): a tenant with a dozen channels used to push this card
-             past the chart beside it, stretching the row and leaving dead
-             space under the canvas. `max-h-64` = the `h-64` chart, so the two
-             cards stay level and the whole row fits a screen; `pr-1` keeps the
-             bars clear of the scrollbar. -->
-        <ul class="flex max-h-64 flex-col gap-4 overflow-y-auto overscroll-contain pr-1">
-          @for (bar of channelBars(); track bar.source) {
-            <li>
-              <div class="flex items-baseline justify-between gap-2">
-                <span class="text-sm text-surface-800 dark:text-surface-200">
-                  {{ bar.source }}
+        <!-- The mix's shape, then the detail. The bar names the top channels
+             and pools the tail; the list keeps every channel with its split,
+             scrolling at the height that keeps this card level with the chart
+             beside it (owner 2026-08-27). -->
+        <app-segmented-bar [segments]="channelSegments()" [loading]="statsPending()" />
+        @if (!statsPending()) {
+          <ul class="mt-5 flex max-h-40 flex-col gap-3 overflow-y-auto overscroll-contain pr-1">
+            @for (row of channelRows(); track row.source) {
+              <li class="flex items-baseline justify-between gap-3">
+                <span class="min-w-0 truncate text-sm text-surface-800 dark:text-surface-200">
+                  {{ row.source }}
+                  <span
+                    class="block font-data text-xs tabular-nums text-surface-500 dark:text-surface-400"
+                  >
+                    {{ row.split }}
+                  </span>
                 </span>
                 <span
                   class="font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
                 >
-                  {{ bar.total }}
+                  {{ row.total }}
                 </span>
-              </div>
-              <!-- Progress bars ride the decorative accent step (01). -->
-              <div class="mt-1.5 h-1.5 rounded-full bg-surface-100 dark:bg-surface-800">
-                <div class="h-1.5 rounded-full bg-primary-400" [style.width.%]="bar.widthPct"></div>
-              </div>
-              <p class="mt-1 font-data text-xs tabular-nums text-surface-500 dark:text-surface-400">
-                {{ bar.split }}
-              </p>
-            </li>
-          }
-        </ul>
+              </li>
+            }
+          </ul>
+        }
       }
     </section>
+
+    @if (statsError()) {
+      <section class="card-section" aria-labelledby="panel-conversion-title">
+        <h2 id="panel-conversion-title" class="section-heading">Conversión</h2>
+        <p class="text-sm text-surface-600 dark:text-surface-400">No disponible.</p>
+      </section>
+    } @else {
+      <app-gauge-card
+        title="Conversión"
+        [value]="conversionValue()"
+        [caption]="conversionCaption()"
+        [loading]="statsPending()"
+        linkLabel="Ver clientes"
+        linkRoute="/customers"
+      />
+    }
   </div>
 
   <!-- Newest clients + activity (2026-07-24 layout turn): recientes on the
