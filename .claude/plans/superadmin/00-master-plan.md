@@ -42,6 +42,8 @@ then its own file, and touches no other module's code.
 | 23 | `23-visual-language-v2.md` | Visual language v2 "bright console": light sidebar, hairline-bordered cards, accent-carried data + a shared viz kit (KPI tile, segmented bar, gauge, trend card) | **22 CP-2**; evolves 17 |
 | 24 | `24-global-search.md` | Global search: one gated `GET /search` across every module the caller can read, behind the topbar's ⌘K palette — folio-first ranking, tombstones excluded | 23 CP-2 (the stub it replaces), 14, 21 |
 | 25 | `25-runtime-config.md` | Runtime config: `apiUrl` moves from a compiled literal to a `GET /__config` read at boot; both Angular apps move to SSR-capable Workers with every route `RenderMode.Client` | 02; touches `superadmin/` + `frontend/` |
+| 26 | `26-portal-access.md` | Portal access administration: invite a contact, edit grants, suspend/revoke, staff-issued reset. **Gates the whole portal — ships before 27** | 07; client-portal 01/02 |
+| 27 | `27-service-requests.md` | Staff triage of customer-filed service requests (queue, question/reject, approve → draft quotation). Data model + lifecycle owned by `../client-portal/` | 07, 11, 20; client-portal 01/06 |
 
 Build order **is numeric order** (renumbered 2026-07-05: branding and CMS are separate,
 independent modules — 03/04 — and access-control moved to 14 as pure reference).
@@ -76,6 +78,12 @@ entry point; an accepted quote gives birth to an order), even though the file nu
 18/19/20. **Reporting (06) stays independently sellable** — nothing in the suite is a hard
 dependency of 06 (06 standalone-suite rule), so a reporting-only tenant runs none of
 18/19/12.
+
+**Rows 26 + 27 belong to a separate app.** The **Portal de clientes** (`client-portal/`, the
+repo's fourth deployable app) has its own plan suite at `../client-portal/` — it is not a
+superadmin module. Only its two *staff-facing* surfaces are planned here: 26 (portal access
+administration) and 27 (service-request triage). Data model, auth surface and portal UI live in
+that suite; treat its files as the source of truth for shapes, and record shape asks there.
 
 ---
 
@@ -141,6 +149,8 @@ Rules for agents:
 | 23 visual-language-v2 | **done** — **complete 2026-08-28 (CP-1 → CP-6)** (CP-1 language + tokens: 01/skill/17 rewritten onto "bright console", `.card` + table shell get a hairline border, PrimeNG dark panel borders aligned, chrome neutral cooled to hue 240/5%, edge-to-edge shell kept. CP-2 light shell: `surface-0` sidebar + hairline border in aside and drawer, `rounded-r-shell` and its radius token deleted, tinted active row with `aria-current` wired for the first time, tenant identity card in the footer, topbar search shipped as a disabled stub → **plan 24**. **CP-3 done 2026-08-27** — the viz kit: `kpi-tile` / `segmented-bar` / `gauge-card` / `trend-card` over one `VizTone` vocabulary, pure view-model math under spec, canvas colours read live from `--brand-*`, the tooltip rendered as a DOM card, table idioms documented). **CP-4 done 2026-08-27** — the CRM cockpit is the kit's first consumer: three `kpi-tile`s, the channel mix as a `segmented-bar` over its detail list, the trend as a `trend-card` (which took the chart plumbing and the page's MutationObserver with it), conversión out of the strip and into a `gauge-card`; every hand-rolled copy deleted, nothing cut). **CP-5 done 2026-08-28** — the nine list pages audited: `.lead-avatar` / `.lead-thumb` / `.lead-thumb-fallback` lead cells on users, services and equipment, `tabular-nums` on every `font-data` cell, `p-tag-info` kept on primary, and the two idioms with no honest home left unforced). **CP-6 done 2026-08-28 — plan complete**: dialogs, drawers and detail views measured and already on the bordered treatment; zero arbitrary bracket values; the last decorative `primary-400` swept to `accent-600`; and the verification pass fixed two AA failures — muted text `surface-500`→`600` app-wide (3.57:1 → 5.11:1) and the thumbnail fallback glyph (2.00:1 → 3.26:1)) | — |
 | 24 global-search | **planned 2026-08-27** — opened out of 23 § Open ①; three CPs (backend `GET /search`, the ⌘K palette, recents + reach). Nothing started | CP-1 |
 | 25 runtime-config | **planned 2026-08-28** — seven CPs (superadmin CP-1…CP-4, frontend CP-5…CP-7). Unblocks per-tenant API hosts without a per-tenant build. Nothing started | CP-1 |
+| 26 portal-access | not-started (planned doc, 2026-08-28) | — |
+| 27 service-requests | not-started (planned doc, 2026-08-28) | — |
 
 *(Owning agents update their row when they update their file's status header.)*
 
