@@ -12,6 +12,12 @@
   "define": {
     "import.meta.url": "\"file:///worker.mjs\""
   },
+  // Per-tenant values (`API_URL`) are set in each whitelabel Worker's own
+  // dashboard, so this shared config never carries a tenant's value. Without
+  // this flag `wrangler deploy` treats the file as the authority on bindings
+  // and silently drops any dashboard-set variable it does not declare.
+  "keep_vars": true,
+
   "assets": {
     "directory": "./dist/superadmin/browser",
     "binding": "ASSETS"
