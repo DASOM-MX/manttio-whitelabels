@@ -302,6 +302,56 @@
     @apply inline-flex size-12 items-center justify-center rounded-full bg-surface-100 text-surface-500 dark:bg-surface-800 dark:text-surface-400;
   }
 
+  /* ---- Viz kit (plan 23 CP-3) -------------------------------------------
+     Shape and chrome for the shared data components. Every COLOR here comes
+     from a tone map in `model/constants/viz/` — nothing in this block picks a
+     status hue, so a call site can't either. */
+
+  /* Delta pill (01 § Stat cards): the tinted chip beside a KPI numeral —
+     arrow glyph + signed text. Tint arrives as a class from
+     DELTA_PILL_CLASSES; this is the shape only. */
+  .delta-pill {
+    @apply inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 font-data text-xs font-bold leading-none tabular-nums;
+  }
+
+  /* Gauge arc ticks: stroke geometry only. Each tick's color is a `stroke-*`
+     utility (STROKE_TONE_CLASSES when filled, the surface track when not),
+     and the fill sweep lives in animations.scss so reduced motion can kill
+     it in one place. */
+  .gauge-tick {
+    stroke-width: 4;
+    stroke-linecap: round;
+  }
+
+  /* Chart tooltip card: chart.js's canvas-drawn box is switched off and
+     ChartTooltipService renders this inside the chart wrapper instead — the
+     card treatment, `font-data` values and theme tokens are all things a
+     canvas tooltip can't have. Positioned by JS against the wrapper (which is
+     `relative`); the translate centres it over the caret. */
+  .chart-tooltip {
+    @apply pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-card border border-surface-200 bg-white p-3 shadow-card dark:border-surface-800 dark:bg-surface-900;
+    opacity: 0;
+    transition: opacity var(--motion-fast) var(--ease-enter);
+  }
+  .chart-tooltip-title {
+    @apply mb-1.5 text-2xs font-bold text-surface-500 dark:text-surface-300;
+  }
+  .chart-tooltip-row {
+    @apply flex items-center gap-2 text-xs text-surface-700 dark:text-surface-300;
+  }
+  .chart-tooltip-row + .chart-tooltip-row {
+    @apply mt-1;
+  }
+  .chart-tooltip-dot {
+    @apply size-2 shrink-0 rounded-full;
+  }
+  .chart-tooltip-label {
+    @apply flex-1;
+  }
+  .chart-tooltip-value {
+    @apply font-data font-bold tabular-nums text-surface-1000 dark:text-surface-0;
+  }
+
   /* Shell chrome (owner 2026-08-26, bright console — plan 23 § Direction 1;
      supersedes the 2026-07-22 dark brand panel): the sidebar is a LIGHT
      `surface-0` panel, separated from the canvas by a hairline right border

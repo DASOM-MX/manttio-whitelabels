@@ -52,7 +52,9 @@
               <p class="mt-2 text-xs text-surface-500 dark:text-surface-400">{{ kpi.sub }}</p>
             }
           </div>
-          <span class="icon-chip">
+          <span
+            class="icon-chip bg-white text-primary-600 shadow-md dark:bg-surface-800 dark:text-primary-400"
+          >
             <svg lucideIcon [lucideIcon]="kpi.icon" class="size-5" aria-hidden="true"></svg>
           </span>
         </section>
@@ -85,7 +87,9 @@
             <p class="mt-2 text-xs text-surface-500 dark:text-surface-400">{{ kpi.sub }}</p>
           }
         </div>
-        <span class="icon-chip">
+        <span
+          class="icon-chip bg-white text-primary-600 shadow-md border-surface-200 dark:border-surface-800 dark:bg-surface-800 dark:text-primary-400"
+        >
           <svg lucideIcon [lucideIcon]="kpi.icon" class="size-5" aria-hidden="true"></svg>
         </span>
       </section>
@@ -179,7 +183,13 @@
           <a routerLink="/dashboard" class="btn-secondary">Ir a los enlaces</a>
         </div>
       } @else {
-        <ul class="flex flex-col gap-4">
+        <!-- The list scrolls at the trend chart's own height (owner
+             2026-08-27): a tenant with a dozen channels used to push this card
+             past the chart beside it, stretching the row and leaving dead
+             space under the canvas. `max-h-64` = the `h-64` chart, so the two
+             cards stay level and the whole row fits a screen; `pr-1` keeps the
+             bars clear of the scrollbar. -->
+        <ul class="flex max-h-64 flex-col gap-4 overflow-y-auto overscroll-contain pr-1">
           @for (bar of channelBars(); track bar.source) {
             <li>
               <div class="flex items-baseline justify-between gap-2">

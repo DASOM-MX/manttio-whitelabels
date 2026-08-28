@@ -1,0 +1,41 @@
+@if (loading()) {
+  <div aria-hidden="true">
+    <span class="block h-1 rounded-full bg-surface-100 dark:bg-surface-800"></span>
+    <div class="mt-3 flex gap-6">
+      @for (column of skeletonColumns; track column) {
+        <div class="flex-1">
+          <span class="skeleton !h-5 !max-w-16"></span>
+          <span class="skeleton mt-2 !h-2.5 !max-w-24"></span>
+        </div>
+      }
+    </div>
+  </div>
+} @else if (isEmpty()) {
+  <div>
+    <span class="block h-1 rounded-full bg-surface-100 dark:bg-surface-800"></span>
+    <p class="mt-3 text-sm text-surface-600 dark:text-surface-400">{{ emptyLabel() }}</p>
+  </div>
+} @else {
+  <!-- The rules touch: each column's rule spans its full width and only the
+       row's outer ends are rounded, so the mix reads as one bar. Text below
+       carries the gutter instead. -->
+  <div class="flex items-stretch">
+    @for (segment of view(); track segment.id) {
+      <div class="min-w-0" [style.width.%]="segment.widthPct">
+        <span
+          class="block h-1 {{ segment.ruleClass }}"
+          [class.rounded-l-full]="$first"
+          [class.rounded-r-full]="$last"
+        ></span>
+        <div class="mt-2.5 pr-4">
+          <p
+            class="truncate font-data text-lg font-bold leading-none tabular-nums text-surface-1000 dark:text-surface-0"
+          >
+            {{ segment.valueText }}
+          </p>
+          <p class="micro-label mt-1.5 truncate">{{ segment.label }}</p>
+        </div>
+      </div>
+    }
+  </div>
+}

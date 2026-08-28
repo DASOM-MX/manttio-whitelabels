@@ -251,9 +251,11 @@ the target and the code is the backlog.
 - **Stat cards** (reference idiom): micro-label + trailing Lucide icon, `font-data`
   value, a delta pill (emerald/red from the fixed semantic set, arrow, **sign always
   shown**) and a muted comparison caption under it. Tiles are the one unit tighter than
-  the page rhythm: `p-5`, label → value → caption, no extra air. The shared `kpi-tile`
-  (23 CP-3) owns this — don't hand-roll a sixth copy; timelines pair small accent icons
-  with micro-label timestamps.
+  the page rhythm: `p-5`, label → value → caption, no extra air. The trailing glyph is a
+  **white `.icon-chip` with `shadow-sm` and a `primary-600` mark** (dark: `surface-800`
+  chip, `primary-400` mark) — owner 2026-08-27, superseding the filled `primary-400`
+  square. The shared `kpi-tile` (shipped 23 CP-3) owns all of it — don't hand-roll a
+  sixth copy; timelines pair small accent icons with micro-label timestamps.
 - **Data-viz** (owner 2026-07-22, CRM-cockpit turn; re-coloured by plan 23's palette
   roles 2026-08-27): time series are `p-chart type="line"` — hero series `primary-600`
   (dark `primary-400`) with the sole tolerated gradient (a single-hue area fill of the
@@ -268,7 +270,27 @@ the target and the code is the backlog.
   canvases live in a fixed-height wrapper (`h-64`), host + inner div `h-full` (PrimeNG 21
   ignores `styleClass` on `p-chart`); colors re-read the brand CSS vars on theme change
   (canon: `crm/pages/dashboard`). The shared `kpi-tile` / `segmented-bar` / `gauge-card`
-  / `trend-card` land at **23 CP-3** and are mandatory from then on.
+  / `trend-card` **shipped 2026-08-27 at 23 CP-3** under `shared/components/` and are
+  mandatory from then on.
+  - They take a **`VizTone`, never a class** (`model/enums/viz/viz-tone.enum.ts`):
+    `Brand`/`Accent` = the two tenant voices, `Positive`/`Negative`/`Warning` = the
+    fixed semantic set, `Neutral` = surface. Class maps sit in `model/constants/viz/`,
+    one per surface kind (fill / SVG stroke / numeral / pill) — one tone needs
+    different steps at 3:1 and at 4.5:1. `gauge-card` defaults to `Accent`: a rate with
+    no good/bad direction is exactly the neutral case.
+  - Values arrive **formatted** — the kit prints what it is handed; currency, percent
+    points and separators stay at the call site.
+  - Pure math + specs in `services/viz/` (segment shares and the narrow-member floor,
+    gauge fill count, delta direction → tone). Canvas colours resolve live from
+    `--brand-*` through `services/theme/chart-palette.service.ts`; the floating tooltip
+    card is `services/chart/chart-tooltip.service.ts` and chart.js's canvas tooltip is
+    switched off.
+- **Table idioms** (reference crops, 23 CP-3) — idioms, not components: **thumbnail
+  lead cell** (`size-9 rounded-control` `object-cover` image + name on one flex row;
+  entities with no picture keep the initials avatar), **directional numeric**
+  (`font-data tabular-nums` in the fixed semantic set with a `size-3` arrow — only
+  where the value *has* a direction, never brand-coloured), **rating cell** (one amber
+  star + the value, not five stars — five reads as a control).
 - **List filters live in a popover** (owner 2026-07-22, Chakra-style): the shared
   `shared/components/filters-popover` trigger (filter icon + active-count badge) sits
   left of the page's primary action; pass the page's URL param names as `[params]`

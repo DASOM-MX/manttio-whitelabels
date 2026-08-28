@@ -1,0 +1,32 @@
+@if (loading()) {
+  <div class="min-w-0 flex-1" aria-hidden="true">
+    <span class="skeleton !max-w-24"></span>
+    <span class="skeleton mt-4 !h-8 !max-w-16"></span>
+    <span class="skeleton mt-3 !h-2.5 !max-w-28"></span>
+  </div>
+} @else {
+  <div class="min-w-0 flex-1">
+    <h2 class="micro-label truncate">{{ label() }}</h2>
+    <p class="mt-2 flex flex-wrap items-baseline gap-2">
+      <span class="font-data text-3xl font-extrabold leading-none tabular-nums {{ valueClass() }}">
+        {{ value() }}
+      </span>
+      @if (deltaView(); as delta) {
+        <span class="delta-pill {{ delta.pillClass }}">
+          <svg lucideIcon [lucideIcon]="delta.icon" class="size-3" aria-hidden="true"></svg>
+          {{ delta.text }}
+        </span>
+      }
+    </p>
+    @if (caption()) {
+      <p class="mt-2 text-xs text-surface-500 dark:text-surface-400">{{ caption() }}</p>
+    }
+  </div>
+  @if (icon(); as glyph) {
+    <span
+      class="icon-chip bg-white text-primary-600 shadow-sm dark:bg-surface-800 dark:text-primary-400"
+    >
+      <svg lucideIcon [lucideIcon]="glyph" class="size-5" aria-hidden="true"></svg>
+    </span>
+  }
+}

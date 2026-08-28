@@ -18,7 +18,17 @@
 > tint with a primary label *and* icon, `aria-current` is wired for the first time, the
 > footer carries the tenant identity card, and the topbar gained the reference's search
 > field as a deliberately **disabled** stub. Both § Open items due at CP-2 are answered
-> (§ Decisions), and the real search became **plan 24**. **CP-3 (viz kit) next.**
+> (§ Decisions), and the real search became **plan 24**.
+> **CP-3 done 2026-08-27** (branch `feature/superadmin-visual-language-cp3`, same
+> worktree): the viz kit ships as four standalone components under
+> `shared/components/` — `kpi-tile`, `segmented-bar`, `gauge-card`, `trend-card` — over
+> one tone vocabulary (`VizTone`) with its class maps in `model/constants/viz/`, the
+> pure view-model math in `services/viz/` under spec, canvas colours resolved live from
+> `--brand-*` by `ChartPaletteService`, and the reference's floating tooltip rendered as
+> a real card by `ChartTooltipService` instead of chart.js's canvas box. The three table
+> idioms are documented in 01 + the skill mirror. § Open ④ (the gauge's default fill) is
+> answered. **They are consumed by CP-4, which is next** — anything CP-4 does not use
+> gets cut there rather than shipped unused (the `.icon-chip--soft` lesson).
 > **Owner:** planning session 2026-08-26 · **Last updated:** 2026-08-27
 > **Scope:** `superadmin/` only. **Depends on 22 CP-2** — every surface this plan writes must
 > be authored on `primary`/`accent`/fixed-`surface`, never on names 22 is about to change
@@ -299,23 +309,26 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
       shell, so a broken drawer or bell would have surfaced there)
 
 ### CP-3 — Viz kit
-- [ ] `kpi-tile` — micro-label, trailing Lucide icon, `font-data` value, delta pill (sign always
+- [x] `kpi-tile` — micro-label, trailing Lucide icon, `font-data` value, delta pill (sign always
       shown, emerald/red, arrow), muted comparison caption, `.skeleton` loading state (17 CP-3)
-- [ ] `segmented-bar` — n proportional touching segments with per-segment color role, count,
+- [x] `segmented-bar` — n proportional touching segments with per-segment color role, count,
       label, top rule; degrades to a single neutral bar at n = 1 and to a bare track at total = 0
-- [ ] `gauge-card` — segmented semicircular arc, percentage centerpiece, caption, optional footer
+- [x] `gauge-card` — segmented semicircular arc, percentage centerpiece, caption, optional footer
       link, `role="img"` + `aria-label` carrying the value, reduced-motion-safe sweep
-- [ ] `trend-card` — `p-chart type="line"` in the `h-64` wrapper with host + inner `h-full`
+- [x] `trend-card` — `p-chart type="line"` in the `h-64` wrapper with host + inner `h-full`
       (the PrimeNG 21 `styleClass` gotcha), faint y-grid, no point dots, `tension: 0.4`, legend
       off, custom tooltip card, colors re-read from the brand vars on theme change
-- [ ] Table idioms documented in 01: thumbnail lead cell, directional colored numeric,
+- [x] Table idioms documented in 01: thumbnail lead cell, directional colored numeric,
       star + value rating
-- [ ] House rules hold: constants in `model/constants/<entity>/`, enums in `model/enums/`,
+- [x] House rules hold: constants in `model/constants/<entity>/`, enums in `model/enums/`,
       no barrels, no inline function calls in templates, no arbitrary `[Npx]` values,
       Lucide stroke-2, no emojis
 - [ ] Every component is consumed by CP-4 — anything unused is cut, not shipped
-      (the `.icon-chip--soft` lesson from 17 CP-5)
-- [ ] `npm run build` green
+      (the `.icon-chip--soft` lesson from 17 CP-5) — **carried into CP-4; it is that CP's
+      first item, and nothing here is exempt from it**
+- [x] `npm run build` green (and `npm test` — 62 specs, 32 of them new: the kit's pure
+      math plus a render smoke per component, so four components that no page consumes
+      yet have still been rendered once)
 
 ### CP-4 — Dashboards
 - [ ] CRM cockpit KPI strip → `kpi-tile`; its hand-rolled copies deleted
@@ -593,5 +606,56 @@ of breaking behind it. (The owner later moved the pill clear of the connector en
   unread badge rescales too (`h-4` → `h-3.5`) and moves onto the circle's upper-right arc
   (`-right-0.5 -top-0.5`): at the old size it covered half the smaller bell. **The search
   pill is still `h-10`** — flagged to the owner, not changed unasked.
-- **Open — decide at the CP that needs it:** ④ Whether the gauge's default fill is
-  `accent` or emerald when the metric has no good/bad direction (CP-3).
+- **④ closed 2026-08-27 (at CP-3) — the gauge's default fill is `accent`.** § Direction 3
+  had already assigned the second brand voice "a gauge fill *when the metric is neutral
+  rather than good/bad*", and that is the majority case: repeat share, channel share,
+  capacity, conversión — rates with no good/bad direction at all. Emerald as the default
+  would have made every one of them read as *good news*, which is the exact failure the
+  fixed semantic set exists to prevent. So `gauge-card`'s `tone` defaults to
+  `VizTone.Accent`, and a metric that genuinely has a direction (compliance against a
+  target, overdue share) passes `Positive`/`Warning`/`Negative` explicitly. On a tenant
+  that has never set `accent`, the arc renders in the neutral fallback ramp — correct
+  under branding rule 3, not a regression.
+- **Decided 2026-08-27 (at CP-3) — the rest of the kit's contract.**
+  - **One tone vocabulary, not a color per call site.** Every component takes a
+    `VizTone` (`Brand`/`Accent` = the two tenant voices, `Positive`/`Negative`/`Warning`
+    = the fixed set, `Neutral` = surface); the class maps live in
+    `model/constants/viz/`, split by *surface kind* rather than by tone — a fill, an SVG
+    stroke, a numeral and a pill need different steps of the same tone, because
+    non-text clears 3:1 and text has to clear 4.5:1. A call site cannot pass a class,
+    so it cannot invent a status color.
+  - **A delta's arrow and its color are separable.** `direction` draws the glyph;
+    `tone` overrides the color, defaulting to up = emerald / down = red / flat =
+    neutral. Metrics where falling is the win (overdue follow-ups) keep the honest
+    down-arrow and go green — the alternative, flipping the arrow to keep the color
+    right, lies about the number.
+  - **The tooltip is a DOM card, not chart.js's canvas box.** A canvas tooltip can
+    carry neither the card treatment nor `font-data` numerals, and it blurs on
+    high-DPI. `enabled: false` + an `external` handler that builds nodes with
+    `textContent` (never `innerHTML` — a chart is not a place to open a markup
+    injection path).
+  - **Narrow segments are floored at 12 % and the row renormalized.** A 1 % member
+    rendered as a hairline under an unreadable label reads nothing; the bar's job is
+    the *mix*. Everything above the floor stays exactly proportional, and the row still
+    fills the track.
+  - **The kit prints strings, not numbers.** Currency, percent points and locale
+    separators stay at the call site — a shared tile that guessed would be wrong on
+    half the dashboards.
+  - **The KPI tile's trailing glyph is a white chip with a `primary` mark** (owner
+    2026-08-27, reviewing the live dashboard against CP-3 — supersedes both 17's filled
+    `primary-400` square and CP-3's own first pass, a bare `accent` glyph). `bg-white` +
+    `shadow-sm` + `text-primary-600` (dark: `surface-800` + `primary-400`): once the chip
+    is white the glyph *is* the coloured element, and `accent` would leave it an unthemed
+    grey on every tenant that has not filled that scale in — exactly where a *themed*
+    mark must not land. Applied to the live dashboard's two tiles in the same pass, so
+    CP-4's swap to `kpi-tile` changes nothing visible.
+  - **The channel-mix list scrolls at the chart's height** (owner 2026-08-27):
+    `max-h-64` + `overflow-y-auto` on the `<ul>`, matching the `h-64` canvas beside it,
+    so a tenant with a dozen channels cannot stretch the row and leave dead space under
+    the trend. Lands on the dashboard now; `segmented-bar` inherits the cap at CP-4.
+  - **Component render specs enter the repo.** The kit ships before any page consumes
+    it, so "it compiles" was the only evidence CP-3 would otherwise have. Vitest +
+    `TestBed` (the `@angular/build:unit-test` builder already runs) covers a render per
+    component plus the pure math in `services/viz/`; the chart canvas is deliberately
+    not asserted (jsdom has no 2D context — asserting it would be asserting a mock),
+    and meets real data at CP-4.
