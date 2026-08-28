@@ -302,6 +302,28 @@
     @apply inline-flex size-12 items-center justify-center rounded-full bg-surface-100 text-surface-500 dark:bg-surface-800 dark:text-surface-400;
   }
 
+  /* ---- Table lead cells (01 § Table idioms, plan 23 CP-5) ---------------
+     The row's identity column. Which one a list uses is decided by what the
+     entity *is*, not by what looks nice: people and companies get initials,
+     things that can be photographed get their photo, and a thing whose photo
+     is missing gets a neutral icon tile — never an empty grey square. All
+     three are the same 36px square so columns line up across lists. */
+
+  /* Initials avatar — people and companies (canon: customers-list). */
+  .lead-avatar {
+    @apply inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-800 dark:bg-primary-1000/60 dark:text-primary-300;
+  }
+  /* Photo thumbnail — catalog items, equipment. The background shows while the
+     image loads and behind anything transparent. */
+  .lead-thumb {
+    @apply size-9 shrink-0 rounded-control bg-surface-100 object-cover dark:bg-surface-800;
+  }
+  /* …and what a row without a photo falls back to: the entity's own Lucide
+     glyph on the same tile. */
+  .lead-thumb-fallback {
+    @apply inline-flex size-9 shrink-0 items-center justify-center rounded-control bg-surface-100 text-surface-400 dark:bg-surface-800 dark:text-surface-500;
+  }
+
   /* ---- Viz kit (plan 23 CP-3) -------------------------------------------
      Shape and chrome for the shared data components. Every COLOR here comes
      from a tone map in `model/constants/viz/` — nothing in this block picks a

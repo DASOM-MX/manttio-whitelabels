@@ -12,6 +12,7 @@ import { UsersState } from '../../../../state/users/users.state';
 import { LoadUsers } from '../../../../state/users/users.actions';
 import { ListQueryService, keyIn } from '../../../services/table/list-query.service';
 import { ROLE_LABELS } from '../../../model/constants/user/role-labels.const';
+import { InitialsPipe } from '../../../pipes/initials.pipe';
 import { RoleLabelPipe, RolePillClassPipe } from '../../../pipes/role.pipe';
 import { CanManagePipe } from '../../../pipes/access.pipe';
 import { DeleteUserDialog } from '../../components/delete-user-dialog/delete-user-dialog';
@@ -37,6 +38,7 @@ import { tableLoading } from '../../../services/table/table-loading';
     SelectModule,
     InputTextModule,
     TagModule,
+    InitialsPipe,
     RoleLabelPipe,
     RolePillClassPipe,
     CanManagePipe,

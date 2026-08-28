@@ -2,40 +2,40 @@
   title="Equipos"
   description="El registro de unidades instaladas que tu negocio atiende."
 >
-    <app-filters-popover [params]="['q', 'customer', 'status']">
-      <div class="field-group">
-        <label class="field-label" for="equipment-search">Buscar</label>
-        <input
-          id="equipment-search"
-          pInputText
-          type="search"
-          [formControl]="search"
-          placeholder="Marca, modelo o serie"
-        />
-      </div>
-      <div class="field-group">
-        <label class="field-label" for="equipment-customer">Cliente</label>
-        <app-customer-select
-          inputId="equipment-customer"
-          [formControl]="customerFilter"
-          allOptionLabel="Todos los clientes"
-        />
-      </div>
-      <div class="field-group">
-        <label class="field-label" for="equipment-status">Estado</label>
-        <p-select
-          inputId="equipment-status"
-          [formControl]="statusFilter"
-          [options]="statusOptions"
-          optionLabel="label"
-          optionValue="value"
-        />
-      </div>
-    </app-filters-popover>
-    <button type="button" class="btn-primary" (click)="openCreate()">
-      <svg lucidePlus class="size-4" aria-hidden="true"></svg>
-      Registrar equipo
-    </button>
+  <app-filters-popover [params]="['q', 'customer', 'status']">
+    <div class="field-group">
+      <label class="field-label" for="equipment-search">Buscar</label>
+      <input
+        id="equipment-search"
+        pInputText
+        type="search"
+        [formControl]="search"
+        placeholder="Marca, modelo o serie"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="equipment-customer">Cliente</label>
+      <app-customer-select
+        inputId="equipment-customer"
+        [formControl]="customerFilter"
+        allOptionLabel="Todos los clientes"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="equipment-status">Estado</label>
+      <p-select
+        inputId="equipment-status"
+        [formControl]="statusFilter"
+        [options]="statusOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
+  </app-filters-popover>
+  <button type="button" class="btn-primary" (click)="openCreate()">
+    <svg lucidePlus class="size-4" aria-hidden="true"></svg>
+    Registrar equipo
+  </button>
 </app-page-header>
 
 <div>
@@ -69,7 +69,20 @@
       <!-- Whole row opens the unit (canon idiom); the eye link stays the
            keyboard path. -->
       <tr class="cursor-pointer" (click)="openEquipment(eq)">
-        <td class="font-bold">{{ eq.name || '—' }}</td>
+        <td>
+          <!-- Lead cell: the unit's own photo when it has one, else the
+               equipment glyph on the same tile (01 § Table idioms). -->
+          <span class="flex items-center gap-3">
+            @if (eq.photos?.[0]; as photo) {
+              <img class="lead-thumb" [src]="photo" alt="" loading="lazy" />
+            } @else {
+              <span class="lead-thumb-fallback" aria-hidden="true">
+                <svg lucideAirVent class="size-4"></svg>
+              </span>
+            }
+            <span class="min-w-0 font-bold">{{ eq.name || '—' }}</span>
+          </span>
+        </td>
         <td>{{ eq.kind || '—' }}</td>
         <td>{{ eq.brand || '—' }} {{ eq.model }}</td>
         <td class="font-data tabular-nums">{{ eq.serialNumber || '—' }}</td>

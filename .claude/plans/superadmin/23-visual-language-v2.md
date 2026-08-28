@@ -33,9 +33,15 @@
 > `kpi-tile`s, the mix as a `segmented-bar` over its detail list, the six-month trend as a
 > `trend-card` (which took ~120 lines of chart plumbing and this page's `MutationObserver`
 > with it), and conversión out of the strip and into a `gauge-card`, because it is the only
-> *rate* on the page. All four components are consumed, so nothing is cut. **CP-5 (lists +
-> tables) next.**
-> **Owner:** planning session 2026-08-26 · **Last updated:** 2026-08-27
+> *rate* on the page. All four components are consumed, so nothing is cut.
+> **CP-5 done 2026-08-28** (branch `feature/superadmin-visual-language-cp5`, same worktree):
+> the nine list pages audited end to end — the three reference lead cells land where the data
+> supports them (avatars on users, photo thumbnails on services and equipment, each with a
+> glyph-tile fallback), the initials avatar becomes a `.lead-avatar` class instead of an
+> inline copy, `font-data` cells finally carry `tabular-nums`, and the two idioms with no
+> honest home — directional numerics and the rating cell — were **not** forced onto columns
+> that have no direction and no rating. **CP-6 (forms, dialogs, detail views + sweep) next.**
+> **Owner:** planning session 2026-08-26 · **Last updated:** 2026-08-28
 > **Scope:** `superadmin/` only. **Depends on 22 CP-2** — every surface this plan writes must
 > be authored on `primary`/`accent`/fixed-`surface`, never on names 22 is about to change
 > (the same reasoning that front-ran 16 PR-2 for the 2026-07-21 shell redesign).
@@ -350,14 +356,30 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
 - [x] `npm run build` green (no NG8113 stragglers), `npm test` 62 green
 
 ### CP-5 — Lists + tables
-- [ ] The five list pages: header treatment, thumbnail/avatar lead cells, directional colored
-      numerics where a value has a direction
-- [ ] Status pills re-checked against the palette-role split; **role pills stay the static blue
-      ladder** (14 §1 / 16 § Mechanics 3) — not brand-shifting, not accent
-- [ ] `p-table` density unchanged (`py-2.5` cells, 13–14px text); skeleton `#loadingbody` rows
-      and `.empty-icon` empties kept (17 CP-3)
-- [ ] Filters-popover + paginator touched only where the border treatment demands it
-- [ ] `npm run build` green
+- [x] The list pages — **nine, not five** (the plan was written when there were five):
+      contracts · customers · equipment · quotations · reports · services · service-orders ·
+      templates · users. Header treatment audited across all nine and already uniform —
+      every one carries `app-page-header`, a `#loadingbody` skeleton and an `.empty-icon`
+      empty; eight of nine carry the filters popover (templates has no filters to pop)
+- [x] Lead cells: **initials avatar** on users (people — the customers-list canon, now a
+      `.lead-avatar` class rather than an inline copy), **photo thumbnail** on services
+      (`websiteImageUrl`, the picture the website already shows) and equipment (`photos[0]`),
+      each falling back to the entity's own Lucide glyph on the same tile — never an empty
+      grey square. Both thumbnail lists move to `table-paged--tall` so the row reservation
+      matches the taller row
+- [x] Directional coloured numerics — **audited, none apply**: no numeric column in the nine
+      lists carries a good/bad *direction* (prices, costs, totals, counts, progress and folios
+      are all directionless), and 01's own rule is that a column without one stays neutral.
+      Colouring them would have invented a meaning the data does not have
+- [x] Status pills re-checked (§ Decisions); **role pills untouched** — still the static blue
+      ladder
+- [x] `p-table` density unchanged; skeletons and empties kept. One fidelity fix: `font-data`
+      cells now actually carry `tabular-nums` (the sheet's header had claimed tabular numerals
+      since it was written — `font-data` names the *face*, and `tnum` is a feature, not a
+      default)
+- [x] Filters-popover + paginator untouched — the table shell's own hairline (CP-1) and Aura's
+      row rules already separate the paginator; nothing demanded a change
+- [x] `npm run build` green, `npm test` 62 green
 
 ### CP-6 — Forms, dialogs, detail views + sweep
 - [ ] Editors, drawers and dialogs onto the bordered-card treatment; the reference's overlay
@@ -626,6 +648,24 @@ of breaking behind it. (The owner later moved the pill clear of the connector en
   target, overdue share) passes `Positive`/`Warning`/`Negative` explicitly. On a tenant
   that has never set `accent`, the arc renders in the neutral fallback ramp — correct
   under branding rule 3, not a regression.
+- **Decided 2026-08-28 (at CP-5) — what the list audit did *not* change.**
+  - **`p-tag-info` stays on `primary`, not `accent`.** § Direction 3 assigns "informational
+    badges" to accent, and the re-check says this is the exception: accent's no-brand
+    fallback is the same neutral ramp `p-tag-secondary` already uses, so moving `info` there
+    would collapse two severities into one look on every tenant that has not filled accent
+    in. A status pill has to stay distinguishable on *every* tenant. success / warn / danger
+    were already the fixed semantic set and are untouched; role pills stay the static blue
+    ladder (14 §1).
+  - **No column got a directional colour.** The reference's green/red revenue column exists
+    because its revenue moves against a previous period. Ours don't: a price, a cost, a
+    quotation total, a service count, a folio and a progress fraction have no up or down. The
+    idiom stays documented in 01, available for the first column that earns it.
+  - **No rating cell anywhere** — nothing in the product is rated yet.
+  - **The lead cell is chosen by what the entity *is*.** People and companies get initials
+    (`.lead-avatar`), photographable things get their photo (`.lead-thumb`), and a missing
+    photo falls back to the entity's glyph on the same tile (`.lead-thumb-fallback`) — an
+    initials circle on a chiller would read as a person, and an empty grey square reads as a
+    broken image.
 - **Decided 2026-08-27 (at CP-4) — how the cockpit consumes the kit.**
   - **A rate reads as an arc, not a numeral.** Conversión left the KPI strip for a
     `gauge-card`: it was the one *rate* among four counts, and a percentage in a tile
