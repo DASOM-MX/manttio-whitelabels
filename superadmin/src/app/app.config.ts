@@ -17,6 +17,7 @@ import { withNgxsLoggerPlugin } from '@ngxs/logger-plugin';
 import { ManttioPreset } from './theme/manttio-preset';
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
+import { loadRuntimeConfig } from './config/runtime-config';
 import { AppState } from '../state/app/app.state';
 import { AuthState } from '../state/auth/auth.state';
 import { LoadMe } from '../state/auth/auth.actions';
@@ -65,11 +66,18 @@ export const appConfig: ApplicationConfig = {
       withNgxsReduxDevtoolsPlugin({ disabled: !isDevMode() }),
       withNgxsLoggerPlugin({ disabled: !isDevMode() }),
     ),
+    // Runtime config resolves first, then the boot-time fetches (25 §3). These
+    // must share one initializer: Angular starts initializers concurrently, so
+    // a separate config initializer would let `LoadBrand()` race the `apiUrl`
+    // it needs. `inject()` also has to run *before* the first `await` — the
+    // injection context is synchronous and does not survive one.
+    //
     // Boot-time fetches, fire-and-forget: public `GET /brand` always (pre-auth
     // theming — login screen shows tenant logo + colors, 03 §4); `/auth/me`
     // when a session token exists (02 §3 — the layout splashes until it lands).
-    provideAppInitializer(() => {
+    provideAppInitializer(async () => {
       const store = inject(Store);
+      await loadRuntimeConfig();
       store.dispatch(new LoadBrand());
       if (store.selectSnapshot(AuthState.token)) store.dispatch(new LoadMe());
     }),

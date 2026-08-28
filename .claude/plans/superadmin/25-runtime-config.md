@@ -1,6 +1,6 @@
 # 25 — Runtime config (SSR shell on Workers, `apiUrl` from CF vars)
 
-> **Status:** not started — 0/7 checkpoints (superadmin CP-1…CP-4, frontend CP-5…CP-7)
+> **Status:** in progress — **CP-1 done 2026-08-28**; CP-2…CP-7 pending
 > **Depends on:** 02 (app shell) · **Touches:** `superadmin/`, `frontend/` (no `backend/` change)
 > **Owner:** — · **Last updated:** 2026-08-28
 
@@ -148,15 +148,17 @@ until CP-1's shape is settled — it is the same layer written twice, and one re
 is enough.
 
 ### CP-1 — superadmin: runtime-config layer (no SSR)
-- [ ] `app/config/runtime-config.ts` — `runtimeConfig` overlay object + `loadRuntimeConfig()`
+- [x] `app/config/runtime-config.ts` — `runtimeConfig` overlay object + `loadRuntimeConfig()`
       with the §3 fallback chain and an `AbortSignal.timeout` guard
-- [ ] Fold the existing `provideAppInitializer` into one that awaits config **before**
+- [x] Fold the existing `provideAppInitializer` into one that awaits config **before**
       dispatching `LoadBrand()` / `LoadMe()` (§3 ordering trap)
-- [ ] Migrate `services/http/remote.service.ts` + `services/http/notifications.service.ts`
+- [x] Migrate `services/http/remote.service.ts` + `services/http/notifications.service.ts`
       off `environment.apiUrl`
-- [ ] `npm run build` green; `ng serve` behaviour unchanged (`/__config` 404s → compiled
-      literal applies)
-- [ ] Verified safe to merge onto the *current* Pages deploy with no visible change
+- [x] `npm run build` green; `ng serve` behaviour unchanged — verified: the dev server
+      answers `/__config` with **200 `text/html`** (the SPA shell), so `res.json()` throws
+      and the chain falls through to the compiled literal. The live Pages deploy behaves
+      identically, because `_redirects` also serves `index.html` with a 200
+- [x] Verified safe to merge onto the *current* Pages deploy with no visible change
 
 ### CP-2 — superadmin: SSR scaffolding, all routes CSR
 - [ ] `ng add @angular/ssr` (Angular 21 line)
@@ -247,7 +249,7 @@ Legend: ☐ not started · ◐ in progress · ☑ done
 
 | CP | App | Scope | State | PR |
 |---|---|---|---|---|
-| CP-1 | superadmin | runtime-config layer + folded initializer + 2 call sites | ☐ | — |
+| CP-1 | superadmin | runtime-config layer + folded initializer + 2 call sites | ☑ | — |
 | CP-2 | superadmin | `@angular/ssr`, all routes `RenderMode.Client` | ☐ | — |
 | CP-3 | superadmin | Worker entry + `wrangler.jsonc` + `/__config` | ☐ | — |
 | CP-4 | superadmin | CF project, vars, deploy, domain cutover, delete `_routes.json`/`_redirects` | ☐ | — |
