@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { runtimeConfig } from '../../config/runtime-config';
 import { RemoteService } from './remote.service';
 import { sseStream } from '../sse';
 import type { SseEvent } from '../sse';
@@ -13,7 +13,12 @@ import type {
 @Injectable({ providedIn: 'root' })
 export class NotificationsService {
   private readonly remote = inject(RemoteService);
-  private readonly base = environment.apiUrl.replace(/\/$/, '');
+  /** Read lazily rather than captured in a field: `loadRuntimeConfig()`
+   *  resolves after the injector exists, and NGXS state construction pulls
+   *  this service in during that window (25 CP-1). */
+  private get base(): string {
+    return runtimeConfig.apiUrl.replace(/\/$/, '');
+  }
 
   list(query: NotificationListQuery = {}): Observable<NotificationQueryResponse> {
     return this.remote.get<NotificationQueryResponse>('/notifications', {

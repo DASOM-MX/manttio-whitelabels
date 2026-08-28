@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "manttio-superadmin",
+  "main": "./dist/superadmin/server/server.mjs",
+  "compatibility_date": "2026-08-28",
+  // Angular's server bundle reaches for Node built-ins in its polyfills.
+  "compatibility_flags": ["nodejs_compat"],
+  // Angular's server bundle calls `createRequire(import.meta.url)`. esbuild
+  // leaves `import.meta.url` undefined in the Worker build, which crashes the
+  // runtime at startup with "The argument 'path' ... Received 'undefined'".
+  // A synthetic file URL satisfies it; nothing ever reads the path.
+  "define": {
+    "import.meta.url": "\"file:///worker.mjs\""
+  },
+  "assets": {
+    "directory": "./dist/superadmin/browser",
+    "binding": "ASSETS"
+    // `not_found_handling` deliberately left at its default. Setting it to
+    // "single-page-application" would serve the shell from the asset layer and
+    // bypass the Worker entirely, breaking `/__config` and blocking any future
+    // RenderMode.Server flip (plan 25 §1).
+  }
+}

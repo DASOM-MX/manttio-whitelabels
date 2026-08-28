@@ -2,10 +2,12 @@ import {
   ApplicationConfig,
   inject,
   isDevMode,
+  PLATFORM_ID,
   provideAppInitializer,
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { providePrimeNG } from 'primeng/config';
@@ -17,6 +19,7 @@ import { withNgxsLoggerPlugin } from '@ngxs/logger-plugin';
 import { ManttioPreset } from './theme/manttio-preset';
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
+import { loadRuntimeConfig } from './config/runtime-config';
 import { AppState } from '../state/app/app.state';
 import { AuthState } from '../state/auth/auth.state';
 import { LoadMe } from '../state/auth/auth.actions';
@@ -24,6 +27,7 @@ import { BrandState } from '../state/brand/brand.state';
 import { NotificationsState } from '../state/notifications/notifications.state';
 import { VisitsState } from '../state/visits/visits.state';
 import { LoadBrand } from '../state/brand/brand.actions';
+import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -65,13 +69,27 @@ export const appConfig: ApplicationConfig = {
       withNgxsReduxDevtoolsPlugin({ disabled: !isDevMode() }),
       withNgxsLoggerPlugin({ disabled: !isDevMode() }),
     ),
+    // Runtime config resolves first, then the boot-time fetches (25 §3). These
+    // must share one initializer: Angular starts initializers concurrently, so
+    // a separate config initializer would let `LoadBrand()` race the `apiUrl`
+    // it needs. `inject()` also has to run *before* the first `await` — the
+    // injection context is synchronous and does not survive one.
+    //
     // Boot-time fetches, fire-and-forget: public `GET /brand` always (pre-auth
     // theming — login screen shows tenant logo + colors, 03 §4); `/auth/me`
     // when a session token exists (02 §3 — the layout splashes until it lands).
-    provideAppInitializer(() => {
+    provideAppInitializer(async () => {
       const store = inject(Store);
+      // Skipped outside the browser. Every route is `RenderMode.Client`, so
+      // this never runs for a real request — but the build boots the app under
+      // Node to extract the route tree, and doing boot work there means a
+      // relative `/__config` fetch with no base, a failing `LoadBrand()`, and a
+      // theme service reaching for `document` (25 §5.2).
+      if (!isPlatformBrowser(inject(PLATFORM_ID))) return;
+      await loadRuntimeConfig();
       store.dispatch(new LoadBrand());
       if (store.selectSnapshot(AuthState.token)) store.dispatch(new LoadMe());
     }),
+    provideClientHydration(withEventReplay()),
   ],
 };

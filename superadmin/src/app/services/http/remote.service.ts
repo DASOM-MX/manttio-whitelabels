@@ -1,13 +1,18 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { runtimeConfig } from '../../config/runtime-config';
 import { toParams, type Query } from '../../data/utils';
 
 @Injectable({ providedIn: 'root' })
 export class RemoteService {
   private readonly http = inject(HttpClient);
-  private readonly base = environment.apiUrl.replace(/\/$/, '');
+  /** Read lazily rather than captured in a field: `loadRuntimeConfig()`
+   *  resolves after the injector exists, and NGXS state construction pulls
+   *  this service in during that window (25 CP-1). */
+  private get base(): string {
+    return runtimeConfig.apiUrl.replace(/\/$/, '');
+  }
 
   /** Absolute URL for an API path — public for the consumers that bypass
    *  HttpClient (the fetch-based SSE reader needs a full URL). */
