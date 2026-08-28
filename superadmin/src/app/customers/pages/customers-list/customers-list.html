@@ -93,11 +93,11 @@
         <td>
           <span class="flex items-center gap-3">
             <span
-              class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-100 text-xs font-medium text-primary-800 dark:bg-primary-1000/60 dark:text-primary-300"
+              class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-800 dark:bg-primary-1000/60 dark:text-primary-300"
               aria-hidden="true"
               >{{ customer.name | initials }}</span
             >
-            <span class="font-medium">{{ customer.name }}</span>
+            <span class="font-bold">{{ customer.name }}</span>
           </span>
         </td>
         <td>
@@ -120,7 +120,7 @@
           <div class="flex max-w-44 flex-wrap gap-1">
             @for (tag of customer.tags; track tag) {
               <span
-                class="rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-surface-700 dark:bg-surface-800 dark:text-surface-300"
+                class="rounded-full bg-surface-100 px-2 py-0.5 text-xs font-bold text-surface-700 dark:bg-surface-800 dark:text-surface-300"
                 >{{ tag }}</span
               >
             } @empty {
@@ -133,7 +133,7 @@
             @if (customer.nextFollowUpAt) {
               @if (customer.nextFollowUpAt | isOverdue) {
                 <span
-                  class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 font-data text-xs font-medium tabular-nums text-red-900 ring-1 ring-red-300"
+                  class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 font-data text-xs font-bold tabular-nums text-red-900 ring-1 ring-red-300"
                   >{{ customer.nextFollowUpAt | slice: 0 : 10 }}</span
                 >
               } @else {

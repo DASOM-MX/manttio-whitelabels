@@ -37,7 +37,7 @@
     </ng-template>
     <ng-template #body let-tpl>
       <tr class="cursor-pointer" (click)="openTemplate(tpl)">
-        <td class="font-medium">
+        <td class="font-bold">
           {{ tpl.name }}
           @if (tpl.description) {
             <span class="block text-xs text-surface-500 dark:text-surface-400">{{

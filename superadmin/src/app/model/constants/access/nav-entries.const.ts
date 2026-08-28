@@ -1,6 +1,7 @@
 import {
   LucideBriefcase,
   LucideCalendarDays,
+  LucideClipboardList,
   LucideFileText,
   LucideHeartHandshake,
   LucideNewspaper,
@@ -34,7 +35,10 @@ export const NAV: NavEntry[] = [
   },
   {
     label: 'Operaciones',
-    icon: LucideHeartHandshake,
+    // Not the handshake — CRM already owns it, and two groups wearing the same
+    // glyph read as one group with a duplicated row (found reviewing the light
+    // panel, where icons carry more weight than they did on the dark one).
+    icon: LucideClipboardList,
     route: '/customers',
     children: [
       { label: 'Cotizaciones', route: '/quotations', module: 'quotations' },

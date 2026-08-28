@@ -61,7 +61,7 @@
        a plain result list. Picking one goes to its week and opens it. -->
   <div class="mb-3 flex items-center gap-2">
     <p class="text-sm text-surface-500 dark:text-surface-400">
-      Resultados para <span class="font-data font-medium">{{ codeQuery() }}</span>
+      Resultados para <span class="font-data font-bold">{{ codeQuery() }}</span>
     </p>
     <button type="button" class="btn-neutral !px-2" (click)="clearSearch()">
       <svg lucideX class="size-4" aria-hidden="true"></svg>
@@ -120,7 +120,7 @@
       </button>
       <button
         type="button"
-        class="calendar-nav-button text-xs font-medium"
+        class="calendar-nav-button text-xs font-bold"
         (click)="cycleView()"
         title="Cambiar vista: día · semana · mes · año"
       >
@@ -131,7 +131,7 @@
       </button>
     </div>
     <div class="flex items-center gap-1">
-      <button type="button" class="calendar-nav-button text-xs font-medium" (click)="goToday()">
+      <button type="button" class="calendar-nav-button text-xs font-bold" (click)="goToday()">
         Hoy
       </button>
       <p class="calendar-period-label">{{ periodLabel() }}</p>
@@ -242,7 +242,7 @@
                     ></span>
                     <!-- The time the block is drawn at: the real start once
                          there is one, the booking until then. -->
-                    <span class="font-data font-medium">
+                    <span class="font-data font-bold">
                       {{ (block.visit.actualStart || block.visit.scheduledStart) | date: 'HH:mm' }}
                     </span>
                   </span>
@@ -311,7 +311,7 @@
                     class="size-2 shrink-0 rounded-full"
                     [class]="block.visit.technicianId | technicianDotClass"
                   ></span>
-                  <span class="font-data text-sm font-medium">
+                  <span class="font-data text-sm font-bold">
                     {{ (block.visit.actualStart || block.visit.scheduledStart) | date: 'HH:mm' }}
                   </span>
                   <span class="truncate text-sm">
@@ -432,7 +432,7 @@
             (click)="openMonth(cell)"
           >
             <span
-              class="block px-1 text-sm font-medium capitalize"
+              class="block px-1 text-sm font-bold capitalize"
               [class.text-primary-600]="cell.isCurrentMonth"
               [class.dark:text-primary-300]="cell.isCurrentMonth"
             >
@@ -455,7 +455,7 @@
                   [class.text-surface-400]="!day.inMonth"
                   [class.bg-primary-200]="day.hasVisits && day.inMonth"
                   [class.text-primary-900]="day.hasVisits && day.inMonth"
-                  [class.font-medium]="day.hasVisits && day.inMonth"
+                  [class.font-bold]="day.hasVisits && day.inMonth"
                   [class.dark:bg-primary-800]="day.hasVisits && day.inMonth"
                   [class.dark:text-primary-100]="day.hasVisits && day.inMonth"
                   [class.ring-1]="day.isToday"

@@ -10,8 +10,15 @@
 > down to `{surface.800}` so PrimeNG panels draw the card's hairline (preset-first — no
 > new override sheet); the fixed chrome neutral is cooled from pure gray to
 > `hsl(240 5% L%)` with the lightness ladder — and therefore every contrast ratio —
-> untouched. Both § Open items due at CP-1 are answered (§ Decisions). **CP-2 (light
-> shell) next.**
+> untouched. Both § Open items due at CP-1 are answered (§ Decisions).
+> **CP-2 done 2026-08-27** (branch `style/superadmin-visual-language-cp2`, same
+> worktree): the sidebar is a light `surface-0` panel with a hairline right border in
+> both the desktop aside and the mobile drawer, the `rounded-r-shell` edge and its
+> radius token are deleted, rows carry a neutral hover and a `primary-100/60` active
+> tint with a primary label *and* icon, `aria-current` is wired for the first time, the
+> footer carries the tenant identity card, and the topbar gained the reference's search
+> field as a deliberately **disabled** stub. Both § Open items due at CP-2 are answered
+> (§ Decisions), and the real search became **plan 24**. **CP-3 (viz kit) next.**
 > **Owner:** planning session 2026-08-26 · **Last updated:** 2026-08-27
 > **Scope:** `superadmin/` only. **Depends on 22 CP-2** — every surface this plan writes must
 > be authored on `primary`/`accent`/fixed-`surface`, never on names 22 is about to change
@@ -62,9 +69,15 @@ label** (not a solid primary block). A count badge sits right-aligned on rows th
 chevron and indented, icon-less children. A separated block at the bottom holds Settings +
 Help & Support, then a dark promotional card (title, one line of copy, full-width CTA button).
 
-**Topbar — surfaceless.** Left: a wide search field with a leading magnifier, placeholder, and
-a `⌘K` hint chip. Right: theme toggle (sun), notification bell, avatar. No background, no
-shadow — it floats on the canvas.
+**Topbar.** Left: a wide search field with a leading magnifier, placeholder, and a `⌘K` hint
+chip. Right: theme toggle (sun), notification bell, avatar.
+
+> **Corrected 2026-08-27** — this read "surfaceless … it floats on the canvas", which was a
+> misreading of the first two screenshots at their scale. Two close crops the owner supplied
+> at CP-2 show the bar plainly: it is a **white plane with a hairline bottom rule**, split by
+> a **vertical seam** between the wordmark cell and the search, the search is a **filled,
+> borderless** pill (no outline), and the three trailing actions are **separate circles, each
+> with its own hairline ring** — not one grouped control. § Direction 1 follows the crops.
 
 **Page header.** `Dashboard` as a plain title on the left; on the right a row of controls —
 a date-range chip (calendar icon + range), a period select ("Last 30 days"), a ghost
@@ -110,7 +123,11 @@ has two brand colors plus a fixed status set to speak with.**
    Active row = `primary-50`-equivalent tint (`bg-primary-100/60` light, `bg-primary-1000/40`
    dark) with `text-primary-700`/`primary-300` label + icon; hover = neutral tint; the
    collapsed rail and its flyouts inherit the same treatment. The floating collapse handle
-   stays. Topbar stays surfaceless (17).
+   stays. **The topbar is a section of that same white plane** (owner 2026-08-27, reference
+   crops — supersedes 17's surfaceless strip): `surface-0` fill, hairline bottom rule
+   running unbroken across the wordmark strip *and* the topbar, with the sidebar's own
+   `border-r` as the vertical seam between them. Trailing edge = three separate circles
+   with a **2px border** (theme · bell · account); the search is a filled, borderless pill.
 2. **Card treatment (supersedes 17's shadow-only cards).** `.card` = white, `rounded-card`,
    **hairline `surface-200` border + the existing soft `shadow-card`**, `p-6`. Borders come
    back as the primary separator; the shadow drops to a lift. Dark mode: `surface-900` fill,
@@ -130,8 +147,9 @@ has two brand colors plus a fixed status set to speak with.**
    `px-4 sm:px-6 md:px-8` + `py-6`, `h-14` strips, `py-2.5` table cells). KPI tiles are the one
    tighter unit: `p-5`, label → value → caption stacked with no extra air.
 5. **Shape + type unchanged:** `rounded-card` / `rounded-chip` / `rounded-control` /
-   `rounded-full` boundary, Figtree, `font-data` for every numeral, weight ladder capped at 500
-   outside sanctioned emphasis, no arbitrary bracket values, no emojis, Lucide stroke-2.
+   `rounded-full` boundary, Figtree, `font-data` for every numeral, no arbitrary bracket
+   values, no emojis, Lucide stroke-2. **The weight ladder moved +200 at CP-2** (owner
+   2026-08-27): 600 body · 700 labels/buttons/headings · 800+ wordmark and rare emphasis.
 6. **Dark mode is a first-class pass, not a follow-up** — every CP closes with both modes
    eyeballed and the contrast checks in § Verification run.
 
@@ -142,6 +160,13 @@ has two brand colors plus a fixed status set to speak with.**
 | 17 CP-2 dark brand-panel sidebar (`primary-1000`, `rounded-r-shell`, solid `primary-600` active row) | § Direction 1 — light panel, tinted active row |
 | 17 "hairline borders retire to internal dividers; cards are shadow-only" | § Direction 2 — hairline border **and** soft shadow |
 | 01 § Design language "Accent step: `primary-400` is the decorative accent" | § Direction 3 — `accent` scale (22) |
+| § Direction 1's own "no weight bump — the tinted row carries the active cue" | § Decisions 2026-08-27 — marker bar + one weight step on the active child |
+| 17 + § Direction 1 "topbar stays surfaceless" | § Decisions 2026-08-27 — a `surface-0` bar with a hairline bottom rule |
+| 01 weight ladder "400 body · 500 labels/buttons/headings" (owner 2026-07-22) | § Decisions 2026-08-27 — every rung +200 |
+| 01 "`font-data` heads with Atkinson Hyperlegible" (2026-07-06) | § Decisions 2026-08-27 — Work Sans Variable, so the numeric face follows the ladder |
+| 01 "the product voice's tnum can't be trusted" | 01 § Typography correction 2026-08-27 — that was Commissioner's failure; Figtree's tnum is real |
+| 2026-07-22 "the theme switcher lives in the account popover" | § Decisions 2026-08-27 — it is the first of the topbar's three action buttons |
+| § Direction 1's own "three separate **ringed** circles" (`ring-1`) | § Decisions 2026-08-27 — a 2px `border`, inside the box |
 
 Everything else in 17 and 01 stands. Both documents are edited **in CP-1**, together with the
 committed `.claude/skills/superadmin-design` mirror (same commit — 01's standing rule).
@@ -202,20 +227,76 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
 - [x] Both modes eyeballed; `npm run build` green
 
 ### CP-2 — Shell
-- [ ] Sidebar → `surface-0` panel with a hairline right border; the `primary-1000` panel and
-      `rounded-r-shell` retire (drop the `shell` radius token if nothing else uses it)
-- [ ] Rows: neutral hover; active = `bg-primary-100/60` (dark `bg-primary-1000/40`) with
-      `text-primary-700` / `primary-300` label **and** icon; `aria-current` preserved
-- [ ] Wordmark strip stays `h-14` and level with the topbar; group collapse chevron + indented,
-      icon-less children
-- [ ] Count-badge slot on nav entries (soft pill, right-aligned) — wired to a real count or left
-      out; no decorative placeholder
-- [ ] Collapsed rail + hover/focus flyouts inherit the light treatment; flyout overflow
-      behaviour unchanged; the floating collapse handle survives
-- [ ] Bottom block: Settings/Help separation + the promo-card decision (§ Open ②)
-- [ ] Topbar stays surfaceless; search-field decision (§ Open ①) recorded either way
-- [ ] Focus rings visible on the tinted rows; § Verification contrast checks pass in both modes
-- [ ] `npm run build` green
+- [x] Sidebar → `surface-0` panel with a hairline right border (dark `surface-900` /
+      `surface-800`); the `primary-1000` panel, its `rounded-r-shell` edge **and** the
+      2026-07-21 sidebar shadow all retire — a shadow between two near-white surfaces
+      separates nothing. The `shell: 2.35rem` radius token had no other users and was
+      deleted with it. The **mobile drawer** takes the same treatment (same
+      `app-sidebar` component, but the drawer's panel chrome lives on the layout's own
+      `<aside>` and had to move with it)
+- [x] Rows: neutral hover; active = `bg-primary-100/60` (dark `bg-primary-1000/40`) with
+      `text-primary-700` / `primary-300` label **and** icon. Two things this line assumed
+      were already true and were not: **`aria-current` did not exist anywhere in the
+      app** (`routerLinkActive` does not set it — `ariaCurrentWhenActive="page"` is now
+      on all three link forms: leaf rows, expanded children, flyout links), and
+      `.nav-item:hover` did not exclude `.nav-active`, so hovering the current row
+      replaced its background (harmless against the old solid row, fatal to a soft tint).
+      At the owner's direction (2026-08-27, second reference screenshot) the row also
+      gained a **left marker bar** standing in the nav gutter and **one weight step on
+      the active child** — see § Decisions; both are cues that survive a tenant with no
+      brand loaded, which the tint alone does not
+- [x] **Expanded groups draw a tree** (owner 2026-08-27, first reference screenshot):
+      a hairline rail dropping from the parent icon's centre with a rounded elbow into
+      each child row, `.nav-tree` on the children list. Geometry is derived from the
+      existing gutters rather than eyeballed — 22px to the rail (nav `px-3` + row `px-3`
+      + half a `size-5` icon), 14px of elbow reach, and the rail stops 18px off the
+      bottom, which is half a uniform `h-9` row. **The child pill starts where the elbow
+      ends** (owner 2026-08-27, fourth round): `.nav-child` moved from `pl-11` to
+      `ml-9` + `pl-2`, so the fill begins at 36px and the label stays at 44px
+- [x] Wordmark strip stays `h-14` and level with the topbar; group collapse chevron +
+      indented, icon-less children — unchanged, recolored for the light panel
+- [x] Count-badge slot — **built at the owner's request (2026-08-27), dormant by
+      design.** `NavBadge.badge?: number` on both `NavEntry` and `NavChild`, `.nav-badge`
+      styled to the reference, and the row renders no pill when the count is absent or
+      zero. **Nothing sets it yet** — the app still has no per-module count endpoint, and
+      a fabricated number is worse than an empty slot. **§ Open ⑤ closed 2026-08-27:** the
+      owner wires the source later; it stays dormant for the whole of 23. The reference paints the pill
+      green; ours rides **`accent`**, because emerald is a fixed *status* colour here
+      (positive/up) and a queue length is information, not good news — § Direction 3
+      hands informational badges to `accent`, and this is the app's first use of it
+- [x] Collapsed rail + hover/focus flyouts inherit the light treatment; flyout overflow
+      behaviour unchanged; the floating collapse handle survives. The flyout's hairline
+      ring now runs in **both** modes (it was dark-only, because the rail it escaped
+      used to be dark) and moved from `surface-700` to the card's `surface-800`
+- [x] Bottom block: **the tenant identity card** (§ Open ② — owner 2026-08-27)
+- [x] Topbar: the search field ships as a **disabled visual stub** (§ Open ① — owner
+      2026-08-27), and the real one is now **plan 24**. The `⌘K` chip **stays** (owner
+      2026-08-27, asked): it is part of the affordance the chrome is previewing, and the
+      control is `disabled`, so the hint can't be pressed into silence
+- [x] **Sectioned topbar** (owner 2026-08-27, second reference crop — replaced a first
+      pass that gathered the actions into one grouped pill): `surface-0` bar + hairline
+      bottom rule continued across the sidebar's wordmark strip, so the seam runs the
+      full width and the chrome reads as one white L; three separate `size-8` circles
+      trailing (theme · bell · account) instead of a shared shell, each drawn with a
+      **2px border** (owner 2026-08-27, third round — `ring-1` was too faint to hold a
+      circle at this diameter); the search becomes a filled borderless pill, because on a
+      white bar the fill states the field and a border would compete with the circles
+- [x] **Numeric face → Work Sans Variable** (owner 2026-08-27): `font-data` follows
+      the ladder instead of snapping to Atkinson's only Bold, and reads as a quiet
+      grotesque beside Figtree rather than a second product's voice. Tabular digits
+      verified in the binary *and* in the browser before the swap (§ Decisions)
+- [x] **Weight ladder +200** (owner 2026-08-27, "font weights are off, use 200 more
+      points"): 600 body · 700 labels/buttons/headings · 800+ wordmark. Applied at the
+      call sites, not by redefining Tailwind's scale — `font-medium` that renders 700
+      would be a lie every future reader trips on — so the sweep renamed every utility
+      (`font-medium`→`font-bold` ×207, and the three rungs above it) and set the 600
+      baseline once on `body`. Mirrored in 01 + the skill
+- [x] Focus rings visible on the tinted rows — the global ring offsets against
+      `background` (surface-100), which halos every focused row on a `surface-0` panel,
+      so `app-sidebar :focus-visible` re-offsets on the panel. § Verification contrast
+      measured in both modes (§ CP-2 contrast measurements)
+- [x] `npm run build` green; the Playwright suite still 23/23 (two specs load the real
+      shell, so a broken drawer or bell would have surfaced there)
 
 ### CP-3 — Viz kit
 - [ ] `kpi-tile` — micro-label, trailing Lucide icon, `font-data` value, delta pill (sign always
@@ -260,8 +341,8 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
       panel — scrim, option card (thumbnail + title + description + tag chip + trailing pill
       action) — lands as shared idioms
 - [ ] Detail views re-checked: client 360, equipment, report view
-- [ ] Straggler audit: arbitrary bracket values → 0; weight ladder ≤ 500 outside the sanctioned
-      emphasis list; leftover decorative `primary-400` → `accent`
+- [ ] Straggler audit: arbitrary bracket values → 0; weight ladder ≤ 700 outside the sanctioned
+      emphasis list (post-CP-2 ladder); leftover decorative `primary-400` → `accent`
 - [ ] Full § Verification pass — contrast in both modes, reduced motion, keyboard
 - [ ] `npm run build` green
 
@@ -276,6 +357,96 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
 - `prefers-reduced-motion` collapses the gauge sweep, chart animations, and row transitions.
 - Keyboard: nav group collapse, card overflow menus, and the search field are reachable and
   escapable; `aria-current` on the active nav row.
+
+## CP-2 contrast measurements (2026-08-27)
+
+Measured against the **neutral default brand** exactly as § Verification demands — hue
+220 / 10% for `primary`, hue 240 / 5% for `surface`, the shared lightness ladder — so no
+tenant hue is what saves a number. Light panel = `surface-0`, dark panel = `surface-900`.
+
+> **`surface-0` is not white.** `tailwind.config.js` builds the whole scale from the one
+> lightness table, so `surface-0` is `hsl(240 5% 98%)`; only the PrimeNG preset's parallel
+> `surface` map pins `0` to `#FFFFFF`. Measuring against white overstates every light-mode
+> number by ~2%, which is how the first pass of this table was wrong. The figures below
+> are against 98% L.
+
+| Pair | Light | Dark | Bar |
+|---|---|---|---|
+| Active row label on the tint (`primary-700` / `primary-300`) | **6.57:1** | **9.98:1** | 4.5 |
+| Active row icon on the tint | 6.57:1 | 9.98:1 | 3.0 |
+| Idle `.nav-item` (`surface-700` / `surface-300`) | 6.81:1 | 8.98:1 | 4.5 |
+| Idle `.nav-child` (`surface-600` / `surface-400`) | 4.88:1 | 6.39:1 | 4.5 |
+| Idle `.nav-icon` (`surface-500` / `surface-400`) | 3.41:1 | 6.39:1 | 3.0 |
+| Hover row text on the hover fill | 12.75:1 | 8.83:1 | 4.5 |
+| Group-active label (`surface-1000` / `surface-0`) | 16.90:1 | 13.35:1 | 4.5 |
+| Identity card: tenant name | 16.13:1 | 11.59:1 | 4.5 |
+| Identity card: caption (`surface-600` / `surface-400`) | 4.66:1 | 5.55:1 | 4.5 |
+| Active marker bar (`primary-600` / `primary-400`) on the panel | **4.83:1** | **6.42:1** | 3.0 |
+| Count badge label (`accent-700` on `accent-100` / `accent-300` on `accent-1000/40`) | 6.45:1 | 9.98:1 | 4.5 |
+| Tree rail + elbows (`surface-200` / `surface-800`) on the panel | 1.21:1 | 1.44:1 | — |
+
+Every AA bar in § Verification clears. Three things the sweep turned up that the numbers
+alone do not explain:
+
+1. **The tint itself is 1.03:1 against the panel at the neutral default** (1.11:1 dark).
+   That is not an AA failure — WCAG sets no contrast bar between two backgrounds, and
+   1.4.11 covers component *boundaries*, not fills — and the row's state is carried by
+   the label + icon hue shift and by `aria-current`, both measured above. But it is worth
+   saying plainly: with **no tenant brand loaded**, `primary-100` is a 10%-saturation
+   grey and the active fill is invisible; the label's `primary-700` is then the same
+   value as the idle `surface-700`, so the active row reads as ordinary. The old solid
+   `primary-600` row did not have that failure mode. The fallback palette exists "for the
+   no-brand instant only" (`manttio-preset.ts`), so this is a broken-`/brand` state, not
+   a steady one. **Closed the same day** by the owner's marker-bar + weight-step turn
+   (§ Decisions): `primary-600` is a mid grey at the fallback palette, so the bar still
+   measures 4.83:1 against the panel, and the child's 400→500 step carries no colour at
+   all. The tint is now the *third* cue rather than the only one. Verified on screen with
+   `/brand` answering 404.
+2. **`.micro-label`'s house `text-surface-500` measures 3.41:1 on a light panel** — under
+   the 4.5 bar for text. That is app-wide and predates this CP (91 template instances),
+   so CP-2 did not sweep it; the two *new* micro-labels it adds (the "Admin" tag, the
+   identity-card caption) sit at `surface-600` instead, and the sweep belongs in **CP-6's
+   straggler audit**.
+3. **The panel hairline is 1.16:1 against the canvas** (1.83:1 dark) — the same
+   `surface-200`-on-`surface-100` pairing CP-1 shipped on every card border with the
+   owner's sign-off. Consistent by construction; changing it here would fork the card
+   treatment. The **tree rail and elbows** ride the same step for the same reason, and
+   carry no bar of their own: they are decorative connectors restating the nesting that
+   indentation already conveys, so nothing is lost when they fall below threshold.
+
+The topbar search stub is a `disabled` control, which WCAG 1.4.3 exempts from contrast
+("inactive user interface component") — its `surface-400` placeholder is deliberate, and
+it stops being an exemption the moment plan 24 makes it live.
+
+## CP-2 review passes (2026-08-27, owner asked)
+
+The shell was reviewed against a running `:4200` — light and dark, expanded and rail,
+flyouts, mobile drawer, keyboard focus, and the identity card in all three brand states
+(logo, name-only, no brand at all). Everything the checklist claims holds up in the
+browser, and the grey-fallback caveat in § CP-2 contrast measurements reproduces exactly
+as described: the active row is discernible but weak with no tenant hue loaded.
+
+Three things the review turned up that reading the code did not:
+
+1. **No nav group was expanded on a cold load.** `autoExpandActiveGroup()` ran only from
+   the `NavigationEnd` subscription, and the panel mounts *after* that first navigation
+   fires (the layout gates the whole shell on `/auth/me`). So arriving at `/customers`
+   painted four collapsed groups and no active row at all — the tinted row this checkpoint
+   is *about* was invisible until the user opened a group by hand. Pre-existing since the
+   2026-07-23 extraction, invisible while the active cue was a solid block on a dark panel
+   you had already opened. Now expanded once in the constructor.
+2. **Operaciones and CRM wore the same icon** (`LucideHeartHandshake`), which on a light
+   panel reads as one group with a duplicated row. Operaciones is `LucideClipboardList`.
+3. **`surface-0` is `hsl(240 5% 98%)`, not white** — see the note above the table.
+
+A fourth arrived with the owner's second turn, and only a screenshot could have caught
+it: the active-row marker and the tree elbow were both written as `li::before`. An
+element has exactly one, the marker's selector outranks the elbow's, so **the active row
+silently lost its elbow** — the tree looked correct on every row except the one the user
+is standing on. The marker moved to `::after`, and both pseudo-elements now carry a
+`z-index: 1` so the rail and elbow read as continuous *through* the tinted pill instead
+of breaking behind it. (The owner later moved the pill clear of the connector entirely —
+§ Decisions, fourth round — so the lift now only guards the joint where the two meet.)
 
 ## Decisions
 
@@ -298,11 +469,129 @@ every CP, and **no screenshots unless the owner asks** — the owner watches `:4
 - **Derived (2026-08-26, planning):** cards regain a hairline border · `accent` never carries
   a status meaning alone · 17's `primary-400` accent step retires · the viz kit ships only
   what CP-4 actually uses.
-- **Open — decide at the CP that needs it:** ① **topbar global search** — the reference's
-  headline affordance, but superadmin has no cross-module search today: build it (its own
-  plan), stub it visually, or leave the topbar as-is (CP-2). *Recommendation:* leave it out
-  until there is something to search; a decorative search box is a lie. ② The sidebar's
-  **bottom promo card** — what goes there in a tenant admin (support link? plan/usage? nothing)?
-  (CP-2). ③ The **outer rounded app frame** — adopt the inset frame or keep the current
-  edge-to-edge shell (CP-1). ④ Whether the gauge's default fill is `accent` or emerald when the
-  metric has no good/bad direction (CP-3).
+- **Decided 2026-08-27 (owner, at CP-2) — both § Open items due here:**
+  - ① **The topbar search ships as a visual stub, and the real one becomes plan 24.**
+    The owner overrode the recommendation to leave it out: the chrome lands now, the
+    capability is planned rather than deferred indefinitely. The stub is a `disabled`
+    field-shaped control (`.topbar-search`, `md:` and up) with the magnifier, the
+    placeholder and the `⌘K` hint — **disabled on purpose**, so it previews the chrome
+    without being a live box that swallows keystrokes and answers nothing. Plan 24 owns
+    the endpoint, the palette, the shortcut and the scope; until it lands the `⌘K` hint
+    is chrome, not a working binding.
+  - ② **The sidebar's bottom block is the tenant identity card**, not a promo card. A
+    tenant admin has nothing honest to promote — no plan/usage to upsell, no marketing
+    slot — so the space answers a question the app never answered before: *whose* admin
+    am I inside. Tenant logo (the dark variant picked by theme, exactly as the login
+    brand panel picks it) or the tenant name when there is no logo, plus a muted
+    "Panel de administración" caption, on a `surface-100` tile behind a hairline top
+    rule. Gated on `BrandState.loaded`, so a branded tenant never flashes the manttio
+    fallback; the collapsed rail shows the square isologo alone, and nothing at all when
+    the tenant has no isologo.
+- **Decided 2026-08-27 (owner, reviewing CP-2 against the reference) — the active row
+  gets two more cues, and § Direction 1's "no weight bump" is superseded:**
+  - **A left marker bar, on top-level rows only.** A `primary-600` (dark `primary-400`)
+    3×20px pill standing in the nav's `px-3` gutter, left of the tinted row and clear of
+    it. **Highlight-only for the active child; highlight + bar for the parent it sits
+    under** (owner, refining the same day) — the bar marks the entry you are *inside*,
+    and keeping it off children leaves the gutter to the tree. Selected as
+    `.nav-rail > ul > li:has(> .nav-active, > .nav-group-active)::after`, drawn on the
+    `li` because `.nav-item`/`.nav-child` are `overflow-hidden` for the rail's width ease,
+    and offset from the **top** rather than centred: an expanded group's `li` wraps its
+    whole children list, so `top: 50%` would drop the bar into the middle of the group.
+    This is the cue that does **not** depend on the tenant's hue: 4.83:1 against the panel
+    at the neutral fallback, where the tint measures 1.03:1. It is therefore also the
+    answer to § CP-2 contrast measurements finding ①.
+  - **The active-trail parent is highlighted, not muted.** § Direction 1 had the group
+    holding the current page carry "the same emphasis one step quieter"; it now takes the
+    same tint and the same primary label as an active row. Hover had to learn about it
+    too — `.nav-item:not(.nav-active):not(.nav-group-active):hover`, or hovering the
+    parent washes its tint away, the same bug the active row had.
+  - **One weight step on the active child.** `.nav-child` idles one rung below `.nav-item`;
+    the active child now matches its parent. Colour-free, and still inside the ladder —
+    400/500 when decided, 600/700 after the same day's +200 turn. § Direction 1's "no weight bump — the tinted row carries the
+    active cue" is retired: the tinted row could not carry it alone.
+  - **The count badge rides `accent`, not the reference's green.** Emerald is a fixed
+    status colour in this app (positive/up) and a queue length is neither good nor bad;
+    § Direction 3 already assigns "informational badges" to `accent`. The slot ships
+    dormant — no entry sets a count, because no endpoint produces one.
+- **Decided 2026-08-27 (owner, second review round) — type weight and the topbar:**
+  - **The weight ladder moves +200, wholesale.** "Font weights are off — use 200 more
+    points." Every rung of the 2026-07-22 400/500 ladder shifts two steps: **600 body ·
+    700 labels/buttons/headings · 800+ wordmark and rare emphasis.** That turn's
+    *reasoning* survives inside the ladder — size and tracking still carry hierarchy, no
+    active state bumps weight — the whole thing just sits heavier. Two consequences worth
+    knowing: (a) the 600 baseline is set once on `body`, so everything that states no
+    weight inherits it, which is why the sweep is 207 renamed utilities and not 800; and
+    (b) `font-data` (Atkinson Hyperlegible) ships only 400 and 700, so CSS font matching
+    snaps every rung ≥ 600 to the 700 face — numerals, money columns and select values all
+    land on Atkinson Bold. That reads *in step* with the heavier chrome rather than broken,
+    but it is a real change to every data cell in the app and the cheapest place to walk it
+    back is the one `font-semibold` on `body`. **(b) was closed the same day** —
+    see the Work Sans swap below.
+  - **The numeric face becomes Work Sans Variable** (owner, immediately after seeing
+    the ladder land: "can we use a different font for numbers? maybe work sans").
+    Atkinson Hyperlegible had two problems at once: it ships only 400 and 700, so
+    every rung of the new ladder snapped to Bold, and its high-legibility letterforms
+    read as a different product sitting inside a Figtree cell. Work Sans is variable
+    100–900, so `font-data` now tracks the same rungs as the body text, and it sits
+    beside Figtree as a quiet grotesque.
+    **Verified before adopting, not assumed** — the repo's own 2026-07-06 lesson is
+    that Commissioner *declared* `tnum` and it was a no-op. Checked twice: in the
+    binary, `tnum` maps every digit to a `.tf` glyph at a uniform 604/1000 advance;
+    in the browser, every digit measures 80px per 10 at both 600 and 700, and
+    90/60/80… with the feature off — so the feature is what aligns the columns, not
+    an accidentally monospaced face.
+    **Side finding, recorded in 01:** Figtree's `tnum` is real too (uniform 620/1000).
+    The old rule "the product voice's tnum can't be trusted" was a generalization of
+    Commissioner's failure and expired when Figtree replaced it; a separate numeric
+    face is now a design choice, not a workaround.
+  - **The topbar is sectioned, and the actions are three separate circles.** First pass
+    gathered bell + account into one bordered pill; the reference crops show otherwise and
+    the owner rejected it. What the reference actually draws: a white bar with a hairline
+    bottom rule, a vertical seam between the wordmark and the search, a *filled borderless*
+    search pill, and three detached ringed circles on the trailing edge. Ours reproduces
+    each — the vertical seam for free (the sidebar's `border-r`, since the strips are
+    already level at `h-14`), the horizontal rule by giving the sidebar's wordmark strip
+    the same `border-b` so it runs unbroken across the full width.
+  - **The theme switcher comes back out of the account popover.** It is the first of the
+    reference's three circles. Kept in *one* place, not both — two controls for one setting
+    is how a shell rots. Supersedes the 2026-07-22 slim-topbar decision.
+  - **The account button loses its name and chevron.** The reference's avatar carries
+    neither, and the popover it opens already states name + email + role. The name reaches
+    assistive tech and the tooltip through `aria-label`/`title` instead, so nothing that was
+    readable stopped being readable.
+- **Decided 2026-08-27 (owner, third review round) — the action circles get a 2px
+  border.** The sectioned strip was accepted ("this is good"); the stroke was not. At
+  `size-10` a `ring-1` hairline dissolved into the white bar and the three circles read as
+  smudges rather than buttons — the reference draws a stroke you can see. **`border-2`, not
+  `ring-2`:** Tailwind's ring is an outward box-shadow spread, so a 2px ring would grow each
+  circle by 4px visually and shrink the row's `gap-2` to 4px of daylight; a border sits
+  inside the box and leaves the 8px gap intact. Hover moves the border one step darker
+  (`surface-300`, `primary-300`) instead of only the fill, so the stroke stays the thing the
+  eye tracks. Applies to `.topbar-avatar` too — same circle, brand-tinted.
+  - **The `⌘K` chip stays in the search stub** (owner: "no", asked whether to drop it
+    while the binding does not exist). It is part of what the control *shows* — the chrome
+    is previewing the affordance the way the reference draws it, and the button is
+    `disabled`, so nobody can press the hint and get silence. Plan 24 makes it true.
+- **⑤ closed 2026-08-27 (owner) — `NavBadge.badge` is deferred, and the owner will wire
+  it.** The slot ships **dormant**: styled, `accent`-tinted, and set by nothing. No
+  placeholder count, no invented source — a badge that shows a number nobody can act on is
+  worse than an empty rail. Whatever counting endpoint eventually feeds it is the owner's
+  to pick and implement; CP-2 is done at the slot.
+- **Decided 2026-08-27 (owner, fourth review round) — the child highlight starts where
+  the connector ends.** The tint used to span the full child row, so the tree's rail ran
+  straight down the face of the active pill and the elbow crossed into it; lifting both
+  over the fill made that legible, not correct. `.nav-child` moves from `pl-11` to
+  **`ml-9` + `pl-2`**: 22px of rail plus the elbow's 14px of reach is exactly 36px, so
+  the elbow now terminates *at* the pill's left edge and the highlight begins there. The
+  label does not move — 36 + 8 is the same 44px `pl-11` gave it — so this changes only
+  where the fill starts, in both the active tint and the hover tint.
+- **Decided 2026-08-27 (owner, fifth review round) — the action circles are `size-8`
+  (32px), not `size-10`.** The icons drop with them, `size-5` → `size-4`, keeping the
+  half-diameter proportion the 40px circles had — a 20px glyph in a 28px content box would
+  have left 4px of air and read as a cramped button rather than a small one. The bell's
+  unread badge rescales too (`h-4` → `h-3.5`) and moves onto the circle's upper-right arc
+  (`-right-0.5 -top-0.5`): at the old size it covered half the smaller bell. **The search
+  pill is still `h-10`** — flagged to the owner, not changed unasked.
+- **Open — decide at the CP that needs it:** ④ Whether the gauge's default fill is
+  `accent` or emerald when the metric has no good/bad direction (CP-3).

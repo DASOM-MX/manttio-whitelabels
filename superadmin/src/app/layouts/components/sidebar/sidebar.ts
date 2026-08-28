@@ -11,14 +11,18 @@ import {
 } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { SetSidebarCollapsed } from '../../../../state/app/app.actions';
+import { AppState } from '../../../../state/app/app.state';
 import { AuthState } from '../../../../state/auth/auth.state';
+import { BrandState } from '../../../../state/brand/brand.state';
 import { navFor } from '../../../guards/nav-for.guard';
 
-/** The brand nav panel (extracted from the authenticated layout 2026-07-23).
- *  Rendered twice: the desktop aside (which drives `collapsed` from
- *  `AppState.sidebarCollapsed`) and the mobile drawer (always expanded).
- *  Collapsed = icon rail; each row reveals a flyout submenu on hover/focus
- *  (CSS-only — see styles.scss `.nav-flyout*`). */
+/** The nav panel (extracted from the authenticated layout 2026-07-23; a LIGHT
+ *  `surface-0` panel since plan 23 CP-2 — the tenant's hue moved off the
+ *  furniture and onto the active row). Rendered twice: the desktop aside
+ *  (which drives `collapsed` from `AppState.sidebarCollapsed`) and the mobile
+ *  drawer (always expanded). Collapsed = icon rail; each row reveals a flyout
+ *  submenu on hover/focus (CSS-only — see styles.scss `.nav-flyout*`). The
+ *  footer carries the tenant identity card (§ Open ②). */
 @Component({
   selector: 'app-sidebar',
   imports: [
@@ -43,6 +47,29 @@ export class Sidebar {
   closed = output<void>();
 
   private me = select(AuthState.me);
+  private brand = select(BrandState.brand);
+  private darkMode = select(AppState.darkMode);
+
+  /** The footer's tenant identity card (plan 23 CP-2, § Open ②). It waits for
+   *  `/brand` to settle so the panel never flashes the manttio fallback at a
+   *  branded tenant, then falls back to it exactly as the login panel does. */
+  protected brandLoaded = select(BrandState.loaded);
+  protected brandName = computed(() => this.brand()?.name ?? 'manttio');
+  /** Dark-surface logo variant on the dark panel, same choice the login
+   *  brand panel makes; `logoDarkUrl` falls back to `logoUrl` by contract. */
+  protected brandLogoUrl = computed(() => {
+    const brand = this.brand();
+    if (!brand) return undefined;
+    return this.darkMode() ? (brand.logoDarkUrl ?? brand.logoUrl) : brand.logoUrl;
+  });
+  /** Square mark for the collapsed rail — omitted entirely when the tenant
+   *  has no isologo (no placeholder tile). */
+  protected brandMarkUrl = computed(() => this.brand()?.isologoUrl);
+  /** The rail carries the footer only when it has a mark to put there: an
+   *  empty bordered strip at the bottom of an icon rail is worse than none. */
+  protected footerVisible = computed(
+    () => this.brandLoaded() && (!this.collapsed() || !!this.brandMarkUrl()),
+  );
 
   /** Sidebar entries the current `(module availability, role)` allows (access.ts). */
   private navEntries = computed(() => navFor(this.me()));
@@ -66,6 +93,14 @@ export class Sidebar {
   });
 
   constructor() {
+    // The panel mounts *after* the first NavigationEnd has already fired (the
+    // layout gates the whole shell on `/auth/me`), so the subscription below
+    // never sees the navigation that brought us here — a cold load used to
+    // paint every group collapsed, hiding the active row entirely until the
+    // user opened a group by hand. Expand once up front (found reviewing the
+    // 23 CP-2 shell against a running server, 2026-08-27).
+    this.autoExpandActiveGroup();
+
     this.router.events
       .pipe(
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),

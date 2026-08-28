@@ -1,14 +1,14 @@
 <button
   type="button"
-  class="relative inline-flex size-10 items-center justify-center rounded-full text-surface-700 transition-colors hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800"
+  class="topbar-action"
   (click)="panel.toggle($event)"
   [attr.aria-label]="bellAria()"
   aria-haspopup="true"
 >
-  <svg lucideBell class="size-5" aria-hidden="true"></svg>
+  <svg lucideBell class="size-4" aria-hidden="true"></svg>
   @if (hasUnread()) {
     <span
-      class="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-600 px-1 text-2xs font-medium leading-none text-white dark:bg-primary-500"
+      class="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary-600 px-1 text-2xs font-bold leading-none text-white dark:bg-primary-500"
       aria-hidden="true"
     >
       {{ badgeText() }}
@@ -59,7 +59,7 @@
                 </span>
               }
               <span class="min-w-0 flex-1">
-                <span class="block truncate text-sm font-medium text-surface-900 dark:text-surface-100">
+                <span class="block truncate text-sm font-bold text-surface-900 dark:text-surface-100">
                   {{ row.n.title }}
                 </span>
                 <span class="mt-0.5 line-clamp-2 block text-sm leading-snug text-surface-600 dark:text-surface-400">

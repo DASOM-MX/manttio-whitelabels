@@ -69,14 +69,14 @@
       <!-- Whole row opens the unit (canon idiom); the eye link stays the
            keyboard path. -->
       <tr class="cursor-pointer" (click)="openEquipment(eq)">
-        <td class="font-medium">{{ eq.name || '—' }}</td>
+        <td class="font-bold">{{ eq.name || '—' }}</td>
         <td>{{ eq.kind || '—' }}</td>
         <td>{{ eq.brand || '—' }} {{ eq.model }}</td>
         <td class="font-data tabular-nums">{{ eq.serialNumber || '—' }}</td>
         <td (click)="$event.stopPropagation()">
           <a
             [routerLink]="['/customers', eq.customerId]"
-            class="font-medium text-primary-700 hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
+            class="font-bold text-primary-700 hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
             >{{ eq.customerName }}</a
           >
         </td>

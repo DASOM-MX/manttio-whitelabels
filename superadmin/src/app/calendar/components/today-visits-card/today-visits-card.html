@@ -27,9 +27,9 @@
           <td class="whitespace-nowrap font-data text-sm tabular-nums">
             {{ visit.scheduledStart | date: 'HH:mm' }}
           </td>
-          <td class="font-medium">
+          <td class="font-bold">
             {{ visit.customerName || '—' }}
-            <span class="block text-xs font-normal text-surface-500 dark:text-surface-400">
+            <span class="block text-xs font-semibold text-surface-500 dark:text-surface-400">
               {{ visit.title || visit.serviceOrderFolio }}
             </span>
           </td>

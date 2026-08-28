@@ -4,11 +4,11 @@ import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { PopoverModule } from 'primeng/popover';
 import {
-  LucideChevronDown,
   LucideLogOut,
   LucideMenu,
   LucideMoon,
   LucideRefreshCw,
+  LucideSearch,
   LucideSun,
   LucideUserRound,
 } from '@lucide/angular';
@@ -30,9 +30,9 @@ import { Sidebar } from '../components/sidebar/sidebar';
     LucideSun,
     LucideMoon,
     LucideLogOut,
-    LucideChevronDown,
     LucideUserRound,
     LucideRefreshCw,
+    LucideSearch,
     ForcePasswordDialog,
     NotificationCenter,
     Sidebar,
@@ -52,6 +52,15 @@ export class AuthenticatedLayout {
     () => this.meStatus() === MeStatus.Idle || this.meStatus() === MeStatus.Loading,
   );
   protected hasError = computed(() => this.meStatus() === MeStatus.Error);
+
+  /** The topbar's account button is an avatar circle with no visible name
+   *  (23 CP-2 sectioned-topbar turn), so the name has to reach assistive tech
+   *  and the tooltip some other way. */
+  protected accountLabel = computed(() => {
+    const name = this.me()?.user?.name;
+    return name ? `Cuenta — ${name}` : 'Cuenta';
+  });
+  protected themeLabel = computed(() => (this.darkMode() ? 'Modo claro' : 'Modo oscuro'));
 
   protected drawerOpen = signal(false);
   /** Desktop sidebar rail state — the Sidebar component dispatches the

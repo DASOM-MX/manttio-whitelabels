@@ -3,7 +3,7 @@
   <div
     class="flex h-dvh flex-col items-center justify-center gap-4 bg-background dark:bg-surface-1000"
   >
-    <p class="font-semibold text-2xl tracking-tight text-surface-1000 dark:text-surface-0">
+    <p class="font-extrabold text-2xl tracking-tight text-surface-1000 dark:text-surface-0">
       manttio
     </p>
     <div
@@ -15,7 +15,7 @@
 } @else if (hasError()) {
   <div class="flex h-dvh items-center justify-center bg-background p-6 dark:bg-surface-1000">
     <div class="card-section w-full max-w-sm text-center">
-      <h1 class="text-lg font-medium text-surface-1000 dark:text-surface-0">
+      <h1 class="text-lg font-bold text-surface-1000 dark:text-surface-0">
         No se pudo cargar tu sesión
       </h1>
       <p class="mt-2 text-sm text-surface-600 dark:text-surface-400">
@@ -32,9 +32,9 @@
   </div>
 } @else {
   <div class="flex h-dvh bg-background dark:bg-surface-1000">
-    <!-- Desktop sidebar: shares the page background — a smooth neutral shadow
-         (not a hairline) separates it from the content column (owner
-         redesign 2026-07-21). z-20 so it casts over the z-10 topbar.
+    <!-- Desktop sidebar: a light `surface-0` panel with a hairline right
+         border (owner 2026-08-26, plan 23 CP-2 — supersedes the dark brand
+         panel and its shadow). z-20 so it stays over the z-10 topbar.
          Collapsible into an icon rail (owner 2026-07-23); the w-64⇄w-20 change
          eases via .shell-sidebar's width transition (owner 2026-07-24,
          supersedes the width-snap), snapping under reduced motion. -->
@@ -57,7 +57,7 @@
         aria-hidden="true"
       ></div>
       <aside
-        class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-11/12 flex-col rounded-r-shell border border-l-0 border-primary-800/50 bg-primary-1000 shadow-xl lg:hidden"
+        class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-11/12 flex-col border-r border-surface-200 bg-surface-0 shadow-xl lg:hidden dark:border-surface-800 dark:bg-surface-900"
         animate.enter="anim-drawer-enter"
         animate.leave="anim-drawer-leave"
         aria-label="Navegación principal"
@@ -67,42 +67,84 @@
     }
 
     <div class="flex min-w-0 flex-1 flex-col">
-      <!-- Topbar: a slim surfaceless strip (owner 2026-07-22 — h-16→h-14,
-           then shadow and white bg removed the same day): the bell + user
-           pill float directly on the canvas; the theme switcher lives in
-           the user popover. Gutters stay aligned with the content column. -->
-      <header class="relative z-10 flex h-14 shrink-0 items-center gap-2 px-4 sm:px-6">
+      <!-- Topbar: a SECTIONED strip (owner 2026-08-27, reference crops —
+           supersedes the 2026-07-22 surfaceless strip). `surface-0` fill and a
+           hairline bottom rule, level and continuous with the sidebar's own
+           `h-14` wordmark strip, so the chrome reads as one white L against
+           the content well. The vertical seam the reference draws between the
+           wordmark and the search is the sidebar's `border-r`, not a rule of
+           our own. Search pill leading, three ROUNDED ACTION BUTTONS trailing
+           — theme · bell · account, each its own circle with a 2px
+           border (owner 2026-08-27). Gutters stay aligned with the content
+           column. -->
+      <header
+        class="relative z-10 flex h-14 shrink-0 items-center gap-3 border-b border-surface-200 bg-surface-0 px-4 sm:px-6 dark:border-surface-800 dark:bg-surface-900"
+      >
         <button
           type="button"
-          class="inline-flex size-10 items-center justify-center rounded-full text-surface-700 hover:bg-surface-100 lg:hidden dark:text-surface-300 dark:hover:bg-surface-800"
+          class="topbar-action lg:hidden"
           (click)="drawerOpen.set(true)"
           aria-label="Abrir menú"
         >
-          <svg lucideMenu class="size-5" aria-hidden="true"></svg>
+          <svg lucideMenu class="size-4" aria-hidden="true"></svg>
+        </button>
+
+        <!-- Global search (owner 2026-08-27, plan 23 § Open ①): the
+             reference's headline topbar affordance, shipped as a VISUAL STUB —
+             superadmin has no cross-module search yet, so the control is
+             `disabled` rather than a live box that swallows keystrokes and
+             answers nothing. Plan 24 owns the real one. Hidden below `md`,
+             where the strip has no room for it. -->
+        <button
+          type="button"
+          class="topbar-search hidden md:flex"
+          disabled
+          title="Búsqueda global — próximamente"
+          aria-label="Búsqueda global — próximamente"
+        >
+          <svg lucideSearch class="size-4 shrink-0" aria-hidden="true"></svg>
+          <span class="flex-1 text-left">Buscar…</span>
+          <kbd class="topbar-search-hint">⌘K</kbd>
         </button>
 
         <div class="flex-1"></div>
 
-        <app-notification-center />
+        <!-- The reference's action row: theme · bell · avatar, three separate
+             circles. The theme switcher came back OUT of the account popover
+             here (owner 2026-08-27 — it is the first of the three) and is no
+             longer duplicated inside it. -->
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="topbar-action"
+            (click)="toggleDark()"
+            [attr.aria-label]="themeLabel()"
+            [title]="themeLabel()"
+          >
+            @if (darkMode()) {
+              <svg lucideSun class="size-4" aria-hidden="true"></svg>
+            } @else {
+              <svg lucideMoon class="size-4" aria-hidden="true"></svg>
+            }
+          </button>
 
-        <button
-          type="button"
-          class="flex h-10 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-surface-800 transition-colors hover:bg-surface-100 dark:text-surface-200 dark:hover:bg-surface-800"
-          (click)="userMenu.toggle($event)"
-          aria-haspopup="true"
-        >
-          <span
-            class="inline-flex size-7 items-center justify-center rounded-full bg-primary-100 text-primary-800 dark:bg-primary-1000/60 dark:text-primary-300"
+          <app-notification-center />
+
+          <button
+            type="button"
+            class="topbar-avatar"
+            (click)="userMenu.toggle($event)"
+            aria-haspopup="true"
+            [attr.aria-label]="accountLabel()"
+            [title]="accountLabel()"
           >
             <svg lucideUserRound class="size-4" aria-hidden="true"></svg>
-          </span>
-          <span class="hidden max-w-40 truncate sm:inline">{{ me()?.user?.name }}</span>
-          <svg lucideChevronDown class="size-4 text-surface-500" aria-hidden="true"></svg>
-        </button>
+          </button>
+        </div>
         <p-popover #userMenu appendTo="body">
           <div class="w-64 py-1.5">
             <div class="border-b border-surface-200 px-4 py-3 dark:border-surface-800">
-              <p class="truncate text-sm font-medium text-surface-1000 dark:text-surface-0">
+              <p class="truncate text-sm font-bold text-surface-1000 dark:text-surface-0">
                 {{ me()?.user?.name }}
               </p>
               <p class="mt-0.5 truncate text-sm text-surface-600 dark:text-surface-400">
@@ -110,24 +152,9 @@
               </p>
               <p class="micro-label mt-2">{{ me()?.role }}</p>
             </div>
-            <!-- Theme switcher lives here since the slim-topbar turn (owner
-                 2026-07-22) — the strip keeps only the bell + user pill. -->
             <button
               type="button"
-              class="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-surface-800 transition-colors hover:bg-surface-100 dark:text-surface-200 dark:hover:bg-surface-800"
-              (click)="toggleDark()"
-            >
-              @if (darkMode()) {
-                <svg lucideSun class="size-4" aria-hidden="true"></svg>
-                Modo claro
-              } @else {
-                <svg lucideMoon class="size-4" aria-hidden="true"></svg>
-                Modo oscuro
-              }
-            </button>
-            <button
-              type="button"
-              class="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-red-700 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+              class="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-bold text-red-700 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
               (click)="logout()"
             >
               <svg lucideLogOut class="size-4" aria-hidden="true"></svg>

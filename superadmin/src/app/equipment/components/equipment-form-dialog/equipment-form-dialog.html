@@ -85,7 +85,7 @@
     </div>
 
     <div class="field-group sm:col-span-2">
-      <label class="field-label">Fotos <span class="font-normal text-surface-400">(máx. 3)</span></label>
+      <label class="field-label">Fotos <span class="font-semibold text-surface-400">(máx. 3)</span></label>
       <div class="flex flex-wrap gap-2">
         @for (photo of photos(); track photo; let i = $index) {
           <div
@@ -107,7 +107,7 @@
             class="flex size-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-surface-300 text-surface-500 transition-colors hover:border-primary-500 hover:text-primary-700 dark:border-surface-700 dark:hover:border-primary-500"
           >
             <svg lucideImagePlus class="size-5" aria-hidden="true"></svg>
-            <span class="text-xs font-medium">Agregar</span>
+            <span class="text-xs font-bold">Agregar</span>
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp"

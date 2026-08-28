@@ -105,7 +105,7 @@ export class VisitHoverCardPipe implements PipeTransform {
 }
 
 const row = (label: string, value: string): string =>
-  `<p><span class="font-medium">${label}:</span> ${value}</p>`;
+  `<p><span class="font-bold">${label}:</span> ${value}</p>`;
 
 const escapeHtml = (value: string): string =>
   value.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);

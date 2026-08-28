@@ -70,7 +70,7 @@
   @apply ml-1 inline-block align-middle size-3.5 text-primary-600 dark:text-primary-400;
 }
 .p-datatable-sort-badge {
-  @apply ml-1 inline-flex items-center justify-center size-4 rounded-full bg-primary-600 text-white text-2xs font-semibold;
+  @apply ml-1 inline-flex items-center justify-center size-4 rounded-full bg-primary-600 text-white text-2xs font-extrabold;
 }
 .p-datatable-tbody {
   @apply bg-white dark:bg-surface-900;
@@ -196,7 +196,7 @@
 .p-paginator-last {
   // rounded-control since the default-PrimeNG button turn (owner 2026-07-22
   // — paginator pages follow the .btn shape, no more circles).
-  @apply size-9 inline-flex items-center justify-center rounded-control text-sm font-medium font-data tabular-nums text-surface-800 hover:bg-primary-0 cursor-pointer transition-colors
+  @apply size-9 inline-flex items-center justify-center rounded-control text-sm font-bold font-data tabular-nums text-surface-800 hover:bg-primary-0 cursor-pointer transition-colors
          dark:text-surface-200 dark:hover:bg-surface-800;
 
   &.p-paginator-page-selected {

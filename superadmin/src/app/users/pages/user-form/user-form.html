@@ -64,13 +64,13 @@
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
             <p class="field-label">Nombre</p>
-            <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+            <p class="mt-1 text-sm font-bold text-surface-900 dark:text-surface-100">
               {{ user.name }}
             </p>
           </div>
           <div>
             <p class="field-label">Apellidos</p>
-            <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+            <p class="mt-1 text-sm font-bold text-surface-900 dark:text-surface-100">
               {{ user.paternalLastName }} {{ user.maternalLastName }}
               @if (!user.paternalLastName && !user.maternalLastName) {
                 —
@@ -79,13 +79,13 @@
           </div>
           <div>
             <p class="field-label">Correo</p>
-            <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+            <p class="mt-1 text-sm font-bold text-surface-900 dark:text-surface-100">
               {{ user.email }}
             </p>
           </div>
           <div>
             <p class="field-label">Teléfono</p>
-            <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+            <p class="mt-1 text-sm font-bold text-surface-900 dark:text-surface-100">
               {{ user.phone || '—' }}
             </p>
           </div>
@@ -109,7 +109,7 @@
           </div>
           <div>
             <p class="field-label">Alta</p>
-            <p class="mt-1 text-sm font-medium text-surface-900 dark:text-surface-100">
+            <p class="mt-1 text-sm font-bold text-surface-900 dark:text-surface-100">
               {{ user.createdAt | date: 'dd/MM/y' }}
             </p>
           </div>
@@ -256,7 +256,7 @@
     @if (selected(); as user) {
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p class="text-sm font-medium text-surface-900 dark:text-surface-100">
+          <p class="text-sm font-bold text-surface-900 dark:text-surface-100">
             @if (user.active) {
               Desactivar cuenta
             } @else {
@@ -290,7 +290,7 @@
     @if (canReset()) {
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p class="text-sm font-medium text-surface-900 dark:text-surface-100">
+          <p class="text-sm font-bold text-surface-900 dark:text-surface-100">
             Restablecer contraseña
           </p>
           <p class="mt-0.5 max-w-md text-sm text-surface-600 dark:text-surface-400">

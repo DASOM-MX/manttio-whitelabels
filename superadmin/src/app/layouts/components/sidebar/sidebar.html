@@ -1,20 +1,22 @@
 <!-- Header row: wordmark (expanded) + drawer close (mobile) / rail toggle
      (desktop). h-14 to stay level with the topbar strip (slim-topbar turn
-     2026-07-22). -->
+     2026-07-22), and since the sectioned-topbar turn (2026-08-27) it carries
+     the same hairline bottom rule, so that rule runs unbroken across the full
+     width of the shell — the reference's horizontal seam. -->
 <div
-  class="flex h-14 shrink-0 items-center"
+  class="flex h-14 shrink-0 items-center border-b border-surface-200 dark:border-surface-800"
   [class.gap-2]="!collapsed()"
   [class.px-4]="!collapsed()"
   [class.justify-center]="collapsed()"
 >
   @if (!collapsed()) {
-    <p class="text-lg font-bold tracking-tight text-white">manttio</p>
-    <p class="mt-0.5 text-2xs font-medium text-primary-300">Admin</p>
+    <p class="text-lg font-black tracking-tight text-surface-1000 dark:text-surface-0">manttio</p>
+    <p class="mt-0.5 text-2xs font-bold text-surface-600 dark:text-surface-400">Admin</p>
     <div class="flex-1"></div>
   }
   <button
     type="button"
-    class="inline-flex size-9 items-center justify-center rounded-full text-primary-200 hover:bg-white/10 lg:hidden"
+    class="inline-flex size-9 items-center justify-center rounded-full text-surface-600 hover:bg-surface-100 lg:hidden dark:text-surface-300 dark:hover:bg-surface-800"
     (click)="closed.emit()"
     aria-label="Cerrar menú"
   >
@@ -28,7 +30,7 @@
      canvas, 20px from the top. Desktop only; the drawer keeps its X. -->
 <button
   type="button"
-  class="absolute right-0 top-5 z-10 hidden size-4 translate-x-1/2 items-center justify-center rounded-full bg-white text-surface-600 shadow-card ring-1 ring-surface-200 transition-colors hover:bg-surface-100 lg:flex dark:bg-surface-900 dark:text-surface-300 dark:ring-surface-700 dark:hover:bg-surface-800"
+  class="absolute right-0 top-5 z-10 hidden size-4 translate-x-1/2 items-center justify-center rounded-full bg-white text-surface-600 shadow-card ring-1 ring-surface-200 transition-colors hover:bg-surface-100 lg:flex dark:bg-surface-900 dark:text-surface-300 dark:ring-surface-800 dark:hover:bg-surface-800"
   (click)="toggleCollapse()"
   [attr.aria-label]="collapsed() ? 'Expandir menú' : 'Contraer menú'"
   [attr.aria-expanded]="!collapsed()"
@@ -45,7 +47,7 @@
 <nav class="nav-rail flex-1 px-3 py-3" [class.overflow-y-auto]="!collapsed()" aria-label="Módulos">
   <ul class="flex flex-col gap-1">
     @for (entry of navView(); track entry.label) {
-      <li [class.nav-flyout-host]="collapsed()">
+      <li class="relative" [class.nav-flyout-host]="collapsed()">
         @if (entry.children) {
           @if (collapsed()) {
             <!-- Rail icon navigates to the group's landing route; the
@@ -70,6 +72,7 @@
                         class="nav-flyout-link"
                         [routerLink]="child.route"
                         routerLinkActive="nav-active"
+                        ariaCurrentWhenActive="page"
                         [routerLinkActiveOptions]="{ exact: child.exact ?? false }"
                       >
                         {{ child.label }}
@@ -89,24 +92,31 @@
             >
               <svg lucideIcon [lucideIcon]="entry.icon" class="nav-icon" aria-hidden="true"></svg>
               <span class="flex-1 text-left">{{ entry.label }}</span>
+              @if (entry.badge) {
+                <span class="nav-badge">{{ entry.badge }}</span>
+              }
               <svg
                 lucideChevronDown
-                class="size-4 shrink-0 text-primary-300 transition-transform"
+                class="size-4 shrink-0 text-surface-400 transition-transform dark:text-surface-500"
                 [class.-rotate-90]="!entry.expanded"
                 aria-hidden="true"
               ></svg>
             </button>
             @if (entry.expanded) {
-              <ul class="pt-1 flex flex-col gap-0.5" animate.enter="anim-fade-enter">
+              <ul class="nav-tree pt-1 flex flex-col gap-0.5" animate.enter="anim-fade-enter">
                 @for (child of entry.children; track child.route) {
                   <li>
                     <a
                       class="nav-child"
                       [routerLink]="child.route"
                       routerLinkActive="nav-active"
+                      ariaCurrentWhenActive="page"
                       [routerLinkActiveOptions]="{ exact: child.exact ?? false }"
                     >
-                      {{ child.label }}
+                      <span class="flex-1">{{ child.label }}</span>
+                      @if (child.badge) {
+                        <span class="nav-badge">{{ child.badge }}</span>
+                      }
                     </a>
                   </li>
                 }
@@ -120,12 +130,16 @@
             [class.!px-0]="collapsed()"
             [routerLink]="entry.route"
             routerLinkActive="nav-active"
+            ariaCurrentWhenActive="page"
             [routerLinkActiveOptions]="{ exact: entry.exact ?? false }"
             [attr.aria-label]="collapsed() ? entry.label : null"
           >
             <svg lucideIcon [lucideIcon]="entry.icon" class="nav-icon" aria-hidden="true"></svg>
             @if (!collapsed()) {
-              {{ entry.label }}
+              <span class="flex-1">{{ entry.label }}</span>
+              @if (entry.badge) {
+                <span class="nav-badge">{{ entry.badge }}</span>
+              }
             }
           </a>
           @if (collapsed()) {
@@ -141,3 +155,30 @@
     }
   </ul>
 </nav>
+
+<!-- Sidebar footer (owner 2026-08-27, plan 23 § Open ②): the reference puts a
+     dark promo card here; a tenant admin has nothing honest to promote, so the
+     slot carries the tenant's identity instead — whose data you are inside.
+     Brand-driven with the login screen's manttio fallback, and nothing renders
+     until `/brand` settles so the panel never flashes the wrong name. The dark
+     logo variant is picked by theme, the same choice the login panel makes. -->
+@if (footerVisible()) {
+  <div class="shrink-0 border-t border-surface-200 p-3 dark:border-surface-800">
+    @if (collapsed()) {
+      <img [src]="brandMarkUrl()!" [alt]="brandName()" class="nav-brand-mark mx-auto" />
+    } @else {
+      <div class="nav-brand-card">
+        @if (brandLogoUrl(); as logo) {
+          <img [src]="logo" [alt]="brandName()" class="nav-brand-logo" />
+        } @else {
+          <p class="truncate text-sm font-bold text-surface-1000 dark:text-surface-0">
+            {{ brandName() }}
+          </p>
+        }
+        <p class="text-2xs font-bold text-surface-600 dark:text-surface-400">
+          Panel de administración
+        </p>
+      </div>
+    }
+  </div>
+}

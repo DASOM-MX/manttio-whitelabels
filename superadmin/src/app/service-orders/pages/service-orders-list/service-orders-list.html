@@ -85,13 +85,13 @@
     </ng-template>
     <ng-template #body let-order>
       <tr class="cursor-pointer" (click)="openOrder(order)">
-        <td class="font-data font-medium">{{ order.folio }}</td>
+        <td class="font-data font-bold">{{ order.folio }}</td>
         <td>{{ order.customerName }}</td>
         <td class="font-data">{{ order.servicesCount }}</td>
         <td class="font-data">{{ order.progress }}</td>
         <td>
           <span
-            class="inline-flex items-center gap-1.5 font-medium"
+            class="inline-flex items-center gap-1.5 font-bold"
             [class]="order.priority | serviceOrderPriorityLabelClass"
           >
             <svg

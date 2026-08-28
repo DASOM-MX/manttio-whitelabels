@@ -32,12 +32,12 @@
           <td class="p-0">
             <a
               [routerLink]="['/contracts', contract.id]"
-              class="block px-3 py-3 font-data font-medium tabular-nums"
+              class="block px-3 py-3 font-data font-bold tabular-nums"
             >
               {{ contract.folio }}
             </a>
           </td>
-          <td class="text-sm font-medium">{{ contract.name }}</td>
+          <td class="text-sm font-bold">{{ contract.name }}</td>
           <td class="text-sm">{{ contract.type | contractTypeLabel }}</td>
           <td class="font-data whitespace-nowrap text-sm tabular-nums">
             {{ contract.validFromDate }} →

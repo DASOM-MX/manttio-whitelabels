@@ -6,11 +6,13 @@
 /* Self-hosted fonts — no CDN, ever (offline, CSP, no FOUT). Figtree
    Variable is the product voice (owner 2026-07-22, plan 17 — supersedes
    Nunito Sans, which superseded Quicksand/Commissioner; geometric-clean
-   with a touch of warmth for the executive turn); Atkinson Hyperlegible
-   backs the numeric `font-data` stack (01 Typography fallback). */
+   with a touch of warmth for the executive turn); Work Sans Variable heads
+   the numeric `font-data` stack (owner 2026-08-27 — supersedes Atkinson
+   Hyperlegible, whose 400/700-only faces could not follow the +200 weight
+   ladder). Both are single variable woff2 files covering 300–900 / 100–900,
+   so the whole ladder is real faces and nothing is ever synthesized. */
 @import '@fontsource-variable/figtree';
-@import '@fontsource/atkinson-hyperlegible/400.css';
-@import '@fontsource/atkinson-hyperlegible/700.css';
+@import '@fontsource-variable/work-sans';
 
 /* CSS layer order (plan 17 CP-2 follow-up): Tailwind's preflight reset is
    unlayered by default, which silently beat Aura's `primeng` layer and
@@ -51,7 +53,7 @@
      color then inherits near-black onto a near-black page. `body` is a
      descendant, so the same utility works. */
   body {
-    @apply h-full bg-background text-base text-surface-1000 dark:bg-surface-1000 dark:text-surface-0;
+    @apply h-full bg-background text-base font-semibold text-surface-1000 dark:bg-surface-1000 dark:text-surface-0;
   }
   app-root {
     @apply block h-full;
@@ -74,11 +76,16 @@
 @layer components {
   /* Labels/headings render in the authored title/sentence case — uppercase is
      reserved for warnings or explicit requests (QA 2026-07-07). */
-  /* Weight ladder (owner 2026-07-22, "too bold — cleaner look"): 400 body ·
-     500 labels/buttons/headings — 600+ is reserved for the wordmark and rare
-     emphasis, never routine chrome. */
+  /* Weight ladder — every rung +200 (owner 2026-08-27, "font weights are off,
+     use 200 more points"; supersedes the 2026-07-22 400/500 ladder): **600 body ·
+     700 labels/buttons/headings**, 800+ for the wordmark and rare emphasis. The
+     600 baseline is set once on `body`, so text that states no weight inherits
+     it; Figtree Variable covers 300–900, so every rung is a real face.
+     `font-data` follows the same rungs exactly since the Work Sans swap
+     (owner 2026-08-27) — the numeric face is variable too, so a 600 numeral
+     is a real 600 rather than the nearest available face. */
   .field-label {
-    @apply block text-sm font-medium text-surface-800 dark:text-surface-200;
+    @apply block text-sm font-bold text-surface-800 dark:text-surface-200;
   }
   .field-group {
     @apply flex flex-col gap-2;
@@ -115,7 +122,7 @@
     @apply text-sm text-surface-500 dark:text-surface-400;
   }
   .field-error {
-    @apply text-sm font-medium text-red-700 dark:text-red-400;
+    @apply text-sm font-bold text-red-700 dark:text-red-400;
   }
   .btn {
     // Buttons sit a step shorter than the h-12 field baseline (40px) — they
@@ -124,7 +131,7 @@
     // look clean" — supersedes the 2026-07-21 pill buttons): rounded-control
     // rectangles matching the input radius, stock-Aura px-4. Ghost icon-only
     // buttons (topbar bell/theme/menu) stay circles — chrome, not actions.
-    @apply inline-flex items-center justify-center gap-2 min-h-10 px-4 py-2 rounded-control text-base font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-4 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 min-h-10 px-4 py-2 rounded-control text-base font-bold transition-colors duration-150 focus:outline-none focus-visible:ring-4 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
     @apply btn bg-primary-700 text-white enabled:hover:bg-primary-800 enabled:active:bg-primary-900 focus-visible:ring-primary-700/30 dark:bg-primary-600 dark:enabled:hover:bg-primary-500 dark:enabled:active:bg-primary-400 dark:focus-visible:ring-primary-400/30;
@@ -146,7 +153,7 @@
      labels. Weight ladder applies: 500, never semibold. Call sites may
      override gap/text-size with utilities. */
   .link-action {
-    @apply inline-flex items-center gap-2 text-sm font-medium text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200;
+    @apply inline-flex items-center gap-2 text-sm font-bold text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200;
   }
 
   /* Bordered elevation (plan 23 CP-1, owner 2026-08-27 — supersedes plan 17's
@@ -187,7 +194,7 @@
      ever set on, which is `surface-800` (the year calendar's mini-months), not
      just on the page. `400` measures ~4.2:1 there and fails. */
   .micro-label {
-    @apply text-2xs font-medium text-surface-500 dark:text-surface-300;
+    @apply text-2xs font-bold text-surface-500 dark:text-surface-300;
   }
 
   /* Role pill — the app-wide role visual language (QA 2026-07-08): one blue
@@ -197,7 +204,7 @@
      navy/cyan steps, inlined when plan 16 tombstoned those palette keys — so
      roles read identically on every tenant. */
   .role-pill {
-    @apply inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium leading-none;
+    @apply inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold leading-none;
   }
   .role-pill--owner {
     background-color: #1b2937;
@@ -220,7 +227,7 @@
      extra breathing room below. Our owners skew older; the heading has to
      read at a glance. Whitespace comes from padding, not leading. */
   .section-heading {
-    @apply pb-3 text-sm font-medium leading-none text-surface-800 dark:text-surface-200;
+    @apply pb-3 text-sm font-bold leading-none text-surface-800 dark:text-surface-200;
   }
 
   /* Callout — the bordered note/alert panel (plan 17 CP-4 — one idiom, was
@@ -248,7 +255,7 @@
     @apply inline-flex rounded-lg border border-surface-200 p-0.5 dark:border-surface-800;
   }
   .seg-tab {
-    @apply rounded-md px-4 py-1.5 text-sm font-medium text-surface-600 transition-colors dark:text-surface-400;
+    @apply rounded-md px-4 py-1.5 text-sm font-bold text-surface-600 transition-colors dark:text-surface-400;
   }
   .seg-tab-active {
     @apply bg-primary-0 text-primary-800 dark:bg-primary-1000/40 dark:text-primary-300;
@@ -295,17 +302,19 @@
     @apply inline-flex size-12 items-center justify-center rounded-full bg-surface-100 text-surface-500 dark:bg-surface-800 dark:text-surface-400;
   }
 
-  /* Shell chrome (owner 2026-07-22, Diamond turn v2 — reference screenshot):
-     the sidebar is the tenant's DARK brand panel — `primary-1000` in both
-     modes with a rounded right edge and a hairline `primary-800/50` outline —
-     floating over the canvas. The topbar has NO surface of its own (owner
-     2026-07-22, two steps the same day: shadow removed, then the white bg) —
-     the bell + user pill float directly on the canvas; content scrolls in a
-     separate region below, so nothing ever passes under it. Neutral black
-     alpha shadows only — never a colored glow. */
+  /* Shell chrome (owner 2026-08-26, bright console — plan 23 § Direction 1;
+     supersedes the 2026-07-22 dark brand panel): the sidebar is a LIGHT
+     `surface-0` panel, separated from the canvas by a hairline right border
+     (dark: `surface-900` panel, `surface-800` border). No rounded shell edge
+     and no shadow — the border does the separating, and the tenant's hue is
+     spent on the active row rather than on furniture. The topbar has NO
+     surface of its own (owner 2026-07-22, two steps the same day: shadow
+     removed, then the white bg) — the search stub, bell + user pill float
+     directly on the canvas; content scrolls in a separate region below, so
+     nothing ever passes under it. Neutral black alpha shadows only — never a
+     colored glow. */
   .shell-sidebar {
-    @apply bg-primary-1000 border border-l-0 border-primary-800/50 rounded-r-shell;
-    box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.12);
+    @apply border-r border-surface-200 bg-surface-0 dark:border-surface-800 dark:bg-surface-900;
     /* Rail collapse/expand eases the width between w-64 and w-20 (owner
        2026-07-24, supersedes the earlier width-snap): a deliberate,
        single-element exception to the transform-only motion rule — the shell
@@ -313,53 +322,168 @@
        animations.scss, where it snaps as before. */
     transition: width var(--motion-base) var(--ease-enter);
   }
-  .app-dark .shell-sidebar {
-    box-shadow: 2px 0 12px -2px rgb(0 0 0 / 0.5);
-  }
 
-  /* Sidebar nav — Diamond-style flat rows on the dark brand panel (owner
-     2026-07-22, Diamond turn v2; supersedes the elevated-pill/blob nav and
-     its icon chips): light-on-dark rounded-control rows, plain outlined icons,
-     hover = white/10, active child = solid primary-600 row (interactive-solid
-     step, white text clears 4.5:1), active trail = white text/icon. The
-     panel is `primary-1000` in BOTH modes, so no dark: variants here. No
-     shadows anywhere in the nav. Idle/hover chrome lives here, not as
-     template utilities, so hover can't outrank `.nav-active` in the
-     cascade. */
+  /* Sidebar nav — flat rows on the LIGHT panel (owner 2026-08-26, bright
+     console; supersedes the light-on-dark rows of the Diamond turn, which
+     superseded the elevated-pill/blob nav): dark-on-light `rounded-control`
+     rows, plain outlined icons, NEUTRAL hover tint, and an active row that is
+     a soft `primary-100/60` fill with a `primary-700` label AND icon — the
+     brand hue marks state, never furniture. Active trail (a group holding the
+     active child) carries the same emphasis one step quieter: neutral-strong
+     label, primary icon, no fill. No shadows anywhere in the nav. Idle/hover
+     chrome lives here, not as template utilities, so hover can't outrank
+     `.nav-active` in the cascade — and both hover rules exclude `.nav-active`
+     so hovering the current row can't wash its tint away. */
   .nav-item {
-    @apply relative flex h-10 w-full items-center gap-3 overflow-hidden whitespace-nowrap rounded-control px-3 text-sm font-medium text-primary-100 transition-colors;
+    @apply relative flex h-10 w-full items-center gap-3 overflow-hidden whitespace-nowrap rounded-control px-3 text-sm font-bold text-surface-700 transition-colors dark:text-surface-300;
   }
+  /* The child pill starts where the elbow ENDS (owner 2026-08-27): `ml-9`
+     (36px) = the 22px rail + the elbow's 14px of reach, so the connector runs
+     into the tint's edge instead of across its face. `pl-2` then puts the label
+     back at the same 44px it sat at under `pl-11` — the row did not move, only
+     the fill's left edge did. */
   .nav-child {
-    @apply relative flex h-9 items-center overflow-hidden whitespace-nowrap rounded-control pl-11 pr-3 text-sm text-primary-200 transition-colors;
+    @apply relative ml-9 flex h-9 items-center overflow-hidden whitespace-nowrap rounded-control pl-2 pr-3 text-sm text-surface-600 transition-colors dark:text-surface-400;
   }
-  .nav-item:hover,
+  .nav-item:not(.nav-active):not(.nav-group-active):hover,
   .nav-child:not(.nav-active):hover {
-    @apply bg-white/10;
+    @apply bg-surface-100 text-surface-900 dark:bg-surface-800 dark:text-surface-100;
   }
   .nav-icon {
-    @apply size-5 shrink-0 text-primary-300 transition-colors;
+    @apply size-5 shrink-0 text-surface-500 transition-colors dark:text-surface-400;
   }
+  /* The parent of the current page is highlighted too (owner 2026-08-27):
+     same tint and same primary label as an active row — it is where you are,
+     one level up. It is also the row that carries the marker bar. */
   .nav-group-active {
-    @apply text-white;
+    @apply bg-primary-100/60 text-primary-700 dark:bg-primary-1000/40 dark:text-primary-300;
   }
   .nav-group-active .nav-icon,
   .nav-active .nav-icon {
-    @apply text-white;
+    @apply text-primary-700 dark:text-primary-300;
   }
   .nav-active {
-    // No weight bump — the solid row carries the active cue (weight ladder).
-    @apply bg-primary-600 text-white;
+    @apply bg-primary-100/60 text-primary-700 dark:bg-primary-1000/40 dark:text-primary-300;
+  }
+  /* One weight step on the active CHILD only (owner 2026-08-27, reference):
+     children idle at 400 while `.nav-item` already sits at 500, so this brings
+     the active row up to the parent's weight — still inside the ≤500 ladder,
+     and unlike the tint it survives a tenant with no brand loaded. */
+  .nav-child.nav-active {
+    @apply font-bold;
+  }
+
+  /* Active marker (owner 2026-08-27, reference screenshot): a solid primary bar
+     standing in the nav's gutter, left of the tinted pill. **Top-level rows
+     only** (owner, same day) — `.nav-rail > ul > li`, so an active *child* is
+     highlighted by its tint alone and the bar marks the entry you are inside.
+     That also means the bar never competes with the tree elbows for the
+     gutter.
+
+     Drawn on the ROW, not the link: `.nav-item`/`.nav-child` are
+     `overflow-hidden` for the rail's width ease and would clip anything outside
+     their own box. `:has()` because the active class lands on the link — the
+     same mechanism the flyouts already use — and it matches both an active leaf
+     (`.nav-active`) and a group holding the current page (`.nav-group-active`).
+
+     `::after`, not `::before`: a child row's `::before` is already the tree
+     elbow, and this rule outranks it, so sharing the pseudo-element silently ATE
+     the elbow on whichever row was active. Kept on `::after` even now that the
+     selector is scoped away from children, so the two can never collide again.
+
+     Offset from the TOP, not the centre: an expanded group's `li` wraps the row
+     *and* its whole children list, so `top: 50%` would drop the bar into the
+     middle of the group. 10px + a 20px bar centres it on the `h-10` row whatever
+     the `li` grew to. This is also the cue that does NOT depend on the tenant's
+     hue: at the neutral fallback palette `primary-600` is still a mid grey
+     against the panel, where the tint alone all but vanishes. */
+  .nav-rail > ul > li:has(> .nav-active, > .nav-group-active)::after {
+    content: '';
+    position: absolute;
+    left: -0.5rem; /* into the nav's px-3 gutter, ~5px clear of the pill */
+    top: 0.625rem; /* (h-10 − 20px) / 2 — centred on the row, not the group */
+    width: 0.1875rem; /* 3px */
+    height: 1.25rem;
+    border-radius: 9999px;
+    @apply bg-primary-600 dark:bg-primary-400;
+  }
+
+  /* Expanded-group tree (owner 2026-08-27, reference screenshot): a hairline
+     rail dropping from the parent icon's centre, with a rounded elbow into each
+     child row. The geometry is derived, not eyeballed — the nav gutter is
+     `px-3` and `.nav-item` adds another `px-3` before its `size-5` icon, so the
+     icon's centre lands 22px from the child list's own left edge, and
+     the elbow's 14px of reach ends at 36px, which is exactly where the child
+     pill now begins (`.nav-child`'s `ml-9`), and its `pl-2` leaves the label at
+     44px. The rail stops at the LAST child's centre — rows
+     are a uniform `h-9` with `gap-0.5`, so that is exactly 18px off the bottom.
+     Plain CSS rather than @apply: a template cannot express either
+     pseudo-element, and these are derived offsets, not palette choices. */
+  .nav-tree {
+    @apply relative;
+  }
+  .nav-tree::before {
+    content: '';
+    position: absolute;
+    left: 1.375rem; /* 22px — the parent icon's centre */
+    top: 0;
+    bottom: 1.125rem; /* half a row: the rail dies into the last elbow */
+    border-left-width: 1px;
+    /* Same lift as the elbows. Since 2026-08-27 the pill starts clear of the
+       rail, so nothing can paint over it — the lift stays as the guard on that
+       joint, and on any future row that reclaims the gutter. */
+    z-index: 1;
+    @apply border-surface-200 dark:border-surface-800;
+  }
+  .nav-tree > li {
+    @apply relative;
+  }
+  .nav-tree > li::before {
+    content: '';
+    position: absolute;
+    left: 1.375rem;
+    top: calc(50% - 0.5rem);
+    width: 0.875rem; /* 14px of reach */
+    height: 0.5rem; /* the curve's rise */
+    border-left-width: 1px;
+    border-bottom-width: 1px;
+    border-bottom-left-radius: 0.5rem;
+    /* The elbow no longer crosses the tint — it stops at the pill's left edge
+       (owner 2026-08-27, supersedes drawing it over the fill). The lift only
+       guards the 1px joint where the two meet. */
+    z-index: 1;
+    @apply border-surface-200 dark:border-surface-800;
+  }
+
+  /* Nav count badge (owner 2026-08-27, reference screenshot). The reference
+     paints this green; ours rides `accent`, because emerald is a FIXED status
+     colour here (positive/up) and a queue length is information, not good news
+     — plan 23 § Direction 3 hands "informational badges" to `accent`. `font-data`
+     for the numeral, like every other number in the app. Renders only when an
+     entry actually carries a count: no zero pills, no placeholders. */
+  .nav-badge {
+    @apply ml-auto shrink-0 rounded-chip px-1.5 py-0.5 font-data text-2xs font-bold tabular-nums;
+    @apply bg-accent-100 text-accent-700 dark:bg-accent-1000/40 dark:text-accent-300;
+  }
+
+  /* The global focus ring offsets against the CANVAS (`ring-offset-background`
+     = surface-100). Inside the nav that reads as a faint halo, because the
+     panel is surface-0 — so the offset re-anchors on the panel here. Scoped to
+     the component element, which wraps the desktop aside, the mobile drawer
+     and the rail flyouts alike. */
+  app-sidebar :focus-visible {
+    @apply ring-offset-surface-0 dark:ring-offset-surface-900;
   }
 
   /* Collapsed-rail flyouts (owner 2026-07-23): with the sidebar collapsed
-     to its icon rail, each row reveals a WHITE overlay submenu beside it on
-     hover/focus — separated from the dark rail by a 4px gap and a neutral
-     shadow (owner, same day: white + shadow, not the brand panel).
+     to its icon rail, each row reveals an overlay submenu beside it on
+     hover/focus — separated from the rail by a 16px gap and a neutral shadow.
      CSS-only (:hover / :focus-visible), so the keyboard path is the normal
      tab order and no JS state is needed. The pl-1 bridge is part of the
      flyout element, keeping hover continuous across the gap. True overlay →
-     the shadow is allowed; dark mode adds a hairline ring (shadows vanish
-     on the dark canvas). */
+     the shadow is allowed; since 23 CP-2 the rail is itself a light panel, so
+     the hairline ring runs in BOTH modes (a white panel floating over a white
+     rail needs the border, not just the penumbra) at the card's border step. */
   .nav-flyout-host {
     @apply relative;
   }
@@ -391,17 +515,17 @@
     // two-column grid at the call site, min-w keeps even a two-child group
     // wide. The ::before is the speech-bubble tail: a rotated square tucked
     // BEHIND the panel (-z-10 inside the flyout's stacking context), aimed
-    // at the rail icon; it rides the panel surface + dark hairline, no
+    // at the rail icon; it rides the panel surface + the same hairline, no
     // shadow of its own (it lives inside the panel's penumbra).
-    @apply relative w-max min-w-64 rounded-chip bg-white p-2 shadow-xl dark:bg-surface-900 dark:ring-1 dark:ring-surface-700;
+    @apply relative w-max min-w-64 rounded-chip bg-surface-0 p-2 shadow-xl ring-1 ring-surface-200 dark:bg-surface-900 dark:ring-surface-800;
 
     &::before {
       content: '';
-      @apply absolute -left-1.5 top-3.5 -z-10 size-3 rotate-45 rounded-sm bg-white dark:bg-surface-900 dark:ring-1 dark:ring-surface-700;
+      @apply absolute -left-1.5 top-3.5 -z-10 size-3 rotate-45 rounded-sm bg-surface-0 ring-1 ring-surface-200 dark:bg-surface-900 dark:ring-surface-800;
     }
   }
   .nav-flyout-title {
-    @apply px-3 pb-1 pt-1.5 text-2xs font-medium text-surface-500 dark:text-surface-400;
+    @apply px-3 pb-1 pt-1.5 text-2xs font-bold text-surface-500 dark:text-surface-400;
   }
   /* Flyout children grid — two columns separated by a subtle hairline
      (owner 2026-07-23): no column gap so the divider runs continuous at
@@ -414,20 +538,81 @@
       @apply border-l border-surface-200 dark:border-surface-800;
     }
   }
-  /* Flyout links ride the light surface (not `.nav-child`, which is
-     light-on-dark for the brand panel); active keeps `.nav-active`. */
+  /* Flyout links ride the panel surface; active keeps `.nav-active`. */
   .nav-flyout-link {
     @apply flex h-9 items-center rounded-control px-3 text-sm text-surface-700 transition-colors dark:text-surface-300;
   }
   .nav-flyout-link:not(.nav-active):hover {
     @apply bg-surface-100 text-surface-900 dark:bg-surface-800 dark:text-surface-100;
   }
-  /* Active flyout link keeps white text on its solid primary-600 row. Both
-     `.nav-flyout-link` and `.nav-active` are single-class, so source order
-     (flyout-link is defined later) would otherwise let the light-surface text
-     beat `.nav-active`'s white — the compound selector outranks it in both
-     modes. */
+  /* Both `.nav-flyout-link` and `.nav-active` are single-class, so source
+     order (flyout-link is defined later) would otherwise let the idle
+     `surface-700` beat the active row's `primary-700` — the compound selector
+     outranks it in both modes. Kept as a compound after 23 CP-2 for exactly
+     the same reason the white version needed it. */
   .nav-flyout-link.nav-active {
-    @apply text-white;
+    @apply text-primary-700 dark:text-primary-300;
+  }
+
+  /* Sectioned topbar (owner 2026-08-27, reference crops — "the sectioned top
+     bar with rounded action buttons"; supersedes both the 2026-07-22 slim
+     surfaceless strip and my first pass at this turn, which gathered the
+     actions into one grouped pill).
+
+     The bar is a SECTION of the chrome, not a float: `surface-0` fill and a
+     hairline bottom rule, continuous with the sidebar panel, so the shell
+     reads as one white L against the `surface-100` content well. The vertical
+     seam the reference draws between the wordmark and the search is already
+     ours — it is the sidebar's own `border-r`, running up through the level
+     `h-14` strips.
+
+     Actions are SEPARATE circles, each with its own 2px border (owner
+     2026-08-27 — supersedes the `ring-1` hairline: at this diameter a
+     hairline dissolved into the white bar and the circles read as smudges).
+     `border-*`, not `ring-*`, so the stroke sits INSIDE the box and the row's
+     `gap-2` stays a true 8px between edges. Never a shared shell.
+     `size-8` (32px, owner 2026-08-27 — supersedes `size-10`; the icons follow
+     it down to `size-4` to hold the same half-diameter proportion) with
+     `gap-2` between them; the trailing avatar is the same circle so the set
+     reads as one row of buttons. */
+  .topbar-action {
+    @apply relative inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-0 text-surface-600 border-2 border-surface-200 transition-colors hover:border-surface-300 hover:bg-surface-100 hover:text-surface-1000 dark:border-surface-700 dark:bg-surface-900 dark:text-surface-400 dark:hover:border-surface-600 dark:hover:bg-surface-800 dark:hover:text-surface-0;
+  }
+  /* The account trigger — the same circle, brand-tinted so the row ends on
+     identity rather than a fourth grey glyph. The name is not in the strip
+     (the reference's avatar carries none, and the popover opens on it with
+     name + email + role); it rides `aria-label`/`title` instead. */
+  .topbar-avatar {
+    @apply inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary-800 border-2 border-primary-200 transition-colors hover:border-primary-300 hover:bg-primary-200 dark:border-primary-800 dark:bg-primary-1000/60 dark:text-primary-300 dark:hover:border-primary-700 dark:hover:bg-primary-900/60;
+  }
+
+  /* Topbar global search (plan 23 CP-2, § Open ① — a VISUAL STUB until plan
+     24 wires a real cross-module search): `disabled` on purpose. The chrome
+     previews; a live box that answers nothing would be a lie, and a disabled
+     control says so without a tooltip anyone has to hover to read. A FILLED
+     pill, borderless (reference 2026-08-27) — on a white bar the fill alone
+     states the field, and a border here would compete with the action rings. */
+  .topbar-search {
+    @apply h-10 w-full max-w-md cursor-not-allowed items-center gap-2.5 rounded-full bg-surface-100 pl-4 pr-2 text-sm text-surface-400 dark:bg-surface-800/60 dark:text-surface-500;
+  }
+  .topbar-search-hint {
+    @apply rounded-chip border border-surface-300 px-1.5 py-0.5 font-data text-2xs dark:border-surface-700;
+  }
+
+  /* Sidebar footer — the tenant identity card (owner 2026-08-27, plan 23
+     § Open ②: the reference's dark promo card has no honest job in a tenant
+     admin, so the slot carries WHOSE admin this is instead). A `surface-100`
+     tile — the house in-card grouping shift — separated from the nav by a
+     hairline top rule; the
+     rail shows the square mark alone. Brand-driven with the login screen's
+     manttio fallback — nothing renders until `/brand` settles. */
+  .nav-brand-card {
+    @apply flex flex-col gap-1.5 rounded-card bg-surface-100 p-3 dark:bg-surface-800/40;
+  }
+  .nav-brand-logo {
+    @apply h-7 w-auto max-w-full self-start object-contain;
+  }
+  .nav-brand-mark {
+    @apply size-9 rounded-chip bg-surface-100 object-contain p-1 dark:bg-surface-800/40;
   }
 }

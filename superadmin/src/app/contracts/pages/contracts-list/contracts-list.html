@@ -90,11 +90,11 @@
     <ng-template #body let-contract>
       <tr class="cursor-pointer" (click)="openContract(contract)">
         <td class="font-data tabular-nums">{{ contract.folio }}</td>
-        <td class="font-medium">{{ contract.name }}</td>
+        <td class="font-bold">{{ contract.name }}</td>
         <td (click)="$event.stopPropagation()">
           <a
             [routerLink]="['/customers', contract.customerId]"
-            class="font-medium text-primary-700 hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
+            class="font-bold text-primary-700 hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200"
             >{{ contract.customerName }}</a
           >
         </td>

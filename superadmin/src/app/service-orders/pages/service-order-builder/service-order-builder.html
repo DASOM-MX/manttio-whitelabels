@@ -195,7 +195,7 @@
           <dt class="text-surface-500 dark:text-surface-400">IVA</dt>
           <dd class="font-data w-28 text-right">{{ totals().tax | money }}</dd>
         </div>
-        <div class="flex gap-6 font-medium">
+        <div class="flex gap-6 font-bold">
           <dt>Total</dt>
           <dd class="font-data w-28 text-right">{{ totals().total | money }}</dd>
         </div>
@@ -216,7 +216,7 @@
     <dl class="mb-5 grid gap-4 sm:grid-cols-3">
       <div>
         <dt class="micro-label">Cliente</dt>
-        <dd class="mt-1 text-sm font-medium">{{ customerName() }}</dd>
+        <dd class="mt-1 text-sm font-bold">{{ customerName() }}</dd>
       </div>
       <div>
         <dt class="micro-label">Ubicación</dt>
@@ -255,7 +255,7 @@
         </ng-template>
         <ng-template #body let-row>
           <tr>
-            <td class="font-medium">{{ row.serviceName }}</td>
+            <td class="font-bold">{{ row.serviceName }}</td>
             <td class="font-data">{{ row.quantity }} {{ row.uom | serviceUomShort }}</td>
             <td>{{ row.technicianName }}</td>
             <td>{{ row.templateName }}</td>
@@ -274,7 +274,7 @@
         <dt class="text-surface-500 dark:text-surface-400">IVA</dt>
         <dd class="font-data w-28 text-right">{{ totals().tax | money }}</dd>
       </div>
-      <div class="flex gap-6 font-medium">
+      <div class="flex gap-6 font-bold">
         <dt>Total</dt>
         <dd class="font-data w-28 text-right">{{ totals().total | money }}</dd>
       </div>

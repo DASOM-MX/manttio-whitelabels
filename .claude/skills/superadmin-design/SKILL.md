@@ -22,10 +22,10 @@ emerald/red/amber status set**, never with tints of one hue.
 Plan 17's skeleton stands (preset-first chrome, page rhythm, `page-header` everywhere,
 `rounded-control` buttons, neutral shadows, compact data). Three things it decided are
 superseded here and marked in place: the dark brand-panel sidebar, shadow-only cards,
-and `primary-400` as the decorative accent. **Two of the three are still being
-implemented** — the shipped app carries the light shell from 23 CP-2 and the
-`primary-400` sweep from 23 CP-6, so if the code disagrees with those two bullets
-today, the doc is the target and the code is the backlog.
+and `primary-400` as the decorative accent. Two of the three have shipped (bordered
+cards at 23 CP-1, the light shell at 23 CP-2); **the `primary-400` sweep is still
+pending at 23 CP-6**, so if the code disagrees with that one bullet today, the doc is
+the target and the code is the backlog.
 
 ## Hard rules (non-negotiable)
 
@@ -40,11 +40,17 @@ today, the doc is the target and the code is the backlog.
 3. **Typeface is Figtree** (variable, self-hosted
    `@fontsource-variable/figtree`; owner 2026-07-22, plan 17 — supersedes
    Nunito Sans/Quicksand/Commissioner).
-   400 body · 500 labels/buttons/headings (owner 2026-07-22 "cleaner look":
-   headings dropped from 600–700 — size + tracking carry hierarchy, solid fills
-   carry active states; 600+ only for the wordmark and rare emphasis).
-   Numeric table/money cells use the
-   `font-data` stack with `tnum` (Atkinson Hyperlegible head — unchanged).
+   **600 body · 700 labels/buttons/headings**, 800+ for the wordmark and rare
+   emphasis (owner 2026-08-27 "use 200 more points" — the 2026-07-22 400/500
+   ladder moved up two steps wholesale; size + tracking still carry hierarchy
+   and no active state bumps weight). The 600 baseline lives on `body`; write a
+   weight utility only where a rung differs.
+   Numeric table/money cells use the **`font-data` stack with `tnum`, headed by
+   Work Sans Variable** (owner 2026-08-27 — supersedes Atkinson Hyperlegible,
+   whose 400/700-only faces could not follow the ladder). Both faces are
+   variable, so `font-data` tracks the same rungs as the body text.
+   Adopting a numeric face means **measuring** its digits, never reading its
+   feature list — Commissioner declared `tnum` and it was a no-op (2026-07-06).
    Self-hosted only — never `fonts.googleapis.com`.
 4. **Motion = Angular's native `animate.enter`/`animate.leave` + `src/animations.scss`**
    (revised 2026-07-06; supersedes the original anime.js mandate). Keyframes and
@@ -105,9 +111,8 @@ today, the doc is the target and the code is the backlog.
 - Cards: `p-6` (plan 17 breathable rhythm — supersedes the soft-UI turn's `p-5`).
   Section gaps `gap-5`/`gap-6`. Page gutters `px-4 sm:px-6 md:px-8` + `py-6`
   (shell-owned, CP-2); topbar and sidebar header strips sit at `h-14` (slimmed from
-  `h-16`, owner 2026-07-22 — the strip holds only the notification bell + user pill;
-  the theme switcher lives in the user popover).
-  Airy chrome, dense data.
+  `h-16`, owner 2026-07-22) and level, so the topbar's hairline bottom rule runs
+  unbroken across both. Airy chrome, dense data.
 - Tables are compact: `py-2.5` cells, 13–14px cell text, header row as a
   micro-label (see cues below).
 - Prefer one dense, well-grouped screen over two airy ones — but never sacrifice the
@@ -125,10 +130,22 @@ today, the doc is the target and the code is the backlog.
   also still the *internal* divider. PrimeNG panels match without an override sheet:
   Aura's content/overlay border is already `{surface.200}` in light, and the preset
   pulls dark from `{surface.700}` to `{surface.800}`.
-  The shell chrome keeps its 2026-07-21 sidebar shadow (the topbar is SURFACELESS since
-  2026-07-22: no shadow, no background, the bell + user pill float on the canvas), and
-  the shell stays **edge-to-edge** — the reference's inset rounded app frame was
-  declined (owner 2026-08-27, 23 § Open ③).
+  The shell follows the same rule: since 23 CP-2 the sidebar dropped its 2026-07-21
+  shadow for a hairline right border (a shadow between two near-white surfaces
+  separates nothing). **The topbar is SECTIONED** since 2026-08-27 (23 CP-2, supersedes
+  the 2026-07-22 surfaceless strip): a `surface-0` bar with a hairline bottom rule
+  continuous with the sidebar panel, the sidebar's `border-r` as the vertical seam, a
+  **filled borderless** search pill, and **three separate 2px-bordered circles** trailing
+  (`.topbar-action` ×2 + `.topbar-avatar`, `size-8` with `size-4` icons, `gap-2`:
+  theme · bell · account) —
+  never a shared pill, and the account circle carries no name or chevron. The circles use
+  `border-2`, **not `ring-2`** (owner 2026-08-27) — the stroke belongs inside the box so
+  `gap-2` stays a true 8px between edges.
+  `.topbar-search` is a deliberately **`disabled` stub** (owner 2026-08-27, 23
+  § Open ①): the chrome ships, the capability is **plan 24** — never quietly enable it,
+  and the `⌘K` hint is not a live binding yet — but the chip **stays** (owner 2026-08-27):
+  it previews the affordance, and a `disabled` control cannot swallow the keystroke. The shell also stays **edge-to-edge** —
+  the reference's inset rounded app frame was declined (owner 2026-08-27, 23 § Open ③).
   **Depth needs contrast:** the `background` alias
   sits at `surface-100` in superadmin (one step under card whites, owner 2026-07-22) —
   keep page-level surfaces on `bg-background`, never on `bg-white`.
@@ -180,8 +197,9 @@ today, the doc is the target and the code is the backlog.
   view. Nav rows are flat `rounded-control`
   (Diamond turn, owner 2026-07-22). Boundary (tokenized 2026-07-22 in
   `tailwind.config.js`): inputs/buttons/nav `rounded-control` (0.5rem),
-  cards/dialogs/table shells `rounded-card` (1rem; the sidebar's `rounded-r-shell`
-  edge retires at 23 CP-2 — a light panel has a border, not a curve), icon chips +
+  cards/dialogs/table shells `rounded-card` (1rem; the sidebar has no rounded edge
+  since 23 CP-2 — a light panel has a border, not a curve — and the `shell` radius
+  step was deleted with it), icon chips +
   popovers `rounded-chip` (0.75rem), status/role
   pills + chrome icon-circles `rounded-full` — never raw `rounded-lg`/`xl`/`2xl`
   in new chrome.
@@ -202,9 +220,30 @@ today, the doc is the target and the code is the backlog.
   `surface-900` panel, `surface-800` border) and **no** rounded shell edge — brand rides
   the state, not the furniture. Flat `rounded-control` rows, neutral hover tint, active
   row = `bg-primary-100/60` (dark `bg-primary-1000/40`) with `text-primary-700` (dark
-  `primary-300`) on **both** label and `.nav-icon`, `aria-current` preserved. No shadows
-  inside the nav. **Lands at 23 CP-2** — until that PR the shipped panel is still
-  `primary-1000` + `rounded-r-shell` with a solid `primary-600` active row. The panel is the `app-sidebar` component
+  `primary-300`) on **both** label and `.nav-icon`, and `aria-current` on the active row
+  (`ariaCurrentWhenActive="page"` — `routerLinkActive` does not set it for you). No
+  shadows inside the nav — and the tint is **never the only cue**: the active row also
+  carries a `primary-600`/`primary-400` marker bar in the nav gutter, and an active child
+  steps up one weight to its parent's 500 (owner 2026-08-27; supersedes 23 § Direction 1's
+  "no weight bump" — the tint measures 1.03:1 at the neutral fallback palette, the bar
+  4.83:1). The **parent of the current page is highlighted like the row itself**, and the
+  **bar is top-level only** — an active child gets the tint and the weight step, never a
+  bar, so the gutter stays clear of the tree. The marker lives on the row's `li` as
+  `.nav-rail > ul > li:has(> .nav-active, > .nav-group-active)::after`; `::before`
+  is the **tree elbow** of `.nav-tree`, the hairline rail + rounded connectors expanded
+  groups draw, and sharing the pseudo-element deletes the elbow on the active row.
+  **The child pill starts where the elbow ends** (owner 2026-08-27): `.nav-child` is
+  `ml-9` + `pl-2` — 22px rail + 14px reach = 36px — so the connector leads into the tint
+  instead of across it, and the label sits at the same 44px as before.
+  **Count badges** (`.nav-badge`) render only for a real number and ride `accent`, never
+  emerald — emerald is a status colour, a count is information.
+  **Shipped 2026-08-27 at 23 CP-2.** Both hover rules exclude
+  `.nav-active` (`:hover` outranks a bare class, so an un-excluded hover washes the
+  active tint away), and the focus ring re-offsets against the panel inside
+  `app-sidebar`. The footer carries the **tenant identity card** — logo (dark variant by
+  theme) or name plus a muted caption, gated on `BrandState.loaded`, square mark only in
+  the rail (owner 2026-08-27, § Open ②: a tenant admin has nothing honest to promote, so
+  the reference's promo slot answers *whose* admin this is). The panel is the `app-sidebar` component
   (`layouts/components/sidebar/`); desktop collapses to a `w-20` icon rail
   (owner 2026-07-23, persisted `AppState.sidebarCollapsed`) whose rows reveal
   `.nav-flyout` submenus on hover/focus — CSS-only, width snaps (no width
@@ -236,7 +275,7 @@ today, the doc is the target and the code is the backlog.
   (count + Limpiar derive from the URL). Controls projected inside must not use
   `appendTo="body"` — their overlay must live inside the popover DOM.
 - **Micro-labels** for card/section/table headers (`.micro-label`:
-  `text-2xs font-medium text-surface-500 dark:text-surface-400`) — authored
+  `text-2xs font-bold text-surface-500 dark:text-surface-400`) — authored
   title/sentence case, never `uppercase` (QA 2026-07-07: uppercase is reserved for
   warnings or explicit requests).
 - **Tabular numerals** (`font-data`) for every numeric column — digits align vertically.

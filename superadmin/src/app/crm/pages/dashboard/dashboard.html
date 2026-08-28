@@ -36,14 +36,14 @@
             <h2 class="micro-label" [id]="'panel-kpi-' + kpi.id">{{ kpi.label }}</h2>
             <p class="mt-2 flex flex-wrap items-baseline gap-2">
               <span
-                class="font-data text-3xl font-semibold leading-none tabular-nums {{
+                class="font-data text-3xl font-extrabold leading-none tabular-nums {{
                   kpi.valueClass
                 }}"
               >
                 {{ kpi.value }}
               </span>
               @if (kpi.delta; as delta) {
-                <span class="font-data text-xs font-medium tabular-nums {{ delta.textClass }}">
+                <span class="font-data text-xs font-bold tabular-nums {{ delta.textClass }}">
                   {{ delta.text }}
                 </span>
               }
@@ -74,7 +74,7 @@
           <h2 class="micro-label" id="panel-kpi-follow-ups">{{ kpi.label }}</h2>
           <p class="mt-2">
             <span
-              class="font-data text-3xl font-semibold leading-none tabular-nums {{
+              class="font-data text-3xl font-extrabold leading-none tabular-nums {{
                 kpi.valueClass
               }}"
             >
@@ -187,7 +187,7 @@
                   {{ bar.source }}
                 </span>
                 <span
-                  class="font-data text-sm font-medium tabular-nums text-surface-1000 dark:text-surface-0"
+                  class="font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0"
                 >
                   {{ bar.total }}
                 </span>
@@ -214,7 +214,7 @@
         <h2 id="panel-clients-title" class="section-heading !pb-0">Clientes recientes</h2>
         <a
           routerLink="/customers"
-          class="text-xs font-medium text-primary-700 hover:underline dark:text-primary-300"
+          class="text-xs font-bold text-primary-700 hover:underline dark:text-primary-300"
         >
           Ver todos
         </a>
@@ -246,9 +246,9 @@
             </ng-template>
             <ng-template #body let-row>
               <tr class="cursor-pointer" (click)="openCustomer(row.id)">
-                <td class="font-medium">
+                <td class="font-bold">
                   {{ row.title }}
-                  <span class="block text-xs font-normal text-surface-500 dark:text-surface-400">
+                  <span class="block text-xs font-semibold text-surface-500 dark:text-surface-400">
                     {{ row.subtitle || row.sourceLabel }}
                   </span>
                 </td>
@@ -317,7 +317,7 @@
                 [class.opacity-70]="entry.type === 'system'"
                 (click)="openCustomer(entry.customerId)"
               >
-                <td class="max-w-44 font-medium">
+                <td class="max-w-44 font-bold">
                   <span class="block truncate">{{ entry.customerName }}</span>
                 </td>
                 <td>
