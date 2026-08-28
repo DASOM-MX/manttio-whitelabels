@@ -48,3 +48,10 @@ Thumbs.db
 /playwright-report
 /blob-report
 /playwright/.cache
+
+# wrangler local state
+/.wrangler
+
+# wrangler local secrets
+.dev.vars
+.dev.vars.*

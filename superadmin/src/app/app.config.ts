@@ -2,10 +2,12 @@ import {
   ApplicationConfig,
   inject,
   isDevMode,
+  PLATFORM_ID,
   provideAppInitializer,
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { providePrimeNG } from 'primeng/config';
@@ -25,6 +27,7 @@ import { BrandState } from '../state/brand/brand.state';
 import { NotificationsState } from '../state/notifications/notifications.state';
 import { VisitsState } from '../state/visits/visits.state';
 import { LoadBrand } from '../state/brand/brand.actions';
+import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -77,9 +80,16 @@ export const appConfig: ApplicationConfig = {
     // when a session token exists (02 §3 — the layout splashes until it lands).
     provideAppInitializer(async () => {
       const store = inject(Store);
+      // Skipped outside the browser. Every route is `RenderMode.Client`, so
+      // this never runs for a real request — but the build boots the app under
+      // Node to extract the route tree, and doing boot work there means a
+      // relative `/__config` fetch with no base, a failing `LoadBrand()`, and a
+      // theme service reaching for `document` (25 §5.2).
+      if (!isPlatformBrowser(inject(PLATFORM_ID))) return;
       await loadRuntimeConfig();
       store.dispatch(new LoadBrand());
       if (store.selectSnapshot(AuthState.token)) store.dispatch(new LoadMe());
     }),
+    provideClientHydration(withEventReplay()),
   ],
 };
