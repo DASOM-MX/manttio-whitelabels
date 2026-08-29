@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Placeholder only. Every real deploy overrides it per tenant:
+  //   npx wrangler deploy --name <tenant-worker>
+  // so this shared config never names one whitelabel instance (plan 25 §7).
+  "name": "manttio-field-app",
+  "main": "./dist/manttio/server/server.mjs",
+  "compatibility_date": "2026-08-28",
+  // Angular's server bundle reaches for Node built-ins in its polyfills.
+  "compatibility_flags": ["nodejs_compat"],
+  // Angular's server bundle calls `createRequire(import.meta.url)`. esbuild
+  // leaves `import.meta.url` undefined in the Worker build, which crashes the
+  // runtime at startup with "The argument 'path' ... Received 'undefined'".
+  // A synthetic file URL satisfies it; nothing ever reads the path.
+  "define": {
+    "import.meta.url": "\"file:///worker.mjs\""
+  },
+  // Per-tenant values (`API_URL`) are set in each whitelabel Worker's own
+  // dashboard, so this shared config never carries a tenant's value. Without
+  // this flag `wrangler deploy` treats the file as the authority on bindings
+  // and silently drops any dashboard-set variable it does not declare.
+  "keep_vars": true,
+
+  "assets": {
+    "directory": "./dist/manttio/browser",
+    "binding": "ASSETS"
+    // `not_found_handling` deliberately left at its default. Setting it to
+    // "single-page-application" would serve the shell from the asset layer and
+    // bypass the Worker entirely, breaking `/__config`, the dynamic
+    // `/manifest.webmanifest`, and any future RenderMode.Server flip (25 §1).
+  }
+}
