@@ -268,10 +268,10 @@ is enough.
 - [x] Dexie/offline queue boot smoke test under `wrangler dev` (§5.2) — app boots, every
       route serves the shell, no import-time browser-global crash in the server bundle
 
-### CP-7 — frontend: cutover
-- [ ] `wrangler.jsonc` mirroring superadmin's (placeholder `name`, `keep_vars: true`,
+### CP-7 — frontend: cutover — **code done 2026-08-28 (PR #187); deploy pending**
+- [x] `wrangler.jsonc` mirroring superadmin's (placeholder `name`, `keep_vars: true`,
       `nodejs_compat`, the `import.meta.url` define shim, default `not_found_handling`)
-- [ ] Delete `public/_redirects` — CP-4 proved the deploy API *rejects* it (code 100324),
+- [x] Delete `public/_redirects` — CP-4 proved the deploy API *rejects* it (code 100324),
       so this is a prerequisite for deploying at all, not cleanup
 - [x] **The dynamic PWA manifest was a Pages Function** (`functions/manifest.webmanifest.ts`)
       and Workers Static Assets has no `functions/` directory — it would have silently
@@ -293,6 +293,13 @@ is enough.
       a new deploy and confirm no stale shell (CP-6, §5.1)
 - [ ] Domain attached as a **Custom domain**, not a Route (CP-4 trap 1), and the Pages
       project `manttio-whitelabels` retired only after the Worker serves it
+
+**The live Pages deploy is armed, not broken (checked 2026-08-29).**
+`demo-fieldapp.manttio.com` still serves 200s from a build that predates PR #187 —
+`/__config` answers with the shell rather than JSON, which is the tell. The moment that
+project next builds `main`, the shell is `index.csr.html`, `_redirects` is gone, and every
+route 404s. There is no partial failure: it works until it builds, then it does not. If
+that happens before the Worker is up, finish the cutover rather than reverting.
 
 ---
 
@@ -380,7 +387,7 @@ Legend: ☐ not started · ◐ in progress · ☑ done
 | CP-4 | superadmin | CF project, vars, deploy, domain cutover, delete `_routes.json`/`_redirects` | ☑ | pushed direct to `main` |
 | CP-5 | frontend | runtime-config layer + `localStorage` offline persistence | ☑ | — |
 | CP-6 | frontend | `@angular/ssr@20` + `ngsw-config.json` reconciliation | ☑ | — |
-| CP-7 | frontend | Worker + deploy + cutover | ◐ code done, deploy pending | — |
+| CP-7 | frontend | Worker + deploy + cutover | ◐ code done, deploy pending | #187 (code) |
 
 Update the `Status:` line at the top of this file as legs complete, and fill the PR column
 on merge — same convention as 21.
