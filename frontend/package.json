@@ -7,7 +7,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "preview:cf": "npm run build && wrangler dev"
+    "preview:cf": "npm run build && wrangler dev",
+    "deploy:cf": ": \"${CF_WORKER_NAME:?set it to the tenant Worker, e.g. CF_WORKER_NAME=demo-fieldapp-manttio-wl npm run deploy:cf}\" && npm run build && wrangler deploy --name \"$CF_WORKER_NAME\""
   },
   "prettier": {
     "overrides": [

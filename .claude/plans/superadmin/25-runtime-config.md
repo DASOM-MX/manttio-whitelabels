@@ -348,8 +348,17 @@ The build command is plain `npm run build` — `angular.json` sets
 `defaultConfiguration: production`, so `--configuration=production` is redundant.
 
 **Consequence for `wrangler.jsonc`'s `name`:** it is a placeholder that no real deploy
-uses. Any `deploy` script in `package.json` that omits `--name` would publish to it, so
-either the script carries the flag or it should not exist.
+uses, so any script that omits `--name` publishes to a Worker nobody wants. `deploy:cf`
+in both apps therefore refuses to run without an explicit tenant:
+
+```
+CF_WORKER_NAME=demo-superadmin-manttio-wl npm run deploy:cf
+```
+
+The guard is the first thing in the script, so an unset variable fails in under a second
+with the variable's name in the message rather than after a full production build. The
+console deploy above and this script are the same two arguments either way — pick whichever
+fits where you are.
 
 **Consequence for CP-7:** the field app follows the same shape — one Worker per tenant,
 `API_URL` in each tenant's dashboard. `manttio-whitelabels` (serving
