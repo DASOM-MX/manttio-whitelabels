@@ -1,11 +1,14 @@
 import {
   ApplicationConfig,
+  Injector,
+  PLATFORM_ID,
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
   provideAppInitializer,
   inject,
   isDevMode,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { provideRouter } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
@@ -19,6 +22,7 @@ import { withNgxsReduxDevtoolsPlugin } from '@ngxs/devtools-plugin';
 import { withNgxsLoggerPlugin } from '@ngxs/logger-plugin';
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
+import { loadRuntimeConfig } from './config/runtime-config';
 import { AppState } from '../state/app/app.state';
 import { AuthState } from '../state/auth/auth.state';
 import { BrandState } from '../state/brand/brand.state';
@@ -72,15 +76,33 @@ export const appConfig: ApplicationConfig = {
       withNgxsReduxDevtoolsPlugin({ disabled: !isDevMode() }),
       withNgxsLoggerPlugin({ disabled: !isDevMode() }),
     ),
-    // Hydrate the offline queue from IndexedDB on boot (fire-and-forget; never blocks bootstrap)
-    // and eagerly start the connectivity watcher so its online/offline listeners are bound.
-    // LoadBrand refreshes the (already persisted) tenant brand in the background.
-    provideAppInitializer(() => {
+    // Runtime config resolves first, then the boot work (25 §3). These must
+    // share one initializer: Angular starts initializers concurrently, so a
+    // separate config initializer would let `LoadBrand()` race the `apiUrl` it
+    // needs — and worse here than in the admin, `OfflineSyncService`'s
+    // reconnect watcher could start flushing the queue at the previous host.
+    //
+    // Then: hydrate the offline queue from IndexedDB, eagerly start the
+    // connectivity watcher so its online/offline listeners are bound, and
+    // refresh the (already persisted) tenant brand in the background.
+    provideAppInitializer(async () => {
+      // Everything injectable is resolved up front: the injection context is
+      // synchronous and does not survive an `await`. `OfflineSyncService` must
+      // still be constructed *after* the config lands, hence the injector
+      // rather than a direct `inject()`.
       const store = inject(Store);
+      const injector = inject(Injector);
+      // Skipped outside the browser. Every route is `RenderMode.Client`, so
+      // this never runs for a real request — but the build boots the app under
+      // Node to extract the route tree, and boot work there means a relative
+      // `/__config` fetch with no base and Dexie reaching for `indexedDB`
+      // (25 §5.2).
+      if (!isPlatformBrowser(inject(PLATFORM_ID))) return;
+      await loadRuntimeConfig();
       store.dispatch(new LoadPendingReports());
       store.dispatch(new LoadPendingVisitActions());
       store.dispatch(new LoadBrand());
-      inject(OfflineSyncService);
+      injector.get(OfflineSyncService);
     }),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),

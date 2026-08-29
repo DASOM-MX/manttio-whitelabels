@@ -1,13 +1,18 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../environments/environment';
+import { runtimeConfig } from '../app/config/runtime-config';
 import { toParams, type Query } from '../app/data/utils';
 
 @Injectable({ providedIn: 'root' })
 export class RemoteService {
   private readonly http = inject(HttpClient);
-  private readonly base = environment.apiUrl.replace(/\/$/, '');
+  /** Read lazily rather than captured in a field: `loadRuntimeConfig()`
+   *  resolves after the injector exists, and NGXS state construction pulls
+   *  this service in during that window (25 CP-5). */
+  private get base(): string {
+    return runtimeConfig.apiUrl.replace(/\/$/, '');
+  }
 
   private url(path: string): string {
     return `${this.base}${path.startsWith('/') ? path : `/${path}`}`;
