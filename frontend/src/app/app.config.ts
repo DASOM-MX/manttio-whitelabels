@@ -37,6 +37,7 @@ import { VisitsState } from '../state/visits/visits.state';
 import { PendingVisitActionsState } from '../state/pending-visit-actions/pending-visit-actions.state';
 import { LoadPendingVisitActions } from '../state/pending-visit-actions/pending-visit-actions.actions';
 import { ReportTemplatesState } from '../state/report-templates/report-templates.state';
+import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { OfflineSyncService } from '../offline/offline-sync.service';
 
 export const appConfig: ApplicationConfig = {
@@ -108,5 +109,6 @@ export const appConfig: ApplicationConfig = {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',
     }),
+    provideClientHydration(withEventReplay()),
   ],
 };
