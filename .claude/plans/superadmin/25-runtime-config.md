@@ -1,6 +1,7 @@
 # 25 — Runtime config (SSR shell on Workers, `apiUrl` from CF vars)
 
-> **Status:** in progress — **CP-1…CP-3 done 2026-08-28**; CP-4…CP-7 pending
+> **Status:** in progress — **superadmin leg done (CP-1…CP-4, 2026-08-28)**; frontend
+> code done (CP-5…CP-7, 2026-08-28), its deploy + cutover pending
 > **Depends on:** 02 (app shell) · **Touches:** `superadmin/`, `frontend/` (no `backend/` change)
 > **Owner:** — · **Last updated:** 2026-08-28
 
@@ -28,6 +29,14 @@ Answers to the scope forks raised before this plan was written:
    Pages would require bundling the server output into `browser/_worker.js` as a
    post-build step, and would drag `_routes.json` back in. Cost accepted: new CF
    projects + a domain cutover per app.
+
+   **Confirmed at cutover (2026-08-28).** The tenant instance
+   `demo-superadmin-manttio-wl` turned out to be a *Pages* project, Git-connected and
+   building on push, serving `demo-superadmin.manttio.com` from a commit predating this
+   plan. Its next build of `main` would have 404'd every route — `outputMode: "server"`
+   renames the shell to `index.csr.html`, so the `_redirects` fallback pointed at a file
+   that no longer exists. The Pages project was deleted and replaced by a Worker of the
+   same name. See §7 for the deploy model that came out of it.
 2. **Injection → `GET /__config` fetched at boot,** not HTML injection. The shell stays
    byte-identical and fully edge-cacheable; the price is one blocking round-trip before
    bootstrap. See §3 for the initializer-ordering trap this creates.
@@ -196,41 +205,94 @@ is enough.
       rejects a non-string and falls back, and the app still serves. A deploy that forgets
       the variable degrades instead of breaking
 
-### CP-4 — superadmin: cutover
-- [ ] Worker project created; `API_URL` set for production **and** preview scopes
-- [ ] Deployed; full login → dashboard → list-page flow verified on `workers.dev` **before**
-      any DNS change
-- [ ] Domain re-pointed
-- [ ] Delete `public/_redirects` (`_routes.json` was already removed). It is kept until
-      cutover so the live Pages deploy keeps working, but it is **already dead under the
-      Worker**: wrangler parses it and reports "Infinite loop detected in this rule and has
-      been ignored" — it points at `/index.html`, which no longer exists (the shell is
-      `index.csr.html`). Harmless where it is; must not survive the cutover
-- [ ] Pages project retired only after the Worker serves the domain
+### CP-4 — superadmin: cutover — done 2026-08-28
+- [x] Worker `demo-superadmin-manttio-wl` created; `API_URL` set as a plain dashboard
+      variable (§7)
+- [x] Deployed and verified on `workers.dev` **before** any DNS change: `/__config`
+      returned `{"apiUrl":"https://demo-api.manttio.com"}` — a tenant value distinct from
+      the compiled fallback, which is this plan's whole premise proven end to end. `/`,
+      `/login` and `/customers` all served the 4151 B shell, so deep links work with no
+      `_redirects`. Backend reachable; CORS preflight on `/auth/login` from the
+      workers.dev origin returned 204 with the origin echoed
+- [x] Domain re-pointed — `demo-superadmin.manttio.com` serves the Worker
+- [x] Deleted `public/_redirects`. It was not merely dead under the Worker, it was
+      **fatal to the deploy**: the assets upload succeeded and the script PUT was rejected
+      with `Invalid _redirects configuration: Line 1: Infinite loop detected in this rule
+      [code: 100324]`. `wrangler dev` only *warns* about the same rule, which is why CP-3
+      passed locally with the file still in place
+- [x] Pages project retired after the Worker served the domain
 
-### CP-5 — frontend: runtime-config layer + offline persistence
-- [ ] Runtime-config layer mirroring CP-1 (single call site: `src/http/remote.service.ts`)
-- [ ] Folded initializer, same ordering fix as CP-1 — `LoadBrand()` **and** the
-      `OfflineSyncService` injection must sit after the config resolves
-- [ ] Persist each successful `/__config` response to `localStorage`; boot reads it when
-      the fetch fails (not optional here — the field app boots offline routinely)
+**Two traps worth carrying into CP-7**, both cost real time here:
+
+1. **Custom domain ≠ route.** Deleting the Pages project takes its DNS record with it,
+   leaving the hostname at NXDOMAIN. In Workers → Domains & Routes, a **Route** only
+   attaches a Worker to a hostname that *already resolves* — it creates no DNS and fails
+   silently on a name with no record. Only **Custom domain** creates the record. The
+   symptom is "bound to the Worker, site unreachable".
+2. **The lockfile.** CP-2 installed the SSR schematic with `--skip-install
+   --legacy-peer-deps` to dodge an ERESOLVE, which left `ts-morph`, `@ts-morph/common`,
+   `code-block-writer`, `@emnapi/wasi-threads` and their subtrees out of
+   `package-lock.json`. Local builds stayed green; `npm ci` — which the CF build runs —
+   failed `EUSAGE`. Repaired with `npm install --package-lock-only`. **CP-6 installs the
+   same schematic: run `npm ci --dry-run` before committing.**
+
+### CP-5 — frontend: runtime-config layer + offline persistence — done 2026-08-28
+- [x] Runtime-config layer mirroring CP-1 (single call site: `src/http/remote.service.ts`,
+      read through a getter — a captured field would freeze the compiled value, since NGXS
+      state construction pulls the service in before the initializer resolves)
+- [x] Folded initializer, same ordering fix as CP-1. `OfflineSyncService` is resolved via
+      `Injector.get()` rather than `inject()`: the injection context does not survive an
+      `await`, and the watcher must not be constructed before the config lands
+- [x] Persist each successful `/__config` response to `localStorage`; boot reads it when
+      the fetch fails
 - [ ] Offline-boot test: install, go offline, reload, confirm the API host still resolves
-- [ ] Build green
+      — **needs a real deploy** (see CP-7 verification)
+- [x] Build green
 
-### CP-6 — frontend: SSR + service-worker reconciliation
-- [ ] `ng add @angular/ssr@20` (frontend is on the Angular **20** line)
-- [ ] `app.routes.server.ts` = single `RenderMode.Client` catch-all
-- [ ] `ngsw-config.json` reconciled with `index.csr.html` — both `"index"` and the `app`
-      asset-group `files` entry
+### CP-6 — frontend: SSR + service-worker reconciliation — done 2026-08-28
+- [x] `ng add @angular/ssr@20` (frontend is on the Angular **20** line)
+- [x] `app.routes.server.ts` = single `RenderMode.Client` catch-all — build reports
+      "Prerendered 0 static routes", which is the intended state
+- [x] `ngsw-config.json` reconciled with `index.csr.html` — both `"index"` and the `app`
+      asset-group `files` entry. Checked in the **built** `ngsw.json`, not the source:
+      `index` is `/index.csr.html` and no `/index.html` entry survives
+- [x] **Version pin.** The schematic resolved `@angular/ssr` to 20.3.35 against
+      `@angular/build` 20.0.6 and route extraction died with `this.manifest.allowedHosts
+      is not iterable` — a newer ssr package reading a manifest field this builder does
+      not emit. Pinned exactly to `20.0.6`. (Superadmin's CP-2 hit the sibling of this on
+      the 21 line; assume every `ng add @angular/ssr` in this repo needs a matched pin)
+- [x] `npm ci --dry-run` passes — the CP-4 trap 2 check
 - [ ] Full SW cycle exercised against a real build: install → offline reload → update to a
       new deploy → confirm no stale shell (§5.1 — do not infer this from a green build)
-- [ ] Dexie/offline queue boot smoke test under `wrangler dev` (§5.2)
+      — **needs a real deploy**
+- [x] Dexie/offline queue boot smoke test under `wrangler dev` (§5.2) — app boots, every
+      route serves the shell, no import-time browser-global crash in the server bundle
 
 ### CP-7 — frontend: cutover
-- [ ] Worker project + `wrangler.jsonc`, `API_URL` set for both scopes
-- [ ] Backend-generated dynamic PWA manifest + icons resolve through the assets binding
-- [ ] Deployed and verified on `workers.dev`; domain re-pointed
-- [ ] Delete `public/_redirects`
+- [ ] `wrangler.jsonc` mirroring superadmin's (placeholder `name`, `keep_vars: true`,
+      `nodejs_compat`, the `import.meta.url` define shim, default `not_found_handling`)
+- [ ] Delete `public/_redirects` — CP-4 proved the deploy API *rejects* it (code 100324),
+      so this is a prerequisite for deploying at all, not cleanup
+- [x] **The dynamic PWA manifest was a Pages Function** (`functions/manifest.webmanifest.ts`)
+      and Workers Static Assets has no `functions/` directory — it would have silently
+      stopped existing at cutover, taking the tenant's home-screen name, colors and icon
+      set with it. Moved into the Worker beside `/__config`, and it now reads the same
+      `API_URL` binding, so the Pages-only `API_BASE_URL` var is retired
+- [x] Verified under `wrangler dev` against the live demo backend: `/__config` returns the
+      bound var; `/manifest.webmanifest` returns the real tenant identity as
+      `application/manifest+json`; every route **including parameterised deep links**
+      (`/reports/:id`, `/report/pending/:id`, `/visits/:id`, `/customers/:id/edit`) serves
+      the shell; `ngsw.json` and `favicon.ico` bypass the Worker via the assets layer
+- [x] One deliberate behaviour change: an **unrouted** path now 404s instead of serving a
+      shell. The app has no `**` route, so under `_redirects` those loads rendered nothing
+      and threw `NG04002` — the 404 is strictly more honest
+- [ ] Worker created per tenant; `API_URL` set as a plain dashboard variable (§7)
+- [ ] Deployed with `--name <tenant>` and verified on `workers.dev` — including an
+      **installed-PWA** pass, not just a fresh browser: install, go offline, reload, and
+      confirm the API host still resolves from the persisted config (CP-5), then update to
+      a new deploy and confirm no stale shell (CP-6, §5.1)
+- [ ] Domain attached as a **Custom domain**, not a Route (CP-4 trap 1), and the Pages
+      project `manttio-whitelabels` retired only after the Worker serves it
 
 ---
 
@@ -264,6 +326,45 @@ until CP-3/CP-7 wire them. Until the domain moves, the existing Pages deployment
 and authoritative — cutover is the only irreversible step, and it reverses by re-pointing
 DNS back.
 
+## 7. Per-tenant deploy model (settled 2026-08-28 at CP-4 cutover)
+
+**One Worker per whitelabel tenant, one shared config file, zero tenant values in the
+repo.** This is what makes the plan pay off: a new tenant is a new Worker plus a dashboard
+variable, not a new build of the app.
+
+```
+npx wrangler deploy --name demo-superadmin-manttio-wl
+```
+
+Run from the tenant's own Cloudflare Workers build. The three pieces that make it work:
+
+| Piece | Where | Why |
+|---|---|---|
+| `--name <tenant>` | the deploy command | The tenant identity. `wrangler.jsonc` carries a placeholder `name`; the flag overrides it, so the shared file never names a tenant |
+| `API_URL` | the tenant Worker's dashboard, **plain text** | Per-tenant, and not a secret — it ships to every browser anyway. Encrypting it only costs the ability to read it back when debugging |
+| `keep_vars: true` | `wrangler.jsonc` | **Load-bearing.** Without it `wrangler deploy` treats the config file as the sole authority on bindings and silently deletes every dashboard-set variable it does not declare — so the first deploy would wipe the `API_URL` that was just set. Secrets survive regardless; plain vars do not |
+
+The build command is plain `npm run build` — `angular.json` sets
+`defaultConfiguration: production`, so `--configuration=production` is redundant.
+
+**Consequence for `wrangler.jsonc`'s `name`:** it is a placeholder that no real deploy
+uses, so any script that omits `--name` publishes to a Worker nobody wants. `deploy:cf`
+in both apps therefore refuses to run without an explicit tenant:
+
+```
+CF_WORKER_NAME=demo-superadmin-manttio-wl npm run deploy:cf
+```
+
+The guard is the first thing in the script, so an unset variable fails in under a second
+with the variable's name in the message rather than after a full production build. The
+console deploy above and this script are the same two arguments either way — pick whichever
+fits where you are.
+
+**Consequence for CP-7:** the field app follows the same shape — one Worker per tenant,
+`API_URL` in each tenant's dashboard. `manttio-whitelabels` (serving
+`demo-fieldapp.manttio.com`) is still a **Pages** project today, so CP-7 repeats the
+Pages→Workers migration, including the DNS gap in CP-4's trap 1.
+
 
 ---
 
@@ -276,10 +377,10 @@ Legend: ☐ not started · ◐ in progress · ☑ done
 | CP-1 | superadmin | runtime-config layer + folded initializer + 2 call sites | ☑ | — |
 | CP-2 | superadmin | `@angular/ssr`, all routes `RenderMode.Client` | ☑ | — |
 | CP-3 | superadmin | Worker entry + `wrangler.jsonc` + `/__config` | ☑ | — |
-| CP-4 | superadmin | CF project, vars, deploy, domain cutover, delete `_routes.json`/`_redirects` | ☐ | — |
-| CP-5 | frontend | runtime-config layer + `localStorage` offline persistence | ☐ | — |
-| CP-6 | frontend | `@angular/ssr@20` + `ngsw-config.json` reconciliation | ☐ | — |
-| CP-7 | frontend | Worker + deploy + cutover | ☐ | — |
+| CP-4 | superadmin | CF project, vars, deploy, domain cutover, delete `_routes.json`/`_redirects` | ☑ | pushed direct to `main` |
+| CP-5 | frontend | runtime-config layer + `localStorage` offline persistence | ☑ | — |
+| CP-6 | frontend | `@angular/ssr@20` + `ngsw-config.json` reconciliation | ☑ | — |
+| CP-7 | frontend | Worker + deploy + cutover | ◐ code done, deploy pending | — |
 
 Update the `Status:` line at the top of this file as legs complete, and fill the PR column
 on merge — same convention as 21.

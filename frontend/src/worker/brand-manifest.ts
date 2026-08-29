@@ -1,12 +1,17 @@
-// Cloudflare Pages Function: serves the PWA manifest fresh at runtime from the
-// tenant brand (plan 02 §2). The service worker prefetches manifests as
-// statics and runtime JS can't swap them, so the static file is gone and this
-// same-origin route answers /manifest.webmanifest instead. Brand absent or
-// unreachable → the neutral manifest (bundled /icons fallback set, rule 5).
+// Serves the PWA manifest fresh at runtime from the tenant brand (plan 02 §2).
+// The service worker prefetches manifests as statics and runtime JS can't swap
+// them, so there is no static file and this same-origin route answers
+// /manifest.webmanifest instead. Brand absent or unreachable → the neutral
+// manifest (bundled /icons fallback set, rule 5).
 //
-// Requires the Pages project env var API_BASE_URL (the tenant backend). The
-// icon set is backend-generated from the tenant mark on brand save (decided
-// 2026-07-12) and arrives as materialized CDN URLs on GET /brand.
+// Was a Cloudflare Pages Function (`functions/manifest.webmanifest.ts`) until
+// plan 25 CP-7. Workers Static Assets has no `functions/` directory, so it now
+// runs inside the Worker entry alongside /__config — and reads the same
+// `API_URL` binding that /__config serves, rather than the second
+// `API_BASE_URL` var the Pages version needed.
+//
+// The icon set is backend-generated from the tenant mark on brand save
+// (decided 2026-07-12) and arrives as materialized CDN URLs on GET /brand.
 //
 // Known caveat of any dynamic-manifest approach: browsers cache the manifest —
 // installed-app identity refreshes on the next manifest fetch, and an
@@ -30,8 +35,6 @@ type Brand = {
 };
 
 type ManifestIcon = { src: string; sizes: string; type: string; purpose: string };
-
-type RouteContext = { env: { API_BASE_URL?: string } };
 
 // "H S% L%" components (branding rule 2) → hex; the manifest is parsed by
 // installers, so hex is the conservative choice. Null on anything else.
@@ -75,7 +78,10 @@ const brandIcons = (icons: BrandIcons | undefined): ManifestIcon[] | null => {
   ];
 };
 
-export const onRequestGet = async (ctx: RouteContext): Promise<Response> => {
+/** Build the manifest for `apiBase`'s tenant. Never throws: an unreachable or
+ *  unset backend yields the neutral manifest, so a bad deploy degrades the
+ *  home-screen identity instead of breaking installation. */
+export const brandManifest = async (apiBase: string | undefined): Promise<Response> => {
   // Neutral defaults mirror index.html's pre-fetch values.
   const manifest: Record<string, unknown> = {
     name: 'Manttio',
@@ -92,10 +98,10 @@ export const onRequestGet = async (ctx: RouteContext): Promise<Response> => {
     icons: NEUTRAL_ICONS,
   };
 
-  const apiBase = ctx.env.API_BASE_URL?.replace(/\/$/, '');
-  if (apiBase) {
+  const base = apiBase?.replace(/\/$/, '');
+  if (base) {
     try {
-      const res = await fetch(`${apiBase}/brand`, { signal: AbortSignal.timeout(5000) });
+      const res = await fetch(`${base}/brand`, { signal: AbortSignal.timeout(5000) });
       if (res.ok) {
         const brand = (await res.json()) as Brand;
         const name = brand.name?.trim();

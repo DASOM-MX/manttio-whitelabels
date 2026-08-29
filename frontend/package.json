@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "preview:cf": "npm run build && wrangler dev",
+    "deploy:cf": ": \"${CF_WORKER_NAME:?set it to the tenant Worker, e.g. CF_WORKER_NAME=demo-fieldapp-manttio-wl npm run deploy:cf}\" && npm run build && wrangler deploy --name \"$CF_WORKER_NAME\""
   },
   "prettier": {
     "overrides": [
@@ -27,8 +29,10 @@
     "@angular/core": "~20.0.7",
     "@angular/forms": "~20.0.7",
     "@angular/platform-browser": "~20.0.7",
+    "@angular/platform-server": "~20.0.7",
     "@angular/router": "~20.0.7",
     "@angular/service-worker": "^20.0.7",
+    "@angular/ssr": "20.0.6",
     "@ng-icons/core": "^32.0.0",
     "@ng-icons/lucide": "^32.0.0",
     "@ngxs/devtools-plugin": "^20.1.0",
@@ -52,6 +56,7 @@
     "@angular/compiler-cli": "~20.0.7",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/jasmine": "~5.1.0",
+    "@types/node": "^20.17.19",
     "autoprefixer": "^10.4.21",
     "jasmine-core": "~5.7.0",
     "karma": "~6.4.0",
@@ -61,6 +66,7 @@
     "karma-jasmine-html-reporter": "~2.1.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.3",
-    "typescript": "~5.8.2"
+    "typescript": "~5.8.2",
+    "wrangler": "^4.127.1"
   }
 }
