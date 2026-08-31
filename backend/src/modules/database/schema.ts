@@ -44,6 +44,9 @@ import {
 import { replenishmentItems, replenishments } from '../wms/models/replenishments.model';
 import { stockCountLines, stockCountSessions } from '../wms/models/stock-count.model';
 import { reportMaterials } from '../wms/models/report-materials.model';
+import { portalUsers } from '../portal/models/portal-users.model';
+import { portalUserGrants } from '../portal/models/portal-user-grants.model';
+import { portalPasswordResets } from '../portal/models/portal-password-resets.model';
 
 export { users } from '../users/models/users.model';
 export { customers } from '../customers/models/customers.model';
@@ -93,6 +96,9 @@ export {
 export { stockCountSessions, stockCountLines } from '../wms/models/stock-count.model';
 export { reportMaterials } from '../wms/models/report-materials.model';
 export { wmsSettings } from '../wms/models/wms-settings.model';
+export { portalUsers } from '../portal/models/portal-users.model';
+export { portalUserGrants } from '../portal/models/portal-user-grants.model';
+export { portalPasswordResets } from '../portal/models/portal-password-resets.model';
 
 export const usersRelations = relations(users, ({ many }) => ({
   reportsCreated: many(reports, { relationName: 'reports_created_by' }),
@@ -715,3 +721,48 @@ export const reportMaterialsRelations = relations(reportMaterials, ({ one }) => 
     references: [warehouses.id],
   }),
 }));
+
+export const portalUsersRelations = relations(portalUsers, ({ one, many }) => ({
+  contact: one(customerContacts, {
+    fields: [portalUsers.contactId],
+    references: [customerContacts.id],
+  }),
+  customer: one(customers, {
+    fields: [portalUsers.customerId],
+    references: [customers.id],
+  }),
+  inviter: one(users, {
+    fields: [portalUsers.invitedBy],
+    references: [users.id],
+  }),
+  deleter: one(users, {
+    fields: [portalUsers.deletedBy],
+    references: [users.id],
+  }),
+  grants: many(portalUserGrants),
+  passwordResets: many(portalPasswordResets),
+}));
+
+export const portalUserGrantsRelations = relations(portalUserGrants, ({ one }) => ({
+  user: one(portalUsers, {
+    fields: [portalUserGrants.portalUserId],
+    references: [portalUsers.id],
+  }),
+  grantor: one(users, {
+    fields: [portalUserGrants.grantedBy],
+    references: [users.id],
+  }),
+  revoker: one(users, {
+    fields: [portalUserGrants.revokedBy],
+    references: [users.id],
+  }),
+}));
+
+export const portalPasswordResetsRelations = relations(portalPasswordResets, ({ one }) => ({
+  user: one(portalUsers, {
+    fields: [portalPasswordResets.portalUserId],
+    references: [portalUsers.id],
+  }),
+}));
+
+
