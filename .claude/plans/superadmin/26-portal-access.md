@@ -104,13 +104,17 @@ invitación", not "read me the password".
 ## 5b. Before any of this ships: the contact email dedup (A16)
 
 `../client-portal/01-data-model.md` **CP-0** makes `customer_contacts.email` unique tenant-wide,
-because email is the portal's login identity. On an existing tenant that constraint is
-retroactive and **will fail if two contacts share an address**.
+because email is the portal's login identity. The constraint is retroactive and **fails if two
+contacts share an address**.
 
-The resolution is a human one and it surfaces here, in 07's contacts UI, not in a script: staff
-see the colliding pairs and decide which contact keeps the address. Nothing in this module can
-be used until that pass is done — an invite dialog that cannot guarantee one account per address
-is an invite dialog that hands someone else's records to the wrong person.
+**Today that is a script's job** (owner, 2026-08-31 — the database is a test one): duplicates are
+blanked automatically, and this module has no work to do. **When a real tenant is onboarded it
+becomes this module's problem**, because the resolution is then a judgement about real people:
+07's contacts UI shows the colliding pairs and staff decide which contact keeps the address. Ship
+that view with CP-0 rather than discovering the need during a migration window.
+
+Either way the ordering is fixed — an invite dialog that cannot guarantee one account per
+address is an invite dialog that hands someone else's records to the wrong person.
 
 ## 6. Rollout companion tasks
 
@@ -120,8 +124,9 @@ is an invite dialog that hands someone else's records to the wrong person.
 
 ## 7. Checkpoints
 
-- [ ] **CP-0** — the contact email collision report in 07 + the staff resolution pass (§5b),
-      then `../client-portal/01-data-model.md` CP-0's index. Blocks every checkpoint below.
+- [ ] **CP-0** — pre-production: nothing (the dedup script covers it, §5b). Before the first
+      real tenant: the contact email collision view in 07 + the staff resolution pass. Blocks
+      every checkpoint below either way.
 - [ ] **CP-1** — nav entry + tenant-wide list with URL filters + status/grant chips.
 - [ ] **CP-2** — invite dialog from 07's contacts tab and from this module.
 - [ ] **CP-3** — grants editor with the dependency rule + revocation history preserved, plus
