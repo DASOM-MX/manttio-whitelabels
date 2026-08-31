@@ -1,7 +1,7 @@
 # client-portal / 00 — Portal de clientes suite overview
 
 > **Status:** planned (doc) · **Depends on:** 06 reports, 07 clients, 11 equipment, 13 contracts, 19 service-orders, 20 quotations
-> **Owner:** — · **Last updated:** 2026-08-28
+> **Owner:** — · **Last updated:** 2026-08-30
 
 The **Portal de clientes** is the product's fourth deployable app: a logged-in **end customer**
 (a contact of a tenant's customer) sees the records their tenant produced for them — reports,
@@ -26,9 +26,9 @@ gets its own plan suite. Two *staff-facing* surfaces it needs do live in the sup
 | 01 | `01-data-model.md` | Backend: `portal_users`, `portal_user_grants`, `service_requests` (+ events), enums, relations, migrations | — |
 | 02 | `02-auth-surface.md` | Backend: the `/portal/*` surface — login, me, password, reset, grant guard, invite flow | 01 |
 | 03 | `03-app-shell.md` | `client-portal/` app: scaffold, stack, layout reuse, routing, theming, NGXS/HTTP plumbing | 02 shapes |
-| 04 | `04-read-surfaces.md` | The four read sections: reports, contracts, quotations, service orders (+ PDF downloads) | 02, 03 |
+| 04 | `04-read-surfaces.md` | The read sections: reports, contracts, quotations, service orders, equipment (+ PDF downloads) | 02, 03 |
 | 05 | `05-quotation-approval.md` | In-portal approve/decline, coexisting with the emailed token page | 04 |
-| 06 | `06-service-requests.md` | The new `service-requests/` backend module + the portal's request flow | 01, 03; feeds 22 |
+| 06 | `06-service-requests.md` | The new `service-requests/` backend module + the portal's request flow | 01, 03; feeds 27 |
 
 **Build order:** 01 → 02 backend-side; 03 starts against mocked services as soon as 02 fixes
 the shapes (superadmin master plan §2 rule 5). Then 04 → 05 in the portal, with 06 running in
@@ -37,7 +37,7 @@ portal (nobody can log in until staff can invite), so **26 ships before the port
 
 **PR granularity:** one PR per checkpoint, stacked, base `main`. Branch naming
 `feature/client-portal-<slice>` for portal app work, `feature/backend-portal-<slice>` for the
-backend surface, `feature/superadmin-<slice>` for 22/23; `fullstack` prefix when a PR spans
+backend surface, `feature/superadmin-<slice>` for 26/27; `fullstack` prefix when a PR spans
 both. Commit prefixes `feat(client-portal)` / `feat(backend)` / `feat(superadmin)`.
 
 ## 2. Binding invariants
@@ -101,27 +101,55 @@ Inherited from the repo and the superadmin suite — do not relitigate:
     rejected`. Rejection requires a reason. **Approval creates a linked draft quotation**
     pre-filled with the customer and the request's equipment/description as context; staff add
     catalog lines and prices and send it through the normal quotation flow.
+    **Amended 2026-08-30 (§4 A6):** `approved` is no longer terminal — a request may carry
+    several quotations over its life, and the only terminal client-side state is `closed`,
+    which only a portal **admin** may set.
 15. **Notifications both directions:** a new request raises a staff in-app notification through
     the existing notifications module; the contact receives transactional email (invite, reset,
     quote ready, request status changes).
 16. **This branch ships plan documents only** — no implementation code.
 
-## 4. Open asks (need owner sign-off before the relevant checkpoint starts)
+## 4. Resolved asks (owner, 2026-08-30)
+
+Every ask A1–A15 raised on 2026-08-28 is answered. The table is the record; each row names
+where the answer is encoded.
+
+| # | Answer | Encoded in |
+|---|---|---|
+| A1 | **Grant list accepted as proposed** — the six grants stand, no further splitting. | 01 §3 |
+| A2 | **Portal JWT TTL = 2 days.** No refresh endpoint; re-login on expiry. | 02 §1 |
+| A3 | **5 failed logins → 2-hour cooldown** on the account. Applies to the portal login route. | 01 §1, 02 §2 |
+| A4 | **Not a flag. Every tenant gets the portal** — it is part of the product's value proposition, so there is no manager-side toggle and no `module-isolation` key. | 03 §6 |
+| A5 | **New bucket `manttio-customer-report`**, separate from `manttio-equipment`, with its own lifecycle. | 01 §4, 06 §2 |
+| A6 | **Neither reopen nor auto-close.** A declined quotation leaves the request open; **staff create a new quotation manually**, linked by a new **`quotations.service_request_id`** FK (one request → many quotations over time). The request's terminal state is **`closed`**, and **only a portal user with `is_admin` may close it** — a new column on `portal_users`. | 01 §1, 01 §4, 06 §3–4 |
+| A7 | **Only records staff deliberately released.** No draft, deleted or archived/cancelled records reach the portal, in any section. | 04 §2 |
+| A8 | **Both** — equipment is its own read section *and* the picker inside the service-request form. | 04 §7, 06 §2 |
+| A9 | **`equipment_id` stays nullable** — a customer may simply not have registered the unit yet, and that must not block a request. | 01 §4 |
+| A10 | **One account per customer contact.** The uniqueness rule is `contact_id`, not the email address. | 01 §1 |
+| A11 | **Copy the superadmin `AuthenticatedLayout` into the new project and adapt it.** Drift between the two is accepted; no shared package. | 03 §2 |
+| A12 | **Same typography as superadmin** (Figtree) — the portal reads as product chrome, not as tenant-branded surface. Colors and logo still come from `/brand`. | 03 §3 |
+| A13 | **Yes — name the technician**, always. | 04 §3 |
+| A14 | **Yes — name the other reviewers.** The customer sees who else was asked and how each answered. | 04 §5, 05 §3 |
+| A15 | **No — priority is not exposed** to the customer. | 04 §6 |
+
+### 4b. Decisions this created
+
+17. **`portal_users.is_admin`** (boolean, default false) — an *identity* attribute, deliberately
+    not a `portal_user_grants` row. Grants say what a portal user may **do with records**;
+    `is_admin` says **who speaks for the customer**. Today it confers exactly one power —
+    closing a service request — and nothing else may be attached to it without a decision here.
+18. **The request↔quotation link lives on the quotation** (`quotations.service_request_id`), and
+    `service_requests.quotation_id` is **dropped from the model before it is ever built**. One
+    request can spawn several quotations (declined v1 → new v2), so a single column on the
+    request could not hold the truth, and keeping both would let the two disagree — the same
+    reasoning `QuotationEventRefKind` records for its own exclusion of `contactId`.
+19. **Login lockout is state on `portal_users`** (`failed_login_attempts`, `locked_until`), not a
+    KV or in-memory counter: a Worker has no shared memory between isolates, so a counter that
+    is not in the database is not a counter.
+
+## 5. Residual asks (raised by the 2026-08-30 answers)
 
 | # | Ask | Blocks |
 |---|---|---|
-| A1 | The exact grant list (proposed in `01-data-model.md` §3) — six grants, or split "view" per section further? | 01 |
-| A2 | Portal JWT TTL. Staff tokens are 1d prod / 7d dev; a customer portal arguably wants longer + a refresh path. | 02 |
-| A3 | Reset-token rate limiting + lockout policy on repeated bad logins (there is none for staff today). | 02 |
-| A4 | Is the portal a per-tenant offering? Module flags are org-level and manager-owned — the portal likely needs a manager-side flag rather than an in-tenant one. | 03 |
-| A5 | Evidence images: reuse the `manttio-equipment` bucket, or a new `manttio-portal` bucket with its own lifecycle? | 01, 06 |
-| A6 | When a quotation born from a request is **declined** by the client, does the request reopen (`in_review`) or close as `rejected`? | 06 |
-| A7 | Does a portal user see *draft* quotations and *pending* reports, or only records staff have deliberately sent/finished? Proposal: only sent/finished. | 04 |
-| A8 | Should the portal show the customer's equipment registry (11) as its own read section? It is needed as a *picker* for requests either way. | 04, 06 |
-| A9 | `service_requests.equipment_id` is nullable so a customer with an empty registry can still file. Confirm, and whether staff must attach an equipment record before approving. | 01, 06 |
-| A10 | One email = one portal account per tenant DB (partial-unique on `email`). Accept, or scope it to `(customer_id, email)` so one person can hold accounts at two customers? | 01 |
-| A11 | The superadmin `AuthenticatedLayout` is **copied** into the portal (no shared library exists). Accept the drift, or extract a shared package? | 03 |
-| A12 | Typography: the portal is tenant-facing, so `01-conventions.md` says **brand fonts**, not superadmin's Figtree. Confirm — "mirror superadmin" may have been meant to include the typeface. | 03 |
-| A13 | Name the technician on a customer-visible report? (The report PDF already does.) | 04 |
-| A14 | Name the other reviewers on a quotation, or show only the tally? | 04, 05 |
-| A15 | Expose service-order priority to the customer? Proposal: no — it is an internal dispatch signal. | 04 |
+| A16 | A10 + 00 §3.3 together mean **two contacts at two customers may share an email address**, each with their own account. `POST /portal/auth/login` takes `{ email, password }` and can therefore match two accounts. Options: (a) accept and disambiguate after the password check with a customer chooser, (b) make email unique per tenant anyway and forbid the second invite, (c) log in with a customer + email pair. Proposal: **(a)**. | 02 |
+| A17 | A9 confirms `equipment_id` is optional at filing. Open: when staff approve a request filed **without** equipment, must they attach an equipment record first, or is it merely offered at triage? Proposal: **offered, never required** — a blocking gate turns a triage screen into a data-entry chore. | 06, superadmin 27 |

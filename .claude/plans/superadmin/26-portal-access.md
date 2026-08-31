@@ -2,7 +2,7 @@
 
 > **Status:** planned (doc) · **Depends on:** 07 (clients), `../client-portal/01-data-model.md`
 > + `../client-portal/02-auth-surface.md`
-> **Owner:** — · **Last updated:** 2026-08-28
+> **Owner:** — · **Last updated:** 2026-08-30
 
 Where staff decide **who** gets into the Portal de clientes and **what** they can do there.
 Access is invite-only (`../client-portal/00-overview.md` §3.4) — there is no public signup — so
@@ -20,8 +20,12 @@ never logged in?" — both cross-customer.
 
 - `p-table`, server-paginated, URL filters: customer, status (`invited` / `active` /
   `suspended`), grant, free text over name + email.
-- Columns: contact name, customer (deep-link to 07), email, status, grants (compact chips),
-  last login, invited by.
+- Columns: contact name, customer (deep-link to 07), email, status, **admin** (a badge when
+  `is_admin`), grants (compact chips), last login, invited by.
+- **`locked_until` is shown on the row when it is in the future** ("bloqueado hasta 14:30"). The
+  2-hour lockout after 5 failed logins (`../client-portal/02-auth-surface.md` §2) is invisible
+  to the customer by design — the login says nothing — so support needs to see it here to
+  answer "no me deja entrar". It self-clears; there is no unlock action to build.
 - **`invited` with no last login is the row that matters.** An invite that was never used is an
   access request that silently failed; the list should make that state easy to find and act on.
 
@@ -30,9 +34,9 @@ never logged in?" — both cross-customer.
 From a **customer's contacts tab** (07) — the natural place, since you decide about a person
 while looking at them — and from this module with a customer + contact picker.
 
-The invite dialog is deliberately small: pick the contact, tick the grants, send. It shows the
-contact's email as **text, not an editable field** — if it's wrong, the fix is to correct the
-contact, not to type a different address into a credential.
+The invite dialog is deliberately small: pick the contact, tick the grants, set the admin
+toggle, send. It shows the contact's email as **text, not an editable field** — if it's wrong,
+the fix is to correct the contact, not to type a different address into a credential.
 
 On send: `POST /portal-users`, the backend mails a temp password
 (`../client-portal/02-auth-surface.md` §6), the row appears as `invited`.
@@ -54,6 +58,25 @@ Rules the UI reflects but the **backend enforces**:
 
 Every change writes a `portal_user_grants` row or sets `revoked_at` — **never a DELETE** — so
 "who could see our prices in March" stays an answerable question.
+
+## 3b. Administrador del portal (`is_admin`) — separate from the grants
+
+A single toggle, rendered **outside** the grants block and labelled as what it is: *"Administra
+el portal de este cliente"*. It writes `portal_users.is_admin`
+(`../client-portal/01-data-model.md` §1), **not** a `portal_user_grants` row — grants say what a
+person may do with records, this says who speaks for the customer
+(`../client-portal/00-overview.md` §4b.17).
+
+- Today it confers exactly **one** power: **closing a service request**
+  (`../client-portal/06-service-requests.md` §3). The toggle's helper text says so plainly
+  rather than implying a general administrator role the product does not have.
+- It is independent of every grant, including `create_service_requests` — but an admin with no
+  request grant sees no requests to close, so the editor warns when that combination is saved
+  instead of silently producing a useless account.
+- Toggling it is effective on the **next request** (the middleware re-reads the row), like a
+  grant revocation.
+- A customer may have **several** portal admins, or none. There is no "must have one" rule: a
+  customer with no admin simply never closes requests, and staff still cannot close for them.
 
 ## 4. Lifecycle actions
 
@@ -84,9 +107,11 @@ invitación", not "read me the password".
 
 - [ ] **CP-1** — nav entry + tenant-wide list with URL filters + status/grant chips.
 - [ ] **CP-2** — invite dialog from 07's contacts tab and from this module.
-- [ ] **CP-3** — grants editor with the dependency rule + revocation history preserved.
+- [ ] **CP-3** — grants editor with the dependency rule + revocation history preserved, plus
+      the `is_admin` toggle (§3b) and the no-request-grant warning.
 - [ ] **CP-4** — lifecycle actions (resend, reset, suspend, reactivate, revoke-with-comment).
-- [ ] **CP-5** — 07 contact-row indicator + the quotation-email portal link.
+- [ ] **CP-5** — 07 contact-row indicator + the quotation-email portal link + the
+      `locked_until` badge on the list.
 
 ## 8. Open decisions / asks
 

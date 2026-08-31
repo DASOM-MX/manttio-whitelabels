@@ -1,7 +1,7 @@
 # client-portal / 03 — App shell
 
 > **Status:** planned (doc) · **Depends on:** 02 (shapes) · **Feeds:** 04, 05, 06
-> **Owner:** — · **Last updated:** 2026-08-28
+> **Owner:** — · **Last updated:** 2026-08-30
 
 Scaffolding `client-portal/` — the repo's fourth deployable app — and everything every page in
 it depends on: stack, layout, routing, guards, theming, plumbing.
@@ -20,14 +20,14 @@ the root CLAUDE.md:
 - **Tailwind 3.4**, authored in the **semantic** `primary-*` / `surface-*` classes from day one
   (plan 16's rename is already done superadmin-side — the portal must not be born in the old
   `sky`/`granite` vocabulary and then need the sweep)
-- `@lucide/angular` for icons, `@fontsource/atkinson-hyperlegible` for the numeric `font-data`
-  stack
+- `@lucide/angular` for icons, `@fontsource/figtree` for the UI stack (A12) and
+  `@fontsource/atkinson-hyperlegible` for the numeric `font-data` stack
 - **`@angular/ssr` scaffolding with every route `RenderMode.Client`** — the topology plan 25
   settled for both existing Angular apps. Nothing renders server-side; the server bundle exists
   so the Worker owns the request path and can serve `/__config`.
 
 `superadmin/`'s binding conventions (`../superadmin/01-conventions.md` + the `superadmin-design`
-skill) apply to this app unchanged, **except typography** — see §3.
+skill) apply to this app **unchanged, typography included** (A12, §3).
 
 ## 2. Layout: reuse the superadmin `AuthenticatedLayout` (owner, 2026-08-28)
 
@@ -44,9 +44,10 @@ copy** at scaffold time, with three adaptations:
    grant is present in `/portal/auth/me`.
 3. `ForcePasswordDialog` is kept as-is — the invite flow depends on it.
 
-**Ask A11:** copying accepts drift between two layouts that are supposed to look identical.
-The alternative is extracting a shared package, which this repo has no tooling for today.
-Proposal: copy now, revisit only if a third consumer appears.
+**A11 resolved (owner, 2026-08-30): copy it into the new project and adapt.** Drift between
+the two layouts is accepted and is not a defect to chase — they are two apps for two audiences
+that happen to share a starting point. No shared package, no extraction, and a future change to
+superadmin's shell carries **no obligation** to mirror it here.
 
 ## 3. Theming + typography
 
@@ -57,12 +58,12 @@ Proposal: copy now, revisit only if a third consumer appears.
   initializer that runs before the config initializer resolves will call a URL that does not
   exist yet — the same initializer-ordering trap 25 §3 documents. The two are folded into one
   ordered initializer, config first.
-- **Typography follows the tenant-facing rule, not superadmin's.** `01-conventions.md` is
-  explicit that Figtree is *our product chrome* and that tenant-facing surfaces (`website/`,
-  the field app) are **brand-font-driven** from `Brand.font`. The portal is a tenant's customer
-  looking at a tenant's brand, so it takes brand fonts with the Work Sans / Rubik default.
-  **Ask A12** — confirm, since "mirror superadmin" could have been meant to include the
-  typeface.
+- **Typography: Figtree, same as superadmin** (A12, owner 2026-08-30). This is a deliberate
+  departure from `01-conventions.md`'s tenant-facing rule: the portal is read as *product
+  chrome* — an application the customer logs into — not as a branded marketing surface like
+  `website/` or the field app's report output. **`Brand.font` is not consumed here**; colors,
+  logo and tenant name still are. The `/fonts` endpoint is therefore not called at boot, which
+  also removes one request from the critical path.
 - Dark mode: same `AppState.darkMode` + storage-plugin persistence as superadmin.
 - **No PWA / service worker.** The portal is an occasional-use read surface on good
   connectivity; the field app's offline machinery has no reason to be here.
@@ -81,6 +82,7 @@ Authenticated shell:
 | `/contratos` | Contratos | `view_contracts` |
 | `/cotizaciones` | Cotizaciones | `view_quotations` |
 | `/ordenes` | Órdenes de servicio | `view_service_orders` |
+| `/equipos` | Equipos | `create_service_requests` (A8) |
 | `/solicitudes` | Solicitudes | `create_service_requests` |
 | `/perfil` | (user popover) | — |
 
@@ -134,8 +136,11 @@ apps had to perform and is simply born on the far side of it.
 - Root `CLAUDE.md`'s deployable-apps table gains a `client-portal/` row (Hosting: **CF Workers**,
   not Pages), and the app gets its own `client-portal/CLAUDE.md` pointing at this suite (ship
   both with CP-1).
-- **Ask A4** stands: whether the portal is a per-tenant offering is a manager-side flag, not an
-  in-tenant one — module flags are org-level and manager-owned.
+- **A4 resolved (owner, 2026-08-30): every tenant gets the portal.** It is part of the
+  product's value proposition, not an upsell, so there is **no manager-side flag, no
+  `module-isolation` key, and no 403 path** to design. The `module-isolation` suite's flagged
+  list is unaffected and none of its three packages needs a portal entry. A tenant that has not
+  invited anyone simply has a portal nobody logs into.
 
 ## 7. Checkpoints
 

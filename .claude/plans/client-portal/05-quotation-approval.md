@@ -1,6 +1,6 @@
 # client-portal / 05 — Quotation approval in the portal
 
-> **Status:** planned (doc) · **Depends on:** 04 · **Owner:** — · **Last updated:** 2026-08-28
+> **Status:** planned (doc) · **Depends on:** 04 · **Owner:** — · **Last updated:** 2026-08-30
 
 A second entrance to a decision that already exists. The emailed token page
 (`/public/quotations/:token`) **stays** (00 §3.10) — this adds an authenticated path for
@@ -33,6 +33,17 @@ in the trail (`quotation_events` says so in its own comment).
 Proposal: `changes` gains `{ via: 'portal' }` on portal-originated responses, so the trail can
 distinguish "clicked the emailed link" from "logged in and decided" without adding a column or
 a second event type. Cheap, additive, and the timeline renderer can ignore it.
+
+## 2b. What the customer sees about the other reviewers (A14)
+
+Named, with their answers — 04 §5. This page is where that matters most: a quotation stalls
+because one of the customer's own people has not answered, and the portal should say **who**,
+not just "2 de 3". Each reviewer row is name, answer (`aprobó` / `rechazó` / `pendiente`) and
+the timestamp of their response.
+
+Decline **reasons** are shown too: they are the customer's own colleague's words about the
+customer's own purchase, and hiding them would make the panel useless for the one conversation
+it exists to support. Staff-side commentary on the quote is still stripped (04 §5).
 
 ## 3. Who sees the buttons
 
@@ -69,6 +80,6 @@ another event row; the sequence is the evidence.
       tests asserting a portal response and a token response produce identical event rows
       apart from `changes.via`.
 - [ ] **CP-2** — portal detail-page decision UI (approve / decline + mandatory reason),
-      standing-answer display, live-status gating.
+      standing-answer display, live-status gating, and the **named reviewer panel** (§2b).
 - [ ] **CP-3** — the non-reviewer and closed-quote states rendered from the backend's own
       error messages.

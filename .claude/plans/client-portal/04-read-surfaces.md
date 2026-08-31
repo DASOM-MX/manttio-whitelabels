@@ -1,10 +1,10 @@
 # client-portal / 04 — Read surfaces
 
 > **Status:** planned (doc) · **Depends on:** 02, 03 · **Feeds:** 05
-> **Owner:** — · **Last updated:** 2026-08-28
+> **Owner:** — · **Last updated:** 2026-08-30
 
-The four sections a portal user reads: reports, contracts, quotations, service orders. Same
-shape every time — a filtered list in the URL, a detail page, a PDF where one exists — so this
+The sections a portal user reads: reports, contracts, quotations, service orders — and, since
+A8, the equipment registry. Same shape every time — a filtered list in the URL, a detail page, a PDF where one exists — so this
 file specifies the pattern once and the per-entity differences after it.
 
 ---
@@ -22,26 +22,33 @@ file specifies the pattern once and the per-entity differences after it.
 - **Grant** gates the route, the nav item and the endpoint. Without it the section does not
   exist for that user.
 
-## 2. What a portal user may see — ask A7
+## 2. What a portal user may see (A7, owner 2026-08-30)
 
-Proposal, per entity, so a customer never sees work in progress that staff have not chosen to
-share:
+**Only what staff deliberately released. Nothing drafted, deleted or archived reaches the
+portal** — in any section, without exception.
 
-| Entity | Visible | Hidden |
+| Entity | Visible | Never sent to the portal |
 |---|---|---|
-| Reports | `finished`, `mailed` | `pending`, `created`, `in-progress` (work not yet done), `cancelled` |
-| Contracts | all non-deleted | soft-deleted (early-terminated) contracts |
-| Quotations | `waiting_approval`, `partially_approved`, `approved`, `declined`, `order_created` | `draft` (not yet mailed), `cancelled` |
-| Service orders | `open`, `completed` | `cancelled` |
+| Reports | `finished`, `mailed` | `pending`, `created`, `in-progress`, `cancelled`, soft-deleted |
+| Contracts | live, non-deleted | soft-deleted / early-terminated |
+| Quotations | `waiting_approval`, `partially_approved`, `approved`, `declined`, `order_created` | `draft`, `cancelled`, soft-deleted |
+| Service orders | `open`, `completed` | `cancelled`, soft-deleted |
+| Equipment | active registry rows | soft-deleted units |
 
-Owner sign-off needed on the three hidden-by-default choices — in particular whether a customer
-should see a **cancelled** order or quotation at all, or whether their disappearance is worse
-than their presence.
+Two consequences worth stating once, because both are easy to get wrong later:
+
+1. **The filter is a `WHERE`, not a UI concern.** A hidden record is absent from the response
+   body and 404s on direct access, per the omit-never-hide rule (02 §5).
+2. **A record can vanish from the customer's view.** Cancelling a quotation the customer has
+   already seen removes it from their list. That is the accepted behaviour — a cancelled
+   document is one the tenant has retracted, and leaving it visible invites a customer to act on
+   something staff consider dead. The `quotation_events` trail keeps the history staff-side.
 
 ## 3. Reportes (`view_reports`)
 
-- **List columns:** folio, date, equipment / site, technician *(ask A13 — do we name the
-  technician to the customer? The report PDF already does, so proposal: yes)*, status, PDF.
+- **List columns:** folio, date, equipment / site, **technician (A13 — always named)**, status,
+  PDF. The report PDF the customer already receives names them, so withholding it in the portal
+  would be a difference without a reason.
 - **Filters:** date range, equipment, free-text.
 - **Detail:** the finished report as the customer received it — the answered template snapshot,
   pictures, signature. Reuses the field app's read-only report view structure, restyled to the
@@ -69,23 +76,48 @@ than their presence.
   price, line total — plus terms and the reviewer tally as the customer's side of it.
 - **Decision affordance** appears only with `approve_quotations` and only on a live status —
   see `05-quotation-approval.md`.
-- **Stripped:** cost/margin behind any price, staff attribution, `resolutionReason` and other
-  staff-terminal metadata, and **the other reviewers' identities beyond what the quote itself
-  already discloses** (ask A14 — the tally is "2 de 3 aprobaron"; do we name them?).
+- **Reviewers are named (A14, owner 2026-08-30)** — not just the tally. The detail page lists
+  every reviewer recipient with their answer and when they gave it: *"María López — aprobó, 12
+  ago"*, *"Juan Pérez — pendiente"*. The customer's own people are deciding on the customer's
+  own purchase; who has answered is exactly the information that unblocks it. **Informational
+  (non-reviewer) recipients are not listed** — they hold no decision, and listing them would
+  turn the panel into a distribution log.
+- **Stripped:** cost/margin behind any price, staff attribution (who priced it),
+  `resolutionReason` and other staff-terminal metadata.
 
 ## 6. Órdenes de servicio (`view_service_orders`)
 
-- **List columns:** folio, opened date, status, priority *(ask A15 — priority is an internal
-  dispatch signal; proposal: hide it from the customer)*, linked quotation folio, count of
-  linked reports.
+- **List columns:** folio, opened date, status, linked quotation folio, count of linked
+  reports. **No priority column (A15)** — it is an internal dispatch signal, and exposing it
+  invites an argument about it.
 - **Detail:** the order's scope lines, its linked reports (deep-linking into §3 when the user
   also has `view_reports`), its visits as **dates only** — not technician assignment churn —
   and the linked quotation when there is one.
 - **Timeline:** the customer does **not** see `service_order_events`. That trail is the staff
   audit; a customer-facing summary of it is a later decision, not a v1 default.
-- **Stripped:** costs, margins, technician assignment history, internal notes, WMS reservations.
+- **Stripped:** costs, margins, **priority**, technician assignment history, internal notes,
+  WMS reservations.
 
-## 7. Inicio
+## 7. Equipos (`create_service_requests`) — A8
+
+The customer's own equipment registry (module 11), as **both** a browsable section and the
+picker inside the request form. One endpoint (`GET /portal/equipment`, 02 §3) serves both.
+
+- **List columns:** tag / name, brand + model, serial, location/site, last service date.
+- **Filters:** free text, location.
+- **Detail:** the identification block, plus that unit's **reports** (when the user holds
+  `view_reports`) and **its service requests**, newest first — the per-unit history that makes
+  the section worth having.
+- **Action:** "Solicitar servicio para este equipo" deep-links into the request form with the
+  unit preselected.
+- **Stripped:** acquisition cost, internal maintenance scheduling, WMS parts data.
+
+**Consequence of A1 + A8 taken together:** the approved six-grant list has no `view_equipment`,
+so this section is gated by `create_service_requests` — a portal user who may not file requests
+sees no equipment either. That follows from both answers as given; making the registry readable
+on its own would take a seventh grant.
+
+## 8. Inicio
 
 A landing panel, not a dashboard: the tenant's brand, a short greeting, and one card per
 granted section showing a count and the two most recent items. No charts, no KPIs — a customer
@@ -93,16 +125,17 @@ portal that opens on analytics is answering a question nobody asked.
 
 ## 8. Checkpoints
 
-- [ ] **CP-1** — backend: the four list/detail endpoint pairs, portal DTOs, scope + grant
-      tests, visibility rules from §2 applied server-side.
+- [ ] **CP-1** — backend: the list/detail endpoint pairs, portal DTOs, scope + grant tests,
+      visibility rules from §2 applied server-side as `WHERE` clauses.
 - [ ] **CP-2** — Reportes list + detail + PDF.
 - [ ] **CP-3** — Contratos list + detail + download.
 - [ ] **CP-4** — Cotizaciones list + detail (read-only; the decision lands in 05).
 - [ ] **CP-5** — Órdenes list + detail, cross-links to reports.
-- [ ] **CP-6** — Inicio panel + the no-grants empty state.
+- [ ] **CP-6** — Equipos list + detail + per-unit history + the deep-link into the request form.
+- [ ] **CP-7** — Inicio panel + the no-grants empty state.
 
-## 9. Asks raised here
+## 9. Asks
 
-- **A13** — name the technician on a customer-visible report?
-- **A14** — name the other reviewers on a quotation, or show only the tally?
-- **A15** — expose service-order priority to the customer?
+All resolved 2026-08-30 — **A7** (released records only), **A8** (section *and* picker),
+**A13** (name the technician), **A14** (name the reviewers), **A15** (no priority). See
+00 §4.

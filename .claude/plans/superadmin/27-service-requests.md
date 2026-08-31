@@ -2,7 +2,7 @@
 
 > **Status:** planned (doc) · **Depends on:** 07 (clients), 11 (equipment), 20 (quotations),
 > `../client-portal/01-data-model.md` + `../client-portal/06-service-requests.md`
-> **Owner:** — · **Last updated:** 2026-08-28
+> **Owner:** — · **Last updated:** 2026-08-30
 
 The **staff** half of the Portal de clientes' one write path. Customers file service requests
 from the portal (`../client-portal/06-service-requests.md`); this module is where staff read,
@@ -28,8 +28,16 @@ New sidebar entry **Solicitudes**, badged with the count in `submitted`.
 - `p-table`, server-paginated, filters **in the URL** (`queryParamMap` single load path):
   status, customer, equipment, date range, free text over folio + description.
 - Default filter is **`submitted` + `needs_info`** — the two states where the queue is waiting
-  on somebody. `in_review` is somebody's open work; terminal states are history.
+  on somebody. `in_review` is somebody's open work; `rejected` / `closed` are history.
+- **`approved` is a separate view, not part of the default queue** — the A6 amendment
+  (`../client-portal/06-service-requests.md` §4b) made `approved` non-terminal, and only the
+  customer's portal admin can retire a request. Approved requests therefore accumulate
+  indefinitely by design. A second tab, *"Cotizadas — esperando al cliente"*, holds them; the
+  main queue stays the list of things a staff member must act on today. Mixing the two is how
+  the queue stops being read.
 - Columns: folio, customer, equipment, description excerpt, filed by (contact), age, status.
+  The *Cotizadas* tab swaps `age` for **quotations attached** (count + the newest folio) — a
+  request on its third quote is the one worth looking at.
 - **Age is the column that matters.** A request sitting three days in `submitted` is the
   failure mode this whole module exists to prevent — surface it, sort by it, and let the
   default sort be oldest-first, not newest-first.
@@ -55,6 +63,12 @@ technician has no access to this module):
 | **Solicitar información** | `in_review` | Required question text → `needs_info`, appends `info_requested`, emails the contact. Ball returns to the client. |
 | **Aprobar y cotizar** | `in_review` | The conversion (§4). |
 | **Rechazar** | `submitted`, `in_review` | **Mandatory reason**, → `rejected`, appends `rejected`, emails the contact. Terminal. |
+| **Cotizar de nuevo** | `approved` | Opens a **new** draft quotation against the same request (§4), after the client declined the previous one. Never automatic — see `../client-portal/06-service-requests.md` §4b. |
+
+**There is no staff "cerrar" action, deliberately** (A6). Staff may reject a request they will
+not take; once taken, only a portal user with `is_admin` closes it. If a staff member believes a
+request is finished and the customer has not closed it, the answer is a phone call, not a
+button — and the *Cotizadas* tab is where it waits meanwhile.
 
 No edit affordance on the customer's description, ever — the request is evidence.
 
@@ -65,7 +79,12 @@ staff member lands **in the new quotation's editor** with the request's context 
 terms block. The moment of approval is the moment somebody is ready to price the work; making
 them navigate to Cotizaciones and start from an empty form is how the link gets lost.
 
-The quotation detail page (20) gains a **"Origen: solicitud SOL-…"** backlink chip.
+The quotation detail page (20) gains a **"Origen: solicitud SOL-…"** backlink chip, read from
+`quotations.service_request_id` (`../client-portal/01-data-model.md` §6b).
+
+**A request may hold several quotations.** The link lives on the quotation, not the request, so
+the detail page lists them all — folio, status, date — newest first, with the declined ones
+still visible. That list *is* the commercial history of the request.
 
 ## 5. Filing on a customer's behalf
 
@@ -77,17 +96,22 @@ does not land in the same queue the queue stops being the truth.
 ## 6. Notifications
 
 The in-app half of `../client-portal/06-service-requests.md` §5 renders in the existing
-notification center: `service_request_submitted` and `service_request_answered` deep-link
-straight to the detail page. No new UI surface — the center already exists.
+notification center: `service_request_submitted`, `service_request_answered` and
+**`service_request_closed`** deep-link straight to the detail page. No new UI surface — the
+center already exists.
+
+`service_request_closed` is the one staff cannot cause themselves, and it is how a request
+leaves the *Cotizadas* tab without anyone here doing anything.
 
 ## 7. Checkpoints
 
 - [ ] **CP-1** — nav entry, queue list with URL filters, age column, default oldest-first
-      `submitted`+`needs_info` view, badge count.
+      `submitted`+`needs_info` view, the separate *Cotizadas* tab, badge count.
 - [ ] **CP-2** — detail page: read-only panel, evidence lightbox, timeline, deep-links.
-- [ ] **CP-3** — the four actions with their dialogs, role gating, mandatory-reason enforcement
-      surfaced from the backend's own errors.
-- [ ] **CP-4** — Aprobar y cotizar → quotation editor handoff + the 20 backlink chip.
+- [ ] **CP-3** — the five actions with their dialogs, role gating, mandatory-reason enforcement
+      surfaced from the backend's own errors, and **no close affordance anywhere**.
+- [ ] **CP-4** — Aprobar y cotizar → quotation editor handoff, the 20 backlink chip, the
+      per-request quotation list, and *Cotizar de nuevo*.
 - [ ] **CP-5** — staff-filed requests from the customer detail page.
 - [ ] **CP-6** — notification deep-links + a manual pass over the whole lifecycle.
 
@@ -98,3 +122,6 @@ straight to the detail page. No new UI surface — the center already exists.
   workload view, and none of that is worth building before the queue has volume.
 - Does a rejected request stay visible to the customer in the portal indefinitely? Proposal:
   yes, with its reason — hiding a rejection reads as a bug to the person who filed it.
+- **A17** (`../client-portal/00-overview.md` §5): when approving a request filed **without**
+  equipment, must staff attach an equipment record first? Proposal: offered at triage, never
+  required.
