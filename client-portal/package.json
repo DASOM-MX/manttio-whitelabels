@@ -1,0 +1,53 @@
+{
+  "name": "client-portal",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "preview:cf": "npm run build && wrangler dev",
+    "deploy:cf": ": \"${CF_WORKER_NAME:?set it to the tenant Worker, e.g. CF_WORKER_NAME=demo-client-portal-manttio-wl npm run deploy:cf}\" && npm run build && wrangler deploy --name \"$CF_WORKER_NAME\"",
+    "serve:ssr:client-portal": "node dist/client-portal/server/server.mjs"
+  },
+  "private": true,
+  "packageManager": "npm@11.6.1",
+  "dependencies": {
+    "@angular/cdk": "^21.2.14",
+    "@angular/common": "^21.2.0",
+    "@angular/compiler": "^21.2.0",
+    "@angular/core": "^21.2.0",
+    "@angular/forms": "^21.2.0",
+    "@angular/platform-browser": "^21.2.0",
+    "@angular/platform-server": "^21.2.17",
+    "@angular/router": "^21.2.0",
+    "@angular/ssr": "^21.2.17",
+    "@fontsource-variable/figtree": "^5.3.0",
+    "@fontsource-variable/work-sans": "^5.3.0",
+    "@lucide/angular": "^1.23.0",
+    "@ngxs/devtools-plugin": "^21.0.0",
+    "@ngxs/logger-plugin": "^21.0.0",
+    "@ngxs/storage-plugin": "^21.0.0",
+    "@ngxs/store": "^21.0.0",
+    "@primeuix/themes": "^2.0.3",
+    "chart.js": "^4.5.1",
+    "primeng": "^21.1.9",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^21.2.9",
+    "@angular/cli": "^21.2.9",
+    "@angular/compiler-cli": "^21.2.0",
+    "@types/node": "^20.17.19",
+    "autoprefixer": "^10.5.2",
+    "jsdom": "^28.0.0",
+    "postcss": "^8.5.16",
+    "prettier": "^3.8.1",
+    "tailwindcss": "^3.4.19",
+    "typescript": "~5.9.2",
+    "vitest": "^4.0.8",
+    "wrangler": "^4.127.1"
+  }
+}
