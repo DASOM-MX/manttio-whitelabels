@@ -48,7 +48,8 @@ Inherited from the repo and the superadmin suite — do not relitigate:
   status flip on `portal_users`, never a row removal. Read helpers filter `isNull(deletedAt)`.
 - **Event tables are append-only.** Portal actions land in the *existing* per-entity
   timelines (`quotation_events`, `service_order_events`, `service_request_events`) — no
-  updates, no deletes.
+  updates, no deletes. **Since decision 23 that includes reads:** a file downloaded from the
+  portal is an action, and it appends a row like any other.
 - **One generic query envelope.** Every portal list returns `GenericQueryResponse<T>`;
   `total` is the unpaginated count, never `items.length`.
 - **Gate restricted fields on the server.** A portal response omits what the contact may not
@@ -163,6 +164,21 @@ where the answer is encoded.
     already carry `service_order_id` with 0-or-1 cardinality, and the approval/denial loop is
     the reviewer tally. The portal adds the request at the head of the chain and nothing else —
     **no step of the existing quotation → order flow changes.**
+23. **Every portal download is an audited event** (owner, 2026-08-31). A file leaving the
+    portal appends a row to the timeline of **the record it came from** — `contactId` set,
+    `actorId` null, inside the same transaction that serves the bytes, **every time**, with no
+    first-download-only dedup. This is §2's "portal actions land in the existing per-entity
+    timelines" extended to reads: the customer holding the document is the fact worth keeping.
+    §3.11's no-`portal_events` rule stands — the row goes on the entity, not in a portal-side
+    log — which is precisely why **A18** (§6) has to be answered for the two entities that have
+    no timeline. (§ 04 §2b, 01 §6c)
+24. **`Facturas` ships as a disabled nav row** (owner, 2026-08-31) — greyed out, a
+    *"Próximamente"* label, **no route, no guard, no grant, no endpoint**, visible to every
+    portal user including one with zero grants. Invoicing does not exist anywhere in the
+    product yet (superadmin's `billing/` is still a `ModuleStub`), and the row is a deliberate
+    statement that it is coming rather than a silence. It goes live only when a staff-side
+    invoicing module exists to feed it, and that is that plan's decision, not this suite's.
+    (§ 03 §4)
 
 ## 5. Residual asks — resolved 2026-08-31
 
@@ -171,4 +187,10 @@ where the answer is encoded.
 | A16 | **Contacts must be unique per email.** Not option (a): the ambiguity is removed at the source rather than papered over at login. `customer_contacts` gains a unique email index, `portal_users.email` goes back to partial-unique, and 00 §3.3's two-accounts-per-address clause is superseded. Costs a **retroactive constraint on live data** — see §4b.20. | 01 §0, 01 §1, 02 §1 |
 | A17 | **Never required.** Staff may create the equipment record **from the request view** and attach it, but a request with `equipment_id` null moves through the whole lifecycle unimpeded. | 01 §4, 06 §4, superadmin 27 §3 |
 
-**No open asks remain in this suite.**
+One ask is open again — see §6.
+
+## 6. Open asks (2026-08-31)
+
+| # | Ask | Blocks |
+|---|---|---|
+| A18 | **`reports` and `contracts` have no event table.** Decision 23 puts every portal download on "events for the entities". Quotations already have `quotation_events`, so that leg is written (01 §6c). The other two modules have **no timeline at all** — `report_emails` is a send log of what staff mailed, not a record of what anyone fetched — so two of the three download routes have nowhere to write. Two ways: **(a)** add `report_events` + `contract_events`, append-only, modelled column-for-column on `quotation_events`, and thereafter the right home for every later audit on those entities (mailed, file replaced, contract terminated); **(b)** trail only quotations for now, and leave report and contract downloads unrecorded until one of those modules grows a timeline for its own reasons. **Leaning (a)** — a download trail missing two of its three routes is not a trail, and the tables are cheap: the same seven columns, no new concepts, no change to either module's existing behaviour. | 01 CP-5, 04 CP-2, 04 CP-3 |

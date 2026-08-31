@@ -44,6 +44,32 @@ Two consequences worth stating once, because both are easy to get wrong later:
    document is one the tenant has retracted, and leaving it visible invites a customer to act on
    something staff consider dead. The `quotation_events` trail keeps the history staff-side.
 
+## 2b. Every download is audited (owner, 2026-08-31)
+
+**A file leaving the portal is an event on the record it came from.** Three routes serve
+bytes — the report PDF (§3), the contract document (§4 — the route is named `…/pdf` for the
+common case, but the stored file is not always one) and the quotation PDF (§5) — and each
+appends a row to that entity's timeline, `contactId` set and `actorId` null, the attribution
+split every timeline in this repo already uses.
+
+- **Every download, not the first.** No dedup, no once-per-user collapse. The value of the
+  trail is precisely that it shows a customer pulling the quotation again the week they
+  disputed it — the same reasoning `quotation_events` records for writing one row per response
+  *including* mind-changes.
+- **The append is not a side effect that may be dropped.** It rides the same transaction as
+  the read; a file served without its row is the gap the trail exists to close.
+- **Portal downloads only.** The staff surfaces and the emailed token pages
+  (`/reports/download/{token}`, `/public/quotations/:token`) keep whatever they do today —
+  the ask was the portal.
+- **The customer never sees these rows.** They are staff-side evidence, exactly like
+  `service_order_events` (§6).
+- Service orders have **no portal download** today (§6 is a detail page, not a document). If
+  19's client-handoff PDF is ever exposed here, `service_order_events` is already its home.
+
+**Only the quotation leg has somewhere to land** — `quotation_events` gains a
+`quotation_downloaded` member (01 §6c). `reports` and `contracts` have no event table at all,
+so their two routes are blocked on **A18** (00 §6).
+
 ## 3. Reportes (`view_reports`)
 
 - **List columns:** folio, date, equipment / site, **technician (A13 — always named)**, status,
@@ -126,10 +152,11 @@ A landing panel, not a dashboard: the tenant's brand, a short greeting, and one 
 granted section showing a count and the two most recent items. No charts, no KPIs — a customer
 portal that opens on analytics is answering a question nobody asked.
 
-## 8. Checkpoints
+## 9. Checkpoints
 
 - [ ] **CP-1** — backend: the list/detail endpoint pairs, portal DTOs, scope + grant tests,
-      visibility rules from §2 applied server-side as `WHERE` clauses.
+      visibility rules from §2 applied server-side as `WHERE` clauses, and the §2b download-event
+      write on every byte-serving route.
 - [ ] **CP-2** — Reportes list + detail + PDF.
 - [ ] **CP-3** — Contratos list + detail + download.
 - [ ] **CP-4** — Cotizaciones list + detail (read-only; the decision lands in 05).
@@ -137,8 +164,11 @@ portal that opens on analytics is answering a question nobody asked.
 - [ ] **CP-6** — Equipos list + detail + per-unit history + the deep-link into the request form.
 - [ ] **CP-7** — Inicio panel + the no-grants empty state.
 
-## 9. Asks
+## 10. Asks
 
 All resolved 2026-08-30 — **A7** (released records only), **A8** (section *and* picker),
 **A13** (name the technician), **A14** (name the reviewers), **A15** (no priority). See
 00 §4.
+
+**Open: A18** (00 §6) — where the report and contract download events land. CP-2 and CP-3
+ship their sections either way; the event write is the part that waits.

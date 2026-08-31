@@ -88,6 +88,11 @@ enforced one level down, on `customer_contacts` itself (01 §0).
 | `POST /portal/service-requests/:id/close` | `create_service_requests` **+ `isAdmin`** | 06 §3. The only route `is_admin` gates. Missing `isAdmin` is a **403** with the backend's message, not a 404 — the record is already visible to this user, so refusing it leaks nothing. |
 | `POST /portal/upload/evidence` | `create_service_requests` | Its own route, **not** the staff `/upload/image` — different bucket, different cap, and the staff route is behind the staff middleware. |
 
+**The three byte-serving routes each write an audit row** — `…/reports/:id/pdf`,
+`…/contracts/:id/pdf` and `…/quotations/:id/pdf` (00 §4b.23, 04 §2b). The append happens in the
+same transaction as the read that produced the bytes: a download that cannot be recorded is not
+served. Only the quotation leg has a timeline to write to today — **A18** (00 §6).
+
 ## 4. Two non-negotiable query rules
 
 1. **`customerId` comes from the token. Always.** Never from a path param, query string or
@@ -144,6 +149,9 @@ endpoints; superadmin 26 is their UI.
   still refused, and the same attempt after the window succeeds and clears the counter.
 - `POST /portal/service-requests/:id/close` is 403 for a non-admin portal user holding
   `create_service_requests`, and succeeds for an admin one.
+- Downloading a quotation PDF **twice** writes **two** `quotation_events` rows, both
+  `quotation_downloaded` with `contactId` set and `actorId` null — the trail does not collapse
+  repeat downloads.
 
 ## 8. Checkpoints
 

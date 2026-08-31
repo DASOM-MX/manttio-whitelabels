@@ -3,10 +3,11 @@
 > **Status:** planned (doc) · **Depends on:** — · **Feeds:** 02, 06, superadmin 26/27
 > **Owner:** — · **Last updated:** 2026-08-31
 
-Everything the portal adds to the tenant schema. Six new tables, four new enums, and **two
-changes to existing tables** — `quotations.service_request_id` (00 §4b.18) and a **unique email
-index on `customer_contacts`** (§0, A16). The remaining existing-table edits are the
-`notifications` type CHECK and the `schema.ts` barrel's `relations()`.
+Everything the portal adds to the tenant schema. Six new tables, four new enums, and **three
+changes to existing tables** — `quotations.service_request_id` (00 §4b.18), a **unique email
+index on `customer_contacts`** (§0, A16), and a new **`QuotationEventType` member** for audited
+downloads (§6c, 00 §4b.23). The remaining existing-table edits are the `notifications` type
+CHECK and the `schema.ts` barrel's `relations()`.
 
 ---
 
@@ -239,6 +240,34 @@ in the barrel carries the join.
 Nothing about the quotation flow changes because of it (20 stays untouched) — it is a backlink,
 never a branch in that module's logic.
 
+## 6c. `QuotationEventType.Downloaded` — the download trail's one settled leg
+
+Portal downloads are audited on the timeline of the record they came from (00 §4b.23,
+04 §2b). Quotations already have that timeline, so the whole change here is one enum member
+and the row the download route writes:
+
+```
+Downloaded = 'quotation_downloaded'
+```
+
+- **No DDL.** `quotation_events.type` is unconstrained `text` — the enum is the contract, the
+  same posture `QuotationStatus` already takes on `quotations.status`. Nothing to generate.
+- Written with `contactId` set and `actorId` null, like every other client-origin row on that
+  table, and `refKind` null — the event is about the quotation itself. `changes` carries
+  `{ via: 'portal' }`, the same marker 05 §2 puts on portal-originated responses — the token
+  page has its own `…/:token/pdf` route, and if it is ever trailed too the two must not be
+  indistinguishable.
+- **Deliberately not `Viewed`.** That member means "the emailed token page was opened, first
+  view per recipient": a different subject, a different act, and counted differently (viewed is
+  once, downloaded is every time). Folding them together would make the trail unreadable at
+  exactly the moment someone needs to read it.
+- Superadmin's quotation timeline (20 §5) gains a label for the member. The addition is
+  additive; nothing else in 20 changes.
+
+**The other two download routes have nowhere to write.** `reports` and `contracts` have no
+event table — `report_emails` is a send log, not a timeline — so where their rows land is
+**A18** (00 §6), and it is the one thing this section cannot specify.
+
 ## 7. Wiring + migrations
 
 - `modules/database/schema.ts` re-exports all six tables and holds their `relations()`:
@@ -262,6 +291,10 @@ never a branch in that module's logic.
 - [ ] **CP-3** — `quotations.service_request_id` + index (§6b), in its own migration so the
       existing-table change is reviewable apart from the six new tables.
 - [ ] **CP-4** — notifications CHECK extension + `NotificationType` members.
+- [ ] **CP-5** — `QuotationEventType.Downloaded` (§6c) + the write on the quotation download
+      route, code-only (no migration). **Blocked on A18** for the report and contract legs —
+      if the answer is (a), this checkpoint also carries `report_events` + `contract_events`
+      and their generated migration.
 
 ## 9. Asks
 
@@ -273,4 +306,5 @@ Resolved 2026-08-31: **A16** — contacts are unique per email (§0), so `portal
 is partial-unique again and login is unambiguous. **A17** — staff may create the equipment
 record from the request view; attaching one is never a precondition for approving.
 
-None open. See 00 §4.
+**Open: A18** (00 §6) — `reports` and `contracts` have no event table, so two of the three
+audited download routes (§6c) have no home. See 00 §4 and §6.

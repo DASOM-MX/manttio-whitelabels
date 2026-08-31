@@ -84,8 +84,20 @@ Authenticated shell:
 | `/ordenes` | Órdenes de servicio | `view_service_orders` |
 | `/equipos` | Equipos | `view_equipment` |
 | `/solicitudes` | Solicitudes | `create_service_requests` |
+| — | Facturas · *Próximamente* | — (always, **disabled**) |
 | `/perfil` | (user popover) | — |
 
+- **`Facturas` is the one row that is not a route** (owner, 2026-08-31): no path registered, no
+  guard, no endpoint, no grant. It renders greyed out with a *"Próximamente"* label for every
+  portal user, including one with zero grants. Invoicing is not built anywhere in the product —
+  superadmin's `billing/` is still a `ModuleStub` — and the row exists to say it is coming
+  rather than to leave a silence. It goes live only when a staff-side invoicing module exists
+  to feed it (00 §4b.24).
+- **The ported `NavEntry` type needs a field for it.** Superadmin's has no `disabled` concept,
+  and its `badge` slot is documented as *"only ever a real number from a real read"* — so the
+  "Próximamente" label gets its own field on the portal's copy, never that badge. A disabled row
+  renders as plain text, not an `<a routerLink>`: not focusable, does not navigate, never takes
+  the active highlight.
 - `/inicio` for a user with **no** grants is an explanatory empty state, not a dead app
   (01 §3).
 - Guards are **one per file** in `src/app/guards/`: `portal-auth.guard.ts` (token presence
@@ -150,6 +162,7 @@ apps had to perform and is simply born on the far side of it.
       build green.
 - [ ] **CP-2** — public shell: login, forgot, reset, force-password dialog, auth state, token
       interceptor.
-- [ ] **CP-3** — authenticated layout port + grant-driven nav + guards + `/inicio` empty state.
+- [ ] **CP-3** — authenticated layout port + grant-driven nav (including the disabled
+      `Facturas` row) + guards + `/inicio` empty state.
 - [ ] **CP-4** — `wrangler.jsonc` + guarded `deploy:cf` + a tenant Worker with its `API_URL`,
       then a smoke pass against a real invited account.
