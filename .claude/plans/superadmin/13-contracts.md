@@ -132,9 +132,22 @@ contract the key is already right.
 Every contract lifecycle event — **created · metadata updated (with a changed-field
 summary) · file replaced · soft-deleted** — appends an **append-only** system entry to the
 **customer's interaction timeline** (08, `customer_interactions`) — the always-present
-anchor that works for order-generated *and* standalone contracts, so there is **no
-per-contract audit table** (consistent with [[order-level-audit-trail]] and
+anchor that works for order-generated *and* standalone contracts, so there is ~~**no
+per-contract audit table**~~ (consistent with [[order-level-audit-trail]] and
 [[interactions-append-only-audit-trail]]). `InteractionRefKind` gains `Contract = 'contract'`.
+
+> **Amended 2026-08-31 (client-portal A18, owner).** The "no per-contract audit table" clause
+> is superseded: `contract_events` is added by the client-portal suite
+> (`../client-portal/01-data-model.md` §6d), append-only and modelled on `quotation_events`, so
+> that portal **downloads** of a contract document are trailed on the contract itself. This is
+> the same complementary split service orders and quotations already run — client timeline
+> answers "what happened with this client", the entity timeline "what happened to this record".
+>
+> **Nothing in this plan's shipped behaviour changes.** Create / metadata update / file replace
+> / soft delete keep writing their `customer_interactions` entries, the client 360 is unchanged,
+> and `GET /customers/:id/interactions?refKind=contract&refId=…` still answers the same way.
+> `contract_events` starts life carrying downloads only; whether the lifecycle entries above
+> should also move into it is this module's call, deliberately left open.
 
 **Creating a contract for a client writes a client audit record (decided 2026-07-25).**
 Just as raising a service order does (19 §2), `POST /contracts` appends a

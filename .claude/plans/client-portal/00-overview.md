@@ -47,9 +47,10 @@ Inherited from the repo and the superadmin suite — do not relitigate:
 - **No hard deletes, ever** (fork rule). Revoking portal access is a soft delete /
   status flip on `portal_users`, never a row removal. Read helpers filter `isNull(deletedAt)`.
 - **Event tables are append-only.** Portal actions land in the *existing* per-entity
-  timelines (`quotation_events`, `service_order_events`, `service_request_events`) — no
-  updates, no deletes. **Since decision 23 that includes reads:** a file downloaded from the
-  portal is an action, and it appends a row like any other.
+  timelines (`quotation_events`, `service_order_events`, `service_request_events`, and now
+  `report_events` + `contract_events`) — no updates, no deletes. **Since decision 23 that
+  includes reads:** a file downloaded from the portal is an action, and it appends a row like
+  any other.
 - **One generic query envelope.** Every portal list returns `GenericQueryResponse<T>`;
   `total` is the unpaginated count, never `items.length`.
 - **Gate restricted fields on the server.** A portal response omits what the contact may not
@@ -170,8 +171,7 @@ where the answer is encoded.
     first-download-only dedup. This is §2's "portal actions land in the existing per-entity
     timelines" extended to reads: the customer holding the document is the fact worth keeping.
     §3.11's no-`portal_events` rule stands — the row goes on the entity, not in a portal-side
-    log — which is precisely why **A18** (§6) has to be answered for the two entities that have
-    no timeline. (§ 04 §2b, 01 §6c)
+    log — which is what forced **A18**, and decision 25 answers it. (§ 04 §2b, 01 §6c, 01 §6d)
 24. **`Facturas` ships as a disabled nav row** (owner, 2026-08-31) — greyed out, a
     *"Próximamente"* label, **no route, no guard, no grant, no endpoint**, visible to every
     portal user including one with zero grants. Invoicing does not exist anywhere in the
@@ -179,6 +179,15 @@ where the answer is encoded.
     statement that it is coming rather than a silence. It goes live only when a staff-side
     invoicing module exists to feed it, and that is that plan's decision, not this suite's.
     (§ 03 §4)
+25. **`reports` and `contracts` get event tables of their own** (A18, owner 2026-08-31) —
+    `report_events` and `contract_events`, append-only, modelled column-for-column on
+    `quotation_events`, so every one of decision 23's three download routes has a timeline to
+    write to. This **supersedes 13 §3's "no per-contract audit table" clause** and nothing
+    else: service orders and quotations already run an own-timeline *and* a complementary
+    client-timeline entry, and contracts simply join them. Everything 13 CP-1 shipped keeps
+    working unchanged — the new tables start life carrying downloads, and a download writes the
+    entity timeline **only**, never a `customer_interactions` entry, because a fetch is not a
+    commercial touch and the client 360 would drown in them. (§ 01 §6d)
 
 ## 5. Residual asks — resolved 2026-08-31
 
@@ -187,10 +196,19 @@ where the answer is encoded.
 | A16 | **Contacts must be unique per email.** Not option (a): the ambiguity is removed at the source rather than papered over at login. `customer_contacts` gains a unique email index, `portal_users.email` goes back to partial-unique, and 00 §3.3's two-accounts-per-address clause is superseded. Costs a **retroactive constraint on live data** — see §4b.20. | 01 §0, 01 §1, 02 §1 |
 | A17 | **Never required.** Staff may create the equipment record **from the request view** and attach it, but a request with `equipment_id` null moves through the whole lifecycle unimpeded. | 01 §4, 06 §4, superadmin 27 §3 |
 
-One ask is open again — see §6.
+One further ask was raised and answered the same day — see §6.
 
-## 6. Open asks (2026-08-31)
+## 6. Ask raised and resolved 2026-08-31
 
-| # | Ask | Blocks |
+| # | Answer | Encoded in |
 |---|---|---|
-| A18 | **`reports` and `contracts` have no event table.** Decision 23 puts every portal download on "events for the entities". Quotations already have `quotation_events`, so that leg is written (01 §6c). The other two modules have **no timeline at all** — `report_emails` is a send log of what staff mailed, not a record of what anyone fetched — so two of the three download routes have nowhere to write. Two ways: **(a)** add `report_events` + `contract_events`, append-only, modelled column-for-column on `quotation_events`, and thereafter the right home for every later audit on those entities (mailed, file replaced, contract terminated); **(b)** trail only quotations for now, and leave report and contract downloads unrecorded until one of those modules grows a timeline for its own reasons. **Leaning (a)** — a download trail missing two of its three routes is not a trail, and the tables are cheap: the same seven columns, no new concepts, no change to either module's existing behaviour. | 01 CP-5, 04 CP-2, 04 CP-3 |
+| A18 | **Option (a): reports and contracts MUST have event tables too.** `report_events` + `contract_events`, append-only, modelled on `quotation_events`, so all three of decision 23's download routes write to the timeline of the record they served. Supersedes 13 §3's no-per-contract-audit-table clause; changes nothing 13 CP-1 shipped. | 01 §6d, 00 §4b.25 |
+
+**No open asks remain in this suite.**
+
+> **Note on how A18 was framed.** It was raised as *"reports and contracts have no event
+> table"*, which was true but incomplete: both already have an audit **home** —
+> `customer_interactions` with `InteractionRefKind.Report` / `.Contract`, and for contracts
+> that was a deliberate 13 §3 decision, not an omission. The answer stands with that on the
+> record: the new tables are the *complementary* per-entity trail, exactly as service orders
+> and quotations already run alongside their client-timeline entries.

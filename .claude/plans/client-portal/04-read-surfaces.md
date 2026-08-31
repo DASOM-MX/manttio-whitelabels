@@ -66,9 +66,10 @@ split every timeline in this repo already uses.
 - Service orders have **no portal download** today (§6 is a detail page, not a document). If
   19's client-handoff PDF is ever exposed here, `service_order_events` is already its home.
 
-**Only the quotation leg has somewhere to land** — `quotation_events` gains a
-`quotation_downloaded` member (01 §6c). `reports` and `contracts` have no event table at all,
-so their two routes are blocked on **A18** (00 §6).
+**All three legs have somewhere to land** (A18, owner 2026-08-31). `quotation_events` gains a
+`quotation_downloaded` member (01 §6c); `report_events` and `contract_events` are **new
+append-only tables** modelled on it (01 §6d). None of the three downloads writes a
+`customer_interactions` entry — the row goes on the record, not on the client 360.
 
 ## 3. Reportes (`view_reports`)
 
@@ -170,5 +171,5 @@ All resolved 2026-08-30 — **A7** (released records only), **A8** (section *and
 **A13** (name the technician), **A14** (name the reviewers), **A15** (no priority). See
 00 §4.
 
-**Open: A18** (00 §6) — where the report and contract download events land. CP-2 and CP-3
-ship their sections either way; the event write is the part that waits.
+Resolved 2026-08-31: **A18** — reports and contracts get their own event tables (01 §6d), so
+every download route in §2b has a timeline. **None open.**

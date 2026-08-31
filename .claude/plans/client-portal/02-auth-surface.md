@@ -91,7 +91,8 @@ enforced one level down, on `customer_contacts` itself (01 §0).
 **The three byte-serving routes each write an audit row** — `…/reports/:id/pdf`,
 `…/contracts/:id/pdf` and `…/quotations/:id/pdf` (00 §4b.23, 04 §2b). The append happens in the
 same transaction as the read that produced the bytes: a download that cannot be recorded is not
-served. Only the quotation leg has a timeline to write to today — **A18** (00 §6).
+served. All three timelines exist — `quotation_events` (01 §6c) plus the new `report_events`
+and `contract_events` (01 §6d, A18).
 
 ## 4. Two non-negotiable query rules
 
@@ -151,7 +152,8 @@ endpoints; superadmin 26 is their UI.
   `create_service_requests`, and succeeds for an admin one.
 - Downloading a quotation PDF **twice** writes **two** `quotation_events` rows, both
   `quotation_downloaded` with `contactId` set and `actorId` null — the trail does not collapse
-  repeat downloads.
+  repeat downloads. Same assertion for `report_events` and `contract_events`.
+- A portal download writes **no** `customer_interactions` row (01 §6d).
 
 ## 8. Checkpoints
 

@@ -3,7 +3,7 @@
 > **Status:** planned (doc) · **Depends on:** — · **Feeds:** 02, 06, superadmin 26/27
 > **Owner:** — · **Last updated:** 2026-08-31
 
-Everything the portal adds to the tenant schema. Six new tables, four new enums, and **three
+Everything the portal adds to the tenant schema. Eight new tables, six new enums, and **three
 changes to existing tables** — `quotations.service_request_id` (00 §4b.18), a **unique email
 index on `customer_contacts`** (§0, A16), and a new **`QuotationEventType` member** for audited
 downloads (§6c, 00 §4b.23). The remaining existing-table edits are the `notifications` type
@@ -264,13 +264,73 @@ Downloaded = 'quotation_downloaded'
 - Superadmin's quotation timeline (20 §5) gains a label for the member. The addition is
   additive; nothing else in 20 changes.
 
-**The other two download routes have nowhere to write.** `reports` and `contracts` have no
-event table — `report_emails` is a send log, not a timeline — so where their rows land is
-**A18** (00 §6), and it is the one thing this section cannot specify.
+The other two download routes get timelines of their own — §6d.
+
+## 6d. `report_events` + `contract_events` — the other two timelines (A18, owner 2026-08-31)
+
+**"Contracts and reports MUST have events tables too."** Two new append-only tables, modelled
+column-for-column on `quotation_events`, so all three download routes write to the timeline of
+the record they served.
+
+| Column | `report_events` | `contract_events` |
+|---|---|---|
+| `seq` | bigserial — insertion order, the only sort key | same |
+| `id` | uuid pk | uuid pk |
+| entity FK | `report_id` **text** not null → `reports.id` (restrict) | `contract_id` uuid not null → `contracts.id` (restrict) |
+| `type` | text `$type<ReportEventType>` not null | text `$type<ContractEventType>` not null |
+| `actor_id` | uuid → `users.id` (restrict) — staff action | same |
+| `contact_id` | uuid → `customer_contacts.id` (restrict) — portal action, **never both set** | same |
+| `changes` | jsonb, per-type detail | same |
+| `note` | text | same |
+| `created_at` | timestamptz | same |
+
+- `report_events.report_id` is **`text`, not `uuid`** — `reports.id` is the `R-YYYYMMDD-NNNN`
+  folio, which is also why `service_order_events.refId` is text.
+- Index each on `(entity_id, seq)`. A timeline is only ever read as "this record, in insertion
+  order", the same single read shape `quotation_events` has.
+- Enums live in the existing per-module enum files (`reports/enums/reports.enum.ts`,
+  `contracts/enums/contracts.enum.ts`), the way `ServiceOrderEventType` lives in
+  `service-orders.enum.ts`. **One member each:**
+
+```
+ReportEventType.Downloaded   = 'report_downloaded'
+ContractEventType.Downloaded = 'contract_downloaded'
+```
+
+  The tables are the home for those modules' future audit — a report mailed, a contract's file
+  replaced — but this suite adds only the member it needs. Speculative members are how an enum
+  stops describing anything.
+- Both rows carry `changes: { via: 'portal' }`, exactly as §6c's does.
+- **These are new tables, so real DDL** — generated, in CP-5.
+
+### What this supersedes, and what it does not
+
+13 §3 decided (2026-07-24, and CP-1 built it) that contracts have **no per-contract audit
+table**: every contract event appends to the customer's interaction timeline instead.
+`contract_events` **supersedes that clause and nothing else.** The pattern it moves to already
+exists in this codebase — service orders and quotations each run *both* trails, complementary
+by design ("what happened with this client" vs "what happened on this job", as
+`InteractionRefKind.ServiceOrder`'s own comment puts it). Contracts now do the same.
+
+Deliberately conservative about the rest:
+
+- **Nothing shipped changes.** Contract create / metadata update / file replace / soft delete
+  keep writing their `customer_interactions` entries exactly as 13 CP-1 built them, and
+  `GET /customers/:id/interactions?refKind=contract&refId=…` keeps answering the same way.
+- **The new tables start life carrying downloads only.** Whether 13's existing contract audit
+  entries should *move* into `contract_events` is that module's call, not something this suite
+  does on the way past.
+- **A download writes the entity timeline only** — no complementary `customer_interactions`
+  entry. A download is not a commercial touch with the client, and one row per fetch would
+  bury the client 360 under the noise it exists to keep out.
+- `InteractionRefKind.Contract`'s doc comment ("Contracts have **no** audit table of their
+  own") goes stale the day this lands, and is corrected in the same checkpoint.
 
 ## 7. Wiring + migrations
 
-- `modules/database/schema.ts` re-exports all six tables and holds their `relations()`:
+- `modules/database/schema.ts` re-exports all eight tables and holds their `relations()`
+  (`reportEvents → reports | users | customerContacts`, `contractEvents → contracts | users |
+  customerContacts`, plus):
   `portalUsers → customerContacts | customers | grants | resets`,
   `serviceRequests → customers | customerContacts | equipment | quotations[] | events | closedBy`.
 - `notifications` type CHECK grows the new members (additive DDL, per the notifications plan's
@@ -291,10 +351,10 @@ event table — `report_emails` is a send log, not a timeline — so where their
 - [ ] **CP-3** — `quotations.service_request_id` + index (§6b), in its own migration so the
       existing-table change is reviewable apart from the six new tables.
 - [ ] **CP-4** — notifications CHECK extension + `NotificationType` members.
-- [ ] **CP-5** — `QuotationEventType.Downloaded` (§6c) + the write on the quotation download
-      route, code-only (no migration). **Blocked on A18** for the report and contract legs —
-      if the answer is (a), this checkpoint also carries `report_events` + `contract_events`
-      and their generated migration.
+- [ ] **CP-5** — the download trail: `QuotationEventType.Downloaded` (§6c, code-only),
+      `report_events` + `contract_events` with their one-member enums and a generated
+      migration (§6d), the write on all three download routes, and the corrected
+      `InteractionRefKind.Contract` doc comment.
 
 ## 9. Asks
 
@@ -306,5 +366,7 @@ Resolved 2026-08-31: **A16** — contacts are unique per email (§0), so `portal
 is partial-unique again and login is unambiguous. **A17** — staff may create the equipment
 record from the request view; attaching one is never a precondition for approving.
 
-**Open: A18** (00 §6) — `reports` and `contracts` have no event table, so two of the three
-audited download routes (§6c) have no home. See 00 §4 and §6.
+**A18 resolved 2026-08-31:** reports and contracts get event tables of their own (§6d), so all
+three audited download routes write to the timeline of the record they served.
+
+None open. See 00 §4 and §6.
