@@ -43,7 +43,18 @@ These apply across packages; per-package CLAUDE.md files own the rest.
 - **PR base is always `main`.** Stacked PRs are rare here — always re-check the base before merging (`gh pr view <N> --json baseRefName`), GitHub does not auto-retarget stacked PRs after the parent merges.
 - **Git identity:** never override with `-c user.name=…` / `-c user.email=…`. Use whatever the local git config already has.
 - **`.claude/` IS committed** (shared agent context for all devs: `skills/`, `plans/`, `agents/`) — **exception: `.claude/settings.local.json`** (per-user permissions, gitignored).
-- **Scoped subagents** live in `.claude/agents/<name>.md`. Keep one narrowly scoped to a plan or app, name its out-of-bounds dirs explicitly, and have it **commit but never push or open PRs** — pushing and PR authoring stay with the main session, merging stays with the user. Existing: `report-templates-field-app` (whitelabel plan 03 CP-4…CP-6, `frontend/` only) and `report-templates-backend` (03 CP-1…CP-3, `backend/` only — generates migrations but never applies them; the live Neon DB is a human's call).
+- **Scoped subagents** live in `.claude/agents/<name>.md`. Keep one narrowly scoped to a plan or app, name its out-of-bounds dirs explicitly, and have it **commit but never push or open PRs** — pushing and PR authoring stay with the main session. **Merging is always the user's, with no exceptions ever granted to anyone.** Existing:
+  - `report-templates-field-app` (whitelabel plan 03 CP-4…CP-6, `frontend/` only) and `report-templates-backend` (03 CP-1…CP-3, `backend/` only — generates migrations but never applies them; the live Neon DB is a human's call).
+  - `client-portal-backend` (client-portal 01, 02, 04 CP-1, 05 CP-1, 06 — `backend/` only) and `client-portal-app` (03, 04 CP-2…CP-7, 05 CP-2/3, 06 CP-3 — `client-portal/` only; copies from `superadmin/`, never edits or imports across app boundaries).
+  - `client-portal-review` — reviews a checkpoint diff against `.claude/plans/client-portal/`. Holds no `Edit`/`Write` tools at all.
+
+  **Exceptions to the never-push rule** (each one granted deliberately by the owner, and each one narrow — assume an agent has no exception unless it is listed here):
+
+  | Agent | Exception | Bounded by |
+  |---|---|---|
+  | `client-portal-review` | May `git push` its branch and open a PR (`gh pr create`, base always `main`) | Only on its own `VERDICT: ship`; never on `fix first` or `incomplete`. Never merges, approves, enables auto-merge, or force-pushes. Never edits code — it has no editing tools. |
+
+  An agent that both writes code and opens PRs would be reviewing itself, so the exception is deliberately held by the one agent that cannot write code. If a future agent needs it, add a row rather than loosening the rule.
 - **Don't commit:** `frontend/src/environments/environment.development.ts` (local API URL override); `backend/.dev.vars` (local secrets); anything matching `.env*` outside the checked-in `*.example` files.
 - **Backend is the sole authority on JWT validity.** Frontend never decodes tokens; guards check presence only, the HTTP interceptor handles 401s.
 - **No entity is ever hard-deleted (fork rule, 2026-07-19).** Soft delete (`deleted_at`) is the *only* removal mechanism, for every domain entity — no hard-DELETE endpoints, no `ON DELETE CASCADE`, no wipe scripts, no destructive migrations. Read helpers always filter `isNull(deletedAt)`. Deleting a customer with reports succeeds and leaves the reports' FK intact (no 409 in_use). `customer_interactions` is stricter still: append-only, no updates either — the timeline IS the audit trail. The `users` table additionally carries `delete_comment` + `deleted_by` for the delete audit.
