@@ -49,8 +49,7 @@ immediate regardless of TTL — the middleware re-reads the row on every request
 **A16 resolved (owner, 2026-08-31): contacts are unique per email**, so
 `SELECT … WHERE email = ? AND deleted_at IS NULL` returns at most one row and the login stays
 `{ email, password }` with no customer chooser and no second lookup key. The uniqueness is
-enforced one level down, on `customer_contacts` itself (01 §0) — which means **01 CP-0 (the
-dedup pass + index) must land before this plan's CP-1**, not alongside it.
+enforced one level down, on `customer_contacts` itself (01 §0).
 
 ## 2. Public routes (no token)
 
@@ -150,8 +149,7 @@ endpoints; superadmin 26 is their UI.
 
 - [ ] **CP-1** — env binding, `portalJwtMiddleware` (grants + `isAdmin` per request),
       `requireGrant` + `requireAnyGrant`, login/me/password with the A3 lockout, mount order in
-      `index.ts`, cross-surface rejection tests. **Ordered after 01 CP-0** (the contact email
-      index that makes the login lookup single-row).
+      `index.ts`, cross-surface rejection tests.
 - [ ] **CP-2** — forgot/reset password + email templates + Turnstile + reset throttle.
 - [ ] **CP-3** — portal DTO layer + per-entity kept-field enumeration + key-set tests.
 - [ ] **CP-4** — staff-side portal-user endpoints (invite, grants, suspend, resume, reset).

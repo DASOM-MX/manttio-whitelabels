@@ -30,8 +30,7 @@ gets its own plan suite. Two *staff-facing* surfaces it needs do live in the sup
 | 05 | `05-quotation-approval.md` | In-portal approve/decline, coexisting with the emailed token page | 04 |
 | 06 | `06-service-requests.md` | The new `service-requests/` backend module + the portal's request flow | 01, 03; feeds 27 |
 
-**Build order:** **01 CP-0 first, always** — the `customer_contacts` unique-email pass
-(§4b.20). Every login in this suite assumes it has happened. Then 01 → 02 backend-side; 03 starts against mocked services as soon as 02 fixes
+**Build order:** 01 → 02 backend-side; 03 starts against mocked services as soon as 02 fixes
 the shapes (superadmin master plan §2 rule 5). Then 04 → 05 in the portal, with 06 running in
 parallel once 01 lands. The superadmin legs (26, 27) can start after 01/02: 26 gates the whole
 portal (nobody can log in until staff can invite), so **26 ships before the portal is usable**.
@@ -151,11 +150,10 @@ where the answer is encoded.
     KV or in-memory counter: a Worker has no shared memory between isolates, so a counter that
     is not in the database is not a counter. **Confirmed 2026-08-31** — the database is the
     source of truth for it.
-20. **`customer_contacts.email` is unique tenant-wide** (A16). A change to module 07's table,
-    made for the portal. Existing duplicates block the index, so a dedup pass runs first —
-    `01-data-model.md` **CP-0**, ahead of everything else. **Pre-production that pass is a
-    script** (owner, 2026-08-31: the DB is a test one), which *blanks* losing emails rather than
-    deleting contacts. The script does not survive contact with a real tenant.
+20. **`customer_contacts.email` is unique tenant-wide** (A16) — a change to module 07's table,
+    made because email is the portal's login identity. Tenant databases are provisioned from the
+    migrations, so the index precedes their first contact row; the shared test DB gets a one-off
+    dedup script before it is applied.
 21. **`view_equipment` is the seventh grant** (A8 follow-up). Reading the registry and filing
     requests are different entitlements: a customer may want to see their installed base without
     being able to open tickets, and the picker inside the request form is not a licence to

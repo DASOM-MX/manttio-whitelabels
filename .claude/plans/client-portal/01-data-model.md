@@ -27,21 +27,11 @@ uniqueIndex('customer_contacts_email_uidx').on(email)
 - `portal_users.email` therefore returns to a **partial-unique** index (§1), and the login
   lookup is unambiguous.
 
-**Migration order.** The constraint is retroactive, so a database already holding two contacts
-with the same address rejects the index. CP-0 therefore runs a **dedup pass first, then** the
-index.
-
-**Pre-production, the dedup is a script** (owner, 2026-08-31): the target is a test database
-with no data worth preserving, so collisions are resolved automatically rather than by hand.
-The script **blanks the losing row's email (`SET email = NULL`) — it does not delete the
-contact.** `email` is nullable, so nulling it clears the collision completely; deleting rows
-would be a hard delete, which this repo does not do, and on a table that has no `deleted_at` to
-soft-delete into. Keep the newest row's address, blank the rest, print what it changed.
-
-**This licence expires with the test database.** Once any tenant holds contacts a customer would
-recognise, collision resolution goes back to being a human call in 07's contacts UI — which
-address belongs to which person is not a question a script can answer. Do not reuse this script
-against a live tenant; the migration is the same, the resolution is not.
+A tenant database is provisioned **from** the migrations, so the index is in place before the
+first contact row exists and there is nothing to reconcile. The only database with data today is
+the shared test one; a one-off script blanks any duplicate address there (`SET email = NULL`,
+never a row delete — `email` is nullable and this repo does not hard-delete) before the
+migration is applied.
 
 `customer_contacts` has **no `deleted_at`** today, so the index is absolute rather than partial.
 If 07 ever soft-deletes contacts, this index must become
@@ -262,10 +252,8 @@ never a branch in that module's logic.
 
 ## 8. Checkpoints
 
-- [ ] **CP-0** — the `customer_contacts` dedup script (§0 — blanks duplicate emails, never
-      deletes rows), then the unique index in its own migration. Nothing else in this suite may
-      land first: `portal_users` is meaningless if two contacts share an address.
-- [ ] **CP-1** — `portal_users` (incl. `is_admin` + the lockout pair), `portal_user_grants`,
+- [ ] **CP-1** — the `customer_contacts` unique email index (§0), `portal_users` (incl.
+      `is_admin` + the lockout pair), `portal_user_grants`,
       `portal_password_resets`, enums, relations, generated migration, repository read helpers
       filtering `deleted_at`.
 - [ ] **CP-2** — `service_requests`, `service_request_events`, `service_request_counters`,
