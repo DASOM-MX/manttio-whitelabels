@@ -2,7 +2,7 @@
 
 > **Status:** planned (doc) · **Depends on:** 07 (clients), 11 (equipment), 20 (quotations),
 > `../client-portal/01-data-model.md` + `../client-portal/06-service-requests.md`
-> **Owner:** — · **Last updated:** 2026-08-30
+> **Owner:** — · **Last updated:** 2026-08-31
 
 The **staff** half of the Portal de clientes' one write path. Customers file service requests
 from the portal (`../client-portal/06-service-requests.md`); this module is where staff read,
@@ -49,6 +49,14 @@ New sidebar entry **Solicitudes**, badged with the count in `submitted`.
 Read-only left column: customer (deep-link to 07), equipment (deep-link to 11 with its service
 history), the customer's verbatim description, evidence images in a lightbox, filed-by contact
 and portal user, folio, dates.
+
+**When the request arrived without equipment (A9/A17):** the equipment slot renders as an
+actionable empty state — *"Sin equipo registrado"* plus **"Registrar equipo"**, which opens
+module 11's create form prefilled with this customer, and on save attaches the new record to the
+request (`equipment_id` set, `changes` recording it on the timeline). It is an **affordance, not
+a gate**: every action below stays available with the slot empty, approval included. A customer
+who cannot name their unit in our registry still has a broken chiller, and a triage screen that
+demands data entry before it lets anyone act is a triage screen people route around.
 
 Right column: the **append-only timeline** (`service_request_events`), rendered like the
 quotation timeline — staff actions and client actions visually distinguished, because "who
@@ -122,6 +130,5 @@ leaves the *Cotizadas* tab without anyone here doing anything.
   workload view, and none of that is worth building before the queue has volume.
 - Does a rejected request stay visible to the customer in the portal indefinitely? Proposal:
   yes, with its reason — hiding a rejection reads as a bug to the person who filed it.
-- **A17** (`../client-portal/00-overview.md` §5): when approving a request filed **without**
-  equipment, must staff attach an equipment record first? Proposal: offered at triage, never
-  required.
+- ~~**A17** — must staff attach equipment before approving?~~ **Resolved 2026-08-31: no.** The
+  record can be created from the request view (§3), but nothing requires it.

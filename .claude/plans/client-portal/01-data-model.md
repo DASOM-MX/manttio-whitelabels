@@ -1,12 +1,43 @@
 # client-portal / 01 — Data model
 
 > **Status:** planned (doc) · **Depends on:** — · **Feeds:** 02, 06, superadmin 26/27
-> **Owner:** — · **Last updated:** 2026-08-30
+> **Owner:** — · **Last updated:** 2026-08-31
 
-Everything the portal adds to the tenant schema. Six new tables, four new enums, and **one
-new column on an existing table** — `quotations.service_request_id` (00 §4b decision 18). The
-other existing-table edits are the `notifications` type CHECK and the `schema.ts` barrel's
-`relations()`.
+Everything the portal adds to the tenant schema. Six new tables, four new enums, and **two
+changes to existing tables** — `quotations.service_request_id` (00 §4b.18) and a **unique email
+index on `customer_contacts`** (§0, A16). The remaining existing-table edits are the
+`notifications` type CHECK and the `schema.ts` barrel's `relations()`.
+
+---
+
+## 0. `customer_contacts.email` becomes unique (A16, owner 2026-08-31)
+
+**"Contacts MUST be unique per email."** This is a change to module 07's table, made because the
+portal needs it: email is the login identity, so a lookup by email has to return one row.
+
+```
+uniqueIndex('customer_contacts_email_uidx').on(email)
+```
+
+- `email` is **nullable** and stays nullable — Postgres allows any number of NULLs under a
+  unique index, so contacts without an address are unaffected.
+- **This supersedes 00 §3.3's "the same email invited at two customers is two separate
+  accounts."** One email = one contact = one portal account, tenant-wide. A person who works for
+  two of the tenant's customers needs two addresses, or is a contact at one of them.
+- `portal_users.email` therefore returns to a **partial-unique** index (§1), and the login
+  lookup is unambiguous.
+
+**Migration risk — this is the one place in the suite that can fail on live data.** The
+constraint is retroactive: any tenant DB that already holds two contacts with the same address
+will reject the migration. CP-0 is therefore a **dedup pass first** — a read-only query that
+lists collisions, resolved by a human (merge or blank the address), *then* the index. Never
+resolve duplicates programmatically; picking which contact keeps an address is a decision about
+a real person.
+
+`customer_contacts` has **no `deleted_at`** today, so the index is absolute rather than partial.
+If 07 ever soft-deletes contacts, this index must become
+`.where(sql\`deleted_at is null\`)` in the same change — otherwise a removed contact
+permanently blocks their own address.
 
 Module placement: `portal_users` / `portal_user_grants` / `portal_password_resets` belong to
 a new `backend/src/modules/portal/` domain; `service_requests` / `service_request_events` /
@@ -41,11 +72,10 @@ Indexes:
 - `uniqueIndex('portal_users_contact_active_idx').on(contact_id).where(deleted_at is null)` —
   **the uniqueness rule (A10): one account per customer contact.** A revoked account never
   blocks a re-invite of the same contact.
-- `index('portal_users_email_idx').on(email)` — **not unique.** 00 §3.3 already settled that the
-  same person contacted at two customers is two contact rows and therefore two accounts; a
-  unique email index would make that decision unimplementable. The login lookup is consequently
-  not guaranteed to return one row — see residual ask **A16** in 00 §5, which the login route
-  must resolve before CP-1 of plan 02.
+- `uniqueIndex('portal_users_email_active_idx').on(email).where(deleted_at is null)` — same
+  partial-unique posture as `users_email_active_idx`, so a revoked account never blocks a
+  re-invite. **A16 (2026-08-31) makes this sound:** contacts are unique per email (§0), so one
+  address maps to one account and the login lookup returns one row.
 - `index('portal_users_customer_idx').on(customer_id)`.
 
 Enum `PortalUserStatus` (`modules/portal/enums/portal-users.enum.ts`, string-valued TS enum
@@ -71,16 +101,22 @@ not DDL, and each grant carries its own who/when.
 ## 3. `PortalGrant` — the grant list (accepted as proposed, A1)
 
 ```
-ViewReports          = 'view_reports'
-ViewContracts        = 'view_contracts'
-ViewQuotations       = 'view_quotations'
-ViewServiceOrders    = 'view_service_orders'
-ApproveQuotations    = 'approve_quotations'
+ViewReports           = 'view_reports'
+ViewContracts         = 'view_contracts'
+ViewQuotations        = 'view_quotations'
+ViewServiceOrders     = 'view_service_orders'
+ViewEquipment         = 'view_equipment'
+ApproveQuotations     = 'approve_quotations'
 CreateServiceRequests = 'create_service_requests'
 ```
 
-Six grants, no further splitting (owner, 2026-08-30). `is_admin` is **not** in this list and is
-not a grant — it is a column on `portal_users` (§1, 00 §4b.17).
+**Seven grants.** The list was accepted at six on 2026-08-30 (A1); `view_equipment` was added on
+2026-08-31 when A8's follow-up settled that *"users with no request permission can still see
+equipment, if permission is granted"* — the registry is a readable section in its own right, not
+a side effect of being allowed to file requests.
+
+`is_admin` is **not** in this list and is not a grant — it is a column on `portal_users`
+(§1, 00 §4b.17).
 
 Rules the validator enforces at grant time (not just in the UI):
 
@@ -89,6 +125,10 @@ Rules the validator enforces at grant time (not just in the UI):
 - Viewing *your own* service requests is implied by `create_service_requests` — there is no
   separate `view_service_requests` grant. A portal user with no request grant sees no request
   section at all.
+- **`create_service_requests` implies read access to the equipment picker, but not the Equipos
+  section.** `GET /portal/equipment` accepts *either* grant; the nav item and the browsable
+  section need `view_equipment`. A filer without it picks their unit from a list they cannot
+  otherwise browse — which is exactly the distinction the two grants exist to draw.
 - A portal user with **zero** grants can log in and change their password and sees an empty
   home with an explanatory panel. Login is not itself a grant.
 
@@ -104,7 +144,7 @@ lines, no quantities, no prices, no catalog exposure.
 | `customer_id` | uuid not null → `customers.id` (restrict) | |
 | `contact_id` | uuid not null → `customer_contacts.id` (restrict) | **The audit record for "on behalf of"** (00 §3.7): the record belongs to the customer, this column says which human filed it. |
 | `portal_user_id` | uuid → `portal_users.id` (restrict) | Null when staff filed it for a client who phoned in (superadmin 27 supports this). |
-| `equipment_id` | uuid → `equipment.id` (restrict) | Nullable, **confirmed (A9)**: the unit may simply never have been registered, and that must not block the request. The portal form offers the registry and an explicit "no aparece mi equipo" escape. |
+| `equipment_id` | uuid → `equipment.id` (restrict) | Nullable, **confirmed (A9)**: the unit may simply never have been registered, and that must not block the request. The portal form offers the registry and an explicit "no aparece mi equipo" escape. Staff may create the equipment record **from the request view** and attach it later (A17) — the column is set on attach, never required to move the request forward. |
 | `description` | text not null | The behavior description — what the unit is doing. Min length enforced in the validator. |
 | `evidence` | text[] not null default `'{}'` | Up to 3 image URLs, same convention and cap as `equipment.photos`. Bucket **`manttio-customer-report`** (A5) — its own bucket with its own lifecycle, never the equipment one. |
 | `status` | text `$type<ServiceRequestStatus>` not null default `submitted` | |
@@ -213,6 +253,10 @@ never a branch in that module's logic.
 
 ## 8. Checkpoints
 
+- [ ] **CP-0** — the `customer_contacts` email dedup report (§0), run against the target tenant
+      DB and resolved **by a human**, then the unique index in its own migration. Nothing else
+      in this suite may land first: `portal_users` is meaningless if two contacts share an
+      address.
 - [ ] **CP-1** — `portal_users` (incl. `is_admin` + the lockout pair), `portal_user_grants`,
       `portal_password_resets`, enums, relations, generated migration, repository read helpers
       filtering `deleted_at`.
@@ -227,7 +271,10 @@ never a branch in that module's logic.
 
 Resolved 2026-08-30: **A5** (bucket `manttio-customer-report`), **A6** (link on the quotation,
 `closed` by portal admin), **A9** (`equipment_id` stays nullable), **A10** (uniqueness is
-`contact_id`). See 00 §4.
+`contact_id`).
 
-Still open and blocking: **A16** — the login lookup by email is no longer guaranteed to return
-one row (§1). 00 §5 carries it.
+Resolved 2026-08-31: **A16** — contacts are unique per email (§0), so `portal_users.email`
+is partial-unique again and login is unambiguous. **A17** — staff may create the equipment
+record from the request view; attaching one is never a precondition for approving.
+
+None open. See 00 §4.

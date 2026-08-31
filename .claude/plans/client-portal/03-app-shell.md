@@ -1,7 +1,7 @@
 # client-portal / 03 — App shell
 
 > **Status:** planned (doc) · **Depends on:** 02 (shapes) · **Feeds:** 04, 05, 06
-> **Owner:** — · **Last updated:** 2026-08-30
+> **Owner:** — · **Last updated:** 2026-08-31
 
 Scaffolding `client-portal/` — the repo's fourth deployable app — and everything every page in
 it depends on: stack, layout, routing, guards, theming, plumbing.
@@ -82,7 +82,7 @@ Authenticated shell:
 | `/contratos` | Contratos | `view_contracts` |
 | `/cotizaciones` | Cotizaciones | `view_quotations` |
 | `/ordenes` | Órdenes de servicio | `view_service_orders` |
-| `/equipos` | Equipos | `create_service_requests` (A8) |
+| `/equipos` | Equipos | `view_equipment` |
 | `/solicitudes` | Solicitudes | `create_service_requests` |
 | `/perfil` | (user popover) | — |
 

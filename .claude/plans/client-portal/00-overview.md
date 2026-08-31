@@ -1,7 +1,7 @@
 # client-portal / 00 — Portal de clientes suite overview
 
 > **Status:** planned (doc) · **Depends on:** 06 reports, 07 clients, 11 equipment, 13 contracts, 19 service-orders, 20 quotations
-> **Owner:** — · **Last updated:** 2026-08-30
+> **Owner:** — · **Last updated:** 2026-08-31
 
 The **Portal de clientes** is the product's fourth deployable app: a logged-in **end customer**
 (a contact of a tenant's customer) sees the records their tenant produced for them — reports,
@@ -30,7 +30,9 @@ gets its own plan suite. Two *staff-facing* surfaces it needs do live in the sup
 | 05 | `05-quotation-approval.md` | In-portal approve/decline, coexisting with the emailed token page | 04 |
 | 06 | `06-service-requests.md` | The new `service-requests/` backend module + the portal's request flow | 01, 03; feeds 27 |
 
-**Build order:** 01 → 02 backend-side; 03 starts against mocked services as soon as 02 fixes
+**Build order:** **01 CP-0 first, always** — the `customer_contacts` unique-email pass
+(§4b.20). It is the one step that can fail on live data, and every login in this suite assumes
+it has happened. Then 01 → 02 backend-side; 03 starts against mocked services as soon as 02 fixes
 the shapes (superadmin master plan §2 rule 5). Then 04 → 05 in the portal, with 06 running in
 parallel once 01 lands. The superadmin legs (26, 27) can start after 01/02: 26 gates the whole
 portal (nobody can log in until staff can invite), so **26 ships before the portal is usable**.
@@ -68,9 +70,12 @@ Inherited from the repo and the superadmin suite — do not relitigate:
    and it **reuses the superadmin `AuthenticatedLayout`** (owner, same day): same shell, same
    sidebar/topbar behaviour, portal nav items.
 3. **Identity: `portal_users`, 1:1 with a `customer_contacts` row.** Credentials do **not** go
-   on `customer_contacts` and portal users are **not** rows in `users`. The same email invited
-   at two customers is two separate accounts — `customerId` is therefore fixed per token and
-   there is no customer switcher.
+   on `customer_contacts` and portal users are **not** rows in `users`. `customerId` is fixed
+   per token and there is no customer switcher.
+   ~~The same email invited at two customers is two separate accounts.~~
+   **Superseded 2026-08-31 (§4 A16): contacts are unique per email tenant-wide**, so one address
+   is one contact is one account. A person working for two of the tenant's customers needs two
+   addresses. (§ `01-data-model.md` §0)
 4. **Staff invite only.** No public signup, no self-registration route. Staff flip a contact to
    portal access in superadmin (plan 26); the backend mails a temp password and sets
    `mustChangePassword`, exactly like the users module.
@@ -116,16 +121,16 @@ where the answer is encoded.
 
 | # | Answer | Encoded in |
 |---|---|---|
-| A1 | **Grant list accepted as proposed** — the six grants stand, no further splitting. | 01 §3 |
+| A1 | **Grant list accepted as proposed** — the six grants stand, no further splitting. **Amended 2026-08-31 to seven**, see A8. | 01 §3 |
 | A2 | **Portal JWT TTL = 2 days.** No refresh endpoint; re-login on expiry. | 02 §1 |
 | A3 | **5 failed logins → 2-hour cooldown** on the account. Applies to the portal login route. | 01 §1, 02 §2 |
 | A4 | **Not a flag. Every tenant gets the portal** — it is part of the product's value proposition, so there is no manager-side toggle and no `module-isolation` key. | 03 §6 |
 | A5 | **New bucket `manttio-customer-report`**, separate from `manttio-equipment`, with its own lifecycle. | 01 §4, 06 §2 |
 | A6 | **Neither reopen nor auto-close.** A declined quotation leaves the request open; **staff create a new quotation manually**, linked by a new **`quotations.service_request_id`** FK (one request → many quotations over time). The request's terminal state is **`closed`**, and **only a portal user with `is_admin` may close it** — a new column on `portal_users`. | 01 §1, 01 §4, 06 §3–4 |
 | A7 | **Only records staff deliberately released.** No draft, deleted or archived/cancelled records reach the portal, in any section. | 04 §2 |
-| A8 | **Both** — equipment is its own read section *and* the picker inside the service-request form. | 04 §7, 06 §2 |
+| A8 | **Both** — equipment is its own read section *and* the picker inside the service-request form. **2026-08-31:** the section is reachable without request permission, so it gets its own grant, **`view_equipment`** (the seventh). `GET /portal/equipment` accepts either grant; only the browsable section requires `view_equipment`. | 01 §3, 04 §7, 06 §2 |
 | A9 | **`equipment_id` stays nullable** — a customer may simply not have registered the unit yet, and that must not block a request. | 01 §4 |
-| A10 | **One account per customer contact.** The uniqueness rule is `contact_id`, not the email address. | 01 §1 |
+| A10 | **One account per customer contact.** The uniqueness rule is `contact_id` — **and, since A16, the email address as well**, at the contact level. | 01 §0, 01 §1 |
 | A11 | **Copy the superadmin `AuthenticatedLayout` into the new project and adapt it.** Drift between the two is accepted; no shared package. | 03 §2 |
 | A12 | **Same typography as superadmin** (Figtree) — the portal reads as product chrome, not as tenant-branded surface. Colors and logo still come from `/brand`. | 03 §3 |
 | A13 | **Yes — name the technician**, always. | 04 §3 |
@@ -145,11 +150,27 @@ where the answer is encoded.
     reasoning `QuotationEventRefKind` records for its own exclusion of `contactId`.
 19. **Login lockout is state on `portal_users`** (`failed_login_attempts`, `locked_until`), not a
     KV or in-memory counter: a Worker has no shared memory between isolates, so a counter that
-    is not in the database is not a counter.
+    is not in the database is not a counter. **Confirmed 2026-08-31** — the database is the
+    source of truth for it.
+20. **`customer_contacts.email` is unique tenant-wide** (A16). A change to module 07's table,
+    made for the portal, and the only one in this suite that can **fail on live data** — a
+    tenant with existing duplicates needs a human-resolved dedup pass before the index. It
+    becomes `01-data-model.md` **CP-0**, ahead of everything else.
+21. **`view_equipment` is the seventh grant** (A8 follow-up). Reading the registry and filing
+    requests are different entitlements: a customer may want to see their installed base without
+    being able to open tickets, and the picker inside the request form is not a licence to
+    browse.
+22. **The full chain is `service_request → quotation ⇄ approval/denial → service_order (0–1)`**
+    (A6 confirmation, 2026-08-31). Every arrow is already built except the first: quotations
+    already carry `service_order_id` with 0-or-1 cardinality, and the approval/denial loop is
+    the reviewer tally. The portal adds the request at the head of the chain and nothing else —
+    **no step of the existing quotation → order flow changes.**
 
-## 5. Residual asks (raised by the 2026-08-30 answers)
+## 5. Residual asks — resolved 2026-08-31
 
-| # | Ask | Blocks |
+| # | Answer | Encoded in |
 |---|---|---|
-| A16 | A10 + 00 §3.3 together mean **two contacts at two customers may share an email address**, each with their own account. `POST /portal/auth/login` takes `{ email, password }` and can therefore match two accounts. Options: (a) accept and disambiguate after the password check with a customer chooser, (b) make email unique per tenant anyway and forbid the second invite, (c) log in with a customer + email pair. Proposal: **(a)**. | 02 |
-| A17 | A9 confirms `equipment_id` is optional at filing. Open: when staff approve a request filed **without** equipment, must they attach an equipment record first, or is it merely offered at triage? Proposal: **offered, never required** — a blocking gate turns a triage screen into a data-entry chore. | 06, superadmin 27 |
+| A16 | **Contacts must be unique per email.** Not option (a): the ambiguity is removed at the source rather than papered over at login. `customer_contacts` gains a unique email index, `portal_users.email` goes back to partial-unique, and 00 §3.3's two-accounts-per-address clause is superseded. Costs a **retroactive constraint on live data** — see §4b.20. | 01 §0, 01 §1, 02 §1 |
+| A17 | **Never required.** Staff may create the equipment record **from the request view** and attach it, but a request with `equipment_id` null moves through the whole lifecycle unimpeded. | 01 §4, 06 §4, superadmin 27 §3 |
+
+**No open asks remain in this suite.**

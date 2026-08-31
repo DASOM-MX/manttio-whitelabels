@@ -1,7 +1,7 @@
 # client-portal / 06 — Service requests
 
 > **Status:** planned (doc) · **Depends on:** 01, 03 · **Feeds:** superadmin 27
-> **Owner:** — · **Last updated:** 2026-08-30
+> **Owner:** — · **Last updated:** 2026-08-31
 
 The one thing a customer *creates*. A service request is a described problem, not a priced
 proposal: **equipment + behavior description + optional evidence image** (00 §3.13). Staff
@@ -28,7 +28,8 @@ staff side of the conversion.
 ```
 
 - **Equipment** is picked from `GET /portal/equipment` — the same endpoint that backs the
-  Equipos section (A8, 04 §7), scoped by token. **The selection is never required (A9, owner
+  Equipos section (A8, 04 §7), scoped by token. `create_service_requests` reaches it for the
+  picker even without `view_equipment` (02 §3). **The selection is never required (A9, owner
   2026-08-30):** the unit may simply not have been registered yet, and a customer who cannot
   name it in our registry still has a broken chiller. The picker always carries an explicit
   "no aparece mi equipo" option, and choosing it files with `equipment_id` null.
@@ -81,6 +82,25 @@ review is how disputes start. Adding evidence later is allowed (`evidence_added`
 **A non-admin portal user cannot close**, including the one who filed it. That is the answer as
 given; if a filer should be able to withdraw their own untouched request, that is a second
 power to decide, not one to assume.
+
+## 3b. Where a request sits in the chain (A6 confirmation, 2026-08-31)
+
+```
+service_request ──► quotation ⇄ approval / denial ──► service_order (0–1)
+```
+
+Everything from `quotation` rightward **already exists and does not change**: the reviewer tally
+is the approval/denial loop (20 §2), and `quotations.service_order_id` already carries the
+0-or-1 conversion (20 §6). The portal's contribution is the first arrow — a customer-authored
+head for a chain that previously started with a staff member deciding to quote.
+
+Read the cardinalities carefully, because they are not all the same:
+
+- **request → quotation: 0..n.** A declined quote is followed by another against the same
+  request (§4b).
+- **quotation → service order: 0..1.** Unchanged; a quote converts once or never.
+- **request → service order: indirect only.** There is no FK between them and none is added; the
+  path is always through a quotation, so a request that never produced one produced no work.
 
 ## 4. Approval → draft quotation
 
@@ -167,5 +187,6 @@ the reason). Every one of these is a transactional email to a person who asked f
 
 ## 8. Asks
 
-Resolved 2026-08-30: **A5**, **A6**, **A8**, **A9** — see 00 §4. Still open: **A17** (must staff
-attach an equipment record before approving a request filed without one?) — 00 §5.
+Resolved 2026-08-30: **A5**, **A6**, **A8**, **A9**. Resolved 2026-08-31: **A17** — staff may
+create the equipment record **from the request view** and attach it (superadmin 27 §3), but
+`equipment_id` stays nullable and no lifecycle step requires it. None open; see 00 §4–5.

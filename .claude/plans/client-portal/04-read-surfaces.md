@@ -1,7 +1,7 @@
 # client-portal / 04 — Read surfaces
 
 > **Status:** planned (doc) · **Depends on:** 02, 03 · **Feeds:** 05
-> **Owner:** — · **Last updated:** 2026-08-30
+> **Owner:** — · **Last updated:** 2026-08-31
 
 The sections a portal user reads: reports, contracts, quotations, service orders — and, since
 A8, the equipment registry. Same shape every time — a filtered list in the URL, a detail page, a PDF where one exists — so this
@@ -98,7 +98,7 @@ Two consequences worth stating once, because both are easy to get wrong later:
 - **Stripped:** costs, margins, **priority**, technician assignment history, internal notes,
   WMS reservations.
 
-## 7. Equipos (`create_service_requests`) — A8
+## 7. Equipos (`view_equipment`) — A8
 
 The customer's own equipment registry (module 11), as **both** a browsable section and the
 picker inside the request form. One endpoint (`GET /portal/equipment`, 02 §3) serves both.
@@ -106,16 +106,19 @@ picker inside the request form. One endpoint (`GET /portal/equipment`, 02 §3) s
 - **List columns:** tag / name, brand + model, serial, location/site, last service date.
 - **Filters:** free text, location.
 - **Detail:** the identification block, plus that unit's **reports** (when the user holds
-  `view_reports`) and **its service requests**, newest first — the per-unit history that makes
-  the section worth having.
+  `view_reports`) and **its service requests** (when they hold `create_service_requests`),
+  newest first — the per-unit history that makes the section worth having. Each sub-list obeys
+  its own grant, so an equipment-only user sees the unit and nothing hanging off it.
 - **Action:** "Solicitar servicio para este equipo" deep-links into the request form with the
-  unit preselected.
+  unit preselected — rendered only with `create_service_requests`.
 - **Stripped:** acquisition cost, internal maintenance scheduling, WMS parts data.
 
-**Consequence of A1 + A8 taken together:** the approved six-grant list has no `view_equipment`,
-so this section is gated by `create_service_requests` — a portal user who may not file requests
-sees no equipment either. That follows from both answers as given; making the registry readable
-on its own would take a seventh grant.
+**The section and the picker are separately entitled** (owner, 2026-08-31). `view_equipment` —
+the seventh grant (01 §3) — opens this section, and it stands on its own: a customer may browse
+their installed base without any ability to file requests. A user who holds only
+`create_service_requests` still reaches the same endpoint as the form's **picker**, but gets no
+nav item and no browsable list. One endpoint, two entitlements, guarded by a disjunction
+(02 §3).
 
 ## 8. Inicio
 

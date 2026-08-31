@@ -2,7 +2,7 @@
 
 > **Status:** planned (doc) · **Depends on:** 07 (clients), `../client-portal/01-data-model.md`
 > + `../client-portal/02-auth-surface.md`
-> **Owner:** — · **Last updated:** 2026-08-30
+> **Owner:** — · **Last updated:** 2026-08-31
 
 Where staff decide **who** gets into the Portal de clientes and **what** they can do there.
 Access is invite-only (`../client-portal/00-overview.md` §3.4) — there is no public signup — so
@@ -43,16 +43,20 @@ On send: `POST /portal-users`, the backend mails a temp password
 
 ## 3. Grants editor
 
-The six grants (`../client-portal/01-data-model.md` §3) as labelled toggles with one-line
+The seven grants (`../client-portal/01-data-model.md` §3) as labelled toggles with one-line
 explanations in Spanish, grouped:
 
-- **Consultar** — Reportes · Contratos · Cotizaciones · Órdenes de servicio
+- **Consultar** — Reportes · Contratos · Cotizaciones · Órdenes de servicio · **Equipos**
 - **Actuar** — Aprobar cotizaciones · Crear solicitudes de servicio
 
 Rules the UI reflects but the **backend enforces**:
 
 - Aprobar cotizaciones requires Consultar cotizaciones — ticking the first ticks the second and
   says why.
+- **Consultar equipos and Crear solicitudes are independent** (owner, 2026-08-31). A customer may
+  browse their installed base with no ability to file requests, and a filer without the view
+  grant still gets the equipment **picker** inside the form. The editor must not couple them:
+  ticking one does not tick the other, and the helper text says which surface each one opens.
 - Zero grants is allowed and is not an error state; the portal shows that user an explanatory
   home. The list marks it plainly ("sin permisos") rather than pretending it is normal.
 
@@ -97,6 +101,17 @@ The temp password is in the email only — never rendered in the UI, never retur
 never logged. If a staff member needs to help a customer in, the action is "reenviar
 invitación", not "read me the password".
 
+## 5b. Before any of this ships: the contact email dedup (A16)
+
+`../client-portal/01-data-model.md` **CP-0** makes `customer_contacts.email` unique tenant-wide,
+because email is the portal's login identity. On an existing tenant that constraint is
+retroactive and **will fail if two contacts share an address**.
+
+The resolution is a human one and it surfaces here, in 07's contacts UI, not in a script: staff
+see the colliding pairs and decide which contact keeps the address. Nothing in this module can
+be used until that pass is done — an invite dialog that cannot guarantee one account per address
+is an invite dialog that hands someone else's records to the wrong person.
+
 ## 6. Rollout companion tasks
 
 - The quotation send email (20) gains a portal link for contacts who have access.
@@ -105,6 +120,8 @@ invitación", not "read me the password".
 
 ## 7. Checkpoints
 
+- [ ] **CP-0** — the contact email collision report in 07 + the staff resolution pass (§5b),
+      then `../client-portal/01-data-model.md` CP-0's index. Blocks every checkpoint below.
 - [ ] **CP-1** — nav entry + tenant-wide list with URL filters + status/grant chips.
 - [ ] **CP-2** — invite dialog from 07's contacts tab and from this module.
 - [ ] **CP-3** — grants editor with the dependency rule + revocation history preserved, plus

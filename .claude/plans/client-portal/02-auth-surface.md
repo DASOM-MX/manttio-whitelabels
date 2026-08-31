@@ -1,7 +1,7 @@
 # client-portal / 02 — The `/portal/*` backend surface
 
 > **Status:** planned (doc) · **Depends on:** 01 · **Feeds:** 03, 04, 05, 06
-> **Owner:** — · **Last updated:** 2026-08-30
+> **Owner:** — · **Last updated:** 2026-08-31
 
 A **second, parallel auth surface** on the same Worker (00 §3.8). Not a role added to the
 existing one: portal users are a different kind of subject, with a different token, a
@@ -46,10 +46,11 @@ means logging in again, which for an occasional-use portal is the honest trade. 
 immediate regardless of TTL — the middleware re-reads the row on every request, so
 `status = suspended` or a soft delete kills a live token at once.
 
-**A16 (00 §5) lands on the login route.** A10 made the uniqueness rule `contact_id`, not email,
-so `SELECT … WHERE email = ?` may return more than one active account. CP-1 cannot ship until
-the owner picks: disambiguate after the password check, forbid the duplicate invite, or take a
-customer + email pair at login.
+**A16 resolved (owner, 2026-08-31): contacts are unique per email**, so
+`SELECT … WHERE email = ? AND deleted_at IS NULL` returns at most one row and the login stays
+`{ email, password }` with no customer chooser and no second lookup key. The uniqueness is
+enforced one level down, on `customer_contacts` itself (01 §0) — which means **01 CP-0 (the
+dedup pass + index) must land before this plan's CP-1**, not alongside it.
 
 ## 2. Public routes (no token)
 
@@ -83,7 +84,7 @@ customer + email pair at login.
 | `GET /portal/quotations` `…/:id` `…/:id/pdf` | `view_quotations` | 04 |
 | `POST /portal/quotations/:id/respond` | `approve_quotations` | 05 |
 | `GET /portal/service-orders` `…/:id` | `view_service_orders` | 04 |
-| `GET /portal/equipment` `…/:id` | `create_service_requests` | **A8: both** — the registry is its own read section *and* the request form's picker, off one endpoint. Note the consequence of A1's six-grant list: a portal user without `create_service_requests` has no equipment section. |
+| `GET /portal/equipment` `…/:id` | `view_equipment` **or** `create_service_requests` | **A8: both uses, one endpoint.** `view_equipment` (the seventh grant, 01 §3) opens the browsable Equipos section; `create_service_requests` alone still reaches it as the request form's picker. This is the one route in the surface guarded by a **disjunction** — `requireAnyGrant(...)` rather than `requireGrant(...)`. |
 | `GET /portal/service-requests` `…/:id` `POST /portal/service-requests` `POST /portal/service-requests/:id/answer` | `create_service_requests` | 06 |
 | `POST /portal/service-requests/:id/close` | `create_service_requests` **+ `isAdmin`** | 06 §3. The only route `is_admin` gates. Missing `isAdmin` is a **403** with the backend's message, not a 404 — the record is already visible to this user, so refusing it leaks nothing. |
 | `POST /portal/upload/evidence` | `create_service_requests` | Its own route, **not** the staff `/upload/image` — different bucket, different cap, and the staff route is behind the staff middleware. |
@@ -148,8 +149,9 @@ endpoints; superadmin 26 is their UI.
 ## 8. Checkpoints
 
 - [ ] **CP-1** — env binding, `portalJwtMiddleware` (grants + `isAdmin` per request),
-      `requireGrant`, login/me/password with the A3 lockout, mount order in `index.ts`,
-      cross-surface rejection tests. **Blocked on A16** — the login lookup's shape.
+      `requireGrant` + `requireAnyGrant`, login/me/password with the A3 lockout, mount order in
+      `index.ts`, cross-surface rejection tests. **Ordered after 01 CP-0** (the contact email
+      index that makes the login lookup single-row).
 - [ ] **CP-2** — forgot/reset password + email templates + Turnstile + reset throttle.
 - [ ] **CP-3** — portal DTO layer + per-entity kept-field enumeration + key-set tests.
 - [ ] **CP-4** — staff-side portal-user endpoints (invite, grants, suspend, resume, reset).
