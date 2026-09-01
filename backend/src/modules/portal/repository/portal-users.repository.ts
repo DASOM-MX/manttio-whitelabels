@@ -1,4 +1,4 @@
-import { isNull, eq, and, gt } from 'drizzle-orm';
+import { isNull, eq, and, sql } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { portalUsers } from '../models/portal-users.model';
 import { portalUserGrants } from '../models/portal-user-grants.model';
@@ -78,29 +78,39 @@ export function isPortalUserLocked(lockedUntil: Date | null): boolean {
 
 /**
  * Increment failed login attempts and apply lockout if needed (A3: 5 fails → 2h cooldown).
+ * Atomic: does not leak to race conditions. Self-clearing: if the lock has expired,
+ * reset the counter to 1 before checking the threshold.
  * Returns the updated portal user row.
  */
 export async function incrementFailedLoginAttempts(db: Db, portalUserId: string) {
   const now = new Date();
-  const attempts = (await db
-    .select()
-    .from(portalUsers)
-    .where(eq(portalUsers.id, portalUserId))
-    .limit(1))[0]?.failedLoginAttempts ?? 0;
+  const twoHoursAhead = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
-  const newAttempts = attempts + 1;
-  let lockedUntil: Date | null = null;
-
-  // 5 failed attempts trigger a 2-hour lockout.
-  if (newAttempts >= 5) {
-    lockedUntil = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-  }
-
+  // Atomic single statement: conditionally reset counter if lock has expired,
+  // increment by 1, then set lock to 2h ahead if new count >= 5.
   const updated = await db
     .update(portalUsers)
     .set({
-      failedLoginAttempts: newAttempts,
-      lockedUntil,
+      failedLoginAttempts: sql`
+        CASE
+          WHEN ${portalUsers.lockedUntil} IS NOT NULL AND ${portalUsers.lockedUntil} <= ${now}
+            THEN 1
+          ELSE ${portalUsers.failedLoginAttempts} + 1
+        END
+      `,
+      lockedUntil: sql`
+        CASE
+          WHEN (
+            CASE
+              WHEN ${portalUsers.lockedUntil} IS NOT NULL AND ${portalUsers.lockedUntil} <= ${now}
+                THEN 1
+              ELSE ${portalUsers.failedLoginAttempts} + 1
+            END
+          ) >= 5
+            THEN ${twoHoursAhead}
+          ELSE NULL
+        END
+      `,
       updatedAt: now,
     })
     .where(eq(portalUsers.id, portalUserId))

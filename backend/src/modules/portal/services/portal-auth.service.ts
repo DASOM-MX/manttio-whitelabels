@@ -11,16 +11,18 @@ import { signPortalToken } from './portal-jwt.service';
 import { hashPassword, verifyPassword } from '../../auth/services/password.service';
 import type { PortalLoginInput, PortalChangePasswordInput } from '../validators/portal-auth.validator';
 import type { PortalMeResponse } from '../dtos/portal-me.dto';
+import type { PortalGrant } from '../enums/portal-grants.enum';
+import { PortalUserStatus } from '../enums/portal-users.enum';
 import { findCustomerById } from '../../customers/repository/customers.repository';
 
 export type PortalLoginResult = { token: string; mustChangePassword: boolean };
 
 /**
- * Portal login with A3 lockout (5 fails → 2h cooldown). The lockout is checked
- * before password verification so a locked account answers the same as an
- * invalid password — no oracle.
+ * Portal login with A3 lockout (5 fails → 2h cooldown). The lockout and status
+ * are checked before password verification so a locked/suspended account answers
+ * the same as an invalid password — no oracle.
  *
- * Returns null when credentials don't match, are locked, or are suspended/deleted.
+ * Returns null when credentials don't match, are locked, or account is suspended/deleted.
  */
 export const portalLogin = async (
   db: Db,
@@ -29,6 +31,12 @@ export const portalLogin = async (
 ): Promise<PortalLoginResult | null> => {
   const user = await findPortalUserByEmail(db, email);
   if (!user) return null;
+
+  // Reject suspended or deleted accounts before password verification — same
+  // answer as wrong password so we don't leak account status.
+  if (user.status === PortalUserStatus.Suspended || user.deletedAt !== null) {
+    return null;
+  }
 
   // Check lockout before verifying the password so we don't leak whether the
   // account is locked or the password is wrong.
@@ -55,7 +63,7 @@ export const portalLogin = async (
 export const portalGetMe = async (
   db: Db,
   portalUserId: string,
-  grants: string[],
+  grants: PortalGrant[],
   customerId: string,
 ): Promise<PortalMeResponse | null> => {
   const user = await findPortalUserById(db, portalUserId);

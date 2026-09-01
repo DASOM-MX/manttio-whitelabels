@@ -1,3 +1,5 @@
+import type { PortalGrant } from '../enums/portal-grants.enum';
+
 export interface PortalMeResponse {
   user: {
     id: string;
@@ -9,6 +11,6 @@ export interface PortalMeResponse {
     id: string;
     name: string;
   };
-  grants: string[];
+  grants: PortalGrant[];
   mustChangePassword: boolean;
 }

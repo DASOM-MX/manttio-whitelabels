@@ -1,3 +1,5 @@
+import type { PortalGrant } from './modules/portal/enums/portal-grants.enum';
+
 export type Environment = 'production' | 'dev';
 
 export type Env = {
@@ -70,7 +72,7 @@ export type PortalUser = {
   customerId: string;
   email: string;
   isAdmin: boolean;
-  grants: string[];
+  grants: PortalGrant[];
 };
 
 export type Variables = {

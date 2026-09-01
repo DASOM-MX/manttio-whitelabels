@@ -27,13 +27,11 @@ portalAuth.post('/login', zValidator('json', portalLoginSchema), async (c) => {
 
 /**
  * GET /portal/auth/me — session snapshot: user + role + customer + grants + mustChangePassword.
- * The boot payload the app gates its nav on.
+ * The boot payload the app gates its nav on. Guaranteed to run after portalJwtMiddleware
+ * sets portalUser.
  */
 portalAuth.get('/me', portalJwtMiddleware, async (c) => {
-  const user = c.get('portalUser');
-  if (!user) {
-    return c.json({ error: 'unauthorized' }, 401);
-  }
+  const user = c.get('portalUser')!; // Guaranteed by portalJwtMiddleware
 
   const db = createDb(c.env.DATABASE_URL);
   const result = await portalGetMe(db, user.id, user.grants, user.customerId);
@@ -45,14 +43,10 @@ portalAuth.get('/me', portalJwtMiddleware, async (c) => {
 
 /**
  * POST /portal/auth/password — change own password; clears must_change_password,
- * flips status from invited → active. The caller is already JWT-authenticated
- * (they just logged in with the temp password).
+ * flips status from invited → active. Guaranteed to run after portalJwtMiddleware.
  */
 portalAuth.post('/password', portalJwtMiddleware, zValidator('json', portalChangePasswordSchema), async (c) => {
-  const user = c.get('portalUser');
-  if (!user) {
-    return c.json({ error: 'unauthorized' }, 401);
-  }
+  const user = c.get('portalUser')!; // Guaranteed by portalJwtMiddleware
 
   const db = createDb(c.env.DATABASE_URL);
   const changed = await portalChangeOwnPassword(db, user.id, c.req.valid('json').password);

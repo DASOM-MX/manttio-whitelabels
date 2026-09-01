@@ -3,6 +3,7 @@ import { jwtVerify } from 'jose';
 import type { AppBindings, PortalUser } from '../../../env';
 import { createDb } from '../../database/client';
 import { findPortalUserById, findGrantsByPortalUser } from '../repository/portal-users.repository';
+import type { PortalGrant } from '../enums/portal-grants.enum';
 import { PortalUserStatus } from '../enums/portal-users.enum';
 
 /**
@@ -47,7 +48,7 @@ export const portalJwtMiddleware: MiddlewareHandler<AppBindings> = async (c, nex
 
     // Load active grants (revoked_at is null).
     const grantRows = await findGrantsByPortalUser(db, sub);
-    const grants = grantRows.map((g) => g.grant) as string[];
+    const grants = grantRows.map((g) => g.grant) as PortalGrant[];
 
     const contextUser: PortalUser = {
       id: portalUser.id,
