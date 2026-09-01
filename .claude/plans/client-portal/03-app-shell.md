@@ -75,22 +75,22 @@ superadmin's shell carries **no obligation** to mirror it here.
 
 ## 4. Routing + nav
 
-Public shell (no token): `/acceder` (login), `/recuperar` (forgot), `/restablecer` (reset,
-takes the emailed token). Brand-themed, no sidebar.
+Public shell (no token): `/login`, `/forgot-password`, `/reset-password` (takes the
+emailed token). Brand-themed, no sidebar.
 
 Authenticated shell:
 
 | Route | Nav label | Grant |
 |---|---|---|
-| `/inicio` | Inicio | — (always) |
-| `/reportes` | Reportes | `view_reports` |
-| `/contratos` | Contratos | `view_contracts` |
-| `/cotizaciones` | Cotizaciones | `view_quotations` |
-| `/ordenes` | Órdenes de servicio | `view_service_orders` |
-| `/equipos` | Equipos | `view_equipment` |
-| `/solicitudes` | Solicitudes | `create_service_requests` |
+| `/home` | Inicio | — (always) |
+| `/reports` | Reportes | `view_reports` |
+| `/contracts` | Contratos | `view_contracts` |
+| `/quotations` | Cotizaciones | `view_quotations` |
+| `/service-orders` | Órdenes de servicio | `view_service_orders` |
+| `/equipment` | Equipos | `view_equipment` |
+| `/service-requests` | Solicitudes | `create_service_requests` |
 | — | Facturas · *Próximamente* | — (always, **disabled**) |
-| `/perfil` | (user popover) | — |
+| `/profile` | (user popover) | — |
 
 - **`Facturas` is the one row that is not a route** (owner, 2026-08-31): no path registered, no
   guard, no endpoint, no grant. It renders greyed out with a *"Próximamente"* label for every
@@ -103,7 +103,7 @@ Authenticated shell:
   "Próximamente" label gets its own field on the portal's copy, never that badge. A disabled row
   renders as plain text, not an `<a routerLink>`: not focusable, does not navigate, never takes
   the active highlight.
-- `/inicio` for a user with **no** grants is an explanatory empty state, not a dead app
+- `/home` for a user with **no** grants is an explanatory empty state, not a dead app
   (01 §3).
 - Guards are **one per file** in `src/app/guards/`: `portal-auth.guard.ts` (token presence
   only — the backend stays the sole authority on validity) and a `grant.guard.ts` factory
@@ -116,7 +116,7 @@ Authenticated shell:
 - `src/state/` — `auth` (me, grants, status, login/logout/reset), `app` (dark mode, sidebar),
   one state per read feature.
 - `src/app/services/http/` — one service per resource against `/portal/*`; an interceptor attaches the portal
-  token and handles 401 by clearing state and routing to `/acceder`.
+  token and handles 401 by clearing state and routing to `/login`.
 - `src/app/data/dtos/<resource>/` — interfaces only; **enums** live one-per-file in
   `src/app/model/enums/<entity>/`, **constants** one-per-file in
   `src/app/model/constants/<entity>/`.
@@ -168,7 +168,7 @@ apps had to perform and is simply born on the far side of it.
 - [ ] **CP-2** — public shell: login, forgot, reset, force-password dialog, auth state, token
       interceptor.
 - [ ] **CP-3** — authenticated layout port + grant-driven nav (including the disabled
-      `Facturas` row) + guards + `/inicio` empty state.
+      `Facturas` row) + guards + `/home` empty state.
 - [ ] **CP-4** — guarded `deploy:cf` + a tenant Worker with its `API_URL`,
       then a smoke pass against a real invited account.
 

@@ -154,8 +154,8 @@ export const portalForgotPassword = async (
   // Fetch the brand for the email.
   const brand = await getBrand(db, env.LOGOS_CDN_BASE_URL);
 
-  // Build the reset URL: portal app's /restablecer page (03 §4).
-  const resetUrl = `${env.PORTAL_BASE_URL}/restablecer?token=${encodeURIComponent(plainToken)}`;
+  // Build the reset URL: the portal app's /reset-password page (03 §4).
+  const resetUrl = `${env.PORTAL_BASE_URL}/reset-password?token=${encodeURIComponent(plainToken)}`;
 
   // Send the email.
   try {
