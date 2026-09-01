@@ -35,7 +35,7 @@ export async function sendPortalUserInviteEmail(
   const escapedBrandName = escapeHtml(brand.name);
   const escapedPassword = escapeHtml(tempPassword);
 
-  const portalUrl = new URL('/acceder', env.PORTAL_BASE_URL).toString();
+  const portalUrl = new URL('/login', env.PORTAL_BASE_URL).toString();
 
   const html = invitePortalUserTemplate({
     contactName: escapedName,
@@ -80,7 +80,7 @@ export async function sendPortalPasswordResetEmail(
   const escapedBrandName = escapeHtml(brand.name);
   const escapedPassword = escapeHtml(tempPassword);
 
-  const portalUrl = new URL('/acceder', env.PORTAL_BASE_URL).toString();
+  const portalUrl = new URL('/login', env.PORTAL_BASE_URL).toString();
 
   const html = resetPortalPasswordTemplate({
     contactName: escapedName,
