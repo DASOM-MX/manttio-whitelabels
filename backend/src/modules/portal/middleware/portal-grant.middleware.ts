@@ -5,7 +5,7 @@ import type { PortalGrant } from '../enums/portal-grants.enum';
 /**
  * Require a single grant on a route. Missing grant is 404 for anything
  * record-shaped — the portal must not confirm that a section or record exists
- * to someone not entitled to it (02 §4).
+ * to someone not entitled to it (02 §1).
  */
 export const requireGrant = (grant: PortalGrant): MiddlewareHandler<AppBindings> => {
   return async (c, next) => {

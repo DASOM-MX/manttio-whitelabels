@@ -88,12 +88,13 @@ export async function incrementFailedLoginAttempts(db: Db, portalUserId: string)
 
   // Atomic single statement: conditionally reset counter if lock has expired,
   // increment by 1, then set lock to 2h ahead if new count >= 5.
+  // Timestamps must be explicitly cast to timestamptz for Postgres assignment context.
   const updated = await db
     .update(portalUsers)
     .set({
       failedLoginAttempts: sql`
         CASE
-          WHEN ${portalUsers.lockedUntil} IS NOT NULL AND ${portalUsers.lockedUntil} <= ${now}
+          WHEN ${portalUsers.lockedUntil} IS NOT NULL AND ${portalUsers.lockedUntil} <= ${now}::timestamptz
             THEN 1
           ELSE ${portalUsers.failedLoginAttempts} + 1
         END
@@ -102,12 +103,12 @@ export async function incrementFailedLoginAttempts(db: Db, portalUserId: string)
         CASE
           WHEN (
             CASE
-              WHEN ${portalUsers.lockedUntil} IS NOT NULL AND ${portalUsers.lockedUntil} <= ${now}
+              WHEN ${portalUsers.lockedUntil} IS NOT NULL AND ${portalUsers.lockedUntil} <= ${now}::timestamptz
                 THEN 1
               ELSE ${portalUsers.failedLoginAttempts} + 1
             END
           ) >= 5
-            THEN ${twoHoursAhead}
+            THEN ${twoHoursAhead}::timestamptz
           ELSE NULL
         END
       `,

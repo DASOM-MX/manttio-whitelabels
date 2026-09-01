@@ -26,12 +26,12 @@ portalAuth.post('/login', zValidator('json', portalLoginSchema), async (c) => {
 });
 
 /**
- * GET /portal/auth/me — session snapshot: user + role + customer + grants + mustChangePassword.
+ * GET /portal/auth/me — session snapshot: user + customer + grants + mustChangePassword + isAdmin.
  * The boot payload the app gates its nav on. Guaranteed to run after portalJwtMiddleware
  * sets portalUser.
  */
 portalAuth.get('/me', portalJwtMiddleware, async (c) => {
-  const user = c.get('portalUser')!; // Guaranteed by portalJwtMiddleware
+  const user = c.get('portalUser');
 
   const db = createDb(c.env.DATABASE_URL);
   const result = await portalGetMe(db, user.id, user.grants, user.customerId);
@@ -46,7 +46,7 @@ portalAuth.get('/me', portalJwtMiddleware, async (c) => {
  * flips status from invited → active. Guaranteed to run after portalJwtMiddleware.
  */
 portalAuth.post('/password', portalJwtMiddleware, zValidator('json', portalChangePasswordSchema), async (c) => {
-  const user = c.get('portalUser')!; // Guaranteed by portalJwtMiddleware
+  const user = c.get('portalUser');
 
   const db = createDb(c.env.DATABASE_URL);
   const changed = await portalChangeOwnPassword(db, user.id, c.req.valid('json').password);

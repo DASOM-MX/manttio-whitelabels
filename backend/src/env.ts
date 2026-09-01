@@ -77,7 +77,7 @@ export type PortalUser = {
 
 export type Variables = {
   user: AuthUser;
-  portalUser?: PortalUser;
+  portalUser: PortalUser;
 };
 
 export type AppBindings = {

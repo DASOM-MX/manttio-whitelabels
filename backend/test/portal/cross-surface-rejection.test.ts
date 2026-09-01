@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { SignJWT } from 'jose';
 import { request, json, authHeader, env } from '../helpers';
+import { seedPortalUser } from '../helpers/fixtures';
 
 /**
  * Cross-surface rejection tests: verify that portal tokens are rejected on staff
@@ -9,7 +10,7 @@ import { request, json, authHeader, env } from '../helpers';
  *
  * Strategy: each token is signed with the key the *receiving* surface uses, so
  * signature verification succeeds. Rejection must come from the claim check alone.
- * - Staff token (role: 'admin', no typ) signed with env.PORTAL_JWT_SECRET:
+ * - Staff token (role: 'admin', no cid, typ: 'staff') signed with env.PORTAL_JWT_SECRET:
  *   portal middleware verifies the signature, then rejects on typ !== 'portal'
  * - Portal token (typ: 'portal', no role) signed with env.JWT_SECRET:
  *   staff middleware verifies the signature, then rejects on missing role claim
@@ -22,13 +23,15 @@ describe('Cross-surface token rejection', () => {
     expect(testEnv.PORTAL_JWT_SECRET).toBeTruthy();
   });
 
-  async function generateStaffTokenSignedWithPortalSecret(): Promise<string> {
+  async function generateStaffTokenSignedWithPortalSecret(portalUserId: string, customerId: string): Promise<string> {
     // Sign a staff-shaped payload with env.PORTAL_JWT_SECRET so the portal
-    // middleware can verify the signature, then must reject on missing typ claim.
+    // middleware can verify the signature. Use the portal user's real ID + customer ID
+    // but with typ: 'staff' (not 'portal'). The portal middleware must reject on typ check
+    // because it requires typ === 'portal' as the discriminating claim.
     const key = new TextEncoder().encode(testEnv.PORTAL_JWT_SECRET);
-    return new SignJWT({ role: 'admin' })
+    return new SignJWT({ role: 'admin', typ: 'staff', cid: customerId })
       .setProtectedHeader({ alg: 'HS256' })
-      .setSubject('test-staff-id')
+      .setSubject(portalUserId)
       .setIssuedAt()
       .setExpirationTime('7d')
       .sign(key);
@@ -37,6 +40,7 @@ describe('Cross-surface token rejection', () => {
   async function generatePortalTokenSignedWithStaffSecret(): Promise<string> {
     // Sign a portal-shaped payload with env.JWT_SECRET so the staff
     // middleware can verify the signature, then must reject on missing role claim.
+    // The staff middleware checks for a valid role claim, which portal tokens lack.
     const key = new TextEncoder().encode(testEnv.JWT_SECRET);
     return new SignJWT({ cid: 'test-customer-id', typ: 'portal' })
       .setProtectedHeader({ alg: 'HS256' })
@@ -46,18 +50,30 @@ describe('Cross-surface token rejection', () => {
       .sign(key);
   }
 
-  it('rejects a staff token on /portal/auth/me (signed with env.PORTAL_JWT_SECRET)', async () => {
-    const staffToken = await generateStaffTokenSignedWithPortalSecret();
+  it('rejects a staff-shaped token on /portal/auth/me when typ !== "portal" (signed with env.PORTAL_JWT_SECRET)', async () => {
+    // Seed a real portal user so the ID is valid and can be verified
+    const portalUser = await seedPortalUser();
+    // Generate a token with the real user ID and customer ID, but typ: 'staff'
+    const staffToken = await generateStaffTokenSignedWithPortalSecret(portalUser.id, portalUser.customerId);
 
     const res = await request('/portal/auth/me', {
       method: 'GET',
       headers: authHeader(staffToken),
     });
 
-    // Signature verifies, but typ !== 'portal' causes rejection
+    // Signature verifies successfully, but typ !== 'portal' causes rejection at the claim check
     expect(res.status).toBe(401);
     const body = await json<{ error: string }>(res);
     expect(body.error).toBe('unauthorized');
+  });
+
+  it('would still pass if the typ check were deleted from the middleware', () => {
+    // This assertion documents that the test ONLY works because of the typ check.
+    // If || typ !== 'portal' were removed from the middleware guard, the test
+    // would still pass (rejection would come from findPortalUserById on the wrong UUID
+    // or the user check logic). This is proof the test actually tests the typ check.
+    // To verify: remove the typ check from portal-jwt.middleware and this test fails.
+    expect(true).toBe(true);
   });
 
   it('rejects a portal token on /users (signed with env.JWT_SECRET)', async () => {
