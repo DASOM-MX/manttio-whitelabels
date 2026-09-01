@@ -1,9 +1,14 @@
 import type { Role } from '../../users/enums/users.enum';
 import type { contracts } from '../models/contracts.model';
+import type { contractEvents } from '../models/contract-events.model';
 import type { ContractFileType, ContractType, ContractValidity } from '../enums/contracts.enum';
+import type { ContractEventType } from '../enums/contracts.enum';
 
 export type ContractRow = typeof contracts.$inferSelect;
 export type NewContract = typeof contracts.$inferInsert;
+
+export type ContractEventRow = typeof contractEvents.$inferSelect;
+export type NewContractEvent = typeof contractEvents.$inferInsert;
 
 /** The stored document, as resolved from an upload. Moves as one unit — the
  *  four fields are never patched independently. */

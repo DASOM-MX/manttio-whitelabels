@@ -75,6 +75,9 @@ export enum QuotationEventType {
   // through the API once the quote is tombstoned — the row is the record, and
   // a deletion with no trail is exactly the gap an audit trail exists to close.
   Deleted = 'quotation_deleted',
+  // Portal download, recorded for every fetch (no first-download-only dedup).
+  // `changes` carries `{ via: 'portal' }` to distinguish from token-page views.
+  Downloaded = 'quotation_downloaded',
 }
 
 // What `refId` points at, when an event links out. The acting contact is NOT a

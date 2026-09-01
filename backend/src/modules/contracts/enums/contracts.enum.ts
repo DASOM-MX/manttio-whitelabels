@@ -40,3 +40,10 @@ export enum ContractValidity {
   /** Past `expiryDate`. */
   Expired = 'vencido',
 }
+
+// Contract timeline entry types — append-only audit trail (01 CP-5).
+export enum ContractEventType {
+  // Portal download, recorded for every fetch (no first-download-only dedup).
+  // `changes` carries `{ via: 'portal' }` to distinguish from other access.
+  Downloaded = 'contract_downloaded',
+}
