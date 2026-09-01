@@ -115,7 +115,8 @@ simple = { limit = 1, period = 60 }
 # Secrets / per-deploy env are set via `wrangler secret put [--env production]`
 # (and `.dev.vars` locally) and are NOT declared here:
 #   DATABASE_URL            Neon Postgres connection string
-#   JWT_SECRET              HS256 signing secret for jose
+#   JWT_SECRET              HS256 signing secret for jose (staff tokens)
+#   PORTAL_JWT_SECRET       HS256 signing secret for portal tokens (separate surface)
 #   RESEND_API_KEY          Resend API key for outbound report emails
 #   MANAGER_SHARED_TOKEN    shared secret for the whitelabel manager's config
 #                           pushes (X-Manager-Token on PUT /brand + /upload/image)

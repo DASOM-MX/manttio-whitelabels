@@ -5,6 +5,7 @@ import type { AppBindings, Env } from './env';
 import { createDb } from './modules/database/client';
 import { sweepExpiredNotifications } from './modules/notifications/services/notifications-retention.service';
 import { auth } from './modules/auth/controllers/auth.controller';
+import { portalAuth } from './modules/portal/controllers/portal-auth.controller';
 import { users } from './modules/users/controllers/users.controller';
 import { customers } from './modules/customers/controllers/customers.controller';
 import { reports } from './modules/reports/controllers/reports.controller';
@@ -40,7 +41,13 @@ app.use('*', cors({ origin: (origin) => origin, credentials: true }));
 
 app.get('/', (c) => c.json({ name: 'manttio-api', status: 'ok' }));
 
+// Staff auth surface.
 app.route('/auth', auth);
+
+// Portal auth surface — separate from staff, with its own JWT secret and middleware.
+// Mounted here, before the global JWT middleware, carrying its own guards route by route
+// (02 §1).
+app.route('/portal/auth', portalAuth);
 
 // Public published-only CMS reads for the tenant website (no auth by design).
 app.route('/public/cms', publicCms);
