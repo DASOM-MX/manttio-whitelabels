@@ -1,8 +1,13 @@
+import type { PortalGrant } from './modules/portal/enums/portal-grants.enum';
+
 export type Environment = 'production' | 'dev';
 
 export type Env = {
   DATABASE_URL: string;
   JWT_SECRET: string;
+  /** Portal JWT secret — separate from JWT_SECRET, for a second parallel auth
+   *  surface that shares no token/middleware with the staff surface (00 §3.8). */
+  PORTAL_JWT_SECRET: string;
   RESEND_API_KEY: string;
   /** Shared secret the whitelabel manager presents (X-Manager-Token) on its
    *  config-push writes. Unset → the manager path fails closed. */
@@ -61,8 +66,18 @@ export type AuthUser = {
   role: 'owner' | 'admin' | 'office' | 'technician';
 };
 
+export type PortalUser = {
+  id: string;
+  contactId: string;
+  customerId: string;
+  email: string;
+  isAdmin: boolean;
+  grants: PortalGrant[];
+};
+
 export type Variables = {
   user: AuthUser;
+  portalUser: PortalUser;
 };
 
 export type AppBindings = {
