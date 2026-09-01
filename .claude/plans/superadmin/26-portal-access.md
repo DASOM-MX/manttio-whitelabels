@@ -119,7 +119,8 @@ invitación", not "read me the password".
 ## 7. Checkpoints
 
 - [ ] **CP-1** — nav entry + tenant-wide list with URL filters + status/grant chips.
-- [ ] **CP-2** — invite dialog from 07's contacts tab and from this module.
+- [ ] **CP-2** — invite dialog in this module only, with the customer + contact picker (§2).
+      No entry point in the customers editor — decision 27.
 - [ ] **CP-3** — grants editor with the dependency rule + revocation history preserved, plus
       the `is_admin` toggle (§3b) and the no-request-grant warning.
 - [ ] **CP-4** — lifecycle actions (resend, reset, suspend, reactivate, revoke-with-comment).
