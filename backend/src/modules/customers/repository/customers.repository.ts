@@ -25,12 +25,14 @@ import type { GenericQueryResponse } from '../../shared/types/generic-query-resp
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 type Executor = Db | Tx;
 
-// Contacts always come back default-first, then oldest-first.
+// Contacts always come back default-first, then oldest-first. Live rows only —
+// tombstones stay readable through the quotation joins that reference them, but
+// they are not part of the customer's roster.
 const contactsOf = (exec: Executor, customerId: string) =>
   exec
     .select()
     .from(customerContacts)
-    .where(eq(customerContacts.customerId, customerId))
+    .where(and(eq(customerContacts.customerId, customerId), isNull(customerContacts.deletedAt)))
     .orderBy(desc(customerContacts.isDefault), asc(customerContacts.createdAt));
 
 const fiscalOf = async (exec: Executor, customerId: string) => {
@@ -40,26 +42,6 @@ const fiscalOf = async (exec: Executor, customerId: string) => {
     .where(eq(customerFiscal.customerId, customerId))
     .limit(1);
   return row ?? null;
-};
-
-/** The subset of a customer's contacts named by id — the server-side check
- *  behind the quotation recipient picker (20 §4).
- *
- *  Scoped by `customerId` on purpose: it makes "this contact belongs to a
- *  different client" un-representable rather than something every caller has to
- *  remember to verify. The failure it prevents is mailing one client's prices
- *  into another client's inbox, so it fails closed — an id that doesn't match
- *  simply isn't returned, and the caller rejects the whole send. */
-export const findContactsForCustomer = async (
-  db: Db,
-  customerId: string,
-  ids: string[],
-): Promise<ContactRow[]> => {
-  if (ids.length === 0) return [];
-  return db
-    .select()
-    .from(customerContacts)
-    .where(and(eq(customerContacts.customerId, customerId), inArray(customerContacts.id, ids)));
 };
 
 /** The whole live roster, name-sorted — the unpaged read behind every customer
@@ -249,10 +231,24 @@ export const updateCustomerWithRelations = async (
     }
     if (!customer) return null;
 
-    // Wholesale replace: drop the old default first, then insert the new set with
-    // its single default — never two defaults live at once (partial unique index).
+    // Wholesale replace: retire the current set, then insert the new one with its
+    // single default — never two live defaults at once (partial unique index).
+    //
+    // Tombstone, not DELETE (2026-09-01). The old hard delete broke the fork's
+    // no-hard-delete rule, and could not even run for a customer whose contact
+    // sat on a quotation — `quotation_recipients.contact_id` and
+    // `quotation_events.contact_id` are `onDelete: 'restrict'`, so editing such
+    // a customer raised a foreign-key violation. Tombstoning keeps those rows
+    // resolvable, so a sent quote still renders the name it was addressed to.
+    //
+    // Note this still mints NEW ids for the replacement rows, so a
+    // `portal_users.contact_id` pointer goes stale exactly as decision 26
+    // anticipated — it now points at a tombstone instead of at nothing.
     if (contacts !== undefined) {
-      await tx.delete(customerContacts).where(eq(customerContacts.customerId, id));
+      await tx
+        .update(customerContacts)
+        .set({ deletedAt: new Date() })
+        .where(and(eq(customerContacts.customerId, id), isNull(customerContacts.deletedAt)));
       if (contacts.length) {
         await tx.insert(customerContacts).values(contacts.map((c) => ({ ...c, customerId: id })));
       }

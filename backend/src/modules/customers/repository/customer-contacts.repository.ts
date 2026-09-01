@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { customerContacts } from '../models/customer-contacts.model';
 import type { ContactRow } from '../types/customers.types';
@@ -10,9 +10,10 @@ import type { ContactRow } from '../types/customers.types';
  *  portal invite flow reaches for one by id and nothing else — and the customer
  *  repository is already the largest in the module.
  *
- *  Note there is no `deleted_at` on this table (01 §0): contacts are replaced
- *  wholesale by `updateCustomerWithRelations`, not soft-deleted, so no read here
- *  filters on one. */
+ *  Contacts are soft-deleted (2026-09-01): `updateCustomerWithRelations`
+ *  replaces the set wholesale by tombstoning the old rows, so every read here
+ *  filters `isNull(deletedAt)`. The tombstones exist so the `restrict` FKs from
+ *  `quotation_recipients` and `quotation_events` stay resolvable. */
 
 /** A single contact by id, unscoped by customer.
  *
@@ -25,7 +26,33 @@ export const findContactById = async (db: Db, id: string): Promise<ContactRow | 
   const [row] = await db
     .select()
     .from(customerContacts)
-    .where(eq(customerContacts.id, id))
+    .where(and(eq(customerContacts.id, id), isNull(customerContacts.deletedAt)))
     .limit(1);
   return row ?? null;
+};
+
+/** The subset of a customer's contacts named by id — the server-side check
+ *  behind the quotation recipient picker (20 §4).
+ *
+ *  Scoped by `customerId` on purpose: it makes "this contact belongs to a
+ *  different client" un-representable rather than something every caller has to
+ *  remember to verify. The failure it prevents is mailing one client's prices
+ *  into another client's inbox, so it fails closed — an id that doesn't match
+ *  simply isn't returned, and the caller rejects the whole send. */
+export const findContactsForCustomer = async (
+  db: Db,
+  customerId: string,
+  ids: string[],
+): Promise<ContactRow[]> => {
+  if (ids.length === 0) return [];
+  return db
+    .select()
+    .from(customerContacts)
+    .where(
+      and(
+        eq(customerContacts.customerId, customerId),
+        inArray(customerContacts.id, ids),
+        isNull(customerContacts.deletedAt),
+      ),
+    );
 };

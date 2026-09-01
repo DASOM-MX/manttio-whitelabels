@@ -1,7 +1,7 @@
 import type { Db } from '../../database/client';
 import type { Env } from '../../../env';
 import { findServicesByIds } from '../../services/repository/services.repository';
-import { findContactsForCustomer } from '../../customers/repository/customers.repository';
+import { findContactsForCustomer } from '../../customers/repository/customer-contacts.repository';
 import { getBrand } from '../../brand/services/brand.service';
 import { sendEmail } from '../../email/services/email.service';
 import { generateAccessToken } from '../../reports/utils/access-token';
