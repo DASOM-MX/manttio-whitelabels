@@ -34,6 +34,10 @@ export type Env = {
    *  configured the CDN serves text-only cards instead of `undefined/<key>`. */
   IMAGES_CDN_BASE_URL?: string;
   API_BASE_URL: string;
+  /** Public base of this tenant's client portal (the Angular app on its own
+   *  Worker) — what invite and password-reset emails link to. Per-deploy, like
+   *  API_BASE_URL: swapped per tenant at deploy time, never a literal in code. */
+  PORTAL_BASE_URL: string;
   RESEND_FROM: string;
   /** CDN fronting the shared `branding-fonts` bucket. Optional — until it is
    *  configured, /fonts entries ship without files (defaults are bundled). */

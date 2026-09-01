@@ -6,12 +6,21 @@
 // still parse: Outlook's Word renderer ignores flex/grid and most <style>
 // blocks. Nothing here is shared with the app's CSS on purpose.
 
+const escapeHtml = (s: string) =>
+  s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+
 export const portalPasswordResetEmailHtml = (
   resetUrl: string,
   brandName?: string,
 ): string => {
   const displayBrandName = brandName || 'Portal';
-  const escapedBrandName = displayBrandName.replace(/"/g, '&quot;');
+  const escapedBrandName = escapeHtml(displayBrandName);
+  const escapedUrl = escapeHtml(resetUrl);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -104,7 +113,7 @@ export const portalPasswordResetEmailHtml = (
       <a href="${resetUrl}" class="cta-button">Reset Password</a>
 
       <p>Or copy and paste this link into your browser:</p>
-      <div class="reset-link">${resetUrl}</div>
+      <div class="reset-link">${escapedUrl}</div>
 
       <div class="warning">
         <strong>This link expires in 1 hour.</strong> If you did not request a password reset, you can ignore this email. Your account remains secure.

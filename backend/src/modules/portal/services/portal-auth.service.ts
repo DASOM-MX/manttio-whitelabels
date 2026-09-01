@@ -144,18 +144,18 @@ export const portalForgotPassword = async (
   const plainToken = generateResetToken();
   const tokenHash = await hashResetToken(plainToken);
 
-  // Prune old unused tokens (keep max 3).
-  await pruneOldResets(db, user.id);
-
   // Create the new reset record.
   const reset = await createPasswordReset(db, user.id, tokenHash);
   if (!reset) return; // Unlikely, but gracefully skip email if insert fails.
 
+  // Prune old unused tokens (keep max 3 live; newest wins).
+  await pruneOldResets(db, user.id);
+
   // Fetch the brand for the email.
   const brand = await getBrand(db, env.LOGOS_CDN_BASE_URL);
 
-  // Build the reset URL.
-  const resetUrl = `${env.API_BASE_URL}/portal/auth/reset-password?token=${encodeURIComponent(plainToken)}`;
+  // Build the reset URL: portal app's /restablecer page (03 §4).
+  const resetUrl = `${env.PORTAL_BASE_URL}/restablecer?token=${encodeURIComponent(plainToken)}`;
 
   // Send the email.
   try {

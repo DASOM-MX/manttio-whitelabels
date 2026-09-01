@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const portalLoginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
-  turnstileToken: z.string().optional(),
+  turnstileToken: z.string().min(1),
 });
 
 export const portalChangePasswordSchema = z.object({
@@ -12,7 +12,7 @@ export const portalChangePasswordSchema = z.object({
 
 export const portalForgotPasswordSchema = z.object({
   email: z.string().email(),
-  turnstileToken: z.string().optional(),
+  turnstileToken: z.string().min(1),
 });
 
 export const portalResetPasswordSchema = z.object({

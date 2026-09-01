@@ -1,4 +1,4 @@
-import { isNull, eq, and, gt } from 'drizzle-orm';
+import { isNull, eq, and, gt, inArray } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { portalPasswordResets } from '../models/portal-password-resets.model';
 
@@ -53,7 +53,11 @@ export async function markPasswordResetAsUsed(db: Db, resetId: string) {
   const now = new Date();
   const [row] = await db
     .update(portalPasswordResets)
-    .set({ usedAt: now })
+    .set({
+      // usedAt marks this token as invalidated — either consumed by the user or
+      // superseded by a newer token from the same account (throttle enforcement).
+      usedAt: now,
+    })
     .where(eq(portalPasswordResets.id, resetId))
     .returning();
 
@@ -61,32 +65,15 @@ export async function markPasswordResetAsUsed(db: Db, resetId: string) {
 }
 
 /**
- * Count unused, non-expired reset tokens for a portal user.
- * Used for throttling: max 3 unused live tokens, newest wins.
- */
-export async function countUnusedResets(db: Db, portalUserId: string) {
-  const now = new Date();
-  const result = await db
-    .select({ id: portalPasswordResets.id })
-    .from(portalPasswordResets)
-    .where(
-      and(
-        eq(portalPasswordResets.portalUserId, portalUserId),
-        isNull(portalPasswordResets.usedAt),
-        gt(portalPasswordResets.expiresAt, now),
-      ),
-    );
-
-  return result.length;
-}
-
-/**
  * Prune old unused reset tokens when creating a new one (throttle: max 3 per account,
- * newest wins). Marks as used any unused token beyond the 3rd most recent.
+ * newest wins). Marks as invalidated any unused, live (non-expired) token beyond the
+ * 3rd most recent.
  */
 export async function pruneOldResets(db: Db, portalUserId: string) {
-  // Find all unused tokens for this user, ordered by createdAt ASC (oldest first).
-  // Take the first N-3 (if any); mark them as used.
+  const now = new Date();
+
+  // Find all unused, live (non-expired) tokens for this user, ordered by
+  // createdAt ASC (oldest first). Keep the 3 newest; mark the rest as invalidated.
   const unused = await db
     .select({ id: portalPasswordResets.id, createdAt: portalPasswordResets.createdAt })
     .from(portalPasswordResets)
@@ -94,19 +81,17 @@ export async function pruneOldResets(db: Db, portalUserId: string) {
       and(
         eq(portalPasswordResets.portalUserId, portalUserId),
         isNull(portalPasswordResets.usedAt),
+        gt(portalPasswordResets.expiresAt, now),
       ),
     )
     .orderBy((t) => t.createdAt); // Oldest first
 
-  // If there are more than 3, mark the older ones as used
+  // If there are more than 3 live tokens, invalidate the oldest ones.
   if (unused.length > 3) {
     const idsToMark = unused.slice(0, unused.length - 3).map((r) => r.id);
-    const now = new Date();
-    for (const id of idsToMark) {
-      await db
-        .update(portalPasswordResets)
-        .set({ usedAt: now })
-        .where(eq(portalPasswordResets.id, id));
-    }
+    await db
+      .update(portalPasswordResets)
+      .set({ usedAt: now })
+      .where(inArray(portalPasswordResets.id, idsToMark));
   }
 }

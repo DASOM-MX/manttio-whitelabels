@@ -29,12 +29,11 @@ portalAuth.post('/login', zValidator('json', portalLoginSchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const input = c.req.valid('json');
 
-  // Turnstile verification (optional token for now, will be required on frontend).
-  if (input.turnstileToken) {
-    const verdict = await verifyTurnstileToken(c.env, input.turnstileToken);
-    if (!verdict.success) {
-      return c.json({ error: 'turnstile_failed' }, 403);
-    }
+  // Turnstile verification (required).
+  const remoteIp = c.req.header('cf-connecting-ip');
+  const verdict = await verifyTurnstileToken(c.env, input.turnstileToken, remoteIp);
+  if (!verdict.success) {
+    return c.json({ error: 'turnstile_failed' }, 403);
   }
 
   const result = await portalLogin(db, input, c.env.PORTAL_JWT_SECRET);
@@ -83,12 +82,11 @@ portalAuth.post('/password', portalJwtMiddleware, zValidator('json', portalChang
 portalAuth.post('/forgot-password', zValidator('json', portalForgotPasswordSchema), async (c) => {
   const input = c.req.valid('json');
 
-  // Turnstile verification (optional for now).
-  if (input.turnstileToken) {
-    const verdict = await verifyTurnstileToken(c.env, input.turnstileToken);
-    if (!verdict.success) {
-      return c.json({ error: 'turnstile_failed' }, 403);
-    }
+  // Turnstile verification (required).
+  const remoteIp = c.req.header('cf-connecting-ip');
+  const verdict = await verifyTurnstileToken(c.env, input.turnstileToken, remoteIp);
+  if (!verdict.success) {
+    return c.json({ error: 'turnstile_failed' }, 403);
   }
 
   const db = createDb(c.env.DATABASE_URL);

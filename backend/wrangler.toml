@@ -22,6 +22,9 @@ LOGOS_CDN_BASE_URL = "https://logos.dasom.com"
 # broken ones, so a tenant deploy without it degrades to text-only cards.
 IMAGES_CDN_BASE_URL = "https://images.dasom.com"
 API_BASE_URL = "http://127.0.0.1:8787"
+# Public base of this tenant's client portal (the Angular app on its own Worker).
+# Per-deploy, swapped per tenant at deploy time, never a literal in code.
+PORTAL_BASE_URL = "http://localhost:4200"
 RESEND_FROM = "no-reply@dasom.com"
 # Cloudflare Turnstile server-side verification endpoint (POST /public/leads).
 TURNSTILE_SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"

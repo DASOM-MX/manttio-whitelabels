@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { request, json, jsonHeaders, env } from '../helpers';
 import { seedPortalUser } from '../helpers/fixtures';
+import { mockTurnstile } from '../helpers/turnstile';
 import { createDb } from '../../src/modules/database/client';
 import { portalUsers, portalPasswordResets } from '../../src/modules/database/schema';
 import { hashResetToken } from '../../src/modules/portal/utils/reset-token';
@@ -12,6 +13,8 @@ type WorkerEnv = { DATABASE_URL: string };
  * Portal auth tests — login, me, password change, and A3 lockout (5 fails → 2h cooldown).
  */
 describe('portal auth', () => {
+  // Mock Turnstile HTTP calls for the entire test suite.
+  mockTurnstile();
   /**
    * A3 lockout: 5 failed attempts lock an account for 2 hours; the lock self-clears
    * after the window expires, and a correct password during lockout is still rejected.
@@ -131,21 +134,21 @@ describe('portal auth', () => {
     it('returns 204 for unknown email and writes no row', async () => {
       const unknownEmail = 'unknown+test@example.com';
 
+      // Count total reset rows before the request.
+      const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
+      const beforeCount = (await db.select().from(portalPasswordResets)).length;
+
       const res = await request('/portal/auth/forgot-password', {
         method: 'POST',
         headers: jsonHeaders(),
-        body: JSON.stringify({ email: unknownEmail }),
+        body: JSON.stringify({ email: unknownEmail, turnstileToken: 'tok-test' }),
       });
 
       expect(res.status).toBe(204);
 
-      // Verify no reset row was created
-      const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
-      const resets = await db
-        .select()
-        .from(portalPasswordResets)
-        .where(eq(portalPasswordResets.tokenHash, unknownEmail));
-      expect(resets).toHaveLength(0);
+      // Verify no reset row was created (count unchanged).
+      const afterCount = (await db.select().from(portalPasswordResets)).length;
+      expect(afterCount).toBe(beforeCount);
     });
 
     it('returns 204 for known email and creates reset record', async () => {
@@ -154,7 +157,7 @@ describe('portal auth', () => {
       const res = await request('/portal/auth/forgot-password', {
         method: 'POST',
         headers: jsonHeaders(),
-        body: JSON.stringify({ email: user.email }),
+        body: JSON.stringify({ email: user.email, turnstileToken: 'tok-test' }),
       });
 
       expect(res.status).toBe(204);
@@ -184,7 +187,7 @@ describe('portal auth', () => {
       const res1 = await request('/portal/auth/forgot-password', {
         method: 'POST',
         headers: jsonHeaders(),
-        body: JSON.stringify({ email: user.email }),
+        body: JSON.stringify({ email: user.email, turnstileToken: 'tok-test' }),
       });
       expect(res1.status).toBe(204);
 
@@ -360,7 +363,7 @@ describe('portal auth', () => {
         const res = await request('/portal/auth/forgot-password', {
           method: 'POST',
           headers: jsonHeaders(),
-          body: JSON.stringify({ email: user.email }),
+          body: JSON.stringify({ email: user.email, turnstileToken: 'tok-test' }),
         });
         expect(res.status).toBe(204);
       }
