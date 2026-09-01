@@ -4,7 +4,7 @@ import { authGuard } from './guards/auth.guard';
 import { guestGuard } from './guards/guest.guard';
 import { accessGuard } from './guards/access.guard';
 import { landingGuard } from './guards/landing.guard';
-import { OWNER_ONLY } from './guards/owner-only.guard';
+import { OWNER_ONLY } from './model/constants/access/owner-only.const';
 
 /** Every module area is lazy (`loadChildren` per feature folder) so module
  *  agents ship independently; every entry declares `data: { module, roles }`

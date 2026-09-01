@@ -1,5 +1,5 @@
 import type { Role } from '../../../data/dtos/auth';
-import { OWNER_ONLY } from '../../../guards/owner-only.guard';
+import { OWNER_ONLY } from './owner-only.const';
 import type { ModuleKey } from '../../../data/types/access/module-key.type';
 
 /** Access matrix (14-access-control.md §2) — roles that may enter each module.
