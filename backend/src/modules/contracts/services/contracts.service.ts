@@ -26,21 +26,13 @@ import type {
   UpdateContractFields,
 } from '../types/contracts.types';
 import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
-import { ContractValidity } from '../enums/contracts.enum';
+import { validityOf } from '../utils/contract-validity';
 import { ContractVisibilityForbiddenError } from '../http-errors/contract-visibility-forbidden.error';
 import { ContractEquipmentMismatchError } from '../http-errors/contract-equipment-mismatch.error';
 
 const opt = <T>(v: T | null | undefined): T | undefined => (v == null ? undefined : v);
 
 const DEFAULT_VISIBLE_TO_ROLES: Role[] = ['office', 'technician'];
-
-/** Derived from the dates, never stored (13 §1) — mirrors `validityFilter` in
- *  the repository, which is the SQL half of the same rule. */
-const validityOf = (row: ContractRow, today: string): ContractValidity => {
-  if (row.validFromDate > today) return ContractValidity.NotStarted;
-  if (row.expiryDate && row.expiryDate < today) return ContractValidity.Expired;
-  return ContractValidity.Active;
-};
 
 const toDTO = (
   m: ContractMetaRow,
