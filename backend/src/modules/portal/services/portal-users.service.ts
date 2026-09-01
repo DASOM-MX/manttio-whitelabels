@@ -23,7 +23,7 @@ import {
   findPortalUserByContactId,
   listPortalUsersPaged,
 } from '../repository/portal-users.repository';
-import { findContactById } from '../../customers/repository/customers.repository';
+import { findContactById } from '../../customers/repository/customer-contacts.repository';
 import { sendPortalUserInviteEmail, sendPortalPasswordResetEmail } from '../helpers/portal-email.helpers';
 import type { Env } from '../../../env';
 
