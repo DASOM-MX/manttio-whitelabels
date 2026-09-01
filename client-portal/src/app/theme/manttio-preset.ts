@@ -72,15 +72,14 @@ const surface = {
 /* Preset-first chrome (plan 17, owner 2026-07-22): component shape/spacing
  * decisions live HERE as design tokens, not in override sheets — a value we
  * would have put in a sheet goes in a token whenever Aura exposes one. The
- * only surviving sheets in `src/theme/` are layout-integration rules and
- * house visual cues no token can express (see `src/theme/_index.scss`). */
+ * `src/theme/index.scss` imports this preset and provides layout-integration
+ * rules and house visual cues no token can express. */
 export const ManttioPreset = definePreset(Aura, {
   semantic: {
     primary: brandScale('primary', 220, 10),
-    // Inputs sit on the house rounded-lg + px-3.5. Responsive heights/text
-    // stay in `src/theme/forms.scss` — no token is breakpoint-aware. Focus
-    // adds a soft 4px halo (the `.field-input` ring language) on top of the
-    // primary border — raw hsl(var()) because tokens can't alpha-reference.
+    // Inputs use the house rounded-control and px-3.5. Focus adds a soft 4px
+    // halo (the `.field-input` ring language) on top of the primary border —
+    // raw hsl(var()) because tokens can't alpha-reference.
     formField: {
       paddingX: '0.875rem',
       borderRadius: '{border.radius.lg}',

@@ -12,11 +12,7 @@ const HSL_COMPONENTS_RE = /^\d{1,3}(?:\.\d+)? \d{1,3}(?:\.\d+)?% \d{1,3}(?:\.\d+
  *  ("H S% L%", steps 0…1000 — branding rule 2) set verbatim; anything else
  *  (hex, rgb) is skipped. With no brand (or missing steps) the variables are
  *  cleared so the neutral fallbacks baked into `tailwind.config.js` /
- *  `manttio-preset.ts` take over.
- *
- *  The editor's live preview reuses this same service against draft values
- *  (03 §7); typography never applies to client-portal chrome — Figtree is
- *  the product voice (01 Typography). */
+ *  `manttio-preset.ts` take over. */
 @Injectable({ providedIn: 'root' })
 export class BrandThemeService {
   apply(brand: Brand | null): void {

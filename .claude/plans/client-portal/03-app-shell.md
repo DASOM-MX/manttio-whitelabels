@@ -115,7 +115,7 @@ Authenticated shell:
 
 - `src/state/` — `auth` (me, grants, status, login/logout/reset), `app` (dark mode, sidebar),
   one state per read feature.
-- `src/http/` — one service per resource against `/portal/*`; an interceptor attaches the portal
+- `src/app/services/http/` — one service per resource against `/portal/*`; an interceptor attaches the portal
   token and handles 401 by clearing state and routing to `/acceder`.
 - `src/app/data/dtos/<resource>/` — interfaces only; **enums** live one-per-file in
   `src/app/model/enums/<entity>/`, **constants** one-per-file in

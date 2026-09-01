@@ -64,7 +64,7 @@ This is the **Portal de clientes** app — a customer-facing logged-in surface f
 
 | Plan | CP | Deliverable | Status |
 |---|---|---|---|
-| **03** | **CP-1** | App scaffold, stack, Tailwind + PrimeNG preset, SSR all-CSR, runtime-config + brand initializer, CLAUDE.md, root table row, build green | IN PROGRESS |
+| **03** | **CP-1** | App scaffold, stack, Tailwind + PrimeNG preset, SSR all-CSR, runtime-config + brand initializer, Worker + wrangler config, CLAUDE.md, root table row, build green | IN PROGRESS |
 | 03 | CP-2 | Public shell: login, forgot, reset, force-password dialog, auth state, token interceptor | — |
 | 03 | CP-3 | Authenticated layout, nav with disabled Facturas row, guards, `/inicio` empty state | — |
 | 03 | CP-4 | Guarded `deploy:cf`, tenant Worker `API_URL`, smoke pass | — |

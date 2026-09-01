@@ -3,9 +3,7 @@
  *  00-master → "Shared brand contract"); `website/src/lib/types.ts` and the
  *  field app's `data/dtos/brand/` carry the same shape. Never fork it;
  *  reconcile against the backend when it moves. Color scales are HSL
- *  components ("H S% L%") at steps 0…1000 by 100 — never hex (rule 2). The
- *  editor works in hex internally (pickers) and converts at the boundaries
- *  (`ColorScaleService.toWireScale`/`fromWireScale`). */
+ *  components ("H S% L%") at steps 0…1000 by 100 — never hex (rule 2). */
 
 export interface BrandColorScale {
   [step: string]: string; // '0'…'1000' by 100 → "H S% L%" components (rule 2)

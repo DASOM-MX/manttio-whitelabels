@@ -63,8 +63,8 @@ export const appConfig: ApplicationConfig = {
       // Node to extract the route tree (25 §5.2).
       if (!isPlatformBrowser(platformId)) return;
       await loadRuntimeConfig();
-      // Fetch the tenant brand: colors, logo, name, fonts. This runs before
-      // any route renders.
+      // Boot-time fetch, fire-and-forget: public `GET /brand` for pre-auth
+      // theming (login screen shows tenant logo + colors, 03 §4).
       store.dispatch(new LoadBrand());
     }),
     provideClientHydration(withEventReplay()),
