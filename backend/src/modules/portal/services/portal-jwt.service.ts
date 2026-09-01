@@ -1,12 +1,6 @@
 import { SignJWT } from 'jose';
 import { PORTAL_TOKEN_ALG, PORTAL_TOKEN_TTL } from '../constants/portal-token';
 
-export type PortalTokenPayload = {
-  sub: string; // portal user ID
-  cid: string; // customer ID
-  typ: 'portal';
-};
-
 export const signPortalToken = async (
   secret: string,
   portalUserId: string,
