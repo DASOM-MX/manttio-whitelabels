@@ -31,6 +31,13 @@ never logged in?" — both cross-customer.
 
 ## 2. Granting access
 
+> **Owner, 2026-08-31 (00 §4b.27).** This is its **own form in its own section**, entirely
+> separate from the customers form. Portal access is never a checkbox on a contact and never a
+> side effect of editing a customer; staff come here deliberately, on demand. The form still
+> *selects* an existing contact — that is what fills `contact_id` and `customer_id` — but it
+> does not create, edit or delete contacts, and nothing in the customers editor grants or
+> revokes portal access.
+
 From a **customer's contacts tab** (07) — the natural place, since you decide about a person
 while looking at them — and from this module with a customer + contact picker.
 
