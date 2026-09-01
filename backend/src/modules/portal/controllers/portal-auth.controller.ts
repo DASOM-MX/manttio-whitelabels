@@ -5,9 +5,18 @@ import { createDb } from '../../database/client';
 import {
   portalLoginSchema,
   portalChangePasswordSchema,
+  portalForgotPasswordSchema,
+  portalResetPasswordSchema,
 } from '../validators/portal-auth.validator';
-import { portalLogin, portalGetMe, portalChangeOwnPassword } from '../services/portal-auth.service';
+import {
+  portalLogin,
+  portalGetMe,
+  portalChangeOwnPassword,
+  portalForgotPassword,
+  portalResetPassword,
+} from '../services/portal-auth.service';
 import { portalJwtMiddleware } from '../middleware/portal-jwt.middleware';
+import { verifyTurnstileToken } from '../../turnstile/services/turnstile.service';
 
 export const portalAuth = new Hono<AppBindings>();
 
@@ -18,7 +27,17 @@ export const portalAuth = new Hono<AppBindings>();
  */
 portalAuth.post('/login', zValidator('json', portalLoginSchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  const result = await portalLogin(db, c.req.valid('json'), c.env.PORTAL_JWT_SECRET);
+  const input = c.req.valid('json');
+
+  // Turnstile verification (optional token for now, will be required on frontend).
+  if (input.turnstileToken) {
+    const verdict = await verifyTurnstileToken(c.env, input.turnstileToken);
+    if (!verdict.success) {
+      return c.json({ error: 'turnstile_failed' }, 403);
+    }
+  }
+
+  const result = await portalLogin(db, input, c.env.PORTAL_JWT_SECRET);
   if (!result) {
     return c.json({ error: 'invalid_credentials' }, 401);
   }
@@ -53,5 +72,46 @@ portalAuth.post('/password', portalJwtMiddleware, zValidator('json', portalChang
   if (!changed) {
     return c.json({ error: 'not_found' }, 404);
   }
+  return c.json({ changed: true });
+});
+
+/**
+ * POST /portal/auth/forgot-password — initiate a password reset.
+ * Always returns 204, unknown addresses included (no account enumeration).
+ * On a match: creates a reset token, sends it via email (1h TTL).
+ */
+portalAuth.post('/forgot-password', zValidator('json', portalForgotPasswordSchema), async (c) => {
+  const input = c.req.valid('json');
+
+  // Turnstile verification (optional for now).
+  if (input.turnstileToken) {
+    const verdict = await verifyTurnstileToken(c.env, input.turnstileToken);
+    if (!verdict.success) {
+      return c.json({ error: 'turnstile_failed' }, 403);
+    }
+  }
+
+  const db = createDb(c.env.DATABASE_URL);
+  await portalForgotPassword(db, c.env, input);
+
+  // Always 204, even for unknown addresses.
+  return c.body(null, 204);
+});
+
+/**
+ * POST /portal/auth/reset-password — complete a password reset.
+ * Validates token (must be unused, non-expired), then sets the new password.
+ * Returns 400 if token is invalid/expired/used.
+ */
+portalAuth.post('/reset-password', zValidator('json', portalResetPasswordSchema), async (c) => {
+  const { token, password } = c.req.valid('json');
+
+  const db = createDb(c.env.DATABASE_URL);
+  const ok = await portalResetPassword(db, token, password);
+
+  if (!ok) {
+    return c.json({ error: 'invalid_or_expired_token' }, 400);
+  }
+
   return c.json({ changed: true });
 });
