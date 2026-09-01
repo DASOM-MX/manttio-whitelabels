@@ -67,6 +67,9 @@ export const portalUsers = pgTable(
     // usual real-TS-enum rule (which applies to statuses, types, and capabilities);
     // role here is descriptive data only and must stay flexible to customer
     // organisational structures. Seeded from customer_contacts but independent thereafter.
+    // NOT the same kind of column as `users.role`, despite the shared name and the
+    // "mirrors users" note above: that one is a $type'd permission enum with a CHECK.
+    // The parallel here is `customer_contacts.role`, which is bare nullable text too.
     role: text('role'),
     // A6 / 00 §4b.17: the customer's own administrator. Confers exactly one power
     // today: closing a service request (§4). Not a grant row — grants say what you
