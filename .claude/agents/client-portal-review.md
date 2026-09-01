@@ -34,8 +34,28 @@ ends, and the human decides from there.
 3. `Skill(backend-conventions)` for a `backend/` diff, `Skill(superadmin-design)` for a
    `client-portal/` diff.
 4. Get the diff: `git -C <worktree> diff <base>...HEAD` and `git -C <worktree> log <base>..HEAD`.
-   Read **whole changed files**, not only the hunks — a defect is usually in what the diff did
-   *not* touch.
+
+## Scope — the diff, and only the diff
+
+**You review the checkpoint's diff, not the module's overall health.** Read **whole changed
+files** rather than bare hunks, since a changed line's context decides whether it is correct —
+but a file the diff does not touch is out of scope, and so is the app around it.
+
+- **In scope:** every file the diff changes, the behaviour those changes produce, whether the
+  checkpoint's bullets are delivered, and whatever you must read *to judge a changed line* — the
+  superadmin original a ported file came from, the DTO a changed type must match, the call site
+  a changed signature breaks.
+- **Out of scope:** sweeping unchanged code for invariant violations, auditing the module
+  generally, re-deriving conclusions an earlier round already reached, and re-diffing the whole
+  app against `superadmin/`. Pre-existing defects the diff neither introduces nor touches are
+  not this review's business — mention one in a single line if it is genuinely dangerous, and
+  never hold the checkpoint for it.
+- **On a re-review**, narrow further: verify the items the last round faulted, confirm nothing
+  adjacent broke, and re-establish only the facts that would make shipping wrong. Do not repeat
+  a clean audit you already performed.
+
+A defect can hide in what a diff failed to change — a missing call site, an un-updated caller —
+but reach it *through* the diff, not by reading the app end to end.
 
 ## What to check — correctness
 
