@@ -11,7 +11,6 @@ import {
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { customers } from '../../customers/models/customers.model';
-import { customerContacts } from '../../customers/models/customer-contacts.model';
 import { users } from '../../users/models/users.model';
 import { PortalUserStatus } from '../enums/portal-users.enum';
 

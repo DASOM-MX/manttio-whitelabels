@@ -45,7 +45,7 @@ These apply across packages; per-package CLAUDE.md files own the rest.
 - **`.claude/` IS committed** (shared agent context for all devs: `skills/`, `plans/`, `agents/`) — **exception: `.claude/settings.local.json`** (per-user permissions, gitignored).
 - **Scoped subagents** live in `.claude/agents/<name>.md`. Keep one narrowly scoped to a plan or app, name its out-of-bounds dirs explicitly, and have it **commit but never push or open PRs** — pushing and PR authoring stay with the main session. **Merging is always the user's, with no exceptions ever granted to anyone.** Existing:
   - `report-templates-field-app` (whitelabel plan 03 CP-4…CP-6, `frontend/` only) and `report-templates-backend` (03 CP-1…CP-3, `backend/` only — generates migrations but never applies them; the live Neon DB is a human's call).
-  - `client-portal-backend` (client-portal 01, 02, 04 CP-1, 05 CP-1, 06 — `backend/` only) and `client-portal-app` (03, 04 CP-2…CP-7, 05 CP-2/3, 06 CP-3 — `client-portal/` only; copies from `superadmin/`, never edits or imports across app boundaries).
+  - `client-portal-backend` (client-portal 01, 02, 04 CP-1, 05 CP-1, 06 CP-1/2/4/5/6 — `backend/` only) and `client-portal-app` (03, 04 CP-2…CP-7, 05 CP-2/3, 06 CP-3 — `client-portal/` only; copies from `superadmin/`, never edits or imports across app boundaries).
   - `client-portal-review` — reviews a checkpoint diff against `.claude/plans/client-portal/`. Holds no `Edit`/`Write` tools at all.
 
   **Exceptions to the never-push rule** (each one granted deliberately by the owner, and each one narrow — assume an agent has no exception unless it is listed here):

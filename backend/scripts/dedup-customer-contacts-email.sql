@@ -9,7 +9,7 @@
 -- Nulling email is safe because email is nullable and contacts without an address
 -- are unaffected by the unique constraint.
 --
--- Run this BEFORE 0044_black_jubilee.sql is applied. After it runs, the index
+-- Run this BEFORE 0044_loving_mister_sinister.sql is applied. After it runs, the index
 -- creation will not fail 23505 (unique violation).
 --
 -- The strategy: for each duplicate email, keep the default contact if one exists
