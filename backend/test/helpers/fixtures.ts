@@ -316,25 +316,25 @@ export const seedPortalUser = async (opts?: {
   contactId?: string;
 }): Promise<SeededPortalUser> => {
   const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
-  
+
   // If no customer/contact provided, create them
   let customerId = opts?.customerId;
   let contactId = opts?.contactId;
-  
+
   if (!customerId) {
     const customer = await seedCustomer();
     customerId = customer.id;
   }
-  
+
   if (!contactId) {
     const contact = await seedContact(customerId);
     contactId = contact.id;
   }
-  
+
   const email = uniqueRecipientEmail('portal-user');
   const password = `pw-${tag()}-${tag()}`;
   const passwordHash = await hashPassword(password);
-  
+
   const [row] = await db
     .insert(portalUsers)
     .values({
@@ -346,7 +346,7 @@ export const seedPortalUser = async (opts?: {
       invitedBy: null,
     })
     .returning();
-  
+
   if (!row) throw new Error('seedPortalUser returned no row');
   return {
     id: row.id,

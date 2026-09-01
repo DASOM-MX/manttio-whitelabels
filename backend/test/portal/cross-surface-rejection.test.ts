@@ -10,8 +10,12 @@ import { seedPortalUser } from '../helpers/fixtures';
  *
  * Strategy: each token is signed with the key the *receiving* surface uses, so
  * signature verification succeeds. Rejection must come from the claim check alone.
- * - Staff token (role: 'admin', no cid, typ: 'staff') signed with env.PORTAL_JWT_SECRET:
- *   portal middleware verifies the signature, then rejects on typ !== 'portal'
+ * - Staff token signed with env.PORTAL_JWT_SECRET, carrying a REAL seeded portal
+ *   user's id as `sub` and their real customerId as `cid`, but typ: 'staff'.
+ *   The signature verifies and both the sub and cid guards pass, so `typ` is the
+ *   only claim left that can reject it. The real `cid` is load-bearing: an absent
+ *   one short-circuits the guard earlier and the typ check never runs, which is
+ *   how this test twice passed while proving nothing. Do not 'tidy' it away.
  * - Portal token (typ: 'portal', no role) signed with env.JWT_SECRET:
  *   staff middleware verifies the signature, then rejects on missing role claim
  */

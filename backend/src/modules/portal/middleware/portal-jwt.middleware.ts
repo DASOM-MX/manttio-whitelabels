@@ -23,19 +23,19 @@ export const portalJwtMiddleware: MiddlewareHandler<AppBindings> = async (c, nex
 
   // Try only the JWT verification and claim checks; DB failures should surface as 5xx
   let sub: string;
-  let cid: string;
   try {
     const { payload } = await jwtVerify(token, secret);
     const rawSub = payload.sub;
     const rawCid = payload.cid;
     const typ = payload.typ;
 
+    // `cid` is validated but deliberately not carried forward: `customerId` comes
+    // from the database row below, so a token can never widen its own scope.
     if (typeof rawSub !== 'string' || typeof rawCid !== 'string' || typ !== 'portal') {
       return c.json({ error: 'unauthorized' }, 401);
     }
 
     sub = rawSub;
-    cid = rawCid;
   } catch {
     return c.json({ error: 'unauthorized' }, 401);
   }
