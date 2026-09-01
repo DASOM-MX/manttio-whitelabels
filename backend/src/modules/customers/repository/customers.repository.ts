@@ -62,6 +62,16 @@ export const findContactsForCustomer = async (
     .where(and(eq(customerContacts.customerId, customerId), inArray(customerContacts.id, ids)));
 };
 
+/** Find a contact by ID. Used for portal user invite validation. */
+export const findContactById = async (db: Db, id: string): Promise<ContactRow | null> => {
+  const [row] = await db
+    .select()
+    .from(customerContacts)
+    .where(eq(customerContacts.id, id))
+    .limit(1);
+  return row ?? null;
+};
+
 /** The whole live roster, name-sorted — the unpaged read behind every customer
  *  picker (21 §3). Projected rather than `select()`: a picker never needs the
  *  CRM columns, and this response is the one that scales with the tenant.

@@ -3,6 +3,8 @@ import type { Db, DbOrTx } from '../../database/client';
 import { portalUsers } from '../models/portal-users.model';
 import { portalUserGrants } from '../models/portal-user-grants.model';
 import { PortalUserStatus } from '../enums/portal-users.enum';
+import { PortalGrant } from '../enums/portal-grants.enum';
+import type { NewPortalUser, NewPortalUserGrant } from '../types/portal.types';
 
 /**
  * Find a portal user by email, filtering out soft-deleted rows.
@@ -54,7 +56,7 @@ export async function listPortalUsersByCustomer(db: Db, customerId: string) {
  * A grant row with revoked_at set is the record that access once existed,
  * never reused.
  */
-export async function findGrantsByPortalUser(db: Db, portalUserId: string) {
+export async function findGrantsByPortalUser(db: DbOrTx, portalUserId: string) {
   const result = await db
     .select()
     .from(portalUserGrants)
@@ -182,6 +184,147 @@ export async function updatePortalUserPassword(
         ne(portalUsers.status, PortalUserStatus.Suspended),
       ),
     )
+    .returning();
+
+  return updated[0] ?? null;
+}
+
+/**
+ * Staff operation: create a new portal user (invite flow).
+ * Returns the created row.
+ */
+export async function createPortalUser(db: DbOrTx, values: NewPortalUser) {
+  const now = new Date();
+  const [row] = await db
+    .insert(portalUsers)
+    .values({
+      ...values,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+
+  if (!row) throw new Error('createPortalUser returned no row');
+  return row;
+}
+
+/**
+ * Staff operation: create portal user grants in bulk.
+ * Returns the created rows.
+ */
+export async function createPortalUserGrants(
+  db: DbOrTx,
+  portalUserId: string,
+  grants: PortalGrant[],
+  grantedBy: string,
+) {
+  if (grants.length === 0) return [];
+
+  const now = new Date();
+  const rows = await db
+    .insert(portalUserGrants)
+    .values(
+      grants.map((grant) => ({
+        portalUserId,
+        grant,
+        grantedBy,
+        createdAt: now,
+      })),
+    )
+    .returning();
+
+  return rows;
+}
+
+/**
+ * Staff operation: change portal user status (suspend/resume).
+ * Returns the updated row or null if not found.
+ */
+export async function updatePortalUserStatus(
+  db: DbOrTx,
+  portalUserId: string,
+  status: PortalUserStatus,
+) {
+  const now = new Date();
+  const updated = await db
+    .update(portalUsers)
+    .set({
+      status,
+      updatedAt: now,
+    })
+    .where(and(eq(portalUsers.id, portalUserId), isNull(portalUsers.deletedAt)))
+    .returning();
+
+  return updated[0] ?? null;
+}
+
+/**
+ * Staff operation: set a temporary password with mustChangePassword flag.
+ * Used for staff-issued resets.
+ * Returns the updated row or null if not found.
+ */
+export async function setPortalUserTempPassword(
+  db: DbOrTx,
+  portalUserId: string,
+  passwordHash: string,
+) {
+  const now = new Date();
+  const updated = await db
+    .update(portalUsers)
+    .set({
+      passwordHash,
+      mustChangePassword: true,
+      updatedAt: now,
+    })
+    .where(and(eq(portalUsers.id, portalUserId), isNull(portalUsers.deletedAt)))
+    .returning();
+
+  return updated[0] ?? null;
+}
+
+/**
+ * Staff operation: revoke a grant (set revokedAt and revokedBy).
+ * No-op if the grant doesn't exist or is already revoked.
+ * Returns the updated row.
+ */
+export async function revokePortalUserGrant(
+  db: DbOrTx,
+  grantId: string,
+  revokedBy: string,
+) {
+  const now = new Date();
+  const updated = await db
+    .update(portalUserGrants)
+    .set({
+      revokedAt: now,
+      revokedBy,
+    })
+    .where(eq(portalUserGrants.id, grantId))
+    .returning();
+
+  return updated[0] ?? null;
+}
+
+/**
+ * Staff operation: soft delete a portal user (revoke access without deleting the row).
+ * Returns the updated row or null if not found.
+ */
+export async function softDeletePortalUser(
+  db: DbOrTx,
+  portalUserId: string,
+  deletedBy: string,
+  deleteComment?: string,
+) {
+  const now = new Date();
+  const updated = await db
+    .update(portalUsers)
+    .set({
+      deletedAt: now,
+      deletedBy,
+      deleteComment: deleteComment ?? null,
+      updatedAt: now,
+    })
+    .where(and(eq(portalUsers.id, portalUserId), isNull(portalUsers.deletedAt)))
     .returning();
 
   return updated[0] ?? null;

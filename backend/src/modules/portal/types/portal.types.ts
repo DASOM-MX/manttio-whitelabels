@@ -14,3 +14,22 @@ export type PortalTokenPayload = {
   cid: string;
   typ: 'portal';
 };
+
+export type NewPortalUser = {
+  contactId: string;
+  customerId: string;
+  email: string;
+  passwordHash: string;
+  name: string;
+  paternalLastName?: string | null;
+  maternalLastName?: string | null;
+  role?: string | null;
+  isAdmin: boolean;
+  invitedBy: string | null;
+};
+
+export type NewPortalUserGrant = {
+  portalUserId: string;
+  grant: string;
+  grantedBy: string;
+};
