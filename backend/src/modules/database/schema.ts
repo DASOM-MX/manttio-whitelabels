@@ -764,5 +764,3 @@ export const portalPasswordResetsRelations = relations(portalPasswordResets, ({ 
     references: [portalUsers.id],
   }),
 }));
-
-

@@ -1,6 +1,7 @@
 import { isNull, eq, and } from 'drizzle-orm';
 import type { Db } from '../../database/client';
-import { portalUsers, portalUserGrants } from '../../database/schema';
+import { portalUsers } from '../models/portal-users.model';
+import { portalUserGrants } from '../models/portal-user-grants.model';
 
 /**
  * Find a portal user by email, filtering out soft-deleted rows.

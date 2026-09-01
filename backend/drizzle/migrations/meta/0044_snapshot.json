@@ -1,5 +1,5 @@
 {
-  "id": "90ead7e0-5b33-400d-8729-6b876a6d5f76",
+  "id": "6a43ce34-8662-4b95-b5d5-86e78bdc3489",
   "prevId": "c6fc8d61-304a-42a1-8e7d-7977c902c7e1",
   "version": "7",
   "dialect": "postgresql",
@@ -3125,19 +3125,6 @@
         }
       },
       "foreignKeys": {
-        "portal_users_contact_id_customer_contacts_id_fk": {
-          "name": "portal_users_contact_id_customer_contacts_id_fk",
-          "tableFrom": "portal_users",
-          "tableTo": "customer_contacts",
-          "columnsFrom": [
-            "contact_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
         "portal_users_customer_id_customers_id_fk": {
           "name": "portal_users_customer_id_customers_id_fk",
           "tableFrom": "portal_users",

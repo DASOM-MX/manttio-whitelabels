@@ -12,15 +12,17 @@
 -- Run this BEFORE 0044_black_jubilee.sql is applied. After it runs, the index
 -- creation will not fail 23505 (unique violation).
 --
--- The strategy: for each duplicate email, keep the row that was created earliest
--- (lowest created_at), null out the email on the rest.
+-- The strategy: for each duplicate email, keep the default contact if one exists
+-- (is_default DESC), then by earliest creation time, then by id for determinism.
+-- Null out the email on the rest. Preserving the default contact prevents a customer's
+-- denormalized email field from mirroring a non-existent contact.
 
 WITH ranked AS (
   SELECT
     id,
     email,
     created_at,
-    ROW_NUMBER() OVER (PARTITION BY email ORDER BY created_at ASC) AS rn
+    ROW_NUMBER() OVER (PARTITION BY email ORDER BY is_default DESC, created_at ASC, id ASC) AS rn
   FROM customer_contacts
   WHERE email IS NOT NULL
 )

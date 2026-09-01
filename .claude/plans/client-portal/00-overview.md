@@ -188,6 +188,14 @@ where the answer is encoded.
     working unchanged — the new tables start life carrying downloads, and a download writes the
     entity timeline **only**, never a `customer_interactions` entry, because a fetch is not a
     commercial touch and the client 360 would drown in them. (§ 01 §6d)
+26. **`portal_users.contact_id` has no foreign key** (owner, 2026-08-31) — the column stays
+    and its unique index stands (A10), but the `REFERENCES` constraint is removed.
+    `updateCustomerWithRelations` deletes and re-inserts all contacts per PATCH; a restrict
+    FK would make customer edits permanently impossible the moment a contact has a portal user.
+    A portal user is **created from** a contact and is standalone thereafter — staff
+    administering portal accounts must not interfere with the contacts list. The pointer can
+    go stale if the customer's contacts are later replaced; this is accepted. The email column,
+    independent since invite, is the live identity (§ 01 §1).
 
 ## 5. Residual asks — resolved 2026-08-31
 

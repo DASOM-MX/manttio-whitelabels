@@ -25,9 +25,14 @@ export const portalUsers = pgTable(
     id: uuid('id').defaultRandom().primaryKey(),
     // 1:1 with a customer_contacts row; enforce uniqueness on active rows only
     // (A10). A revoked account never blocks a re-invite of the same contact.
-    contactId: uuid('contact_id')
-      .notNull()
-      .references(() => customerContacts.id, { onDelete: 'restrict' }),
+    // No FK: updateCustomerWithRelations deletes and re-inserts all contacts per
+    // PATCH; a restrict FK would break customer edits the moment a contact has a
+    // portal user. A portal user is created from a contact and is standalone
+    // thereafter — staff administer portal accounts without touching the contacts
+    // list. The pointer can go stale if the customer's contacts are later replaced;
+    // this is accepted (owner 2026-08-31). The email column, independent since
+    // invite, is the live identity.
+    contactId: uuid('contact_id').notNull(),
     // Denormalized from the contact: it is the token claim and the scope of every
     // read. Written at invite, never updated — a contact does not move between
     // customers.

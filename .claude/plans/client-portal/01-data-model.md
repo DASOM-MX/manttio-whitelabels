@@ -53,7 +53,7 @@ A login for exactly one `customer_contacts` row (00 §3.3). Credentials never to
 | Column | Type | Notes |
 |---|---|---|
 | `id` | uuid pk | |
-| `contact_id` | uuid not null → `customer_contacts.id` (restrict) | 1:1 among active rows |
+| `contact_id` | uuid not null | 1:1 among active rows, enforced by uniqueness index. **No FK:** `updateCustomerWithRelations` deletes and re-inserts all contacts per PATCH; a restrict FK would break customer edits the moment a contact has a portal user. A portal user is created from a contact and is standalone thereafter — the pointer can go stale if the customer's contacts are later replaced (owner 2026-08-31, decision 26). The email column, independent since invite, is the live identity. |
 | `customer_id` | uuid not null → `customers.id` (restrict) | Denormalized from the contact: it is the token claim and the scope of every read. Written at invite, never updated — a contact does not move between customers. |
 | `email` | text not null | Login identity. Seeded from the contact at invite; **independent afterwards** (editing a contact's address must not silently change a credential). |
 | `password_hash` | text not null | Same `password.service.ts` as staff users. |
