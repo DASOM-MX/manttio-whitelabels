@@ -3,7 +3,6 @@ import Aura from '@primeuix/themes/aura';
 
 /**
  * PrimeNG Aura preset repointed to the runtime tenant brand (plan 03 CP-1).
- * Copied from superadmin with no changes.
  *
  * `primary` → the `--brand-primary-*` CSS variables (tenant-configurable);
  * `surface` → **fixed literal HSL values** (no variables — plan 22 §Target) —

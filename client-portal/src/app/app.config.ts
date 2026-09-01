@@ -57,15 +57,14 @@ export const appConfig: ApplicationConfig = {
     // The folded initializer ensures config is available before LoadBrand needs it.
     provideAppInitializer(async () => {
       const platformId = inject(PLATFORM_ID);
+      const store = inject(Store);
       // Skipped outside the browser. Every route is `RenderMode.Client`, so
       // this never runs for a real request — but the build boots the app under
       // Node to extract the route tree (25 §5.2).
       if (!isPlatformBrowser(platformId)) return;
       await loadRuntimeConfig();
-      const store = inject(Store);
       // Fetch the tenant brand: colors, logo, name, fonts. This runs before
-      // any route renders, so the login screen (CP-2) boots branded.
-      // The public shell renders unbranded until this completes.
+      // any route renders.
       store.dispatch(new LoadBrand());
     }),
     provideClientHydration(withEventReplay()),

@@ -1,15 +1,10 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Action, Selector, State, StateContext } from '@ngxs/store';
-import { HttpClient } from '@angular/common/http';
-import { tap } from 'rxjs';
+import { catchError, of, tap } from 'rxjs';
 import { LoadBrand } from './brand.actions';
-
-export interface Brand {
-  name: string;
-  logo?: string;
-  accent?: string;
-  primary?: string;
-}
+import { RemoteService } from '../../app/services/http/remote.service';
+import { BrandThemeService } from '../../app/services/theme/brand-theme.service';
+import type { Brand } from '../../app/data/dtos/brand/brand';
 
 export interface BrandStateModel {
   data: Brand | null;
@@ -25,7 +20,8 @@ export interface BrandStateModel {
 })
 @Injectable()
 export class BrandState {
-  constructor(private http: HttpClient) {}
+  private readonly api = inject(RemoteService);
+  private readonly theme = inject(BrandThemeService);
 
   @Selector()
   static data(state: BrandStateModel): Brand | null {
@@ -39,26 +35,20 @@ export class BrandState {
 
   @Action(LoadBrand)
   loadBrand(ctx: StateContext<BrandStateModel>) {
-    return this.http.get<Brand>('/brand').pipe(
+    return this.api.get<Brand>('/brand').pipe(
       tap((brand) => {
         ctx.patchState({
           data: brand,
           loaded: true,
         });
-        // Apply brand colors to CSS variables (plan 03 §3)
-        if (brand.primary) {
-          this.applyBrandColors(brand);
-        }
-      })
+        this.theme.apply(brand);
+      }),
+      // Fail soft: no brand (404/network) → manttio fallbacks keep rendering.
+      catchError(() => {
+        ctx.patchState({ loaded: true });
+        this.theme.apply(null);
+        return of(null);
+      }),
     );
-  }
-
-  private applyBrandColors(brand: Brand) {
-    // Placeholder for brand color application
-    // This will be expanded in CP-2 with full BrandThemeService
-    if (typeof document !== 'undefined') {
-      // Color application happens here via CSS variables
-      // --brand-primary-*, --brand-accent-* etc.
-    }
   }
 }

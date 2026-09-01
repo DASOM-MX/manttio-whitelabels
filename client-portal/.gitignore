@@ -42,3 +42,10 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# wrangler local state
+/.wrangler
+
+# wrangler local secrets
+.dev.vars
+.dev.vars.*

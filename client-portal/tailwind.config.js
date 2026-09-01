@@ -1,6 +1,5 @@
 /**
  * Client Portal Tailwind config — semantic brand scales (plan 22 CP-2).
- * Copied from superadmin with no changes.
  *
  * Whitelabel: tenant configures two brand colors via CSS variables:
  * - `primary` (brand anchor — buttons, links, focus; `--brand-primary-*` variables)
@@ -82,9 +81,9 @@ module.exports = {
       colors: {
         // The two tenant-configurable brand scales + a fixed neutral surface
         // (plan 22 §Target). `primary`/`accent` carry identical names across
-        // frontend / superadmin / website; `surface` does NOT — the field app
-        // and the website deleted their neutral scale on 2026-08-27 and use
-        // stock Tailwind `zinc` instead, this one is superadmin's alone.
+        // frontend / superadmin / client-portal; `surface` is a fixed neutral
+        // scale used in client-portal and superadmin, while frontend and the
+        // website use stock Tailwind `zinc` instead.
         primary: { ...primary, DEFAULT: primary['600'] }, // brand anchor (buttons, links, focus)
         accent: { ...accent, DEFAULT: accent['500'] }, // brand accent (new plan 22)
         surface: { ...surface, DEFAULT: surface['100'] }, // fixed chrome neutral

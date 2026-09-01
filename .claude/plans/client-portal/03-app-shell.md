@@ -23,7 +23,7 @@ the root CLAUDE.md:
 - `@lucide/angular` for icons, `@fontsource-variable/figtree` for the UI stack (A12) and
   `@fontsource-variable/work-sans` for the numeric `font-data` stack
   <!-- Corrected 2026-08-31 (owner). This line named `@fontsource/figtree` +
-  `@fontsource-variable/atkinson-hyperlegible`, which superadmin has not shipped since the
+  `@fontsource/atkinson-hyperlegible`, which superadmin has not shipped since the
   2026-08-27 Atkinson→Work Sans swap: Atkinson ships only 400/700, so the +200 weight ladder
   collapsed to Bold. The rule in §1 is "match the versions actually in superadmin/package.json",
   and these are they — the packages, not the prose, were right. -->
