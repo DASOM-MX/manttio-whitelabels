@@ -1,5 +1,5 @@
-import { isNull, eq, and, sql } from 'drizzle-orm';
-import type { Db } from '../../database/client';
+import { isNull, eq, and, ne, sql } from 'drizzle-orm';
+import type { Db, DbOrTx } from '../../database/client';
 import { portalUsers } from '../models/portal-users.model';
 import { portalUserGrants } from '../models/portal-user-grants.model';
 import { PortalUserStatus } from '../enums/portal-users.enum';
@@ -141,11 +141,24 @@ export async function clearPortalUserLockout(db: Db, portalUserId: string) {
 }
 
 /**
- * Update a portal user's password and clear must_change_password flag.
- * Returns the updated row or null if not found.
+ * Set a portal user's password: clears `must_change_password`, clears the A3
+ * lockout, and promotes **only** `invited` to `active`.
+ *
+ * Two deliberate constraints:
+ *
+ * 1. `suspended` is never promoted. Setting a password is not a route back in —
+ *    only staff resume an account (02 CP-4). The `WHERE` clause enforces it in
+ *    SQL rather than in the caller, because the public reset flow reaches this
+ *    from an unauthenticated request and must not be able to reactivate.
+ * 2. The lockout is cleared (owner, 2026-09-01). A user who forgets their
+ *    password, fails five logins and then resets would otherwise still be
+ *    refused for up to two hours with no explanation — and superadmin 26 §1
+ *    says there is no unlock action to build, so this is the only lever.
+ *
+ * Returns null when the row is absent, soft-deleted, or suspended.
  */
 export async function updatePortalUserPassword(
-  db: Db,
+  db: DbOrTx,
   portalUserId: string,
   passwordHash: string,
 ) {
@@ -155,10 +168,20 @@ export async function updatePortalUserPassword(
     .set({
       passwordHash,
       mustChangePassword: false,
+      // `invited` graduates on first password; `active` stays active.
+      // `suspended` never reaches here — excluded by the WHERE below.
       status: PortalUserStatus.Active,
+      failedLoginAttempts: 0,
+      lockedUntil: null,
       updatedAt: now,
     })
-    .where(eq(portalUsers.id, portalUserId))
+    .where(
+      and(
+        eq(portalUsers.id, portalUserId),
+        isNull(portalUsers.deletedAt),
+        ne(portalUsers.status, PortalUserStatus.Suspended),
+      ),
+    )
     .returning();
 
   return updated[0] ?? null;

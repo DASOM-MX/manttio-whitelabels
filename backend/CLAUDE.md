@@ -110,7 +110,7 @@
 - Fixture rows are identifiable by email pattern (`test+%`, `dasom.mx+test-%@gmail.com`) but are **never hard-deleted** — the no-hard-delete rule applies to fixtures too. If test data ever needs clearing from views, soft-delete it by pattern; the rows stay.
 
 ## Configuration + secrets
-- `wrangler.toml` declares **vars** (non-secret) and bindings. The `[vars]` block is dev defaults; `[env.production.vars]` is the prod overrides. Wrangler v4 inherits top-level config, so production only needs to redeclare what differs.
+- `wrangler.toml` declares **vars** (non-secret) and bindings. The `[vars]` block is dev defaults; `[env.production.vars]` is the prod set. **`vars` is NOT inheritable** — a named environment that declares `[env.production.vars]` gets *only* those keys, so every var production needs must be repeated there in full, not just the ones that differ. (Wrangler inherits some top-level keys, e.g. `triggers`; `vars` is not one of them. A var added to `[vars]` alone is simply `undefined` in production — it works locally and breaks on deploy.)
 - **Secrets** are set out-of-band via `wrangler secret put [--env production] <NAME>`:
   - `DATABASE_URL` — Neon Postgres connection string.
   - `JWT_SECRET` — HS256 signing key for `jose`.
