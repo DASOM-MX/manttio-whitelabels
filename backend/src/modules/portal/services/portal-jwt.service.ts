@@ -1,8 +1,5 @@
 import { SignJWT } from 'jose';
-
-const ALG = 'HS256';
-// A2: 2 days for portal tokens (owner 2026-08-30).
-const TTL = '2d';
+import { PORTAL_TOKEN_ALG, PORTAL_TOKEN_TTL } from '../constants/portal-token';
 
 export type PortalTokenPayload = {
   sub: string; // portal user ID
@@ -17,9 +14,9 @@ export const signPortalToken = async (
 ): Promise<string> => {
   const key = new TextEncoder().encode(secret);
   return new SignJWT({ cid: customerId, typ: 'portal' })
-    .setProtectedHeader({ alg: ALG })
+    .setProtectedHeader({ alg: PORTAL_TOKEN_ALG })
     .setSubject(portalUserId)
     .setIssuedAt()
-    .setExpirationTime(TTL)
+    .setExpirationTime(PORTAL_TOKEN_TTL)
     .sign(key);
 };
