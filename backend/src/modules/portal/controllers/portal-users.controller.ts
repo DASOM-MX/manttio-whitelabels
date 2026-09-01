@@ -171,9 +171,9 @@ portalUsers.delete(
     const db = createDb(c.env.DATABASE_URL);
     const input = c.req.valid('json');
 
-    const revoked = await revokePortalUserAccess(db, actor, id.data, input.comment);
+    const revoked = await revokePortalUserAccess(db, actor, id.data, input.deleteComment);
     if (!revoked) return c.json({ error: 'not_found' }, 404);
 
-    return c.json({ revoked: true });
+    return c.json({ id: id.data, deleted: true });
   },
 );

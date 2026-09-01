@@ -55,7 +55,15 @@ export async function sendPortalUserInviteEmail(
 
   await sendEmail({
     apiKey: env.RESEND_API_KEY,
-    from: brand.contact?.email || env.RESEND_FROM,
+    // RESEND_FROM is the per-deploy VERIFIED sender; brand.contact.email is the
+    // tenant's public address and is almost never a domain Resend will send as.
+    // Using it made every invite bounce at the provider — swallowed into a
+    // console.error while the API still answered 201. Same shape as
+    // report-email.service.ts: brand supplies the display name, RESEND_FROM the
+    // address, and brand.contact.email receives replies (set just below).
+    from: brand.name
+      ? `"${brand.name.replace(/"/g, "'")}" <${env.RESEND_FROM}>`
+      : env.RESEND_FROM,
     to: email,
     subject,
     html,
@@ -100,7 +108,15 @@ export async function sendPortalPasswordResetEmail(
 
   await sendEmail({
     apiKey: env.RESEND_API_KEY,
-    from: brand.contact?.email || env.RESEND_FROM,
+    // RESEND_FROM is the per-deploy VERIFIED sender; brand.contact.email is the
+    // tenant's public address and is almost never a domain Resend will send as.
+    // Using it made every invite bounce at the provider — swallowed into a
+    // console.error while the API still answered 201. Same shape as
+    // report-email.service.ts: brand supplies the display name, RESEND_FROM the
+    // address, and brand.contact.email receives replies (set just below).
+    from: brand.name
+      ? `"${brand.name.replace(/"/g, "'")}" <${env.RESEND_FROM}>`
+      : env.RESEND_FROM,
     to: email,
     subject,
     html,

@@ -1,17 +1,16 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { eq, isNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { env } from 'cloudflare:test';
 import { createDb } from '../../src/modules/database/client';
 import { portalUsers, portalUserGrants } from '../../src/modules/database/schema';
 import {
-  seedAdmin,
   seedAdminAndLogin,
   seedCustomer,
   seedContact,
-  seedPortalUser,
   seedTechnician,
 } from '../helpers/fixtures';
 import { request, json, jsonHeaders } from '../helpers/request';
+import { mockResend, lastResendSend } from '../helpers/resend';
 
 describe('Portal Users (Staff) — CP-4', () => {
   let adminToken: string;
@@ -20,6 +19,8 @@ describe('Portal Users (Staff) — CP-4', () => {
   let contactId: string;
   let contactEmail: string;
   let contactName: string;
+
+  mockResend();
 
   beforeAll(async () => {
     const { admin, token } = await seedAdminAndLogin();
@@ -59,6 +60,17 @@ describe('Portal Users (Staff) — CP-4', () => {
       expect(body.email).toBe(contactEmail);
       expect(body.name).toBe(contactName);
       expect(body.customerId).toBe(customerId);
+
+      // The send itself is what broke last round: `from` was the tenant's public
+      // contact address, which Resend refuses, and the failure was swallowed
+      // into a console.error while this endpoint still answered 201. Nothing
+      // inspected the email, so nothing caught it.
+      const sent = lastResendSend();
+      expect(sent).toBeTruthy();
+      expect(sent!.to).toBe(contactEmail);
+      // Must be the verified per-deploy sender, never brand.contact.email.
+      expect(sent!.from).toContain('@');
+      expect(sent!.html).toContain('/login');
 
       // Covers a leaked password *key*. The generated password never leaves the
       // service, so the test cannot compare against its value — this does not
@@ -379,7 +391,7 @@ describe('Portal Users (Staff) — CP-4', () => {
       const res2 = await request(`/portal-users/${userId}`, {
         method: 'DELETE',
         headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
-        body: JSON.stringify({ comment: deleteComment }),
+        body: JSON.stringify({ deleteComment }),
       });
 
       expect(res2.status).toBe(200);
@@ -402,7 +414,7 @@ describe('Portal Users (Staff) — CP-4', () => {
       const res = await request('/portal-users/00000000-0000-0000-0000-000000000000', {
         method: 'DELETE',
         headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
-        body: JSON.stringify({ comment: 'test' }),
+        body: JSON.stringify({ deleteComment: 'test' }),
       });
 
       expect(res.status).toBe(404);

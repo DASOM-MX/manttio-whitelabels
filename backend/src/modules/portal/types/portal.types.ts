@@ -28,8 +28,3 @@ export type NewPortalUser = {
   invitedBy: string | null;
 };
 
-export type NewPortalUserGrant = {
-  portalUserId: string;
-  grant: string;
-  grantedBy: string;
-};

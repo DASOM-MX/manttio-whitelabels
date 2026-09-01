@@ -4,7 +4,7 @@ import { portalUsers } from '../models/portal-users.model';
 import { portalUserGrants } from '../models/portal-user-grants.model';
 import { PortalUserStatus } from '../enums/portal-users.enum';
 import { PortalGrant } from '../enums/portal-grants.enum';
-import type { NewPortalUser, NewPortalUserGrant } from '../types/portal.types';
+import type { NewPortalUser } from '../types/portal.types';
 
 /**
  * Find a portal user by email, filtering out soft-deleted rows.
@@ -16,6 +16,24 @@ export async function findPortalUserByEmail(db: Db, email: string) {
     .select()
     .from(portalUsers)
     .where(and(eq(portalUsers.email, email), isNull(portalUsers.deletedAt)))
+    .limit(1);
+
+  return result[0] ?? null;
+}
+
+/**
+ * Find the live portal user for a contact, if any.
+ *
+ * This — not email — is the key `portal_users_contact_active_idx` enforces
+ * (A10: one active portal user per contact). Guarding on email misses the case
+ * where the contact's address was edited after the invite, and the insert then
+ * trips the contact index as an unhandled 23505.
+ */
+export async function findPortalUserByContactId(db: Db, contactId: string) {
+  const result = await db
+    .select()
+    .from(portalUsers)
+    .where(and(eq(portalUsers.contactId, contactId), isNull(portalUsers.deletedAt)))
     .limit(1);
 
   return result[0] ?? null;
@@ -274,6 +292,13 @@ export async function setPortalUserTempPassword(
     .set({
       passwordHash,
       mustChangePassword: true,
+      // Clear the A3 lockout (owner, 2026-09-01). Support's only lever: 26 §1
+      // says there is no unlock action to build, so a staff reset that left the
+      // lock in place would hand the user a password refused for two more hours.
+      // Status is deliberately NOT touched — resuming a suspended account is a
+      // separate, explicit staff action.
+      failedLoginAttempts: 0,
+      lockedUntil: null,
       updatedAt: now,
     })
     .where(and(eq(portalUsers.id, portalUserId), isNull(portalUsers.deletedAt)))

@@ -72,6 +72,22 @@ describe('Cross-surface token rejection', () => {
   });
 
 
+  it('rejects a portal token on /portal-users (the staff portal-admin surface)', async () => {
+    // /portal-users is a staff route despite the name — it is how staff invite and
+    // manage portal users (02 CP-4). A portal user reaching it could grant itself
+    // access, so the prefix belongs in this list alongside the others.
+    const portalToken = await generatePortalTokenSignedWithStaffSecret();
+
+    const res = await request('/portal-users', {
+      method: 'GET',
+      headers: authHeader(portalToken),
+    });
+
+    expect(res.status).toBe(401);
+    const body = await json<{ error: string }>(res);
+    expect(body.error).toBe('unauthorized');
+  });
+
   it('rejects a portal token on /users (signed with env.JWT_SECRET)', async () => {
     const portalToken = await generatePortalTokenSignedWithStaffSecret();
 

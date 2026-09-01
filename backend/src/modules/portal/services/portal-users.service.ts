@@ -2,7 +2,12 @@ import type { Db } from '../../database/client';
 import type { AuthUser } from '../../../env';
 import type { PortalGrant } from '../enums/portal-grants.enum';
 import { PortalUserStatus } from '../enums/portal-users.enum';
-import { hashPassword, generatePassword } from '../../auth/services/password.service';
+import { hashPassword } from '../../auth/services/password.service';
+import { isUniqueViolation } from '../../database/db-errors';
+// CSPRNG-backed and unbiased (nanoid customAlphabet), and already the temp
+// password every staff-created user gets. A portal credential is not the place
+// for a second, weaker generator.
+import { generateTempPassword } from '../../users/utils/temp-password';
 import {
   createPortalUser,
   createPortalUserGrants,
@@ -12,7 +17,7 @@ import {
   setPortalUserTempPassword,
   revokePortalUserGrant,
   softDeletePortalUser,
-  findPortalUserByEmail,
+  findPortalUserByContactId,
 } from '../repository/portal-users.repository';
 import { findContactById } from '../../customers/repository/customers.repository';
 import { sendPortalUserInviteEmail, sendPortalPasswordResetEmail } from '../helpers/portal-email.helpers';
@@ -42,15 +47,21 @@ export async function invitePortalUser(
   if (!contact) throw new ContactNotFoundError('Contact not found');
   if (!contact.email) throw new ContactHasNoEmailError('Contact has no email address');
 
-  // Step 2: Check if a portal user already exists for this contact
-  const existing = await findPortalUserByEmail(db, contact.email);
+  // Step 2: Check if a portal user already exists for this contact.
+  // Keyed on contactId, which is what portal_users_contact_active_idx actually
+  // enforces — an email guard misses a contact whose address changed after the
+  // first invite, and the insert then raises 23505 as a 500.
+  const existing = await findPortalUserByContactId(db, contactId);
   if (existing) throw new PortalUserAlreadyExistsError('Portal user already exists for this contact');
 
   // Step 3: Generate a temporary password
-  const tempPassword = generatePassword();
+  const tempPassword = generateTempPassword();
   const passwordHash = await hashPassword(tempPassword);
 
-  // Step 4: Create the portal user in a transaction
+  // Step 4: Create the portal user in a transaction.
+  // The contactId guard above closes the ordinary case; this catch closes the
+  // race between that read and this insert, turning the unique-index violation
+  // into the same 409 instead of a 500.
   const portalUser = await db.transaction(async (tx) => {
     // Create the portal user
     const user = await createPortalUser(tx, {
@@ -72,6 +83,11 @@ export async function invitePortalUser(
     }
 
     return user;
+  }).catch((err) => {
+    if (isUniqueViolation(err)) {
+      throw new PortalUserAlreadyExistsError('Portal user already exists for this contact');
+    }
+    throw err;
   });
 
   // Step 5: Send the invite email (outside the transaction so it doesn't roll back on email failure)
@@ -167,7 +183,7 @@ export async function resetPortalUserPassword(
   if (!user) throw new PortalUserNotFoundError('Portal user not found');
 
   // Step 2: Generate a new temporary password
-  const tempPassword = generatePassword();
+  const tempPassword = generateTempPassword();
   const passwordHash = await hashPassword(tempPassword);
 
   // Step 3: Update the password
@@ -197,7 +213,9 @@ export async function revokePortalUserAccess(
   db: Db,
   actor: AuthUser,
   portalUserId: string,
-  deleteComment?: string,
+  // Required by the validator (26 §4) — typed non-optional here so a future
+  // caller cannot quietly drop the audit trail.
+  deleteComment: string,
 ): Promise<boolean> {
   const result = await softDeletePortalUser(db, portalUserId, actor.id, deleteComment);
   return result !== null;
