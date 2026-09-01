@@ -20,8 +20,13 @@ the root CLAUDE.md:
 - **Tailwind 3.4**, authored in the **semantic** `primary-*` / `surface-*` classes from day one
   (plan 16's rename is already done superadmin-side — the portal must not be born in the old
   `sky`/`granite` vocabulary and then need the sweep)
-- `@lucide/angular` for icons, `@fontsource/figtree` for the UI stack (A12) and
-  `@fontsource/atkinson-hyperlegible` for the numeric `font-data` stack
+- `@lucide/angular` for icons, `@fontsource-variable/figtree` for the UI stack (A12) and
+  `@fontsource-variable/work-sans` for the numeric `font-data` stack
+  <!-- Corrected 2026-08-31 (owner). This line named `@fontsource/figtree` +
+  `@fontsource-variable/atkinson-hyperlegible`, which superadmin has not shipped since the
+  2026-08-27 Atkinson→Work Sans swap: Atkinson ships only 400/700, so the +200 weight ladder
+  collapsed to Bold. The rule in §1 is "match the versions actually in superadmin/package.json",
+  and these are they — the packages, not the prose, were right. -->
 - **`@angular/ssr` scaffolding with every route `RenderMode.Client`** — the topology plan 25
   settled for both existing Angular apps. Nothing renders server-side; the server bundle exists
   so the Worker owns the request path and can serve `/__config`.
@@ -158,11 +163,19 @@ apps had to perform and is simply born on the far side of it.
 
 - [ ] **CP-1** — `ng new client-portal`, stack + Tailwind + PrimeNG preset,
       `@angular/ssr` with all routes `RenderMode.Client`, the runtime-config layer +
-      folded config→brand initializer, `client-portal/CLAUDE.md`, root CLAUDE.md row,
-      build green.
+      folded config→brand initializer, **`src/cloudflare/worker.ts` + `wrangler.jsonc`**,
+      `client-portal/CLAUDE.md`, root CLAUDE.md row, build green.
 - [ ] **CP-2** — public shell: login, forgot, reset, force-password dialog, auth state, token
       interceptor.
 - [ ] **CP-3** — authenticated layout port + grant-driven nav (including the disabled
       `Facturas` row) + guards + `/inicio` empty state.
-- [ ] **CP-4** — `wrangler.jsonc` + guarded `deploy:cf` + a tenant Worker with its `API_URL`,
+- [ ] **CP-4** — guarded `deploy:cf` + a tenant Worker with its `API_URL`,
       then a smoke pass against a real invited account.
+
+> **Amended 2026-08-31 (owner).** `wrangler.jsonc` moved from CP-4 to CP-1. Per-tenant variable
+> injection belongs to the app shell, and the Worker entry point plus its config are one story:
+> CP-1 shipping `src/cloudflare/worker.ts` — which reads `env.API_URL` and answers `/__config` —
+> while its config waited three checkpoints left the app with an entry point and nothing to run
+> it under. CP-4 keeps what is genuinely deploy-time: the guarded `deploy:cf` script, the tenant
+> Worker's dashboard `API_URL`, and the smoke pass. §6 is unchanged and still governs the file's
+> contents — placeholder `name`, `keep_vars: true`, `not_found_handling` left at its default.

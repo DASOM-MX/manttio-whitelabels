@@ -1,23 +1,25 @@
-import { environment } from '../../environments/environment';
 import type { RuntimeOverrides } from '../data/types/config/runtime-overrides';
 
-/** Runtime configuration, resolved at boot (plan 25).
+/** Runtime configuration, resolved at boot (plan 25, 03 §6).
  *
- *  `apiUrl` used to be compiled into the bundle, which meant one build per
- *  tenant API host. It now comes from a Cloudflare env var, served by the
- *  Worker at `GET /__config` and read once before the app starts.
+ *  `apiUrl` is not compiled into this app — it comes from a Cloudflare env var,
+ *  served by the Worker at `GET /__config` and read once before the app starts.
+ *  No `environment.ts` file exists here (fork rule: the portal is born on the far
+ *  side of the Pages→Workers migration, with no compiled literal to migrate away
+ *  from).
  *
- *  This is a mutable module object rather than a DI token or signal on
- *  purpose: every consumer reads it lazily (see the `base` getters in the
- *  http services), so there is nothing to notify — by the time any request is
- *  built, `loadRuntimeConfig()` has already resolved. */
+ *  This is a mutable module object rather than a DI token or signal on purpose:
+ *  every consumer reads it lazily (see the `base` getters in the http services),
+ *  so there is nothing to notify — by the time any request is built,
+ *  `loadRuntimeConfig()` has already resolved. */
 const CONFIG_ENDPOINT = '/__config';
 const CONFIG_TIMEOUT_MS = 3000;
 const STORAGE_KEY = 'runtime.config';
 
-/** Starts as the compiled defaults; `loadRuntimeConfig()` overlays the edge's
- *  answer on top. Never reassigned — consumers hold this reference. */
-export const runtimeConfig = { ...environment };
+/** Starts empty; `loadRuntimeConfig()` fills in the apiUrl from the edge,
+ *  storage, or (if both fail) leaves it empty. Empty means no API host is known
+ *  yet — the app must not proceed with a guess. */
+export const runtimeConfig: RuntimeOverrides = { apiUrl: '' };
 
 /** Applies an override set, ignoring anything malformed. Returns whether
  *  anything was actually taken. */
@@ -48,11 +50,11 @@ function writeCached(overrides: RuntimeOverrides): void {
 }
 
 /** Resolve runtime config before the app boots. Fallback chain (25 §3):
- *  `/__config` → last known-good from storage → the compiled literal.
+ *  `/__config` → last known-good from storage → empty (no guessing).
  *
- *  Never rejects. Every rung failing is a supported state — it is exactly what
- *  happens under `ng serve`, where there is no Worker and `environment.
- *  development.ts` is meant to win. */
+ *  Never rejects. Every rung failing is a supported state — a network failure,
+ *  an unset Worker `API_URL` var, or corrupted localStorage. An empty `apiUrl`
+ *  means the app must not attempt requests. */
 export async function loadRuntimeConfig(): Promise<void> {
   try {
     const res = await fetch(CONFIG_ENDPOINT, {
@@ -60,14 +62,15 @@ export async function loadRuntimeConfig(): Promise<void> {
       signal: AbortSignal.timeout(CONFIG_TIMEOUT_MS),
       headers: { accept: 'application/json' },
     });
-    // Under `ng serve` this resolves 200 with the SPA shell, so `.json()`
-    // throwing is the normal dev path, not an error worth logging.
+    // A 200 response is authoritative. If it carries a valid apiUrl, apply it.
+    // If it's malformed, the apply() call silently rejects it and the next rung
+    // (storage) is tried.
     if (res.ok && apply(await res.json())) {
       writeCached({ apiUrl: runtimeConfig.apiUrl });
       return;
     }
   } catch {
-    /* offline, timed out, or no Worker in front of us — try the cache */
+    /* network error, timeout, or JSON parse failure — try the cache */
   }
 
   apply(readCached());

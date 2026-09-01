@@ -12,13 +12,16 @@ import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { providePrimeNG } from 'primeng/config';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { provideStore } from '@ngxs/store';
+import { provideStore, Store } from '@ngxs/store';
 import { withNgxsStoragePlugin } from '@ngxs/storage-plugin';
 import { withNgxsReduxDevtoolsPlugin } from '@ngxs/devtools-plugin';
 import { withNgxsLoggerPlugin } from '@ngxs/logger-plugin';
 import { ManttioPreset } from './theme/manttio-preset';
 import { routes } from './app.routes';
 import { loadRuntimeConfig } from './config/runtime-config';
+import { AppState } from '../state/app/app.state';
+import { BrandState } from '../state/brand/brand.state';
+import { LoadBrand } from '../state/brand/brand.actions';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 
 export const appConfig: ApplicationConfig = {
@@ -44,15 +47,14 @@ export const appConfig: ApplicationConfig = {
     ConfirmationService,
     MessageService,
     provideStore(
-      // Minimal for CP-1 scaffold; more states added as features land.
-      [],
+      [AppState, BrandState],
       // Persist app state (dark mode, sidebar) to storage
       withNgxsStoragePlugin({ keys: ['app'] }),
       withNgxsReduxDevtoolsPlugin({ disabled: !isDevMode() }),
       withNgxsLoggerPlugin({ disabled: !isDevMode() }),
     ),
-    // Runtime config resolves first, before any auth fetches (25 §3).
-    // Boot-time fetches (LoadBrand, LoadMe) will run after config is resolved.
+    // Runtime config resolves first, before any other boot-time fetches (25 §3).
+    // The folded initializer ensures config is available before LoadBrand needs it.
     provideAppInitializer(async () => {
       const platformId = inject(PLATFORM_ID);
       // Skipped outside the browser. Every route is `RenderMode.Client`, so
@@ -60,7 +62,11 @@ export const appConfig: ApplicationConfig = {
       // Node to extract the route tree (25 §5.2).
       if (!isPlatformBrowser(platformId)) return;
       await loadRuntimeConfig();
-      // More boot-time actions (LoadBrand, LoadMe) will be added in CP-2
+      const store = inject(Store);
+      // Fetch the tenant brand: colors, logo, name, fonts. This runs before
+      // any route renders, so the login screen (CP-2) boots branded.
+      // The public shell renders unbranded until this completes.
+      store.dispatch(new LoadBrand());
     }),
     provideClientHydration(withEventReplay()),
   ],

@@ -18,7 +18,11 @@ export default {
     if (new URL(request.url).pathname === '/__config') {
       return new Response(
         JSON.stringify({
-          apiUrl: env.API_URL || 'https://manttio-api.dasom-mx.workers.dev',
+          // `env.API_URL` is dashboard-set per tenant. If unset, return null
+          // (not a fallback host) — the app's config chain falls through to
+          // localStorage then gives up, leaving apiUrl empty. An unset var is
+          // not a bug to paper over; it's a signal to the operator.
+          apiUrl: env.API_URL ?? null,
         }),
         {
           status: 200,

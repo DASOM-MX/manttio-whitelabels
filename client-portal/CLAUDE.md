@@ -16,17 +16,17 @@ This is the **Portal de clientes** app — a customer-facing logged-in surface f
 - `@lucide/angular` icons, `@fontsource-variable/figtree` typography
 - `@angular/ssr` with every route `RenderMode.Client`
 
-## Build + deploy (plan 03 §6 — Workers Static Assets per plan 25)
+## Build (plan 03 §6 — Workers Static Assets per plan 25)
 
 - `npm run build` → `dist/client-portal/` (browser + server bundle)
-- `npm run preview:cf` → local Wrangler dev (`wrangler dev`)
-- `npm run deploy:cf` → guarded deploy (`CF_WORKER_NAME=<tenant> npm run deploy:cf`)
 
-**No `environment.development.ts`; no compiled `apiUrl` literal.** Config reads from `GET /__config` at boot (plan 25 §3).
+**No `environment.ts` file; no compiled `apiUrl` literal.** Config reads from `GET /__config` at boot (plan 25 §3), then falls back to `localStorage`. There is no third rung — an unresolved `apiUrl` stays empty rather than pinning the app to a host. The `deploy:cf` script and the tenant smoke pass land in CP-4.
 
 ## Key files & directories
 
-- **`src/app/config/runtime-config.ts`** — fetches `/__config` at boot, fallback to `localStorage`, then compiled literal
+- **`src/app/config/runtime-config.ts`** — fetches `/__config` at boot, falls back to `localStorage`, then gives up
+- **`src/cloudflare/worker.ts`** — Worker entry; answers `/__config` from the per-tenant `env.API_URL` binding (`?? null` when unset — never a fallback host) before delegating to the Angular engine
+- **`wrangler.jsonc`** — Worker config: placeholder `name`, `keep_vars: true`, `not_found_handling` at its default
 - **`src/app/theme/manttio-preset.ts`** — PrimeNG Aura tokens repointed to `--brand-primary-*` CSS vars
 - **`src/styles.css`** → imports Tailwind + PrimeNG layer order + animations + theme integrations
 - **`src/animations.scss`** — motion tokens + keyframes (Angular `animate.enter`/`animate.leave`)
@@ -67,7 +67,7 @@ This is the **Portal de clientes** app — a customer-facing logged-in surface f
 | **03** | **CP-1** | App scaffold, stack, Tailwind + PrimeNG preset, SSR all-CSR, runtime-config + brand initializer, CLAUDE.md, root table row, build green | ✅ **IN PROGRESS** |
 | 03 | CP-2 | Public shell: login, forgot, reset, force-password dialog, auth state, token interceptor | — |
 | 03 | CP-3 | Authenticated layout, nav with disabled Facturas row, guards, `/inicio` empty state | — |
-| 03 | CP-4 | `wrangler.jsonc`, guarded deploy, smoke pass | — |
+| 03 | CP-4 | Guarded `deploy:cf`, tenant Worker `API_URL`, smoke pass | — |
 | 04 | CP-2…CP-7 | Reportes, Contratos, Cotizaciones, Órdenes, Equipos, Inicio | — |
 | 05 | CP-2, CP-3 | Quotation approval/decline UI | — |
 | 06 | CP-3 | Service requests flow | — |

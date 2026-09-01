@@ -24,7 +24,6 @@ Keep changes that belong upstream in the `../manttio` checkout; use this repo fo
 |---|---|---|---|
 | `backend/` | Hono 4 on Cloudflare Workers (Wrangler v4) + Neon Postgres via the WS driver + Drizzle ORM | CF Workers (`manttio-api`) | **Active** — see `backend/CLAUDE.md` for API conventions |
 | `frontend/` | Angular 20 (standalone, zoneless) + NGXS 20 + PrimeNG Aura + Tailwind 3.4, PWA via `@angular/service-worker` | Cloudflare Pages (output `dist/manttio/browser/`) | **Active** — see `frontend/CLAUDE.md` for web-app conventions |
-| `superadmin/` | Angular 21.2 (standalone, zoneless) + NGXS 21 + PrimeNG 21 Aura + Tailwind 3.4, SSR with all routes CSR | Cloudflare Workers (`demo-superadmin-manttio-wl`) | **Active** — see `superadmin/CLAUDE.md` for conventions |
 | `client-portal/` | Angular 21.2 (standalone, zoneless) + NGXS 21 + PrimeNG 21 Aura + Tailwind 3.4, SSR with all routes CSR | Cloudflare Workers (tenant-per-Worker) | **Scaffolding (CP-1)** — see `client-portal/CLAUDE.md` and `.claude/plans/client-portal/` |
 | `website/` | Astro marketing site for the **Peña Nevada Chillers** brand | Cloudflare Pages | **Active** — see `website/CLAUDE.md` |
 | `backend-firebase/` | Legacy Firebase Functions backend | — | **Archived.** Do not touch unless asked; it predates the Hono/Neon rewrite. |

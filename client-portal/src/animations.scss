@@ -51,7 +51,9 @@
 }
 
 /* Skeleton pulse (skeletons over spinners, 01 Design language; plan 17
-   CP-3). Consumed by `.skeleton` in styles.css — opacity only, no reflow. */
+   CP-3). The `.skeleton` class itself arrives with superadmin's component
+   layer in CP-2, when the login form first needs it; the keyframes wait
+   here so the two land together. Opacity only, no reflow. */
 @keyframes anim-skeleton-pulse {
   50% {
     opacity: 0.45;
