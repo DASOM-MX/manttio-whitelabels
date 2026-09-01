@@ -316,6 +316,13 @@
       "when": 1788240059341,
       "tag": "0044_careful_vision",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1788298265253,
+      "tag": "0045_windy_deathbird",
+      "breakpoints": true
     }
   ]
 }

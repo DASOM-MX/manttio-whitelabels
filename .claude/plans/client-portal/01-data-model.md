@@ -34,10 +34,18 @@ the shared test one; a one-off script blanks any duplicate address there (`SET e
 never a row delete — `email` is nullable and this repo does not hard-delete) before the
 migration is applied.
 
-`customer_contacts` has **no `deleted_at`** today, so the index is absolute rather than partial.
-If 07 ever soft-deletes contacts, this index must become
-`.where(sql\`deleted_at is null\`)` in the same change — otherwise a removed contact
-permanently blocks their own address.
+~~`customer_contacts` has **no `deleted_at`** today, so the index is absolute rather than
+partial.~~ **Superseded 2026-09-01 (owner):** `customer_contacts` now has `deleted_at`, and this
+index is partial — `.where(sql\`deleted_at is null\`)` — exactly as this paragraph required of
+any change that introduced soft delete. `customer_contacts_one_default_idx` gained the same
+clause, or a tombstoned default would hold its customer's default slot forever.
+
+The move also fixed a live bug rather than only satisfying the no-hard-delete rule:
+`updateCustomerWithRelations` replaced a customer's contacts with a **hard DELETE**, while
+`quotation_recipients.contact_id` and `quotation_events.contact_id` are both
+`onDelete: 'restrict'` — so editing any customer who had ever been sent a quotation raised a
+foreign-key violation. Tombstoning keeps those references resolvable, so a sent quote still
+renders the name it was addressed to.
 
 Module placement: `portal_users` / `portal_user_grants` / `portal_password_resets` belong to
 a new `backend/src/modules/portal/` domain; `service_requests` / `service_request_events` /

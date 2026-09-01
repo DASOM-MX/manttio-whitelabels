@@ -6,6 +6,7 @@ import { createDb } from './modules/database/client';
 import { sweepExpiredNotifications } from './modules/notifications/services/notifications-retention.service';
 import { auth } from './modules/auth/controllers/auth.controller';
 import { portalAuth } from './modules/portal/controllers/portal-auth.controller';
+import { portalUsers } from './modules/portal/controllers/portal-users.controller';
 import { users } from './modules/users/controllers/users.controller';
 import { customers } from './modules/customers/controllers/customers.controller';
 import { reports } from './modules/reports/controllers/reports.controller';
@@ -74,8 +75,10 @@ app.route('/fonts', fonts);
 // JWT is required everywhere except `/auth/*`, `/`, `/public/*`, `/brand`,
 // `/fonts`, and the public report-view path (also skipped inside jwtMiddleware
 // itself for defense in depth). Uploads additionally admit the manager's
-// shared token so a brand push can carry logo assets.
+// shared token so a brand push can carry logo assets. Portal user management
+// (`/portal-users/*`) is staff-only, behind the same JWT as other staff endpoints.
 app.use('/users/*', jwtMiddleware);
+app.use('/portal-users/*', jwtMiddleware);
 app.use('/customers/*', jwtMiddleware);
 app.use('/reports/*', jwtMiddleware);
 app.use('/equipment/*', jwtMiddleware);
@@ -90,6 +93,7 @@ app.use('/service-orders/*', jwtMiddleware);
 app.use('/visits/*', jwtMiddleware);
 
 app.route('/users', users);
+app.route('/portal-users', portalUsers);
 app.route('/customers', customers);
 // `GET /customers/:id/quotations` — owned by the quotations module (see its
 // controller), mounted here so it sits under the customer it belongs to and

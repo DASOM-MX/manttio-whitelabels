@@ -130,7 +130,7 @@ Lists return `GenericQueryResponse<T>` with a real `total`.
 `POST /portal-users` on the **staff** surface (not `/portal/*` — staff call it with a staff
 token), body `{ contactId, grants[], isAdmin }`:
 
-1. Validate the contact exists and has an email. (Not "is not soft-deleted" — `customer_contacts` has no `deleted_at` column, per 01 §0.)
+1. Validate the contact exists, is not soft-deleted, and has an email. (`customer_contacts` gained `deleted_at` on 2026-09-01 — see 01 §0. `findContactById` filters it, so a retired contact cannot be invited.)
 2. Create `portal_users` (`status: invited`, `must_change_password: true`, `customer_id` copied
    from the contact, `invited_by` = the caller, `is_admin` as requested — default false).
 3. Insert the requested `portal_user_grants` rows.
