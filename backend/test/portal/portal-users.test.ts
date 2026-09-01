@@ -18,6 +18,8 @@ describe('Portal Users (Staff) — CP-4', () => {
   let adminUserId: string;
   let customerId: string;
   let contactId: string;
+  let contactEmail: string;
+  let contactName: string;
 
   beforeAll(async () => {
     const { admin, token } = await seedAdminAndLogin();
@@ -29,6 +31,8 @@ describe('Portal Users (Staff) — CP-4', () => {
 
     const contact = await seedContact(customerId);
     contactId = contact.id;
+    contactEmail = contact.email;
+    contactName = contact.name;
   });
 
   describe('POST /portal-users (invite)', () => {
@@ -48,11 +52,17 @@ describe('Portal Users (Staff) — CP-4', () => {
       
       // Assert created user has expected values
       expect(body.id).toBeTruthy();
-      expect(body.email).toBe(expect.stringContaining('@'));
-      expect(body.name).toBeTruthy();
+      // The invite must copy THIS contact's identity, not merely produce
+      // something email-shaped: seeding the wrong contact is the failure worth
+      // catching, and `toBe(expect.stringContaining(...))` never matches at all
+      // — `toBe` is Object.is and does not accept asymmetric matchers.
+      expect(body.email).toBe(contactEmail);
+      expect(body.name).toBe(contactName);
       expect(body.customerId).toBe(customerId);
 
-      // Verify temp password is NOT in response body — check no key contains password
+      // Covers a leaked password *key*. The generated password never leaves the
+      // service, so the test cannot compare against its value — this does not
+      // prove no secret rode out under some other name.
       const responseText = JSON.stringify(body);
       expect(responseText).not.toContain('password');
       expect(responseText).not.toContain('tempPassword');
