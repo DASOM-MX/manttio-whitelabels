@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { PortalGrant } from '../enums/portal-grants.enum';
+import { PortalUserStatus } from '../enums/portal-users.enum';
 
 export const invitePortalUserSchema = z.object({
   contactId: z.string().uuid('contact_id must be a valid UUID'),
@@ -15,12 +16,8 @@ export const updatePortalUserGrantsSchema = z.object({
 
 export type UpdatePortalUserGrantsInput = z.infer<typeof updatePortalUserGrantsSchema>;
 
-export const updatePortalUserStatusSchema = z.object({
-  status: z.enum(['invited', 'active', 'suspended']),
+export const deletePortalUserSchema = z.object({
+  comment: z.string().min(1).max(255).optional(),
 });
 
-export type UpdatePortalUserStatusInput = z.infer<typeof updatePortalUserStatusSchema>;
-
-export const resetPortalUserPasswordSchema = z.object({});
-
-export type ResetPortalUserPasswordInput = z.infer<typeof resetPortalUserPasswordSchema>;
+export type DeletePortalUserInput = z.infer<typeof deletePortalUserSchema>;

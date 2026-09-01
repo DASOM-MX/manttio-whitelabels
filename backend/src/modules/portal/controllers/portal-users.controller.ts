@@ -4,9 +4,11 @@ import { zValidator } from '@hono/zod-validator';
 import type { AppBindings } from '../../../env';
 import { createDb } from '../../database/client';
 import { requireRole } from '../../auth/middleware/roles.middleware';
+import { ADMIN_TIER } from '../../auth/utils/role-tier';
 import {
   invitePortalUserSchema,
   updatePortalUserGrantsSchema,
+  deletePortalUserSchema,
 } from '../validators/portal-users.validator';
 import {
   invitePortalUser,
@@ -31,7 +33,7 @@ const idSchema = z.string().uuid();
  * Staff-only. Creates portal_users row, grants rows, and sends invite email.
  * The temp password is sent via email only, never in the response.
  */
-portalUsers.post('/', requireRole(['owner', 'admin']), zValidator('json', invitePortalUserSchema), async (c) => {
+portalUsers.post('/', requireRole(ADMIN_TIER), zValidator('json', invitePortalUserSchema), async (c) => {
   const actor = c.get('user');
   const db = createDb(c.env.DATABASE_URL);
   const input = c.req.valid('json');
@@ -63,7 +65,7 @@ portalUsers.post('/', requireRole(['owner', 'admin']), zValidator('json', invite
  * GET /portal-users/:id — get a portal user for staff admin purposes.
  * Includes status, grants, and is_admin flag.
  */
-portalUsers.get('/:id', requireRole(['owner', 'admin']), async (c) => {
+portalUsers.get('/:id', requireRole(ADMIN_TIER), async (c) => {
   const id = idSchema.safeParse(c.req.param('id'));
   if (!id.success) return c.json({ error: 'not_found' }, 404);
 
@@ -80,7 +82,7 @@ portalUsers.get('/:id', requireRole(['owner', 'admin']), async (c) => {
  */
 portalUsers.patch(
   '/:id/grants',
-  requireRole(['owner', 'admin']),
+  requireRole(ADMIN_TIER),
   zValidator('json', updatePortalUserGrantsSchema),
   async (c) => {
     const id = idSchema.safeParse(c.req.param('id'));
@@ -105,7 +107,7 @@ portalUsers.patch(
 /**
  * PATCH /portal-users/:id/suspend — suspend a portal user (prevent login).
  */
-portalUsers.patch('/:id/suspend', requireRole(['owner', 'admin']), async (c) => {
+portalUsers.patch('/:id/suspend', requireRole(ADMIN_TIER), async (c) => {
   const id = idSchema.safeParse(c.req.param('id'));
   if (!id.success) return c.json({ error: 'not_found' }, 404);
 
@@ -119,7 +121,7 @@ portalUsers.patch('/:id/suspend', requireRole(['owner', 'admin']), async (c) => 
 /**
  * PATCH /portal-users/:id/resume — resume a suspended portal user.
  */
-portalUsers.patch('/:id/resume', requireRole(['owner', 'admin']), async (c) => {
+portalUsers.patch('/:id/resume', requireRole(ADMIN_TIER), async (c) => {
   const id = idSchema.safeParse(c.req.param('id'));
   if (!id.success) return c.json({ error: 'not_found' }, 404);
 
@@ -135,7 +137,7 @@ portalUsers.patch('/:id/resume', requireRole(['owner', 'admin']), async (c) => {
  * Generates a new temporary password and sends it via email.
  * The temp password is never included in the response.
  */
-portalUsers.post('/:id/password', requireRole(['owner', 'admin']), async (c) => {
+portalUsers.post('/:id/password', requireRole(ADMIN_TIER), async (c) => {
   const id = idSchema.safeParse(c.req.param('id'));
   if (!id.success) return c.json({ error: 'not_found' }, 404);
 
@@ -155,16 +157,23 @@ portalUsers.post('/:id/password', requireRole(['owner', 'admin']), async (c) => 
 /**
  * DELETE /portal-users/:id — revoke portal access (soft delete).
  * The row stays; deletedAt and deletedBy are set for the audit trail.
+ * Optional comment persisted to delete_comment.
  */
-portalUsers.delete('/:id', requireRole(['owner', 'admin']), async (c) => {
-  const id = idSchema.safeParse(c.req.param('id'));
-  if (!id.success) return c.json({ error: 'not_found' }, 404);
+portalUsers.delete(
+  '/:id',
+  requireRole(ADMIN_TIER),
+  zValidator('json', deletePortalUserSchema),
+  async (c) => {
+    const id = idSchema.safeParse(c.req.param('id'));
+    if (!id.success) return c.json({ error: 'not_found' }, 404);
 
-  const actor = c.get('user');
-  const db = createDb(c.env.DATABASE_URL);
+    const actor = c.get('user');
+    const db = createDb(c.env.DATABASE_URL);
+    const input = c.req.valid('json');
 
-  const revoked = await revokePortalUserAccess(db, actor, id.data);
-  if (!revoked) return c.json({ error: 'not_found' }, 404);
+    const revoked = await revokePortalUserAccess(db, actor, id.data, input.comment);
+    if (!revoked) return c.json({ error: 'not_found' }, 404);
 
-  return c.json({ revoked: true });
-});
+    return c.json({ revoked: true });
+  },
+);

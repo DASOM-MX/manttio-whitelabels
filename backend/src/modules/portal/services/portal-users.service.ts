@@ -15,7 +15,7 @@ import {
   findPortalUserByEmail,
 } from '../repository/portal-users.repository';
 import { findContactById } from '../../customers/repository/customers.repository';
-import { sendEmail } from '../../email/services/email.service';
+import { sendPortalUserInviteEmail, sendPortalPasswordResetEmail } from '../helpers/portal-email.helpers';
 import type { Env } from '../../../env';
 
 export class ContactNotFoundError extends Error {}
@@ -76,7 +76,7 @@ export async function invitePortalUser(
 
   // Step 5: Send the invite email (outside the transaction so it doesn't roll back on email failure)
   try {
-    await sendInviteEmail(env, contact.email, contact.name, tempPassword);
+    await sendPortalUserInviteEmail(db, env, contact.name, contact.email, tempPassword);
   } catch (err) {
     console.error('Failed to send portal user invite email:', err);
     // Don't throw — the account was created successfully; the email issue is noted but not fatal
@@ -176,7 +176,7 @@ export async function resetPortalUserPassword(
 
   // Step 4: Send the reset email (outside transaction)
   try {
-    await sendPasswordResetEmail(env, user.email, user.name, tempPassword);
+    await sendPortalPasswordResetEmail(db, env, user.name, user.email, tempPassword);
   } catch (err) {
     console.error('Failed to send portal user password reset email:', err);
     // Don't throw — the password was updated; the email issue is noted but not fatal
@@ -224,57 +224,4 @@ export async function getPortalUserForAdmin(
     isAdmin: user.isAdmin,
     grants: grants.map((g) => g.grant as PortalGrant),
   };
-}
-
-/**
- * Send invite email with temporary password.
- * Uses tenant brand config for customization.
- */
-async function sendInviteEmail(env: Env, email: string, name: string, tempPassword: string) {
-  // TODO: Use tenant brand config for sender, portal URL, etc.
-  // For now, using wrangler.toml values as placeholders
-  const subject = 'Bienvenida al Portal de Clientes';
-  const html = `
-    <h1>Bienvenida, ${name}</h1>
-    <p>Se ha creado una cuenta para acceder al Portal de Clientes.</p>
-    <p><strong>Tu contraseña temporal es:</strong> ${tempPassword}</p>
-    <p><strong>Por favor, cambia tu contraseña en tu primer acceso.</strong></p>
-  `;
-
-  return sendEmail({
-    apiKey: env.RESEND_API_KEY,
-    from: env.RESEND_FROM,
-    to: email,
-    subject,
-    html,
-    text: `Bienvenida al Portal de Clientes. Tu contraseña temporal es: ${tempPassword}`,
-  });
-}
-
-/**
- * Send password reset email with new temporary password.
- */
-async function sendPasswordResetEmail(
-  env: Env,
-  email: string,
-  name: string,
-  tempPassword: string,
-) {
-  const subject = 'Restablecimiento de Contraseña - Portal de Clientes';
-  const html = `
-    <h1>Restablecimiento de Contraseña</h1>
-    <p>Hola ${name},</p>
-    <p>Tu contraseña ha sido restablecida.</p>
-    <p><strong>Tu contraseña temporal es:</strong> ${tempPassword}</p>
-    <p><strong>Por favor, cambia tu contraseña en tu próximo acceso.</strong></p>
-  `;
-
-  return sendEmail({
-    apiKey: env.RESEND_API_KEY,
-    from: env.RESEND_FROM,
-    to: email,
-    subject,
-    html,
-    text: `Tu contraseña ha sido restablecida. Contraseña temporal: ${tempPassword}`,
-  });
 }

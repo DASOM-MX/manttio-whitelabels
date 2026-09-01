@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, isNull } from 'drizzle-orm';
 import { env } from 'cloudflare:test';
-import { createDb } from '../src/modules/database/client';
-import { portalUsers, portalUserGrants } from '../src/modules/database/schema';
+import { createDb } from '../../src/modules/database/client';
+import { portalUsers, portalUserGrants } from '../../src/modules/database/schema';
 import {
   seedAdmin,
   seedAdminAndLogin,
@@ -10,18 +10,19 @@ import {
   seedContact,
   seedPortalUser,
   seedTechnician,
-  seedOffice,
-} from './helpers/fixtures';
-import { request, json, jsonHeaders } from './helpers/request';
+} from '../helpers/fixtures';
+import { request, json, jsonHeaders } from '../helpers/request';
 
 describe('Portal Users (Staff) — CP-4', () => {
   let adminToken: string;
+  let adminUserId: string;
   let customerId: string;
   let contactId: string;
 
   beforeAll(async () => {
-    const { token } = await seedAdminAndLogin();
+    const { admin, token } = await seedAdminAndLogin();
     adminToken = token;
+    adminUserId = admin.id;
 
     const customer = await seedCustomer();
     customerId = customer.id;
@@ -31,7 +32,7 @@ describe('Portal Users (Staff) — CP-4', () => {
   });
 
   describe('POST /portal-users (invite)', () => {
-    it('should create a portal user with grants and return without temp password', async () => {
+    it('should create a portal user with grants, no temp password in response', async () => {
       const res = await request('/portal-users', {
         method: 'POST',
         headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
@@ -44,11 +45,17 @@ describe('Portal Users (Staff) — CP-4', () => {
 
       expect(res.status).toBe(201);
       const body = await json<any>(res);
-      expect(body.id).toBeDefined();
-      expect(body.email).toBeDefined();
-      expect(body.name).toBeDefined();
+      
+      // Assert created user has expected values
+      expect(body.id).toBeTruthy();
+      expect(body.email).toBe(expect.stringContaining('@'));
+      expect(body.name).toBeTruthy();
       expect(body.customerId).toBe(customerId);
-      // Temp password should NOT be in the response
+
+      // Verify temp password is NOT in response body — check no key contains password
+      const responseText = JSON.stringify(body);
+      expect(responseText).not.toContain('password');
+      expect(responseText).not.toContain('tempPassword');
       expect(body.password).toBeUndefined();
       expect(body.tempPassword).toBeUndefined();
 
@@ -59,9 +66,10 @@ describe('Portal Users (Staff) — CP-4', () => {
         .from(portalUsers)
         .where(eq(portalUsers.id, body.id))
         .limit(1);
-      expect(user).toBeDefined();
+      expect(user).toBeTruthy();
       expect(user?.status).toBe('invited');
       expect(user?.isAdmin).toBe(false);
+      expect(user?.mustChangePassword).toBe(true);
 
       // Verify grants were created
       const grants = await db
@@ -70,6 +78,8 @@ describe('Portal Users (Staff) — CP-4', () => {
         .where(eq(portalUserGrants.portalUserId, body.id));
       expect(grants.length).toBe(2);
       expect(grants.map((g) => g.grant).sort()).toEqual(['view_quotations', 'view_reports']);
+      // Verify grants are active (revoked_at is null)
+      expect(grants.every((g) => !g.revokedAt)).toBe(true);
     });
 
     it('should reject with 404 if contact does not exist', async () => {
@@ -88,59 +98,45 @@ describe('Portal Users (Staff) — CP-4', () => {
       expect(body.error).toBe('contact_not_found');
     });
 
-    it('should reject with 400 if contact has no email', async () => {
-      // Create a contact without email
-      const customer = await seedCustomer();
-      const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
-      const [contactNoEmail] = await db
-        .insert(portalUsers)
-        .values({
-          customerId: customer.id,
-          contactId: '00000000-0000-0000-0000-000000000001',
-          email: 'test@example.com',
-          passwordHash: 'hash',
-          name: 'test',
-          invitedBy: null,
-        })
-        .returning();
-
-      // Actually, let's just skip this — customer_contacts doesn't have deleted_at,
-      // so we can't easily create one without email in the fixture. The test is valid
-      // but the implementation check is more important.
-    });
-
     it('should reject with 409 if portal user already exists for contact', async () => {
       // Create a portal user for this contact first
-      const portalUser = await seedPortalUser({ customerId, contactId });
-
-      // Try to invite the same contact again
-      const res = await request('/portal-users', {
+      const contact = await seedContact(customerId);
+      const res1 = await request('/portal-users', {
         method: 'POST',
         headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
         body: JSON.stringify({
-          contactId,
+          contactId: contact.id,
+          grants: ['view_reports'],
+          isAdmin: false,
+        }),
+      });
+      expect(res1.status).toBe(201);
+
+      // Try to invite the same contact again
+      const res2 = await request('/portal-users', {
+        method: 'POST',
+        headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({
+          contactId: contact.id,
           grants: ['view_reports'],
           isAdmin: false,
         }),
       });
 
-      expect(res.status).toBe(409);
-      const body = await json<any>(res);
+      expect(res2.status).toBe(409);
+      const body = await json<any>(res2);
       expect(body.error).toBe('portal_user_exists');
     });
 
     it('should require owner or admin role', async () => {
-      const techToken = await (async () => {
-        const tech = await seedTechnician();
-        const loginRes = await request('/auth/login', {
-          method: 'POST',
-          headers: jsonHeaders(),
-          body: JSON.stringify({ email: tech.email, password: tech.password }),
-        });
-        if (loginRes.status !== 200) throw new Error('Tech login failed');
-        const { token } = await json<any>(loginRes);
-        return token;
-      })();
+      const tech = await seedTechnician();
+      const loginRes = await request('/auth/login', {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: JSON.stringify({ email: tech.email, password: tech.password }),
+      });
+      if (loginRes.status !== 200) throw new Error('Tech login failed');
+      const { token: techToken } = await json<any>(loginRes);
 
       const res = await request('/portal-users', {
         method: 'POST',
@@ -157,11 +153,7 @@ describe('Portal Users (Staff) — CP-4', () => {
   });
 
   describe('PATCH /portal-users/:id/grants (update grants)', () => {
-    it('should update grants, revoking removed ones', async () => {
-      const portalUser = await seedPortalUser({ customerId, contactId: '00000000-0000-0000-0000-000000000002' });
-      const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
-
-      // Add initial grants
+    it('should update grants, revoking removed ones (not deleting)', async () => {
       const contact = await seedContact(customerId);
       const res1 = await request('/portal-users', {
         method: 'POST',
@@ -187,7 +179,8 @@ describe('Portal Users (Staff) — CP-4', () => {
       const body = await json<any>(res2);
       expect(body.grants.sort()).toEqual(['view_quotations', 'view_reports']);
 
-      // Verify in database: view_contracts should be revoked
+      // Verify in database: view_contracts should be revoked (not deleted)
+      const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
       const grants = await db
         .select()
         .from(portalUserGrants)
@@ -201,6 +194,8 @@ describe('Portal Users (Staff) — CP-4', () => {
       const revokedGrants = grants.filter((g) => g.revokedAt);
       expect(revokedGrants.length).toBe(1);
       expect(revokedGrants[0]!.grant).toBe('view_contracts');
+      expect(revokedGrants[0]!.revokedBy).toBe(adminUserId);
+      expect(revokedGrants[0]!.revokedAt).not.toBeNull();
     });
 
     it('should reject with 404 if portal user not found', async () => {
@@ -273,7 +268,7 @@ describe('Portal Users (Staff) — CP-4', () => {
       });
       const { id: userId } = await json<any>(res1);
 
-      // Suspend
+      // Suspend first
       await request(`/portal-users/${userId}/suspend`, {
         method: 'PATCH',
         headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
@@ -298,10 +293,19 @@ describe('Portal Users (Staff) — CP-4', () => {
         .limit(1);
       expect(user?.status).toBe('active');
     });
+
+    it('should reject with 404 if portal user not found', async () => {
+      const res = await request('/portal-users/00000000-0000-0000-0000-000000000000/resume', {
+        method: 'PATCH',
+        headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(res.status).toBe(404);
+    });
   });
 
   describe('POST /portal-users/:id/password (staff reset)', () => {
-    it('should set temp password and mustChangePassword flag', async () => {
+    it('should set temp password and mustChangePassword flag, no password in response', async () => {
       const contact = await seedContact(customerId);
       const res1 = await request('/portal-users', {
         method: 'POST',
@@ -321,9 +325,11 @@ describe('Portal Users (Staff) — CP-4', () => {
 
       expect(res2.status).toBe(200);
       const body = await json<any>(res2);
-      // New password should NOT be in response
+      
+      // Verify no password in response
       expect(body.password).toBeUndefined();
       expect(body.tempPassword).toBeUndefined();
+      expect(JSON.stringify(body)).not.toContain('password');
 
       // Verify in database
       const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
@@ -346,7 +352,7 @@ describe('Portal Users (Staff) — CP-4', () => {
   });
 
   describe('DELETE /portal-users/:id (revoke access)', () => {
-    it('should soft delete the portal user', async () => {
+    it('should soft delete the portal user with comment', async () => {
       const contact = await seedContact(customerId);
       const res1 = await request('/portal-users', {
         method: 'POST',
@@ -359,30 +365,34 @@ describe('Portal Users (Staff) — CP-4', () => {
       });
       const { id: userId } = await json<any>(res1);
 
+      const deleteComment = 'Employee left the company';
       const res2 = await request(`/portal-users/${userId}`, {
         method: 'DELETE',
         headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({ comment: deleteComment }),
       });
 
       expect(res2.status).toBe(200);
       const body = await json<any>(res2);
       expect(body.revoked).toBe(true);
 
-      // Verify in database: deletedAt should be set
+      // Verify in database: deletedAt, deletedBy, deleteComment should be set
       const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
       const [user] = await db
         .select()
         .from(portalUsers)
         .where(eq(portalUsers.id, userId))
         .limit(1);
-      expect(user?.deletedAt).toBeDefined();
-      expect(user?.deletedBy).toBe(adminToken.slice(-36)); // Would need to decode to get real user ID
+      expect(user?.deletedAt).not.toBeNull();
+      expect(user?.deletedBy).toBe(adminUserId);
+      expect(user?.deleteComment).toBe(deleteComment);
     });
 
     it('should reject with 404 if portal user not found', async () => {
       const res = await request('/portal-users/00000000-0000-0000-0000-000000000000', {
         method: 'DELETE',
         headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({ comment: 'test' }),
       });
 
       expect(res.status).toBe(404);
@@ -410,7 +420,7 @@ describe('Portal Users (Staff) — CP-4', () => {
 
       expect(res2.status).toBe(200);
       const body = await json<any>(res2);
-      expect(body.user).toBeDefined();
+      expect(body.user).toBeTruthy();
       expect(body.user.id).toBe(userId);
       expect(body.user.isAdmin).toBe(true);
       expect(body.user.grants.sort()).toEqual(['view_quotations', 'view_reports']);
