@@ -1,5 +1,5 @@
 import { test } from '@playwright/test';
-import { signIn, stubIdleApi } from '../support/superadmin';
+import { OWNER_ME, signIn, stubIdleApi } from '../support/superadmin';
 import { expectServerSidePaging } from '../support/paged-list';
 import { CustomerSource, CustomerStatus } from '../../src/app/data/dtos/customer';
 import type { LegacyCustomerRow } from '../../src/app/data/dtos/customer-legacy';
@@ -18,6 +18,9 @@ import type { Contract } from '../../src/app/data/dtos/contract/contract';
 import { ContractFileType } from '../../src/app/model/enums/contract/contract-file-type.enum';
 import { ContractType } from '../../src/app/model/enums/contract/contract-type.enum';
 import { ContractValidity } from '../../src/app/model/enums/contract/contract-validity.enum';
+import type { PortalUserListItem } from '../../src/app/data/dtos/portal-user/portal-user';
+import { PortalGrant } from '../../src/app/model/enums/portal-user/portal-grant.enum';
+import { PortalUserStatus } from '../../src/app/model/enums/portal-user/portal-user-status.enum';
 
 /**
  * The 21 CP-6 regression guard: one test per lazy list page, all running the
@@ -36,7 +39,7 @@ import { ContractValidity } from '../../src/app/model/enums/contract/contract-va
 
 /** Three pages of 10 — enough that page 2 is neither the first nor the last. */
 const ROW_COUNT = 25;
-const rows = <T,>(build: (n: number, label: string) => T): T[] =>
+const rows = <T>(build: (n: number, label: string) => T): T[] =>
   Array.from({ length: ROW_COUNT }, (_, i) => build(i + 1, String(i + 1).padStart(3, '0')));
 
 const NOW = '2026-08-01T12:00:00.000Z';
@@ -230,6 +233,33 @@ test.describe('List pagination — page 2 renders page-2 rows (21 CP-6)', () => 
         validity: ContractValidity.Active,
         tags: [],
         createdBy: 'u-e2e',
+        createdAt: NOW,
+      })),
+    });
+  });
+
+  test('portal users — /portal-users', async ({ page }) => {
+    // Owner-only route (26 CP-1) — the suite's admin session never matches it.
+    await signIn(page, OWNER_ME);
+    await expectServerSidePaging<PortalUserListItem>(page, {
+      route: '/portal-users',
+      endpoint: '/portal-users',
+      firstCell: (row) => row.name,
+      rows: rows((n, label) => ({
+        id: `pu-${n}`,
+        name: `Contacto ${label}`,
+        paternalLastName: null,
+        maternalLastName: null,
+        email: `contacto${label}@e2e.test`,
+        role: null,
+        status: PortalUserStatus.Active,
+        isAdmin: false,
+        customerId: `cust-${n}`,
+        customerName: `Cliente ${label}`,
+        grants: [PortalGrant.ViewReports],
+        lastLoginAt: NOW,
+        invitedByName: 'E2E Owner',
+        lockedUntil: null,
         createdAt: NOW,
       })),
     });

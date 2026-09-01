@@ -1,0 +1,168 @@
+<app-page-header
+  title="Portal de clientes"
+  description="Quién de tus clientes entra al portal y qué puede ver ahí."
+>
+  <app-filters-popover [params]="['q', 'status', 'customerId', 'grant']">
+    <div class="field-group">
+      <label class="field-label" for="portal-users-search">Buscar</label>
+      <input
+        id="portal-users-search"
+        pInputText
+        type="search"
+        [formControl]="search"
+        placeholder="Nombre o correo"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="portal-users-status">Estado</label>
+      <p-select
+        inputId="portal-users-status"
+        [formControl]="statusFilter"
+        [options]="statusOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="portal-users-customer">Cliente</label>
+      <app-customer-select
+        inputId="portal-users-customer"
+        [formControl]="customerFilter"
+        allOptionLabel="Todos los clientes"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="portal-users-grant">Permiso</label>
+      <p-select
+        inputId="portal-users-grant"
+        [formControl]="grantFilter"
+        [options]="grantOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
+  </app-filters-popover>
+</app-page-header>
+
+<div>
+  <p-table
+    [value]="portalUsers()"
+    styleClass="table-paged--tall"
+    [style.--table-page-rows]="list.PAGE_SIZE"
+    [lazy]="true"
+    (onLazyLoad)="list.onLazyLoad($event)"
+    [paginator]="true"
+    [rows]="list.PAGE_SIZE"
+    [first]="list.first()"
+    [totalRecords]="total()"
+    [loading]="tableBusy.showSkeleton()"
+    [class.table-refreshing]="tableBusy.refreshing()"
+    [showLoader]="false"
+    dataKey="id"
+  >
+    <ng-template #header>
+      <tr>
+        <th scope="col">Contacto</th>
+        <th scope="col">Cliente</th>
+        <th scope="col">Correo</th>
+        <th scope="col">Estado</th>
+        <th scope="col">Admin</th>
+        <th scope="col">Permisos</th>
+        <th scope="col">Último acceso</th>
+        <th scope="col">Invitado por</th>
+      </tr>
+    </ng-template>
+
+    <!-- Read-only in CP-1: rows open nothing, so they carry no click target
+         beyond the client deep link. -->
+    <ng-template #body let-portalUser>
+      <tr>
+        <td>
+          <span class="flex items-center gap-3">
+            <span class="lead-avatar" aria-hidden="true">
+              {{ portalUser | portalUserName | initials }}
+            </span>
+            <span class="font-bold">{{ portalUser | portalUserName }}</span>
+          </span>
+        </td>
+        <td>
+          @if (portalUser.customerName) {
+            <a [routerLink]="['/customers', portalUser.customerId]" class="link-action">{{
+              portalUser.customerName
+            }}</a>
+          } @else {
+            <span class="text-surface-400">—</span>
+          }
+        </td>
+        <td>{{ portalUser.email }}</td>
+        <td>
+          <p-tag
+            [severity]="portalUser.status | portalUserStatusSeverity"
+            [value]="portalUser.status | portalUserStatusLabel"
+          />
+        </td>
+        <td>
+          <!-- Not a role: today it confers exactly one power, closing a
+               service request (26 §3b). -->
+          @if (portalUser.isAdmin) {
+            <p-tag severity="contrast" value="Admin" />
+          } @else {
+            <span class="text-surface-400">—</span>
+          }
+        </td>
+        <td>
+          <div class="flex max-w-56 flex-wrap gap-1">
+            @for (grant of portalUser.grants; track grant) {
+              <span
+                class="rounded-full bg-surface-100 px-2 py-0.5 text-xs font-bold text-surface-700 dark:bg-surface-800 dark:text-surface-300"
+                >{{ grant | portalGrantLabel }}</span
+              >
+            } @empty {
+              <!-- Allowed, and not an error — but never rendered as normal
+                   either: that account sees an explanatory home and nothing
+                   else (26 §3). -->
+              <p-tag severity="warn" value="Sin permisos" />
+            }
+          </div>
+        </td>
+        <td>
+          @if (portalUser.lastLoginAt) {
+            <span class="font-data tabular-nums">{{
+              portalUser.lastLoginAt | date: 'dd/MM/y'
+            }}</span>
+          } @else if (portalUser | portalInviteUnused) {
+            <!-- An invite nobody used is an access request that silently
+                 failed (26 §1). -->
+            <p-tag severity="warn" value="Sin ingresar" />
+          } @else {
+            <span class="text-surface-400">—</span>
+          }
+        </td>
+        <td>{{ portalUser.invitedByName || '—' }}</td>
+      </tr>
+    </ng-template>
+
+    <ng-template #loadingbody>
+      @for (r of list.skeletonRows; track r) {
+        <tr>
+          @for (c of skeletonColumns; track c) {
+            <td><span class="skeleton"></span></td>
+          }
+        </tr>
+      }
+    </ng-template>
+
+    <ng-template #emptymessage>
+      <tr class="p-datatable-emptymessage">
+        <td colspan="8">
+          <span class="inline-flex flex-col items-center gap-3">
+            <span class="empty-icon">
+              <svg lucideKeyRound class="size-5" aria-hidden="true"></svg>
+            </span>
+            Nadie con acceso al portal con esos filtros.
+          </span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

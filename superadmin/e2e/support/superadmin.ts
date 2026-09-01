@@ -41,6 +41,13 @@ export const ADMIN_ME: MeResponse = {
   mustChangePassword: false,
 };
 
+/** Owner session — for the surfaces an admin is refused (26 CP-1). */
+export const OWNER_ME: MeResponse = {
+  user: { id: 'u-e2e-owner', name: 'E2E Owner', email: 'owner@e2e.test' },
+  role: 'owner',
+  mustChangePassword: false,
+};
+
 /**
  * Seed the session and stub the two boot fetches the shell makes (`GET /auth/me`,
  * `GET /brand`), so the authenticated layout renders deterministically with no

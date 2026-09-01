@@ -4,6 +4,7 @@ import { authGuard } from './guards/auth.guard';
 import { guestGuard } from './guards/guest.guard';
 import { accessGuard } from './guards/access.guard';
 import { landingGuard } from './guards/landing.guard';
+import { OWNER_ONLY } from './guards/owner-only.guard';
 
 /** Every module area is lazy (`loadChildren` per feature folder) so module
  *  agents ship independently; every entry declares `data: { module, roles }`
@@ -94,6 +95,12 @@ export const routes: Routes = [
         canMatch: [accessGuard],
         data: { module: 'contracts', roles: ['owner', 'admin', 'office'] },
         loadChildren: () => import('./contracts/contracts.routes'),
+      },
+      {
+        path: 'portal-users',
+        canMatch: [accessGuard],
+        data: { module: 'portal-users', roles: OWNER_ONLY },
+        loadChildren: () => import('./portal-users/portal-users.routes'),
       },
       {
         path: 'branding',

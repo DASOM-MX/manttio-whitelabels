@@ -14,4 +14,5 @@ export type ModuleKey =
   | 'billing'
   | 'branding'
   | 'cms'
-  | 'wms';
+  | 'wms'
+  | 'portal-users';
