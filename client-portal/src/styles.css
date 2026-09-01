@@ -5,6 +5,10 @@
 /* Motion tokens + keyframes */
 @import './animations.scss';
 
+/* PrimeNG theme overrides. Must stay above the rules below — a CSS @import
+   after them is invalid and silently dropped. Precedence comes from @layer. */
+@import './theme/index.scss';
+
 /* Client Portal global styles — copied from superadmin (plan 03 CP-1).
    Soft-executive scale: Figtree, floating shadow-card surfaces, Lucide icons,
    soft-outlined inputs, semantic color scales. */
@@ -17,9 +21,6 @@
 }
 @tailwind components;
 @tailwind utilities;
-
-/* PrimeNG theme overrides — imported after Tailwind so @layer directives work. */
-@import './theme/index.scss';
 
 @layer base {
   html {
