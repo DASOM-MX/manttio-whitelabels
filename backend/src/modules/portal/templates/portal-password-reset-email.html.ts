@@ -16,7 +16,10 @@ const escapeHtml = (s: string) =>
 
 export const portalPasswordResetEmailHtml = (
   resetUrl: string,
-  brandName?: string,
+  brandName: string | undefined,
+  // Brand primary, pre-resolved to a hex by the helper. Never a literal here —
+  // the CTA is the one coloured surface in this email and it is the tenant's.
+  accent: string,
 ): string => {
   const displayBrandName = brandName || 'Portal';
   const escapedBrandName = escapeHtml(displayBrandName);
@@ -62,7 +65,7 @@ export const portalPasswordResetEmailHtml = (
     .cta-button {
       display: inline-block;
       padding: 12px 24px;
-      background-color: #0066cc;
+      background-color: ${accent};
       color: #fff;
       text-decoration: none;
       border-radius: 4px;
@@ -101,25 +104,25 @@ export const portalPasswordResetEmailHtml = (
 <body>
   <div class="container">
     <div class="header">
-      <h1>Reset Your Password</h1>
+      <h1>Restablece tu contraseña</h1>
       <span class="brand-name">${escapedBrandName}</span>
     </div>
 
     <div class="content">
-      <p>Hello,</p>
+      <p>Hola,</p>
 
-      <p>We received a request to reset the password for your account. Click the button below to set a new password:</p>
+      <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta. Usa el botón para elegir una nueva:</p>
 
-      <a href="${resetUrl}" class="cta-button">Reset Password</a>
+      <a href="${escapedUrl}" class="cta-button">Restablecer contraseña</a>
 
-      <p>Or copy and paste this link into your browser:</p>
+      <p>O copia y pega este enlace en tu navegador:</p>
       <div class="reset-link">${escapedUrl}</div>
 
       <div class="warning">
-        <strong>This link expires in 1 hour.</strong> If you did not request a password reset, you can ignore this email. Your account remains secure.
+        <strong>Este enlace vence en 1 hora.</strong> Si no solicitaste el cambio, puedes ignorar este correo: tu cuenta sigue protegida.
       </div>
 
-      <p>If you have any questions, please contact our support team.</p>
+      <p>¿Tienes dudas? Responde a este correo y te ayudamos.</p>
     </div>
 
     <div class="footer">

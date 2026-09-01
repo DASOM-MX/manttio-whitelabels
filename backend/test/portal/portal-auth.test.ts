@@ -2,10 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { request, json, jsonHeaders, env } from '../helpers';
 import { seedPortalUser } from '../helpers/fixtures';
-import { mockTurnstile } from '../helpers/turnstile';
+import { mockTurnstile, setTurnstileVerdict } from '../helpers/turnstile';
+import { mockResend, lastResendSend } from '../helpers/resend';
 import { createDb } from '../../src/modules/database/client';
 import { portalUsers, portalPasswordResets } from '../../src/modules/database/schema';
 import { hashResetToken } from '../../src/modules/portal/utils/reset-token';
+import { PortalUserStatus } from '../../src/modules/portal/enums/portal-users.enum';
 
 type WorkerEnv = { DATABASE_URL: string };
 
@@ -15,6 +17,7 @@ type WorkerEnv = { DATABASE_URL: string };
 describe('portal auth', () => {
   // Mock Turnstile HTTP calls for the entire test suite.
   mockTurnstile();
+  mockResend();
   /**
    * A3 lockout: 5 failed attempts lock an account for 2 hours; the lock self-clears
    * after the window expires, and a correct password during lockout is still rejected.
@@ -34,7 +37,7 @@ describe('portal auth', () => {
       const res = await request('/portal/auth/login', {
         method: 'POST',
         headers: jsonHeaders(),
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, turnstileToken: 'tok-test' }),
       });
       return res;
     }
@@ -316,50 +319,10 @@ describe('portal auth', () => {
    * Reset throttle: max 3 unused live tokens per account, newest wins.
    */
   describe('reset throttle', () => {
-    it('enforces max 3 unused tokens per account', async () => {
-      const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
+    it('keeps exactly the 3 newest live tokens and prunes the rest', async () => {
       const user = await seedPortalUser();
 
-      // Create 4 unused reset tokens
-      const tokens = [];
-      for (let i = 0; i < 4; i++) {
-        const plainToken = `test-token-${i}-1234567890123456`;
-        const tokenHash = await hashResetToken(plainToken);
-        const now = new Date();
-        const expiresAt = new Date(now.getTime() + 60 * 60 * 1000);
-
-        const [reset] = await db
-          .insert(portalPasswordResets)
-          .values({
-            portalUserId: user.id,
-            tokenHash,
-            expiresAt,
-          })
-          .returning();
-
-        if (!reset) throw new Error('reset creation failed');
-        tokens.push({ id: reset.id, token: plainToken });
-      }
-
-      // The first one should be marked used (throttle keeps only 3 newest)
-      const allResets = await db
-        .select()
-        .from(portalPasswordResets)
-        .where(eq(portalPasswordResets.portalUserId, user.id));
-
-      const usedCount = allResets.filter((r) => r.usedAt).length;
-      const unusedCount = allResets.filter((r) => !r.usedAt).length;
-
-      // After creating 4, the oldest should be marked as used
-      // But pruning only happens on forgot-password, so here we have 4 unused
-      expect(allResets.length).toBe(4);
-    });
-
-    it('prunes old tokens when creating a new one', async () => {
-      const user = await seedPortalUser();
-
-      // Request forgot-password 4 times (this will trigger throttle)
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 5; i++) {
         const res = await request('/portal/auth/forgot-password', {
           method: 'POST',
           headers: jsonHeaders(),
@@ -368,15 +331,112 @@ describe('portal auth', () => {
         expect(res.status).toBe(204);
       }
 
-      // Verify only 3 unused tokens remain
       const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
       const resets = await db
         .select()
         .from(portalPasswordResets)
         .where(eq(portalPasswordResets.portalUserId, user.id));
 
-      const unusedResets = resets.filter((r) => !r.usedAt);
-      expect(unusedResets.length).toBeLessThanOrEqual(3);
+      expect(resets.length).toBe(5);
+
+      const live = resets.filter((r) => !r.usedAt);
+      // Exactly 3 — not "at most 3", which a prune that killed everything, or a
+      // create that silently inserted nothing, would also satisfy.
+      expect(live.length).toBe(3);
+
+      // And they must be the NEWEST three. Invert the sort in pruneOldResets and
+      // the just-mailed link is dead while a length-only assertion stays green.
+      const newestThree = [...resets]
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        .slice(0, 3)
+        .map((r) => r.id)
+        .sort();
+      expect(live.map((r) => r.id).sort()).toEqual(newestThree);
+    });
+
+    it('mails a working link: the token in the email is the one stored, hashed', async () => {
+      const user = await seedPortalUser();
+
+      const res = await request('/portal/auth/forgot-password', {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: JSON.stringify({ email: user.email, turnstileToken: 'tok-test' }),
+      });
+      expect(res.status).toBe(204);
+
+      // The link has been wrong twice: once aimed at a POST-only API route, once
+      // at a path that was being renamed. Both were green until someone clicked.
+      const sent = lastResendSend();
+      expect(sent).toBeTruthy();
+      expect(sent!.to).toBe(user.email);
+      const match = /https?:\/\/[^"'\s]*\/reset-password\?token=([A-Za-z0-9_-]+)/.exec(sent!.html ?? '');
+      expect(match).toBeTruthy();
+
+      // ...and that token must be the one whose hash is at rest, which is what
+      // makes the mailed link actually redeemable.
+      const mailedToken = decodeURIComponent(match![1]!);
+      const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
+      const [row] = await db
+        .select()
+        .from(portalPasswordResets)
+        .where(eq(portalPasswordResets.portalUserId, user.id));
+      expect(row!.tokenHash).toBe(await hashResetToken(mailedToken));
+
+      const used = await request('/portal/auth/reset-password', {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: JSON.stringify({ token: mailedToken, password: 'brand-new-passw0rd' }),
+      });
+      expect(used.status).toBe(200);
+    });
+
+    it('rejects login and forgot-password when Turnstile fails', async () => {
+      const user = await seedPortalUser();
+      setTurnstileVerdict(false);
+
+      const login = await request('/portal/auth/login', {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: JSON.stringify({ email: user.email, password: user.password, turnstileToken: 'tok-bad' }),
+      });
+      expect(login.status).toBe(403);
+
+      const forgot = await request('/portal/auth/forgot-password', {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: JSON.stringify({ email: user.email, turnstileToken: 'tok-bad' }),
+      });
+      expect(forgot.status).toBe(403);
+    });
+
+    it('refuses a reset to a suspended account and does not reactivate it', async () => {
+      const user = await seedPortalUser();
+      const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
+      await db
+        .update(portalUsers)
+        .set({ status: PortalUserStatus.Suspended })
+        .where(eq(portalUsers.id, user.id));
+
+      const forgot = await request('/portal/auth/forgot-password', {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: JSON.stringify({ email: user.email, turnstileToken: 'tok-test' }),
+      });
+      // Still 204 — saying "suspended" would confirm the address exists.
+      expect(forgot.status).toBe(204);
+
+      // But no token was minted, so there is nothing to redeem.
+      const rows = await db
+        .select()
+        .from(portalPasswordResets)
+        .where(eq(portalPasswordResets.portalUserId, user.id));
+      expect(rows.length).toBe(0);
+
+      const [after] = await db
+        .select()
+        .from(portalUsers)
+        .where(eq(portalUsers.id, user.id));
+      expect(after!.status).toBe(PortalUserStatus.Suspended);
     });
   });
 });

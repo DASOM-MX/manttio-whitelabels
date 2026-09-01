@@ -90,7 +90,17 @@ portalAuth.post('/forgot-password', zValidator('json', portalForgotPasswordSchem
   }
 
   const db = createDb(c.env.DATABASE_URL);
-  await portalForgotPassword(db, c.env, input);
+  // Hand the mail send to waitUntil so the response time does not depend on
+  // whether the address exists. `executionCtx` is absent outside the Workers
+  // runtime (the test harness), where awaiting is both fine and desirable.
+  let defer: ((work: Promise<unknown>) => void) | undefined;
+  try {
+    const ctx = c.executionCtx;
+    defer = (work) => ctx.waitUntil(work);
+  } catch {
+    defer = undefined;
+  }
+  await portalForgotPassword(db, c.env, input, defer);
 
   // Always 204, even for unknown addresses.
   return c.body(null, 204);

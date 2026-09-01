@@ -11,7 +11,7 @@ import {
 import {
   createPasswordReset,
   findPasswordResetByTokenHash,
-  markPasswordResetAsUsed,
+  consumePasswordReset,
   pruneOldResets,
 } from '../repository/portal-password-resets.repository';
 import { signPortalToken } from './portal-jwt.service';
@@ -133,12 +133,19 @@ export const portalForgotPassword = async (
   db: Db,
   env: Env,
   _input: PortalForgotPasswordInput,
+  defer?: (work: Promise<unknown>) => void,
 ): Promise<void> => {
   const { email } = _input;
 
   // Silently do nothing for unknown addresses — no enumeration.
   const user = await findPortalUserByEmail(db, email);
   if (!user) return;
+
+  // A suspended account gets no reset mail. `findPortalUserByEmail` filters only
+  // `deleted_at`, so without this a suspended user could mail themselves a token
+  // and walk back in through an unauthenticated route. Same silent 204 — saying
+  // "suspended" here would confirm the address exists.
+  if (user.status === PortalUserStatus.Suspended) return;
 
   // Generate token, hash it, store it.
   const plainToken = generateResetToken();
@@ -157,28 +164,37 @@ export const portalForgotPassword = async (
   // Build the reset URL: the portal app's /reset-password page (03 §4).
   const resetUrl = `${env.PORTAL_BASE_URL}/reset-password?token=${encodeURIComponent(plainToken)}`;
 
-  // Send the email.
-  try {
-    await sendEmail({
-      apiKey: env.RESEND_API_KEY,
-      from: brand.name ? `"${brand.name.replace(/"/g, "'")}" <${env.RESEND_FROM}>` : env.RESEND_FROM,
-      to: user.email,
-      replyTo: brand.contact?.email,
-      subject: renderPasswordResetEmailSubject(brand.name),
-      html: renderPasswordResetEmailHTML({
-        resetUrl,
-        brandName: brand.name,
-      }),
-      text: renderPasswordResetEmailText({
-        resetUrl,
-        brandName: brand.name,
-      }),
-    });
-  } catch {
-    // Email send failed — the reset row exists but was never mailed.
-    // This is acceptable: the user can try again, or contact support.
-    // We do not re-throw so the response is still 204.
-  }
+  // Send the email. Deferred off the request path when the caller supplies a
+  // `defer` (the Worker's executionCtx.waitUntil): an awaited Resend round trip
+  // makes the known-address path hundreds of milliseconds slower than the
+  // unknown one, which is an enumeration oracle the identical 204 body does not
+  // close. Tests pass no `defer`, so the send stays awaited and assertable.
+  const send = async () => {
+    try {
+      await sendEmail({
+        apiKey: env.RESEND_API_KEY,
+        from: brand.name ? `"${brand.name.replace(/"/g, "'")}" <${env.RESEND_FROM}>` : env.RESEND_FROM,
+        to: user.email,
+        replyTo: brand.contact?.email,
+        subject: renderPasswordResetEmailSubject(brand.name),
+        html: renderPasswordResetEmailHTML({
+          resetUrl,
+          brandName: brand.name,
+          colors: brand.colors,
+        }),
+        text: renderPasswordResetEmailText({
+          resetUrl,
+          brandName: brand.name,
+        }),
+      });
+    } catch {
+      // Email send failed — the reset row exists but was never mailed. The user
+      // can try again; we never re-throw, so the response stays 204 either way.
+    }
+  };
+
+  if (defer) defer(send());
+  else await send();
 };
 
 /**
@@ -190,22 +206,35 @@ export const portalResetPassword = async (
   db: Db,
   token: string,
   password: string,
-): Promise<boolean | null> => {
+): Promise<boolean> => {
   // Hash the provided token and look it up.
   const tokenHash = await hashResetToken(token);
   const reset = await findPasswordResetByTokenHash(db, tokenHash);
 
-  if (!reset) return null; // Invalid, expired, or already used.
+  if (!reset) return false; // Invalid, expired, or already used.
 
-  // Hash the new password.
+  // Hash outside the transaction — argon/bcrypt work is slow and holding a row
+  // lock across it would serialise unrelated resets.
   const passwordHash = await hashPassword(password);
 
-  // Update the portal user: set password, clear must_change_password, flip to active.
-  const updated = await updatePortalUserPassword(db, reset.portalUserId, passwordHash);
-  if (!updated) return null;
+  return db.transaction(async (tx) => {
+    // Consume FIRST. The conditional update is the concurrency guard: of two
+    // requests carrying the same token, exactly one gets a row, and the loser
+    // leaves the password untouched. Doing this after the password write would
+    // let both succeed, and an isolate death between the two statements would
+    // leave a live token against an already-changed password.
+    const consumed = await consumePasswordReset(tx, reset.id);
+    if (!consumed) return false;
 
-  // Mark the reset as used (consumed).
-  await markPasswordResetAsUsed(db, reset.id);
+    // Refuses a suspended or soft-deleted account (see the repository).
+    const updated = await updatePortalUserPassword(tx, reset.portalUserId, passwordHash);
+    if (!updated) {
+      // Roll the consumption back with the write — a token burned against an
+      // account that could not accept it would strand the user.
+      tx.rollback();
+      return false;
+    }
 
-  return true;
+    return true;
+  });
 };

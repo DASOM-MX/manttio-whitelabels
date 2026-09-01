@@ -1,5 +1,5 @@
 import { isNull, eq, and, gt, inArray } from 'drizzle-orm';
-import type { Db } from '../../database/client';
+import type { Db, DbOrTx } from '../../database/client';
 import { portalPasswordResets } from '../models/portal-password-resets.model';
 
 /**
@@ -47,18 +47,30 @@ export async function findPasswordResetByTokenHash(db: Db, tokenHash: string) {
 }
 
 /**
- * Mark a password reset as used (consumed).
+ * Consume a reset token — stamp `used_at`, but only while it is still unused
+ * and unexpired.
+ *
+ * The `used_at IS NULL` predicate is the concurrency guard: two requests
+ * carrying the same token race on this single statement and exactly one gets a
+ * row back. That is why the caller consumes *before* writing the password —
+ * the loser stops with the password unchanged, rather than both succeeding.
+ *
+ * `usedAt` means invalidated: either consumed here, or superseded by a newer
+ * token from the same account (throttle). There is no column separating the
+ * two and adding one would need a migration.
  */
-export async function markPasswordResetAsUsed(db: Db, resetId: string) {
+export async function consumePasswordReset(db: DbOrTx, resetId: string) {
   const now = new Date();
   const [row] = await db
     .update(portalPasswordResets)
-    .set({
-      // usedAt marks this token as invalidated — either consumed by the user or
-      // superseded by a newer token from the same account (throttle enforcement).
-      usedAt: now,
-    })
-    .where(eq(portalPasswordResets.id, resetId))
+    .set({ usedAt: now })
+    .where(
+      and(
+        eq(portalPasswordResets.id, resetId),
+        isNull(portalPasswordResets.usedAt),
+        gt(portalPasswordResets.expiresAt, now),
+      ),
+    )
     .returning();
 
   return row ?? null;
