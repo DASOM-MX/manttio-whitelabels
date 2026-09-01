@@ -1,4 +1,4 @@
-import { date, index, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { date, index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { customers } from '../../customers/models/customers.model';
 import { customerContacts } from '../../customers/models/customer-contacts.model';
 import { equipment } from '../../equipment/models/equipment.model';
@@ -55,6 +55,9 @@ export const serviceRequests = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
+    // The folio is the handle a customer quotes on the phone — it must resolve
+    // to one request. No soft delete here, so no predicate.
+    uniqueIndex('service_requests_folio_uidx').on(table.folio),
     // The portal list is always "this customer's requests, newest first".
     index('service_requests_customer_idx').on(table.customerId, table.createdAt),
     // The staff triage queue filters by status.

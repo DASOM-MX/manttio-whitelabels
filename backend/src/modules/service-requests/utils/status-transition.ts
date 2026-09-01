@@ -1,26 +1,12 @@
 import { ServiceRequestStatus } from '../enums/service-requests.enum';
 
-/**
- * Determine whether a status transition is valid (client-portal 01 §4).
- * Transitions are enforced server-side, not just in the UI.
- *
- * Transition table:
- * - submitted → in_review | rejected
- * - in_review → needs_info | approved | rejected
- * - needs_info → in_review (client answers)
- * - approved → stays open (not terminal)
- * - * (non-terminal) → closed (portal admin only)
- * - rejected / closed are terminal
- *
- * @param currentStatus The current status
- * @param nextStatus The proposed status
- * @param isAdmin Whether the actor is a portal admin (only they can close)
- * @returns true if the transition is allowed
- */
+// Status transitions, enforced server-side (01 §4). `approved` is non-terminal;
+// `closed` is a portal-admin-only move from any live state; `rejected` and
+// `closed` are terminal. `isAdmin` means portal admin, not staff.
 export function isValidStatusTransition(
   currentStatus: ServiceRequestStatus,
   nextStatus: ServiceRequestStatus,
-  isAdmin: boolean = false,
+  isAdmin: boolean,
 ): boolean {
   // Terminal states cannot transition.
   const isTerminal =
@@ -34,10 +20,7 @@ export function isValidStatusTransition(
     return isAdmin;
   }
 
-  // State machine transitions for non-terminal states.
-  const currentStatusAsString = currentStatus as string;
-
-  switch (currentStatusAsString) {
+  switch (currentStatus) {
     case ServiceRequestStatus.Submitted:
       return nextStatus === ServiceRequestStatus.InReview || nextStatus === ServiceRequestStatus.Rejected;
 
@@ -56,7 +39,6 @@ export function isValidStatusTransition(
       return false;
 
     default:
-      // This catches terminal states, which we already checked above.
       return false;
   }
 }

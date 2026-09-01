@@ -5,13 +5,13 @@ import { isValidStatusTransition } from '../src/modules/service-requests/utils/s
 describe('Service Request Status Transition Guard', () => {
   describe('submitted state', () => {
     it('allows transition from submitted to in_review', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.Submitted, ServiceRequestStatus.InReview)).toBe(
+      expect(isValidStatusTransition(ServiceRequestStatus.Submitted, ServiceRequestStatus.InReview, false)).toBe(
         true,
       );
     });
 
     it('allows transition from submitted to rejected', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.Submitted, ServiceRequestStatus.Rejected)).toBe(
+      expect(isValidStatusTransition(ServiceRequestStatus.Submitted, ServiceRequestStatus.Rejected, false)).toBe(
         true,
       );
     });
@@ -29,19 +29,19 @@ describe('Service Request Status Transition Guard', () => {
     });
 
     it('rejects transition from submitted to needs_info', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.Submitted, ServiceRequestStatus.NeedsInfo)).toBe(
+      expect(isValidStatusTransition(ServiceRequestStatus.Submitted, ServiceRequestStatus.NeedsInfo, false)).toBe(
         false,
       );
     });
 
     it('rejects transition from submitted to approved', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.Submitted, ServiceRequestStatus.Approved)).toBe(
+      expect(isValidStatusTransition(ServiceRequestStatus.Submitted, ServiceRequestStatus.Approved, false)).toBe(
         false,
       );
     });
 
     it('rejects transition from submitted to submitted', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.Submitted, ServiceRequestStatus.Submitted)).toBe(
+      expect(isValidStatusTransition(ServiceRequestStatus.Submitted, ServiceRequestStatus.Submitted, false)).toBe(
         false,
       );
     });
@@ -49,15 +49,15 @@ describe('Service Request Status Transition Guard', () => {
 
   describe('in_review state', () => {
     it('allows transition from in_review to needs_info', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.InReview, ServiceRequestStatus.NeedsInfo)).toBe(true);
+      expect(isValidStatusTransition(ServiceRequestStatus.InReview, ServiceRequestStatus.NeedsInfo, false)).toBe(true);
     });
 
     it('allows transition from in_review to approved', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.InReview, ServiceRequestStatus.Approved)).toBe(true);
+      expect(isValidStatusTransition(ServiceRequestStatus.InReview, ServiceRequestStatus.Approved, false)).toBe(true);
     });
 
     it('allows transition from in_review to rejected', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.InReview, ServiceRequestStatus.Rejected)).toBe(true);
+      expect(isValidStatusTransition(ServiceRequestStatus.InReview, ServiceRequestStatus.Rejected, false)).toBe(true);
     });
 
     it('allows transition from in_review to closed (admin only)', () => {
@@ -71,17 +71,17 @@ describe('Service Request Status Transition Guard', () => {
     });
 
     it('rejects transition from in_review to submitted', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.InReview, ServiceRequestStatus.Submitted)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.InReview, ServiceRequestStatus.Submitted, false)).toBe(false);
     });
 
     it('rejects transition from in_review to in_review', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.InReview, ServiceRequestStatus.InReview)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.InReview, ServiceRequestStatus.InReview, false)).toBe(false);
     });
   });
 
   describe('needs_info state', () => {
     it('allows transition from needs_info to in_review (client answers)', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.NeedsInfo, ServiceRequestStatus.InReview)).toBe(true);
+      expect(isValidStatusTransition(ServiceRequestStatus.NeedsInfo, ServiceRequestStatus.InReview, false)).toBe(true);
     });
 
     it('allows transition from needs_info to closed (admin only)', () => {
@@ -95,29 +95,29 @@ describe('Service Request Status Transition Guard', () => {
     });
 
     it('rejects transition from needs_info to approved', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.NeedsInfo, ServiceRequestStatus.Approved)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.NeedsInfo, ServiceRequestStatus.Approved, false)).toBe(false);
     });
 
     it('rejects transition from needs_info to rejected', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.NeedsInfo, ServiceRequestStatus.Rejected)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.NeedsInfo, ServiceRequestStatus.Rejected, false)).toBe(false);
     });
 
     it('rejects transition from needs_info to needs_info', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.NeedsInfo, ServiceRequestStatus.NeedsInfo)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.NeedsInfo, ServiceRequestStatus.NeedsInfo, false)).toBe(false);
     });
 
     it('rejects transition from needs_info to submitted', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.NeedsInfo, ServiceRequestStatus.Submitted)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.NeedsInfo, ServiceRequestStatus.Submitted, false)).toBe(false);
     });
   });
 
   describe('approved state (non-terminal)', () => {
     it('rejects any non-close transition from approved', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.Approved, ServiceRequestStatus.InReview)).toBe(false);
-      expect(isValidStatusTransition(ServiceRequestStatus.Approved, ServiceRequestStatus.NeedsInfo)).toBe(false);
-      expect(isValidStatusTransition(ServiceRequestStatus.Approved, ServiceRequestStatus.Rejected)).toBe(false);
-      expect(isValidStatusTransition(ServiceRequestStatus.Approved, ServiceRequestStatus.Submitted)).toBe(false);
-      expect(isValidStatusTransition(ServiceRequestStatus.Approved, ServiceRequestStatus.Approved)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.Approved, ServiceRequestStatus.InReview, false)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.Approved, ServiceRequestStatus.NeedsInfo, false)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.Approved, ServiceRequestStatus.Rejected, false)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.Approved, ServiceRequestStatus.Submitted, false)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.Approved, ServiceRequestStatus.Approved, false)).toBe(false);
     });
 
     it('allows transition from approved to closed (admin only)', () => {
@@ -138,11 +138,11 @@ describe('Service Request Status Transition Guard', () => {
 
   describe('rejected state (terminal)', () => {
     it('rejects all transitions from rejected', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.Rejected, ServiceRequestStatus.Submitted)).toBe(false);
-      expect(isValidStatusTransition(ServiceRequestStatus.Rejected, ServiceRequestStatus.InReview)).toBe(false);
-      expect(isValidStatusTransition(ServiceRequestStatus.Rejected, ServiceRequestStatus.NeedsInfo)).toBe(false);
-      expect(isValidStatusTransition(ServiceRequestStatus.Rejected, ServiceRequestStatus.Approved)).toBe(false);
-      expect(isValidStatusTransition(ServiceRequestStatus.Rejected, ServiceRequestStatus.Rejected)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.Rejected, ServiceRequestStatus.Submitted, false)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.Rejected, ServiceRequestStatus.InReview, false)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.Rejected, ServiceRequestStatus.NeedsInfo, false)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.Rejected, ServiceRequestStatus.Approved, false)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.Rejected, ServiceRequestStatus.Rejected, false)).toBe(false);
     });
 
     it('rejects transition from rejected to closed even for admin', () => {
@@ -152,11 +152,11 @@ describe('Service Request Status Transition Guard', () => {
 
   describe('closed state (terminal)', () => {
     it('rejects all transitions from closed', () => {
-      expect(isValidStatusTransition(ServiceRequestStatus.Closed, ServiceRequestStatus.Submitted)).toBe(false);
-      expect(isValidStatusTransition(ServiceRequestStatus.Closed, ServiceRequestStatus.InReview)).toBe(false);
-      expect(isValidStatusTransition(ServiceRequestStatus.Closed, ServiceRequestStatus.NeedsInfo)).toBe(false);
-      expect(isValidStatusTransition(ServiceRequestStatus.Closed, ServiceRequestStatus.Approved)).toBe(false);
-      expect(isValidStatusTransition(ServiceRequestStatus.Closed, ServiceRequestStatus.Rejected)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.Closed, ServiceRequestStatus.Submitted, false)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.Closed, ServiceRequestStatus.InReview, false)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.Closed, ServiceRequestStatus.NeedsInfo, false)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.Closed, ServiceRequestStatus.Approved, false)).toBe(false);
+      expect(isValidStatusTransition(ServiceRequestStatus.Closed, ServiceRequestStatus.Rejected, false)).toBe(false);
     });
 
     it('rejects transition from closed to closed even for admin', () => {
@@ -196,8 +196,8 @@ describe('Service Request Status Transition Guard', () => {
         true,
       );
       const approvedCannotDieToDirect =
-        !isValidStatusTransition(ServiceRequestStatus.Approved, ServiceRequestStatus.Rejected) &&
-        !isValidStatusTransition(ServiceRequestStatus.Approved, ServiceRequestStatus.Submitted);
+        !isValidStatusTransition(ServiceRequestStatus.Approved, ServiceRequestStatus.Rejected, false) &&
+        !isValidStatusTransition(ServiceRequestStatus.Approved, ServiceRequestStatus.Submitted, false);
       expect(approvedCanReachClosed).toBe(true);
       expect(approvedCannotDieToDirect).toBe(true);
     });
@@ -220,13 +220,13 @@ describe('Service Request Status Transition Guard', () => {
     it('verified: every rejected transition is actually rejected', () => {
       // Sample of rejected transitions that should never work.
       const rejected = [
-        isValidStatusTransition(ServiceRequestStatus.Submitted, ServiceRequestStatus.Approved),
-        isValidStatusTransition(ServiceRequestStatus.Submitted, ServiceRequestStatus.NeedsInfo),
-        isValidStatusTransition(ServiceRequestStatus.InReview, ServiceRequestStatus.Submitted),
-        isValidStatusTransition(ServiceRequestStatus.NeedsInfo, ServiceRequestStatus.Approved),
-        isValidStatusTransition(ServiceRequestStatus.Approved, ServiceRequestStatus.InReview),
-        isValidStatusTransition(ServiceRequestStatus.Rejected, ServiceRequestStatus.InReview),
-        isValidStatusTransition(ServiceRequestStatus.Closed, ServiceRequestStatus.Submitted),
+        isValidStatusTransition(ServiceRequestStatus.Submitted, ServiceRequestStatus.Approved, false),
+        isValidStatusTransition(ServiceRequestStatus.Submitted, ServiceRequestStatus.NeedsInfo, false),
+        isValidStatusTransition(ServiceRequestStatus.InReview, ServiceRequestStatus.Submitted, false),
+        isValidStatusTransition(ServiceRequestStatus.NeedsInfo, ServiceRequestStatus.Approved, false),
+        isValidStatusTransition(ServiceRequestStatus.Approved, ServiceRequestStatus.InReview, false),
+        isValidStatusTransition(ServiceRequestStatus.Rejected, ServiceRequestStatus.InReview, false),
+        isValidStatusTransition(ServiceRequestStatus.Closed, ServiceRequestStatus.Submitted, false),
       ];
       expect(rejected).not.toContain(true);
       expect(rejected.every((r) => r === false)).toBe(true);

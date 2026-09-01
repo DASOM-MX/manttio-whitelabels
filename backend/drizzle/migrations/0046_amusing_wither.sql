@@ -80,6 +80,7 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "service_request_events_request_idx" ON "service_request_events" USING btree ("service_request_id","seq");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "service_requests_folio_uidx" ON "service_requests" USING btree ("folio");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "service_requests_customer_idx" ON "service_requests" USING btree ("customer_id","created_at");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "service_requests_status_idx" ON "service_requests" USING btree ("status","created_at");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "service_requests_equipment_idx" ON "service_requests" USING btree ("equipment_id");

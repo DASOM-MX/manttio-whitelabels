@@ -1,5 +1,5 @@
 {
-  "id": "6cadea4e-acd1-4bdf-9517-5b91615835f7",
+  "id": "73d89032-2703-4c13-a6b6-47ae503cff48",
   "prevId": "49acd8dc-60a6-4584-a551-e866c04f641c",
   "version": "7",
   "dialect": "postgresql",
@@ -6775,6 +6775,21 @@
         }
       },
       "indexes": {
+        "service_requests_folio_uidx": {
+          "name": "service_requests_folio_uidx",
+          "columns": [
+            {
+              "expression": "folio",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "service_requests_customer_idx": {
           "name": "service_requests_customer_idx",
           "columns": [
