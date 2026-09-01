@@ -4,14 +4,8 @@ import { users } from '../../users/models/users.model';
 import { customerContacts } from '../../customers/models/customer-contacts.model';
 import type { ReportEventType } from '../enums/reports.enum';
 
-// The report's own append-only timeline — modelled column-for-column on
-// `quotation_events` (01 CP-5 §6d). Append-only: no updates, no deletes, ever.
-// That is what makes it evidence rather than a status mirror — the trail shows
-// the full history and the sequence is the thing you need when a client
-// disputes what was served.
-//
-// `report_id` is **text**, not uuid — reports are keyed by their `R-YYYYMMDD-NNNN`
-// folio, the same reason `service_order_events.refId` is text.
+// The report's own append-only timeline (01 §6d) — no updates, no deletes.
+// `report_id` is text, not uuid: reports are keyed by their folio.
 export const reportEvents = pgTable(
   'report_events',
   {
