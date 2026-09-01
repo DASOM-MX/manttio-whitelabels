@@ -1,0 +1,43 @@
+/* Self-hosted fonts — Figtree Variable + Work Sans Variable for numerics. */
+@import '@fontsource-variable/figtree';
+@import '@fontsource-variable/work-sans';
+
+/* Motion tokens + keyframes */
+@import './animations.scss';
+
+/* PrimeNG theme overrides */
+@import './theme/index.scss';
+
+/* Client Portal global styles — copied from superadmin (plan 03 CP-1).
+   Soft-executive scale: Figtree, floating shadow-card surfaces, Lucide icons,
+   soft-outlined inputs, semantic color scales. */
+
+/* Tailwind + PrimeNG layer order */
+@layer tailwind-base, primeng;
+
+@layer tailwind-base {
+  @tailwind base;
+}
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply h-full antialiased;
+  }
+  body {
+    @apply h-full bg-background text-base font-semibold text-surface-1000 dark:bg-surface-1000 dark:text-surface-0;
+  }
+  app-root {
+    @apply block h-full;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary-600/70 ring-offset-2 ring-offset-background
+           dark:ring-primary-400/70 dark:ring-offset-surface-1000;
+  }
+}
+
+.p-icon {
+  @apply size-4 inline-block;
+}
