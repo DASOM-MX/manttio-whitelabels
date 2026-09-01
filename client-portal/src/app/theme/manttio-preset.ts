@@ -72,8 +72,9 @@ const surface = {
 /* Preset-first chrome (plan 17, owner 2026-07-22): component shape/spacing
  * decisions live HERE as design tokens, not in override sheets — a value we
  * would have put in a sheet goes in a token whenever Aura exposes one. The
- * `src/theme/index.scss` imports this preset and provides layout-integration
- * rules and house visual cues no token can express. */
+ * `src/theme/index.scss` (imported by `styles.css`, not by this file) is the
+ * sheet-level escape hatch for what no token can express. It is empty as of
+ * CP-1 — every decision so far fits in a token, which is the point. */
 export const ManttioPreset = definePreset(Aura, {
   semantic: {
     primary: brandScale('primary', 220, 10),
