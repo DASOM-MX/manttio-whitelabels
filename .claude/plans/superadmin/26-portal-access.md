@@ -119,6 +119,13 @@ invitación", not "read me the password".
 ## 7. Checkpoints
 
 - [ ] **CP-1** — nav entry + tenant-wide list with URL filters + status/grant chips.
+      Backend `GET /portal-users` shipped with client-portal 02 CP-4 — paged
+      `GenericQueryResponse<PortalUserListItem>`, filters for customer/status/grant/search,
+      customer + inviter joined, live grants attached, `locked_until` nulled once lapsed.
+      **Owner-only** (owner 2026-09-01), unlike the rest of the module's endpoints, which
+      are ADMIN_TIER — the roster of every external person with access to the tenant's
+      documents is held closer than the per-user actions. The page must therefore be
+      reachable only by owners; an admin gets 403.
 - [ ] **CP-2** — invite dialog in this module only, with the customer + contact picker (§2).
       No entry point in the customers editor — decision 27.
 - [ ] **CP-3** — grants editor with the dependency rule + revocation history preserved, plus

@@ -1,9 +1,10 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
-import type { AppBindings } from '../../../env';
+import type { AppBindings, AuthUser } from '../../../env';
 import { createDb } from '../../database/client';
 import { requireRole } from '../../auth/middleware/roles.middleware';
+import { listPortalUsersQuerySchema } from '../validators/portal-users-query.validator';
 import { ADMIN_TIER } from '../../auth/utils/role-tier';
 import {
   invitePortalUserSchema,
@@ -11,6 +12,7 @@ import {
   deletePortalUserSchema,
 } from '../validators/portal-users.validator';
 import {
+  listPortalUsers,
   invitePortalUser,
   updatePortalUserGrants,
   suspendPortalUser,
@@ -24,6 +26,10 @@ import {
   PortalUserNotFoundError,
 } from '../services/portal-users.service';
 
+// The roster read is owner-only — narrower than the ADMIN_TIER gate every other
+// route on this controller uses. See the GET handler for why.
+const OWNER_ONLY: AuthUser['role'][] = ['owner'];
+
 export const portalUsers = new Hono<AppBindings>();
 
 const idSchema = z.string().uuid();
@@ -33,6 +39,25 @@ const idSchema = z.string().uuid();
  * Staff-only. Creates portal_users row, grants rows, and sends invite email.
  * The temp password is sent via email only, never in the response.
  */
+/**
+ * GET /portal-users — tenant-wide portal-access list (superadmin 26 §1).
+ *
+ * **Owner only**, deliberately narrower than the rest of this controller. Every
+ * other route here acts on one portal user you already navigated to; this one
+ * enumerates every external person with access to the tenant's documents, in a
+ * single readable page, across all customers. That roster is the thing an
+ * owner wants held closest.
+ */
+portalUsers.get(
+  '/',
+  requireRole(OWNER_ONLY),
+  zValidator('query', listPortalUsersQuerySchema),
+  async (c) => {
+    const db = createDb(c.env.DATABASE_URL);
+    return c.json(await listPortalUsers(db, c.req.valid('query')));
+  },
+);
+
 portalUsers.post('/', requireRole(ADMIN_TIER), zValidator('json', invitePortalUserSchema), async (c) => {
   const actor = c.get('user');
   const db = createDb(c.env.DATABASE_URL);

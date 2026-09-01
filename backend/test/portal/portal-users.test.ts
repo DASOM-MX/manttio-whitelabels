@@ -5,6 +5,7 @@ import { createDb } from '../../src/modules/database/client';
 import { portalUsers, portalUserGrants } from '../../src/modules/database/schema';
 import {
   seedAdminAndLogin,
+  seedOwnerAndLogin,
   seedCustomer,
   seedContact,
   seedTechnician,
@@ -456,6 +457,131 @@ describe('Portal Users (Staff) — CP-4', () => {
       });
 
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe('GET /portal-users (tenant-wide list)', () => {
+    it('is owner-only: an admin gets 403 where an owner gets 200', async () => {
+      // Deliberately narrower than the rest of this controller. If the gate is
+      // widened to ADMIN_TIER this test goes red, which is the point — the
+      // asymmetry is a decision, not an oversight.
+      const admin = await request('/portal-users?page=1&limit=20', {
+        headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+      });
+      expect(admin.status).toBe(403);
+
+      const { token: ownerToken } = await seedOwnerAndLogin();
+      const owner = await request('/portal-users?page=1&limit=20', {
+        headers: { ...jsonHeaders(), authorization: `Bearer ${ownerToken}` },
+      });
+      expect(owner.status).toBe(200);
+    });
+
+    it('returns the invited user with its customer, grants and inviter joined', async () => {
+      const { token: ownerToken } = await seedOwnerAndLogin();
+      const contact = await seedContact(customerId);
+
+      const invited = await request('/portal-users', {
+        method: 'POST',
+        headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({
+          contactId: contact.id,
+          grants: ['view_reports', 'view_quotations'],
+          isAdmin: true,
+        }),
+      });
+      expect(invited.status).toBe(201);
+
+      const res = await request(
+        `/portal-users?page=1&limit=50&customerId=${customerId}`,
+        { headers: { ...jsonHeaders(), authorization: `Bearer ${ownerToken}` } },
+      );
+      expect(res.status).toBe(200);
+      const body = await json<{ items: any[]; total: number; page: number; limit: number }>(res);
+
+      const row = body.items.find((i) => i.email === contact.email);
+      expect(row).toBeTruthy();
+      // The joins are the reason this endpoint exists rather than a raw select.
+      expect(row.customerName).toBeTruthy();
+      expect(row.invitedByName).toBeTruthy();
+      expect(row.grants.sort()).toEqual(['view_quotations', 'view_reports']);
+      expect(row.isAdmin).toBe(true);
+      expect(row.status).toBe('invited');
+      // An invite nobody has used yet — 26 §1 calls this the row that matters.
+      expect(row.lastLoginAt).toBeNull();
+
+      // Never on a list page, whatever the row type says.
+      expect(row.passwordHash).toBeUndefined();
+      expect(row.mustChangePassword).toBeUndefined();
+      expect(row.failedLoginAttempts).toBeUndefined();
+      expect(row.deletedAt).toBeUndefined();
+    });
+
+    it('counts every match, not just the page it returned', async () => {
+      const { token: ownerToken } = await seedOwnerAndLogin();
+      const customer = await seedCustomer();
+      for (let i = 0; i < 3; i++) {
+        const c = await seedContact(customer.id);
+        await request('/portal-users', {
+          method: 'POST',
+          headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+          body: JSON.stringify({ contactId: c.id, grants: ['view_reports'], isAdmin: false }),
+        });
+      }
+
+      const res = await request(
+        `/portal-users?page=1&limit=2&customerId=${customer.id}`,
+        { headers: { ...jsonHeaders(), authorization: `Bearer ${ownerToken}` } },
+      );
+      const body = await json<{ items: any[]; total: number }>(res);
+
+      // total is the filter's count; items is one page of it. Returning
+      // items.length here is the exact defect GenericQueryResponse exists to
+      // stop, and it would be invisible with a limit above the row count.
+      expect(body.items.length).toBe(2);
+      expect(body.total).toBe(3);
+    });
+
+    it('filters by grant, excluding users who lack it', async () => {
+      const { token: ownerToken } = await seedOwnerAndLogin();
+      const customer = await seedCustomer();
+      const withGrant = await seedContact(customer.id);
+      const without = await seedContact(customer.id);
+
+      for (const [contact, grants] of [
+        [withGrant, ['view_contracts']],
+        [without, ['view_reports']],
+      ] as const) {
+        await request('/portal-users', {
+          method: 'POST',
+          headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+          body: JSON.stringify({ contactId: contact.id, grants, isAdmin: false }),
+        });
+      }
+
+      const res = await request(
+        `/portal-users?page=1&limit=50&customerId=${customer.id}&grant=view_contracts`,
+        { headers: { ...jsonHeaders(), authorization: `Bearer ${ownerToken}` } },
+      );
+      const body = await json<{ items: any[]; total: number }>(res);
+
+      expect(body.items.map((i) => i.email)).toEqual([withGrant.email]);
+      expect(body.total).toBe(1);
+    });
+
+    it('rejects approve_quotations without view_quotations', async () => {
+      const contact = await seedContact(customerId);
+      const res = await request('/portal-users', {
+        method: 'POST',
+        headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({
+          contactId: contact.id,
+          grants: ['approve_quotations'],
+          isAdmin: false,
+        }),
+      });
+      // 01 §3: approving a document you cannot open is not a state we represent.
+      expect(res.status).toBe(400);
     });
   });
 });

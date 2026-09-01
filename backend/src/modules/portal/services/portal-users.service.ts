@@ -4,6 +4,9 @@ import type { PortalGrant } from '../enums/portal-grants.enum';
 import { PortalUserStatus } from '../enums/portal-users.enum';
 import { hashPassword } from '../../auth/services/password.service';
 import { isUniqueViolation } from '../../database/db-errors';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
+import type { PortalUserListItem } from '../dtos/portal-user-list.dto';
+import type { ListPortalUsersQuery } from '../validators/portal-users-query.validator';
 // CSPRNG-backed and unbiased (nanoid customAlphabet), and already the temp
 // password every staff-created user gets. A portal credential is not the place
 // for a second, weaker generator.
@@ -18,6 +21,7 @@ import {
   revokePortalUserGrant,
   softDeletePortalUser,
   findPortalUserByContactId,
+  listPortalUsersPaged,
 } from '../repository/portal-users.repository';
 import { findContactById } from '../../customers/repository/customers.repository';
 import { sendPortalUserInviteEmail, sendPortalPasswordResetEmail } from '../helpers/portal-email.helpers';
@@ -241,5 +245,46 @@ export async function getPortalUserForAdmin(
     status: user.status,
     isAdmin: user.isAdmin,
     grants: grants.map((g) => g.grant as PortalGrant),
+  };
+}
+
+/**
+ * Tenant-wide portal-user list for superadmin 26 §1.
+ *
+ * Maps the repository row to the wire DTO by explicit field selection — never a
+ * spread of the row. `password_hash`, `must_change_password`, `failed_login_
+ * attempts` and the soft-delete audit columns all live on that row and none of
+ * them belong on a list page.
+ *
+ * `lockedUntil` is nulled once it lapses: a past timestamp is not "locked", and
+ * sending one would have every client re-implement the same comparison.
+ */
+export async function listPortalUsers(
+  db: Db,
+  query: ListPortalUsersQuery,
+): Promise<GenericQueryResponse<PortalUserListItem>> {
+  const result = await listPortalUsersPaged(db, query);
+  const now = Date.now();
+
+  return {
+    ...result,
+    items: result.items.map((row) => ({
+      id: row.id,
+      name: row.name,
+      paternalLastName: row.paternalLastName,
+      maternalLastName: row.maternalLastName,
+      email: row.email,
+      role: row.role,
+      status: row.status,
+      isAdmin: row.isAdmin,
+      customerId: row.customerId,
+      customerName: row.customerName,
+      grants: row.grants,
+      lastLoginAt: row.lastLoginAt?.toISOString() ?? null,
+      invitedByName: row.invitedByName,
+      lockedUntil:
+        row.lockedUntil && row.lockedUntil.getTime() > now ? row.lockedUntil.toISOString() : null,
+      createdAt: row.createdAt.toISOString(),
+    })),
   };
 }

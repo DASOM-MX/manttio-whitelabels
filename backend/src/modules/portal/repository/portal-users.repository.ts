@@ -1,10 +1,14 @@
-import { isNull, eq, and, ne, sql } from 'drizzle-orm';
+import { isNull, eq, and, ne, or, desc, ilike, inArray, sql } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import type { Db, DbOrTx } from '../../database/client';
 import { portalUsers } from '../models/portal-users.model';
 import { portalUserGrants } from '../models/portal-user-grants.model';
 import { PortalUserStatus } from '../enums/portal-users.enum';
 import { PortalGrant } from '../enums/portal-grants.enum';
-import type { NewPortalUser } from '../types/portal.types';
+import type { NewPortalUser, PortalUserListRow } from '../types/portal.types';
+import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
+import { customers } from '../../customers/models/customers.model';
+import { users } from '../../users/models/users.model';
 
 /**
  * Find a portal user by email, filtering out soft-deleted rows.
@@ -353,4 +357,102 @@ export async function softDeletePortalUser(
     .returning();
 
   return updated[0] ?? null;
+}
+
+/**
+ * Tenant-wide paged list for superadmin 26 §1.
+ *
+ * Two rounds on purpose: the page of users, then their live grants in one
+ * `inArray` read. Joining grants into the main query would multiply rows per
+ * grant and make `LIMIT` mean something other than "20 users", which is the
+ * classic way a paged list quietly returns 6 people on a page of 20.
+ *
+ * `total` is a `count(*)` over the same filter — never `items.length`, which is
+ * only ever the size of the current page.
+ */
+export async function listPortalUsersPaged(
+  db: Db,
+  query: {
+    page: number;
+    limit: number;
+    search?: string;
+    status?: PortalUserStatus;
+    customerId?: string;
+    grant?: PortalGrant;
+  },
+): Promise<GenericQueryResponse<PortalUserListRow>> {
+  const filters: SQL[] = [isNull(portalUsers.deletedAt)];
+  if (query.status) filters.push(eq(portalUsers.status, query.status));
+  if (query.customerId) filters.push(eq(portalUsers.customerId, query.customerId));
+  if (query.search) {
+    const term = `%${query.search}%`;
+    const match = or(
+      ilike(portalUsers.name, term),
+      ilike(portalUsers.paternalLastName, term),
+      ilike(portalUsers.maternalLastName, term),
+      ilike(portalUsers.email, term),
+    );
+    if (match) filters.push(match);
+  }
+  if (query.grant) {
+    // EXISTS rather than a join: the row must hold the grant, but we still want
+    // one row per user and all of their grants attached below.
+    filters.push(
+      sql`exists (
+        select 1 from ${portalUserGrants} g
+        where g.portal_user_id = ${portalUsers.id}
+          and g.grant = ${query.grant}
+          and g.revoked_at is null
+      )`,
+    );
+  }
+  const where = and(...filters);
+
+  const rows = await db
+    .select({
+      user: portalUsers,
+      customerName: customers.name,
+      invitedByName: users.name,
+    })
+    .from(portalUsers)
+    .leftJoin(customers, eq(customers.id, portalUsers.customerId))
+    .leftJoin(users, eq(users.id, portalUsers.invitedBy))
+    .where(where)
+    .orderBy(desc(portalUsers.createdAt))
+    .limit(query.limit)
+    .offset((query.page - 1) * query.limit);
+
+  const countRows = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(portalUsers)
+    .where(where);
+
+  const ids = rows.map((r) => r.user.id);
+  const grantRows = ids.length
+    ? await db
+        .select({ portalUserId: portalUserGrants.portalUserId, grant: portalUserGrants.grant })
+        .from(portalUserGrants)
+        .where(
+          and(inArray(portalUserGrants.portalUserId, ids), isNull(portalUserGrants.revokedAt)),
+        )
+    : [];
+
+  const grantsByUser = new Map<string, PortalGrant[]>();
+  for (const g of grantRows) {
+    const list = grantsByUser.get(g.portalUserId) ?? [];
+    list.push(g.grant);
+    grantsByUser.set(g.portalUserId, list);
+  }
+
+  return {
+    items: rows.map((r) => ({
+      ...r.user,
+      customerName: r.customerName,
+      invitedByName: r.invitedByName,
+      grants: grantsByUser.get(r.user.id) ?? [],
+    })),
+    total: countRows[0]?.count ?? 0,
+    page: query.page,
+    limit: query.limit,
+  };
 }
