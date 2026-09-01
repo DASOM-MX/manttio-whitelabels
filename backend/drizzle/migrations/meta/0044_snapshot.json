@@ -1,5 +1,5 @@
 {
-  "id": "6a43ce34-8662-4b95-b5d5-86e78bdc3489",
+  "id": "7d62f3f2-7f06-4f06-9a10-85bdbdf54fe4",
   "prevId": "c6fc8d61-304a-42a1-8e7d-7977c902c7e1",
   "version": "7",
   "dialect": "postgresql",
@@ -3009,6 +3009,30 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'invited'"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paternal_last_name": {
+          "name": "paternal_last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "maternal_last_name": {
+          "name": "maternal_last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "is_admin": {
           "name": "is_admin",

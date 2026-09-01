@@ -52,6 +52,22 @@ export const portalUsers = pgTable(
       .$type<PortalUserStatus>()
       .notNull()
       .default(PortalUserStatus.Invited),
+    // Personal name, mirrors the users table for consistency across staff and portal
+    // user lists. Seeded from the customer_contacts row at invite but becomes independent
+    // thereafter — editing a contact's details does not change the portal user's name.
+    name: text('name').notNull(),
+    // Mexican two-surname convention: mirrors users.paternalLastName / users.maternalLastName
+    // (owner ask, 2026-07-21) so superadmin lists can render staff and portal users
+    // with the same name format. Nullable because this field is free input at invite time.
+    paternalLastName: text('paternal_last_name'),
+    maternalLastName: text('maternal_last_name'),
+    // Job title from the customer's own organisation (e.g. "Gerente de mantenimiento",
+    // "Jefe de planta"), not a permission. Free text and deliberately unconstrained —
+    // is_admin (below) is the actual capability. This is an exception to the module's
+    // usual real-TS-enum rule (which applies to statuses, types, and capabilities);
+    // role here is descriptive data only and must stay flexible to customer
+    // organisational structures. Seeded from customer_contacts but independent thereafter.
+    role: text('role'),
     // A6 / 00 §4b.17: the customer's own administrator. Confers exactly one power
     // today: closing a service request (§4). Not a grant row — grants say what you
     // may do with records, this says who speaks for the customer. Set at invite and
