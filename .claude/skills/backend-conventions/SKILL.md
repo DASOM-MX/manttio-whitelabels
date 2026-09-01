@@ -169,7 +169,9 @@ status)`.
 ## Configuration
 
 `wrangler.toml` declares non-secret vars (`[vars]` dev defaults, `[env.production.vars]`
-overrides — Wrangler v4 inherits, so prod redeclares only what differs) and bindings.
+the prod set — **`vars` is not inheritable**, so prod must repeat every var it
+needs, not only the ones that differ; a var added to `[vars]` alone is undefined
+in production) and bindings.
 Secrets (`DATABASE_URL`, `JWT_SECRET`, `RESEND_API_KEY`) are set out-of-band via
 `wrangler secret put`; `.dev.vars` mirrors them locally and **is never committed**.
 

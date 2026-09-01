@@ -57,7 +57,7 @@ enforced one level down, on `customer_contacts` itself (01 §0).
 |---|---|
 | `POST /portal/auth/login` | `{ email, password }`. Invalid → `401 invalid_credentials`, the same body whether the email is unknown, the password wrong, the account suspended, **or the account locked**. A failure increments `failed_login_attempts`; the 5th sets `locked_until = now() + 2h` (A3). Success resets the counter, clears the lock and writes `last_login_at`. |
 | `POST /portal/auth/forgot-password` | `{ email }`. **Always `204`**, unknown address included — no account enumeration. On a match: create a `portal_password_resets` row (1h TTL, hashed token) and mail the link. |
-| `POST /portal/auth/reset-password` | `{ token, password }`. Looks up by token hash, rejects used/expired, sets the password, marks `used_at`, flips `status` to `active`, clears `must_change_password`. |
+| `POST /portal/auth/reset-password` | `{ token, password }`. Looks up by token hash, rejects used/expired, sets the password, marks `used_at`, promotes **`invited` → `active`**, clears `must_change_password`, and **clears the A3 lockout**. A **suspended** account is never promoted and never mailed a token in the first place — otherwise the public reset is a way back in around a staff suspension (found in review, 2026-09-01). Only staff resume a suspended account. |
 
 **Lockout (A3, owner 2026-08-30): 5 failed attempts → a 2-hour cooldown on the account.**
 
@@ -69,8 +69,16 @@ enforced one level down, on `customer_contacts` itself (01 §0).
   superadmin 26 detail page shows `locked_until` so support can explain a call.
 - A **successful** login resets `failed_login_attempts` to 0 and clears `locked_until` in the
   same statement that writes `last_login_at`.
-- Also applied: the existing `modules/turnstile` on `login` + `forgot-password`, and a
-  per-account reset throttle (max 3 unused live tokens, newest wins).
+- Also applied: the existing `modules/turnstile` on `login` + `forgot-password` — the token is
+  **required** by the validator, never optional, or omitting the field skips the check entirely.
+- A per-account reset throttle (max 3 unused live tokens, newest wins).
+- **A completed reset clears `failed_login_attempts` and `locked_until`** (owner, 2026-09-01),
+  on both the self-service and the staff-issued path. The lockout's own cause is a forgotten
+  password, and 26 §1 rules out an unlock action — so without this, resetting leaves the user
+  refused for up to two more hours with no explanation.
+- The mail send is handed to `executionCtx.waitUntil`: the 204 is identical either way, but an
+  awaited Resend round trip makes the known-address path measurably slower, which is the
+  enumeration oracle the identical body exists to prevent.
 
 ## 3. Authed routes
 
@@ -156,6 +164,12 @@ endpoints; superadmin 26 is their UI.
 - A portal download writes **no** `customer_interactions` row (01 §6d).
 
 ## 8. Checkpoints
+
+> **Test placement, amended 2026-09-01.** The lockout assertions in §7 belong to **CP-1**,
+> which ships the lockout. Leaving them filed plan-wide is how CP-1 shipped an
+> `incrementFailedLoginAttempts` whose SQL could not execute: the checkpoint's own bullet
+> said only "cross-surface rejection tests", so nothing exercised the control it added.
+> Each checkpoint owns the tests for the behaviour it introduces.
 
 - [ ] **CP-1** — env binding, `portalJwtMiddleware` (grants + `isAdmin` per request),
       `requireGrant` + `requireAnyGrant`, login/me/password with the A3 lockout, mount order in
