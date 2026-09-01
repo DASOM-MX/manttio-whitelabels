@@ -188,6 +188,23 @@ where the answer is encoded.
     working unchanged — the new tables start life carrying downloads, and a download writes the
     entity timeline **only**, never a `customer_interactions` entry, because a fetch is not a
     commercial touch and the client 360 would drown in them. (§ 01 §6d)
+26. **`portal_users.contact_id` has no foreign key** (owner, 2026-08-31) — the column stays
+    and its unique index stands (A10), but the `REFERENCES` constraint is removed.
+    `updateCustomerWithRelations` deletes and re-inserts all contacts per PATCH; a restrict
+    FK would make customer edits permanently impossible the moment a contact has a portal user.
+    A portal user is **created from** a contact and is standalone thereafter — staff
+    administering portal accounts must not interfere with the contacts list. The pointer can
+    go stale if the customer's contacts are later replaced; this is accepted. The email column,
+    independent since invite, is the live identity (§ 01 §1).
+27. **Portal users get their own creation form in superadmin, isolated from the customers
+    form** (owner, 2026-08-31). Staff create them on demand from a dedicated Portal Users
+    section — access is never granted as a side effect of editing a customer, and the portal
+    form never edits the contacts list. **The form still picks an existing
+    `customer_contacts` row**, so `contact_id` stays `NOT NULL`, `customer_id` is copied from
+    the chosen contact, and A10's "one account per customer contact" is unchanged and still
+    enforced by the unique index. "Isolated" describes the *section and the form*, not the
+    data link — read together with decision 26, which removed the FK but kept the column.
+    (§ 02 §6, superadmin 26 §2)
 
 ## 5. Residual asks — resolved 2026-08-31
 

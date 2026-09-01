@@ -43,6 +43,7 @@ import {
   BlacklistReasonRequiredError,
   InvalidStatusTransitionError,
 } from '../http-errors/status-change.error';
+import { DuplicateEmailError } from '../http-errors/duplicate-email.error';
 import { UUID_PARAM } from '../../shared/constants/uuid-param';
 
 export const customers = new Hono<AppBindings>();
@@ -142,9 +143,19 @@ customers.get(`/:id{${UUID_PARAM}}`, async (c) => {
 
 // Write endpoints are admin-only.
 customers.post('/', requireRole(['owner', 'admin']), zValidator('json', createCustomerSchema), async (c) => {
-  const db = createDb(c.env.DATABASE_URL);
-  const row = await createCustomer(db, c.req.valid('json'), c.get('user').id);
-  return c.json({ customer: row }, 201);
+  try {
+    const db = createDb(c.env.DATABASE_URL);
+    const row = await createCustomer(db, c.req.valid('json'), c.get('user').id);
+    return c.json({ customer: row }, 201);
+  } catch (err) {
+    if (err instanceof DuplicateEmailError) {
+      return c.json(
+        { error: 'duplicate_email', message: err.message },
+        409,
+      );
+    }
+    throw err;
+  }
 });
 
 customers.patch(
@@ -152,10 +163,20 @@ customers.patch(
   requireRole(['owner', 'admin']),
   zValidator('json', updateCustomerSchema),
   async (c) => {
-    const db = createDb(c.env.DATABASE_URL);
-    const row = await editCustomer(db, c.req.param('id'), c.req.valid('json'), c.get('user').id);
-    if (!row) return c.json({ error: 'not_found' }, 404);
-    return c.json({ customer: row });
+    try {
+      const db = createDb(c.env.DATABASE_URL);
+      const row = await editCustomer(db, c.req.param('id'), c.req.valid('json'), c.get('user').id);
+      if (!row) return c.json({ error: 'not_found' }, 404);
+      return c.json({ customer: row });
+    } catch (err) {
+      if (err instanceof DuplicateEmailError) {
+        return c.json(
+          { error: 'duplicate_email', message: err.message },
+          409,
+        );
+      }
+      throw err;
+    }
   },
 );
 

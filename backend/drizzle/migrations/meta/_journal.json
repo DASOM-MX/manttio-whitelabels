@@ -309,6 +309,13 @@
       "when": 1787803283253,
       "tag": "0043_brand_colors_primary_accent",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1788240059341,
+      "tag": "0044_careful_vision",
+      "breakpoints": true
     }
   ]
 }

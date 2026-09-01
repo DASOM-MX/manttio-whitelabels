@@ -53,12 +53,16 @@ A login for exactly one `customer_contacts` row (00 §3.3). Credentials never to
 | Column | Type | Notes |
 |---|---|---|
 | `id` | uuid pk | |
-| `contact_id` | uuid not null → `customer_contacts.id` (restrict) | 1:1 among active rows |
+| `contact_id` | uuid not null | 1:1 among active rows, enforced by uniqueness index. **No FK:** `updateCustomerWithRelations` deletes and re-inserts all contacts per PATCH; a restrict FK would break customer edits the moment a contact has a portal user. A portal user is created from a contact and is standalone thereafter — the pointer can go stale if the customer's contacts are later replaced (owner 2026-08-31, decision 26). The email column, independent since invite, is the live identity. |
 | `customer_id` | uuid not null → `customers.id` (restrict) | Denormalized from the contact: it is the token claim and the scope of every read. Written at invite, never updated — a contact does not move between customers. |
 | `email` | text not null | Login identity. Seeded from the contact at invite; **independent afterwards** (editing a contact's address must not silently change a credential). |
 | `password_hash` | text not null | Same `password.service.ts` as staff users. |
 | `must_change_password` | boolean not null default true | Temp-password model, mirrors `users`. |
 | `status` | text `$type<PortalUserStatus>` not null default `invited` | `invited` → `active` on first successful password change; `suspended` = staff revoked access without deleting. |
+| `name` | text not null | Personal name, mirrors the `users` table for consistency when superadmin lists show staff and portal users together. Seeded from the `customer_contacts` row at invite but becomes independent thereafter — editing a contact's details does not change the portal user's name. |
+| `paternal_last_name` | text | Mexican two-surname convention: mirrors `users.paternalLastName` (owner ask, 2026-07-21) so superadmin renders both with the same name format. Nullable because it is free input at invite time. |
+| `maternal_last_name` | text | Second surname for the Mexican convention. Nullable. |
+| `role` | text | Job title from the customer's own organisation (e.g. "Gerente de mantenimiento", "Jefe de planta"), **not a permission.** Free text, deliberately unconstrained — `is_admin` (below) is the actual capability. This is an exception to the module's usual real-TS-enum rule; role here is descriptive data only and must stay flexible to customer organisational structures. Seeded from `customer_contacts` but independent thereafter. |
 | `is_admin` | boolean not null default false | **A6 / 00 §4b.17.** The customer's own administrator. Confers exactly one power today: **closing a service request** (§4). Not a grant row — grants say what you may do with records, this says who speaks for the customer. Set at invite and editable in superadmin 26. |
 | `failed_login_attempts` | integer not null default 0 | **A3.** Reset to 0 on any successful login. |
 | `locked_until` | timestamptz | **A3.** Set to `now() + 2h` when `failed_login_attempts` reaches **5**; login refuses while it is in the future, with the same generic body as a wrong password (02 §2). State lives here, not in memory — a Worker isolate has none to share (00 §4b.19). |

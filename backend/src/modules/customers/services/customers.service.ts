@@ -1,4 +1,5 @@
 import type { Db } from '../../database/client';
+import { isUniqueViolation } from '../../database/db-errors';
 import {
   deleteCustomer,
   findCustomerById,
@@ -11,6 +12,7 @@ import {
   type ContactInput,
   type FiscalInput,
 } from '../repository/customers.repository';
+import { DuplicateEmailError } from '../http-errors/duplicate-email.error';
 import { notifyBestEffort } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums/notifications.enum';
 import { findUserById } from '../../users/repository/users.repository';
@@ -41,7 +43,7 @@ const normalizeContacts = (list: CreateCustomerInput['contacts']): ContactInput[
     name: c.name,
     role: c.role ?? null,
     phone: c.phone ?? null,
-    email: c.email ?? null,
+    email: c.email?.trim() || null,
     isDefault: i === defaultIdx,
   }));
 };
@@ -150,32 +152,37 @@ export const createCustomer = async (
   input: CreateCustomerInput,
   actorId: string,
 ): Promise<CustomerWithRelations> => {
-  const contacts = normalizeContacts(input.contacts);
-  const values = buildNewCustomer(input, primaryOf(contacts));
-  const customer = await insertCustomerWithRelations(
-    db,
-    values,
-    contacts,
-    normalizeFiscal(input.fiscal) ?? null,
-    {
-      userId: actorId,
-      body: 'Cliente creado',
-    },
-  );
-  // Owner awareness feed (notifications plan §1 note): owner broadcast, the
-  // acting user excluded; the body names who did it (owner ask, 2026-07-21).
-  const actor = await findUserById(db, actorId);
-  await notifyBestEffort(db, {
-    role: 'owner',
-    excludeUserId: actorId,
-    type: NotificationType.ClientRegisteredFromSuperadmin,
-    title: 'Cliente registrado',
-    body: actor
-      ? `${customer.name} fue dado de alta por ${displayName(actor)}.`
-      : `${customer.name} fue dado de alta.`,
-    data: { customerId: customer.id },
-  });
-  return customer;
+  try {
+    const contacts = normalizeContacts(input.contacts);
+    const values = buildNewCustomer(input, primaryOf(contacts));
+    const customer = await insertCustomerWithRelations(
+      db,
+      values,
+      contacts,
+      normalizeFiscal(input.fiscal) ?? null,
+      {
+        userId: actorId,
+        body: 'Cliente creado',
+      },
+    );
+    // Owner awareness feed (notifications plan §1 note): owner broadcast, the
+    // acting user excluded; the body names who did it (owner ask, 2026-07-21).
+    const actor = await findUserById(db, actorId);
+    await notifyBestEffort(db, {
+      role: 'owner',
+      excludeUserId: actorId,
+      type: NotificationType.ClientRegisteredFromSuperadmin,
+      title: 'Cliente registrado',
+      body: actor
+        ? `${customer.name} fue dado de alta por ${displayName(actor)}.`
+        : `${customer.name} fue dado de alta.`,
+      data: { customerId: customer.id },
+    });
+    return customer;
+  } catch (err) {
+    if (isUniqueViolation(err)) throw new DuplicateEmailError();
+    throw err;
+  }
 };
 
 export const editCustomer = async (
@@ -184,42 +191,47 @@ export const editCustomer = async (
   input: UpdateCustomerInput,
   actorId: string,
 ): Promise<CustomerWithRelations | null> => {
-  const fields = collectScalarUpdates(input);
-  if (input.status !== undefined) {
-    // statusChangedAt stamps only on an actual transition, so it keeps meaning
-    // "when the status last changed" even if clients resend the same status.
-    const current = await findCustomerById(db, id);
-    if (current && current.status !== input.status) {
-      fields.statusChangedAt = new Date();
+  try {
+    const fields = collectScalarUpdates(input);
+    if (input.status !== undefined) {
+      // statusChangedAt stamps only on an actual transition, so it keeps meaning
+      // "when the status last changed" even if clients resend the same status.
+      const current = await findCustomerById(db, id);
+      if (current && current.status !== input.status) {
+        fields.statusChangedAt = new Date();
+      }
     }
+    const contacts = input.contacts !== undefined ? normalizeContacts(input.contacts) : undefined;
+    if (contacts !== undefined) Object.assign(fields, contactMirror(primaryOf(contacts)));
+    const updated = await updateCustomerWithRelations(
+      db,
+      id,
+      fields,
+      contacts,
+      normalizeFiscal(input.fiscal),
+      {
+        userId: actorId,
+        body: auditBodyForEdit(input),
+      },
+    );
+    if (updated) {
+      const actor = await findUserById(db, actorId);
+      await notifyBestEffort(db, {
+        role: 'owner',
+        excludeUserId: actorId,
+        type: NotificationType.ClientUpdated,
+        title: 'Cliente actualizado',
+        body: actor
+          ? `${displayName(actor)} actualizó los datos de ${updated.name}.`
+          : `Se actualizaron los datos de ${updated.name}.`,
+        data: { customerId: updated.id },
+      });
+    }
+    return updated;
+  } catch (err) {
+    if (isUniqueViolation(err)) throw new DuplicateEmailError();
+    throw err;
   }
-  const contacts = input.contacts !== undefined ? normalizeContacts(input.contacts) : undefined;
-  if (contacts !== undefined) Object.assign(fields, contactMirror(primaryOf(contacts)));
-  const updated = await updateCustomerWithRelations(
-    db,
-    id,
-    fields,
-    contacts,
-    normalizeFiscal(input.fiscal),
-    {
-      userId: actorId,
-      body: auditBodyForEdit(input),
-    },
-  );
-  if (updated) {
-    const actor = await findUserById(db, actorId);
-    await notifyBestEffort(db, {
-      role: 'owner',
-      excludeUserId: actorId,
-      type: NotificationType.ClientUpdated,
-      title: 'Cliente actualizado',
-      body: actor
-        ? `${displayName(actor)} actualizó los datos de ${updated.name}.`
-        : `Se actualizaron los datos de ${updated.name}.`,
-      data: { customerId: updated.id },
-    });
-  }
-  return updated;
 };
 
 export const removeCustomer = async (
