@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { request, json, jsonHeaders, env } from '../helpers';
+import { seedPortalUser } from '../helpers/fixtures';
 import { createDb } from '../../src/modules/database/client';
 import { portalUsers } from '../../src/modules/database/schema';
-import type { InferSelectModel } from 'drizzle-orm';
 
 type WorkerEnv = { DATABASE_URL: string };
 
@@ -36,25 +36,89 @@ describe('portal auth', () => {
     }
 
     it('locks account after 5 failed attempts and refuses even correct password', async () => {
-      // This test requires a seeded portal user. For now, we verify the logic:
-      // attempts 1-4 should keep the account unlocked
-      // attempt 5 should lock for 2 hours
-      // attempt 6 with correct password should still be refused
-      // This would be implemented with a seedPortalUser fixture (out of scope for this checkpoint).
-      expect(true).toBe(true); // Placeholder pending fixtures
+      const user = await seedPortalUser();
+
+      // Attempts 1-4: wrong password, should succeed with 401
+      for (let i = 0; i < 4; i++) {
+        const res = await attemptLogin(user.email, 'wrong-password');
+        expect(res.status).toBe(401);
+        const body = await json<{ error: string }>(res);
+        expect(body.error).toBe('invalid_credentials');
+      }
+
+      // Attempt 5: wrong password triggers lockout
+      const res5 = await attemptLogin(user.email, 'wrong-password');
+      expect(res5.status).toBe(401);
+
+      // Attempt 6: correct password still rejected while locked
+      const res6 = await attemptLogin(user.email, user.password);
+      expect(res6.status).toBe(401);
+      const body6 = await json<{ error: string }>(res6);
+      expect(body6.error).toBe('invalid_credentials');
+
+      // Verify lockout state: failed_login_attempts = 5, locked_until is ~2h ahead
+      const locked = await findPortalUser(user.id);
+      expect(locked?.failedLoginAttempts).toBe(5);
+      expect(locked?.lockedUntil).toBeTruthy();
+      const now = Date.now();
+      const lockWindow = 2 * 60 * 60 * 1000;
+      const lockTime = locked?.lockedUntil ? locked.lockedUntil.getTime() : 0;
+      expect(lockTime).toBeGreaterThan(now);
+      expect(lockTime).toBeLessThan(now + lockWindow + 60000); // within 2h + 1min
     });
 
     it('self-clearing: lock expires after 2 hours and resets counter', async () => {
-      // When a lock has expired (locked_until < now), the next failed attempt
-      // resets the counter to 1 instead of incrementing from the old value.
-      // This prevents the counter from accumulating indefinitely.
-      expect(true).toBe(true); // Placeholder pending fixtures
+      const user = await seedPortalUser();
+      const db = createDb((env as unknown as WorkerEnv).DATABASE_URL);
+
+      // Drive into locked state: 5 wrong attempts
+      for (let i = 0; i < 5; i++) {
+        await attemptLogin(user.email, 'wrong-password');
+      }
+
+      // Verify locked
+      let row = await findPortalUser(user.id);
+      expect(row?.failedLoginAttempts).toBe(5);
+      expect(row?.lockedUntil).toBeTruthy();
+
+      // Force unlock by setting locked_until to the past
+      const past = new Date(Date.now() - 60000);
+      await db
+        .update(portalUsers)
+        .set({ lockedUntil: past })
+        .where(eq(portalUsers.id, user.id));
+
+      // One wrong password after expiry: counter resets to 1, lock clears
+      await attemptLogin(user.email, 'wrong-password');
+
+      row = await findPortalUser(user.id);
+      expect(row?.failedLoginAttempts).toBe(1);
+      expect(row?.lockedUntil).toBeNull();
     });
 
     it('successful login clears lockout state and resets counter', async () => {
-      // A successful login should reset failed_login_attempts to 0 and
-      // clear locked_until, allowing the user to fail 5 times again.
-      expect(true).toBe(true); // Placeholder pending fixtures
+      const user = await seedPortalUser();
+
+      // Fail a few times (fewer than 5)
+      for (let i = 0; i < 3; i++) {
+        await attemptLogin(user.email, 'wrong-password');
+      }
+
+      // Verify counter incremented
+      let row = await findPortalUser(user.id);
+      expect(row?.failedLoginAttempts).toBe(3);
+      expect(row?.lockedUntil).toBeNull();
+
+      // Successful login
+      const res = await attemptLogin(user.email, user.password);
+      expect(res.status).toBe(200);
+      const body = await json<{ token: string }>(res);
+      expect(body.token).toBeTruthy();
+
+      // Verify counter and lock cleared
+      row = await findPortalUser(user.id);
+      expect(row?.failedLoginAttempts).toBe(0);
+      expect(row?.lockedUntil).toBeNull();
     });
   });
 });

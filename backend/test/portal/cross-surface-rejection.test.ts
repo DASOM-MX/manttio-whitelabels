@@ -67,14 +67,6 @@ describe('Cross-surface token rejection', () => {
     expect(body.error).toBe('unauthorized');
   });
 
-  it('would still pass if the typ check were deleted from the middleware', () => {
-    // This assertion documents that the test ONLY works because of the typ check.
-    // If || typ !== 'portal' were removed from the middleware guard, the test
-    // would still pass (rejection would come from findPortalUserById on the wrong UUID
-    // or the user check logic). This is proof the test actually tests the typ check.
-    // To verify: remove the typ check from portal-jwt.middleware and this test fails.
-    expect(true).toBe(true);
-  });
 
   it('rejects a portal token on /users (signed with env.JWT_SECRET)', async () => {
     const portalToken = await generatePortalTokenSignedWithStaffSecret();
