@@ -1,9 +1,14 @@
 import { sql } from 'drizzle-orm';
 import { check, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { users } from '../../users/models/users.model';
+import { ROLES } from '../../users/enums/users.enum';
 import type { Role } from '../../users/enums/users.enum';
-import { NotificationStatus } from '../enums/notifications.enum';
-import type { NotificationType } from '../enums/notifications.enum';
+import { NotificationStatus, NotificationType } from '../enums/notifications.enum';
+
+// CHECK value lists are derived from the enums, never hand-copied: adding a
+// member widens the constraint and `db:generate` emits the DDL by itself.
+const checkValues = (members: readonly string[]) =>
+  sql.raw(members.map((m) => `'${m}'`).join(', '));
 
 // Per-user notification copies (notifications plan §1). A role broadcast fans
 // out at creation — one row per resolved recipient, so read-state, the badge,
@@ -49,12 +54,15 @@ export const notifications = pgTable(
     index('notifications_created_idx').on(table.createdAt),
     check(
       'notifications_type_check',
-      sql`${table.type} in ('replenishment_ready', 'replenishment_failed', 'replenishment_rejected', 'announcement', 'report_created', 'report_finalized', 'client_registered_from_website', 'client_registered_from_superadmin', 'client_blacklisted', 'client_updated', 'client_archived', 'client_interaction_registered')`,
+      sql`${table.type} in (${checkValues(Object.values(NotificationType))})`,
     ),
-    check('notifications_status_check', sql`${table.status} in ('unread', 'read')`),
+    check(
+      'notifications_status_check',
+      sql`${table.status} in (${checkValues(Object.values(NotificationStatus))})`,
+    ),
     check(
       'notifications_audience_role_check',
-      sql`${table.audienceRole} in ('owner', 'admin', 'office', 'technician')`,
+      sql`${table.audienceRole} in (${checkValues(ROLES)})`,
     ),
   ],
 );
