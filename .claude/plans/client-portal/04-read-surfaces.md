@@ -49,8 +49,10 @@ Two consequences worth stating once, because both are easy to get wrong later:
 **A file leaving the portal is an event on the record it came from.** Three routes serve
 bytes — the report PDF (§3), the contract document (§4 — the route is named `…/pdf` for the
 common case, but the stored file is not always one) and the quotation PDF (§5) — and each
-appends a row to that entity's timeline, `contactId` set and `actorId` null, the attribution
-split every timeline in this repo already uses.
+appends a row to that entity's timeline with `actorId` null, the attribution split every
+timeline in this repo already uses. The portal side is `portalUserId` on `report_events` /
+`contract_events` and `contactId` on `quotation_events` — that table also serves the emailed
+token page, which has a contact and no login (01 §6d, owner 2026-09-01).
 
 - **Every download, not the first.** No dedup, no once-per-user collapse. The value of the
   trail is precisely that it shows a customer pulling the quotation again the week they

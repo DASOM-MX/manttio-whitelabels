@@ -5,36 +5,38 @@ import type { NewQuotationEvent } from '../../quotations/types/quotations.types'
 import { ReportEventType } from '../../reports/enums/reports.enum';
 import type { NewReportEvent } from '../../reports/types/reports.types';
 
-// One row shape for all three download timelines (01 §6c/§6d): the contact
+// One row shape for all three download timelines (01 §6c/§6d): a portal login
 // acted, so `actorId` is null, and `{ via: 'portal' }` separates these from the
 // emailed token page's own fetches. Built here so the three cannot drift.
 const PORTAL_DOWNLOAD_CHANGES = { via: 'portal' } as const;
 
 export const portalReportDownloadEvent = (
   reportId: string,
-  contactId: string,
+  portalUserId: string,
 ): NewReportEvent => ({
   reportId,
   type: ReportEventType.Downloaded,
   actorId: null,
-  contactId,
+  portalUserId,
   changes: { ...PORTAL_DOWNLOAD_CHANGES },
   note: null,
 });
 
 export const portalContractDownloadEvent = (
   contractId: string,
-  contactId: string,
+  portalUserId: string,
 ): NewContractEvent => ({
   contractId,
   type: ContractEventType.Downloaded,
   actorId: null,
-  contactId,
+  portalUserId,
   changes: { ...PORTAL_DOWNLOAD_CHANGES },
   note: null,
 });
 
-/** `refKind`/`refId` stay null — the event is about the quotation itself. */
+/** `contactId`, not `portalUserId`: `quotation_events` also serves the emailed
+ *  token page, which has a contact and no login. `refKind`/`refId` stay null —
+ *  the event is about the quotation itself. */
 export const portalQuotationDownloadEvent = (
   quotationId: string,
   contactId: string,

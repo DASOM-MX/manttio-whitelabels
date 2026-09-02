@@ -1,6 +1,6 @@
 {
-  "id": "09262170-1c02-4af1-a342-6dcd2a775a0c",
-  "prevId": "73d89032-2703-4c13-a6b6-47ae503cff48",
+  "id": "533cb4d8-82d1-462c-bb17-087f649c51fa",
+  "prevId": "8524335b-a42e-4bd3-a5e8-8af55b536ecd",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -377,8 +377,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "contact_id": {
-          "name": "contact_id",
+        "portal_user_id": {
+          "name": "portal_user_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -453,12 +453,12 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "contract_events_contact_id_customer_contacts_id_fk": {
-          "name": "contract_events_contact_id_customer_contacts_id_fk",
+        "contract_events_portal_user_id_portal_users_id_fk": {
+          "name": "contract_events_portal_user_id_portal_users_id_fk",
           "tableFrom": "contract_events",
-          "tableTo": "customer_contacts",
+          "tableTo": "portal_users",
           "columnsFrom": [
-            "contact_id"
+            "portal_user_id"
           ],
           "columnsTo": [
             "id"
@@ -4031,6 +4031,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "quotations_service_order_idx": {
+          "name": "quotations_service_order_idx",
+          "columns": [
+            {
+              "expression": "service_order_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -4066,6 +4081,19 @@
           "tableTo": "users",
           "columnsFrom": [
             "resolved_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "quotations_service_order_id_service_orders_id_fk": {
+          "name": "quotations_service_order_id_service_orders_id_fk",
+          "tableFrom": "quotations",
+          "tableTo": "service_orders",
+          "columnsFrom": [
+            "service_order_id"
           ],
           "columnsTo": [
             "id"
@@ -5089,8 +5117,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "contact_id": {
-          "name": "contact_id",
+        "portal_user_id": {
+          "name": "portal_user_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -5165,12 +5193,12 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "report_events_contact_id_customer_contacts_id_fk": {
-          "name": "report_events_contact_id_customer_contacts_id_fk",
+        "report_events_portal_user_id_portal_users_id_fk": {
+          "name": "report_events_portal_user_id_portal_users_id_fk",
           "tableFrom": "report_events",
-          "tableTo": "customer_contacts",
+          "tableTo": "portal_users",
           "columnsFrom": [
-            "contact_id"
+            "portal_user_id"
           ],
           "columnsTo": [
             "id"
@@ -6614,12 +6642,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "quotation_id": {
-          "name": "quotation_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "location": {
           "name": "location",
           "type": "text",
@@ -6727,22 +6749,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "service_orders_quotation_uidx": {
-          "name": "service_orders_quotation_uidx",
-          "columns": [
-            {
-              "expression": "quotation_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"service_orders\".\"quotation_id\" is not null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -6752,19 +6758,6 @@
           "tableTo": "customers",
           "columnsFrom": [
             "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "service_orders_quotation_id_quotations_id_fk": {
-          "name": "service_orders_quotation_id_quotations_id_fk",
-          "tableFrom": "service_orders",
-          "tableTo": "quotations",
-          "columnsFrom": [
-            "quotation_id"
           ],
           "columnsTo": [
             "id"
@@ -6852,8 +6845,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "contact_id": {
-          "name": "contact_id",
+        "portal_user_id": {
+          "name": "portal_user_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -6928,12 +6921,12 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "service_request_events_contact_id_customer_contacts_id_fk": {
-          "name": "service_request_events_contact_id_customer_contacts_id_fk",
+        "service_request_events_portal_user_id_portal_users_id_fk": {
+          "name": "service_request_events_portal_user_id_portal_users_id_fk",
           "tableFrom": "service_request_events",
-          "tableTo": "customer_contacts",
+          "tableTo": "portal_users",
           "columnsFrom": [
-            "contact_id"
+            "portal_user_id"
           ],
           "columnsTo": [
             "id"
@@ -7008,6 +7001,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'submitted'"
+        },
+        "quotation_id": {
+          "name": "quotation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         },
         "closed_at": {
           "name": "closed_at",
@@ -7156,6 +7155,19 @@
           "tableTo": "equipment",
           "columnsFrom": [
             "equipment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "service_requests_quotation_id_quotations_id_fk": {
+          "name": "service_requests_quotation_id_quotations_id_fk",
+          "tableFrom": "service_requests",
+          "tableTo": "quotations",
+          "columnsFrom": [
+            "quotation_id"
           ],
           "columnsTo": [
             "id"

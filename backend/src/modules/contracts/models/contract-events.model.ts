@@ -1,7 +1,7 @@
 import { bigserial, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { contracts } from './contracts.model';
 import { users } from '../../users/models/users.model';
-import { customerContacts } from '../../customers/models/customer-contacts.model';
+import { portalUsers } from '../../portal/models/portal-users.model';
 import type { ContractEventType } from '../enums/contracts.enum';
 
 // The contract's own append-only timeline — modelled column-for-column on
@@ -22,9 +22,13 @@ export const contractEvents = pgTable(
       .references(() => contracts.id, { onDelete: 'restrict' }),
     type: text('type').$type<ContractEventType>().notNull(),
     // Attribution splits by origin: staff actions carry `actorId`, portal
-    // actions carry `contactId` with `actorId` null. Never both.
+    // actions carry `portalUserId` with `actorId` null. Never both.
     actorId: uuid('actor_id').references(() => users.id, { onDelete: 'restrict' }),
-    contactId: uuid('contact_id').references(() => customerContacts.id, { onDelete: 'restrict' }),
+    // The portal account, not the contact: only a login reaches these routes,
+    // and `portal_users.contact_id` still resolves the address-book entry.
+    portalUserId: uuid('portal_user_id').references(() => portalUsers.id, {
+      onDelete: 'restrict',
+    }),
     // Structured detail per type: the portal flag `{ via: 'portal' }` on downloads.
     changes: jsonb('changes').$type<Record<string, unknown>>(),
     // Free text: event-specific metadata.

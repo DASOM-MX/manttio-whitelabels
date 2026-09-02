@@ -220,9 +220,9 @@ export const contractEventsRelations = relations(contractEvents, ({ one }) => ({
     fields: [contractEvents.actorId],
     references: [users.id],
   }),
-  contact: one(customerContacts, {
-    fields: [contractEvents.contactId],
-    references: [customerContacts.id],
+  portalUser: one(portalUsers, {
+    fields: [contractEvents.portalUserId],
+    references: [portalUsers.id],
   }),
 }));
 
@@ -308,9 +308,9 @@ export const reportEventsRelations = relations(reportEvents, ({ one }) => ({
     fields: [reportEvents.actorId],
     references: [users.id],
   }),
-  contact: one(customerContacts, {
-    fields: [reportEvents.contactId],
-    references: [customerContacts.id],
+  portalUser: one(portalUsers, {
+    fields: [reportEvents.portalUserId],
+    references: [portalUsers.id],
   }),
 }));
 

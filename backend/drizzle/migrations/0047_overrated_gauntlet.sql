@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS "contract_events" (
 	"contract_id" uuid NOT NULL,
 	"type" text NOT NULL,
 	"actor_id" uuid,
-	"contact_id" uuid,
+	"portal_user_id" uuid,
 	"changes" jsonb,
 	"note" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS "report_events" (
 	"report_id" text NOT NULL,
 	"type" text NOT NULL,
 	"actor_id" uuid,
-	"contact_id" uuid,
+	"portal_user_id" uuid,
 	"changes" jsonb,
 	"note" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -35,7 +35,7 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "contract_events" ADD CONSTRAINT "contract_events_contact_id_customer_contacts_id_fk" FOREIGN KEY ("contact_id") REFERENCES "public"."customer_contacts"("id") ON DELETE restrict ON UPDATE no action;
+ ALTER TABLE "contract_events" ADD CONSTRAINT "contract_events_portal_user_id_portal_users_id_fk" FOREIGN KEY ("portal_user_id") REFERENCES "public"."portal_users"("id") ON DELETE restrict ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
@@ -53,7 +53,7 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "report_events" ADD CONSTRAINT "report_events_contact_id_customer_contacts_id_fk" FOREIGN KEY ("contact_id") REFERENCES "public"."customer_contacts"("id") ON DELETE restrict ON UPDATE no action;
+ ALTER TABLE "report_events" ADD CONSTRAINT "report_events_portal_user_id_portal_users_id_fk" FOREIGN KEY ("portal_user_id") REFERENCES "public"."portal_users"("id") ON DELETE restrict ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
