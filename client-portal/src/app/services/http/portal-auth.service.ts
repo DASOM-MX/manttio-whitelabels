@@ -1,28 +1,13 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
+import type { PortalChangePasswordInput } from '../../data/dtos/portal-auth/portal-change-password-input.dto';
+import type { PortalForgotPasswordInput } from '../../data/dtos/portal-auth/portal-forgot-password-input.dto';
+import type { PortalLoginInput } from '../../data/dtos/portal-auth/portal-login-input.dto';
 import type { PortalLoginResponse } from '../../data/dtos/portal-auth/portal-login-response.dto';
 import type { PortalMeResponse } from '../../data/dtos/portal-auth/portal-me-response.dto';
-
-export interface PortalLoginInput {
-  email: string;
-  password: string;
-  turnstileToken: string;
-}
-
-export interface PortalChangePasswordInput {
-  password: string;
-}
-
-export interface PortalForgotPasswordInput {
-  email: string;
-  turnstileToken: string;
-}
-
-export interface PortalResetPasswordInput {
-  token: string;
-  password: string;
-}
+import type { PortalPasswordChangedResponse } from '../../data/dtos/portal-auth/portal-password-changed-response.dto';
+import type { PortalResetPasswordInput } from '../../data/dtos/portal-auth/portal-reset-password-input.dto';
 
 @Injectable({ providedIn: 'root' })
 export class PortalAuthService {
@@ -36,15 +21,15 @@ export class PortalAuthService {
     return this.api.get<PortalMeResponse>('/portal/auth/me');
   }
 
-  changePassword(input: PortalChangePasswordInput): Observable<{ changed: boolean }> {
-    return this.api.post<{ changed: boolean }>('/portal/auth/password', input);
+  changePassword(input: PortalChangePasswordInput): Observable<PortalPasswordChangedResponse> {
+    return this.api.post<PortalPasswordChangedResponse>('/portal/auth/password', input);
   }
 
   forgotPassword(input: PortalForgotPasswordInput): Observable<void> {
     return this.api.post<void>('/portal/auth/forgot-password', input);
   }
 
-  resetPassword(input: PortalResetPasswordInput): Observable<{ changed: boolean }> {
-    return this.api.post<{ changed: boolean }>('/portal/auth/reset-password', input);
+  resetPassword(input: PortalResetPasswordInput): Observable<PortalPasswordChangedResponse> {
+    return this.api.post<PortalPasswordChangedResponse>('/portal/auth/reset-password', input);
   }
 }

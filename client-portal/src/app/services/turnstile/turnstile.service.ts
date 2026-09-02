@@ -1,23 +1,6 @@
 import { inject, Injectable, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-
-declare global {
-  interface Window {
-    turnstile?: {
-      reset: (containerId?: string) => void;
-      remove: (containerId: string) => void;
-      render: (container: string | HTMLElement, options: TurnstileOptions) => string;
-      getResponse: (containerId?: string) => string | undefined;
-    };
-  }
-}
-
-export interface TurnstileOptions {
-  sitekey: string;
-  theme?: 'light' | 'dark';
-  size?: 'normal' | 'compact';
-  callback?: (token: string) => void;
-}
+import type { TurnstileOptions } from '../../data/types/turnstile/turnstile-options';
 
 /** Service for managing Cloudflare Turnstile CAPTCHA widgets.
  *  The script URL is hardcoded to the official CDN — Turnstile keys are public

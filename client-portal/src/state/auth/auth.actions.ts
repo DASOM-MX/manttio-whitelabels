@@ -1,4 +1,4 @@
-import type { PortalLoginInput } from '../../app/services/http/portal-auth.service';
+import type { PortalLoginInput } from '../../app/data/dtos/portal-auth/portal-login-input.dto';
 import type { PortalMeResponse } from '../../app/data/dtos/portal-auth/portal-me-response.dto';
 
 export class AuthLogin {
