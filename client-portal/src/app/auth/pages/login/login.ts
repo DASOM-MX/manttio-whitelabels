@@ -1,11 +1,13 @@
 import {
   Component,
+  DestroyRef,
   effect,
   inject,
   OnInit,
   signal,
   computed,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -21,10 +23,9 @@ import { AppState } from '../../../../state/app/app.state';
 import { AuthLogin, AuthLoadMe } from '../../../../state/auth/auth.actions';
 import { AuthState } from '../../../../state/auth/auth.state';
 import { BrandState } from '../../../../state/brand/brand.state';
+import { TurnstileThemeService } from '../../../services/theme/turnstile-theme.service';
 import { TurnstileService } from '../../../services/turnstile/turnstile.service';
 import { errorMessage } from '../../../data/utils';
-
-const TURNSTILE_SITE_KEY = '0x4AAAAAAADnzP-sKuZl2Drw';
 
 @Component({
   selector: 'app-login',
@@ -53,6 +54,8 @@ export class LoginComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
   private readonly turnstile = inject(TurnstileService);
+  private readonly turnstileTheme = inject(TurnstileThemeService);
+  private readonly destroyRef = inject(DestroyRef);
 
   private readonly darkMode = select(AppState.darkMode);
   private readonly brand = select(BrandState.data);
@@ -92,23 +95,15 @@ export class LoginComponent implements OnInit {
       password: ['', [Validators.required, Validators.minLength(1)]],
     });
 
-    // Render Turnstile widget asynchronously
-    this.renderTurnstile().catch(() => {
-      this.turnstileError.set('No pudimos cargar la verificación. Intenta de nuevo.');
-    });
-  }
-
-  private async renderTurnstile() {
-    try {
-      const isDarkMode = this.store.selectSnapshot(state => state.app?.darkMode);
-      await this.turnstile.render('turnstile-widget', {
-        sitekey: TURNSTILE_SITE_KEY,
-        theme: isDarkMode ? 'dark' : 'light',
+    // Fire-and-forget: the challenge resolves on its own time, and this page
+    // must paint whether or not the visitor ever completes it.
+    this.turnstileTheme
+      .render('turnstile-widget')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () =>
+          this.turnstileError.set('No pudimos cargar la verificación. Intenta de nuevo.'),
       });
-    } catch (err) {
-      console.error('Turnstile render failed', err);
-      throw err;
-    }
   }
 
   onSubmit() {

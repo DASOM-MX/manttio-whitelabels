@@ -2,8 +2,9 @@ import type { RuntimeOverrides } from '../data/types/config/runtime-overrides';
 
 /** Runtime configuration, resolved at boot (plan 25, 03 §6).
  *
- *  `apiUrl` is not compiled into this app — it comes from a Cloudflare env var,
- *  served by the Worker at `GET /__config` and read once before the app starts.
+ *  Neither `apiUrl` nor `turnstileSiteKey` is compiled into this app — both come
+ *  from Cloudflare env vars, served by the Worker at `GET /__config` and read
+ *  once before the app starts.
  *  No `environment.ts` file exists here (fork rule: the portal is born on the far
  *  side of the Pages→Workers migration, with no compiled literal to migrate away
  *  from).
@@ -16,17 +17,25 @@ const CONFIG_ENDPOINT = '/__config';
 const CONFIG_TIMEOUT_MS = 3000;
 const STORAGE_KEY = 'runtime.config';
 
-/** Starts empty; `loadRuntimeConfig()` fills in the apiUrl from the edge,
- *  storage, or (if both fail) leaves it empty. Empty means no API host is known
- *  yet — the app must not proceed with a guess. */
-export const runtimeConfig: RuntimeOverrides = { apiUrl: '' };
+/** Starts empty; `loadRuntimeConfig()` fills it from the edge, storage, or (if
+ *  both fail) leaves it empty. Empty means the value is not known yet — the app
+ *  must not proceed with a guess, for either field. */
+export const runtimeConfig: RuntimeOverrides = { apiUrl: '', turnstileSiteKey: '' };
 
 /** Applies an override set, ignoring anything malformed. Returns whether
- *  anything was actually taken. */
+ *  anything was actually taken.
+ *
+ *  All-or-nothing on purpose: `apiUrl` stays the gate, and the site key rides
+ *  along from the same source. Applying them independently would let a stale
+ *  cached key overwrite a fresh one when only the host was missing. */
 function apply(overrides: RuntimeOverrides | null | undefined): boolean {
   const apiUrl = overrides?.apiUrl;
   if (typeof apiUrl !== 'string' || !apiUrl.trim()) return false;
   runtimeConfig.apiUrl = apiUrl.trim();
+  const siteKey = overrides?.turnstileSiteKey;
+  // Unset stays empty rather than keeping a previous value: no key means the
+  // auth pages refuse to draw a widget, which is the signal the operator needs.
+  runtimeConfig.turnstileSiteKey = typeof siteKey === 'string' ? siteKey.trim() : '';
   return true;
 }
 
@@ -53,8 +62,9 @@ function writeCached(overrides: RuntimeOverrides): void {
  *  `/__config` → last known-good from storage → empty (no guessing).
  *
  *  Never rejects. Every rung failing is a supported state — a network failure,
- *  an unset Worker `API_URL` var, or corrupted localStorage. An empty `apiUrl`
- *  means the app must not attempt requests. */
+ *  an unset Worker var, or corrupted localStorage. An empty `apiUrl` means the
+ *  app must not attempt requests; an empty `turnstileSiteKey` means the public
+ *  auth pages must not draw a challenge. */
 export async function loadRuntimeConfig(): Promise<void> {
   try {
     const res = await fetch(CONFIG_ENDPOINT, {
@@ -66,7 +76,10 @@ export async function loadRuntimeConfig(): Promise<void> {
     // If it's malformed, the apply() call silently rejects it and the next rung
     // (storage) is tried.
     if (res.ok && apply(await res.json())) {
-      writeCached({ apiUrl: runtimeConfig.apiUrl });
+      writeCached({
+        apiUrl: runtimeConfig.apiUrl,
+        turnstileSiteKey: runtimeConfig.turnstileSiteKey,
+      });
       return;
     }
   } catch {

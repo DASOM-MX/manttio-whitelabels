@@ -7,6 +7,7 @@ interface Env {
     fetch: (request: Request) => Promise<Response>;
   };
   API_URL?: string;
+  TURNSTILE_SITE_KEY?: string;
 }
 
 export default {
@@ -18,11 +19,14 @@ export default {
     if (new URL(request.url).pathname === '/__config') {
       return new Response(
         JSON.stringify({
-          // `env.API_URL` is dashboard-set per tenant. If unset, return null
-          // (not a fallback host) — the app's config chain falls through to
-          // localStorage then gives up, leaving apiUrl empty. An unset var is
+          // Both vars are dashboard-set per tenant. If unset, return null
+          // (not a fallback) — the app's config chain falls through to
+          // localStorage then gives up, leaving the value empty. An unset var is
           // not a bug to paper over; it's a signal to the operator.
           apiUrl: env.API_URL ?? null,
+          // Public by design — it ships inside the widget — but per-tenant, so
+          // it belongs here rather than compiled into the bundle.
+          turnstileSiteKey: env.TURNSTILE_SITE_KEY ?? null,
         }),
         {
           status: 200,
