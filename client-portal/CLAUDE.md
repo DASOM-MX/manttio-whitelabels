@@ -31,8 +31,10 @@ This is the **Portal de clientes** app — a customer-facing logged-in surface f
 - **`src/styles.css`** → imports Tailwind + PrimeNG layer order + animations + theme integrations
 - **`src/animations.scss`** — motion tokens + keyframes (Angular `animate.enter`/`animate.leave`)
 - **`tailwind.config.js`** — semantic brand + surface scales, Figtree/Work-Sans fonts
-- **`src/app/app.routes.ts`** — route definitions (empty for CP-1, populated CP-2+)
+- **`src/app/app.routes.ts`** — route definitions: public shell (`/login`, `/forgot-password`, `/reset-password`) + the authenticated shell (`/home` and beyond) behind `portalAuthGuard`
 - **`src/app/app.config.ts`** — providers: router, HTTP, NGXS, PrimeNG, boot-time config initializer
+- **`src/app/layouts/authenticated-layout/`** + **`src/app/layouts/components/sidebar/`** — ported from `superadmin/src/app/layouts/` (A11: copy + adapt, drift accepted, no shared package). Grant-driven flat nav (`app/model/constants/nav/portal-nav.const.ts`), the disabled Facturas row (own `disabledLabel` field on `PortalNavEntry`, never the badge slot), boot splash/error panel keyed on `AuthState.meStatus`
+- **`src/app/guards/`** — one file per guard: `portal-auth.guard.ts` (token presence only), `grant.guard.ts` (per-route grant factory)
 
 ## Conventions (all from superadmin-design)
 
@@ -64,9 +66,9 @@ This is the **Portal de clientes** app — a customer-facing logged-in surface f
 
 | Plan | CP | Deliverable | Status |
 |---|---|---|---|
-| **03** | **CP-1** | App scaffold, stack, Tailwind + PrimeNG preset, SSR all-CSR, runtime-config + brand initializer, Worker + wrangler config, CLAUDE.md, root table row, build green | IN PROGRESS |
-| 03 | CP-2 | Public shell: login, forgot, reset, force-password dialog, auth state, token interceptor | — |
-| 03 | CP-3 | Authenticated layout, nav with disabled Facturas row, guards, `/inicio` empty state | — |
+| 03 | CP-1 | App scaffold, stack, Tailwind + PrimeNG preset, SSR all-CSR, runtime-config + brand initializer, Worker + wrangler config, CLAUDE.md, root table row, build green | DONE |
+| 03 | CP-2 | Public shell: login, forgot, reset, force-password dialog, auth state, token interceptor | DONE |
+| **03** | **CP-3** | Authenticated layout, grant-driven nav with disabled Facturas row, guards, `/home` empty state | DONE |
 | 03 | CP-4 | Guarded `deploy:cf`, tenant Worker `API_URL`, smoke pass | — |
 | 04 | CP-2…CP-7 | Reportes, Contratos, Cotizaciones, Órdenes, Equipos, Inicio | — |
 | 05 | CP-2, CP-3 | Quotation approval/decline UI | — |

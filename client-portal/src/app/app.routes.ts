@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { portalAuthGuard } from './guards/portal-auth.guard';
 
 export const routes: Routes = [
   {
@@ -17,7 +18,18 @@ export const routes: Routes = [
   },
   {
     path: '',
-    redirectTo: '/login',
-    pathMatch: 'full',
+    canActivate: [portalAuthGuard],
+    loadComponent: () =>
+      import('./layouts/authenticated-layout/authenticated-layout').then(
+        (m) => m.AuthenticatedLayout,
+      ),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'home' },
+      {
+        path: 'home',
+        loadComponent: () => import('./home/pages/home/home').then((m) => m.HomeComponent),
+      },
+      { path: '**', redirectTo: 'home' },
+    ],
   },
 ];

@@ -7,7 +7,6 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { DialogModule } from 'primeng/dialog';
-import { DialogService } from 'primeng/dynamicdialog';
 import { AuthChangePassword } from '../../../../state/auth/auth.actions';
 import { AuthState } from '../../../../state/auth/auth.state';
 import { errorMessage } from '../../../data/utils';
@@ -34,7 +33,6 @@ export class ForcePasswordDialogComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(Store);
   private readonly router = inject(Router);
-  private readonly dialogService = inject(DialogService);
 
   form!: FormGroup;
   visible = signal(false);

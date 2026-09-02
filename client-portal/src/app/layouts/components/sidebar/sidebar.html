@@ -1,0 +1,110 @@
+<!-- Header row: the tenant logo (owner 2026-09-03 — it lives here, not in a
+     footer card) + drawer close (mobile) / rail toggle (desktop). h-14 to stay
+     level with the topbar strip. Nothing renders until `/brand` settles, so the
+     panel never flashes a fallback name at a branded tenant; collapsed shows the
+     square mark, and a tenant with no logo falls back to its name as text. -->
+<div
+  class="flex h-14 shrink-0 items-center border-b border-zinc-200 dark:border-zinc-800"
+  [class.gap-2]="!collapsed()"
+  [class.px-4]="!collapsed()"
+  [class.justify-center]="collapsed()"
+>
+  @if (brandLoaded()) {
+    @if (collapsed()) {
+      @if (brandMarkUrl(); as mark) {
+        <img [src]="mark" [alt]="brandName()" class="nav-brand-mark" />
+      }
+    } @else {
+      @if (brandLogoUrl(); as logo) {
+        <img [src]="logo" [alt]="brandName()" class="nav-brand-logo" />
+      } @else {
+        <p class="truncate text-lg font-black tracking-tight text-zinc-950 dark:text-zinc-50">
+          {{ brandName() }}
+        </p>
+      }
+    }
+  }
+  @if (!collapsed()) {
+    <div class="flex-1"></div>
+  }
+  <button
+    type="button"
+    class="inline-flex size-9 items-center justify-center rounded-full text-zinc-600 hover:bg-zinc-100 lg:hidden dark:text-zinc-300 dark:hover:bg-zinc-800"
+    (click)="closed.emit()"
+    aria-label="Cerrar menú"
+  >
+    <svg lucideX class="size-5" aria-hidden="true"></svg>
+  </button>
+</div>
+
+<!-- Floating collapse handle — desktop only; the drawer keeps its X. -->
+<button
+  type="button"
+  class="absolute right-0 top-5 z-10 hidden size-4 translate-x-1/2 items-center justify-center rounded-full bg-white text-zinc-600 shadow-card ring-1 ring-zinc-200 transition-colors hover:bg-zinc-100 lg:flex dark:bg-zinc-900 dark:text-zinc-300 dark:ring-zinc-800 dark:hover:bg-zinc-800"
+  (click)="toggleCollapse()"
+  [attr.aria-label]="collapsed() ? 'Expandir menú' : 'Contraer menú'"
+  [attr.aria-expanded]="!collapsed()"
+>
+  @if (collapsed()) {
+    <svg lucideChevronRight class="size-3" aria-hidden="true"></svg>
+  } @else {
+    <svg lucideChevronLeft class="size-3" aria-hidden="true"></svg>
+  }
+</button>
+
+<!-- Collapsed rail: overflow must stay visible so the flyouts can escape
+     the aside. -->
+<nav class="nav-rail flex-1 px-3 py-3" [class.overflow-y-auto]="!collapsed()" aria-label="Secciones">
+  <ul class="flex flex-col gap-1">
+    @for (entry of navEntries(); track entry.label) {
+      <li class="relative" [class.nav-flyout-host]="collapsed()">
+        @if (entry.disabledLabel) {
+          <!-- Facturas — the one disabled row (00 §4b.24): plain text, no
+               routerLink, not focusable, never `.nav-active`. -->
+          <div
+            class="nav-item--disabled"
+            [class.justify-center]="collapsed()"
+            [class.!px-0]="collapsed()"
+            aria-disabled="true"
+          >
+            <svg lucideIcon [lucideIcon]="entry.icon" class="nav-icon" aria-hidden="true"></svg>
+            @if (!collapsed()) {
+              <span class="flex-1">{{ entry.label }}</span>
+              <span class="nav-soon">{{ entry.disabledLabel }}</span>
+            }
+          </div>
+        } @else {
+          <a
+            class="nav-item"
+            [class.justify-center]="collapsed()"
+            [class.!px-0]="collapsed()"
+            [routerLink]="entry.route"
+            routerLinkActive="nav-active"
+            ariaCurrentWhenActive="page"
+            [routerLinkActiveOptions]="{ exact: entry.exact ?? false }"
+            [attr.aria-label]="collapsed() ? entry.label : null"
+          >
+            <svg lucideIcon [lucideIcon]="entry.icon" class="nav-icon" aria-hidden="true"></svg>
+            @if (!collapsed()) {
+              <span class="flex-1">{{ entry.label }}</span>
+            }
+          </a>
+        }
+        @if (collapsed()) {
+          <div class="nav-flyout">
+            <div class="nav-flyout-panel">
+              <p class="nav-flyout-title">
+                {{ entry.label }}
+                @if (entry.disabledLabel; as soon) {
+                  <span class="block font-normal text-zinc-500 dark:text-zinc-400">
+                    {{ soon }}
+                  </span>
+                }
+              </p>
+            </div>
+          </div>
+        }
+      </li>
+    }
+  </ul>
+</nav>
