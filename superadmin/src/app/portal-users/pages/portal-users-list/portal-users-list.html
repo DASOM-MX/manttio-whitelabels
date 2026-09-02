@@ -2,46 +2,12 @@
   title="Portal de clientes"
   description="Quién de tus clientes entra al portal y qué puede ver ahí."
 >
-  <app-filters-popover [params]="['q', 'status', 'customerId', 'grant']">
-    <div class="field-group">
-      <label class="field-label" for="portal-users-search">Buscar</label>
-      <input
-        id="portal-users-search"
-        pInputText
-        type="search"
-        [formControl]="search"
-        placeholder="Nombre o correo"
-      />
-    </div>
-    <div class="field-group">
-      <label class="field-label" for="portal-users-status">Estado</label>
-      <p-select
-        inputId="portal-users-status"
-        [formControl]="statusFilter"
-        [options]="statusOptions"
-        optionLabel="label"
-        optionValue="value"
-      />
-    </div>
-    <div class="field-group">
-      <label class="field-label" for="portal-users-customer">Cliente</label>
-      <app-customer-select
-        inputId="portal-users-customer"
-        [formControl]="customerFilter"
-        allOptionLabel="Todos los clientes"
-      />
-    </div>
-    <div class="field-group">
-      <label class="field-label" for="portal-users-grant">Permiso</label>
-      <p-select
-        inputId="portal-users-grant"
-        [formControl]="grantFilter"
-        [options]="grantOptions"
-        optionLabel="label"
-        optionValue="value"
-      />
-    </div>
-  </app-filters-popover>
+  <app-portal-users-filters
+    [search]="search"
+    [status]="statusFilter"
+    [customer]="customerFilter"
+    [grant]="grantFilter"
+  />
 </app-page-header>
 
 <div>

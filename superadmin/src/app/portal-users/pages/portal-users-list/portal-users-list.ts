@@ -1,10 +1,8 @@
 import { Component, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { FormControl } from '@angular/forms';
 import { TableModule } from 'primeng/table';
-import { SelectModule } from 'primeng/select';
-import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
 import { LucideKeyRound } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
@@ -22,9 +20,8 @@ import { PortalInviteUnusedPipe } from '../../../pipes/portal-invite-unused.pipe
 import { PortalUserNamePipe } from '../../../pipes/portal-user-name.pipe';
 import { PortalUserStatusLabelPipe } from '../../../pipes/portal-user-status-label.pipe';
 import { PortalUserStatusSeverityPipe } from '../../../pipes/portal-user-status-severity.pipe';
-import { CustomerSelect } from '../../../shared/components/customer-select/customer-select';
-import { FiltersPopover } from '../../../shared/components/filters-popover/filters-popover';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
+import { PortalUsersFilters } from '../../components/portal-users-filters/portal-users-filters';
 import type { PortalUserListQuery } from '../../../data/dtos/portal-user/portal-user-requests';
 
 /** Portal access list (26 §1) — every external person who can log into the
@@ -40,10 +37,7 @@ import type { PortalUserListQuery } from '../../../data/dtos/portal-user/portal-
   imports: [
     DatePipe,
     RouterLink,
-    ReactiveFormsModule,
     TableModule,
-    SelectModule,
-    InputTextModule,
     TagModule,
     InitialsPipe,
     PortalGrantLabelPipe,
@@ -51,9 +45,8 @@ import type { PortalUserListQuery } from '../../../data/dtos/portal-user/portal-
     PortalUserNamePipe,
     PortalUserStatusLabelPipe,
     PortalUserStatusSeverityPipe,
-    CustomerSelect,
-    FiltersPopover,
     PageHeader,
+    PortalUsersFilters,
     LucideKeyRound,
   ],
   providers: [ListQueryService],
@@ -72,20 +65,6 @@ export class PortalUsersList {
   protected statusFilter = new FormControl<PortalUserStatus | ''>('', { nonNullable: true });
   protected customerFilter = new FormControl('', { nonNullable: true });
   protected grantFilter = new FormControl<PortalGrant | ''>('', { nonNullable: true });
-
-  protected statusOptions = [
-    { label: 'Todos los estados', value: '' },
-    ...(Object.entries(PORTAL_USER_STATUS_LABELS) as [PortalUserStatus, string][]).map(
-      ([value, label]) => ({ label, value }),
-    ),
-  ];
-  protected grantOptions = [
-    { label: 'Todos los permisos', value: '' },
-    ...(Object.entries(PORTAL_GRANT_LABELS) as [PortalGrant, string][]).map(([value, label]) => ({
-      label,
-      value,
-    })),
-  ];
 
   protected readonly skeletonColumns = [0, 1, 2, 3, 4, 5, 6, 7];
 
