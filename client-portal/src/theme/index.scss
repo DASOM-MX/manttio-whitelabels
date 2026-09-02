@@ -1,5 +1,35 @@
-/* Client Portal PrimeNG theme integrations (plan 03 CP-1).
-   Minimal for the app shell; extends as features land. */
+/* Client Portal PrimeNG theme integrations (plan 03 CP-1 → CP-2).
+   Minimal for the app shell; extends as features land.
+   Note: @layer components is not used to avoid CSS @import ordering issues. */
 
-/* Empty for now — the ManttioPreset carries all necessary tokens.
-   Sheets only when Aura has no token to express the desired chrome. */
+/* Form input field (plan 03 CP-2: auth pages). Soft branded outline that
+   strengthens on approach. */
+.field-input {
+  @apply w-full h-11 sm:h-10 px-3.5 py-2 bg-white border border-primary-600/40 rounded-control text-base sm:text-sm text-surface-1000 font-semibold transition-colors duration-150 enabled:hover:border-primary-600 focus:outline-none focus:border-primary-700 focus:ring-4 focus:ring-primary-700/20 disabled:bg-surface-0 disabled:text-surface-400 disabled:border-surface-300
+         dark:bg-surface-900 dark:border-primary-400/40 dark:enabled:hover:border-primary-400 dark:text-surface-0 dark:focus:border-primary-400 dark:focus:ring-primary-400/25 dark:disabled:bg-surface-800 dark:disabled:text-surface-500 dark:disabled:border-surface-700;
+}
+
+/* Error message text (plan 03 CP-2). */
+.field-error {
+  @apply text-sm font-bold text-red-700 dark:text-red-400;
+}
+
+/* Hint/helper text (plan 03 CP-2). */
+.field-hint {
+  @apply text-sm text-surface-600 dark:text-surface-400;
+}
+
+/* Button (plan 03 CP-2). */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 min-h-10 px-4 py-2 rounded-control text-base font-bold transition-colors duration-150 focus:outline-none focus-visible:ring-4 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+/* Link action (plan 03 CP-2: forgot password link). */
+.link-action {
+  @apply inline-flex items-center gap-2 text-sm font-bold text-primary-700 transition-colors hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200;
+}
+
+/* Card surface (plan 03 CP-2). */
+.card {
+  @apply rounded-card border border-surface-200 bg-white shadow-card dark:border-surface-800 dark:bg-surface-900;
+}

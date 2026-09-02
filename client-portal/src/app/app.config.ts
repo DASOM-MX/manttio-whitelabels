@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { providePrimeNG } from 'primeng/config';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { provideStore, Store } from '@ngxs/store';
@@ -20,15 +20,17 @@ import { ManttioPreset } from './theme/manttio-preset';
 import { routes } from './app.routes';
 import { loadRuntimeConfig } from './config/runtime-config';
 import { AppState } from '../state/app/app.state';
+import { AuthState } from '../state/auth/auth.state';
 import { BrandState } from '../state/brand/brand.state';
 import { LoadBrand } from '../state/brand/brand.actions';
+import { portalTokenInterceptor } from './services/http/portal-token.interceptor';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
-    provideHttpClient(),
+    provideHttpClient(withInterceptors([portalTokenInterceptor])),
     provideRouter(routes),
     providePrimeNG({
       ripple: false,
@@ -47,9 +49,9 @@ export const appConfig: ApplicationConfig = {
     ConfirmationService,
     MessageService,
     provideStore(
-      [AppState, BrandState],
-      // Persist app state (dark mode, sidebar) to storage
-      withNgxsStoragePlugin({ keys: ['app'] }),
+      [AppState, AuthState, BrandState],
+      // Persist app state (dark mode, sidebar) and auth state (token) to storage
+      withNgxsStoragePlugin({ keys: ['app', 'auth'] }),
       withNgxsReduxDevtoolsPlugin({ disabled: !isDevMode() }),
       withNgxsLoggerPlugin({ disabled: !isDevMode() }),
     ),

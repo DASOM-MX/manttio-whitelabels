@@ -142,8 +142,11 @@ apps had to perform and is simply born on the far side of it.
   the shell from the asset layer and bypasses the Worker, which would break `/__config`.
 - **`keep_vars: true` is load-bearing.** Without it a deploy treats the file as the sole
   authority on bindings and silently deletes the dashboard-set `API_URL`.
-- **`API_URL` is a plain-text var in each tenant Worker's dashboard** — per-tenant, and not a
-  secret, since it ships to every browser anyway.
+- **`API_URL` and `TURNSTILE_SITE_KEY` are plain-text vars in each tenant Worker's dashboard**
+  — per-tenant, and neither is a secret, since both ship to every browser anyway. (The Turnstile
+  key joined the payload 2026-09-02: CP-2 had it as a literal in the two public auth pages, which
+  would have routed every tenant's challenge through one Cloudflare account. `keep_vars: true`
+  covers it like any other dashboard var.)
 - `deploy:cf` refuses to run without an explicit tenant
   (`CF_WORKER_NAME=<tenant> npm run deploy:cf`), guard first in the script so an unset variable
   fails in a second rather than after a full production build.

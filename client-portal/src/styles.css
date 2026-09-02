@@ -5,7 +5,8 @@
 /* Motion tokens + keyframes */
 @import './animations.scss';
 
-/* PrimeNG theme overrides */
+/* PrimeNG theme overrides. Must stay above the rules below — a CSS @import
+   after them is invalid and silently dropped. Precedence comes from @layer. */
 @import './theme/index.scss';
 
 /* Client Portal global styles — copied from superadmin (plan 03 CP-1).
