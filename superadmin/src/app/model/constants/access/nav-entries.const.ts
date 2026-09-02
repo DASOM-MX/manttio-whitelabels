@@ -4,6 +4,7 @@ import {
   LucideClipboardList,
   LucideFileText,
   LucideHeartHandshake,
+  LucideKeyRound,
   LucideNewspaper,
   LucidePackage,
   LucidePackageSearch,
@@ -61,6 +62,15 @@ export const NAV: NavEntry[] = [
       // soft-deleted rows are audit-only and never listed).
       { label: 'Archivados', route: '/customers/archived', module: 'customers' },
     ],
+  },
+  // Tenant-wide, never nested inside one customer (26 §1): the questions it
+  // answers — who has access, who was invited and never logged in — are
+  // cross-customer. Owner-only, so it is the one nav row an admin never sees.
+  {
+    label: 'Portal de clientes',
+    icon: LucideKeyRound,
+    route: '/portal-users',
+    module: 'portal-users',
   },
   {
     label: 'CMS',

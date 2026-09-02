@@ -1,4 +1,5 @@
 import type { Role } from '../../../data/dtos/auth';
+import { OWNER_ONLY } from './owner-only.const';
 import type { ModuleKey } from '../../../data/types/access/module-key.type';
 
 /** Access matrix (14-access-control.md §2) — roles that may enter each module.
@@ -29,4 +30,7 @@ export const MODULE_ROLES: Record<ModuleKey, readonly Role[]> = {
   branding: ['owner', 'admin'],
   cms: ['owner', 'admin'],
   wms: ['owner', 'admin', 'office', 'technician'],
+  // Owner-only (26 CP-1): the roster of every external login is held
+  // closer than the module's per-user actions, which are admin-tier.
+  'portal-users': OWNER_ONLY,
 };

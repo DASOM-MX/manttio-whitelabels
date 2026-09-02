@@ -1,0 +1,40 @@
+<app-filters-popover [params]="params">
+  <div class="field-group">
+    <label class="field-label" for="portal-users-search">Buscar</label>
+    <input
+      id="portal-users-search"
+      pInputText
+      type="search"
+      [formControl]="search()"
+      placeholder="Nombre o correo"
+    />
+  </div>
+  <div class="field-group">
+    <label class="field-label" for="portal-users-status">Estado</label>
+    <p-select
+      inputId="portal-users-status"
+      [formControl]="status()"
+      [options]="statusOptions"
+      optionLabel="label"
+      optionValue="value"
+    />
+  </div>
+  <div class="field-group">
+    <label class="field-label" for="portal-users-customer">Cliente</label>
+    <app-customer-select
+      inputId="portal-users-customer"
+      [formControl]="customer()"
+      allOptionLabel="Todos los clientes"
+    />
+  </div>
+  <div class="field-group">
+    <label class="field-label" for="portal-users-grant">Permiso</label>
+    <p-select
+      inputId="portal-users-grant"
+      [formControl]="grant()"
+      [options]="grantOptions"
+      optionLabel="label"
+      optionValue="value"
+    />
+  </div>
+</app-filters-popover>
