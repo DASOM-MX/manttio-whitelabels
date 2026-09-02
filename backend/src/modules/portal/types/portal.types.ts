@@ -1,16 +1,11 @@
 import type { portalUsers } from '../models/portal-users.model';
-import type {
-  PortalEquipmentLinkedReport,
-  PortalEquipmentLinkedServiceRequest,
-} from '../dtos/portal-equipment.dto';
+import type { PortalEquipmentLinkedServiceRequest } from '../dtos/portal-equipment.dto';
+import type { PortalLinkedReport } from '../dtos/portal-report.dto';
 import type {
   PortalQuotationLine,
   PortalQuotationReviewer,
 } from '../dtos/portal-quotation.dto';
-import type {
-  PortalServiceOrderLine,
-  PortalServiceOrderLinkedReport,
-} from '../dtos/portal-service-order.dto';
+import type { PortalServiceOrderLine } from '../dtos/portal-service-order.dto';
 import type { PortalGrant } from '../enums/portal-grants.enum';
 
 /** The portal JWT's claim set (02 §1). Signed with `PORTAL_JWT_SECRET`, never
@@ -83,7 +78,7 @@ export interface PortalServiceOrderListExtras {
 export interface PortalServiceOrderDetailExtras extends PortalServiceOrderListExtras {
   quotationId: string | null;
   lines: PortalServiceOrderLine[];
-  linkedReports: PortalServiceOrderLinkedReport[];
+  linkedReports: PortalLinkedReport[];
   visitDates: Date[];
 }
 
@@ -95,6 +90,6 @@ export interface PortalEquipmentListExtras {
 /** Each sub-list obeys its own grant (04 §7), so either may be empty because the
  *  user is not entitled to it rather than because there is nothing there. */
 export interface PortalEquipmentDetailExtras extends PortalEquipmentListExtras {
-  linkedReports: PortalEquipmentLinkedReport[];
+  linkedReports: PortalLinkedReport[];
   linkedServiceRequests: PortalEquipmentLinkedServiceRequest[];
 }

@@ -1,13 +1,5 @@
 import type { EquipmentStatus } from '../../equipment/enums/equipment.enum';
-import type { ReportStatus } from '../../reports/enums/reports.enum';
-
-/** A report on this unit, for the per-unit history (04 §7). */
-export interface PortalEquipmentLinkedReport {
-  id: string;
-  reportType: string;
-  status: ReportStatus;
-  createdAt: Date;
-}
+import type { PortalLinkedReport } from './portal-report.dto';
 
 /** A request filed against this unit. `status` becomes `ServiceRequestStatus`
  *  once 01 CP-2 lands. */
@@ -37,6 +29,6 @@ export interface PortalEquipmentDetail extends PortalEquipmentListItem {
   installDate: string | null;
   status: EquipmentStatus;
   photos: string[];
-  linkedReports: PortalEquipmentLinkedReport[];
+  linkedReports: PortalLinkedReport[];
   linkedServiceRequests: PortalEquipmentLinkedServiceRequest[];
 }

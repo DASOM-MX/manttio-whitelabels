@@ -26,3 +26,12 @@ export interface PortalReportDetail extends PortalReportListItem {
   pictures: string[];
   signature: string | null;
 }
+
+/** A report as it appears hanging off another record — the service order's
+ *  linked list (04 §6) and the equipment unit's history (04 §7). Picked from the
+ *  list item rather than restated, so the two can never describe the same report
+ *  differently. */
+export type PortalLinkedReport = Pick<
+  PortalReportListItem,
+  'id' | 'reportType' | 'status' | 'createdAt'
+>;

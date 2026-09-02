@@ -1,26 +1,11 @@
-import type { ReportStatus } from '../../reports/enums/reports.enum';
 import type { ServiceOrderStatus } from '../../service-orders/enums/service-orders.enum';
-import type { ServiceTaxRate, ServiceUom } from '../../services/enums/services.enum';
+import type { PortalLinkedReport } from './portal-report.dto';
+import type { PortalPricedLine } from './portal-priced-line.dto';
 
-/** One scope line, frozen at order creation. Same tax/discount reasoning as the
- *  quotation line. */
-export interface PortalServiceOrderLine {
-  id: string;
-  serviceName: string;
-  uom: ServiceUom;
-  quantity: string;
-  unitPrice: string;
-  discountAmount: string;
-  taxRate: ServiceTaxRate;
-}
-
-/** A linked report, enough to render the row and deep-link into 04 §3. */
-export interface PortalServiceOrderLinkedReport {
-  id: string;
-  reportType: string;
-  status: ReportStatus;
-  createdAt: Date;
-}
+/** One scope line, frozen at order creation — the priced line without the
+ *  quotation's `description`, which `service_order_services` does not carry.
+ *  Named for the domain so it can diverge later without touching callers. */
+export type PortalServiceOrderLine = PortalPricedLine;
 
 /** A service order as the customer sees it (04 §6). `priority` is an internal
  *  dispatch signal and is never sent (A15). */
@@ -41,7 +26,7 @@ export interface PortalServiceOrderListItem {
 export interface PortalServiceOrderDetail extends PortalServiceOrderListItem {
   quotationId: string | null;
   lines: PortalServiceOrderLine[];
-  linkedReports: PortalServiceOrderLinkedReport[];
+  linkedReports: PortalLinkedReport[];
   /** Dates only (04 §6) — never the technician assignment churn behind them. */
   visitDates: Date[];
 }
