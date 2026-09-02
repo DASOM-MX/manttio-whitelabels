@@ -9,7 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { Store } from '@ngxs/store';
+import { select, Store } from '@ngxs/store';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -17,8 +17,10 @@ import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { PasswordModule } from 'primeng/password';
 import { ToastModule } from 'primeng/toast';
+import { AppState } from '../../../../state/app/app.state';
 import { AuthLogin, AuthLoadMe } from '../../../../state/auth/auth.actions';
 import { AuthState } from '../../../../state/auth/auth.state';
+import { BrandState } from '../../../../state/brand/brand.state';
 import { TurnstileService } from '../../../services/turnstile/turnstile.service';
 import { errorMessage } from '../../../data/utils';
 
@@ -51,6 +53,20 @@ export class LoginComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
   private readonly turnstile = inject(TurnstileService);
+
+  private readonly darkMode = select(AppState.darkMode);
+  private readonly brand = select(BrandState.data);
+
+  /** Tenant logo above the form — the dark-surface variant in dark mode,
+   *  falling back to the light one. A brandless tenant renders no image at
+   *  all (branding rule 5: absent identity hides, never fakes). Reactive
+   *  because `LoadBrand` resolves after boot, not before this page paints. */
+  protected logoUrl = computed(() => {
+    const brand = this.brand();
+    if (!brand) return undefined;
+    return this.darkMode() ? (brand.logoDarkUrl ?? brand.logoUrl) : brand.logoUrl;
+  });
+  protected logoAlt = computed(() => this.brand()?.name ?? 'Logo');
 
   form!: FormGroup;
   isLoading = computed(() => this.store.selectSnapshot(AuthState.loading));
