@@ -23,26 +23,26 @@ import type {
 import {
   toPortalContractDetail,
   toPortalContractListItem,
-} from '../../src/modules/portal/dtos/portal-contract.dto';
+} from '../../src/modules/portal/helpers/portal-contract.helpers';
 import {
   toPortalEquipmentDetail,
   toPortalEquipmentListItem,
-} from '../../src/modules/portal/dtos/portal-equipment.dto';
+} from '../../src/modules/portal/helpers/portal-equipment.helpers';
 import {
   toPortalQuotationDetail,
   toPortalQuotationLine,
   toPortalQuotationListItem,
   toPortalQuotationReviewer,
-} from '../../src/modules/portal/dtos/portal-quotation.dto';
+} from '../../src/modules/portal/helpers/portal-quotation.helpers';
 import {
   toPortalReportDetail,
   toPortalReportListItem,
-} from '../../src/modules/portal/dtos/portal-report.dto';
+} from '../../src/modules/portal/helpers/portal-report.helpers';
 import {
   toPortalServiceOrderDetail,
   toPortalServiceOrderLine,
   toPortalServiceOrderListItem,
-} from '../../src/modules/portal/dtos/portal-service-order.dto';
+} from '../../src/modules/portal/helpers/portal-service-order.helpers';
 
 // Values that must never reach a portal response. Each fixture below sets the
 // staff-only columns to one of these, so a leak shows up as a value match and

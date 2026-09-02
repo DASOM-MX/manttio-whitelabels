@@ -123,10 +123,10 @@ columns, and anything belonging to another customer. **CP-3 enumerates the kept 
 entity** and a test asserts each portal DTO's exact key set, so a future column added to a
 staff DTO cannot leak by inheritance.
 
-The enumeration **is** `modules/portal/dtos/` — one file per entity, each an explicit
-type plus its `to…` mapper, per `modules/users/dtos/users.dto.ts`. `test/portal/portal-dtos.test.ts`
-is the lock: it builds every source row with all columns populated (tombstones included) and
-asserts each mapper's exact key set.
+The enumeration **is** `modules/portal/dtos/` — one file per entity, **types only**. The
+row→DTO mappers are formatters and live in `modules/portal/helpers/`, their join inputs in
+`types/portal.types.ts`. `test/portal/portal-dtos.test.ts` is the lock: it builds every source
+row with all columns populated (tombstones included) and asserts each mapper's exact key set.
 
 Lists return `GenericQueryResponse<T>` with a real `total`.
 

@@ -1,4 +1,16 @@
 import type { portalUsers } from '../models/portal-users.model';
+import type {
+  PortalEquipmentLinkedReport,
+  PortalEquipmentLinkedServiceRequest,
+} from '../dtos/portal-equipment.dto';
+import type {
+  PortalQuotationLine,
+  PortalQuotationReviewer,
+} from '../dtos/portal-quotation.dto';
+import type {
+  PortalServiceOrderLine,
+  PortalServiceOrderLinkedReport,
+} from '../dtos/portal-service-order.dto';
 import type { PortalGrant } from '../enums/portal-grants.enum';
 
 /** The portal JWT's claim set (02 §1). Signed with `PORTAL_JWT_SECRET`, never
@@ -40,3 +52,49 @@ export type PortalUserListRow = typeof portalUsers.$inferSelect & {
   invitedByName: string | null;
   grants: PortalGrant[];
 };
+
+// ---------------------------------------------------------------------------
+// Mapper inputs (02 CP-3). Each names the joins its `portal/helpers` mapper
+// needs beyond the staff row — the row alone can never satisfy a portal DTO.
+// ---------------------------------------------------------------------------
+
+/** Both report mappers take the same set. */
+export interface PortalReportExtras {
+  technicianName: string | null;
+  equipmentNames: string[];
+}
+
+/** `total` is summed from the lines. */
+export interface PortalQuotationListExtras {
+  total: string;
+}
+
+export interface PortalQuotationDetailExtras extends PortalQuotationListExtras {
+  lines: PortalQuotationLine[];
+  reviewers: PortalQuotationReviewer[];
+}
+
+export interface PortalServiceOrderListExtras {
+  /** Folio of the quotation this order came from, if any. */
+  quotationFolio: string | null;
+  reportCount: number;
+}
+
+export interface PortalServiceOrderDetailExtras extends PortalServiceOrderListExtras {
+  quotationId: string | null;
+  lines: PortalServiceOrderLine[];
+  linkedReports: PortalServiceOrderLinkedReport[];
+  visitDates: Date[];
+}
+
+export interface PortalEquipmentListExtras {
+  /** Newest linked report's date; null if never serviced. */
+  lastServiceDate: Date | null;
+}
+
+/** Each sub-list obeys its own grant (04 §7), so either may be empty because the
+ *  user is not entitled to it rather than because there is nothing there. */
+export interface PortalEquipmentDetailExtras extends PortalEquipmentListExtras {
+  linkedReports: PortalEquipmentLinkedReport[];
+  linkedServiceRequests: PortalEquipmentLinkedServiceRequest[];
+}

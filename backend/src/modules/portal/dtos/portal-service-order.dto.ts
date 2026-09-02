@@ -1,10 +1,6 @@
 import type { ReportStatus } from '../../reports/enums/reports.enum';
-import type { ServiceTaxRate, ServiceUom } from '../../services/enums/services.enum';
 import type { ServiceOrderStatus } from '../../service-orders/enums/service-orders.enum';
-import type {
-  ServiceOrderLineRow,
-  ServiceOrderRow,
-} from '../../service-orders/types/service-orders.types';
+import type { ServiceTaxRate, ServiceUom } from '../../services/enums/services.enum';
 
 /** One scope line, frozen at order creation. Same tax/discount reasoning as the
  *  quotation line. */
@@ -24,20 +20,6 @@ export interface PortalServiceOrderLinkedReport {
   reportType: string;
   status: ReportStatus;
   createdAt: Date;
-}
-
-export interface PortalServiceOrderListExtras {
-  /** Folio of the quotation this order came from, if any. */
-  quotationFolio: string | null;
-  reportCount: number;
-}
-
-export interface PortalServiceOrderDetailExtras extends PortalServiceOrderListExtras {
-  quotationId: string | null;
-  lines: PortalServiceOrderLine[];
-  linkedReports: PortalServiceOrderLinkedReport[];
-  /** Dates only (04 §6) — never the technician assignment churn behind them. */
-  visitDates: Date[];
 }
 
 /** A service order as the customer sees it (04 §6). `priority` is an internal
@@ -60,42 +42,6 @@ export interface PortalServiceOrderDetail extends PortalServiceOrderListItem {
   quotationId: string | null;
   lines: PortalServiceOrderLine[];
   linkedReports: PortalServiceOrderLinkedReport[];
+  /** Dates only (04 §6) — never the technician assignment churn behind them. */
   visitDates: Date[];
 }
-
-export const toPortalServiceOrderLine = (
-  row: ServiceOrderLineRow,
-): PortalServiceOrderLine => ({
-  id: row.id,
-  serviceName: row.serviceName,
-  uom: row.uom,
-  quantity: row.quantity,
-  unitPrice: row.unitPrice,
-  discountAmount: row.discountAmount,
-  taxRate: row.taxRate,
-});
-
-export const toPortalServiceOrderListItem = (
-  row: ServiceOrderRow,
-  extras: PortalServiceOrderListExtras,
-): PortalServiceOrderListItem => ({
-  id: row.id,
-  folio: row.folio,
-  status: row.status,
-  location: row.location,
-  promisedDate: row.promisedDate,
-  quotationFolio: extras.quotationFolio,
-  reportCount: extras.reportCount,
-  createdAt: row.createdAt,
-});
-
-export const toPortalServiceOrderDetail = (
-  row: ServiceOrderRow,
-  extras: PortalServiceOrderDetailExtras,
-): PortalServiceOrderDetail => ({
-  ...toPortalServiceOrderListItem(row, extras),
-  quotationId: extras.quotationId,
-  lines: extras.lines,
-  linkedReports: extras.linkedReports,
-  visitDates: extras.visitDates,
-});

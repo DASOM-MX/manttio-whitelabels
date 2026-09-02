@@ -1,5 +1,4 @@
 import type { EquipmentStatus } from '../../equipment/enums/equipment.enum';
-import type { EquipmentRow } from '../../equipment/types/equipment.types';
 import type { ReportStatus } from '../../reports/enums/reports.enum';
 
 /** A report on this unit, for the per-unit history (04 §7). */
@@ -17,18 +16,6 @@ export interface PortalEquipmentLinkedServiceRequest {
   folio: string;
   status: string;
   createdAt: Date;
-}
-
-export interface PortalEquipmentListExtras {
-  /** Newest linked report's date; null if never serviced. */
-  lastServiceDate: Date | null;
-}
-
-/** Each sub-list obeys its own grant (04 §7), so either may be empty because the
- *  user is not entitled to it rather than because there is nothing there. */
-export interface PortalEquipmentDetailExtras extends PortalEquipmentListExtras {
-  linkedReports: PortalEquipmentLinkedReport[];
-  linkedServiceRequests: PortalEquipmentLinkedServiceRequest[];
 }
 
 /** The customer's own registry (04 §7). Acquisition cost, internal maintenance
@@ -53,30 +40,3 @@ export interface PortalEquipmentDetail extends PortalEquipmentListItem {
   linkedReports: PortalEquipmentLinkedReport[];
   linkedServiceRequests: PortalEquipmentLinkedServiceRequest[];
 }
-
-export const toPortalEquipmentListItem = (
-  row: EquipmentRow,
-  extras: PortalEquipmentListExtras,
-): PortalEquipmentListItem => ({
-  id: row.id,
-  name: row.name,
-  brand: row.brand,
-  model: row.model,
-  serialNumber: row.serialNumber,
-  location: row.location,
-  lastServiceDate: extras.lastServiceDate,
-});
-
-export const toPortalEquipmentDetail = (
-  row: EquipmentRow,
-  extras: PortalEquipmentDetailExtras,
-): PortalEquipmentDetail => ({
-  ...toPortalEquipmentListItem(row, extras),
-  kind: row.kind,
-  capacity: row.capacity,
-  installDate: row.installDate,
-  status: row.status,
-  photos: row.photos,
-  linkedReports: extras.linkedReports,
-  linkedServiceRequests: extras.linkedServiceRequests,
-});
