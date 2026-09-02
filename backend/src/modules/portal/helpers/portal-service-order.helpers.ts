@@ -35,7 +35,7 @@ export const toPortalServiceOrderListItem = (
   promisedDate: row.promisedDate,
   quotationFolio: extras.quotationFolio,
   reportCount: extras.reportCount,
-  createdAt: row.createdAt,
+  createdAt: row.createdAt.toISOString(),
 });
 
 export const toPortalServiceOrderDetail = (
@@ -46,5 +46,5 @@ export const toPortalServiceOrderDetail = (
   quotationId: extras.quotationId,
   lines: extras.lines,
   linkedReports: extras.linkedReports,
-  visitDates: extras.visitDates,
+  visitDates: extras.visitDates.map((d) => d.toISOString()),
 });

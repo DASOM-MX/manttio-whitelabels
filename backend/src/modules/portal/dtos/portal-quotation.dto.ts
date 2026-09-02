@@ -16,7 +16,7 @@ export interface PortalQuotationLine extends PortalPricedLine {
 export interface PortalQuotationReviewer {
   contactName: string | null;
   response: QuotationResponse | null;
-  respondedAt: Date | null;
+  respondedAt: string | null;
 }
 
 /** A quotation as the customer sees it (04 §5). Staff attribution,
@@ -25,12 +25,12 @@ export interface PortalQuotationListItem {
   id: string;
   folio: string;
   status: QuotationStatus;
-  sentAt: Date | null;
+  sentAt: string | null;
   validUntil: string;
   /** Computed on read, never stored. */
   isOverdue: boolean;
   total: string;
-  createdAt: Date;
+  createdAt: string;
 }
 
 export interface PortalQuotationDetail extends PortalQuotationListItem {

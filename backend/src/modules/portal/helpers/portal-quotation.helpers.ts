@@ -33,7 +33,7 @@ export const toPortalQuotationReviewer = (
 ): PortalQuotationReviewer => ({
   contactName,
   response: row.response,
-  respondedAt: row.respondedAt,
+  respondedAt: row.respondedAt?.toISOString() ?? null,
 });
 
 // `today` comes from the caller so no mapper reads a clock.
@@ -45,11 +45,11 @@ export const toPortalQuotationListItem = (
   id: row.id,
   folio: row.folio,
   status: row.status,
-  sentAt: row.sentAt,
+  sentAt: row.sentAt?.toISOString() ?? null,
   validUntil: row.validUntil,
   isOverdue: row.validUntil < today,
   total: extras.total,
-  createdAt: row.createdAt,
+  createdAt: row.createdAt.toISOString(),
 });
 
 export const toPortalQuotationDetail = (

@@ -16,7 +16,7 @@ export interface PortalContractListItem {
   validity: ContractValidity;
   /** Not always a PDF — the UI downloads rather than promising a viewer. */
   fileType: ContractFileType;
-  createdAt: Date;
+  createdAt: string;
 }
 
 /** Adds the metadata block and the file the detail page offers. `fileKey` stays

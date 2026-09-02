@@ -18,7 +18,7 @@ export const toPortalEquipmentListItem = (
   model: row.model,
   serialNumber: row.serialNumber,
   location: row.location,
-  lastServiceDate: extras.lastServiceDate,
+  lastServiceDate: extras.lastServiceDate?.toISOString() ?? null,
 });
 
 export const toPortalEquipmentDetail = (

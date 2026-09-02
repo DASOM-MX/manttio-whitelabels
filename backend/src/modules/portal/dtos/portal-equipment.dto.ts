@@ -7,7 +7,7 @@ export interface PortalEquipmentLinkedServiceRequest {
   id: string;
   folio: string;
   status: string;
-  createdAt: Date;
+  createdAt: string;
 }
 
 /** The customer's own registry (04 §7). Acquisition cost, internal maintenance
@@ -19,7 +19,7 @@ export interface PortalEquipmentListItem {
   model: string | null;
   serialNumber: string | null;
   location: string | null;
-  lastServiceDate: Date | null;
+  lastServiceDate: string | null;
 }
 
 /** The identification block plus the per-unit history. */

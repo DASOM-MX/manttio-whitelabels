@@ -18,7 +18,7 @@ export interface PortalServiceOrderListItem {
   promisedDate: string | null;
   quotationFolio: string | null;
   reportCount: number;
-  createdAt: Date;
+  createdAt: string;
 }
 
 /** `comments` is absent by design: the order's staff-side dispatch notes are
@@ -28,5 +28,5 @@ export interface PortalServiceOrderDetail extends PortalServiceOrderListItem {
   lines: PortalServiceOrderLine[];
   linkedReports: PortalLinkedReport[];
   /** Dates only (04 §6) — never the technician assignment churn behind them. */
-  visitDates: Date[];
+  visitDates: string[];
 }

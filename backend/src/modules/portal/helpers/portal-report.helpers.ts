@@ -8,12 +8,12 @@ export const toPortalReportListItem = (
 ): PortalReportListItem => ({
   id: row.id,
   reportType: row.reportType,
-  dateArrival: row.dateArrival,
-  dateDeparture: row.dateDeparture,
+  dateArrival: row.dateArrival?.toISOString() ?? null,
+  dateDeparture: row.dateDeparture?.toISOString() ?? null,
   technicianName: extras.technicianName,
   equipmentNames: extras.equipmentNames,
   status: row.status,
-  createdAt: row.createdAt,
+  createdAt: row.createdAt.toISOString(),
 });
 
 export const toPortalReportDetail = (
@@ -24,7 +24,7 @@ export const toPortalReportDetail = (
   ...toPortalReportListItem(row, extras),
   comments: row.comments,
   signedBy: row.signedBy,
-  signedAt: row.signedAt,
+  signedAt: row.signedAt?.toISOString() ?? null,
   data: details?.data ?? null,
   pictures: details?.pictures ?? [],
   signature: details?.signature ?? null,

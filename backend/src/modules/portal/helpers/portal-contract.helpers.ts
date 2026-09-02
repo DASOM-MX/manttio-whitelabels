@@ -15,7 +15,7 @@ export const toPortalContractListItem = (
   expiryDate: row.expiryDate,
   validity: validityOf(row, today),
   fileType: row.fileType,
-  createdAt: row.createdAt,
+  createdAt: row.createdAt.toISOString(),
 });
 
 export const toPortalContractDetail = (

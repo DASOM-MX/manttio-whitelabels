@@ -5,14 +5,14 @@ import type { ReportStatus } from '../../reports/enums/reports.enum';
 export interface PortalReportListItem {
   id: string;
   reportType: string;
-  dateArrival: Date | null;
-  dateDeparture: Date | null;
+  dateArrival: string | null;
+  dateDeparture: string | null;
   /** A13 — the technician is always named; the PDF already names them. */
   technicianName: string | null;
   /** The units this report covered, for the list's equipment/site column. */
   equipmentNames: string[];
   status: ReportStatus;
-  createdAt: Date;
+  createdAt: string;
 }
 
 /** The finished report as the customer received it. `comments` and `signedBy`
@@ -20,7 +20,7 @@ export interface PortalReportListItem {
 export interface PortalReportDetail extends PortalReportListItem {
   comments: string | null;
   signedBy: string | null;
-  signedAt: Date | null;
+  signedAt: string | null;
   /** The answered template snapshot. */
   data: unknown;
   pictures: string[];
