@@ -140,11 +140,9 @@ export const serviceOrdersRelations = relations(serviceOrders, ({ one, many }) =
     fields: [serviceOrders.customerId],
     references: [customers.id],
   }),
-  // Null for directly-created orders — both birth routes allowed (19 §1).
-  quotation: one(quotations, {
-    fields: [serviceOrders.quotationId],
-    references: [quotations.id],
-  }),
+  // The inverse of `quotationsRelations.serviceOrder` — the link column lives
+  // on `quotations` alone. Null for directly-created orders (19 §1).
+  quotation: one(quotations),
   creator: one(users, {
     fields: [serviceOrders.createdBy],
     references: [users.id],
@@ -798,7 +796,10 @@ export const serviceRequestsRelations = relations(serviceRequests, ({ one, many 
     relationName: 'serviceRequestsClosedBy',
   }),
   events: many(serviceRequestEvents),
-  quotations: many(quotations, { relationName: 'requestQuotations' }),
+  quotation: one(quotations, {
+    fields: [serviceRequests.quotationId],
+    references: [quotations.id],
+  }),
 }));
 
 export const serviceRequestEventsRelations = relations(serviceRequestEvents, ({ one }) => ({
@@ -810,8 +811,8 @@ export const serviceRequestEventsRelations = relations(serviceRequestEvents, ({ 
     fields: [serviceRequestEvents.actorId],
     references: [users.id],
   }),
-  contact: one(customerContacts, {
-    fields: [serviceRequestEvents.contactId],
-    references: [customerContacts.id],
+  portalUser: one(portalUsers, {
+    fields: [serviceRequestEvents.portalUserId],
+    references: [portalUsers.id],
   }),
 }));

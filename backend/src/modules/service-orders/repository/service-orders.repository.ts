@@ -56,6 +56,17 @@ const activeFilter = isNull(serviceOrders.deletedAt);
 
 const dayString = (d: Date) => d.toISOString().slice(0, 10);
 
+/** The quote this order was born from (20 §6), read from its only home
+ *  (`quotations.service_order_id`). A correlated read rather than a join: an
+ *  order collects several quotations over its life, and joining would return
+ *  the order once per quote. Only the converted one is the birth link. */
+const bornFromQuotation = sql<string | null>`(
+  select ${quotations.id} from ${quotations}
+  where ${quotations.serviceOrderId} = ${serviceOrders.id}
+    and ${quotations.status} = ${QuotationStatus.OrderCreated}
+  limit 1
+)`;
+
 /** Header columns plus the two names every order view renders. `createdBy` is
  *  left-joined even though the FK is NOT NULL: `restrict` keeps the row alive,
  *  but a left join costs nothing and never drops an order because its creator
@@ -64,7 +75,7 @@ const orderColumns = {
   id: serviceOrders.id,
   folio: serviceOrders.folio,
   customerId: serviceOrders.customerId,
-  quotationId: serviceOrders.quotationId,
+  quotationId: bornFromQuotation,
   location: serviceOrders.location,
   priority: serviceOrders.priority,
   promisedDate: serviceOrders.promisedDate,
@@ -310,8 +321,6 @@ type OrderGraphInput = {
   comments: string | null;
   priority: ServiceOrderPriority;
   promisedDate: string | null;
-  /** Set only on the quote path — stamps the birth link (19 §1). */
-  quotationId?: string;
   lines: FrozenOrderLine[];
   actorId: string;
   /** Extra ref on the opening `order_created` event (the quote path points it
@@ -353,7 +362,6 @@ const insertOrderGraph = async (
     .values({
       folio: formatServiceOrderFolio(day, orderCounter.lastNumber),
       customerId: input.customerId,
-      quotationId: input.quotationId ?? null,
       location: input.location,
       priority: input.priority,
       promisedDate: input.promisedDate,
@@ -686,7 +694,6 @@ export const createServiceOrderFromQuotation = async (
         // the normal queue with no promise yet; staff set both via PATCH after.
         priority: ServiceOrderPriority.Normal,
         promisedDate: null,
-        quotationId: command.quotationId,
         actorId: command.actorId,
         // Already frozen by the conversion service — inherited verbatim, no
         // catalog read (19 §1 / 20 §6).

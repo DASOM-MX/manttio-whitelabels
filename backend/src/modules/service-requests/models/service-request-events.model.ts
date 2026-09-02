@@ -1,7 +1,7 @@
 import { bigserial, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { serviceRequests } from './service-requests.model';
 import { users } from '../../users/models/users.model';
-import { customerContacts } from '../../customers/models/customer-contacts.model';
+import { portalUsers } from '../../portal/models/portal-users.model';
 import type { ServiceRequestEventType } from '../enums/service-requests.enum';
 
 // The service request's own append-only timeline (01 §5) — distinct from the
@@ -28,11 +28,15 @@ export const serviceRequestEvents = pgTable(
       .references(() => serviceRequests.id, { onDelete: 'restrict' }),
     type: text('type').$type<ServiceRequestEventType>().notNull(),
     // Attribution splits by origin: staff actions carry `actorId`, portal
-    // actions carry `contactId` with `actorId` null. Never both — "who did
+    // actions carry `portalUserId` with `actorId` null. Never both — "who did
     // this" has exactly one answer, and conflating them would let a client
     // action masquerade as a staff one in the trail.
     actorId: uuid('actor_id').references(() => users.id, { onDelete: 'restrict' }),
-    contactId: uuid('contact_id').references(() => customerContacts.id, { onDelete: 'restrict' }),
+    // The portal account, not the contact: only a login can act here, and
+    // `portal_users.contact_id` still resolves the address-book entry.
+    portalUserId: uuid('portal_user_id').references(() => portalUsers.id, {
+      onDelete: 'restrict',
+    }),
     // Structured detail the UI renders per type: the specific data that supports
     // the event. jsonb because the shape is per-type and the timeline is read
     // whole — never queried by key.
