@@ -47,6 +47,11 @@ import { reportMaterials } from '../wms/models/report-materials.model';
 import { portalUsers } from '../portal/models/portal-users.model';
 import { portalUserGrants } from '../portal/models/portal-user-grants.model';
 import { portalPasswordResets } from '../portal/models/portal-password-resets.model';
+import {
+  serviceRequests,
+  serviceRequestCounters,
+} from '../service-requests/models/service-requests.model';
+import { serviceRequestEvents } from '../service-requests/models/service-request-events.model';
 
 export { users } from '../users/models/users.model';
 export { customers } from '../customers/models/customers.model';
@@ -99,6 +104,11 @@ export { wmsSettings } from '../wms/models/wms-settings.model';
 export { portalUsers } from '../portal/models/portal-users.model';
 export { portalUserGrants } from '../portal/models/portal-user-grants.model';
 export { portalPasswordResets } from '../portal/models/portal-password-resets.model';
+export {
+  serviceRequests,
+  serviceRequestCounters,
+} from '../service-requests/models/service-requests.model';
+export { serviceRequestEvents } from '../service-requests/models/service-request-events.model';
 
 export const usersRelations = relations(users, ({ many }) => ({
   reportsCreated: many(reports, { relationName: 'reports_created_by' }),
@@ -762,5 +772,46 @@ export const portalPasswordResetsRelations = relations(portalPasswordResets, ({ 
   user: one(portalUsers, {
     fields: [portalPasswordResets.portalUserId],
     references: [portalUsers.id],
+  }),
+}));
+
+export const serviceRequestsRelations = relations(serviceRequests, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [serviceRequests.customerId],
+    references: [customers.id],
+  }),
+  contact: one(customerContacts, {
+    fields: [serviceRequests.contactId],
+    references: [customerContacts.id],
+  }),
+  portalUser: one(portalUsers, {
+    fields: [serviceRequests.portalUserId],
+    references: [portalUsers.id],
+  }),
+  equipment: one(equipment, {
+    fields: [serviceRequests.equipmentId],
+    references: [equipment.id],
+  }),
+  closedBy: one(portalUsers, {
+    fields: [serviceRequests.closedByPortalUserId],
+    references: [portalUsers.id],
+    relationName: 'serviceRequestsClosedBy',
+  }),
+  events: many(serviceRequestEvents),
+  quotations: many(quotations, { relationName: 'requestQuotations' }),
+}));
+
+export const serviceRequestEventsRelations = relations(serviceRequestEvents, ({ one }) => ({
+  request: one(serviceRequests, {
+    fields: [serviceRequestEvents.serviceRequestId],
+    references: [serviceRequests.id],
+  }),
+  actor: one(users, {
+    fields: [serviceRequestEvents.actorId],
+    references: [users.id],
+  }),
+  contact: one(customerContacts, {
+    fields: [serviceRequestEvents.contactId],
+    references: [customerContacts.id],
   }),
 }));
