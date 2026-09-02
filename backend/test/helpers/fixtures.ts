@@ -5,15 +5,33 @@ import { insertCustomer } from '../../src/modules/customers/repository/customers
 import { insertUser } from '../../src/modules/users/repository/users.repository';
 import { hashPassword } from '../../src/modules/auth/services/password.service';
 import {
+  contracts,
   customerContacts,
+  equipment,
+  equipmentReports,
+  portalUserGrants,
   portalUsers,
+  quotationLines,
+  quotationRecipients,
+  quotations,
   reportCounters,
   reportDetails,
   reportTemplates,
   reports,
+  serviceOrderServices,
+  serviceOrders,
 } from '../../src/modules/database/schema';
 import { TemplateStatus } from '../../src/modules/report-templates/enums/report-templates.enum';
 import { ReportStatus, type WorkType } from '../../src/modules/reports/enums/reports.enum';
+import { ContractFileType, ContractType } from '../../src/modules/contracts/enums/contracts.enum';
+import {
+  QuotationResponse,
+  QuotationStatus,
+} from '../../src/modules/quotations/enums/quotations.enum';
+import { ServiceOrderStatus } from '../../src/modules/service-orders/enums/service-orders.enum';
+import { ServiceTaxRate, ServiceUom } from '../../src/modules/services/enums/services.enum';
+import type { PortalGrant } from '../../src/modules/portal/enums/portal-grants.enum';
+import { signPortalToken } from '../../src/modules/portal/services/portal-jwt.service';
 import { request, json, jsonHeaders } from './request';
 
 const tag = () => Math.random().toString(36).slice(2, 10);
@@ -355,4 +373,226 @@ export const seedPortalUser = async (opts?: {
     email,
     password,
   };
+};
+
+// ---------------------------------------------------------------------------
+// Portal read fixtures (client-portal 04 CP-1). Every document series below is
+// minted in the year-2099 folio partition, the `seedReport` trick, so a fixture
+// can never collide with a real same-day document or burn a live counter.
+// ---------------------------------------------------------------------------
+
+const fixtureFolio = (prefix: string) => `${prefix}-20991231-${tag()}`;
+
+/** `portal_user_grants.granted_by` is NOT NULL, so granting needs a staff row.
+ *  One per run — the suite never hard-deletes, so minting one per call would
+ *  litter `users` for no benefit. */
+let fixtureGranterId: string | null = null;
+const ensureGranter = async (): Promise<string> => {
+  if (!fixtureGranterId) fixtureGranterId = (await seedAdmin()).id;
+  return fixtureGranterId;
+};
+
+/** A portal user holding exactly `grants`, plus a signed portal token.
+ *
+ *  The token is signed directly rather than obtained from `/portal/auth/login`
+ *  so a read test never depends on Turnstile, the lockout counter, or the login
+ *  route at all — those are 02 CP-1's tests. */
+export const seedPortalUserWithGrants = async (opts: {
+  grants: PortalGrant[];
+  customerId?: string;
+  contactId?: string;
+}): Promise<SeededPortalUser & { token: string }> => {
+  const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
+  const user = await seedPortalUser({ customerId: opts.customerId, contactId: opts.contactId });
+
+  if (opts.grants.length) {
+    const grantedBy = await ensureGranter();
+    await db
+      .insert(portalUserGrants)
+      .values(opts.grants.map((grant) => ({ portalUserId: user.id, grant, grantedBy })));
+  }
+
+  const token = await signPortalToken(
+    (env as { PORTAL_JWT_SECRET: string }).PORTAL_JWT_SECRET,
+    user.id,
+    user.customerId,
+  );
+  return { ...user, token };
+};
+
+type SeededEquipment = { id: string; name: string };
+
+export const seedEquipment = async (
+  customerId: string,
+  fields: { name?: string; location?: string; serialNumber?: string } = {},
+): Promise<SeededEquipment> => {
+  const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
+  const name = fields.name ?? uniqueName('equipment');
+  const [row] = await db
+    .insert(equipment)
+    .values({
+      customerId,
+      name,
+      location: fields.location ?? null,
+      serialNumber: fields.serialNumber ?? null,
+    })
+    .returning({ id: equipment.id });
+  if (!row) throw new Error('seedEquipment returned no row');
+  return { id: row.id, name };
+};
+
+/** Attach a report to a unit — the many-to-many 11 §2 link the portal reads for
+ *  `equipmentNames` and the per-unit history. */
+export const linkEquipmentReport = async (
+  equipmentId: string,
+  reportId: string,
+): Promise<void> => {
+  const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
+  await db.insert(equipmentReports).values({ equipmentId, reportId }).onConflictDoNothing();
+};
+
+type SeededContract = { id: string; folio: string; fileKey: string; fileName: string };
+
+export const seedContract = async (opts: {
+  customerId: string;
+  createdBy: string;
+  name?: string;
+  type?: ContractType;
+  validFromDate?: string;
+  expiryDate?: string | null;
+  fileKey?: string;
+  deletedAt?: Date;
+}): Promise<SeededContract> => {
+  const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
+  const folio = fixtureFolio('CON');
+  const fileName = `${folio}.pdf`;
+  const fileKey = opts.fileKey ?? `contracts/test-${tag()}.pdf`;
+  const [row] = await db
+    .insert(contracts)
+    .values({
+      folio,
+      customerId: opts.customerId,
+      name: opts.name ?? uniqueName('contract'),
+      type: opts.type ?? ContractType.Guarantee,
+      fileKey,
+      fileName,
+      fileType: ContractFileType.Pdf,
+      fileMime: 'application/pdf',
+      fileSize: 8,
+      validFromDate: opts.validFromDate ?? '2026-01-01',
+      expiryDate: opts.expiryDate === undefined ? '2099-12-31' : opts.expiryDate,
+      createdBy: opts.createdBy,
+      deletedAt: opts.deletedAt ?? null,
+    })
+    .returning({ id: contracts.id });
+  if (!row) throw new Error('seedContract returned no row');
+  return { id: row.id, folio, fileKey, fileName };
+};
+
+type SeededQuotation = { id: string; folio: string };
+
+export const seedQuotation = async (opts: {
+  customerId: string;
+  createdBy: string;
+  status?: QuotationStatus;
+  validUntil?: string;
+  serviceOrderId?: string;
+  deletedAt?: Date;
+  /** One priced line, so the portal's computed `total` has something to sum. */
+  withLine?: boolean;
+}): Promise<SeededQuotation> => {
+  const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
+  const folio = fixtureFolio('COT');
+  const [row] = await db
+    .insert(quotations)
+    .values({
+      folio,
+      customerId: opts.customerId,
+      status: opts.status ?? QuotationStatus.WaitingApproval,
+      validUntil: opts.validUntil ?? '2099-12-31',
+      serviceOrderId: opts.serviceOrderId ?? null,
+      createdBy: opts.createdBy,
+      deletedAt: opts.deletedAt ?? null,
+    })
+    .returning({ id: quotations.id });
+  if (!row) throw new Error('seedQuotation returned no row');
+
+  if (opts.withLine !== false) {
+    await db.insert(quotationLines).values({
+      quotationId: row.id,
+      serviceName: uniqueServiceName('quote-line'),
+      unitPrice: '1000.00',
+      uom: ServiceUom.Servicio,
+      taxRate: ServiceTaxRate.Iva16,
+      quantity: '1',
+      discountAmount: '0.00',
+    });
+  }
+  return { id: row.id, folio };
+};
+
+/** A reviewer recipient on a quotation — what 04 §5's named tally reads. */
+export const seedQuotationReviewer = async (opts: {
+  quotationId: string;
+  contactId: string;
+  email: string;
+  isReviewer?: boolean;
+  response?: QuotationResponse;
+}): Promise<void> => {
+  const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
+  await db.insert(quotationRecipients).values({
+    quotationId: opts.quotationId,
+    contactId: opts.contactId,
+    email: opts.email,
+    isReviewer: opts.isReviewer ?? true,
+    token: `test-token-${tag()}-${tag()}`,
+    response: opts.response ?? null,
+    respondedAt: opts.response ? new Date() : null,
+  });
+};
+
+type SeededServiceOrder = { id: string; folio: string };
+
+export const seedServiceOrder = async (opts: {
+  customerId: string;
+  createdBy: string;
+  status?: ServiceOrderStatus;
+  location?: string;
+  withLine?: boolean;
+}): Promise<SeededServiceOrder> => {
+  const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
+  const folio = fixtureFolio('OS');
+  const [row] = await db
+    .insert(serviceOrders)
+    .values({
+      folio,
+      customerId: opts.customerId,
+      status: opts.status ?? ServiceOrderStatus.Open,
+      location: opts.location ?? null,
+      createdBy: opts.createdBy,
+    })
+    .returning({ id: serviceOrders.id });
+  if (!row) throw new Error('seedServiceOrder returned no row');
+
+  if (opts.withLine !== false) {
+    await db.insert(serviceOrderServices).values({
+      serviceOrderId: row.id,
+      serviceName: uniqueServiceName('order-line'),
+      uom: ServiceUom.Servicio,
+      taxRate: ServiceTaxRate.Iva16,
+      quantity: '1.000',
+      unitPrice: '1000.00',
+      discountAmount: '0.00',
+    });
+  }
+  return { id: row.id, folio };
+};
+
+/** Bind an already-seeded report to an order — the detail's linked list. */
+export const attachReportToOrder = async (
+  reportId: string,
+  serviceOrderId: string,
+): Promise<void> => {
+  const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
+  await db.update(reports).set({ serviceOrderId }).where(eq(reports.id, reportId));
 };
