@@ -237,6 +237,7 @@ const quotationRow: QuotationRow = {
   orderCreatedAt: new Date('2026-09-06T08:00:00Z'),
   resolvedByUserId: STAFF_USER_ID,
   serviceOrderId: '55555555-5555-5555-5555-555555555555',
+  serviceRequestId: null,
   createdBy: STAFF_USER_ID,
   createdAt: new Date('2026-09-01T07:00:00Z'),
   updatedAt: new Date('2026-09-01T08:00:00Z'),

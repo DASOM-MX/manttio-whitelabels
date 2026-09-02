@@ -69,6 +69,16 @@ export const quotations = pgTable(
     serviceOrderId: uuid('service_order_id').references(() => serviceOrders.id, {
       onDelete: 'restrict',
     }),
+    // The service request this quote answers, if any (client-portal 01 §6b) —
+    // set by the approval transaction (06 §4) and by any later quote staff
+    // issue against the same request (not unique: one request can spawn
+    // several quotations over its life, 00 §4b.18).
+    //
+    // The FK lives in SQL only. `service_requests.quotationId` already
+    // declares its side in Drizzle (the backtrack, 01 §4) — declaring both
+    // would make the two model files import each other (models stay acyclic;
+    // relations live in the barrel).
+    serviceRequestId: uuid('service_request_id'),
     createdBy: uuid('created_by')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
@@ -97,6 +107,8 @@ export const quotations = pgTable(
     // client rejects one and staff issue another. Only the `order_created` quote
     // is the birth link, which is what the order read selects on.
     index('quotations_service_order_idx').on(table.serviceOrderId),
+    // The request's "all my quotations" read (06) selects on this.
+    index('quotations_service_request_idx').on(table.serviceRequestId),
   ],
 );
 
