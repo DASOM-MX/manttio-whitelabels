@@ -12,12 +12,14 @@ import { customerFiscal } from '../customers/models/customer-fiscal.model';
 import { customerInteractions } from '../customers/models/customer-interactions.model';
 import { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 import { reportEmails } from '../reports/models/report-emails.model';
+import { reportEvents } from '../reports/models/report-events.model';
 import { equipment, equipmentReports } from '../equipment/models/equipment.model';
 import {
   contracts,
   contractCounters,
   contractEquipment,
 } from '../contracts/models/contracts.model';
+import { contractEvents } from '../contracts/models/contract-events.model';
 import { notifications } from '../notifications/models/notifications.model';
 import { scheduledVisits, visitEquipment } from '../visits/models/visits.model';
 import { services } from '../services/models/services.model';
@@ -60,8 +62,10 @@ export { customerFiscal } from '../customers/models/customer-fiscal.model';
 export { customerInteractions } from '../customers/models/customer-interactions.model';
 export { reports, reportDetails, reportCounters } from '../reports/models/reports.model';
 export { reportEmails } from '../reports/models/report-emails.model';
+export { reportEvents } from '../reports/models/report-events.model';
 export { equipment, equipmentReports } from '../equipment/models/equipment.model';
 export { contracts, contractCounters, contractEquipment } from '../contracts/models/contracts.model';
+export { contractEvents } from '../contracts/models/contract-events.model';
 export { cmsDocuments, cmsClients } from '../cms/models/cms.model';
 export { reportTemplates } from '../report-templates/models/report-templates.model';
 export { brand } from '../brand/models/brand.model';
@@ -193,6 +197,7 @@ export const contractsRelations = relations(contracts, ({ one, many }) => ({
     references: [serviceOrders.id],
   }),
   equipment: many(contractEquipment),
+  events: many(contractEvents),
 }));
 
 export const contractEquipmentRelations = relations(contractEquipment, ({ one }) => ({
@@ -203,6 +208,21 @@ export const contractEquipmentRelations = relations(contractEquipment, ({ one })
   equipment: one(equipment, {
     fields: [contractEquipment.equipmentId],
     references: [equipment.id],
+  }),
+}));
+
+export const contractEventsRelations = relations(contractEvents, ({ one }) => ({
+  contract: one(contracts, {
+    fields: [contractEvents.contractId],
+    references: [contracts.id],
+  }),
+  actor: one(users, {
+    fields: [contractEvents.actorId],
+    references: [users.id],
+  }),
+  portalUser: one(portalUsers, {
+    fields: [contractEvents.portalUserId],
+    references: [portalUsers.id],
   }),
 }));
 
@@ -258,6 +278,7 @@ export const reportsRelations = relations(reports, ({ one, many }) => ({
   }),
   details: one(reportDetails),
   emails: many(reportEmails),
+  events: many(reportEvents),
 }));
 
 export const reportDetailsRelations = relations(reportDetails, ({ one }) => ({
@@ -275,6 +296,21 @@ export const reportEmailsRelations = relations(reportEmails, ({ one }) => ({
   sender: one(users, {
     fields: [reportEmails.sentBy],
     references: [users.id],
+  }),
+}));
+
+export const reportEventsRelations = relations(reportEvents, ({ one }) => ({
+  report: one(reports, {
+    fields: [reportEvents.reportId],
+    references: [reports.id],
+  }),
+  actor: one(users, {
+    fields: [reportEvents.actorId],
+    references: [users.id],
+  }),
+  portalUser: one(portalUsers, {
+    fields: [reportEvents.portalUserId],
+    references: [portalUsers.id],
   }),
 }));
 

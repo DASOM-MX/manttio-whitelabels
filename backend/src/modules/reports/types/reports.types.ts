@@ -1,6 +1,8 @@
 import type { reportDetails, reports } from '../models/reports.model';
 import type { reportEmails } from '../models/report-emails.model';
+import type { reportEvents } from '../models/report-events.model';
 import type { ReportStatus, WorkType } from '../enums/reports.enum';
+import type { ReportEventType } from '../enums/reports.enum';
 import type { CapturedSection } from '../validators/reports.validator';
 
 export type ReportRow = typeof reports.$inferSelect;
@@ -10,6 +12,9 @@ export type NewReportDetail = typeof reportDetails.$inferInsert;
 
 export type ReportEmailRow = typeof reportEmails.$inferSelect;
 export type NewReportEmail = typeof reportEmails.$inferInsert;
+
+export type ReportEventRow = typeof reportEvents.$inferSelect;
+export type NewReportEvent = typeof reportEvents.$inferInsert;
 
 /** One row of the paged report list. Carries the joined customer/technician names
  *  the browsers render, plus `templateName` (= the frozen `report_type`). Not the

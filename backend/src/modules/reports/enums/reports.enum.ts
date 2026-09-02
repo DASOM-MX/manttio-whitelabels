@@ -27,3 +27,10 @@ export enum ReportStatus {
    *  are left alone because they are history. */
   Cancelled = 'cancelled',
 }
+
+// Report timeline entry types — append-only audit trail (01 CP-5).
+export enum ReportEventType {
+  // Portal download, recorded for every fetch (no first-download-only dedup).
+  // `changes` carries `{ via: 'portal' }` to distinguish from other access.
+  Downloaded = 'report_downloaded',
+}

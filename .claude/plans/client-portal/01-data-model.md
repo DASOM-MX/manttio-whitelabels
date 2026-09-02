@@ -301,7 +301,7 @@ the record they served.
 | entity FK | `report_id` **text** not null → `reports.id` (restrict) | `contract_id` uuid not null → `contracts.id` (restrict) |
 | `type` | text `$type<ReportEventType>` not null | text `$type<ContractEventType>` not null |
 | `actor_id` | uuid → `users.id` (restrict) — staff action | same |
-| `contact_id` | uuid → `customer_contacts.id` (restrict) — portal action, **never both set** | same |
+| `portal_user_id` | uuid → `portal_users.id` (restrict) — portal action, **never both set** | same |
 | `changes` | jsonb, per-type detail | same |
 | `note` | text | same |
 | `created_at` | timestamptz | same |
@@ -322,6 +322,11 @@ ContractEventType.Downloaded = 'contract_downloaded'
   The tables are the home for those modules' future audit — a report mailed, a contract's file
   replaced — but this suite adds only the member it needs. Speculative members are how an enum
   stops describing anything.
+- **Changed 2026-09-01 (owner):** the portal side is `portal_user_id`, not `contact_id`. Only a
+  login reaches these routes, and `portal_users.contact_id` still resolves the address-book entry,
+  so attribution keeps the same reach without a restrict FK onto a contacts list that
+  `updateCustomerWithRelations` replaces wholesale. §6c's `quotation_events` keeps `contact_id`:
+  that table also serves the **emailed token page**, which has a contact and no login.
 - Both rows carry `changes: { via: 'portal' }`, exactly as §6c's does.
 - **These are new tables, so real DDL** — generated, in CP-5.
 
@@ -351,8 +356,8 @@ Deliberately conservative about the rest:
 ## 7. Wiring + migrations
 
 - `modules/database/schema.ts` re-exports all eight tables and holds their `relations()`
-  (`reportEvents → reports | users | customerContacts`, `contractEvents → contracts | users |
-  customerContacts`, plus):
+  (`reportEvents → reports | users | portalUsers`, `contractEvents → contracts | users |
+  portalUsers`, plus):
   `portalUsers → customerContacts | customers | grants | resets`,
   `serviceRequests → customers | customerContacts | equipment | quotation | events | closedBy`,
   `serviceRequestEvents → serviceRequests | users | portalUsers`.
