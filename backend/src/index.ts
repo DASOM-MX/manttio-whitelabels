@@ -12,6 +12,7 @@ import { portalQuotations } from './modules/portal/controllers/portal-quotations
 import { portalServiceOrders } from './modules/portal/controllers/portal-service-orders.controller';
 import { portalEquipment } from './modules/portal/controllers/portal-equipment.controller';
 import { portalUsers } from './modules/portal/controllers/portal-users.controller';
+import { serviceRequests } from './modules/service-requests/controllers/service-requests.controller';
 import { users } from './modules/users/controllers/users.controller';
 import { customers } from './modules/customers/controllers/customers.controller';
 import { reports } from './modules/reports/controllers/reports.controller';
@@ -63,6 +64,9 @@ app.route('/portal/contracts', portalContracts);
 app.route('/portal/quotations', portalQuotations);
 app.route('/portal/service-orders', portalServiceOrders);
 app.route('/portal/equipment', portalEquipment);
+
+// Portal service-requests — customer-filed support tickets (06 CP-1).
+app.route('/portal/service-requests', serviceRequests);
 
 // Public published-only CMS reads for the tenant website (no auth by design).
 app.route('/public/cms', publicCms);

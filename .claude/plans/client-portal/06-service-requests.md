@@ -33,10 +33,13 @@ staff side of the conversion.
   2026-08-30):** the unit may simply not have been registered yet, and a customer who cannot
   name it in our registry still has a broken chiller. The picker always carries an explicit
   "no aparece mi equipo" option, and choosing it files with `equipment_id` null.
-- **Description** is the required free text. A minimum length is enforced server-side; "no
-  enfría" with nothing else costs staff a round-trip, so the form asks for symptom, when it
-  started, and whether it is intermittent — as *placeholder guidance*, not as extra required
-  fields.
+- **Description** is the required free text, **bounded 10..300 characters server-side**
+  (owner, 2026-09-02). "no enfría" with nothing else costs staff a round-trip, so the form
+  asks for symptom, when it started, and whether it is intermittent — as *placeholder
+  guidance*, not as extra required fields. The 300 ceiling keeps the triage queue readable;
+  a customer with more to say adds it as an `info_provided` answer once staff ask.
+  **The form shows a live character count** (CP-3) — the bounds are the customer's to see,
+  not something they discover by being rejected.
 - **Evidence** is up to 3 images, uploaded one at a time to `POST /portal/upload/evidence`,
   URLs stashed client-side and committed with the request (the field app's report-picture
   pattern). Bucket **`manttio-customer-report`** (A5, owner 2026-08-30) — a new R2 bucket with
@@ -178,7 +181,8 @@ the reason). Every one of these is a transactional email to a person who asked f
 - [ ] **CP-2** — `POST /portal/upload/evidence` + the `manttio-customer-report` bucket binding
       (A5), 3-image cap enforced server-side.
 - [ ] **CP-3** — portal UI: request list, detail with timeline, new-request form with equipment
-      picker + "no aparece mi equipo" + evidence uploader, `needs_info` answer box.
+      picker + "no aparece mi equipo" + evidence uploader + the description's **live character
+      count** against the 10..300 bounds (§2), `needs_info` answer box.
 - [ ] **CP-4** — approval → draft quotation transaction writing `quotations.service_request_id`
       (01 CP-3), with the staff-side trigger landing in superadmin 27.
 - [ ] **CP-5** — `POST /portal/service-requests/:id/close` gated on `isAdmin`, the `closed`
