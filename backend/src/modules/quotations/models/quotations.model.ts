@@ -12,6 +12,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { customers } from '../../customers/models/customers.model';
 import { users } from '../../users/models/users.model';
+import { serviceOrders } from '../../service-orders/models/service-orders.model';
 import { QuotationStatus } from '../enums/quotations.enum';
 
 // The sales entry point (20 §1) — a priced proposal built from catalog services
@@ -61,12 +62,13 @@ export const quotations = pgTable(
     resolvedByUserId: uuid('resolved_by_user_id').references(() => users.id, {
       onDelete: 'restrict',
     }),
-    // The convergence (20 §6): the service order this quote became, set by the
-    // conversion transaction (linked 2026-07-27). The FK lives in SQL only
-    // (0027) — `service_orders.quotationId` already declares its side in
-    // Drizzle, and declaring both would make the two model files import each
-    // other (models stay acyclic; relations live in the barrel).
-    serviceOrderId: uuid('service_order_id'),
+    // The convergence (20 §6): the service order this quote relates to, set by
+    // the conversion transaction. The only link between the two — `service_orders`
+    // dropped its mirror column (owner 2026-09-01), so this side now declares
+    // the FK in Drizzle instead of SQL alone. Many-to-one, not 1:1.
+    serviceOrderId: uuid('service_order_id').references(() => serviceOrders.id, {
+      onDelete: 'restrict',
+    }),
     createdBy: uuid('created_by')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
@@ -91,6 +93,10 @@ export const quotations = pgTable(
     // filter across all of them.
     index('quotations_customer_idx').on(table.customerId, table.createdAt),
     index('quotations_status_idx').on(table.status),
+    // Not unique: an order collects several quotations over its life when the
+    // client rejects one and staff issue another. Only the `order_created` quote
+    // is the birth link, which is what the order read selects on.
+    index('quotations_service_order_idx').on(table.serviceOrderId),
   ],
 );
 

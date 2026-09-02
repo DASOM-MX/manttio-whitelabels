@@ -348,7 +348,6 @@ const serviceOrderRow: ServiceOrderRow = {
   id: 'eeee5555-5555-5555-5555-555555555555',
   folio: 'ORD-20260901-0001',
   customerId: '44444444-4444-4444-4444-444444444444',
-  quotationId: quotationRow.id,
   location: 'Planta Apodaca',
   priority: ServiceOrderPriority.Urgent,
   promisedDate: '2026-09-15',

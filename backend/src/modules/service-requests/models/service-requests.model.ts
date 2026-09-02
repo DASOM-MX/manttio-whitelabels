@@ -3,12 +3,13 @@ import { customers } from '../../customers/models/customers.model';
 import { customerContacts } from '../../customers/models/customer-contacts.model';
 import { equipment } from '../../equipment/models/equipment.model';
 import { portalUsers } from '../../portal/models/portal-users.model';
+import { quotations } from '../../quotations/models/quotations.model';
 import { ServiceRequestStatus } from '../enums/service-requests.enum';
 
 // The customer-authored problem report (client-portal 00 §3.13). Deliberately not a
 // quotation draft: no lines, no quantities, no prices, no catalog exposure. Each
-// request may spawn several quotations over its life, and the link lives on
-// `quotations.service_request_id` (not the reverse — 01 §6b).
+// request may spawn several quotations over its life — the full set hangs off
+// `quotations.service_request_id` (§6b); `quotation_id` here is the backtrack.
 export const serviceRequests = pgTable(
   'service_requests',
   {
@@ -44,6 +45,11 @@ export const serviceRequests = pgTable(
       .$type<ServiceRequestStatus>()
       .notNull()
       .default(ServiceRequestStatus.Submitted),
+    // Backtrack to the quotation this request produced (owner 2026-09-01). Null
+    // until one is issued; `quotations.service_request_id` (§6b) holds the full set.
+    quotationId: uuid('quotation_id').references(() => quotations.id, {
+      onDelete: 'restrict',
+    }),
     // Set when the customer's portal admin closes it (A6).
     closedAt: timestamp('closed_at', { withTimezone: true }),
     // Who closed it. Always a portal user with `is_admin`.

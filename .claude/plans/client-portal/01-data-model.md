@@ -160,13 +160,17 @@ lines, no quantities, no prices, no catalog exposure.
 | `description` | text not null | The behavior description — what the unit is doing. Min length enforced in the validator. |
 | `evidence` | text[] not null default `'{}'` | Up to 3 image URLs, same convention and cap as `equipment.photos`. Bucket **`manttio-customer-report`** (A5) — its own bucket with its own lifecycle, never the equipment one. |
 | `status` | text `$type<ServiceRequestStatus>` not null default `submitted` | |
+| `quotation_id` | uuid → `quotations.id` (restrict) | **Added 2026-09-01 (owner).** Backtrack to the quotation this request produced; null until one is issued. The full set stays on `quotations.service_request_id` (§6b). |
 | `closed_at` | timestamptz | Set when the customer's portal admin closes it (A6). |
 | `closed_by_portal_user_id` | uuid → `portal_users.id` (restrict) | Who closed it. Always a portal user with `is_admin` — staff have no close action. |
 | `created_at` / `updated_at` | timestamptz | |
 
-**There is no `quotation_id` column.** The link lives on the quotation
+~~**There is no `quotation_id` column.** The link lives on the quotation
 (`quotations.service_request_id`, §6b) because one request may spawn several quotations over its
-life — 00 §4b decision 18.
+life — 00 §4b decision 18.~~ **Superseded 2026-09-01 (owner):** the request carries a nullable
+`quotation_id` → `quotations.id` (restrict) as a **backtrack**. It does not replace §6b — the
+one-to-many set still hangs off `quotations.service_request_id`; this column answers the single
+question the request view asks, "what came of this?", without a join.
 
 **No `deleted_at`.** A request is never removed — `rejected` and `closed` are its resting
 states, and the event trail is the record. (Same posture as `customer_interactions`.)
@@ -211,7 +215,7 @@ split (00 §3.11: portal actions reuse existing per-entity timelines, and a requ
 | `service_request_id` | uuid not null → `service_requests.id` (restrict) | |
 | `type` | text `$type<ServiceRequestEventType>` not null | |
 | `actor_id` | uuid → `users.id` (restrict) | Staff action. |
-| `contact_id` | uuid → `customer_contacts.id` (restrict) | Portal action. **Never both set** — same invariant as `quotation_events`. |
+| `portal_user_id` | uuid → `portal_users.id` (restrict) | Portal action. **Never both set** — same invariant as `quotation_events`. **Changed 2026-09-01 (owner):** was `contact_id → customer_contacts.id`. Only a login can write to this timeline, and `portal_users.contact_id` still resolves the address-book entry — so attribution loses nothing and stops depending on a contacts list that `updateCustomerWithRelations` replaces wholesale. |
 | `changes` | jsonb | Per-type detail. |
 | `note` | text | The mandatory reject reason, the info question, the client's answer. |
 | `created_at` | timestamptz | |
@@ -246,8 +250,14 @@ An additive nullable column on `quotations`, `→ service_requests.id` (restrict
 later quotation staff issue against the same request.
 
 It is declared **in SQL only**, exactly like `quotations.serviceOrderId`: declaring both sides
-in Drizzle would make the two model files import each other. Models stay acyclic; `relations()`
-in the barrel carries the join.
+in Drizzle would make the two model files import each other. Models stay acyclic.
+
+**Correction 2026-09-01:** a `relations()` entry cannot carry this join either — Drizzle needs the
+column on the `quotations` model to infer it, so a `many(quotations)` on `serviceRequests` throws
+the moment it is used in a `with:`. CP-2 shipped exactly that dangling entry and it is now removed;
+the barrel carries `quotation: one(quotations)` off the new `service_requests.quotation_id` (§4)
+instead. Reads that need *all* quotations for a request use an explicit `where` on the SQL-only
+column, the same way `serviceOrderId` is read today.
 
 Nothing about the quotation flow changes because of it (20 stays untouched) — it is a backlink,
 never a branch in that module's logic.
@@ -344,7 +354,8 @@ Deliberately conservative about the rest:
   (`reportEvents → reports | users | customerContacts`, `contractEvents → contracts | users |
   customerContacts`, plus):
   `portalUsers → customerContacts | customers | grants | resets`,
-  `serviceRequests → customers | customerContacts | equipment | quotations[] | events | closedBy`.
+  `serviceRequests → customers | customerContacts | equipment | quotation | events | closedBy`,
+  `serviceRequestEvents → serviceRequests | users | portalUsers`.
 - `notifications` type CHECK grows the new members (additive DDL, per the notifications plan's
   own convention) — see `06-service-requests.md` §5 for the list.
 - Migrations are **generated** (`pnpm db:generate`), never hand-applied DDL, and their

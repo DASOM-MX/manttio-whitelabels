@@ -216,12 +216,12 @@ The staff **create-order** action (§2 — gated: ≥1 approval for office, owne
 override from 0 approvals; comment mandatory; blocked past `validUntil`) opens the order
 in one transaction: create the service order (19) inheriting the quotation's **line
 snapshots** (serviceName/uom/quantity/unitPrice/taxRate) — never re-reading the catalog —
-set `service_orders.quotationId` + `quotations.serviceOrderId`, flip the quote to
+set `quotations.serviceOrderId` (the only link since 2026-09-01), flip the quote to
 `order_created`, append the quotation's `quotation_order_created` event and the order's
 opening `order_created` (`refKind: 'quotation'`).
 The order then runs its own flow (explode reports per unit, schedule visits). **Direct
-orders stay allowed** (19, decided 2026-07-23) with `quotationId` null — the quote path
-is primary, not exclusive.
+orders stay allowed** (19, decided 2026-07-23) — no quotation points at them — the quote
+path is primary, not exclusive.
 
 ## 7. Roles (extends `14-access-control.md` §2)
 
@@ -317,8 +317,14 @@ is primary, not exclusive.
       quantities summed — same-instant snapshots make this lossless), quote
       flipped to `order_created` (guarded on liveness inside the tx, so a
       convert can't race a cancel), `serviceOrderId` + `resolutionReason` +
-      both timeline events written. FKs now real both ways (DDL 0027;
-      `service_orders.quotationId` + partial unique = one order per quote).
+      both timeline events written. ~~FKs now real both ways (DDL 0027;
+      `service_orders.quotationId` + partial unique = one order per quote).~~
+      **Superseded 2026-09-01 (owner):** one direction only —
+      `quotations.serviceOrderId` carries the FK and a plain
+      `quotations_service_order_idx`. **Not unique:** an order may be referenced
+      by several quotations, since a rejected quote is followed by another
+      against the same order. The birth link is the one quote in
+      `order_created`.
       **Body shape amended from the `{ comment }` sketch:** 19 §2's report
       invariants make per-service **`assignments`** (`technicianId` +
       `reportType`) mandatory — the skeletons must be born complete, and the

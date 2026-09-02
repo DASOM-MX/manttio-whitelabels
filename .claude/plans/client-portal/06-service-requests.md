@@ -60,7 +60,7 @@ any non-terminal state ──► closed   (portal admin only, TERMINAL)
 
 Transitions are enforced in the service, not only in the UI. Each writes a
 `service_request_events` row in the same transaction, attributed to `actorId` (staff) or
-`contactId` (portal) — never both.
+`portalUserId` (portal) — never both. (Was `contactId`; changed 2026-09-01, 01 §5.)
 
 **`approved` is not terminal.** It means staff accepted the request and are quoting it. A
 request may carry **several quotations over its life** — the link lives on

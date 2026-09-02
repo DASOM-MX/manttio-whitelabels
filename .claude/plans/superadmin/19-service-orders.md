@@ -11,17 +11,26 @@ Creating an order also announces itself on the client's CRM timeline (08).
 > **Born from quotations (decided 2026-07-24).** The primary way an order is created is
 > by **accepting a quotation (20)** — the order inherits the quote's frozen line
 > snapshots (name/uom/qty/unitPrice/taxRate), so what's serviced/billed matches exactly
-> what the client approved. `quotationId` links back to the source. **Direct order
-> creation stays allowed** (`quotationId` null) for walk-in/emergency jobs. The
+> what the client approved. `quotations.serviceOrderId` links the two. **Direct order
+> creation stays allowed** for walk-in/emergency jobs. The
 > order-builder page (§5) is the direct path; the quote path auto-generates on accept.
 
 > **CP-1 builds standalone — no cross-module coupling yet (decided 2026-07-26).** Orders
 > and quotations (20) are being built in parallel, so **CP-1 ships against `main` with no
 > link to either 20 or 12**:
-> - ~~**No `quotationId` column in CP-1.**~~ **Linked 2026-07-27** (both CP-1s on
+> - ~~**No `quotationId` column in CP-1.**~~ ~~**Linked 2026-07-27** (both CP-1s on
 >   main): `quotationId` + FK + one-order-per-quote unique landed with 20's
->   `POST /quotations/:id/order` (DDL 0027). Both birth routes live — the §5
->   builder direct path and the quote conversion.
+>   `POST /quotations/:id/order` (DDL 0027).~~ **Superseded 2026-09-01 (owner):**
+>   `service_orders.quotation_id` is **dropped**. The link is one column in one
+>   direction — `quotations.service_order_id`, which the same conversion
+>   transaction already wrote — carrying the FK plus a plain
+>   `quotations_service_order_idx`. **Deliberately not unique** (owner): an order
+>   collects several quotations over its life when the client rejects one and
+>   staff issue another, so the one-order-per-quote invariant is gone rather than
+>   moved. `ServiceOrderDTO.quotationId` is unchanged, read by a correlated
+>   subquery for the `order_created` quote — a join would return the order once
+>   per quote. Both birth routes still live — the §5 builder direct path and the
+>   quote conversion.
 > - **CP-1 does not touch `scheduled_visits`.** The visits backend (12) is *not on main* —
 >   PR #97 was **closed unmerged**, so there is no `visit_events` table to rip out and no
 >   table to add `serviceOrderId` to. The calendar module gets rebuilt in CP-3 **already
@@ -64,10 +73,10 @@ ServiceOrder {             // near-immutable — see mutability rules below
                            //   table (service_order_counters, report_counters
                            //   mechanics)
   customerId,              // required, immutable — restrict, never cascade
-  quotationId?,            // landed 2026-07-27 with 20's /order — the accepted
-                           //   quotation this order was born from; null for
-                           //   directly-created orders (both paths allowed,
-                           //   2026-07-24). Immutable; unique among non-null
+  // quotationId            REMOVED 2026-09-01 (owner) — the column lived here
+                           //   from 2026-07-27; the link is now only
+                           //   quotations.serviceOrderId. The DTO field of the
+                           //   same name survives, read through a left join.
                            //   (one order per quote, ever).
   location?,               // service site/address (free text v1) — MUTABLE, but
                            //   owner/admin only (decided 2026-07-23)
