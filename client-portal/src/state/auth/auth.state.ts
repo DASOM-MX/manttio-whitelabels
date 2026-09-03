@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Action, Selector, State, StateContext } from '@ngxs/store';
-import { catchError, of, tap } from 'rxjs';
+import { catchError, switchMap, tap } from 'rxjs';
 import {
   AuthLogin,
   AuthLoadMe,
@@ -12,6 +12,8 @@ import {
   AuthSetUser,
 } from './auth.actions';
 import { PortalAuthService } from '../../app/services/http/portal-auth.service';
+import { errorMessage } from '../../app/data/utils';
+import { PortalMeStatus } from '../../app/model/enums/portal-auth/portal-me-status.enum';
 import type { PortalMeResponse } from '../../app/data/dtos/portal-auth/portal-me-response.dto';
 import type { PortalGrant } from '../../app/model/enums/portal-auth/portal-grants.enum';
 
@@ -22,6 +24,9 @@ export interface AuthStateModel {
   user: PortalMeResponse | null;
   grants: PortalGrant[];
   mustChangePassword: boolean;
+  /** `/portal/auth/me` fetch lifecycle — the authenticated layout's boot
+   *  splash and error panel read this, not `loading`/`error` below. */
+  meStatus: PortalMeStatus;
   loading: boolean;
   error: string | null;
 }
@@ -33,6 +38,7 @@ export interface AuthStateModel {
     user: null,
     grants: [],
     mustChangePassword: false,
+    meStatus: PortalMeStatus.Idle,
     loading: false,
     error: null,
   },
@@ -62,6 +68,11 @@ export class AuthState {
   }
 
   @Selector()
+  static meStatus(state: AuthStateModel): PortalMeStatus {
+    return state.meStatus;
+  }
+
+  @Selector()
   static isAuthenticated(state: AuthStateModel): boolean {
     return state.token !== null;
   }
@@ -78,7 +89,7 @@ export class AuthState {
 
   @Action(AuthLogin)
   login(ctx: StateContext<AuthStateModel>, action: AuthLogin) {
-    ctx.patchState({ loading: true, error: null });
+    ctx.patchState({ loading: true, error: null, meStatus: PortalMeStatus.Loading });
     return this.api.login(action.payload).pipe(
       tap((result) => {
         if (typeof localStorage !== 'undefined') {
@@ -87,14 +98,26 @@ export class AuthState {
         ctx.patchState({
           token: result.token,
           mustChangePassword: result.mustChangePassword,
+        });
+      }),
+      // Chain straight into `me()` so grants are already in the store by the
+      // time the login page navigates to the authenticated shell — the
+      // response of `/portal/auth/login` carries no grants of its own.
+      switchMap(() => this.api.me()),
+      tap((me) => {
+        ctx.patchState({
+          user: me,
+          grants: me.grants,
+          mustChangePassword: me.mustChangePassword,
           loading: false,
+          meStatus: PortalMeStatus.Loaded,
         });
       }),
       catchError((err) => {
-        const message = err?.error?.message || 'Login failed';
         ctx.patchState({
           loading: false,
-          error: message,
+          error: errorMessage(err, 'Login failed'),
+          meStatus: PortalMeStatus.Error,
         });
         throw err;
       }),
@@ -103,7 +126,7 @@ export class AuthState {
 
   @Action(AuthLoadMe)
   loadMe(ctx: StateContext<AuthStateModel>) {
-    ctx.patchState({ loading: true, error: null });
+    ctx.patchState({ loading: true, error: null, meStatus: PortalMeStatus.Loading });
     return this.api.me().pipe(
       tap((me) => {
         ctx.patchState({
@@ -111,13 +134,14 @@ export class AuthState {
           grants: me.grants,
           mustChangePassword: me.mustChangePassword,
           loading: false,
+          meStatus: PortalMeStatus.Loaded,
         });
       }),
       catchError((err) => {
-        const message = err?.error?.message || 'Failed to load user';
         ctx.patchState({
           loading: false,
-          error: message,
+          error: errorMessage(err, 'Failed to load user'),
+          meStatus: PortalMeStatus.Error,
         });
         throw err;
       }),
@@ -195,6 +219,7 @@ export class AuthState {
       user: null,
       grants: [],
       mustChangePassword: false,
+      meStatus: PortalMeStatus.Idle,
       loading: false,
       error: null,
     });

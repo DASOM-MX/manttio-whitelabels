@@ -21,6 +21,7 @@ import { routes } from './app.routes';
 import { loadRuntimeConfig } from './config/runtime-config';
 import { AppState } from '../state/app/app.state';
 import { AuthState } from '../state/auth/auth.state';
+import { AuthLoadMe } from '../state/auth/auth.actions';
 import { BrandState } from '../state/brand/brand.state';
 import { LoadBrand } from '../state/brand/brand.actions';
 import { portalTokenInterceptor } from './services/http/portal-token.interceptor';
@@ -50,7 +51,9 @@ export const appConfig: ApplicationConfig = {
     MessageService,
     provideStore(
       [AppState, AuthState, BrandState],
-      // Persist app state (dark mode, sidebar) and auth state (token) to storage
+      // Persist app state (dark mode, sidebar) and the whole auth slice, so a
+      // returning session paints the nav immediately; `AuthLoadMe` below
+      // refreshes it against the backend on every boot.
       withNgxsStoragePlugin({ keys: ['app', 'auth'] }),
       withNgxsReduxDevtoolsPlugin({ disabled: !isDevMode() }),
       withNgxsLoggerPlugin({ disabled: !isDevMode() }),
@@ -68,6 +71,9 @@ export const appConfig: ApplicationConfig = {
       // Boot-time fetch, fire-and-forget: public `GET /brand` for pre-auth
       // theming (login screen shows tenant logo + colors, 03 §4).
       store.dispatch(new LoadBrand());
+      // A persisted token means a returning session — the authenticated
+      // layout splashes on `meStatus` until this resolves (03 §2).
+      if (store.selectSnapshot(AuthState.token)) store.dispatch(new AuthLoadMe());
     }),
     provideClientHydration(withEventReplay()),
   ],

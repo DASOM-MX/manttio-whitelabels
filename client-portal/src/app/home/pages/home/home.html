@@ -1,0 +1,33 @@
+<app-page-header title="Inicio" [description]="description()" />
+
+@if (hasGrants()) {
+  <div class="card-section">
+    <p class="text-base text-zinc-700 dark:text-zinc-300">
+      @if (contactName(); as name) {
+        Bienvenido, {{ name }}.
+      } @else {
+        Bienvenido.
+      }
+      Usa el menú para consultar tus reportes, contratos, cotizaciones, órdenes de servicio y
+      equipos, y para levantar solicitudes de servicio.
+    </p>
+  </div>
+} @else {
+  <div class="card-section flex flex-col items-center gap-3 py-12 text-center">
+    <span class="icon-chip">
+      <svg lucideLockKeyhole class="size-5" aria-hidden="true"></svg>
+    </span>
+    <h2 class="text-lg font-bold text-zinc-950 dark:text-zinc-50">
+      Aún no tienes acceso a ninguna sección
+    </h2>
+    <p class="max-w-sm text-sm text-zinc-600 dark:text-zinc-400">
+      @if (customerName(); as name) {
+        Contacta a {{ name }} para solicitar acceso a tus reportes, contratos, cotizaciones u
+        otra información de tu cuenta.
+      } @else {
+        Contacta a tu proveedor para solicitar acceso a tus reportes, contratos, cotizaciones u
+        otra información de tu cuenta.
+      }
+    </p>
+  </div>
+}
