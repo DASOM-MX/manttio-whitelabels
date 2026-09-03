@@ -21,6 +21,11 @@ export enum NotificationType {
   ClientUpdated = 'client_updated', // customer record edited
   ClientArchived = 'client_archived', // customer soft-deleted
   ClientInteractionRegistered = 'client_interaction_registered', // manual CRM timeline entry logged
+  // Portal service requests (client-portal 06 §5). Emitting call sites land
+  // in 06 CP-5/CP-6, in the service-requests module.
+  ServiceRequestSubmitted = 'service_request_submitted', // a portal user filed a new request
+  ServiceRequestAnswered = 'service_request_answered', // client replied to needs_info
+  ServiceRequestClosed = 'service_request_closed', // the customer's admin closed it (A6)
 }
 
 // The in-app lifecycle ("hold statuses"). The row itself IS the in-app
