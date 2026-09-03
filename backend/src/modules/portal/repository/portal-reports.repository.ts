@@ -7,6 +7,7 @@ import { users } from '../../users/models/users.model';
 import { displayName } from '../../users/utils/display-name';
 import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 import { PORTAL_REPORT_STATUSES } from '../constants/portal-visibility';
+import { portalPage, portalRow, portalScope } from './portal-reads.repository';
 import type { PortalReportsQuery } from '../validators/portal-reads.validator';
 
 /** A report row plus the one staff name the portal *does* send (A13). */
@@ -18,11 +19,10 @@ export interface PortalReportRow {
 // Scope + release in one predicate, applied by every read here: the token's
 // customer, live rows, delivered statuses only (02 §4, 04 §2).
 const visible = (customerId: string): SQL =>
-  and(
-    eq(reports.clientId, customerId),
-    isNull(reports.deletedAt),
-    inArray(reports.status, PORTAL_REPORT_STATUSES),
-  )!;
+  portalScope({ customer: reports.clientId, deletedAt: reports.deletedAt }, customerId, {
+    column: reports.status,
+    statuses: PORTAL_REPORT_STATUSES,
+  });
 
 const technicianName = {
   name: users.name,
@@ -38,6 +38,18 @@ const nameOf = (
     maternalLastName: string | null;
   } | null,
 ): string | null => (u ? displayName(u) || null : null);
+
+// One select shape for the list and the detail, so the two cannot drift.
+const reportColumns = { row: reports, technician: technicianName };
+
+const toPortalReportRow = (r: {
+  row: ReportRow;
+  technician: {
+    name: string | null;
+    paternalLastName: string | null;
+    maternalLastName: string | null;
+  } | null;
+}): PortalReportRow => ({ row: r.row, technicianName: nameOf(r.technician) });
 
 const filters = (customerId: string, q: PortalReportsQuery): SQL => {
   const conds: SQL[] = [visible(customerId)];
@@ -65,28 +77,20 @@ export const listPortalReports = async (
   q: PortalReportsQuery,
 ): Promise<GenericQueryResponse<PortalReportRow>> => {
   const where = filters(customerId, q);
-
-  const rows = await db
-    .select({ row: reports, technician: technicianName })
-    .from(reports)
-    .leftJoin(users, eq(users.id, reports.assignedTo))
-    .where(where)
-    .orderBy(desc(reports.createdAt))
-    .limit(q.limit)
-    .offset((q.page - 1) * q.limit);
-
-  // Unpaginated count, never `items.length`.
-  const [count] = await db
-    .select({ total: sql<number>`count(*)::int` })
-    .from(reports)
-    .where(where);
-
-  return {
-    items: rows.map((r) => ({ row: r.row, technicianName: nameOf(r.technician) })),
-    total: count?.total ?? 0,
-    page: q.page,
-    limit: q.limit,
-  };
+  return portalPage(
+    db,
+    reports,
+    where,
+    q,
+    db
+      .select(reportColumns)
+      .from(reports)
+      .leftJoin(users, eq(users.id, reports.assignedTo))
+      .where(where)
+      .orderBy(desc(reports.createdAt))
+      .$dynamic(),
+    toPortalReportRow,
+  );
 };
 
 /** The units a page of reports covered, in one round trip. Reports with no
@@ -117,15 +121,16 @@ export const findPortalReport = async (
   runner: DbOrTx,
   customerId: string,
   id: string,
-): Promise<PortalReportRow | null> => {
-  const [row] = await runner
-    .select({ row: reports, technician: technicianName })
-    .from(reports)
-    .leftJoin(users, eq(users.id, reports.assignedTo))
-    .where(and(eq(reports.id, id), visible(customerId)))
-    .limit(1);
-  return row ? { row: row.row, technicianName: nameOf(row.technician) } : null;
-};
+): Promise<PortalReportRow | null> =>
+  portalRow(
+    runner
+      .select(reportColumns)
+      .from(reports)
+      .leftJoin(users, eq(users.id, reports.assignedTo))
+      .where(and(eq(reports.id, id), visible(customerId)))
+      .$dynamic(),
+    toPortalReportRow,
+  );
 
 /** The answered template snapshot, pictures and signature. Read separately from
  *  the header so the list never pays for the jsonb. */

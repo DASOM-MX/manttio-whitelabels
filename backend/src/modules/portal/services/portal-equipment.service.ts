@@ -15,6 +15,7 @@ import {
   releasedReportsForEquipment,
   serviceRequestsForEquipment,
 } from '../repository/portal-equipment.repository';
+import { mapPage } from '../utils/portal-page';
 import type { PortalEquipmentQuery } from '../validators/portal-reads.validator';
 
 export const listEquipmentForPortal = async (
@@ -23,12 +24,9 @@ export const listEquipmentForPortal = async (
   q: PortalEquipmentQuery,
 ): Promise<GenericQueryResponse<PortalEquipmentListItem>> => {
   const page = await listPortalEquipment(db, customerId, q);
-  return {
-    ...page,
-    items: page.items.map((i) =>
-      toPortalEquipmentListItem(i.row, { lastServiceDate: i.lastServiceDate }),
-    ),
-  };
+  return mapPage(page, (i) =>
+    toPortalEquipmentListItem(i.row, { lastServiceDate: i.lastServiceDate }),
+  );
 };
 
 /** The unit plus its per-unit history. **Each sub-list obeys its own grant**

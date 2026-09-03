@@ -14,6 +14,8 @@ import {
   listPortalContracts,
 } from '../repository/portal-contracts.repository';
 import { portalContractDownloadEvent } from '../utils/portal-download-events';
+import { recordedDownload } from '../utils/portal-download';
+import { mapPage } from '../utils/portal-page';
 import type { PortalContractsQuery } from '../validators/portal-reads.validator';
 
 /** Validity is derived per read against one calendar day, taken here so no
@@ -27,7 +29,7 @@ export const listContractsForPortal = async (
 ): Promise<GenericQueryResponse<PortalContractListItem>> => {
   const page = await listPortalContracts(db, customerId, q);
   const day = today();
-  return { ...page, items: page.items.map((row) => toPortalContractListItem(row, day)) };
+  return mapPage(page, (row) => toPortalContractListItem(row, day));
 };
 
 export const getContractForPortal = async (
@@ -41,25 +43,21 @@ export const getContractForPortal = async (
 
 /** The stored document. `ContractFileType` is not always a PDF (04 §4), so the
  *  route hands back the stored mime and name rather than promising one.
- *
- *  The scope check and the download event share one transaction (04 §2b): the
- *  row is committed before the object is fetched, so a download that cannot be
- *  recorded is never served. */
+ *  `recordedDownload` owns 04 §2b: the `contract_events` row commits before the
+ *  object is fetched. A row whose object is missing from R2 still 404s. */
 export const downloadContractForPortal = async (
   db: Db,
   bucket: R2Bucket,
   portalUser: { id: string; customerId: string },
   id: string,
-): Promise<{ body: ReadableStream; fileName: string; fileMime: string } | null> => {
-  const file = await db.transaction(async (tx) => {
-    const row = await findPortalContract(tx, portalUser.customerId, id);
-    if (!row) return null;
-    await appendContractEvents(tx, [portalContractDownloadEvent(row.id, portalUser.id)]);
-    return { fileKey: row.fileKey, fileName: row.fileName, fileMime: row.fileMime };
-  });
-  if (!file) return null;
-
-  const object = await bucket.get(file.fileKey);
-  if (!object) return null;
-  return { body: object.body, fileName: file.fileName, fileMime: file.fileMime };
-};
+): Promise<{ body: ReadableStream; fileName: string; fileMime: string } | null> =>
+  recordedDownload(
+    db,
+    (tx) => findPortalContract(tx, portalUser.customerId, id),
+    (tx, row) => appendContractEvents(tx, [portalContractDownloadEvent(row.id, portalUser.id)]),
+    async (row) => {
+      const object = await bucket.get(row.fileKey);
+      if (!object) return null;
+      return { body: object.body, fileName: row.fileName, fileMime: row.fileMime };
+    },
+  );

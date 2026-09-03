@@ -8,6 +8,7 @@ import type { GenericQueryResponse } from '../../shared/types/generic-query-resp
 import type { PortalEquipmentLinkedServiceRequest } from '../dtos/portal-equipment.dto';
 import type { PortalLinkedReport } from '../dtos/portal-report.dto';
 import { PORTAL_REPORT_STATUSES } from '../constants/portal-visibility';
+import { portalPage, portalRow, portalScope } from './portal-reads.repository';
 import type { PortalEquipmentQuery } from '../validators/portal-reads.validator';
 
 /** A unit plus its derived "último servicio" (04 §7's list column). */
@@ -20,7 +21,7 @@ export interface PortalEquipmentRow {
 // rows only, and a decommissioned unit's history is exactly what a customer
 // looks the section up for.
 const visible = (customerId: string): SQL =>
-  and(eq(equipment.customerId, customerId), isNull(equipment.deletedAt))!;
+  portalScope({ customer: equipment.customerId, deletedAt: equipment.deletedAt }, customerId);
 
 // Newest RELEASED report against this unit. Unreleased work is invisible in the
 // portal, so it must not date a unit either.
@@ -39,6 +40,15 @@ const toDate = (value: Date | string | null): Date | null => {
   if (value === null) return null;
   return value instanceof Date ? value : new Date(value);
 };
+
+// One select shape and one mapper for the list and the detail, so the two
+// cannot drift apart.
+const equipmentColumns = { row: equipment, lastServiceDate: lastServiceExpr };
+
+const toPortalEquipmentRow = (r: {
+  row: EquipmentRow;
+  lastServiceDate: Date | string | null;
+}): PortalEquipmentRow => ({ row: r.row, lastServiceDate: toDate(r.lastServiceDate) });
 
 const filters = (customerId: string, q: PortalEquipmentQuery): SQL => {
   const conds: SQL[] = [visible(customerId)];
@@ -62,40 +72,34 @@ export const listPortalEquipment = async (
   q: PortalEquipmentQuery,
 ): Promise<GenericQueryResponse<PortalEquipmentRow>> => {
   const where = filters(customerId, q);
-
-  const rows = await db
-    .select({ row: equipment, lastServiceDate: lastServiceExpr })
-    .from(equipment)
-    .where(where)
-    .orderBy(desc(equipment.createdAt))
-    .limit(q.limit)
-    .offset((q.page - 1) * q.limit);
-
-  const [count] = await db
-    .select({ total: sql<number>`count(*)::int` })
-    .from(equipment)
-    .where(where);
-
-  return {
-    items: rows.map((r) => ({ row: r.row, lastServiceDate: toDate(r.lastServiceDate) })),
-    total: count?.total ?? 0,
-    page: q.page,
-    limit: q.limit,
-  };
+  return portalPage(
+    db,
+    equipment,
+    where,
+    q,
+    db
+      .select(equipmentColumns)
+      .from(equipment)
+      .where(where)
+      .orderBy(desc(equipment.createdAt))
+      .$dynamic(),
+    toPortalEquipmentRow,
+  );
 };
 
 export const findPortalEquipment = async (
   db: Db,
   customerId: string,
   id: string,
-): Promise<PortalEquipmentRow | null> => {
-  const [row] = await db
-    .select({ row: equipment, lastServiceDate: lastServiceExpr })
-    .from(equipment)
-    .where(and(eq(equipment.id, id), visible(customerId)))
-    .limit(1);
-  return row ? { row: row.row, lastServiceDate: toDate(row.lastServiceDate) } : null;
-};
+): Promise<PortalEquipmentRow | null> =>
+  portalRow(
+    db
+      .select(equipmentColumns)
+      .from(equipment)
+      .where(and(eq(equipment.id, id), visible(customerId)))
+      .$dynamic(),
+    toPortalEquipmentRow,
+  );
 
 /** The unit's released reports, newest first (04 §7). The caller only asks for
  *  these when the user holds `view_reports`. */

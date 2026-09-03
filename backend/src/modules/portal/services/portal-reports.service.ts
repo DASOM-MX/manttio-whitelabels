@@ -14,6 +14,8 @@ import {
   listPortalReports,
 } from '../repository/portal-reports.repository';
 import { portalReportDownloadEvent } from '../utils/portal-download-events';
+import { recordedDownload } from '../utils/portal-download';
+import { mapPage } from '../utils/portal-page';
 import type { PortalReportsQuery } from '../validators/portal-reads.validator';
 
 export const listReportsForPortal = async (
@@ -26,15 +28,12 @@ export const listReportsForPortal = async (
     db,
     page.items.map((i) => i.row.id),
   );
-  return {
-    ...page,
-    items: page.items.map((i) =>
-      toPortalReportListItem(i.row, {
-        technicianName: i.technicianName,
-        equipmentNames: names.get(i.row.id) ?? [],
-      }),
-    ),
-  };
+  return mapPage(page, (i) =>
+    toPortalReportListItem(i.row, {
+      technicianName: i.technicianName,
+      equipmentNames: names.get(i.row.id) ?? [],
+    }),
+  );
 };
 
 export const getReportForPortal = async (
@@ -54,25 +53,19 @@ export const getReportForPortal = async (
   });
 };
 
-/** The report PDF (04 §3) — the same renderer staff use.
- *
- *  The scope check and the download event share one transaction (04 §2b): the
- *  row is committed before a single byte is rendered, so a download that cannot
- *  be recorded is never served. Every fetch writes a row — no
- *  first-download-only dedup. */
+/** The report PDF (04 §3) — the same renderer staff use. `recordedDownload`
+ *  owns 04 §2b: the `report_events` row commits before a byte is rendered, and
+ *  every fetch writes one — no first-download-only dedup. */
 export const downloadReportForPortal = async (
   db: Db,
   logosCdnBase: string,
   portalUser: { id: string; customerId: string },
   id: string,
-): Promise<{ id: string; pdf: Uint8Array } | null> => {
-  const allowed = await db.transaction(async (tx) => {
-    const found = await findPortalReport(tx, portalUser.customerId, id);
-    if (!found) return false;
-    await appendReportEvents(tx, [portalReportDownloadEvent(found.row.id, portalUser.id)]);
-    return true;
-  });
-  if (!allowed) return null;
-
-  return renderStoredReport(db, logosCdnBase, id);
-};
+): Promise<{ id: string; pdf: Uint8Array } | null> =>
+  recordedDownload(
+    db,
+    (tx) => findPortalReport(tx, portalUser.customerId, id),
+    (tx, found) =>
+      appendReportEvents(tx, [portalReportDownloadEvent(found.row.id, portalUser.id)]),
+    (found) => renderStoredReport(db, logosCdnBase, found.row.id),
+  );

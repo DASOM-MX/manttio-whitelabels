@@ -30,6 +30,8 @@ import {
   listPortalQuotations,
 } from '../repository/portal-quotations.repository';
 import { portalQuotationDownloadEvent } from '../utils/portal-download-events';
+import { recordedDownload } from '../utils/portal-download';
+import { mapPage } from '../utils/portal-page';
 import type { PortalQuotationsQuery } from '../validators/portal-reads.validator';
 
 /** Overdue is computed per read against one calendar day (owner 2026-07-26) —
@@ -69,12 +71,9 @@ export const listQuotationsForPortal = async (
   }
 
   const day = today();
-  return {
-    ...page,
-    items: page.items.map((row) =>
-      toPortalQuotationListItem(row, { total: totalOf(byQuotation.get(row.id) ?? []) }, day),
-    ),
-  };
+  return mapPage(page, (row) =>
+    toPortalQuotationListItem(row, { total: totalOf(byQuotation.get(row.id) ?? []) }, day),
+  );
 };
 
 export const getQuotationForPortal = async (
@@ -114,40 +113,37 @@ const toPdfLine = (row: QuotationLineRow): QuotationLineDTO => ({
 
 /** The quotation PDF (04 §5) — the same document the send attaches.
  *
- *  The scope check and the download event share one transaction (04 §2b), and
- *  the portal side of `quotation_events` is `contactId`, not `portalUserId`:
- *  that table also serves the emailed token page, which has a contact and no
- *  login (01 §6c). */
+ *  `recordedDownload` owns 04 §2b. The portal side of `quotation_events` is
+ *  `contactId`, not `portalUserId`: that table also serves the emailed token
+ *  page, which has a contact and no login (01 §6c). */
 export const downloadQuotationForPortal = async (
   db: Db,
   env: Env,
   portalUser: { contactId: string; customerId: string },
   id: string,
-): Promise<{ filename: string; bytes: Uint8Array } | null> => {
-  const quotation = await db.transaction(async (tx) => {
-    const row = await findPortalQuotation(tx, portalUser.customerId, id);
-    if (!row) return null;
-    await appendEvents(tx, [portalQuotationDownloadEvent(row.id, portalUser.contactId)]);
-    return row;
-  });
-  if (!quotation) return null;
+): Promise<{ filename: string; bytes: Uint8Array } | null> =>
+  recordedDownload(
+    db,
+    (tx) => findPortalQuotation(tx, portalUser.customerId, id),
+    (tx, row) => appendEvents(tx, [portalQuotationDownloadEvent(row.id, portalUser.contactId)]),
+    async (quotation) => {
+      const [lines, customer, brand] = await Promise.all([
+        listLinesForQuotations(db, [quotation.id]),
+        findCustomerById(db, quotation.customerId),
+        getBrand(db, env.LOGOS_CDN_BASE_URL),
+      ]);
 
-  const [lines, customer, brand] = await Promise.all([
-    listLinesForQuotations(db, [quotation.id]),
-    findCustomerById(db, quotation.customerId),
-    getBrand(db, env.LOGOS_CDN_BASE_URL),
-  ]);
-
-  return {
-    filename: `${quotation.folio}.pdf`,
-    bytes: await renderQuotationPDF({
-      brand,
-      folio: quotation.folio,
-      customerName: customer?.name ?? '',
-      validUntil: quotation.validUntil,
-      comments: quotation.comments ?? undefined,
-      lines: lines.map(toPdfLine),
-      totals: quotationTotals(lines),
-    }),
-  };
-};
+      return {
+        filename: `${quotation.folio}.pdf`,
+        bytes: await renderQuotationPDF({
+          brand,
+          folio: quotation.folio,
+          customerName: customer?.name ?? '',
+          validUntil: quotation.validUntil,
+          comments: quotation.comments ?? undefined,
+          lines: lines.map(toPdfLine),
+          totals: quotationTotals(lines),
+        }),
+      };
+    },
+  );

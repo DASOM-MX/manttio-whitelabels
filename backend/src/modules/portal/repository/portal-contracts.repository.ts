@@ -1,9 +1,10 @@
-import { and, desc, eq, ilike, isNull, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 import type { Db, DbOrTx } from '../../database/client';
 import { contracts } from '../../contracts/models/contracts.model';
 import { ContractValidity } from '../../contracts/enums/contracts.enum';
 import type { ContractRow } from '../../contracts/types/contracts.types';
 import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
+import { portalPage, portalRow, portalScope } from './portal-reads.repository';
 import type { PortalContractsQuery } from '../validators/portal-reads.validator';
 
 // Scope + release. Live rows only — a soft delete is also how a contract is
@@ -12,7 +13,7 @@ import type { PortalContractsQuery } from '../validators/portal-reads.validator'
 // roles may open a document, and says nothing about the customer whose contract
 // it is.
 const visible = (customerId: string): SQL =>
-  and(eq(contracts.customerId, customerId), isNull(contracts.deletedAt))!;
+  portalScope({ customer: contracts.customerId, deletedAt: contracts.deletedAt }, customerId);
 
 // Validity is derived from the dates, never stored (13 §1) — the SQL half of
 // `validityOf`, which the DTO mapper runs on the way out.
@@ -50,21 +51,14 @@ export const listPortalContracts = async (
   q: PortalContractsQuery,
 ): Promise<GenericQueryResponse<ContractRow>> => {
   const where = filters(customerId, q);
-
-  const items = await db
-    .select()
-    .from(contracts)
-    .where(where)
-    .orderBy(desc(contracts.createdAt))
-    .limit(q.limit)
-    .offset((q.page - 1) * q.limit);
-
-  const [count] = await db
-    .select({ total: sql<number>`count(*)::int` })
-    .from(contracts)
-    .where(where);
-
-  return { items, total: count?.total ?? 0, page: q.page, limit: q.limit };
+  return portalPage(
+    db,
+    contracts,
+    where,
+    q,
+    db.select().from(contracts).where(where).orderBy(desc(contracts.createdAt)).$dynamic(),
+    (row) => row,
+  );
 };
 
 /** One contract, scope-checked. `DbOrTx` so the download route can run it inside
@@ -74,11 +68,12 @@ export const findPortalContract = async (
   runner: DbOrTx,
   customerId: string,
   id: string,
-): Promise<ContractRow | null> => {
-  const [row] = await runner
-    .select()
-    .from(contracts)
-    .where(and(eq(contracts.id, id), visible(customerId)))
-    .limit(1);
-  return row ?? null;
-};
+): Promise<ContractRow | null> =>
+  portalRow(
+    runner
+      .select()
+      .from(contracts)
+      .where(and(eq(contracts.id, id), visible(customerId)))
+      .$dynamic(),
+    (row) => row,
+  );

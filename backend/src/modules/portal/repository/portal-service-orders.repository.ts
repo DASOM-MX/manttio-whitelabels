@@ -13,6 +13,7 @@ import {
   PORTAL_REPORT_STATUSES,
   PORTAL_SERVICE_ORDER_STATUSES,
 } from '../constants/portal-visibility';
+import { portalPage, portalRow, portalScope } from './portal-reads.repository';
 import type { PortalServiceOrdersQuery } from '../validators/portal-reads.validator';
 
 /** An order row plus the quote it was born from (04 §6's folio column). */
@@ -25,11 +26,11 @@ export interface PortalServiceOrderRow {
 // Scope + release: the token's customer, live rows, `open` or `completed`.
 // A cancelled order is not the customer's business (04 §2).
 const visible = (customerId: string): SQL =>
-  and(
-    eq(serviceOrders.customerId, customerId),
-    isNull(serviceOrders.deletedAt),
-    inArray(serviceOrders.status, PORTAL_SERVICE_ORDER_STATUSES),
-  )!;
+  portalScope(
+    { customer: serviceOrders.customerId, deletedAt: serviceOrders.deletedAt },
+    customerId,
+    { column: serviceOrders.status, statuses: PORTAL_SERVICE_ORDER_STATUSES },
+  );
 
 // The quote this order was born from, read from its only home
 // (`quotations.service_order_id`). Correlated rather than joined: an order
@@ -57,6 +58,18 @@ const orderColumns = {
   quotationFolio: bornFromQuotationFolio,
 };
 
+// One mapper for the list and the detail: the correlated subqueries are typed
+// nullable, and both callers normalize them the same way.
+const toPortalServiceOrderRow = (r: {
+  row: ServiceOrderRow;
+  quotationId: string | null;
+  quotationFolio: string | null;
+}): PortalServiceOrderRow => ({
+  row: r.row,
+  quotationId: r.quotationId ?? null,
+  quotationFolio: r.quotationFolio ?? null,
+});
+
 const filters = (customerId: string, q: PortalServiceOrdersQuery): SQL => {
   const conds: SQL[] = [visible(customerId)];
   if (q.status) conds.push(eq(serviceOrders.status, q.status));
@@ -70,50 +83,34 @@ export const listPortalServiceOrders = async (
   q: PortalServiceOrdersQuery,
 ): Promise<GenericQueryResponse<PortalServiceOrderRow>> => {
   const where = filters(customerId, q);
-
-  const rows = await db
-    .select(orderColumns)
-    .from(serviceOrders)
-    .where(where)
-    .orderBy(desc(serviceOrders.createdAt))
-    .limit(q.limit)
-    .offset((q.page - 1) * q.limit);
-
-  const [count] = await db
-    .select({ total: sql<number>`count(*)::int` })
-    .from(serviceOrders)
-    .where(where);
-
-  return {
-    items: rows.map((r) => ({
-      row: r.row,
-      quotationId: r.quotationId ?? null,
-      quotationFolio: r.quotationFolio ?? null,
-    })),
-    total: count?.total ?? 0,
-    page: q.page,
-    limit: q.limit,
-  };
+  return portalPage(
+    db,
+    serviceOrders,
+    where,
+    q,
+    db
+      .select(orderColumns)
+      .from(serviceOrders)
+      .where(where)
+      .orderBy(desc(serviceOrders.createdAt))
+      .$dynamic(),
+    toPortalServiceOrderRow,
+  );
 };
 
 export const findPortalServiceOrder = async (
   db: Db,
   customerId: string,
   id: string,
-): Promise<PortalServiceOrderRow | null> => {
-  const [row] = await db
-    .select(orderColumns)
-    .from(serviceOrders)
-    .where(and(eq(serviceOrders.id, id), visible(customerId)))
-    .limit(1);
-  return row
-    ? {
-        row: row.row,
-        quotationId: row.quotationId ?? null,
-        quotationFolio: row.quotationFolio ?? null,
-      }
-    : null;
-};
+): Promise<PortalServiceOrderRow | null> =>
+  portalRow(
+    db
+      .select(orderColumns)
+      .from(serviceOrders)
+      .where(and(eq(serviceOrders.id, id), visible(customerId)))
+      .$dynamic(),
+    toPortalServiceOrderRow,
+  );
 
 /** Released reports per order, in one grouped round trip. Counts exactly what
  *  the customer can open — the list column and the detail's `linkedReports`

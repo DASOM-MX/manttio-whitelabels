@@ -17,6 +17,7 @@ import {
   releasedReportsForOrder,
   visitDatesForOrder,
 } from '../repository/portal-service-orders.repository';
+import { mapPage } from '../utils/portal-page';
 import type { PortalServiceOrdersQuery } from '../validators/portal-reads.validator';
 
 export const listServiceOrdersForPortal = async (
@@ -29,15 +30,12 @@ export const listServiceOrdersForPortal = async (
     db,
     page.items.map((i) => i.row.id),
   );
-  return {
-    ...page,
-    items: page.items.map((i) =>
-      toPortalServiceOrderListItem(i.row, {
-        quotationFolio: i.quotationFolio,
-        reportCount: counts.get(i.row.id) ?? 0,
-      }),
-    ),
-  };
+  return mapPage(page, (i) =>
+    toPortalServiceOrderListItem(i.row, {
+      quotationFolio: i.quotationFolio,
+      reportCount: counts.get(i.row.id) ?? 0,
+    }),
+  );
 };
 
 export const getServiceOrderForPortal = async (
