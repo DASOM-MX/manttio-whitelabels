@@ -28,6 +28,7 @@ import { ContractsState } from '../state/contracts/contracts.state';
 import { QuotationsState } from '../state/quotations/quotations.state';
 import { ServiceOrdersState } from '../state/service-orders/service-orders.state';
 import { EquipmentState } from '../state/equipment/equipment.state';
+import { HomeState } from '../state/home/home.state';
 import { LoadBrand } from '../state/brand/brand.actions';
 import { portalTokenInterceptor } from './services/http/portal-token.interceptor';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
@@ -64,6 +65,7 @@ export const appConfig: ApplicationConfig = {
         QuotationsState,
         ServiceOrdersState,
         EquipmentState,
+        HomeState,
       ],
       // Persist app state (dark mode, sidebar) and the whole auth slice, so a
       // returning session paints the nav immediately; `AuthLoadMe` below
