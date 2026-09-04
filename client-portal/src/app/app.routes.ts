@@ -90,6 +90,27 @@ export const routes: Routes = [
           },
         ],
       },
+      {
+        path: 'service-orders',
+        canActivate: [grantGuard(PortalGrant.ViewServiceOrders)],
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./service-orders/pages/service-orders-list/service-orders-list').then(
+                (m) => m.ServiceOrdersList,
+              ),
+          },
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./service-orders/pages/service-order-detail/service-order-detail').then(
+                (m) => m.ServiceOrderDetail,
+              ),
+          },
+        ],
+      },
       { path: '**', redirectTo: 'home' },
     ],
   },
