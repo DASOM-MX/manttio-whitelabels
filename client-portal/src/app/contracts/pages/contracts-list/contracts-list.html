@@ -1,0 +1,147 @@
+<app-page-header title="Contratos" description="Los contratos vigentes de tu cuenta.">
+  <app-filters-popover [params]="['q', 'type', 'validity', 'from', 'to']">
+    <div class="field-group">
+      <label class="field-label" for="contracts-search">Buscar</label>
+      <input
+        id="contracts-search"
+        pInputText
+        type="search"
+        [formControl]="search"
+        placeholder="Folio o nombre"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="contracts-type">Tipo</label>
+      <p-select
+        inputId="contracts-type"
+        [formControl]="typeFilter"
+        [options]="typeOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="contracts-validity">Vigencia</label>
+      <p-select
+        inputId="contracts-validity"
+        [formControl]="validityFilter"
+        [options]="validityOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="contracts-dates">Fechas</label>
+      <p-datepicker
+        inputId="contracts-dates"
+        [formControl]="dateRange"
+        selectionMode="range"
+        dateFormat="yy-mm-dd"
+        [readonlyInput]="true"
+        placeholder="Vigente desde"
+      />
+    </div>
+  </app-filters-popover>
+</app-page-header>
+
+<div>
+  <p-table
+    [value]="contracts()"
+    styleClass="table-paged"
+    [style.--table-page-rows]="list.PAGE_SIZE"
+    [lazy]="true"
+    (onLazyLoad)="list.onLazyLoad($event)"
+    [paginator]="true"
+    [rows]="list.PAGE_SIZE"
+    [first]="list.first()"
+    [totalRecords]="total()"
+    [loading]="tableBusy.showSkeleton()"
+    [class.table-refreshing]="tableBusy.refreshing()"
+    [showLoader]="false"
+    [rowHover]="true"
+    dataKey="id"
+  >
+    <ng-template #header>
+      <tr>
+        <th scope="col">Folio</th>
+        <th scope="col">Contrato</th>
+        <th scope="col">Tipo</th>
+        <th scope="col">Vigencia</th>
+        <th scope="col">Estado</th>
+        <th scope="col">Archivo</th>
+        <th scope="col"><span class="sr-only">Acciones</span></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-contract>
+      <tr class="cursor-pointer" (click)="openContract(contract)">
+        <td class="font-data tabular-nums">{{ contract.folio }}</td>
+        <td class="font-bold">{{ contract.name }}</td>
+        <td>{{ contract.type | contractTypeLabel }}</td>
+        <td class="font-data tabular-nums">
+          {{ contract.validFromDate | date: 'dd/MM/y' }}
+          @if (contract.expiryDate) {
+            → {{ contract.expiryDate | date: 'dd/MM/y' }}
+          } @else {
+            <span class="text-surface-600 dark:text-surface-400">— sin vencimiento</span>
+          }
+        </td>
+        <td>
+          <p-tag
+            [severity]="contract.validity | contractValiditySeverity"
+            [value]="contract.validity | contractValidityLabel"
+          />
+        </td>
+        <td class="text-surface-600 dark:text-surface-400">
+          <span class="inline-flex items-center gap-1.5">
+            @switch (contract.fileType | contractFileGlyph) {
+              @case ('spreadsheet') {
+                <svg lucideFileSpreadsheet class="size-4" aria-hidden="true"></svg>
+              }
+              @default {
+                <svg lucideFileText class="size-4" aria-hidden="true"></svg>
+              }
+            }
+            {{ contract.fileType }}
+          </span>
+        </td>
+        <td class="w-16" (click)="$event.stopPropagation()">
+          <div class="flex justify-end gap-1">
+            <button
+              type="button"
+              class="row-action"
+              (click)="openContract(contract)"
+              [attr.aria-label]="'Ver contrato ' + contract.folio"
+            >
+              <svg lucideEye class="size-4" aria-hidden="true"></svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #loadingbody>
+      @for (r of list.skeletonRows; track r) {
+        <tr>
+          @for (c of [0, 1, 2, 3, 4, 5, 6]; track c) {
+            <td><span class="skeleton"></span></td>
+          }
+        </tr>
+      }
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr class="p-datatable-emptymessage">
+        <td colspan="7">
+          <span class="inline-flex flex-col items-center gap-3">
+            <span class="empty-icon">
+              <svg lucideFileSignature class="size-5" aria-hidden="true"></svg>
+            </span>
+            @if (hasFilters()) {
+              Sin contratos con esos filtros.
+            } @else {
+              Aún no tienes contratos disponibles.
+            }
+          </span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

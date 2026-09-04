@@ -1,0 +1,170 @@
+<app-page-header title="Orden de servicio" backLink="/service-orders" backLabel="Volver a órdenes">
+  <span meta class="contents">
+    @if (order(); as o) {
+      <span class="font-data text-sm text-surface-600 dark:text-surface-400">{{ o.folio }}</span>
+      <p-tag
+        [severity]="o.status | serviceOrderStatusSeverity"
+        [value]="o.status | serviceOrderStatusLabel"
+      />
+    }
+  </span>
+</app-page-header>
+
+@if (order(); as o) {
+  <section class="card-section" aria-labelledby="order-detail-title">
+    <h2 id="order-detail-title" class="micro-label">Datos de la orden</h2>
+    <dl class="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div>
+        <dt class="micro-label">Sitio</dt>
+        <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
+          {{ o.location || '—' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="micro-label">Fecha comprometida</dt>
+        <dd class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0">
+          {{ (o.promisedDate | date: 'dd/MM/y') || '—' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="micro-label">Abierta</dt>
+        <dd class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0">
+          {{ o.createdAt | date: 'dd/MM/y' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="micro-label">Cotización de origen</dt>
+        <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
+          @if (o.quotationId && o.quotationFolio) {
+            @if (canViewQuotations()) {
+              <a [routerLink]="['/quotations', o.quotationId]" class="link-action">{{
+                o.quotationFolio
+              }}</a>
+            } @else {
+              <span class="font-data tabular-nums">{{ o.quotationFolio }}</span>
+            }
+          } @else {
+            <span class="text-surface-600 dark:text-surface-400">Sin cotización de origen</span>
+          }
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="card-section mt-4" aria-labelledby="order-lines-title">
+    <h2 id="order-lines-title" class="section-heading">Partidas</h2>
+    @if (o.lines.length) {
+      <div class="card-flush-table">
+        <p-table [value]="o.lines" dataKey="id">
+          <ng-template #header>
+            <tr>
+              <th scope="col">Servicio</th>
+              <th scope="col">Unidad</th>
+              <th scope="col">Cantidad</th>
+              <th scope="col">Precio unitario</th>
+              <th scope="col">Descuento</th>
+              <th scope="col">IVA</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-line>
+            <tr>
+              <td class="font-bold text-surface-1000 dark:text-surface-0">{{ line.serviceName }}</td>
+              <td>{{ line.uom }}</td>
+              <td class="font-data tabular-nums">{{ line.quantity }}</td>
+              <td class="font-data tabular-nums">{{ line.unitPrice | money }}</td>
+              <td class="font-data tabular-nums">{{ line.discountAmount | money }}</td>
+              <td class="font-data tabular-nums">{{ line.taxRate | serviceTaxRateLabel }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    } @else {
+      <p class="mt-3 text-sm text-surface-600 dark:text-surface-400">
+        Esta orden no tiene partidas registradas.
+      </p>
+    }
+  </section>
+
+  <section class="card-section mt-4" aria-labelledby="order-reports-title">
+    <h2 id="order-reports-title" class="section-heading">Reportes vinculados</h2>
+    @if (o.linkedReports.length) {
+      <ul class="mt-3 divide-y divide-surface-200 dark:divide-surface-800">
+        @for (report of o.linkedReports; track report.id) {
+          <li class="flex flex-wrap items-center justify-between gap-2 py-2.5">
+            <div class="flex items-center gap-3">
+              @if (canViewReports()) {
+                <a [routerLink]="['/reports', report.id]" class="link-action font-data tabular-nums">{{
+                  report.id
+                }}</a>
+              } @else {
+                <span class="font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0">{{
+                  report.id
+                }}</span>
+              }
+              <span class="text-sm text-surface-600 dark:text-surface-400">{{ report.reportType }}</span>
+            </div>
+            <p-tag
+              [severity]="report.status | reportStatusSeverity"
+              [value]="report.status | reportStatusLabel"
+            />
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="mt-3 text-sm text-surface-600 dark:text-surface-400">
+        Esta orden no tiene reportes vinculados todavía.
+      </p>
+    }
+  </section>
+
+  <section class="card-section mt-4" aria-labelledby="order-visits-title">
+    <h2 id="order-visits-title" class="section-heading">Fechas de visita</h2>
+    @if (o.visitDates.length) {
+      <ul class="mt-3 flex flex-wrap gap-2">
+        @for (date of o.visitDates; track date) {
+          <li
+            class="rounded-full bg-surface-100 px-2.5 py-1 font-data text-sm tabular-nums text-surface-800 dark:bg-surface-800 dark:text-surface-200"
+          >
+            {{ date | date: 'dd/MM/y' }}
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="mt-3 text-sm text-surface-600 dark:text-surface-400">
+        Sin visitas programadas.
+      </p>
+    }
+  </section>
+} @else if (notFound()) {
+  <div class="card-section mt-5 flex flex-col items-center gap-3 py-12 text-center">
+    <span class="empty-icon">
+      <svg lucideWrench class="size-5" aria-hidden="true"></svg>
+    </span>
+    <h2 class="text-lg font-bold text-surface-1000 dark:text-surface-0">
+      No pudimos encontrar esta orden de servicio
+    </h2>
+    <p class="max-w-sm text-sm text-surface-600 dark:text-surface-400">
+      Puede que ya no esté disponible o que no tengas acceso a ella.
+    </p>
+    <a routerLink="/service-orders" class="btn-neutral">Volver a órdenes</a>
+  </div>
+} @else {
+  <div class="flex flex-col gap-4">
+    <div class="card-section">
+      <span class="skeleton"></span>
+      <div class="mt-6 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+        @for (r of [0, 1, 2, 3]; track r) {
+          <div>
+            <span class="skeleton max-w-24"></span>
+            <span class="skeleton mt-2 max-w-48"></span>
+          </div>
+        }
+      </div>
+    </div>
+    <div class="card-section">
+      <span class="skeleton max-w-36"></span>
+      <span class="skeleton mt-4 max-w-72"></span>
+      <span class="skeleton mt-2 max-w-56"></span>
+    </div>
+  </div>
+}

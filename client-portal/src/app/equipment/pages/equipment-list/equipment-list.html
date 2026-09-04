@@ -1,0 +1,93 @@
+<app-page-header title="Equipos" description="El registro de equipos instalados en tu cuenta.">
+  <app-filters-popover [params]="['q', 'location']">
+    <div class="field-group">
+      <label class="field-label" for="equipment-search">Buscar</label>
+      <input
+        id="equipment-search"
+        pInputText
+        type="search"
+        [formControl]="search"
+        placeholder="Nombre, marca, modelo o serie"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="equipment-location">Ubicación</label>
+      <input
+        id="equipment-location"
+        pInputText
+        type="search"
+        [formControl]="locationFilter"
+        placeholder="Sitio"
+      />
+    </div>
+  </app-filters-popover>
+</app-page-header>
+
+<div>
+  <p-table
+    [value]="equipment()"
+    styleClass="table-paged"
+    [style.--table-page-rows]="list.PAGE_SIZE"
+    [lazy]="true"
+    (onLazyLoad)="list.onLazyLoad($event)"
+    [paginator]="true"
+    [rows]="list.PAGE_SIZE"
+    [first]="list.first()"
+    [totalRecords]="total()"
+    [loading]="tableBusy.showSkeleton()"
+    [class.table-refreshing]="tableBusy.refreshing()"
+    [showLoader]="false"
+    [rowHover]="true"
+    dataKey="id"
+  >
+    <ng-template #header>
+      <tr>
+        <th scope="col">Equipo</th>
+        <th scope="col">Marca / modelo</th>
+        <th scope="col">Serie</th>
+        <th scope="col">Ubicación</th>
+        <th scope="col">Último servicio</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-unit>
+      <tr class="cursor-pointer" (click)="openEquipment(unit)">
+        <td class="font-bold text-surface-1000 dark:text-surface-0">{{ unit.name || 'Equipo' }}</td>
+        <td>{{ unit.brand || '—' }} {{ unit.model }}</td>
+        <td class="font-data tabular-nums">{{ unit.serialNumber || '—' }}</td>
+        <td>{{ unit.location || '—' }}</td>
+        <td class="font-data tabular-nums">
+          @if (unit.lastServiceDate) {
+            {{ unit.lastServiceDate | date: 'dd/MM/y' }}
+          } @else {
+            <span class="text-surface-600 dark:text-surface-400">Sin servicio registrado</span>
+          }
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #loadingbody>
+      @for (r of list.skeletonRows; track r) {
+        <tr>
+          @for (c of [0, 1, 2, 3, 4]; track c) {
+            <td><span class="skeleton"></span></td>
+          }
+        </tr>
+      }
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr class="p-datatable-emptymessage">
+        <td colspan="5">
+          <span class="inline-flex flex-col items-center gap-3">
+            <span class="empty-icon">
+              <svg lucideBoxes class="size-5" aria-hidden="true"></svg>
+            </span>
+            @if (hasFilters()) {
+              Sin equipos con esos filtros.
+            } @else {
+              Aún no tienes equipos registrados.
+            }
+          </span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

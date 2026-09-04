@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 import { portalAuthGuard } from './guards/portal-auth.guard';
+import { grantGuard } from './guards/grant.guard';
+import { PortalGrant } from './model/enums/portal-auth/portal-grants.enum';
 
 export const routes: Routes = [
   {
@@ -28,6 +30,107 @@ export const routes: Routes = [
       {
         path: 'home',
         loadComponent: () => import('./home/pages/home/home').then((m) => m.HomeComponent),
+      },
+      {
+        path: 'reports',
+        canActivate: [grantGuard(PortalGrant.ViewReports)],
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./reports/pages/reports-list/reports-list').then((m) => m.ReportsList),
+          },
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./reports/pages/report-detail/report-detail').then((m) => m.ReportDetail),
+          },
+        ],
+      },
+      {
+        path: 'contracts',
+        canActivate: [grantGuard(PortalGrant.ViewContracts)],
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./contracts/pages/contracts-list/contracts-list').then(
+                (m) => m.ContractsList,
+              ),
+          },
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./contracts/pages/contract-detail/contract-detail').then(
+                (m) => m.ContractDetail,
+              ),
+          },
+        ],
+      },
+      {
+        path: 'quotations',
+        canActivate: [grantGuard(PortalGrant.ViewQuotations)],
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./quotations/pages/quotations-list/quotations-list').then(
+                (m) => m.QuotationsList,
+              ),
+          },
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./quotations/pages/quotation-detail/quotation-detail').then(
+                (m) => m.QuotationDetail,
+              ),
+          },
+        ],
+      },
+      {
+        path: 'service-orders',
+        canActivate: [grantGuard(PortalGrant.ViewServiceOrders)],
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./service-orders/pages/service-orders-list/service-orders-list').then(
+                (m) => m.ServiceOrdersList,
+              ),
+          },
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./service-orders/pages/service-order-detail/service-order-detail').then(
+                (m) => m.ServiceOrderDetail,
+              ),
+          },
+        ],
+      },
+      {
+        path: 'equipment',
+        canActivate: [grantGuard(PortalGrant.ViewEquipment)],
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./equipment/pages/equipment-list/equipment-list').then(
+                (m) => m.EquipmentList,
+              ),
+          },
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./equipment/pages/equipment-detail/equipment-detail').then(
+                (m) => m.EquipmentDetail,
+              ),
+          },
+        ],
       },
       { path: '**', redirectTo: 'home' },
     ],

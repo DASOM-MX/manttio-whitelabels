@@ -1,0 +1,107 @@
+<app-page-header title="Reportes" description="Los reportes de servicio de tu cuenta.">
+  <app-filters-popover [params]="['q', 'from', 'to']">
+    <div class="field-group">
+      <label class="field-label" for="reports-search">Buscar</label>
+      <input
+        id="reports-search"
+        pInputText
+        type="search"
+        [formControl]="search"
+        placeholder="Folio o tipo de reporte"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="reports-dates">Fechas</label>
+      <p-datepicker
+        inputId="reports-dates"
+        [formControl]="dateRange"
+        selectionMode="range"
+        dateFormat="yy-mm-dd"
+        [readonlyInput]="true"
+        placeholder="Rango de servicio"
+      />
+    </div>
+  </app-filters-popover>
+</app-page-header>
+
+<div>
+  <p-table
+    [value]="reports()"
+    styleClass="table-paged"
+    [style.--table-page-rows]="list.PAGE_SIZE"
+    [lazy]="true"
+    (onLazyLoad)="list.onLazyLoad($event)"
+    [paginator]="true"
+    [rows]="list.PAGE_SIZE"
+    [first]="list.first()"
+    [totalRecords]="total()"
+    [loading]="tableBusy.showSkeleton()"
+    [class.table-refreshing]="tableBusy.refreshing()"
+    [showLoader]="false"
+    [rowHover]="true"
+    dataKey="id"
+  >
+    <ng-template #header>
+      <tr>
+        <th scope="col">Folio</th>
+        <th scope="col">Fecha</th>
+        <th scope="col">Equipo</th>
+        <th scope="col">Técnico</th>
+        <th scope="col">Estado</th>
+        <th scope="col"><span class="sr-only">Acciones</span></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-report>
+      <tr class="cursor-pointer" (click)="openReport(report)">
+        <td class="font-data tabular-nums">{{ report.id }}</td>
+        <td class="font-data tabular-nums">{{ report.dateArrival | date: 'dd/MM/y' }}</td>
+        <td>{{ report.equipmentNames | listJoin }}</td>
+        <td>{{ report.technicianName || '—' }}</td>
+        <td>
+          <p-tag
+            [severity]="report.status | reportStatusSeverity"
+            [value]="report.status | reportStatusLabel"
+          />
+        </td>
+        <td class="w-16" (click)="$event.stopPropagation()">
+          <div class="flex justify-end">
+            <button
+              type="button"
+              class="row-action"
+              [disabled]="downloadingId() === report.id"
+              (click)="downloadPdf(report)"
+              [attr.aria-label]="'Descargar PDF del reporte ' + report.id"
+            >
+              <svg lucideDownload class="size-4" aria-hidden="true"></svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #loadingbody>
+      @for (r of list.skeletonRows; track r) {
+        <tr>
+          @for (c of [0, 1, 2, 3, 4, 5]; track c) {
+            <td><span class="skeleton"></span></td>
+          }
+        </tr>
+      }
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr class="p-datatable-emptymessage">
+        <td colspan="6">
+          <span class="inline-flex flex-col items-center gap-3">
+            <span class="empty-icon">
+              <svg lucideFileText class="size-5" aria-hidden="true"></svg>
+            </span>
+            @if (hasFilters()) {
+              Sin reportes con esos filtros.
+            } @else {
+              Aún no tienes reportes disponibles.
+            }
+          </span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

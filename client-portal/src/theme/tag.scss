@@ -1,0 +1,26 @@
+/* PrimeNG Tag — ported from superadmin (04 CP-2). The pill shape + soft-bg
+   severity ladder IS the house status language (report status, contract
+   validity, etc.) — stock Aura's tag reads as a plain badge, not a pill.
+   Intentionally vibrant in both light and dark modes. */
+.p-tag {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold;
+
+  &.p-tag-success {
+    @apply bg-emerald-100 text-emerald-900 ring-1 ring-emerald-300;
+  }
+  &.p-tag-warn {
+    @apply bg-amber-100 text-amber-900 ring-1 ring-amber-300;
+  }
+  &.p-tag-danger {
+    @apply bg-red-100 text-red-900 ring-1 ring-red-300;
+  }
+  &.p-tag-info {
+    @apply bg-primary-100 text-primary-900 ring-1 ring-primary-300;
+  }
+  &.p-tag-secondary {
+    @apply bg-surface-100 text-surface-900 ring-1 ring-surface-300;
+  }
+}
+.p-tag-icon {
+  @apply size-3;
+}
