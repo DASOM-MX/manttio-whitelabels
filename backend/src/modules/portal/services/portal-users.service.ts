@@ -6,6 +6,7 @@ import { hashPassword } from '../../auth/services/password.service';
 import { isUniqueViolation } from '../../database/db-errors';
 import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 import type { PortalUserGrantsUpdateResult, PortalUserListItem } from '../dtos/portal-user-list.dto';
+import type { PortalContactAccess } from '../dtos/portal-contact-access.dto';
 import type { ListPortalUsersQuery } from '../validators/portal-users-query.validator';
 // CSPRNG-backed and unbiased (nanoid customAlphabet), and already the temp
 // password every staff-created user gets. A portal credential is not the place
@@ -23,6 +24,7 @@ import {
   softDeletePortalUser,
   findPortalUserByContactId,
   listPortalUsersPaged,
+  findPortalAccessForCustomerContacts,
 } from '../repository/portal-users.repository';
 import { findContactById } from '../../customers/repository/customer-contacts.repository';
 import { sendPortalUserInviteEmail, sendPortalPasswordResetEmail } from '../helpers/portal-email.helpers';
@@ -304,4 +306,23 @@ export async function listPortalUsers(
       createdAt: row.createdAt.toISOString(),
     })),
   };
+}
+
+/**
+ * Per-contact portal-access indicator for one customer (superadmin 26 §6,
+ * CP-5). Every live contact comes back, whether or not they hold portal
+ * access — `status: null` is "no portal user", not an omission.
+ */
+export async function getCustomerContactsPortalAccess(
+  db: Db,
+  customerId: string,
+): Promise<PortalContactAccess[]> {
+  const rows = await findPortalAccessForCustomerContacts(db, customerId);
+
+  return rows.map((row) => ({
+    contactId: row.contactId,
+    portalUserId: row.portalUserId,
+    status: row.status,
+    lastLoginAt: row.lastLoginAt ? row.lastLoginAt.toISOString() : null,
+  }));
 }
