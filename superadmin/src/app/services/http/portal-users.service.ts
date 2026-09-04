@@ -50,4 +50,39 @@ export class PortalUsersService {
       .patch<{ grants: PortalGrant[] }>(`/portal-users/${id}/grants`, { grants })
       .pipe(map((res) => res.grants));
   }
+
+  /** `POST /portal-users/:id/password` — the one backend action behind two
+   *  UI-level lifecycle rows (26 §4): "Reenviar invitación" on an `invited`
+   *  row and "Restablecer contraseña" on any other. Same effect either way —
+   *  new temp password, `must_change_password`, an email — and the temp
+   *  password is never in this response (26 §5). */
+  resetPassword(id: string): Observable<void> {
+    return this.remote
+      .post<{ id: string; email: string; name: string }>(`/portal-users/${id}/password`, {})
+      .pipe(map(() => undefined));
+  }
+
+  /** `PATCH /portal-users/:id/suspend` — reversible; login refused on the
+   *  next request. */
+  suspend(id: string): Observable<void> {
+    return this.remote
+      .patch<{ suspended: boolean }>(`/portal-users/${id}/suspend`, {})
+      .pipe(map(() => undefined));
+  }
+
+  /** `PATCH /portal-users/:id/resume` — the reverse of `suspend`. */
+  resume(id: string): Observable<void> {
+    return this.remote
+      .patch<{ resumed: boolean }>(`/portal-users/${id}/resume`, {})
+      .pipe(map(() => undefined));
+  }
+
+  /** `DELETE /portal-users/:id` — the permanent one (26 §4): soft delete,
+   *  required comment, `deleted_by`. The contact row survives; only the
+   *  login goes, and it's re-invitable later. */
+  revoke(id: string, deleteComment: string): Observable<void> {
+    return this.remote
+      .delete<{ id: string; deleted: boolean }>(`/portal-users/${id}`, { deleteComment })
+      .pipe(map(() => undefined));
+  }
 }

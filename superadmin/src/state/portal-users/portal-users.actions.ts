@@ -26,3 +26,29 @@ export class UpdatePortalUserGrants {
     public grants: PortalGrant[],
   ) {}
 }
+
+/** Shared by "Reenviar invitación" and "Restablecer contraseña" — one
+ *  backend action, two lifecycle-row contexts (26 §4). */
+export class ResetPortalUserPassword {
+  static readonly type = '[Portal Users] Reset Password';
+  constructor(public id: string) {}
+}
+
+export class SuspendPortalUser {
+  static readonly type = '[Portal Users] Suspend';
+  constructor(public id: string) {}
+}
+
+export class ResumePortalUser {
+  static readonly type = '[Portal Users] Resume';
+  constructor(public id: string) {}
+}
+
+/** Soft delete, required comment — the permanent one (26 §4). */
+export class RevokePortalUserAccess {
+  static readonly type = '[Portal Users] Revoke Access';
+  constructor(
+    public id: string,
+    public deleteComment: string,
+  ) {}
+}

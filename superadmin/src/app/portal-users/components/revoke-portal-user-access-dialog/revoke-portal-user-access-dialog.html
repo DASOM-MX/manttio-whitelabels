@@ -1,0 +1,46 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="dialog-md"
+  header="Revocar acceso al portal"
+>
+  <form [formGroup]="form" (ngSubmit)="confirm()" class="flex flex-col gap-4">
+    <p class="text-sm text-surface-700 dark:text-surface-300">
+      Vas a revocar el acceso de
+      <strong class="text-surface-1000 dark:text-surface-0">{{ target()?.name }}</strong>
+      ({{ target()?.email }}) al portal. Su contacto se conserva y podrás volver a invitarlo más
+      adelante — solo su inicio de sesión deja de funcionar.
+    </p>
+
+    <div class="field-group">
+      <label class="field-label" for="revoke-comment"
+        >Motivo (auditoría)<span aria-hidden="true"> *</span></label
+      >
+      <textarea id="revoke-comment" pTextarea formControlName="comment" rows="2"></textarea>
+      @if (form.controls.comment.touched && form.controls.comment.invalid) {
+        <p class="field-error" role="alert">Escribe un motivo antes de continuar.</p>
+      }
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <button type="button" class="btn-neutral" (click)="close()" [disabled]="submitting()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn-danger" [disabled]="!canConfirm()">
+        @if (submitting()) {
+          <span
+            class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+            aria-hidden="true"
+          ></span>
+          Revocando…
+        } @else {
+          Revocar acceso
+        }
+      </button>
+    </div>
+  </form>
+</p-dialog>

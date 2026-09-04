@@ -6,8 +6,13 @@ import {
   InvitePortalUser,
   LoadPortalUser,
   LoadPortalUsers,
+  ResetPortalUserPassword,
+  ResumePortalUser,
+  RevokePortalUserAccess,
+  SuspendPortalUser,
   UpdatePortalUserGrants,
 } from './portal-users.actions';
+import { PortalUserStatus } from '../../app/model/enums/portal-user/portal-user-status.enum';
 import type { PortalUserDetail, PortalUserListItem } from '../../app/data/dtos/portal-user/portal-user';
 
 export interface PortalUsersStateModel {
@@ -75,6 +80,54 @@ export class PortalUsersState {
       tap((grants) => {
         const selected = ctx.getState().selected;
         if (selected && selected.id === id) ctx.patchState({ selected: { ...selected, grants } });
+      }),
+    );
+  }
+
+  /** Shared by "Reenviar invitación" and "Restablecer contraseña" (26 §4) —
+   *  neither changes `status`, so there's nothing to patch here beyond the
+   *  request itself; the toast at the call site tells them apart. */
+  @Action(ResetPortalUserPassword)
+  resetPortalUserPassword(_ctx: StateContext<PortalUsersStateModel>, { id }: ResetPortalUserPassword) {
+    return this.api.resetPassword(id);
+  }
+
+  @Action(SuspendPortalUser)
+  suspendPortalUser(ctx: StateContext<PortalUsersStateModel>, { id }: SuspendPortalUser) {
+    return this.api.suspend(id).pipe(
+      tap(() => {
+        const selected = ctx.getState().selected;
+        if (selected && selected.id === id) {
+          ctx.patchState({ selected: { ...selected, status: PortalUserStatus.Suspended } });
+        }
+      }),
+    );
+  }
+
+  @Action(ResumePortalUser)
+  resumePortalUser(ctx: StateContext<PortalUsersStateModel>, { id }: ResumePortalUser) {
+    return this.api.resume(id).pipe(
+      tap(() => {
+        const selected = ctx.getState().selected;
+        if (selected && selected.id === id) {
+          ctx.patchState({ selected: { ...selected, status: PortalUserStatus.Active } });
+        }
+      }),
+    );
+  }
+
+  /** Soft delete (26 §4) — the record survives on the server; this clears
+   *  `selected` because there is nothing left on this page to edit, and the
+   *  component navigates back to the list. */
+  @Action(RevokePortalUserAccess)
+  revokePortalUserAccess(
+    ctx: StateContext<PortalUsersStateModel>,
+    { id, deleteComment }: RevokePortalUserAccess,
+  ) {
+    return this.api.revoke(id, deleteComment).pipe(
+      tap(() => {
+        const state = ctx.getState();
+        if (state.selected?.id === id) ctx.patchState({ selected: null });
       }),
     );
   }
