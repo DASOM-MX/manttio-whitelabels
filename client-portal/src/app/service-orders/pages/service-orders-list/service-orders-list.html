@@ -1,0 +1,101 @@
+<app-page-header
+  title="Órdenes de servicio"
+  description="Los trabajos abiertos y completados en tu cuenta."
+>
+  <app-filters-popover [params]="['q', 'status']">
+    <div class="field-group">
+      <label class="field-label" for="orders-search">Buscar</label>
+      <input
+        id="orders-search"
+        pInputText
+        type="search"
+        [formControl]="search"
+        placeholder="Folio"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="orders-status">Estado</label>
+      <p-select
+        inputId="orders-status"
+        [formControl]="statusFilter"
+        [options]="statusOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
+  </app-filters-popover>
+</app-page-header>
+
+<div>
+  <p-table
+    [value]="orders()"
+    styleClass="table-paged"
+    [style.--table-page-rows]="list.PAGE_SIZE"
+    [lazy]="true"
+    (onLazyLoad)="list.onLazyLoad($event)"
+    [paginator]="true"
+    [rows]="list.PAGE_SIZE"
+    [first]="list.first()"
+    [totalRecords]="total()"
+    [loading]="tableBusy.showSkeleton()"
+    [class.table-refreshing]="tableBusy.refreshing()"
+    [showLoader]="false"
+    [rowHover]="true"
+    dataKey="id"
+  >
+    <ng-template #header>
+      <tr>
+        <th scope="col">Folio</th>
+        <th scope="col">Abierta</th>
+        <th scope="col">Estado</th>
+        <th scope="col">Cotización</th>
+        <th scope="col">Reportes</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-order>
+      <tr class="cursor-pointer" (click)="openOrder(order)">
+        <td class="font-data tabular-nums">{{ order.folio }}</td>
+        <td class="font-data tabular-nums">{{ order.createdAt | date: 'dd/MM/y' }}</td>
+        <td>
+          <p-tag
+            [severity]="order.status | serviceOrderStatusSeverity"
+            [value]="order.status | serviceOrderStatusLabel"
+          />
+        </td>
+        <td class="font-data tabular-nums">
+          @if (order.quotationFolio) {
+            {{ order.quotationFolio }}
+          } @else {
+            <span class="text-surface-600 dark:text-surface-400">— sin cotización</span>
+          }
+        </td>
+        <td class="font-data tabular-nums">{{ order.reportCount }}</td>
+      </tr>
+    </ng-template>
+    <ng-template #loadingbody>
+      @for (r of list.skeletonRows; track r) {
+        <tr>
+          @for (c of [0, 1, 2, 3, 4]; track c) {
+            <td><span class="skeleton"></span></td>
+          }
+        </tr>
+      }
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr class="p-datatable-emptymessage">
+        <td colspan="5">
+          <span class="inline-flex flex-col items-center gap-3">
+            <span class="empty-icon">
+              <svg lucideWrench class="size-5" aria-hidden="true"></svg>
+            </span>
+            @if (hasFilters()) {
+              Sin órdenes con esos filtros.
+            } @else {
+              Aún no tienes órdenes de servicio disponibles.
+            }
+          </span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
