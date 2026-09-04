@@ -24,6 +24,9 @@ export class UpdatePortalUserGrants {
   constructor(
     public id: string,
     public grants: PortalGrant[],
+    // Optional, no default (26 §3b, PR #215) — omitted leaves is_admin
+    // untouched on the row; the detail page always passes its current value.
+    public isAdmin?: boolean,
   ) {}
 }
 
