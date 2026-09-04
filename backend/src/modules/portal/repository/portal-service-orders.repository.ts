@@ -4,7 +4,6 @@ import { QuotationStatus } from '../../quotations/enums/quotations.enum';
 import { quotations } from '../../quotations/models/quotations.model';
 import { reports } from '../../reports/models/reports.model';
 import { serviceOrders } from '../../service-orders/models/service-orders.model';
-import type { ServiceOrderRow } from '../../service-orders/types/service-orders.types';
 import { scheduledVisits } from '../../visits/models/visits.model';
 import { VisitStatus } from '../../visits/enums/visits.enum';
 import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
@@ -15,13 +14,7 @@ import {
 } from '../constants/portal-visibility';
 import { portalPage, portalRow, portalScope } from './portal-reads.repository';
 import type { PortalServiceOrdersQuery } from '../validators/portal-reads.validator';
-
-/** An order row plus the quote it was born from (04 §6's folio column). */
-export interface PortalServiceOrderRow {
-  row: ServiceOrderRow;
-  quotationId: string | null;
-  quotationFolio: string | null;
-}
+import type { PortalServiceOrderRow } from '../types/portal-reads.types';
 
 // Scope + release: the token's customer, live rows, `open` or `completed`.
 // A cancelled order is not the customer's business (04 §2).
@@ -60,11 +53,7 @@ const orderColumns = {
 
 // One mapper for the list and the detail: the correlated subqueries are typed
 // nullable, and both callers normalize them the same way.
-const toPortalServiceOrderRow = (r: {
-  row: ServiceOrderRow;
-  quotationId: string | null;
-  quotationFolio: string | null;
-}): PortalServiceOrderRow => ({
+const toPortalServiceOrderRow = (r: PortalServiceOrderRow): PortalServiceOrderRow => ({
   row: r.row,
   quotationId: r.quotationId ?? null,
   quotationFolio: r.quotationFolio ?? null,

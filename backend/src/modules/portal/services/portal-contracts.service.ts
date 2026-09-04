@@ -17,6 +17,10 @@ import { portalContractDownloadEvent } from '../utils/portal-download-events';
 import { recordedDownload } from '../utils/portal-download';
 import { mapPage } from '../utils/portal-page';
 import type { PortalContractsQuery } from '../validators/portal-reads.validator';
+import type {
+  PortalContractDownload,
+  PortalDownloadUser,
+} from '../types/portal-downloads.types';
 
 /** Validity is derived per read against one calendar day, taken here so no
  *  mapper reads a clock and a whole page cannot straddle midnight. */
@@ -48,9 +52,9 @@ export const getContractForPortal = async (
 export const downloadContractForPortal = async (
   db: Db,
   bucket: R2Bucket,
-  portalUser: { id: string; customerId: string },
+  portalUser: PortalDownloadUser,
   id: string,
-): Promise<{ body: ReadableStream; fileName: string; fileMime: string } | null> =>
+): Promise<PortalContractDownload | null> =>
   recordedDownload(
     db,
     (tx) => findPortalContract(tx, portalUser.customerId, id),

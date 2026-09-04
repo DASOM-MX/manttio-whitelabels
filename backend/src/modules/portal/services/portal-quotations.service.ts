@@ -33,6 +33,10 @@ import { portalQuotationDownloadEvent } from '../utils/portal-download-events';
 import { recordedDownload } from '../utils/portal-download';
 import { mapPage } from '../utils/portal-page';
 import type { PortalQuotationsQuery } from '../validators/portal-reads.validator';
+import type {
+  PortalQuotationDownload,
+  PortalQuotationDownloadUser,
+} from '../types/portal-downloads.types';
 
 /** Overdue is computed per read against one calendar day (owner 2026-07-26) —
  *  taken here so no mapper reads a clock. */
@@ -119,9 +123,9 @@ const toPdfLine = (row: QuotationLineRow): QuotationLineDTO => ({
 export const downloadQuotationForPortal = async (
   db: Db,
   env: Env,
-  portalUser: { contactId: string; customerId: string },
+  portalUser: PortalQuotationDownloadUser,
   id: string,
-): Promise<{ filename: string; bytes: Uint8Array } | null> =>
+): Promise<PortalQuotationDownload | null> =>
   recordedDownload(
     db,
     (tx) => findPortalQuotation(tx, portalUser.customerId, id),

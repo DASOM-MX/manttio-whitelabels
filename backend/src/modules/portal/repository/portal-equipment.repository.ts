@@ -1,7 +1,6 @@
 import { and, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { equipment, equipmentReports } from '../../equipment/models/equipment.model';
-import type { EquipmentRow } from '../../equipment/types/equipment.types';
 import { reports } from '../../reports/models/reports.model';
 import { serviceRequests } from '../../service-requests/models/service-requests.model';
 import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
@@ -10,12 +9,10 @@ import type { PortalLinkedReport } from '../dtos/portal-report.dto';
 import { PORTAL_REPORT_STATUSES } from '../constants/portal-visibility';
 import { portalPage, portalRow, portalScope } from './portal-reads.repository';
 import type { PortalEquipmentQuery } from '../validators/portal-reads.validator';
-
-/** A unit plus its derived "último servicio" (04 §7's list column). */
-export interface PortalEquipmentRow {
-  row: EquipmentRow;
-  lastServiceDate: Date | null;
-}
+import type {
+  PortalEquipmentRow,
+  PortalEquipmentSelectRow,
+} from '../types/portal-reads.types';
 
 // Scope + release. `retired` units stay visible — 04 §2 excludes soft-deleted
 // rows only, and a decommissioned unit's history is exactly what a customer
@@ -45,10 +42,10 @@ const toDate = (value: Date | string | null): Date | null => {
 // cannot drift apart.
 const equipmentColumns = { row: equipment, lastServiceDate: lastServiceExpr };
 
-const toPortalEquipmentRow = (r: {
-  row: EquipmentRow;
-  lastServiceDate: Date | string | null;
-}): PortalEquipmentRow => ({ row: r.row, lastServiceDate: toDate(r.lastServiceDate) });
+const toPortalEquipmentRow = (r: PortalEquipmentSelectRow): PortalEquipmentRow => ({
+  row: r.row,
+  lastServiceDate: toDate(r.lastServiceDate),
+});
 
 const filters = (customerId: string, q: PortalEquipmentQuery): SQL => {
   const conds: SQL[] = [visible(customerId)];
