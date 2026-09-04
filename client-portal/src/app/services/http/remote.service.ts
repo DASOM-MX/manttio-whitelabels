@@ -2,6 +2,8 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { runtimeConfig } from '../../config/runtime-config';
+import { toParams } from '../../data/utils';
+import type { Query } from '../../data/types/http/query.type';
 
 @Injectable({ providedIn: 'root' })
 export class RemoteService {
@@ -20,8 +22,8 @@ export class RemoteService {
     return `${this.base}${path.startsWith('/') ? path : `/${path}`}`;
   }
 
-  get<T>(path: string): Observable<T> {
-    return this.http.get<T>(this.url(path));
+  get<T>(path: string, query?: Query): Observable<T> {
+    return this.http.get<T>(this.url(path), { params: toParams(query) });
   }
   post<T>(path: string, body: unknown): Observable<T> {
     return this.http.post<T>(this.url(path), body);

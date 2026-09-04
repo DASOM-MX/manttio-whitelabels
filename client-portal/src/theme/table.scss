@@ -1,0 +1,191 @@
+/* PrimeNG Table — ported from superadmin (04 CP-2): compact density,
+   micro-label headers, tabular numerals on numeric columns, the standalone
+   table treated as a card (border + shadow). */
+.p-datatable {
+  @apply block w-full max-w-full border border-surface-200 bg-white rounded-card shadow-card
+         overflow-hidden dark:border-surface-800 dark:bg-surface-900;
+}
+.app-dark .p-datatable {
+  box-shadow:
+    0 6px 20px -6px rgb(0 0 0 / 0.5),
+    0 2px 8px -2px rgb(0 0 0 / 0.4);
+}
+
+/* Edge-to-edge variant inside padded cards: wrap the p-table in
+   `.card-flush-table` to cancel the card-section's px-6 gutters. */
+.card-flush-table {
+  @apply -mx-6;
+
+  .p-datatable {
+    @apply rounded-none border-0 shadow-none;
+  }
+}
+.app-dark .card-flush-table .p-datatable {
+  box-shadow: none;
+}
+
+/* Wrappers PrimeNG always renders but that should stay hidden until active. */
+.p-datatable-mask,
+.p-datatable-loading-overlay {
+  @apply hidden;
+}
+.p-datatable-mask.p-overlay-mask,
+.p-datatable-loading-overlay.p-component-overlay {
+  @apply absolute inset-0 flex items-center justify-center bg-white/70 z-20 dark:bg-surface-1000/70;
+}
+
+.p-datatable-table-container {
+  @apply w-full max-w-full overflow-x-auto;
+}
+.p-datatable-table {
+  @apply w-full border-collapse;
+}
+.p-datatable-thead {
+  @apply bg-surface-0 dark:bg-surface-900;
+
+  > tr > th {
+    @apply px-4 py-3 text-left micro-label whitespace-nowrap;
+
+    &.p-sortable-column {
+      @apply cursor-pointer select-none;
+
+      &:hover {
+        @apply bg-surface-100 dark:bg-surface-800;
+      }
+    }
+  }
+}
+.p-sortable-column-icon {
+  @apply ml-1 inline-block align-middle size-3.5 text-primary-600 dark:text-primary-400;
+}
+.p-datatable-sort-badge {
+  @apply ml-1 inline-flex items-center justify-center size-4 rounded-full bg-primary-600 text-white text-2xs font-extrabold;
+}
+.p-datatable-tbody {
+  @apply bg-white dark:bg-surface-900;
+
+  > tr {
+    @apply transition-colors duration-100;
+
+    &:hover {
+      @apply bg-primary-0 dark:bg-surface-800;
+    }
+    &:active {
+      @apply bg-primary-100 dark:bg-surface-700;
+    }
+    &.p-row-selected {
+      @apply bg-primary-100 dark:bg-surface-700;
+    }
+    &.p-datatable-emptymessage {
+      @apply hover:bg-transparent dark:hover:bg-transparent;
+
+      > td {
+        @apply px-5 py-12 text-center text-base text-surface-700 whitespace-normal dark:text-surface-300;
+      }
+    }
+    > td {
+      @apply px-4 py-2.5 whitespace-nowrap text-sm text-surface-900 dark:text-surface-100;
+    }
+  }
+}
+
+/* Numeric cells: `font-data` names the face, `tabular-nums` is what aligns
+   the column (a font feature, not the family's default). */
+th.font-data,
+td.font-data {
+  @apply tabular-nums;
+}
+
+/* A table swapping one page of rows for another keeps the current rows at
+   full brightness (see `tableLoading`) — PrimeNG stacks `#loadingbody`
+   *under* the rows rather than replacing them. Only hit-testing changes,
+   plus a hairline sweep on the card's top edge for loads slow enough to
+   need a cue. */
+.p-datatable.table-refreshing {
+  position: relative;
+
+  --table-busy-delay: 400ms;
+  --table-busy-color: hsl(var(--brand-primary-600, 220 10% 45%));
+
+  .p-datatable-tbody {
+    @apply pointer-events-none;
+  }
+
+  &::before {
+    content: '';
+
+    @apply absolute top-0 left-0 z-10 h-0.5;
+
+    width: 40%;
+    background-image: linear-gradient(90deg, transparent, var(--table-busy-color), transparent);
+    animation: anim-table-busy 1.1s linear var(--table-busy-delay) infinite backwards;
+  }
+}
+.app-dark .p-datatable.table-refreshing {
+  --table-busy-color: hsl(var(--brand-primary-400, 220 10% 70%));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .p-datatable.table-refreshing::before {
+    animation-duration: 0s;
+    animation-iteration-count: 1;
+  }
+}
+
+/* A paged table holds a full page of rows whether or not the page is full,
+   so the paginator sits at the same y on every page. A floor, not a fixed
+   height — `--table-page-rows` binds from `ListQueryService.PAGE_SIZE`. */
+.table-paged .p-datatable-table-container {
+  --table-row-h: 2.5rem;
+  --table-header-h: 2.75rem;
+
+  min-height: calc(var(--table-page-rows, 10) * var(--table-row-h) + var(--table-header-h));
+}
+
+/* Rows built around a size-9 avatar or a two-line cell. */
+.table-paged--tall .p-datatable-table-container {
+  --table-row-h: 3.5rem;
+}
+
+/* Paginator (rendered when [paginator]="true") */
+.p-paginator {
+  @apply flex items-center justify-end gap-1.5 px-4 py-3 bg-white
+         dark:bg-surface-900;
+}
+.p-paginator-page,
+.p-paginator-prev,
+.p-paginator-next,
+.p-paginator-first,
+.p-paginator-last {
+  @apply size-9 inline-flex items-center justify-center rounded-control text-sm font-bold font-data tabular-nums text-surface-800 hover:bg-primary-0 cursor-pointer transition-colors
+         dark:text-surface-200 dark:hover:bg-surface-800;
+
+  &.p-paginator-page-selected {
+    @apply bg-primary-700 text-white hover:bg-primary-800 dark:bg-primary-600 dark:hover:bg-primary-500;
+  }
+  &.p-disabled {
+    @apply opacity-30 cursor-not-allowed;
+  }
+}
+
+/* Compact "rows per page" select — inherits .p-select → .field-input by
+   default. Shrink it to match the paginator buttons. */
+.p-paginator .p-select {
+  @apply w-auto !h-9 px-3 py-1 text-sm;
+}
+.p-paginator .p-select-label {
+  @apply pr-1;
+}
+
+/* Caption / footer slots — collapse when empty. */
+.p-datatable-header:empty,
+.p-datatable-footer:empty {
+  @apply hidden;
+}
+.p-datatable-header {
+  @apply bg-surface-0 dark:bg-surface-900;
+}
+.p-datatable-footer {
+  @apply px-4 py-3 bg-surface-0
+         dark:bg-surface-900;
+}

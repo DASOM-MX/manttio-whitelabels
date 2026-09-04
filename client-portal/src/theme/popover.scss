@@ -1,0 +1,25 @@
+/* PrimeNG Popover — ported from superadmin (04 CP-2). Subtle liquid-glass
+   treatment (owner exception, overlays only): translucent surface +
+   backdrop blur with a neutral shadow — no glow, no gradient tint. Opaque-
+   enough alphas keep content readable where backdrop-filter is unsupported. */
+.p-popover {
+  @apply rounded-chip border shadow-xl bg-white/85 border-surface-200/80
+         dark:bg-surface-900/85 dark:border-surface-700/70;
+  /* NOT `@apply backdrop-blur-md`: from a stylesheet its `--tw-backdrop-*`
+     vars stay unresolved and the utility silently no-ops. Declare the
+     filter directly (autoprefixer adds -webkit-). */
+  backdrop-filter: blur(12px);
+
+  /* Aura ships a caret/arrow via ::before + ::after — collapse them for a
+     clean panel without a pointer. */
+  &::before,
+  &::after {
+    display: none;
+  }
+}
+
+.p-popover-content {
+  /* Aura applies padding here, which would inset edge-to-edge menu items and
+     clip their hover backgrounds. */
+  @apply p-0;
+}
