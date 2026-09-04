@@ -1,13 +1,7 @@
 import { portalPasswordResetEmailHtml } from '../templates/portal-password-reset-email.html.ts';
 import type { BrandColors } from '../../brand/dtos/brand.dto';
 import { hslToHex } from '../../brand/utils/hsl-color';
-
-export interface PortalPasswordResetEmailParams {
-  resetUrl: string;
-  brandName?: string;
-  /** Tenant brand colours. Optional so a tenant with no palette still mails. */
-  colors?: BrandColors;
-}
+import type { PortalPasswordResetEmailParams } from '../types/portal-emails.types';
 
 // Same derivation the quotation and report emails use: primary-800 reads as
 // "the brand" at button size, and the neutral fallback keeps an unbranded

@@ -34,8 +34,7 @@ import {
   renderPasswordResetEmailSubject,
 } from '../helpers/portal-password-reset-email.helpers';
 import { getBrand } from '../../brand/services/brand.service';
-
-export type PortalLoginResult = { token: string; mustChangePassword: boolean };
+import type { PortalLoginResult } from '../types/portal-auth.types';
 
 /**
  * Portal login with A3 lockout (5 fails → 2h cooldown). The lockout and status
