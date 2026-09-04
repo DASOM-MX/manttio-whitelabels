@@ -28,7 +28,12 @@ import {
 } from '../repository/storage-nodes.repository';
 import { toStorageNodeDTO } from '../utils/storage-node-dto';
 import { assertWarehouseAccess } from './warehouses.service';
-import type { StorageNodeDTO, UpdateStorageNodeFields } from '../types/warehouses.types';
+import type {
+  DeletedRef,
+  LocationAssignment,
+  StorageNodeDTO,
+  UpdateStorageNodeFields,
+} from '../types/warehouses.types';
 import type {
   CreateStorageNodeInput,
   ListStorageNodesQuery,
@@ -52,7 +57,7 @@ const resolveAssignment = async (
   db: Db,
   type: StorageNodeType,
   next: { userId: string | null; role: AssignmentRole | null },
-): Promise<{ assignedUserId: string | null; assignmentRole: AssignmentRole | null }> => {
+): Promise<LocationAssignment> => {
   if (next.userId === null && next.role === null) {
     return { assignedUserId: null, assignmentRole: null };
   }
@@ -77,7 +82,7 @@ export const getStorageNodes = async (
   user: AuthUser,
   warehouseId: string,
   query: ListStorageNodesQuery,
-): Promise<{ nodes: StorageNodeDTO[] }> => {
+): Promise<StorageNodeDTO[]> => {
   await assertWarehouseAccess(db, user, warehouseId);
 
   if (query.parentNodeId) {
@@ -88,7 +93,7 @@ export const getStorageNodes = async (
   }
 
   const rows = await listStorageNodes(db, warehouseId, query.parentNodeId);
-  return { nodes: rows.map((row) => toStorageNodeDTO(row.node, row.assigneeName, row.hasChildren)) };
+  return rows.map((row) => toStorageNodeDTO(row.node, row.assigneeName, row.hasChildren));
 };
 
 export const createStorageNode = async (
@@ -190,7 +195,7 @@ export const removeStorageNode = async (
   user: AuthUser,
   warehouseId: string,
   nodeId: string,
-): Promise<{ id: string } | null> => {
+): Promise<DeletedRef | null> => {
   await assertWarehouseAccess(db, user, warehouseId);
 
   const current = await findStorageNodeById(db, nodeId);

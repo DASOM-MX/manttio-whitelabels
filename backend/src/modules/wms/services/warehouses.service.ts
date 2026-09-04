@@ -35,10 +35,12 @@ import {
   listStockUnitsAt,
 } from '../repository/warehouse-stock.repository';
 import type {
+  DeletedRef,
   LocationAssigneeDTO,
   StockLocationRefDTO,
   UpdateWarehouseFields,
   WarehouseDTO,
+  WarehouseReadRow,
   WarehouseRow,
   WarehouseStockDTO,
   WarehouseTreeDTO,
@@ -63,8 +65,6 @@ const assignee = (row: WarehouseRow, name: string | null): LocationAssigneeDTO |
   row.assignedUserId && row.assignmentRole && name
     ? { id: row.assignedUserId, name, role: row.assignmentRole }
     : undefined;
-
-type WarehouseReadRow = { warehouse: WarehouseRow; assigneeName: string | null };
 
 const toWarehouseDTO = ({ warehouse, assigneeName }: WarehouseReadRow): WarehouseDTO => ({
   id: warehouse.id,
@@ -112,19 +112,19 @@ export const getWarehouses = async (
   db: Db,
   user: AuthUser,
   query: ListWarehousesQuery,
-): Promise<{ warehouses: WarehouseDTO[] }> => {
+): Promise<WarehouseDTO[]> => {
   const rows = await listWarehouses(db, {
     parentId: query.parentId,
     // Staff see everything; a technician's list hides colleagues' vans, which
     // is also what makes it a safe self-checkout source list (06 §5).
     visibleToTechnicianId: isBackOfficeTier(user) ? undefined : user.id,
   });
-  return { warehouses: rows.map(toWarehouseDTO) };
+  return rows.map(toWarehouseDTO);
 };
 
 /** The registry list (02 §2): roots with their live sub-warehouses nested, each
  *  carrying its own stock summary. Exactly two levels — v1 nests once. */
-export const getWarehouseTree = async (db: Db): Promise<{ warehouses: WarehouseTreeDTO[] }> => {
+export const getWarehouseTree = async (db: Db): Promise<WarehouseTreeDTO[]> => {
   const [rows, summary] = await Promise.all([
     listWarehouses(db, {}),
     summarizeWarehouseStock(db),
@@ -149,7 +149,7 @@ export const getWarehouseTree = async (db: Db): Promise<{ warehouses: WarehouseT
     if (parent) parent.children.push(dto);
     else roots.push(dto);
   }
-  return { warehouses: roots };
+  return roots;
 };
 
 export const getWarehouse = async (
@@ -282,7 +282,7 @@ export const assignWarehouse = async (
 
 /** Delete is soft and empty-only, and takes the warehouse's storage nodes with
  *  it (01 §2). No audit comment: movements are the audit here (03 §3). */
-export const removeWarehouse = async (db: Db, id: string): Promise<{ id: string } | null> => {
+export const removeWarehouse = async (db: Db, id: string): Promise<DeletedRef | null> => {
   const current = await findWarehouseById(db, id);
   if (!current) return null;
 

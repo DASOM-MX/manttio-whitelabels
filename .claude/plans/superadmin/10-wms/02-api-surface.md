@@ -63,6 +63,18 @@ controller — an in-tenant editor is a later add).
 
 ## 2. Warehouses + storage nodes — `warehouses.controller.ts`
 
+**Response shape (2026-09-03, `backend/CLAUDE.md` 21 CP-1).** The three unpaged
+reads here — `GET /warehouses`, `GET /warehouses/tree`, `GET /warehouses/:id/nodes`
+— answer with a **bare array**, not an `{ items }` or `{ warehouses }` wrapper.
+They are roster reads: no page, no limit, and a `total` could only restate the
+array's own length, so the wrapper carries no information. `GET /customers/all`
+and `GET /services/all` set the precedent. `GET /warehouses/:id/stock` keeps its
+`{ entries, units, lots }` object — that is three distinct lists in one
+response, not a list wrapper. Paged reads elsewhere in this module (§3 materials,
+§4 movements, §6 replenishments) use `GenericQueryResponse<T>`
+(`{ items, total, page, limit }`) instead.
+
+
 | Endpoint | Roles | Notes |
 |---|---|---|
 | `GET /warehouses` | owner/admin/office/technician | Flat, `?parentId=` filter. Technician calls it for self-checkout source lists — service **excludes other technicians' warehouses** for them (a) |

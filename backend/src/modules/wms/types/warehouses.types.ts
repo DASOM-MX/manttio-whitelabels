@@ -159,3 +159,30 @@ export interface WarehouseStockDTO {
   units: WarehouseStockUnitDTO[];
   lots: WarehouseStockLotDTO[];
 }
+
+/** A warehouse row as every read selects it: the row plus its assignee's name,
+ *  joined in one go because the registry always renders "who is responsible"
+ *  and a second lookup per row would be a guaranteed N+1.
+ *
+ *  Named here rather than in the service (`backend/CLAUDE.md` — "no inline type
+ *  literals in response positions"): three functions already take it, and an
+ *  inline shape cannot be imported by the fourth. */
+export interface WarehouseReadRow {
+  warehouse: WarehouseRow;
+  assigneeName: string | null;
+}
+
+/** The assignment a write leaves on a location — the pair the DB check keeps
+ *  together (`*_assignment_role_check`), so it travels as one value rather than
+ *  two loose arguments that could disagree. */
+export interface LocationAssignment {
+  assignedUserId: string | null;
+  assignmentRole: AssignmentRole | null;
+}
+
+/** What a soft delete answers with. Every `DELETE` in the module returns the
+ *  same acknowledgement, so it is one named type rather than an inline
+ *  `{ id: string }` repeated at each signature. */
+export interface DeletedRef {
+  id: string;
+}

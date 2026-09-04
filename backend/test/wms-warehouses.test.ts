@@ -217,15 +217,15 @@ describe('warehouse registry (02 §2)', () => {
 
     const res = await request('/warehouses/tree', { headers: jsonHeaders(ownerToken) });
     expect(res.status).toBe(200);
-    const body = await json<{
-      warehouses: {
+    const body = await json<
+      {
         id: string;
         children: { id: string }[];
         stockSummary: { materialCount: number; unitCount: number };
-      }[];
-    }>(res);
+      }[]
+    >(res);
 
-    const found = body.warehouses.find((w) => w.id === root.id);
+    const found = body.find((w) => w.id === root.id);
     expect(found?.children.map((child) => child.id)).toContain(sub.id);
     // Nothing has been received anywhere yet, so an empty warehouse reports
     // zeros rather than omitting the block.
@@ -330,16 +330,14 @@ describe('technician scoping (02 §2a)', () => {
     expect((await assign(foreign.id, other.tech.id)).status).toBe(200);
 
     const res = await request('/warehouses', { headers: jsonHeaders(techToken) });
-    const body = await json<{ warehouses: { id: string }[] }>(res);
-    const ids = body.warehouses.map((w) => w.id);
+    const body = await json<{ id: string }[]>(res);
+    const ids = body.map((w) => w.id);
     expect(ids).toContain(own.id);
     expect(ids).not.toContain(foreign.id);
 
     // Staff see both — office is operational and needs to know where stock is.
     const staff = await request('/warehouses', { headers: jsonHeaders(officeToken) });
-    const staffIds = (await json<{ warehouses: { id: string }[] }>(staff)).warehouses.map(
-      (w) => w.id,
-    );
+    const staffIds = (await json<{ id: string }[]>(staff)).map((w) => w.id);
     expect(staffIds).toEqual(expect.arrayContaining([own.id, foreign.id]));
 
     expect((await request(`/warehouses/${own.id}`, { headers: jsonHeaders(techToken) })).status).toBe(
@@ -418,17 +416,17 @@ describe('storage-node hierarchy (02 §2)', () => {
     const unit = await seedNode(wh.id, { type: StorageNodeType.StorageUnit });
     const leaf = await seedNode(wh.id, { type: StorageNodeType.Rack });
 
-    const roots = await json<{ nodes: { id: string; hasChildren: boolean }[] }>(
+    const roots = await json<{ id: string; hasChildren: boolean }[]>(
       await request(`/warehouses/${wh.id}/nodes`, { headers: jsonHeaders(ownerToken) }),
     );
-    expect(roots.nodes.find((n) => n.id === unit.id)?.hasChildren).toBe(false);
+    expect(roots.find((n) => n.id === unit.id)?.hasChildren).toBe(false);
 
     await seedNode(wh.id, { type: StorageNodeType.Rack, parentNodeId: unit.id });
-    const after = await json<{ nodes: { id: string; hasChildren: boolean }[] }>(
+    const after = await json<{ id: string; hasChildren: boolean }[]>(
       await request(`/warehouses/${wh.id}/nodes`, { headers: jsonHeaders(ownerToken) }),
     );
-    expect(after.nodes.find((n) => n.id === unit.id)?.hasChildren).toBe(true);
-    expect(after.nodes.find((n) => n.id === leaf.id)?.hasChildren).toBe(false);
+    expect(after.find((n) => n.id === unit.id)?.hasChildren).toBe(true);
+    expect(after.find((n) => n.id === leaf.id)?.hasChildren).toBe(false);
   });
 });
 
