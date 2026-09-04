@@ -494,7 +494,7 @@ money silently); 24–27 are **owner-delight** (≈ one column + one pill each);
 | Sub-plan | Status | Checkpoint |
 |---|---|---|
 | 01 data-model | **done** | CP-1 merged (#151), `0040`+`0041` applied to the live DB 2026-08-21/22; **CP-2 done 2026-08-22** with 02 CP-2 (append-only repo, reconciliation + concurrency invariants tested) |
-| 02 api-surface | in-progress | **CP-1 done** — §2 warehouses + nodes (2026-08-21), §3 materials (2026-08-22). **CP-2 done** — §4 stock ops + `/movements`, §5 reasons, settings store (2026-08-22); CP-3 replenishments + report materials next |
+| 02 api-surface | in-progress | **CP-1 done** — §2 warehouses + nodes (2026-08-21), §3 materials (2026-08-22). **CP-2 done** — §4 stock ops + `/movements`, §5 reasons, settings store (2026-08-22). **CP-3 part 1 done** — §6 import lifecycle + audit log (2026-08-24); SSE stream, queue consumer (11), approval promotion and §7 still open. ⚠️ §6 needs the two R2 buckets + queue/DLQ + paid plan provisioned before it can deploy |
 | 03 warehouses | not-started | — |
 | 04 storage-hierarchy | not-started | — |
 | 05 materials-catalog | not-started | — |

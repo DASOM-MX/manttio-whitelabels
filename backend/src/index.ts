@@ -31,6 +31,7 @@ import { warehouses } from './modules/wms/controllers/warehouses.controller';
 import { materials } from './modules/wms/controllers/materials.controller';
 import { movements, stock } from './modules/wms/controllers/stock.controller';
 import { movementReasons } from './modules/wms/controllers/movement-reasons.controller';
+import { replenishments } from './modules/wms/controllers/replenishments.controller';
 import { publicCms } from './modules/cms/controllers/public-cms.controller';
 import { publicLeads } from './modules/customers/controllers/public-leads.controller';
 import { publicServices } from './modules/services/controllers/public-services.controller';
@@ -118,6 +119,7 @@ app.use('/materials/*', jwtMiddleware);
 app.use('/stock/*', jwtMiddleware);
 app.use('/movements/*', jwtMiddleware);
 app.use('/movement-reasons/*', jwtMiddleware);
+app.use('/replenishments/*', jwtMiddleware);
 
 app.route('/users', users);
 app.route('/portal-users', portalUsers);
@@ -142,6 +144,7 @@ app.route('/materials', materials);
 app.route('/stock', stock);
 app.route('/movements', movements);
 app.route('/movement-reasons', movementReasons);
+app.route('/replenishments', replenishments);
 
 app.onError((err, c) => {
   if (err instanceof SyntaxError || /JSON/i.test(err.message)) {

@@ -60,6 +60,26 @@ export type Env = {
    *  never leave the backend; downloads stream through GET /contracts/:id/file
    *  so access is re-checked per request (13 §1.2). */
   MANTTIO_CONTRACTS: R2Bucket;
+  /** Public base of the `manttio-wms-evidence` bucket — replenishment evidence
+   *  photos (10-wms/02 §8). Optional for the same reason IMAGES_CDN_BASE_URL is:
+   *  a tenant deploy without it stores the key and omits the URL rather than
+   *  emitting `undefined/<key>`. */
+  WMS_EVIDENCE_CDN_BASE_URL?: string;
+
+  /** Transient bucket (`manttio-wms-sheets`) holding an uploaded import sheet
+   *  between the upload request and the queue consumer that parses it. Private:
+   *  no CDN base by design — nothing outside the Worker reads it, and the
+   *  binary is purged once processed (01 §4). */
+  MANTTIO_WMS_SHEETS: R2Bucket;
+  /** Permanent bucket (`manttio-wms-evidence`) for replenishment evidence
+   *  photos — same own-bucket posture as equipment and contract documents. */
+  MANTTIO_WMS_EVIDENCE: R2Bucket;
+
+  /** Import processing queue (11 §1). The producer is
+   *  `POST /replenishments/imports/:id/process`; the consumer lands with the
+   *  processing slice. The message carries `{ importId }` and nothing else. */
+  WMS_IMPORT_QUEUE: Queue<{ importId: string }>;
+
   /** 1 req/min per-IP throttle on POST /public/leads (Workers rate-limiting
    *  binding). Optional: when absent the throttle is skipped (fail-open). */
   LEADS_RATE_LIMITER?: RateLimit;

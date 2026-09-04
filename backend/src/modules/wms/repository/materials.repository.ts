@@ -1,6 +1,6 @@
 import { and, asc, eq, gt, ilike, isNull, or, sql } from 'drizzle-orm';
 import type { PgColumn } from 'drizzle-orm/pg-core';
-import type { Db } from '../../database/client';
+import type { Db, DbOrTx } from '../../database/client';
 import { MaterialUnitStatus } from '../enums/materials.enum';
 import type { MaterialTracking } from '../enums/materials.enum';
 import { materialLots } from '../models/material-lots.model';
@@ -98,7 +98,7 @@ export const listMaterialsPaged = async (
   return { items, total: countRows[0]?.count ?? 0 };
 };
 
-export const findMaterialById = async (db: Db, id: string) => {
+export const findMaterialById = async (db: DbOrTx, id: string) => {
   const [row] = await db
     .select(materialSelection)
     .from(materials)
@@ -224,3 +224,27 @@ export const listMaterialLots = async (db: Db, materialId: string) =>
     .leftJoin(storageNodes, eq(storageNodes.id, materialLots.storageNodeId))
     .where(and(eq(materialLots.materialId, materialId), gt(materialLots.quantity, '0')))
     .orderBy(asc(materialLots.lotNumber));
+
+/** Resolve a sheet's material code the way the import processor must (02 §6):
+ *  **SKU exact, then UPC exact** — never a prefix and never fuzzy. A
+ *  replenishment sheet names a specific product, and a near-match here would
+ *  book stock against the wrong one silently.
+ *
+ *  Both indexes are partial on `deleted_at is null`, so a retired material
+ *  never resolves and the row lands as `unknown_sku`, which is the honest
+ *  answer. */
+export const findMaterialByCode = async (db: DbOrTx, code: string) => {
+  const [bySku] = await db
+    .select()
+    .from(materials)
+    .where(and(eq(materials.sku, code), live))
+    .limit(1);
+  if (bySku) return bySku;
+
+  const [byUpc] = await db
+    .select()
+    .from(materials)
+    .where(and(eq(materials.upc, code), live))
+    .limit(1);
+  return byUpc ?? null;
+};
