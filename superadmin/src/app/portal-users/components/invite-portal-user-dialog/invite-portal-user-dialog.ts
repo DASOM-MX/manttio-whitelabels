@@ -12,6 +12,7 @@ import { CustomerSelect } from '../../../shared/components/customer-select/custo
 import { InvitePortalUser } from '../../../../state/portal-users/portal-users.actions';
 import { PortalGrant } from '../../../model/enums/portal-user/portal-grant.enum';
 import { errorMessage } from '../../../data/utils';
+import { PortalGrantsFieldset } from '../portal-grants-fieldset/portal-grants-fieldset';
 import type { CustomerContact } from '../../../data/dtos/customer';
 import type { Option } from '../../../data/types/option';
 
@@ -23,7 +24,12 @@ import type { Option } from '../../../data/types/option';
  *  toggle, then send. The contact's email is rendered as text, never an
  *  input — a wrong address is fixed on the contact, not typed into a
  *  credential. The temp password never appears here (26 §5): the backend
- *  mails it and the invite response never carries it. */
+ *  mails it and the invite response never carries it.
+ *
+ *  The grant tick-boxes are `PortalGrantsFieldset` (26 CP-3) — the same
+ *  component the standalone grants editor uses, so the grouping, labels,
+ *  helper text and the Aprobar/Consultar cotizaciones dependency live in one
+ *  place instead of two copies drifting apart. */
 @Component({
   selector: 'app-invite-portal-user-dialog',
   imports: [
@@ -33,6 +39,7 @@ import type { Option } from '../../../data/types/option';
     CheckboxModule,
     SelectModule,
     CustomerSelect,
+    PortalGrantsFieldset,
   ],
   templateUrl: './invite-portal-user-dialog.html',
 })
@@ -54,23 +61,17 @@ export class InvitePortalUserDialog {
     customerId: ['', Validators.required],
     contactId: ['', Validators.required],
     isAdmin: [false],
-    viewReports: [false],
-    viewContracts: [false],
-    viewQuotations: [false],
-    viewServiceOrders: [false],
-    viewEquipment: [false],
-    approveQuotations: [false],
-    createServiceRequests: [false],
-    cancelServiceRequests: [false],
   });
+
+  /** Keyed by the grant string values themselves — see
+   *  `PortalGrantsFieldset`, which both surfaces share. */
+  protected grantsForm = this.fb.nonNullable.group(
+    Object.fromEntries(Object.values(PortalGrant).map((grant) => [grant, false])),
+  );
 
   private status = toSignal(this.form.statusChanges, { initialValue: this.form.status });
   private selectedCustomerId = signal('');
   private selectedContactId = signal('');
-  /** Mirrors `approveQuotations` for the template — it can't call the
-   *  control's `.value` getter from a binding without re-running on every
-   *  change-detection pass. */
-  protected approveQuotationsChecked = signal(false);
 
   protected contactOptions = computed<Option[]>(() =>
     this.contacts().map((c) => ({ label: c.role ? `${c.name} — ${c.role}` : c.name, value: c.id ?? '' })),
@@ -85,24 +86,6 @@ export class InvitePortalUserDialog {
   protected canSubmit = computed(() => this.status() === 'VALID' && !this.submitting());
 
   constructor() {
-    // Aprobar cotizaciones requires Consultar cotizaciones (26 §3, enforced
-    // server-side too) — ticking the first ticks the second; unticking the
-    // second can't leave the first standing on its own.
-    this.form.controls.approveQuotations.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((checked) => {
-        this.approveQuotationsChecked.set(checked);
-        if (checked) this.form.controls.viewQuotations.setValue(true, { emitEvent: false });
-      });
-    this.form.controls.viewQuotations.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((checked) => {
-        if (!checked) {
-          this.form.controls.approveQuotations.setValue(false, { emitEvent: false });
-          this.approveQuotationsChecked.set(false);
-        }
-      });
-
     this.form.controls.customerId.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((customerId) => this.onCustomerChange(customerId));
@@ -112,23 +95,13 @@ export class InvitePortalUserDialog {
   }
 
   open(): void {
-    this.form.reset({
-      customerId: '',
-      contactId: '',
-      isAdmin: false,
-      viewReports: false,
-      viewContracts: false,
-      viewQuotations: false,
-      viewServiceOrders: false,
-      viewEquipment: false,
-      approveQuotations: false,
-      createServiceRequests: false,
-      cancelServiceRequests: false,
-    });
+    this.form.reset({ customerId: '', contactId: '', isAdmin: false });
+    this.grantsForm.reset(
+      Object.fromEntries(Object.values(PortalGrant).map((grant) => [grant, false])),
+    );
     this.contacts.set([]);
     this.selectedCustomerId.set('');
     this.selectedContactId.set('');
-    this.approveQuotationsChecked.set(false);
     this.submitting.set(false);
     this.dialogOpen.set(true);
   }
@@ -141,17 +114,11 @@ export class InvitePortalUserDialog {
   protected submit(): void {
     if (!this.canSubmit()) return;
     const raw = this.form.getRawValue();
+    const grantsRaw = this.grantsForm.getRawValue();
+    const grants = Object.entries(grantsRaw)
+      .filter(([, checked]) => checked)
+      .map(([grant]) => grant as PortalGrant);
     this.submitting.set(true);
-
-    const grants: PortalGrant[] = [];
-    if (raw.viewReports) grants.push(PortalGrant.ViewReports);
-    if (raw.viewContracts) grants.push(PortalGrant.ViewContracts);
-    if (raw.viewQuotations) grants.push(PortalGrant.ViewQuotations);
-    if (raw.viewServiceOrders) grants.push(PortalGrant.ViewServiceOrders);
-    if (raw.viewEquipment) grants.push(PortalGrant.ViewEquipment);
-    if (raw.approveQuotations) grants.push(PortalGrant.ApproveQuotations);
-    if (raw.createServiceRequests) grants.push(PortalGrant.CreateServiceRequests);
-    if (raw.cancelServiceRequests) grants.push(PortalGrant.CancelServiceRequests);
 
     this.store
       .dispatch(
