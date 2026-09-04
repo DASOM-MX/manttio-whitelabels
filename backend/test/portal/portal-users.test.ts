@@ -232,6 +232,71 @@ describe('Portal Users (Staff) — CP-4', () => {
 
       expect(res.status).toBe(404);
     });
+
+    // Owner, 2026-09-04: a grants-only PATCH (what the shipped editor sends on
+    // every ordinary save) must leave is_admin exactly as it was — absent is
+    // not the same as false.
+    it('leaves is_admin untouched when the key is omitted from the PATCH', async () => {
+      const contact = await seedContact(customerId);
+      const res1 = await request('/portal-users', {
+        method: 'POST',
+        headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({
+          contactId: contact.id,
+          grants: ['view_reports'],
+          isAdmin: true,
+        }),
+      });
+      const { id: userId } = await json<any>(res1);
+
+      // Grants-only PATCH, no isAdmin key at all.
+      const res2 = await request(`/portal-users/${userId}/grants`, {
+        method: 'PATCH',
+        headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({
+          grants: ['view_reports', 'view_quotations'],
+        }),
+      });
+
+      expect(res2.status).toBe(200);
+      const body = await json<any>(res2);
+      expect(body.isAdmin).toBe(true);
+
+      const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
+      const [row] = await db.select().from(portalUsers).where(eq(portalUsers.id, userId));
+      expect(row!.isAdmin).toBe(true);
+    });
+
+    it('writes is_admin when the key is present in the PATCH', async () => {
+      const contact = await seedContact(customerId);
+      const res1 = await request('/portal-users', {
+        method: 'POST',
+        headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({
+          contactId: contact.id,
+          grants: ['view_reports'],
+          isAdmin: false,
+        }),
+      });
+      const { id: userId } = await json<any>(res1);
+
+      const res2 = await request(`/portal-users/${userId}/grants`, {
+        method: 'PATCH',
+        headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({
+          grants: ['view_reports'],
+          isAdmin: true,
+        }),
+      });
+
+      expect(res2.status).toBe(200);
+      const body = await json<any>(res2);
+      expect(body.isAdmin).toBe(true);
+
+      const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
+      const [row] = await db.select().from(portalUsers).where(eq(portalUsers.id, userId));
+      expect(row!.isAdmin).toBe(true);
+    });
   });
 
   describe('PATCH /portal-users/:id/suspend', () => {

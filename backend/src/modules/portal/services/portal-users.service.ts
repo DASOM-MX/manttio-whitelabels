@@ -5,7 +5,7 @@ import { PortalUserStatus } from '../enums/portal-users.enum';
 import { hashPassword } from '../../auth/services/password.service';
 import { isUniqueViolation } from '../../database/db-errors';
 import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
-import type { PortalUserListItem } from '../dtos/portal-user-list.dto';
+import type { PortalUserGrantsUpdateResult, PortalUserListItem } from '../dtos/portal-user-list.dto';
 import type { ListPortalUsersQuery } from '../validators/portal-users-query.validator';
 // CSPRNG-backed and unbiased (nanoid customAlphabet), and already the temp
 // password every staff-created user gets. A portal credential is not the place
@@ -17,6 +17,7 @@ import {
   findPortalUserById,
   findGrantsByPortalUser,
   updatePortalUserStatus,
+  updatePortalUserIsAdmin,
   setPortalUserTempPassword,
   revokePortalUserGrant,
   softDeletePortalUser,
@@ -112,14 +113,21 @@ export async function invitePortalUser(
 
 /**
  * Update a portal user's grants. Revokes grants not in the list, creates new ones in the list.
- * Returns the updated grants list.
+ *
+ * `isAdmin` is optional and separate from the grants (superadmin 26 §3b) — it
+ * writes `portal_users.is_admin` directly, never a `portal_user_grants` row.
+ * The key must be **absent**, not `false`, to leave the column untouched: the
+ * shipped grants editor PATCHes grants alone on every ordinary save, and
+ * treating a missing key as `false` would demote every existing admin on their
+ * next grants edit (owner, 2026-09-04).
  */
 export async function updatePortalUserGrants(
   db: Db,
   actor: AuthUser,
   portalUserId: string,
   newGrants: PortalGrant[],
-): Promise<PortalGrant[]> {
+  isAdmin?: boolean,
+): Promise<PortalUserGrantsUpdateResult> {
   // Step 1: Validate the portal user exists
   const user = await findPortalUserById(db, portalUserId);
   if (!user) throw new PortalUserNotFoundError('Portal user not found');
@@ -147,11 +155,20 @@ export async function updatePortalUserGrants(
       await createPortalUserGrants(tx, portalUserId, grantsToAdd, actor.id);
     }
 
+    // is_admin only when the caller actually sent the key — never on a
+    // grants-only PATCH.
+    if (isAdmin !== undefined) {
+      await updatePortalUserIsAdmin(tx, portalUserId, isAdmin);
+    }
+
     // Return the new grant list
     return findGrantsByPortalUser(tx, portalUserId);
   });
 
-  return updated.map((g) => g.grant as PortalGrant);
+  return {
+    grants: updated.map((g) => g.grant as PortalGrant),
+    isAdmin: isAdmin !== undefined ? isAdmin : user.isAdmin,
+  };
 }
 
 /**

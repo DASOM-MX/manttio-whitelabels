@@ -313,6 +313,30 @@ export async function setPortalUserTempPassword(
 }
 
 /**
+ * Staff operation: set `is_admin` independently of the grants (superadmin 26
+ * §3b). Not a `portal_user_grants` row — a plain column write, called only
+ * when the caller actually included the key. Returns the updated row or null
+ * if not found.
+ */
+export async function updatePortalUserIsAdmin(
+  db: DbOrTx,
+  portalUserId: string,
+  isAdmin: boolean,
+) {
+  const now = new Date();
+  const updated = await db
+    .update(portalUsers)
+    .set({
+      isAdmin,
+      updatedAt: now,
+    })
+    .where(and(eq(portalUsers.id, portalUserId), isNull(portalUsers.deletedAt)))
+    .returning();
+
+  return updated[0] ?? null;
+}
+
+/**
  * Staff operation: revoke a grant (set revokedAt and revokedBy).
  * No-op if the grant doesn't exist or is already revoked.
  * Returns the updated row.
