@@ -67,12 +67,13 @@ export const serviceOrders = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
-    // Folios are handed to clients, so uniqueness is enforced across live rows.
-    // Tombstoned orders are exempt: a soft-deleted folio is history, not a name
-    // to defend (same posture as the services catalog code).
-    uniqueIndex('service_orders_folio_uidx')
-      .on(table.folio)
-      .where(sql`${table.deletedAt} is null`),
+    // Folios are handed to clients, so the number a client already has must never
+    // name a second order. Unconditional since 2026-09-03 (owner), reversing the
+    // earlier "a tombstoned folio is history": `service_order_counters` only
+    // counts up, so the predicate released a number the counter was never going
+    // to reuse — it only made a duplicate possible. Matches the quotation and
+    // service-request folio indexes.
+    uniqueIndex('service_orders_folio_uidx').on(table.folio),
     // The customer-view card and the ?customerId list filter.
     index('service_orders_customer_idx')
       .on(table.customerId)

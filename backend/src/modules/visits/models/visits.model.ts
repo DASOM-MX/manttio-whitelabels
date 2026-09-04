@@ -132,8 +132,8 @@ export const scheduledVisits = pgTable(
     // would have meant `pg_trgm` in every tenant database.
     //
     // Unique so a code names one visit. Partial on live rows only: a tombstoned
-    // visit's code is history, not a name still in use — same posture as the
-    // order folio index.
+    // visit's code is history, not a name still in use. (No longer the order
+    // folio's posture — that one went unconditional on 2026-09-03.)
     uniqueIndex('scheduled_visits_internal_code_uidx')
       .on(table.internalCode)
       .where(sql`${table.deletedAt} is null`),

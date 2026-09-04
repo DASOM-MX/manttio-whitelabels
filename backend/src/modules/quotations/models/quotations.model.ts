@@ -1,4 +1,3 @@
-import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
   date,
@@ -94,11 +93,12 @@ export const quotations = pgTable(
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (table) => [
-    // Live folios only: a tombstoned quote releases its folio rather than
-    // blocking the counter forever.
-    uniqueIndex('quotations_folio_uidx')
-      .on(table.folio)
-      .where(sql`${table.deletedAt} is null`),
+    // Unconditional since 2026-09-03 (owner), reversing the earlier "a tombstoned
+    // quote releases its folio": a deleted quote keeps its number, so the series
+    // never reissues one already sent to a client. The counter only ever counts
+    // up, so nothing is released by deleting anyway — the predicate only made it
+    // possible to hand the same folio to two documents.
+    uniqueIndex('quotations_folio_uidx').on(table.folio),
     // The list is always "this customer's quotes, newest first" or a status
     // filter across all of them.
     index('quotations_customer_idx').on(table.customerId, table.createdAt),

@@ -72,6 +72,10 @@ ServiceOrder {             // near-immutable — see mutability rules below
   folio,                   // 'OS-YYYYMMDD-NNNN', unique — own daily counters
                            //   table (service_order_counters, report_counters
                            //   mechanics)
+                           //   Unique index is UNCONDITIONAL since 2026-09-03
+                           //   (owner): a deleted order keeps its folio, so the
+                           //   series never reissues a number already sent.
+                           //   Reverses the earlier `where deleted_at is null`.
   customerId,              // required, immutable — restrict, never cascade
   // quotationId            REMOVED 2026-09-01 (owner) — the column lived here
                            //   from 2026-07-27; the link is now only

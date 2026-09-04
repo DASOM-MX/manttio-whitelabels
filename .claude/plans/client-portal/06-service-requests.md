@@ -124,6 +124,13 @@ means *"this is finished"*, `cancelled` means *"never mind"*.
     that column references `users.id` and a portal cancel has no staff actor.
   - Because a deleted quotation drops out of every read, its **mailed recipient links stop
     resolving** — the same consequence the staff delete already has.
+  - **Deleted documents keep their folios (owner, 2026-09-03).** `quotations_folio_uidx` was
+    partial (`where deleted_at is null`), which let a deleted quote's number be handed to a
+    second document. This PR makes it unconditional, and takes
+    **`service_orders_folio_uidx`** with it — the same latent reissue, reachable by the staff
+    order delete rather than by this cascade. Both now match `service_requests_folio_uidx` and
+    `contracts_folio_uidx`. Nothing is lost by it: both counter tables only ever count up, so
+    the predicate released a folio the counter was never going to reuse.
 - **Idempotent.** The write matches on `deleted_at is null`, so a second cancel is a 404 rather
   than a restamped row and a duplicate event.
 
