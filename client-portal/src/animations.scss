@@ -60,6 +60,17 @@
   }
 }
 
+/* Table-refresh busy sweep — `.p-datatable.table-refreshing` (theme/table.scss,
+   04 CP-2). Travel expressed against the bar's own 40% width. */
+@keyframes anim-table-busy {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
 /* Route/page content enter — re-triggered by the layout on NavigationEnd. */
 .anim-page-enter {
   animation: anim-rise-in var(--motion-slow) var(--ease-enter) backwards;

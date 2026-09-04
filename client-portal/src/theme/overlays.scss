@@ -1,0 +1,43 @@
+/* Overlay anchoring — ported from superadmin (04 CP-2). PrimeNG's Overlay
+   component paints one frame at the wrong position before its JS measurement
+   snaps; pure-CSS anchoring makes that no-op. The filters-popover rule also
+   depends on inline overlays (never `appendTo="body"` inside the popover
+   DOM). */
+.p-select,
+.p-multiselect {
+  position: relative;
+}
+.p-select > p-overlay > .p-overlay,
+.p-multiselect > p-overlay > .p-overlay {
+  @apply absolute top-full left-0 right-auto bottom-auto mt-1 min-w-full origin-top z-50 !important;
+}
+
+/* Dialog width steps: sm 28rem (default), md 30rem, lg 34rem — each carries
+   the max-w-11/12 phone clamp. */
+.p-dialog.dialog-sm {
+  width: 28rem;
+  @apply max-w-11/12;
+}
+.p-dialog.dialog-md {
+  width: 30rem;
+  @apply max-w-11/12;
+}
+.p-dialog.dialog-lg {
+  width: 34rem;
+  @apply max-w-11/12;
+}
+
+/* Same anchoring strategy for the datepicker panel. */
+.p-datepicker {
+  position: relative;
+}
+.p-datepicker-panel {
+  @apply z-50;
+  position: absolute !important;
+  top: calc(100% + 4px) !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: max-content;
+  max-width: min(22rem, 90vw);
+}
