@@ -1,10 +1,10 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormControl } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { LucideKeyRound } from '@lucide/angular';
+import { LucideKeyRound, LucideUserPlus } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { PortalUsersState } from '../../../../state/portal-users/portal-users.state';
 import { LoadPortalUsers } from '../../../../state/portal-users/portal-users.actions';
@@ -22,16 +22,20 @@ import { PortalUserStatusLabelPipe } from '../../../pipes/portal-user-status-lab
 import { PortalUserStatusSeverityPipe } from '../../../pipes/portal-user-status-severity.pipe';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { PortalUsersFilters } from '../../components/portal-users-filters/portal-users-filters';
+import { InvitePortalUserDialog } from '../../components/invite-portal-user-dialog/invite-portal-user-dialog';
+import type { PortalUserListItem } from '../../../data/dtos/portal-user/portal-user';
 import type { PortalUserListQuery } from '../../../data/dtos/portal-user/portal-user-requests';
 
 /** Portal access list (26 §1) — every external person who can log into the
  *  tenant's portal, across all customers, because "who has access?" and "who
  *  was invited and never came in?" are cross-customer questions.
  *
- *  Read-only in CP-1: the invite dialog, the grants editor and the lifecycle
- *  actions land in CP-2…CP-4, so no row carries an action yet. Filters + page
- *  persist as GET query params (?q&status&customerId&grant&page) through
- *  ListQueryService (users-list is canon). */
+ *  "Invitar" opens the dialog (26 CP-2) — the only door into the portal, and
+ *  the only place that grants it (decision 27). A row opens the standalone
+ *  grants editor (26 CP-3); lifecycle actions (resend, reset, suspend,
+ *  reactivate, revoke) land in CP-4. Filters + page persist as GET query
+ *  params (?q&status&customerId&grant&page) through ListQueryService
+ *  (users-list is canon). */
 @Component({
   selector: 'app-portal-users-list',
   imports: [
@@ -47,19 +51,24 @@ import type { PortalUserListQuery } from '../../../data/dtos/portal-user/portal-
     PortalUserStatusSeverityPipe,
     PageHeader,
     PortalUsersFilters,
+    InvitePortalUserDialog,
     LucideKeyRound,
+    LucideUserPlus,
   ],
   providers: [ListQueryService],
   templateUrl: './portal-users-list.html',
 })
 export class PortalUsersList {
   private store = inject(Store);
+  private router = inject(Router);
   protected list = inject(ListQueryService);
 
   protected portalUsers = select(PortalUsersState.items);
   protected total = select(PortalUsersState.total);
   protected loading = select(PortalUsersState.loading);
   protected tableBusy = tableLoading(this.loading, this.portalUsers);
+
+  protected inviteDialog = viewChild<InvitePortalUserDialog>('inviteDialog');
 
   protected search = new FormControl('', { nonNullable: true });
   protected statusFilter = new FormControl<PortalUserStatus | ''>('', { nonNullable: true });
@@ -103,5 +112,19 @@ export class PortalUsersList {
       customerId: this.customerFilter.value || undefined,
       grant: this.grantFilter.value || undefined,
     };
+  }
+
+  protected openInvite(): void {
+    this.inviteDialog()?.open();
+  }
+
+  protected openUser(portalUser: PortalUserListItem): void {
+    this.router.navigate(['/portal-users', portalUser.id]);
+  }
+
+  /** No item to step back from — an invite only ever adds a row — so any
+   *  non-zero count just reloads the current page (`ListQueryService.refresh`). */
+  protected onInvited(): void {
+    this.list.refresh(this.portalUsers().length + 1);
   }
 }

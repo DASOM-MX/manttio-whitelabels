@@ -2,18 +2,31 @@ import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
 import { catchError, tap } from 'rxjs';
 import { PortalUsersService } from '../../app/services/http/portal-users.service';
-import { LoadPortalUsers } from './portal-users.actions';
-import type { PortalUserListItem } from '../../app/data/dtos/portal-user/portal-user';
+import {
+  InvitePortalUser,
+  LoadPortalUser,
+  LoadPortalUsers,
+  ResetPortalUserPassword,
+  ResumePortalUser,
+  RevokePortalUserAccess,
+  SuspendPortalUser,
+  UpdatePortalUserGrants,
+} from './portal-users.actions';
+import { PortalUserStatus } from '../../app/model/enums/portal-user/portal-user-status.enum';
+import type { PortalUserDetail, PortalUserListItem } from '../../app/data/dtos/portal-user/portal-user';
 
 export interface PortalUsersStateModel {
   items: PortalUserListItem[];
   total: number;
   loading: boolean;
+  /** The standalone grants editor's subject (26 CP-3) — a separate slice
+   *  from `items`, which is one filtered page of the list. */
+  selected: PortalUserDetail | null;
 }
 
 @State<PortalUsersStateModel>({
   name: 'portalUsers',
-  defaults: { items: [], total: 0, loading: false },
+  defaults: { items: [], total: 0, loading: false, selected: null },
 })
 @Injectable()
 export class PortalUsersState {
@@ -28,6 +41,9 @@ export class PortalUsersState {
   @Selector() static loading(s: PortalUsersStateModel): boolean {
     return s.loading;
   }
+  @Selector() static selected(s: PortalUsersStateModel): PortalUserDetail | null {
+    return s.selected;
+  }
 
   @Action(LoadPortalUsers)
   loadPortalUsers(ctx: StateContext<PortalUsersStateModel>, { query }: LoadPortalUsers) {
@@ -37,6 +53,88 @@ export class PortalUsersState {
       catchError((err) => {
         ctx.patchState({ loading: false });
         throw err;
+      }),
+    );
+  }
+
+  /** No state to patch on success — the list page reloads its own page via
+   *  `ListQueryService.refresh()` once the dialog reports back. */
+  @Action(InvitePortalUser)
+  invitePortalUser(_ctx: StateContext<PortalUsersStateModel>, { body }: InvitePortalUser) {
+    return this.api.invite(body);
+  }
+
+  @Action(LoadPortalUser)
+  loadPortalUser(ctx: StateContext<PortalUsersStateModel>, { id }: LoadPortalUser) {
+    return this.api.get(id).pipe(tap((user) => ctx.patchState({ selected: user })));
+  }
+
+  /** Replaces the live grant list; the backend turns the diff into
+   *  revoke/add rows, never a DELETE (26 §3), so this can't lose history.
+   *  `isAdmin` rides the same request (26 §3b, PR #215) — the response's
+   *  `isAdmin` is patched in as read back from the row, never as an echo of
+   *  what this action sent. */
+  @Action(UpdatePortalUserGrants)
+  updatePortalUserGrants(
+    ctx: StateContext<PortalUsersStateModel>,
+    { id, grants, isAdmin }: UpdatePortalUserGrants,
+  ) {
+    return this.api.updateGrants(id, grants, isAdmin).pipe(
+      tap((result) => {
+        const selected = ctx.getState().selected;
+        if (selected && selected.id === id) {
+          ctx.patchState({
+            selected: { ...selected, grants: result.grants, isAdmin: result.isAdmin },
+          });
+        }
+      }),
+    );
+  }
+
+  /** Shared by "Reenviar invitación" and "Restablecer contraseña" (26 §4) —
+   *  neither changes `status`, so there's nothing to patch here beyond the
+   *  request itself; the toast at the call site tells them apart. */
+  @Action(ResetPortalUserPassword)
+  resetPortalUserPassword(_ctx: StateContext<PortalUsersStateModel>, { id }: ResetPortalUserPassword) {
+    return this.api.resetPassword(id);
+  }
+
+  @Action(SuspendPortalUser)
+  suspendPortalUser(ctx: StateContext<PortalUsersStateModel>, { id }: SuspendPortalUser) {
+    return this.api.suspend(id).pipe(
+      tap(() => {
+        const selected = ctx.getState().selected;
+        if (selected && selected.id === id) {
+          ctx.patchState({ selected: { ...selected, status: PortalUserStatus.Suspended } });
+        }
+      }),
+    );
+  }
+
+  @Action(ResumePortalUser)
+  resumePortalUser(ctx: StateContext<PortalUsersStateModel>, { id }: ResumePortalUser) {
+    return this.api.resume(id).pipe(
+      tap(() => {
+        const selected = ctx.getState().selected;
+        if (selected && selected.id === id) {
+          ctx.patchState({ selected: { ...selected, status: PortalUserStatus.Active } });
+        }
+      }),
+    );
+  }
+
+  /** Soft delete (26 §4) — the record survives on the server; this clears
+   *  `selected` because there is nothing left on this page to edit, and the
+   *  component navigates back to the list. */
+  @Action(RevokePortalUserAccess)
+  revokePortalUserAccess(
+    ctx: StateContext<PortalUsersStateModel>,
+    { id, deleteComment }: RevokePortalUserAccess,
+  ) {
+    return this.api.revoke(id, deleteComment).pipe(
+      tap(() => {
+        const state = ctx.getState();
+        if (state.selected?.id === id) ctx.patchState({ selected: null });
       }),
     );
   }

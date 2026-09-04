@@ -1,0 +1,167 @@
+@if (selected(); as user) {
+  <app-page-header [title]="user.name" [description]="user.email" backLink="/portal-users" backLabel="Volver a portal de clientes">
+    <span meta>
+      <p-tag [severity]="user.status | portalUserStatusSeverity" [value]="user.status | portalUserStatusLabel" />
+    </span>
+  </app-page-header>
+
+  <form (ngSubmit)="submit()" class="card-section flex flex-col gap-5">
+    <div>
+      <h3 class="section-heading">Permisos</h3>
+      <app-portal-grants-fieldset [grants]="grantsForm" />
+    </div>
+
+    <p class="field-hint">
+      Cada cambio se guarda como una nueva concesión o una revocación con fecha — nunca se borra,
+      así que quién tuvo acceso en el pasado sigue siendo consultable.
+    </p>
+
+    <hr class="border-surface-100 dark:border-surface-800" />
+
+    <!-- Outside the grants block on purpose (26 §3b): a column on
+         portal_users, not a portal_user_grants row — same form, same
+         Guardar, but its own heading and a divider above it. -->
+    <div class="flex flex-col gap-3">
+      <h3 class="section-heading">Administrador del portal</h3>
+      <div class="flex items-start gap-2">
+        <p-checkbox [formControl]="isAdminControl" [binary]="true" inputId="portal-admin-toggle" />
+        <label for="portal-admin-toggle" class="cursor-pointer">
+          <span class="field-label">Administra el portal de este cliente</span>
+          <span class="field-hint block">
+            Hoy confiere un solo poder: cerrar solicitudes de servicio de este cliente. No es un
+            rol general y no sustituye los permisos de arriba — un cliente puede tener varios
+            administradores, o ninguno.
+          </span>
+        </label>
+      </div>
+      @if (showAdminWarning()) {
+        <div class="callout callout--warn" role="alert">
+          Este administrador no tiene Crear solicitudes de servicio — no verá solicitudes que
+          cerrar.
+        </div>
+      }
+    </div>
+
+    <div class="flex justify-end">
+      <button
+        type="submit"
+        class="btn-primary"
+        [disabled]="(!grantsForm.dirty && !isAdminControl.dirty) || saving()"
+      >
+        @if (saving()) {
+          <span
+            class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+            aria-hidden="true"
+          ></span>
+          Guardando…
+        } @else {
+          Guardar
+        }
+      </button>
+    </div>
+  </form>
+
+  <div class="card-section mt-5 flex flex-col gap-4">
+    <h3 class="section-heading">Acceso</h3>
+
+    @if (user.status === 'invited') {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-sm font-bold text-surface-900 dark:text-surface-100">
+            Reenviar invitación
+          </p>
+          <p class="mt-0.5 max-w-md text-sm text-surface-600 dark:text-surface-400">
+            Genera una nueva contraseña temporal y la envía por correo. La invitación anterior
+            deja de funcionar.
+          </p>
+        </div>
+        <button
+          type="button"
+          class="btn-primary"
+          (click)="resendInvite()"
+          [disabled]="lifecycleBusy()"
+        >
+          <svg lucideMailPlus class="size-4" aria-hidden="true"></svg>
+          Reenviar invitación
+        </button>
+      </div>
+    } @else {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-sm font-bold text-surface-900 dark:text-surface-100">
+            Restablecer contraseña
+          </p>
+          <p class="mt-0.5 max-w-md text-sm text-surface-600 dark:text-surface-400">
+            Genera una nueva contraseña temporal y la envía por correo; la actual deja de
+            funcionar.
+          </p>
+        </div>
+        <button
+          type="button"
+          class="btn-danger"
+          (click)="resetPassword()"
+          [disabled]="lifecycleBusy()"
+        >
+          <svg lucideKeyRound class="size-4" aria-hidden="true"></svg>
+          Restablecer
+        </button>
+      </div>
+    }
+
+    <hr class="border-surface-100 dark:border-surface-800" />
+
+    @if (user.status === 'suspended') {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-sm font-bold text-surface-900 dark:text-surface-100">Reactivar acceso</p>
+          <p class="mt-0.5 max-w-md text-sm text-surface-600 dark:text-surface-400">
+            Podrá iniciar sesión de nuevo con sus credenciales actuales.
+          </p>
+        </div>
+        <button type="button" class="btn-primary" (click)="resume()" [disabled]="lifecycleBusy()">
+          <svg lucideUserCheck class="size-4" aria-hidden="true"></svg>
+          Reactivar
+        </button>
+      </div>
+    } @else {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-sm font-bold text-surface-900 dark:text-surface-100">Suspender acceso</p>
+          <p class="mt-0.5 max-w-md text-sm text-surface-600 dark:text-surface-400">
+            Bloquea el inicio de sesión de inmediato; el contacto y su historial se conservan.
+            Reversible.
+          </p>
+        </div>
+        <button type="button" class="btn-danger" (click)="suspend()" [disabled]="lifecycleBusy()">
+          <svg lucideUserX class="size-4" aria-hidden="true"></svg>
+          Suspender
+        </button>
+      </div>
+    }
+  </div>
+
+  <div class="card-section mt-5 flex flex-col gap-3 !border-red-200 dark:!border-red-900/60">
+    <h3 class="micro-label !text-red-700 dark:!text-red-400">Zona crítica</h3>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p class="text-sm font-bold text-surface-900 dark:text-surface-100">
+          Revocar acceso al portal
+        </p>
+        <p class="mt-0.5 max-w-md text-sm text-surface-600 dark:text-surface-400">
+          Permanente. Su contacto se conserva y puede volver a invitarse más adelante — solo el
+          inicio de sesión deja de funcionar. Requiere un motivo.
+        </p>
+      </div>
+      <button type="button" class="btn-danger" (click)="openRevoke()">
+        <svg lucideShieldOff class="size-4" aria-hidden="true"></svg>
+        Revocar acceso
+      </button>
+    </div>
+  </div>
+} @else {
+  <div class="card-section">
+    <span class="skeleton !h-32 !w-full"></span>
+  </div>
+}
+
+<app-revoke-portal-user-access-dialog #revokeDialog (revoked)="onRevoked()" />
