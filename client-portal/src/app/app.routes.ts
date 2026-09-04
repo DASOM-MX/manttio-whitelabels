@@ -48,6 +48,27 @@ export const routes: Routes = [
           },
         ],
       },
+      {
+        path: 'contracts',
+        canActivate: [grantGuard(PortalGrant.ViewContracts)],
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./contracts/pages/contracts-list/contracts-list').then(
+                (m) => m.ContractsList,
+              ),
+          },
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./contracts/pages/contract-detail/contract-detail').then(
+                (m) => m.ContractDetail,
+              ),
+          },
+        ],
+      },
       { path: '**', redirectTo: 'home' },
     ],
   },
