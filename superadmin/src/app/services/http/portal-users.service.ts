@@ -3,7 +3,11 @@ import { Observable } from 'rxjs';
 import { RemoteService } from './remote.service';
 import type { GenericQueryResponse } from '../../data/dtos/generic-query-response';
 import type { PortalUserListItem } from '../../data/dtos/portal-user/portal-user';
-import type { PortalUserListQuery } from '../../data/dtos/portal-user/portal-user-requests';
+import type {
+  InvitePortalUserRequest,
+  InvitePortalUserResult,
+  PortalUserListQuery,
+} from '../../data/dtos/portal-user/portal-user-requests';
 
 @Injectable({ providedIn: 'root' })
 export class PortalUsersService {
@@ -20,5 +24,11 @@ export class PortalUsersService {
       customerId: query.customerId,
       grant: query.grant,
     });
+  }
+
+  /** `POST /portal-users` — invite a contact (26 §2). ADMIN_TIER, unlike the
+   *  owner-only list above. */
+  invite(body: InvitePortalUserRequest): Observable<InvitePortalUserResult> {
+    return this.remote.post<InvitePortalUserResult>('/portal-users', body);
   }
 }

@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { State, Action, Selector, StateContext } from '@ngxs/store';
 import { catchError, tap } from 'rxjs';
 import { PortalUsersService } from '../../app/services/http/portal-users.service';
-import { LoadPortalUsers } from './portal-users.actions';
+import { InvitePortalUser, LoadPortalUsers } from './portal-users.actions';
 import type { PortalUserListItem } from '../../app/data/dtos/portal-user/portal-user';
 
 export interface PortalUsersStateModel {
@@ -39,5 +39,12 @@ export class PortalUsersState {
         throw err;
       }),
     );
+  }
+
+  /** No state to patch on success — the list page reloads its own page via
+   *  `ListQueryService.refresh()` once the dialog reports back. */
+  @Action(InvitePortalUser)
+  invitePortalUser(_ctx: StateContext<PortalUsersStateModel>, { body }: InvitePortalUser) {
+    return this.api.invite(body);
   }
 }

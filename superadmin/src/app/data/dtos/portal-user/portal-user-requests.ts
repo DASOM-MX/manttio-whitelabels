@@ -14,3 +14,21 @@ export interface PortalUserListQuery
   /** Narrows to users holding this grant, live rows only. */
   grant?: PortalGrant;
 }
+
+/** `POST /portal-users` body (26 §2). No email field — the backend reads it
+ *  off the contact row, so a wrong address is fixed on the contact, never
+ *  typed into a credential. */
+export interface InvitePortalUserRequest {
+  contactId: string;
+  grants: PortalGrant[];
+  isAdmin: boolean;
+}
+
+/** What the invite returns — never the temp password (26 §5), which is
+ *  mailed only. */
+export interface InvitePortalUserResult {
+  id: string;
+  email: string;
+  name: string;
+  customerId: string;
+}
