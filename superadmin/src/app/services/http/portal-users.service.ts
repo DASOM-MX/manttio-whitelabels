@@ -8,6 +8,8 @@ import type {
   InvitePortalUserRequest,
   InvitePortalUserResult,
   PortalUserListQuery,
+  UpdatePortalUserGrantsRequest,
+  UpdatePortalUserGrantsResult,
 } from '../../data/dtos/portal-user/portal-user-requests';
 
 @Injectable({ providedIn: 'root' })
@@ -44,11 +46,19 @@ export class PortalUsersService {
 
   /** `PATCH /portal-users/:id/grants` — replaces the live grant set; the
    *  backend revokes what's missing and adds what's new, never a DELETE
-   *  (26 §3), so revocation history survives every edit. */
-  updateGrants(id: string, grants: PortalGrant[]): Observable<PortalGrant[]> {
-    return this.remote
-      .patch<{ grants: PortalGrant[] }>(`/portal-users/${id}/grants`, { grants })
-      .pipe(map((res) => res.grants));
+   *  (26 §3), so revocation history survives every edit.
+   *
+   *  `isAdmin` rides the same request (26 §3b, PR #215) but stays optional
+   *  here too — pass `undefined` to leave the column untouched. The
+   *  response's `isAdmin` is the row read back, not an echo. */
+  updateGrants(
+    id: string,
+    grants: PortalGrant[],
+    isAdmin?: boolean,
+  ): Observable<UpdatePortalUserGrantsResult> {
+    const body: UpdatePortalUserGrantsRequest = { grants };
+    if (isAdmin !== undefined) body.isAdmin = isAdmin;
+    return this.remote.patch<UpdatePortalUserGrantsResult>(`/portal-users/${id}/grants`, body);
   }
 
   /** `POST /portal-users/:id/password` — the one backend action behind two

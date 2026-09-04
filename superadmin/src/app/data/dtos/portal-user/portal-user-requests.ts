@@ -32,3 +32,20 @@ export interface InvitePortalUserResult {
   name: string;
   customerId: string;
 }
+
+/** `PATCH /portal-users/:id/grants` body (26 §3b, PR #215). `isAdmin` is
+ *  optional with no default: **omitting the key leaves `is_admin`
+ *  untouched** — the server distinguishes absent from `false` so a
+ *  grants-only save can never demote an admin by accident. */
+export interface UpdatePortalUserGrantsRequest {
+  grants: PortalGrant[];
+  isAdmin?: boolean;
+}
+
+/** `isAdmin` here is authoritative — the row's value read back after the
+ *  write, not an echo of what was sent. */
+export interface UpdatePortalUserGrantsResult {
+  grants: PortalGrant[];
+  isAdmin: boolean;
+}
+
