@@ -9,6 +9,7 @@ import type {
   NewServiceRequestEvent,
   ServiceRequestEventRow,
   ServiceRequestRow,
+  ServiceRequestStatusEventInput,
 } from '../types/service-requests.types';
 import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 
@@ -141,13 +142,7 @@ export const updateServiceRequestStatus = async (
   requestId: string,
   customerId: string,
   newStatus: ServiceRequestStatus,
-  eventData: {
-    type: ServiceRequestEventType;
-    portalUserId?: string;
-    actorId?: string;
-    note?: string;
-    changes?: Record<string, unknown>;
-  },
+  eventData: ServiceRequestStatusEventInput,
 ): Promise<ServiceRequestRow | null> =>
   db.transaction(async (tx) => {
     const [updated] = await tx
