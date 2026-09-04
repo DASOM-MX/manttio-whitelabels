@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, isNull, sql, type SQL } from 'drizzle-orm';
 import type { Db } from '../../database/client';
 import { serviceRequests, serviceRequestCounters } from '../models/service-requests.model';
 import { serviceRequestEvents } from '../models/service-request-events.model';
@@ -11,7 +11,9 @@ import type {
   ServiceRequestRow,
   ServiceRequestStatusEventInput,
 } from '../types/service-requests.types';
+import { softDeleteQuotationsForServiceRequest } from '../../quotations/repository/quotations.repository';
 import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
+import type { ListServiceRequestsQuery } from '../validators/list-service-requests-query.validator';
 
 type QueryRunner = Db | Parameters<Parameters<Db['transaction']>[0]>[0];
 
@@ -74,38 +76,50 @@ export const createServiceRequest = async (
     return request;
   });
 
+// Scope + visibility. A withdrawn request is soft-deleted, and `status=cancelled`
+// is the single read that reaches those rows: the customer must be able to review
+// what they cancelled, but it must not sit in the default list (owner,
+// 2026-09-03). Every other filter, and the unfiltered list, hides them.
+const listFilters = (customerId: string, q: ListServiceRequestsQuery): SQL => {
+  const conds: SQL[] = [eq(serviceRequests.customerId, customerId)];
+  if (q.status) conds.push(eq(serviceRequests.status, q.status));
+  if (q.status !== ServiceRequestStatus.Cancelled) {
+    conds.push(isNull(serviceRequests.deletedAt));
+  }
+  return and(...conds)!;
+};
+
 /**
  * List requests for a customer, newest first, with a real total count.
- * Takes page/limit; offset is computed internally.
+ * Offset is computed from the query's page/limit.
  */
 export const listServiceRequestsForCustomer = async (
   db: Db,
   customerId: string,
-  page: number = 1,
-  limit: number = 50,
+  q: ListServiceRequestsQuery,
 ): Promise<GenericQueryResponse<ServiceRequestRow>> => {
-  const offset = (page - 1) * limit;
+  const where = listFilters(customerId, q);
   const [rows, totalResult] = await Promise.all([
     db
       .select()
       .from(serviceRequests)
-      .where(eq(serviceRequests.customerId, customerId))
+      .where(where)
       .orderBy(desc(serviceRequests.createdAt))
-      .limit(limit)
-      .offset(offset),
-    db
-      .select({ total: count() })
-      .from(serviceRequests)
-      .where(eq(serviceRequests.customerId, customerId)),
+      .limit(q.limit)
+      .offset((q.page - 1) * q.limit),
+    db.select({ total: count() }).from(serviceRequests).where(where),
   ]);
 
   const total = totalResult[0]?.total ?? 0;
-  return { items: rows, total, page, limit };
+  return { items: rows, total, page: q.page, limit: q.limit };
 };
 
 /**
  * Find a request by ID for a specific customer. Returns null if not found or
  * belongs to a different customer. Scope is enforced in the WHERE clause.
+ *
+ * Deliberately does NOT filter `deleted_at`: a cancelled request is reachable
+ * from the `status=cancelled` list, so its detail page has to open too.
  */
 export const findServiceRequestById = async (
   db: Db,
@@ -163,6 +177,69 @@ export const updateServiceRequestStatus = async (
         changes: eventData.changes,
       },
     ]);
+
+    return updated;
+  });
+
+/** The `delete_comment` every cascaded quotation carries, so a staff member
+ *  reading the quotation alone can see why it went (owner, 2026-09-03). */
+export const cancelledByClientComment = (reason: string): string =>
+  `cancelled by client: ${reason}`;
+
+/**
+ * Withdraw a request: terminal status, soft delete, the reason event and the
+ * quotation cascade, in one transaction. `isNull(deletedAt)` in the WHERE makes it idempotent — a second
+ * cancel matches nothing and returns null rather than restamping the row or
+ * appending a duplicate event.
+ *
+ * The caller checks the transition first; this guard is what closes the race
+ * between that check and the write.
+ */
+export const cancelServiceRequest = async (
+  db: Db,
+  requestId: string,
+  customerId: string,
+  portalUserId: string,
+  contactId: string,
+  reason: string,
+): Promise<ServiceRequestRow | null> =>
+  db.transaction(async (tx) => {
+    const now = new Date();
+    const [updated] = await tx
+      .update(serviceRequests)
+      .set({
+        status: ServiceRequestStatus.Cancelled,
+        deletedAt: now,
+        deletedByPortalUserId: portalUserId,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(serviceRequests.id, requestId),
+          eq(serviceRequests.customerId, customerId),
+          isNull(serviceRequests.deletedAt),
+        ),
+      )
+      .returning();
+    if (!updated) return null;
+
+    await appendEvents(tx, [
+      {
+        serviceRequestId: requestId,
+        type: ServiceRequestEventType.Cancelled,
+        portalUserId,
+        note: reason,
+      },
+    ]);
+
+    // The children go with it (owner, 2026-09-03). Same transaction, so a
+    // request can never end up cancelled with its quotations still live.
+    await softDeleteQuotationsForServiceRequest(
+      tx,
+      requestId,
+      cancelledByClientComment(reason),
+      contactId,
+    );
 
     return updated;
   });

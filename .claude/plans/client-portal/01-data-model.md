@@ -120,6 +120,7 @@ ViewServiceOrders     = 'view_service_orders'
 ViewEquipment         = 'view_equipment'
 ApproveQuotations     = 'approve_quotations'
 CreateServiceRequests = 'create_service_requests'
+CancelServiceRequests = 'cancel_service_requests'  // added 2026-09-03 (owner)
 ```
 
 **Seven grants.** The list was accepted at six on 2026-08-30 (A1); `view_equipment` was added on

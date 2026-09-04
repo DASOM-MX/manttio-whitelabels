@@ -351,6 +351,13 @@
       "when": 1788334453165,
       "tag": "0049_greedy_silver_surfer",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1788480955727,
+      "tag": "0050_aspiring_mad_thinker",
+      "breakpoints": true
     }
   ]
 }

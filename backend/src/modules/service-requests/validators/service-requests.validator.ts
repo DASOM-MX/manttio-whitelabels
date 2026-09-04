@@ -27,3 +27,19 @@ export const answerServiceRequestSchema = z.object({
 });
 
 export type AnswerServiceRequestInput = z.infer<typeof answerServiceRequestSchema>;
+
+/**
+ * DELETE /portal/service-requests/:id — the customer withdraws a request.
+ * Terminal and soft-deleting; `reason` is required and bounded 10..300, the same
+ * bounds the owner set for `description` (2026-09-02) since both are customer
+ * free text on the same record. Body-carried, like `deleteComment` on the staff
+ * delete routes.
+ */
+export const cancelServiceRequestSchema = z.object({
+  reason: z
+    .string()
+    .min(10, 'Motivo es muy corto (mín. 10 caracteres)')
+    .max(300, 'Motivo es muy largo (máx. 300 caracteres)'),
+});
+
+export type CancelServiceRequestInput = z.infer<typeof cancelServiceRequestSchema>;

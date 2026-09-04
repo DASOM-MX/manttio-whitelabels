@@ -1,7 +1,7 @@
-// Service request lifecycle (client-portal 06 §3, decided 2026-08-30). Six states:
-// `submitted` through `approved` are live/open, `rejected` and `closed` are terminal.
-// `approved` is deliberately non-terminal: a request may carry several quotations
-// over its life (01 §4).
+// Service request lifecycle (client-portal 06 §3, decided 2026-08-30). Seven states:
+// `submitted` through `approved` are live/open; `rejected`, `closed` and `cancelled`
+// are terminal. `approved` is deliberately non-terminal: a request may carry several
+// quotations over its life (01 §4).
 export enum ServiceRequestStatus {
   // Filed, untouched by staff.
   Submitted = 'submitted',
@@ -17,6 +17,10 @@ export enum ServiceRequestStatus {
   Rejected = 'rejected',
   // Terminal (portal admin only). The customer says it is done (01 §1, 06 §3).
   Closed = 'closed',
+  // Terminal (portal, `cancel_service_requests`). The customer withdrew it before
+  // staff quoted; reason required, and the row is soft-deleted with it (owner,
+  // 2026-09-03). Absent from the default list, visible under the status filter.
+  Cancelled = 'cancelled',
 }
 
 // Append-only timeline entry types (01 §5). Mirrors `quotation_events` / the
@@ -35,4 +39,7 @@ export enum ServiceRequestEventType {
   QuotationLinked = 'service_request_quotation_linked',
   // Portal admin only (01 §1). Closing the request without staff action.
   Closed = 'service_request_closed',
+  // The customer withdrew the request. `note` carries the required reason, the
+  // same place `rejected` keeps staff's.
+  Cancelled = 'service_request_cancelled',
 }

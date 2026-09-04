@@ -58,7 +58,10 @@ submitted ──► in_review ──► approved ──► (quotation v1, v2, v3
     │             │
     └──► rejected ◄┘   (staff, reason required, TERMINAL)
 
-any non-terminal state ──► closed   (portal admin only, TERMINAL)
+any non-terminal state ──► closed     (portal admin only, TERMINAL)
+any non-terminal state ──► cancelled  (grant `cancel_service_requests`, TERMINAL,
+                                       soft-deletes the row AND every quotation
+                                       issued against it)
 ```
 
 Transitions are enforced in the service, not only in the UI. Each writes a
@@ -75,6 +78,66 @@ grant (01 §1, 02 §3). Staff have no close action: they can reject a request th
 but once they have taken it, the customer decides when the matter is finished. A close writes a
 `closed` event with the acting contact, sets `closed_at` / `closed_by_portal_user_id`, and
 raises a staff notification (§5).
+
+### Cancelling (owner, 2026-09-03)
+
+`closed` is no longer the only terminal client-side state. **`cancelled`** is the customer
+withdrawing a request they no longer want, and it is a different act from closing: `closed`
+means *"this is finished"*, `cancelled` means *"never mind"*.
+
+- **`DELETE /portal/service-requests/:id`**, gated on the new **`cancel_service_requests`**
+  grant (01 §3) — **not** on `is_admin`. Withdrawing work already in staff's hands is a
+  different power from filing it, so the customer's own admin decides who holds it.
+- **The verb is `DELETE`, not `POST /:id/cancel`** (owner, 2026-09-03). The codebase already
+  splits these: `DELETE /:id` with the reason in the body is an audited soft delete (quotations,
+  users, customers, reports, cms), while `POST /:id/<verb>` is a lifecycle move that leaves the
+  row in place — the quotations controller says so in as many words. This one removes, so it
+  takes the DELETE. The *domain* word stays "cancel": the status is `cancelled`, the event is
+  `service_request_cancelled`, and the plan calls it cancelling.
+- **A reason is required**, bounded 10..300 characters — the same bounds the owner set for
+  `description` (2026-09-02), since both are customer free text on the same record. It lands in
+  the event `note`, where `rejected` already keeps staff's reason.
+- **It soft-deletes the row.** `deleted_at` + `deleted_by_portal_user_id` are stamped in the
+  same transaction as the status change and the event. The cancel is `deleted_at`'s only
+  writer, so a soft-deleted request is always a cancelled one.
+- **Allowed from every live state, `approved` included.** An earlier draft of this section
+  (same day) blocked `approved` on the grounds that it would strand a live quotation. The
+  cascade below is what removes that objection — **superseded 2026-09-03**.
+- **A request that already produced a service order cannot be cancelled at all (owner,
+  2026-09-03).** If any live quotation on the request carries a **live** `service_order_id`, the
+  route refuses with **409 `request_has_service_order`** and a message naming the order folios,
+  telling the customer to cancel the order first. The work is already scheduled; the cascade
+  would otherwise soft-delete the order's own origin document underneath it, leaving a live
+  order that has lost its `quotationFolio`. **Cancelling an order is staff's**, not the portal's
+  — there is no portal route for it, by design.
+  - A **soft-deleted** order does not block. It is history, and letting one wedge the customer
+    out of withdrawing would be a dead end.
+  - The check runs before the cancel transaction, the same shape `answerRequest` already uses
+    for its status precondition.
+- **The quotations cascade with it (owner, 2026-09-03).** Every quotation hanging off the
+  request (`quotations.service_request_id`, 01 §6b) is **soft-deleted in the same transaction**,
+  carrying `delete_comment = "cancelled by client: <reason>"` so a staff member reading the
+  quotation on its own can see why it went. Application-level, never `ON DELETE CASCADE` — the
+  fork forbids those, and the rows and their timelines stay.
+  - Each cascaded quotation gets a `quotation_deleted` event attributed to the acting
+    **`contactId`**, the portal side of `quotation_events` (01 §6c). `deleted_by` stays null:
+    that column references `users.id` and a portal cancel has no staff actor.
+  - Because a deleted quotation drops out of every read, its **mailed recipient links stop
+    resolving** — the same consequence the staff delete already has.
+- **Idempotent.** The write matches on `deleted_at is null`, so a second cancel is a 404 rather
+  than a restamped row and a duplicate event.
+
+**Visibility (owner, 2026-09-03).** A cancelled request is **absent from the default list** and
+returns only under an explicit **`?status=cancelled`** filter — the one read in the module that
+reaches soft-deleted rows. The detail route is deliberately unfiltered on `deleted_at` too, so a
+request found through that filter can actually be opened.
+
+> **Open, for the owner.** `requireGrant` answers a missing grant with **404** (02 §1). For the
+> admin-gated close, 02 §3 argues the opposite — a record the user can already see should be
+> refused with **403**, because hiding it leaks nothing either way. Cancel has the same shape: a
+> user with `create_service_requests` but not `cancel_service_requests` can see the request and
+> gets a 404 on the cancel route. Shipped as 404 for consistency with the middleware; say the
+> word and it becomes a 403 like close.
 
 **The client's side of it:** a request in `needs_info` shows the staff question and a single
 answer box (`POST /portal/service-requests/:id/answer`), which appends `info_provided` and
