@@ -1,12 +1,12 @@
 import type { EquipmentStatus } from '../../equipment/enums/equipment.enum';
+import type { ServiceRequestStatus } from '../../service-requests/enums/service-requests.enum';
 import type { PortalLinkedReport } from './portal-report.dto';
 
-/** A request filed against this unit. `status` becomes `ServiceRequestStatus`
- *  once 01 CP-2 lands. */
+/** A request filed against this unit. */
 export interface PortalEquipmentLinkedServiceRequest {
   id: string;
   folio: string;
-  status: string;
+  status: ServiceRequestStatus;
   createdAt: string;
 }
 

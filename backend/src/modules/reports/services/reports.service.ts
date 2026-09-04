@@ -649,11 +649,16 @@ export const revokeReportEmail = async (db: Db, emailId: string): Promise<JsonRe
 // --- PDF rendering ---
 
 /** Renders a stored report. Shared by every caller so the emailed copy, the
- *  token-bearer download and the in-app download are byte-for-byte the same
- *  document — the field app used to draw its own with pdfmake, and that second
- *  layout silently fell behind (no capture sections, comments in a quarter-width
- *  cell) while looking to a technician like the real thing. */
-const renderStoredReport = async (
+ *  token-bearer download, the in-app download and the portal download are
+ *  byte-for-byte the same document — the field app used to draw its own with
+ *  pdfmake, and that second layout silently fell behind (no capture sections,
+ *  comments in a quarter-width cell) while looking to a technician like the
+ *  real thing.
+ *
+ *  Exported for the portal (04 §3), which runs its own scope + release check
+ *  first and calls this only for the bytes — it carries no access rule of its
+ *  own, so every caller must gate it. */
+export const renderStoredReport = async (
   db: Db,
   logosCdnBase: string,
   reportId: string,

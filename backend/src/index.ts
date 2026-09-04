@@ -6,6 +6,11 @@ import { createDb } from './modules/database/client';
 import { sweepExpiredNotifications } from './modules/notifications/services/notifications-retention.service';
 import { auth } from './modules/auth/controllers/auth.controller';
 import { portalAuth } from './modules/portal/controllers/portal-auth.controller';
+import { portalReports } from './modules/portal/controllers/portal-reports.controller';
+import { portalContracts } from './modules/portal/controllers/portal-contracts.controller';
+import { portalQuotations } from './modules/portal/controllers/portal-quotations.controller';
+import { portalServiceOrders } from './modules/portal/controllers/portal-service-orders.controller';
+import { portalEquipment } from './modules/portal/controllers/portal-equipment.controller';
 import { portalUsers } from './modules/portal/controllers/portal-users.controller';
 import { users } from './modules/users/controllers/users.controller';
 import { customers } from './modules/customers/controllers/customers.controller';
@@ -49,6 +54,15 @@ app.route('/auth', auth);
 // Mounted here, before the global JWT middleware, carrying its own guards route by route
 // (02 §1).
 app.route('/portal/auth', portalAuth);
+
+// Portal read surfaces (04). Same posture as `/portal/auth`: mounted before the
+// staff JWT middleware, each carrying `portalJwtMiddleware` plus its own grant
+// guard. `/portal/equipment` is the one guarded by a disjunction (A8).
+app.route('/portal/reports', portalReports);
+app.route('/portal/contracts', portalContracts);
+app.route('/portal/quotations', portalQuotations);
+app.route('/portal/service-orders', portalServiceOrders);
+app.route('/portal/equipment', portalEquipment);
 
 // Public published-only CMS reads for the tenant website (no auth by design).
 app.route('/public/cms', publicCms);
