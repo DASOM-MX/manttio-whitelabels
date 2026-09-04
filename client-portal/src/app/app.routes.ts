@@ -111,6 +111,27 @@ export const routes: Routes = [
           },
         ],
       },
+      {
+        path: 'equipment',
+        canActivate: [grantGuard(PortalGrant.ViewEquipment)],
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./equipment/pages/equipment-list/equipment-list').then(
+                (m) => m.EquipmentList,
+              ),
+          },
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./equipment/pages/equipment-detail/equipment-detail').then(
+                (m) => m.EquipmentDetail,
+              ),
+          },
+        ],
+      },
       { path: '**', redirectTo: 'home' },
     ],
   },
