@@ -57,12 +57,24 @@ export const serviceRequests = pgTable(
       () => portalUsers.id,
       { onDelete: 'restrict' },
     ),
+    // Soft delete, added 2026-09-03 with the portal cancel. This is the only
+    // removal a request has: `deleted_at` is stamped by the cancel and by
+    // nothing else, so a soft-deleted request is always a cancelled one.
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    // Who cancelled. Always a portal user holding `cancel_service_requests` —
+    // the reason lives on the `service_request_cancelled` event, where the rest
+    // of this module keeps its reasons.
+    deletedByPortalUserId: uuid('deleted_by_portal_user_id').references(
+      () => portalUsers.id,
+      { onDelete: 'restrict' },
+    ),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // The folio is the handle a customer quotes on the phone — it must resolve
-    // to one request. No soft delete here, so no predicate.
+    // to one request. Unconditional on purpose: a cancelled request keeps its
+    // folio, so the series never reissues a number someone already quoted.
     uniqueIndex('service_requests_folio_uidx').on(table.folio),
     // The portal list is always "this customer's requests, newest first".
     index('service_requests_customer_idx').on(table.customerId, table.createdAt),

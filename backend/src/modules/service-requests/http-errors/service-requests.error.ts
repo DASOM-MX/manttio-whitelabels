@@ -27,3 +27,22 @@ export class NotAnAdminError extends Error {
     this.name = 'NotAnAdminError';
   }
 }
+
+/**
+ * The request already produced a service order, so it cannot be withdrawn
+ * (client-portal 06 §3, owner 2026-09-03). The work is scheduled; the order is
+ * what has to be cancelled, and only staff can do that.
+ *
+ * Spanish, unlike its siblings here: this one reaches the customer verbatim
+ * (portal toasts render the backend's `message`), and it has to tell them what
+ * to do next.
+ */
+export class ServiceRequestHasOrderError extends Error {
+  constructor(public readonly orderFolios: string[]) {
+    super(
+      `Esta solicitud ya generó ${orderFolios.length === 1 ? 'la orden de servicio' : 'las órdenes de servicio'} ` +
+        `${orderFolios.join(', ')}. Cancela ${orderFolios.length === 1 ? 'la orden' : 'las órdenes'} primero.`,
+    );
+    this.name = 'ServiceRequestHasOrderError';
+  }
+}

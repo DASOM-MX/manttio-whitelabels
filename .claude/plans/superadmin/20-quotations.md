@@ -22,6 +22,10 @@ Quotation {
   id,                       // uuid PK
   folio,                    // 'COT-YYYYMMDD-NNNN', unique — own daily counters
                             //   (quotation_counters, report_counters mechanics)
+                            //   Unique index is UNCONDITIONAL since 2026-09-03
+                            //   (owner): a deleted quote keeps its folio, so the
+                            //   series never reissues a number already sent.
+                            //   Reverses the earlier `where deleted_at is null`.
   customerId,               // required, restrict, never cascade
   status: 'draft' | 'waiting_approval' | 'approved' | 'partially_approved'
         | 'declined' | 'cancelled' | 'order_created',

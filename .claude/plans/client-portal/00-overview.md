@@ -107,7 +107,8 @@ Inherited from the repo and the superadmin suite — do not relitigate:
     pre-filled with the customer and the request's equipment/description as context; staff add
     catalog lines and prices and send it through the normal quotation flow.
     **Amended 2026-08-30 (§4 A6):** `approved` is no longer terminal — a request may carry
-    several quotations over its life, and the only terminal client-side state is `closed`,
+    several quotations over its life, and the terminal client-side states are `closed` and
+    (from 2026-09-03) `cancelled`,
     which only a portal **admin** may set.
 15. **Notifications both directions:** a new request raises a staff in-app notification through
     the existing notifications module; the contact receives transactional email (invite, reset,
@@ -126,7 +127,7 @@ where the answer is encoded.
 | A3 | **5 failed logins → 2-hour cooldown** on the account. Applies to the portal login route. | 01 §1, 02 §2 |
 | A4 | **Not a flag. Every tenant gets the portal** — it is part of the product's value proposition, so there is no manager-side toggle and no `module-isolation` key. | 03 §6 |
 | A5 | **New bucket `manttio-customer-report`**, separate from `manttio-equipment`, with its own lifecycle. | 01 §4, 06 §2 |
-| A6 | **Neither reopen nor auto-close.** A declined quotation leaves the request open; **staff create a new quotation manually**, linked by a new **`quotations.service_request_id`** FK (one request → many quotations over time). The request's terminal state is **`closed`**, and **only a portal user with `is_admin` may close it** — a new column on `portal_users`. | 01 §1, 01 §4, 06 §3–4 |
+| A6 | **Neither reopen nor auto-close.** A declined quotation leaves the request open; **staff create a new quotation manually**, linked by a new **`quotations.service_request_id`** FK (one request → many quotations over time). The request's terminal state is **`closed`**, and **only a portal user with `is_admin` may close it** — a new column on `portal_users`. **Amended 2026-09-03 (owner):** `closed` is no longer the *only* terminal client-side state — **`cancelled`** joins it, gated by the new **`cancel_service_requests`** grant rather than by `is_admin`, and soft-deleting the row. `closed` still means "this is done"; `cancelled` means "I withdrew it". | 01 §1, 01 §4, 06 §3–4, 06 §8 |
 | A7 | **Only records staff deliberately released.** No draft, deleted or archived/cancelled records reach the portal, in any section. | 04 §2 |
 | A8 | **Both** — equipment is its own read section *and* the picker inside the service-request form. **2026-08-31:** the section is reachable without request permission, so it gets its own grant, **`view_equipment`** (the seventh). `GET /portal/equipment` accepts either grant; only the browsable section requires `view_equipment`. | 01 §3, 04 §7, 06 §2 |
 | A9 | **`equipment_id` stays nullable** — a customer may simply not have registered the unit yet, and that must not block a request. | 01 §4 |

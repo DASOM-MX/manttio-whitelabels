@@ -20,6 +20,9 @@ export interface ServiceRequestDetailDTO extends ServiceRequestSummaryDTO {
   contactId: string;
   evidence: string[];
   closedAt?: string;
+  /** When the customer withdrew it. Mapped from `deleted_at`, which the cancel
+   *  is the only writer of — the reason itself is on the timeline. */
+  cancelledAt?: string;
   events: ServiceRequestEventDTO[];
 }
 

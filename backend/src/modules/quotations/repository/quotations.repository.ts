@@ -10,6 +10,7 @@ import { InteractionRefKind, InteractionType } from '../../customers/enums/inter
 import { quotationLines } from '../models/quotation-lines.model';
 import { quotationRecipients } from '../models/quotation-recipients.model';
 import { quotationEvents } from '../models/quotation-events.model';
+import { serviceOrders } from '../../service-orders/models/service-orders.model';
 import { LIVE_STATUSES, QuotationEventRefKind, QuotationEventType, QuotationStatus } from '../enums/quotations.enum';
 import { folioDayKey, formatQuotationFolio } from '../utils/quotation-folio';
 import type { QuotationTally } from '../utils/quotation-status';
@@ -505,6 +506,71 @@ export const listQuotationEvents = async (
  *  read path drops it via `isNull(deletedAt)` — including
  *  `findRecipientByToken`, so a recipient's link stops resolving the moment the
  *  quote is tombstoned. */
+/** The live quotations on a service request that already produced a **live**
+ *  service order — what blocks a portal cancel (client-portal 06 §3, owner
+ *  2026-09-03). A soft-deleted order does not block: it is history, and leaving
+ *  the customer unable to withdraw because of one would be a dead end.
+ *
+ *  Returns the order folios, so the refusal can name what to cancel first. */
+export const findOrderedQuotationsForServiceRequest = async (
+  runner: QueryRunner,
+  serviceRequestId: string,
+): Promise<string[]> => {
+  const rows = await runner
+    .select({ orderFolio: serviceOrders.folio })
+    .from(quotations)
+    .innerJoin(serviceOrders, eq(serviceOrders.id, quotations.serviceOrderId))
+    .where(
+      and(
+        eq(quotations.serviceRequestId, serviceRequestId),
+        activeFilter,
+        isNull(serviceOrders.deletedAt),
+      ),
+    );
+  return rows.map((row) => row.orderFolio);
+};
+
+/**
+ * Soft-delete every live quotation hanging off a service request, in the
+ * caller's transaction — the cascade a portal cancel runs (client-portal 06 §3,
+ * owner 2026-09-03). Application-level, never `ON DELETE CASCADE`.
+ *
+ * `deletedBy` stays null: that column references `users.id` and a portal cancel
+ * has no staff actor. Attribution is the event's `contactId`, the same side of
+ * `quotation_events` the portal's own reads and downloads write to.
+ *
+ * Returns the ids it removed, so the caller can report the blast radius.
+ */
+export const softDeleteQuotationsForServiceRequest = async (
+  runner: QueryRunner,
+  serviceRequestId: string,
+  deleteComment: string,
+  contactId: string,
+): Promise<string[]> => {
+  const now = new Date();
+  const rows = await runner
+    .update(quotations)
+    .set({ deletedAt: now, updatedAt: now, deleteComment })
+    .where(and(eq(quotations.serviceRequestId, serviceRequestId), activeFilter))
+    .returning({ id: quotations.id });
+  if (!rows.length) return [];
+
+  await appendEvents(
+    runner,
+    rows.map((row) => ({
+      quotationId: row.id,
+      type: QuotationEventType.Deleted,
+      actorId: null,
+      contactId,
+      refKind: null,
+      refId: null,
+      note: deleteComment,
+    })),
+  );
+
+  return rows.map((row) => row.id);
+};
+
 export const softDeleteQuotation = async (
   db: Db,
   id: string,
