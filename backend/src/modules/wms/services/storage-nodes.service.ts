@@ -2,6 +2,7 @@ import type { AuthUser } from '../../../env';
 import type { Db } from '../../database/client';
 import { isUniqueViolation } from '../../database/db-errors';
 import { findUserById } from '../../users/repository/users.repository';
+import { ASSIGNABLE_NODE_TYPES } from '../constants/assignable-node-types';
 import { STORAGE_NODE_RANK } from '../constants/storage-node-rank';
 import { AssignmentRole } from '../enums/assignments.enum';
 import { StorageNodeType } from '../enums/storage-nodes.enum';
@@ -25,54 +26,14 @@ import {
   softDeleteStorageNode,
   updateStorageNodeRow,
 } from '../repository/storage-nodes.repository';
+import { toStorageNodeDTO } from '../utils/storage-node-dto';
 import { assertWarehouseAccess } from './warehouses.service';
-import type {
-  LocationAssigneeDTO,
-  StorageNodeDTO,
-  StorageNodeRow,
-  UpdateStorageNodeFields,
-} from '../types/warehouses.types';
+import type { StorageNodeDTO, UpdateStorageNodeFields } from '../types/warehouses.types';
 import type {
   CreateStorageNodeInput,
   ListStorageNodesQuery,
   UpdateStorageNodeInput,
 } from '../validators/warehouses.validator';
-
-const opt = <T>(value: T | null): T | undefined => value ?? undefined;
-
-/** Only the top two levels carry someone in charge (user 2026-08-21) — the DB
- *  holds this too (`storage_nodes_assignee_level_check`), but the service
- *  answers first so the caller gets `400 invalid_assignment_level` instead of a
- *  constraint violation. */
-const ASSIGNABLE_TYPES: StorageNodeType[] = [
-  StorageNodeType.Warehouse,
-  StorageNodeType.StorageUnit,
-];
-
-const assigneeOf = (
-  row: StorageNodeRow,
-  name: string | null,
-): LocationAssigneeDTO | undefined =>
-  row.assignedUserId && row.assignmentRole && name
-    ? { id: row.assignedUserId, name, role: row.assignmentRole }
-    : undefined;
-
-const toNodeDTO = (
-  row: StorageNodeRow,
-  assigneeName: string | null,
-  hasChildren: boolean,
-): StorageNodeDTO => ({
-  id: row.id,
-  warehouseId: row.warehouseId,
-  parentNodeId: opt(row.parentNodeId),
-  type: row.type,
-  name: row.name,
-  description: opt(row.description),
-  locationReference: opt(row.locationReference),
-  assignedUser: assigneeOf(row, assigneeName),
-  hasChildren,
-  createdAt: row.createdAt.toISOString(),
-});
 
 /** The rank rule (01 §2): a child's rank must be STRICTLY greater than its
  *  parent's. Levels are skippable — a box directly inside a storage unit is
@@ -98,7 +59,7 @@ const resolveAssignment = async (
   if (next.userId === null) throw new IncompleteAssignmentError('role');
   if (next.role === null) throw new IncompleteAssignmentError('user');
 
-  if (!ASSIGNABLE_TYPES.includes(type)) throw new InvalidAssignmentLevelError(type);
+  if (!ASSIGNABLE_NODE_TYPES.includes(type)) throw new InvalidAssignmentLevelError(type);
 
   const user = await findUserById(db, next.userId);
   if (!user) throw new AssigneeNotFoundError(next.userId);
@@ -127,7 +88,7 @@ export const getStorageNodes = async (
   }
 
   const rows = await listStorageNodes(db, warehouseId, query.parentNodeId);
-  return { nodes: rows.map((row) => toNodeDTO(row.node, row.assigneeName, row.hasChildren)) };
+  return { nodes: rows.map((row) => toStorageNodeDTO(row.node, row.assigneeName, row.hasChildren)) };
 };
 
 export const createStorageNode = async (
@@ -166,7 +127,7 @@ export const createStorageNode = async (
     const assigneeName = assignment.assignedUserId
       ? ((await findUserById(db, assignment.assignedUserId))?.name ?? null)
       : null;
-    return toNodeDTO(row, assigneeName, false);
+    return toStorageNodeDTO(row, assigneeName, false);
   } catch (err) {
     // Raised from the unique index rather than a pre-check, so two concurrent
     // creates can't both pass a lookup and then both insert.
@@ -215,7 +176,7 @@ export const editStorageNode = async (
     const assigneeName = row.assignedUserId
       ? ((await findUserById(db, row.assignedUserId))?.name ?? null)
       : null;
-    return toNodeDTO(row, assigneeName, current.hasChildren);
+    return toStorageNodeDTO(row, assigneeName, current.hasChildren);
   } catch (err) {
     if (isUniqueViolation(err)) throw new DuplicateNodeNameError(input.name ?? current.node.name);
     throw err;
