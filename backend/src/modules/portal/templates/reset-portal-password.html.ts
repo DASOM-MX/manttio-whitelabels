@@ -1,13 +1,10 @@
+import type { PortalCredentialEmailParams } from '../types/portal-emails.types';
+
 /**
  * Password reset email template for portal users.
  * Receives escaped name, brand name, temp password, and portal login URL.
  */
-export const resetPortalPasswordTemplate = (opts: {
-  contactName: string;
-  brandName: string;
-  tempPassword: string;
-  portalUrl: string;
-}): string => `<!DOCTYPE html>
+export const resetPortalPasswordTemplate = (opts: PortalCredentialEmailParams): string => `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -28,12 +25,7 @@ export const resetPortalPasswordTemplate = (opts: {
 </body>
 </html>`;
 
-export const resetPortalPasswordText = (opts: {
-  contactName: string;
-  brandName: string;
-  tempPassword: string;
-  portalUrl: string;
-}): string => `Restablecimiento de Contraseña
+export const resetPortalPasswordText = (opts: PortalCredentialEmailParams): string => `Restablecimiento de Contraseña
 
 Hola ${opts.contactName},
 

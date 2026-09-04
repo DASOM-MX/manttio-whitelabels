@@ -17,6 +17,10 @@ import { portalReportDownloadEvent } from '../utils/portal-download-events';
 import { recordedDownload } from '../utils/portal-download';
 import { mapPage } from '../utils/portal-page';
 import type { PortalReportsQuery } from '../validators/portal-reads.validator';
+import type {
+  PortalDownloadUser,
+  PortalReportDownload,
+} from '../types/portal-downloads.types';
 
 export const listReportsForPortal = async (
   db: Db,
@@ -59,9 +63,9 @@ export const getReportForPortal = async (
 export const downloadReportForPortal = async (
   db: Db,
   logosCdnBase: string,
-  portalUser: { id: string; customerId: string },
+  portalUser: PortalDownloadUser,
   id: string,
-): Promise<{ id: string; pdf: Uint8Array } | null> =>
+): Promise<PortalReportDownload | null> =>
   recordedDownload(
     db,
     (tx) => findPortalReport(tx, portalUser.customerId, id),

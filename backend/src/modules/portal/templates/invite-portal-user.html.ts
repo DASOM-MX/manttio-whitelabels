@@ -1,13 +1,10 @@
+import type { PortalCredentialEmailParams } from '../types/portal-emails.types';
+
 /**
  * Invite email template for new portal users.
  * Receives escaped name, brand name, temp password, and portal login URL.
  */
-export const invitePortalUserTemplate = (opts: {
-  contactName: string;
-  brandName: string;
-  tempPassword: string;
-  portalUrl: string;
-}): string => `<!DOCTYPE html>
+export const invitePortalUserTemplate = (opts: PortalCredentialEmailParams): string => `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -28,12 +25,7 @@ export const invitePortalUserTemplate = (opts: {
 </body>
 </html>`;
 
-export const invitePortalUserText = (opts: {
-  contactName: string;
-  brandName: string;
-  tempPassword: string;
-  portalUrl: string;
-}): string => `Te damos la bienvenida al Portal de Clientes
+export const invitePortalUserText = (opts: PortalCredentialEmailParams): string => `Te damos la bienvenida al Portal de Clientes
 
 Hola ${opts.contactName},
 

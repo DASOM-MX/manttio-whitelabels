@@ -6,6 +6,7 @@ import { portalUserGrants } from '../models/portal-user-grants.model';
 import { PortalUserStatus } from '../enums/portal-users.enum';
 import { PortalGrant } from '../enums/portal-grants.enum';
 import type { NewPortalUser, PortalUserListRow } from '../types/portal.types';
+import type { ListPortalUsersQuery } from '../validators/portal-users-query.validator';
 import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 import { customers } from '../../customers/models/customers.model';
 import { users } from '../../users/models/users.model';
@@ -372,14 +373,7 @@ export async function softDeletePortalUser(
  */
 export async function listPortalUsersPaged(
   db: Db,
-  query: {
-    page: number;
-    limit: number;
-    search?: string;
-    status?: PortalUserStatus;
-    customerId?: string;
-    grant?: PortalGrant;
-  },
+  query: ListPortalUsersQuery,
 ): Promise<GenericQueryResponse<PortalUserListRow>> {
   const filters: SQL[] = [isNull(portalUsers.deletedAt)];
   if (query.status) filters.push(eq(portalUsers.status, query.status));

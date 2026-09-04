@@ -2,19 +2,18 @@ import { and, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from 'drizzl
 import type { Db, DbOrTx } from '../../database/client';
 import { equipment, equipmentReports } from '../../equipment/models/equipment.model';
 import { reportDetails, reports } from '../../reports/models/reports.model';
-import type { ReportDetailRow, ReportRow } from '../../reports/types/reports.types';
+import type { ReportDetailRow } from '../../reports/types/reports.types';
 import { users } from '../../users/models/users.model';
 import { displayName } from '../../users/utils/display-name';
 import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 import { PORTAL_REPORT_STATUSES } from '../constants/portal-visibility';
 import { portalPage, portalRow, portalScope } from './portal-reads.repository';
 import type { PortalReportsQuery } from '../validators/portal-reads.validator';
-
-/** A report row plus the one staff name the portal *does* send (A13). */
-export interface PortalReportRow {
-  row: ReportRow;
-  technicianName: string | null;
-}
+import type {
+  PortalReportRow,
+  PortalReportSelectRow,
+  PortalTechnicianColumns,
+} from '../types/portal-reads.types';
 
 // Scope + release in one predicate, applied by every read here: the token's
 // customer, live rows, delivered statuses only (02 §4, 04 §2).
@@ -31,25 +30,16 @@ const technicianName = {
 };
 
 // The join is left, so the whole group is null when the technician row is gone.
-const nameOf = (
-  u: {
-    name: string | null;
-    paternalLastName: string | null;
-    maternalLastName: string | null;
-  } | null,
-): string | null => (u ? displayName(u) || null : null);
+const nameOf = (u: PortalTechnicianColumns | null): string | null =>
+  u ? displayName(u) || null : null;
 
 // One select shape for the list and the detail, so the two cannot drift.
 const reportColumns = { row: reports, technician: technicianName };
 
-const toPortalReportRow = (r: {
-  row: ReportRow;
-  technician: {
-    name: string | null;
-    paternalLastName: string | null;
-    maternalLastName: string | null;
-  } | null;
-}): PortalReportRow => ({ row: r.row, technicianName: nameOf(r.technician) });
+const toPortalReportRow = (r: PortalReportSelectRow): PortalReportRow => ({
+  row: r.row,
+  technicianName: nameOf(r.technician),
+});
 
 const filters = (customerId: string, q: PortalReportsQuery): SQL => {
   const conds: SQL[] = [visible(customerId)];
