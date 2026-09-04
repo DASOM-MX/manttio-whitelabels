@@ -1,0 +1,115 @@
+<app-page-header title="Cotizaciones" description="Las propuestas que te hemos enviado.">
+  <app-filters-popover [params]="['q', 'status']">
+    <div class="field-group">
+      <label class="field-label" for="quotations-search">Buscar</label>
+      <input
+        id="quotations-search"
+        pInputText
+        type="search"
+        [formControl]="search"
+        placeholder="Folio"
+      />
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="quotations-status">Estado</label>
+      <p-select
+        inputId="quotations-status"
+        [formControl]="statusFilter"
+        [options]="statusOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </div>
+  </app-filters-popover>
+</app-page-header>
+
+<div>
+  <p-table
+    [value]="quotations()"
+    styleClass="table-paged"
+    [style.--table-page-rows]="list.PAGE_SIZE"
+    [lazy]="true"
+    (onLazyLoad)="list.onLazyLoad($event)"
+    [paginator]="true"
+    [rows]="list.PAGE_SIZE"
+    [first]="list.first()"
+    [totalRecords]="total()"
+    [loading]="tableBusy.showSkeleton()"
+    [class.table-refreshing]="tableBusy.refreshing()"
+    [showLoader]="false"
+    [rowHover]="true"
+    dataKey="id"
+  >
+    <ng-template #header>
+      <tr>
+        <th scope="col">Folio</th>
+        <th scope="col">Enviada</th>
+        <th scope="col">Vigencia</th>
+        <th scope="col">Estado</th>
+        <th scope="col">Total</th>
+        <th scope="col"><span class="sr-only">Acciones</span></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-quotation>
+      <tr class="cursor-pointer" (click)="openQuotation(quotation)">
+        <td class="font-data font-bold tabular-nums">{{ quotation.folio }}</td>
+        <td class="font-data tabular-nums">
+          {{ (quotation.sentAt | date: 'dd/MM/y') || '—' }}
+        </td>
+        <td class="font-data tabular-nums">
+          <div class="flex flex-wrap items-center gap-1">
+            {{ quotation.validUntil | date: 'dd/MM/y' }}
+            @if (quotation | quotationShowsOverdue) {
+              <p-tag severity="danger" value="Vencida" />
+            }
+          </div>
+        </td>
+        <td>
+          <p-tag
+            [severity]="quotation.status | quotationStatusSeverity"
+            [value]="quotation.status | quotationStatusLabel"
+          />
+        </td>
+        <td class="font-data tabular-nums">{{ quotation.total | money }}</td>
+        <td class="w-16" (click)="$event.stopPropagation()">
+          <div class="flex justify-end">
+            <button
+              type="button"
+              class="row-action"
+              [disabled]="downloadingId() === quotation.id"
+              (click)="downloadPdf(quotation)"
+              [attr.aria-label]="'Descargar PDF de la cotización ' + quotation.folio"
+            >
+              <svg lucideDownload class="size-4" aria-hidden="true"></svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #loadingbody>
+      @for (r of list.skeletonRows; track r) {
+        <tr>
+          @for (c of [0, 1, 2, 3, 4, 5]; track c) {
+            <td><span class="skeleton"></span></td>
+          }
+        </tr>
+      }
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr class="p-datatable-emptymessage">
+        <td colspan="6">
+          <span class="inline-flex flex-col items-center gap-3">
+            <span class="empty-icon">
+              <svg lucideFileSpreadsheet class="size-5" aria-hidden="true"></svg>
+            </span>
+            @if (hasFilters()) {
+              Sin cotizaciones con esos filtros.
+            } @else {
+              Aún no tienes cotizaciones disponibles.
+            }
+          </span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

@@ -1,0 +1,168 @@
+<app-page-header title="Cotización" backLink="/quotations" backLabel="Volver a cotizaciones">
+  <span meta class="contents">
+    @if (quotation(); as q) {
+      <span class="font-data text-sm text-surface-600 dark:text-surface-400">{{ q.folio }}</span>
+      <p-tag
+        [severity]="q.status | quotationStatusSeverity"
+        [value]="q.status | quotationStatusLabel"
+      />
+      @if (q | quotationShowsOverdue) {
+        <p-tag severity="danger" value="Vencida" />
+      }
+    }
+  </span>
+  @if (quotation(); as q) {
+    <button type="button" class="btn-secondary" (click)="downloadPdf()" [disabled]="downloading()">
+      <svg lucideDownload class="size-4" aria-hidden="true"></svg>
+      @if (downloading()) {
+        Descargando…
+      } @else {
+        PDF
+      }
+    </button>
+  }
+</app-page-header>
+
+@if (quotation(); as q) {
+  <section class="card-section" aria-labelledby="quotation-detail-title">
+    <h2 id="quotation-detail-title" class="micro-label">Datos de la cotización</h2>
+    <dl class="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div>
+        <dt class="micro-label">Enviada</dt>
+        <dd class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0">
+          {{ (q.sentAt | date: 'dd/MM/y') || '—' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="micro-label">Vigente hasta</dt>
+        <dd class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0">
+          {{ q.validUntil | date: 'dd/MM/y' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="micro-label">Total</dt>
+        <dd class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0">
+          {{ q.total | money }}
+        </dd>
+      </div>
+    </dl>
+    @if (q.comments) {
+      <div class="mt-4">
+        <span class="micro-label">Términos y condiciones</span>
+        <p class="mt-1 text-sm text-surface-800 dark:text-surface-200 whitespace-pre-line">
+          {{ q.comments }}
+        </p>
+      </div>
+    }
+  </section>
+
+  <section class="card-section mt-4" aria-labelledby="quotation-lines-title">
+    <h2 id="quotation-lines-title" class="section-heading">Partidas</h2>
+    <div class="card-flush-table">
+      <p-table [value]="q.lines" dataKey="id">
+        <ng-template #header>
+          <tr>
+            <th scope="col">Descripción</th>
+            <th scope="col">Unidad</th>
+            <th scope="col">Cantidad</th>
+            <th scope="col">Precio unitario</th>
+            <th scope="col">Descuento</th>
+            <th scope="col">IVA</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-line>
+          <tr>
+            <td>
+              <p class="font-bold text-surface-1000 dark:text-surface-0">{{ line.serviceName }}</p>
+              @if (line.description) {
+                <p class="text-sm text-surface-600 dark:text-surface-400">{{ line.description }}</p>
+              }
+            </td>
+            <td>{{ line.uom }}</td>
+            <td class="font-data tabular-nums">{{ line.quantity }}</td>
+            <td class="font-data tabular-nums">{{ line.unitPrice | money }}</td>
+            <td class="font-data tabular-nums">{{ line.discountAmount | money }}</td>
+            <td class="font-data tabular-nums">{{ line.taxRate | serviceTaxRateLabel }}</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+    <div class="mt-4 flex justify-end">
+      <dl class="flex items-center gap-3 text-base">
+        <dt class="font-bold text-surface-1000 dark:text-surface-0">Total</dt>
+        <dd class="font-data font-bold tabular-nums text-lg text-surface-1000 dark:text-surface-0">
+          {{ q.total | money }}
+        </dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="card-section mt-4" aria-labelledby="quotation-reviewers-title">
+    <h2 id="quotation-reviewers-title" class="section-heading">Revisores</h2>
+    @if (q.reviewers.length) {
+      <div class="card-flush-table">
+        <p-table [value]="q.reviewers" dataKey="contactName">
+          <ng-template #header>
+            <tr>
+              <th scope="col">Nombre</th>
+              <th scope="col">Respuesta</th>
+              <th scope="col">Fecha</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-reviewer>
+            <tr>
+              <td class="font-bold text-surface-1000 dark:text-surface-0">
+                {{ reviewer.contactName || '—' }}
+              </td>
+              <td>
+                <p-tag
+                  [severity]="reviewer | reviewerSeverity"
+                  [value]="reviewer | reviewerStanding"
+                />
+              </td>
+              <td class="font-data tabular-nums">
+                {{ (reviewer.respondedAt | date: 'dd/MM/y') || '—' }}
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    } @else {
+      <p class="mt-3 text-sm text-surface-600 dark:text-surface-400">
+        Esta cotización no tiene revisores asignados.
+      </p>
+    }
+  </section>
+} @else if (notFound()) {
+  <div class="card-section mt-5 flex flex-col items-center gap-3 py-12 text-center">
+    <span class="empty-icon">
+      <svg lucideFileSpreadsheet class="size-5" aria-hidden="true"></svg>
+    </span>
+    <h2 class="text-lg font-bold text-surface-1000 dark:text-surface-0">
+      No pudimos encontrar esta cotización
+    </h2>
+    <p class="max-w-sm text-sm text-surface-600 dark:text-surface-400">
+      Puede que ya no esté disponible o que no tengas acceso a ella.
+    </p>
+    <a routerLink="/quotations" class="btn-neutral">Volver a cotizaciones</a>
+  </div>
+} @else {
+  <div class="flex flex-col gap-4">
+    <div class="card-section">
+      <span class="skeleton"></span>
+      <div class="mt-6 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+        @for (r of [0, 1, 2]; track r) {
+          <div>
+            <span class="skeleton max-w-24"></span>
+            <span class="skeleton mt-2 max-w-48"></span>
+          </div>
+        }
+      </div>
+    </div>
+    <div class="card-section">
+      <span class="skeleton max-w-36"></span>
+      <span class="skeleton mt-4 max-w-72"></span>
+      <span class="skeleton mt-2 max-w-56"></span>
+    </div>
+  </div>
+}
