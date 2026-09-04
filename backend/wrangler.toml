@@ -42,8 +42,11 @@ TURNSTILE_SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/sitev
 # Daily notifications retention sweep (notifications plan §2.4) — hard-deletes
 # notification rows older than the retention window via scheduled() in
 # src/index.ts. `triggers` is a wrangler-inheritable key: production reuses it.
+# 04:00 — notifications retention sweep. 04:30 — the WMS import retention sweep
+# (10-wms/11 §4): staged files + staged rows of imports that never reached
+# approval. `scheduled()` in src/index.ts dispatches on `controller.cron`.
 [triggers]
-crons = ["0 4 * * *"]
+crons = ["0 4 * * *", "30 4 * * *"]
 
 [[r2_buckets]]
 binding = "MANTTIO_REPORTS"
@@ -94,6 +97,26 @@ bucket_name = "manttio-wms-evidence"
 [[queues.producers]]
 binding = "WMS_IMPORT_QUEUE"
 queue = "manttio-wms-imports"
+
+[[queues.consumers]]
+queue = "manttio-wms-imports"
+# A job is already a batch internally — one message is one whole file (11 §1).
+max_batch_size = 1
+max_retries = 3
+dead_letter_queue = "manttio-wms-imports-dlq"
+
+# A message that burned its retries closes its import as `failed` (11 §3), so a
+# user sees a failure card instead of an import stuck in `processing` forever.
+[[queues.consumers]]
+queue = "manttio-wms-imports-dlq"
+max_batch_size = 10
+max_retries = 0
+
+# Raised for the worst-case full-file parse (11 §1). A ≤1 MB stock list parses
+# in seconds, so this is headroom rather than an expectation — and it is the
+# formal retirement of the old SheetJS-on-Workers CPU concern.
+[limits]
+cpu_ms = 120000
 
 # 1 req/min per IP on POST /public/leads (Workers rate-limiting API). Best-effort
 # per-colo counting — an abuse dial, not a strict quota. Optional binding: the
@@ -148,6 +171,20 @@ bucket_name = "manttio-wms-evidence"
 [[env.production.queues.producers]]
 binding = "WMS_IMPORT_QUEUE"
 queue = "manttio-wms-imports"
+
+[[env.production.queues.consumers]]
+queue = "manttio-wms-imports"
+max_batch_size = 1
+max_retries = 3
+dead_letter_queue = "manttio-wms-imports-dlq"
+
+[[env.production.queues.consumers]]
+queue = "manttio-wms-imports-dlq"
+max_batch_size = 10
+max_retries = 0
+
+[env.production.limits]
+cpu_ms = 120000
 
 [[env.production.unsafe.bindings]]
 name = "LEADS_RATE_LIMITER"

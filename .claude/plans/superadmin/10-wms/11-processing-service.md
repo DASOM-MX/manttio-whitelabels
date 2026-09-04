@@ -1,7 +1,15 @@
 # 10-wms / 11 — Import processing (Cloudflare Queues consumer)
 
-> **Status:** not-started · **Depends on:** 01 (contract), 02 (enqueue endpoints)
-> **Owner:** — · **Last updated:** 2026-07-19
+> **Status:** **CP-1 + CP-2 done 2026-08-24** — queue + DLQ consumers, the
+> `queue()` export, the parse handler, the retention cron and the manager
+> notification are live in `backend/`. CP-3 (07's flows end-to-end) waits on the
+> frontend. · **Depends on:** 01 (contract), 02 (enqueue endpoints)
+> **Owner:** — · **Last updated:** 2026-08-24
+>
+> ⚠️ **Still needs provisioning before deploy:** the `manttio-wms-imports` queue
+> + `manttio-wms-imports-dlq`, the two R2 buckets (02 §8), and the Workers
+> **paid** plan. Miniflare simulates all of it, so the suites are green without
+> them.
 
 How replenishment-import batch jobs actually run: a **Cloudflare Queues consumer in
 `backend/`** — same repo, same per-tenant Worker deploy as the API (**decided
@@ -150,19 +158,35 @@ re-uploaded, not recovered.
 
 ## Checkpoints
 
-### CP-1 — Queue wiring
-- [ ] Queue + DLQ provisioned (per-tenant names); wrangler producer/consumer +
-      cron trigger + `limits.cpu_ms` config; `queue()` export delegating to the
-      processor service; enqueue wired into `/process`
-- [ ] Status transitions (`queued → processing → ready/failed`) + DLQ→`failed`
+### CP-1 — Queue wiring — **done 2026-08-24** (provisioning still outstanding)
+- [x] wrangler producer + both consumers (import queue and its DLQ), second cron
+      trigger (`30 4 * * *`), `limits.cpu_ms = 120000`; one `queue()` export
+      dispatching on `batch.queue` and delegating to the processor service;
+      enqueue wired into `/process` (shipped with 02 §6). **Each message is
+      acked or retried individually** — a throwing handler must not take its
+      batch down with it. The queue + DLQ themselves are still an ops ask
+- [x] Status transitions (`queued → processing → ready/failed`) + DLQ→`failed`
       path live; stale-redelivery ack verified
 
-### CP-2 — Handler
-- [ ] §2 parse/resolve/upsert/progress/purge complete; retention cron (§4);
-      **manager in-app notification on `ready`/`failed`** (best-effort,
-      unconfigured-recipient skip; de-branded email deferred — v1 in-app only)
-- [ ] §5 test suite green (row errors, redelivery idempotency, purge ordering,
-      DLQ, sweep)
+### CP-2 — Handler — **done 2026-08-24**
+- [x] §2 parse/resolve/upsert/progress/purge complete, `.xlsx` via SheetJS
+      (installed from the vendor CDN tarball — the npm `xlsx` package is a stale
+      2022 publish) and csv/txt delimiter-sniffed, through **one** `readRows`
+      that upload-time detection and the consumer both call. Retention cron (§4).
+      Manager notification on `ready`/`failed`, best-effort
+- [x] §5 suite green — `test/wms-import-processor.test.ts`, 16 tests: all six
+      fixable row codes out of one file, both unprocessable serial cases, all
+      three tracking modes, a real `.xlsx` round-trip, header weirdness (BOM,
+      quoted delimiter, ghost trailing column, blank padding row), redelivery
+      idempotency, purge ordering, unreadable/missing file, DLQ, terminal-ack,
+      the `queue()` dispatch, and the sweep
+
+**Deviation to settle (2026-08-24):** §2 step 4 says resolve
+`notifications.manager_user_id` and address that user. That key is still
+homeless — the 2026-08-08 scope-down made the WMS settings store WMS-local — so
+v1 **broadcasts to owner/admin by role** instead. `notify()` already supports
+both, so pointing it at a configured manager later is a one-line change; a role
+broadcast is strictly better than skipping the warning until then.
 
 ### CP-3 — Integrated
 - [ ] 07's flows run end-to-end against it (the CP-3 two-actor manual pass, incl.

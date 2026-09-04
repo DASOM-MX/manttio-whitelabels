@@ -1,9 +1,12 @@
-import { and, asc, eq, ne, sql } from 'drizzle-orm';
+import { and, asc, count, eq, ne, sql } from 'drizzle-orm';
 import type { Db, DbOrTx } from '../../database/client';
 import { materials } from '../models/materials.model';
 import { replenishmentImportRows } from '../models/replenishment-imports.model';
 import { storageNodes } from '../models/storage-nodes.model';
-import type { UpdateStagedRowFields } from '../types/replenishment-imports.types';
+import type {
+  NewImportStagedRow,
+  UpdateStagedRowFields,
+} from '../types/replenishment-imports.types';
 
 // The STAGING table (10-wms/01 §2). Everything here is scratch: parsed data
 // waiting for a human to approve it, then promoted and thrown away.
@@ -124,4 +127,38 @@ export const deleteStagedRow = async (tx: DbOrTx, id: string) => {
  *  log keeps the story. */
 export const deleteStagedRowsOfImport = async (tx: DbOrTx, importId: string) => {
   await tx.delete(replenishmentImportRows).where(eq(replenishmentImportRows.importId, importId));
+};
+
+/** Queues deliver AT LEAST ONCE, so the handler must be safe to run twice on
+ *  the same message (11 §2/§3). Upserting on `(import_id, line)` is what makes
+ *  it idempotent by construction: a redelivery rewrites the same lines instead
+ *  of duplicating them, and no delete pass is ever needed. */
+export const upsertStagedRows = async (tx: DbOrTx, rows: NewImportStagedRow[]) => {
+  if (rows.length === 0) return;
+  await tx
+    .insert(replenishmentImportRows)
+    .values(rows)
+    .onConflictDoUpdate({
+      target: [replenishmentImportRows.importId, replenishmentImportRows.line],
+      set: {
+        raw: sql`excluded."raw"`,
+        materialId: sql`excluded."material_id"`,
+        quantity: sql`excluded."quantity"`,
+        pieces: sql`excluded."pieces"`,
+        serial: sql`excluded."serial"`,
+        lot: sql`excluded."lot"`,
+        lotExpiresAt: sql`excluded."lot_expires_at"`,
+        error: sql`excluded."error"`,
+      },
+    });
+};
+
+/** How many lines this import already has staged — the redelivery check reads
+ *  it to decide whether a re-run is resuming or starting over. */
+export const countStagedRows = async (db: DbOrTx, importId: string): Promise<number> => {
+  const [row] = await db
+    .select({ total: count() })
+    .from(replenishmentImportRows)
+    .where(eq(replenishmentImportRows.importId, importId));
+  return row?.total ?? 0;
 };

@@ -272,13 +272,17 @@ import emits its event in the same transaction; the log is append-only and perma
 - **Not yet:** the SSE stream (`/events`), the queue consumer that stages the
   rows (11), and the approval (`POST /replenishments`) with its list/detail
   reads. Until the consumer lands, an import reaches `queued` and stops there.
-- **`.xlsx` is refused for now** (`400 unparseable_file`). Reading a workbook
-  means unzipping and walking sheet XML, and the consumer has to do the
-  full-file version of the same thing — both sides land together in the
-  processing slice so the format is read by ONE implementation, not two.
-  `.csv`/`.txt` are delimiter-sniffed (tab, then semicolon, then comma; the
-  first that splits the header into more than one column wins) with RFC-4180
-  quoting.
+- **File formats.** `.csv`/`.txt` are delimiter-sniffed (tab, then semicolon,
+  then comma; the first that splits the header into more than one column wins)
+  with RFC-4180 quoting; `.xlsx` goes through SheetJS. Both live behind ONE
+  `readRows` helper that upload-time detection and the queue consumer share, so
+  a file is never interpreted two ways. *(The lifecycle slice shipped
+  csv/txt-only and refused `.xlsx`; the processing slice added it 2026-08-24
+  along with the full-file walk, deliberately together so the format got one
+  implementation rather than two.)* Ghost trailing columns — a header cell that
+  was typed and cleared — are dropped; an empty header BETWEEN two real ones is
+  still refused, because it can neither be mapped nor key the remembered
+  mapping.
 - **`400 file_too_large`** is its own code, not `unparseable_file`: a 3 MB sheet
   may be perfectly well-formed and simply not belong in this flow.
 - **`pieces` is editable on a staged row** alongside the plan's listed fields —
@@ -412,8 +416,8 @@ and movements.
 
 ### CP-3 — Replenishments + report materials — **lifecycle leg done 2026-08-24**
 
-Landed: upload + field detection (csv/txt; **xlsx deferred to the processing
-slice**), process (mapping validation, `queued`, 202, last-mapping upsert),
+Landed: upload + field detection (csv/txt at first; **`.xlsx` added 2026-08-24
+with the processing slice**), process (mapping validation, `queued`, 202, last-mapping upsert),
 one-shot status read, staged-row PATCH + owner/admin row DELETE (reason
 required) + prep PATCH, reject (comment required) / resubmit / discard /
 owner-only cancel with their state gates, `GET .../audit`, and the settings
@@ -421,8 +425,9 @@ key the mapper memory rides on. `test/wms-replenishments.test.ts` — 24 tests,
 prefix `wms-test-rp-`; the mapper-memory setting is a per-tenant singleton, so
 the suite snapshots and restores it per `backend/CLAUDE.md`.
 
-Still open below: the SSE stream, the queue consumer's half (11 CP-2), the
-approval promotion, and §7.
+**The queue consumer landed 2026-08-24** (11 CP-1 + CP-2): an import now runs
+`queued → processing → ready/failed` on its own. Still open below: the SSE
+stream, the approval promotion, and §7.
 
 - [ ] §6 import endpoints: upload + field detection (three formats, sample rows,
       `unparseable_file`), process (mapping validation, `queued` transition, 202),

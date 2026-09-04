@@ -17,3 +17,9 @@ export const IMPORT_ACCEPTED_EXTENSIONS = ['.csv', '.txt', '.xlsx'] as const;
 /** Candidate delimiters, most specific first — a tab never appears by accident,
  *  a semicolon is the es-MX Excel default, a comma is everything else. */
 export const IMPORT_DELIMITERS = ['\t', ';', ','] as const;
+
+/** Staged rows are written — and the progress counters bumped — this many at a
+ *  time (11 §2 step 3). Small enough that the status stream's progress bar
+ *  actually moves on a long sheet, large enough that a 2000-line file is 80
+ *  round trips rather than 2000. */
+export const PROGRESS_BATCH_ROWS = 25;

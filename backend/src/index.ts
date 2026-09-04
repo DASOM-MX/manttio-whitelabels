@@ -4,6 +4,11 @@ import { logger } from 'hono/logger';
 import type { AppBindings, Env } from './env';
 import { createDb } from './modules/database/client';
 import { sweepExpiredNotifications } from './modules/notifications/services/notifications-retention.service';
+import {
+  failImportFromDeadLetter,
+  processImportMessage,
+} from './modules/wms/services/import-processor.service';
+import { sweepAbandonedImports } from './modules/wms/services/import-retention.service';
 import { auth } from './modules/auth/controllers/auth.controller';
 import { portalAuth } from './modules/portal/controllers/portal-auth.controller';
 import { portalReports } from './modules/portal/controllers/portal-reports.controller';
@@ -156,15 +161,55 @@ app.onError((err, c) => {
 
 app.notFound((c) => c.json({ error: 'not_found' }, 404));
 
-// The Worker's first cron (notifications plan §2.4): the daily notifications
-// retention sweep. When a second cron lands (WMS staging retention, 10-wms/11
-// §4), it adds its entry to wrangler.toml `triggers.crons` and a dispatch
-// branch on `controller.cron` here.
+// Two crons, dispatched by expression (wrangler.toml `triggers.crons`):
+//   04:00 — notifications retention sweep (notifications plan §2.4)
+//   04:30 — WMS import retention sweep (10-wms/11 §4)
+// Separate schedules rather than one handler doing both, so a slow or failing
+// sweep cannot delay or take down the other.
 const scheduled = (controller: ScheduledController, env: Env, ctx: ExecutionContext): void => {
-  ctx.waitUntil(sweepExpiredNotifications(createDb(env.DATABASE_URL), env));
+  const db = createDb(env.DATABASE_URL);
+  if (controller.cron === '30 4 * * *') {
+    ctx.waitUntil(sweepAbandonedImports(db, env));
+    return;
+  }
+  ctx.waitUntil(sweepExpiredNotifications(db, env));
+};
+
+/** The Queues consumer (10-wms/11 §1). One `queue()` export serves both the
+ *  import queue and its dead-letter queue, dispatching on `batch.queue` — the
+ *  composition root stays thin and the handlers live in the wms module.
+ *
+ *  Each message is acked or retried INDIVIDUALLY: a handler that threw would
+ *  otherwise take its whole batch down with it, and these batches are
+ *  deliberately size-1 for the import queue precisely because one message is
+ *  one whole file. */
+const queue = async (
+  batch: MessageBatch<{ importId: string }>,
+  env: Env,
+): Promise<void> => {
+  const db = createDb(env.DATABASE_URL);
+  const deadLetter = batch.queue.endsWith('-dlq');
+
+  for (const message of batch.messages) {
+    try {
+      if (deadLetter) {
+        await failImportFromDeadLetter(db, message.body);
+      } else {
+        await processImportMessage(db, env, {
+          importId: message.body.importId,
+          attempts: message.attempts,
+        });
+      }
+      message.ack();
+    } catch (err) {
+      console.error(`import job failed (${batch.queue}):`, err);
+      // Retry — Queues owns the attempt count and the DLQ hand-off (11 §3).
+      message.retry();
+    }
+  }
 };
 
 // Named export for the test harness (`app.request`); the default export is
 // the module-worker handler surface wrangler deploys.
 export { app };
-export default { fetch: app.fetch, scheduled };
+export default { fetch: app.fetch, scheduled, queue };
