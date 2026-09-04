@@ -1,8 +1,10 @@
 # 10-wms / 02 — API surface (backend)
 
-> **Status:** in-progress — **CP-1 complete: §2 warehouses + storage nodes
-> (2026-08-21) and §3 materials (2026-08-22)** are live in `modules/wms/`;
-> CP-2 (§4 stock ops + §5 reasons) next · **Depends on:** 01
+> **Status:** in-progress — **CP-1 complete** (§2 warehouses + storage nodes
+> 2026-08-21, §3 materials 2026-08-22) and **CP-2 complete** (§4 stock ops +
+> `GET /movements`, §5 reasons, the settings store — 2026-08-22), all live in
+> `modules/wms/`; CP-3 (§6 replenishments + §7 report materials) next
+> · **Depends on:** 01
 > **Owner:** — · **Last updated:** 2026-08-22
 
 The complete WMS endpoint catalog: paths, role gates, validator shapes, responses, and
@@ -47,20 +49,30 @@ models/ · validators/ · enums/ · constants/ (STORAGE_NODE_RANK, seed reasons,
 All routes sit behind the JWT middleware (no public WMS surface). Every list endpoint
 is paged (`page`/`limit`, default 25, max 100) returning `{ items, total }`.
 
-**Cross-cutting config store — `modules/settings/`** (added 2026-07-19): a generic
-per-tenant **Postgres `settings` key-value table** (01 §2: `id · key · value` jsonb;
-**new settings = new rows, never new columns**) exposed as `getSetting(key)`/
-`setSetting(key, value)`, keys namespaced `<domain>.<name>`. **The DB is the source of
-truth**; a per-tenant **Durable Object fronts it as a read cache** (owner 2026-07-21 —
-rapid reads without a DB round-trip: reads hit the DO, `setSetting` writes through to the
-table and invalidates/refreshes the cache, a cold DO loads from the table; the existing
-`TenantCacheDO` DB-backed-cache pattern, **not** a replacement for the table). **No
+**Config store — `wms/models/wms-settings.model.ts` + `services/wms-settings.service.ts`**
+(added 2026-07-19; **scoped WMS-local 2026-08-08**, built 2026-08-22): a per-tenant
+**Postgres `wms_settings` key-value table** (01 §2: `id · key · value` jsonb;
+**new settings = new rows under a new key in `constants/wms-setting-keys.ts`, never new
+columns**) exposed as `getSetting(db, key, fallback)` / `setSetting(db, key, value)`,
+keys namespaced `<domain>.<name>`. An absent row **behaves exactly like its default**
+(`WMS_SETTING_DEFAULTS`, read through the named accessors `getStockCountBlind` /
+`getReservationAutoReturnDays`) — provisioning seeds nothing, so "never written" and
+"written to the default" are indistinguishable to every reader. **No
 controller in v1** — it's backend-internal; a settings API lands only when a user-facing
-setting appears. First consumer: `wms.last_replenishment_mapping` (§6). Second key —
-`notifications.manager_user_id` (owner 2026-07-20): the configured **CMS-manager**
-who receives replenishment approval/failure warnings (01 §2), read via `getSetting`
-by the replenishment notifier (§6, 11 §2); provisioned at tenant setup (no v1
-controller — an in-tenant editor is a later add).
+setting appears.
+
+~~a per-tenant **Durable Object fronts it as a read cache**~~ (owner 2026-07-21) —
+**dropped 2026-08-08** along with the cross-cutting `modules/settings/` home: Postgres is
+the source of truth and these reads are neither hot nor frequent. Add a cache only if
+they ever become so.
+
+Keys, in the order they land: `wms.last_replenishment_mapping` (§6 — the mapper-prefill
+memory), `wms.stock_count_blind` (§4 counts, default `true`), `wms.reservation_auto_return_days`
+(00 §6 #10, default 3). **`notifications.manager_user_id` no longer lives here** — the
+2026-08-08 scope-down made this store WMS-local, so the configured **CMS-manager** who
+receives replenishment approval/failure warnings (owner 2026-07-20; 01 §2, §6, 11 §2)
+**needs a home of its own** (likely the notifications module) before 07/11 build those
+warnings. Provisioned at tenant setup either way — an in-tenant editor is a later add.
 
 ## 2. Warehouses + storage nodes — `warehouses.controller.ts`
 
@@ -115,11 +127,41 @@ balance at the source, `409 insufficient_stock` per lot-location). Location payl
 node must belong to the warehouse (`400 node_warehouse_mismatch`). Everything runs the
 01 §3 transaction.
 
+**Built 2026-08-22 — the shipped surface, beyond what the table below already said:**
+
+- **`pieces` rides every lot body** (user 2026-08-08, optional, default 0): `quantity` is
+  the content, `pieces` the physical packages, and both move together. A source is
+  refused on *either* dimension — 200 nails may leave an open bag with no bag leaving,
+  but three bags cannot leave a shelf holding two (`409 insufficient_stock` names which).
+- **Lot expiry is a property of the LOT, not of the receipt.** Whatever `expires_at` is
+  already stored for a `(material, lotNumber)` wins over an `expiresAt` in the body — on
+  top-up *and* at a fresh location — and a transfer copies the source row's date to the
+  destination. A split lot never disagrees with itself about when it expires.
+- **`Idempotency-Key` header** (optional, ≤200 chars, 00 §6 #21) on all three write
+  endpoints: a replay returns the ORIGINAL movement, same `201`, same body — a retrying
+  offline client should not have to branch on whether its first attempt got through.
+  Over-long → `400 invalid_idempotency_key`. Without a key there is no replay protection;
+  the same request twice books twice, by design.
+- **`400 same_location`** — a transfer whose source and destination are the same location
+  is refused rather than journaled: the balances would net to zero and the journal would
+  gain a row describing nothing having moved.
+- **Readjust-in accepts `serials`** (creating pieces that exist physically but were never
+  received) as well as `materialUnitIds` (restoring pieces that left). Restoring a unit
+  that is *already* in stock is `409 unit_not_available` — that would journal an increase
+  that never happened, and moving a live piece is what `transfer` is for. `serials` on a
+  readjust-**out** is a `400`.
+- **Scope is judged before shape.** A technician's transfer answers the self-checkout
+  constraints before any body-semantics error, so a malformed body never doubles as a
+  probe of which warehouses exist.
+- **A serialized out that is not a write-off leaves the unit `consumed`**, not `lost`:
+  both are out of stock, but "scrapped" and "handed to the client" are not the same
+  event and the write-off reason list is what tells them apart.
+
 | Endpoint | Roles | Body |
 |---|---|---|
 | `POST /stock/inbound` | owner/admin/office | `{ materialId, to, quantity? \| serials?: string[] \| (lotNumber + quantity), reason, notes? }` — serialized inbound **creates the `material_units` rows** (`409 serial_exists`); lot inbound creates/tops-up the lot at `to`. Reason `replenishment` is **admin-selectable here** (owner 2026-07-20 — occasional ad-hoc replenishments, each its own append-only trail entry); **non-admins (office) still get `400 use_replenishment_flow`** — bulk restock stays a document (07). SUPERSEDES the blanket reject (proposed 2026-07-19) |
 | `POST /stock/transfer` | owner/admin/office/**technician** | `{ materialId, from, to, quantity? \| materialUnitIds?: uuid[] \| (lotNumber + quantity), reason, notes? }` — units must be `in_stock` at `from` (`409 unit_not_available`); lot transfers draw from that lot's balance at `from`. **Technician = self-checkout, server-enforced:** `to` must be their assigned warehouse (`403 not_own_van`; none assigned → `409 no_assigned_warehouse`), `from` must not be another technician's warehouse (`403 source_forbidden`), reason forced `relocation` (`400 invalid_reason_context`) |
-| `POST /stock/readjust` | owner/admin | `{ direction, materialId, at, quantity? \| materialUnitIds? \| (lotNumber + quantity), reason, notes }` — **notes required** (validator). Out on serialized flips units to `lost` when reason ∈ `damaged_material`/`stock_cleaning`/`doa`/`scrap` (else they leave stock as plain out); in restores/creates per reason. This is the only correction instrument |
+| `POST /stock/readjust` | owner/admin | `{ direction, materialId, at, quantity? \| materialUnitIds? \| serials? (in only) \| (lotNumber + quantity + pieces?), reason, notes }` — **notes required** (validator). Out on serialized flips units to `lost` when reason ∈ `damaged_material`/`stock_cleaning`/`doa`/`scrap` (else they leave stock as plain out); in restores/creates per reason. This is the only correction instrument |
 | `GET /movements?materialId&warehouseId&nodeId&reportId&replenishmentId&lotNumber&type&reason&from&to&page&limit` | owner/admin/office/technician | Paged, newest first; `warehouseId` matches either side. Rows: type, direction?, reason `{ code, label }`, material, quantity/units, **lotNumber?**, from/to (warehouse+node names), user, report/replenishment links, notes, createdAt. **Technician scope (server-side):** only movements touching their own van or their own reports |
 
 **No `PATCH`/`DELETE` route exists under `/stock` or `/movements` — do not add one.**
@@ -156,6 +198,15 @@ and an `applied`/`cancelled` session is terminal (its lines stay as the count re
 | `GET /movement-reasons` | any authenticated | Full list — active + inactive, `builtIn` flagged; clients filter for selects, history joins render inactive labels |
 | `POST /movement-reasons` | owner/admin | `{ label, appliesTo: ReasonContext[] }` (≥1; `consumption` not offerable — reserved for `report_binding`). Code slugged server-side, collision-suffixed; returns the def |
 | `PATCH /movement-reasons/:id` | owner/admin | `{ label?, active? }` — custom only (`403 builtin_locked`); `code` immutable. **No DELETE endpoint** |
+
+**Built 2026-08-22.** The slug folds accents and collapses everything non-alphanumeric to
+`_`, so a custom code reads like the snake_case built-ins; collisions take a `-2`, `-3`
+suffix (01 §2) and the insert retries on the unique index, because two admins adding the
+same label at the same moment both read the same free code. Custom reasons are always
+created `requiresNote: false` — the two reasons that force a note are built-ins
+(00 §6 #23) and making it configurable was not asked for. The list is deliberately
+unpaged and unfiltered: 14 built-ins plus whatever a tenant adds is a select's worth of
+rows, and history needs the inactive ones to render its labels.
 
 ## 6. Replenishments — `replenishments.controller.ts`
 
@@ -254,7 +305,9 @@ and evidence now live in dedicated buckets.) Detail + asks: `07-replenishments.m
 `count_not_found` · `count_not_open` · `count_empty` (owner 2026-07-21, §6 #29) ·
 `invalid_assignment_level` · `incomplete_assignment` · `assignee_not_found` ·
 `warehouse_not_locatable` (the four added with the 2026-08-21 assignment/locatability
-columns) — each a typed error in `wms/http-errors/`,
+columns) ·
+`same_location` · `note_required` · `invalid_idempotency_key` (2026-08-22, with the stock
+ops) — each a typed error in `wms/http-errors/`,
 mapped in the owning controller (400 validation · 403 role/scope · 404 missing ·
 409 conflict).
 
@@ -286,12 +339,25 @@ the services-catalog precedent (18 §4) — tens of rows, every picker wants all
 and a truncated self-checkout source list would be wrong. Paging stands for materials
 and movements.
 
-### CP-2 — Stock ops + reasons
-- [ ] §4 inbound/transfer/readjust + movements query; §5 reasons CRUD-minus-delete;
-      seed verified via API
-- [ ] Self-checkout constraint tests (destination, source, reason — all three rejected
-      paths); append-only grep + 404 on PATCH/DELETE attempts
-- [ ] Technician movement scoping test (own van + own reports only)
+### CP-2 — Stock ops + reasons — **done 2026-08-22**
+- [x] §4 inbound/transfer/readjust + `GET /movements`; §5 reasons CRUD-minus-delete;
+      the 14 seeds verified through the API against the TS mirror. Plus the settings
+      store (§1) — no controller, backend-internal, defaults bound to their keys
+- [x] Self-checkout constraint tests (destination, source, reason — all three rejected
+      paths, plus the no-van case); append-only — the movements repository exposes
+      insert + select and nothing else (grep-provable), and PATCH/DELETE under `/stock`
+      and `/movements` 404
+- [x] Technician movement scoping test (own van + own reports only; a colleague's
+      technician sees none of it, office sees all of it)
+- [x] **01 CP-2 invariants, tested here** because this is the slice that can move stock:
+      the signed journal equals the materialized balance across an inbound + transfer +
+      both readjust directions; a unit ends where its last movement says; and two
+      parallel draws off one balance land exactly one `201` and one
+      `409 insufficient_stock`, never a negative balance
+- [x] `test/wms-stock.test.ts` — 39 tests, per-suite fixture prefix `wms-test-st-`.
+      **The `movements` rows a test writes are permanent**: the journal is append-only,
+      so `afterAll` soft-deletes the warehouses and materials and leaves their history
+      behind, exactly as production does
 
 ### CP-3 — Replenishments + report materials
 - [ ] §6 import endpoints: upload + field detection (three formats, sample rows,

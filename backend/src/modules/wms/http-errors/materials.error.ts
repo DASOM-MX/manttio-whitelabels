@@ -41,3 +41,14 @@ export class MaterialHasStockError extends Error {
     this.name = 'MaterialHasStockError';
   }
 }
+
+/** The material named by a stock operation does not exist (or is soft-deleted).
+ *  The catalog's own reads answer a missing row with `null` → 404 in the
+ *  controller; the stock endpoints throw instead, because a stock body names
+ *  three things that can be missing and a bare `null` would not say which. */
+export class MaterialNotFoundError extends Error {
+  constructor(public readonly materialId: string) {
+    super(`material ${materialId} not found`);
+    this.name = 'MaterialNotFoundError';
+  }
+}
