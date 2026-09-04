@@ -71,12 +71,23 @@ export type QuotationEmailParams = {
   token: string;
   isReviewer: boolean;
   message?: string;
+  /** Set only for a recipient contact with a **live** portal user (superadmin
+   *  26 §6 rollout companion). A contact with no portal access gets no
+   *  mention of it — the token page stays their only entrance (00 §3.9). */
+  portalLink?: string;
 };
 
 /** The public token page lives on the API, not the SPA (20 §4, decided
  *  2026-07-24) — same shape as `/reports/download/{token}`. */
 export const quotationPublicLink = (apiBaseUrl: string, token: string) =>
   `${apiBaseUrl.replace(/\/+$/, '')}/public/quotations/${token}`;
+
+/** Where a recipient with portal access can also log in — a *second*
+ *  entrance the email offers alongside the token link, never a replacement
+ *  for it (00 §3.9). Same construction as the invite/reset emails
+ *  (`portal/helpers/portal-email.helpers.ts`). */
+export const portalLoginLink = (portalBaseUrl: string) =>
+  new URL('/login', portalBaseUrl).toString();
 
 export const renderQuotationEmailSubject = (p: QuotationEmailParams) =>
   `Cotización ${p.folio} · ${p.brand.name ?? 'Cotización'}`;
@@ -94,6 +105,7 @@ export const renderQuotationEmailHTML = (p: QuotationEmailParams) =>
     link: quotationPublicLink(p.apiBaseUrl, p.token),
     message: p.message,
     isReviewer: p.isReviewer,
+    portalLink: p.portalLink,
     palette: paletteFromBrand(p.brand.colors),
   });
 
@@ -116,6 +128,9 @@ export const renderQuotationEmailText = (p: QuotationEmailParams) => {
     quotationPublicLink(p.apiBaseUrl, p.token),
     '',
     'El total es indicativo e incluye IVA según la tasa de cada partida.',
+    ...(p.portalLink
+      ? ['', `También puedes consultarla desde el portal de clientes: ${p.portalLink}`]
+      : []),
   ];
   return lines.filter((l) => l !== '').join('\n');
 };
