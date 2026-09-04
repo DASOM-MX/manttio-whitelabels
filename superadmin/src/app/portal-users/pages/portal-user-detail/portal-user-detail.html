@@ -1,0 +1,61 @@
+@if (selected(); as user) {
+  <app-page-header [title]="user.name" [description]="user.email" backLink="/portal-users" backLabel="Volver a portal de clientes">
+    <span meta>
+      <p-tag [severity]="user.status | portalUserStatusSeverity" [value]="user.status | portalUserStatusLabel" />
+    </span>
+  </app-page-header>
+
+  <form (ngSubmit)="submit()" class="card-section flex flex-col gap-5">
+    <div>
+      <h3 class="section-heading">Permisos</h3>
+      <app-portal-grants-fieldset [grants]="grantsForm" />
+    </div>
+
+    <p class="field-hint">
+      Cada cambio se guarda como una nueva concesión o una revocación con fecha — nunca se borra,
+      así que quién tuvo acceso en el pasado sigue siendo consultable.
+    </p>
+
+    <div class="flex justify-end">
+      <button type="submit" class="btn-primary" [disabled]="!grantsForm.dirty || saving()">
+        @if (saving()) {
+          <span
+            class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+            aria-hidden="true"
+          ></span>
+          Guardando…
+        } @else {
+          Guardar permisos
+        }
+      </button>
+    </div>
+  </form>
+
+  <div class="card-section mt-5 flex flex-col gap-3">
+    <h3 class="section-heading">Administrador del portal</h3>
+    <div class="flex items-center gap-2">
+      <span class="field-label">Administra el portal de este cliente</span>
+      @if (user.isAdmin) {
+        <p-tag severity="contrast" value="Sí" />
+      } @else {
+        <p-tag severity="secondary" value="No" />
+      }
+    </div>
+    <p class="field-hint">
+      Hoy confiere un solo poder: cerrar solicitudes de servicio de este cliente. No es un rol
+      general y no sustituye los permisos de arriba — un cliente puede tener varios
+      administradores, o ninguno. Se define al invitar; editarlo desde aquí llega en una entrega
+      futura.
+    </p>
+    @if (showAdminWarning()) {
+      <div class="callout callout--warn" role="alert">
+        Este administrador no tiene Crear solicitudes de servicio — no verá solicitudes que
+        cerrar.
+      </div>
+    }
+  </div>
+} @else {
+  <div class="card-section">
+    <span class="skeleton !h-32 !w-full"></span>
+  </div>
+}

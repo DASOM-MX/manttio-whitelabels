@@ -30,6 +30,7 @@
     [loading]="tableBusy.showSkeleton()"
     [class.table-refreshing]="tableBusy.refreshing()"
     [showLoader]="false"
+    [rowHover]="true"
     dataKey="id"
   >
     <ng-template #header>
@@ -45,10 +46,11 @@
       </tr>
     </ng-template>
 
-    <!-- Read-only in CP-1: rows open nothing, so they carry no click target
-         beyond the client deep link. -->
+    <!-- Whole row opens the standalone grants editor (26 CP-3); the
+         customer cell keeps its own deep link into 07 and stops the row
+         click so the two targets never fight. -->
     <ng-template #body let-portalUser>
-      <tr>
+      <tr class="cursor-pointer" (click)="openUser(portalUser)">
         <td>
           <span class="flex items-center gap-3">
             <span class="lead-avatar" aria-hidden="true">
@@ -57,7 +59,7 @@
             <span class="font-bold">{{ portalUser | portalUserName }}</span>
           </span>
         </td>
-        <td>
+        <td (click)="$event.stopPropagation()">
           @if (portalUser.customerName) {
             <a [routerLink]="['/customers', portalUser.customerId]" class="link-action">{{
               portalUser.customerName

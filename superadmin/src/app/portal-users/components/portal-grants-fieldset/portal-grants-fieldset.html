@@ -1,0 +1,25 @@
+<div [formGroup]="grants()" class="grid gap-5 sm:grid-cols-2">
+  @for (group of groups; track group.title) {
+    <fieldset class="flex flex-col gap-3">
+      <legend class="field-label mb-1">{{ group.title }}</legend>
+      @for (grant of group.grants; track grant) {
+        <div class="flex items-start gap-2">
+          <p-checkbox [formControlName]="grant" [binary]="true" [inputId]="'grant-' + grant" />
+          <label [attr.for]="'grant-' + grant" class="cursor-pointer">
+            <span class="block text-sm font-bold text-surface-1000 dark:text-surface-0">
+              {{ grant | portalGrantLabel }}
+            </span>
+            <span class="field-hint block">
+              {{ grant | portalGrantHelperText }}
+              <!-- Compared against the loop's raw grant string rather than
+                   importing PortalGrant into the template (01 hard rule 2). -->
+              @if (grant === 'view_quotations' && approveChecked()) {
+                Requerido por Aprobar cotizaciones — se desmarcan juntas.
+              }
+            </span>
+          </label>
+        </div>
+      }
+    </fieldset>
+  }
+</div>

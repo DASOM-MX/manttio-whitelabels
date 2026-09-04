@@ -24,3 +24,18 @@ export interface PortalUserListItem {
   lockedUntil: string | null;
   createdAt: string;
 }
+
+/** `GET /portal-users/:id` (26 CP-3) — thin by contract: staff-admin display
+ *  for one portal user, not the list row. No customer name, no surnames, no
+ *  last-login/invited-by/locked-until — those live only on the list read
+ *  (26 §1); this is the grants-editor's own shape. */
+export interface PortalUserDetail {
+  id: string;
+  email: string;
+  name: string;
+  status: PortalUserStatus;
+  isAdmin: boolean;
+  /** Live grants only — same contract as the list row. */
+  grants: PortalGrant[];
+}
+

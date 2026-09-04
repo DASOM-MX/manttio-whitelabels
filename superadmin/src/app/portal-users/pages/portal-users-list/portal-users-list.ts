@@ -1,6 +1,6 @@
 import { Component, inject, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormControl } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
@@ -23,6 +23,7 @@ import { PortalUserStatusSeverityPipe } from '../../../pipes/portal-user-status-
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { PortalUsersFilters } from '../../components/portal-users-filters/portal-users-filters';
 import { InvitePortalUserDialog } from '../../components/invite-portal-user-dialog/invite-portal-user-dialog';
+import type { PortalUserListItem } from '../../../data/dtos/portal-user/portal-user';
 import type { PortalUserListQuery } from '../../../data/dtos/portal-user/portal-user-requests';
 
 /** Portal access list (26 §1) — every external person who can log into the
@@ -30,10 +31,11 @@ import type { PortalUserListQuery } from '../../../data/dtos/portal-user/portal-
  *  was invited and never came in?" are cross-customer questions.
  *
  *  "Invitar" opens the dialog (26 CP-2) — the only door into the portal, and
- *  the only place that grants it (decision 27). Rows still carry no action:
- *  the grants editor and the lifecycle actions land in CP-3/CP-4. Filters +
- *  page persist as GET query params (?q&status&customerId&grant&page) through
- *  ListQueryService (users-list is canon). */
+ *  the only place that grants it (decision 27). A row opens the standalone
+ *  grants editor (26 CP-3); lifecycle actions (resend, reset, suspend,
+ *  reactivate, revoke) land in CP-4. Filters + page persist as GET query
+ *  params (?q&status&customerId&grant&page) through ListQueryService
+ *  (users-list is canon). */
 @Component({
   selector: 'app-portal-users-list',
   imports: [
@@ -58,6 +60,7 @@ import type { PortalUserListQuery } from '../../../data/dtos/portal-user/portal-
 })
 export class PortalUsersList {
   private store = inject(Store);
+  private router = inject(Router);
   protected list = inject(ListQueryService);
 
   protected portalUsers = select(PortalUsersState.items);
@@ -113,6 +116,10 @@ export class PortalUsersList {
 
   protected openInvite(): void {
     this.inviteDialog()?.open();
+  }
+
+  protected openUser(portalUser: PortalUserListItem): void {
+    this.router.navigate(['/portal-users', portalUser.id]);
   }
 
   /** No item to step back from — an invite only ever adds a row — so any
