@@ -54,8 +54,108 @@
       </div>
     }
   </div>
+
+  <div class="card-section mt-5 flex flex-col gap-4">
+    <h3 class="section-heading">Acceso</h3>
+
+    @if (user.status === 'invited') {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-sm font-bold text-surface-900 dark:text-surface-100">
+            Reenviar invitación
+          </p>
+          <p class="mt-0.5 max-w-md text-sm text-surface-600 dark:text-surface-400">
+            Genera una nueva contraseña temporal y la envía por correo. La invitación anterior
+            deja de funcionar.
+          </p>
+        </div>
+        <button
+          type="button"
+          class="btn-primary"
+          (click)="resendInvite()"
+          [disabled]="lifecycleBusy()"
+        >
+          <svg lucideMailPlus class="size-4" aria-hidden="true"></svg>
+          Reenviar invitación
+        </button>
+      </div>
+    } @else {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-sm font-bold text-surface-900 dark:text-surface-100">
+            Restablecer contraseña
+          </p>
+          <p class="mt-0.5 max-w-md text-sm text-surface-600 dark:text-surface-400">
+            Genera una nueva contraseña temporal y la envía por correo; la actual deja de
+            funcionar.
+          </p>
+        </div>
+        <button
+          type="button"
+          class="btn-danger"
+          (click)="resetPassword()"
+          [disabled]="lifecycleBusy()"
+        >
+          <svg lucideKeyRound class="size-4" aria-hidden="true"></svg>
+          Restablecer
+        </button>
+      </div>
+    }
+
+    <hr class="border-surface-100 dark:border-surface-800" />
+
+    @if (user.status === 'suspended') {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-sm font-bold text-surface-900 dark:text-surface-100">Reactivar acceso</p>
+          <p class="mt-0.5 max-w-md text-sm text-surface-600 dark:text-surface-400">
+            Podrá iniciar sesión de nuevo con sus credenciales actuales.
+          </p>
+        </div>
+        <button type="button" class="btn-primary" (click)="resume()" [disabled]="lifecycleBusy()">
+          <svg lucideUserCheck class="size-4" aria-hidden="true"></svg>
+          Reactivar
+        </button>
+      </div>
+    } @else {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-sm font-bold text-surface-900 dark:text-surface-100">Suspender acceso</p>
+          <p class="mt-0.5 max-w-md text-sm text-surface-600 dark:text-surface-400">
+            Bloquea el inicio de sesión de inmediato; el contacto y su historial se conservan.
+            Reversible.
+          </p>
+        </div>
+        <button type="button" class="btn-danger" (click)="suspend()" [disabled]="lifecycleBusy()">
+          <svg lucideUserX class="size-4" aria-hidden="true"></svg>
+          Suspender
+        </button>
+      </div>
+    }
+  </div>
+
+  <div class="card-section mt-5 flex flex-col gap-3 !border-red-200 dark:!border-red-900/60">
+    <h3 class="micro-label !text-red-700 dark:!text-red-400">Zona crítica</h3>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p class="text-sm font-bold text-surface-900 dark:text-surface-100">
+          Revocar acceso al portal
+        </p>
+        <p class="mt-0.5 max-w-md text-sm text-surface-600 dark:text-surface-400">
+          Permanente. Su contacto se conserva y puede volver a invitarse más adelante — solo el
+          inicio de sesión deja de funcionar. Requiere un motivo.
+        </p>
+      </div>
+      <button type="button" class="btn-danger" (click)="openRevoke()">
+        <svg lucideShieldOff class="size-4" aria-hidden="true"></svg>
+        Revocar acceso
+      </button>
+    </div>
+  </div>
 } @else {
   <div class="card-section">
     <span class="skeleton !h-32 !w-full"></span>
   </div>
 }
+
+<app-revoke-portal-user-access-dialog #revokeDialog (revoked)="onRevoked()" />
