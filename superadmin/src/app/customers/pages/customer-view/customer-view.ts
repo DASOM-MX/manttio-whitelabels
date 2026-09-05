@@ -20,6 +20,7 @@ import {
 } from '@lucide/angular';
 import { select, Store } from '@ngxs/store';
 import { CustomersState } from '../../../../state/customers/customers.state';
+import { AuthState } from '../../../../state/auth/auth.state';
 import {
   LoadCustomer,
   SaveCustomerContacts,
@@ -27,11 +28,14 @@ import {
 } from '../../../../state/customers/customers.actions';
 import { CustomerStatus } from '../../../data/dtos/customer';
 import type { CustomerContact } from '../../../data/dtos/customer';
+import type { PortalContactAccess } from '../../../data/dtos/portal-user/portal-contact-access';
 import {
   CustomerSourceLabelPipe,
   CustomerStatusLabelPipe,
   CustomerStatusSeverityPipe,
 } from '../../../pipes/customer-status.pipe';
+import { PortalUserStatusLabelPipe } from '../../../pipes/portal-user-status-label.pipe';
+import { PortalUserStatusSeverityPipe } from '../../../pipes/portal-user-status-severity.pipe';
 import { AddContactDialog } from '../../components/add-contact-dialog/add-contact-dialog';
 import { ChangeStatusDialog } from '../../../crm/components/change-status-dialog/change-status-dialog';
 import { CustomerTimeline } from '../../../crm/components/customer-timeline/customer-timeline';
@@ -40,13 +44,20 @@ import { CustomerReportsCard } from '../../../reports/components/customer-report
 import { CustomerQuotationsCard } from '../../../quotations/components/customer-quotations-card/customer-quotations-card';
 import { CustomerContractsCard } from '../../../contracts/components/customer-contracts-card/customer-contracts-card';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
+import { CustomersService } from '../../../services/http/customers.service';
 import { errorMessage } from '../../../data/utils';
 
 /** Client detail (07 §3): 360 header + General/Contactos/Fiscal tabs, plus the
  *  live CRM surface (08) — status change dialog, inline follow-up, blacklist
  *  banner, and the activity timeline in its own "Actividad" tab. Quick-contact
  *  buttons open the channel AND jump to the timeline composer pre-filled with
- *  the matching type (08 §2.1) — logging is one save away, never automatic. */
+ *  the matching type (08 §2.1) — logging is one save away, never automatic.
+ *
+ *  Contactos rows also carry a read-only portal-access indicator (26 CP-5):
+ *  owner/admin only (`GET /customers/:id/portal-access` is ADMIN_TIER,
+ *  narrower than this page's own office access), matched on `contactId`
+ *  never email, and never a grant surface — decision 27 forbids any invite
+ *  or pre-fill from here. Depends on backend PR #220. */
 @Component({
   selector: 'app-customer-view',
   imports: [
@@ -59,6 +70,8 @@ import { errorMessage } from '../../../data/utils';
     CustomerStatusLabelPipe,
     CustomerStatusSeverityPipe,
     CustomerSourceLabelPipe,
+    PortalUserStatusLabelPipe,
+    PortalUserStatusSeverityPipe,
     ChangeStatusDialog,
     CustomerTimeline,
     AddContactDialog,
@@ -82,11 +95,28 @@ import { errorMessage } from '../../../data/utils';
 export class CustomerView {
   private store = inject(Store);
   private route = inject(ActivatedRoute);
+  private customers = inject(CustomersService);
   private messages = inject(MessageService);
 
   protected customer = select(CustomersState.selected);
   protected loadFailed = select(CustomersState.selectedError);
   protected customerId: string = this.route.snapshot.paramMap.get('id') ?? '';
+
+  private me = select(AuthState.me);
+  private portalAccess = signal<PortalContactAccess[]>([]);
+
+  /** Each live contact paired with its portal-access row, matched on
+   *  `contactId` — never email (01 §1: a portal user's email drifts
+   *  independently of its contact's after invite). `null` covers both "no
+   *  matching row" and a matched row with `status: null` (never invited or
+   *  revoked — the shape deliberately can't tell those apart, 26 CP-5). */
+  protected contactsWithAccess = computed(() => {
+    const access = new Map(this.portalAccess().map((a) => [a.contactId, a]));
+    return (this.customer()?.contacts ?? []).map((contact) => ({
+      contact,
+      access: contact.id ? (access.get(contact.id) ?? null) : null,
+    }));
+  });
 
   /** Which detail tab is showing — a signal so quick-contact can switch to
    *  "actividad" before pre-filling the composer. */
@@ -152,7 +182,16 @@ export class CustomerView {
   });
 
   constructor() {
-    if (this.customerId) this.store.dispatch(new LoadCustomer(this.customerId));
+    if (this.customerId) {
+      this.store.dispatch(new LoadCustomer(this.customerId));
+      // Read-only enrichment, own quiet failure (07's own load already
+      // surfaces the page-level error; a 403/500 here just means the
+      // Contactos tab shows no portal column, not a toast on top of it).
+      this.customers.portalAccess(this.customerId).subscribe({
+        next: (rows) => this.portalAccess.set(rows),
+        error: () => this.portalAccess.set([]),
+      });
+    }
 
     this.followUp.valueChanges.pipe(takeUntilDestroyed()).subscribe((date) => {
       if (this.syncingFollowUp) return;

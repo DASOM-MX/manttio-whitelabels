@@ -17,6 +17,7 @@ import type {
   Interaction,
   InteractionListQuery,
 } from '../../data/dtos/interaction';
+import type { PortalContactAccess } from '../../data/dtos/portal-user/portal-contact-access';
 
 @Injectable({ providedIn: 'root' })
 export class CustomersService {
@@ -97,6 +98,12 @@ export class CustomersService {
       .pipe(map((res) => this.unwrap(res)));
   }
 
+  /** `GET /customers/:id/portal-access` (26 CP-5, PR #220) — the 07
+   *  contact-row indicator's read. ADMIN_TIER (owner + admin); office can
+   *  view a customer but not this. Bare array, one row per live contact. */
+  portalAccess(id: string): Observable<PortalContactAccess[]> {
+    return this.remote.get<PortalContactAccess[]>(`/customers/${id}/portal-access`);
+  }
 
   private unwrap(res: CustomerResponse): Customer {
     return this.normalize('customer' in res ? res.customer : res);

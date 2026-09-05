@@ -235,14 +235,14 @@
           </div>
           @if (c.contacts.length) {
             <ul class="divide-y divide-surface-200 dark:divide-surface-800">
-              @for (contact of c.contacts; track contact.id ?? contact.name) {
+              @for (row of contactsWithAccess(); track row.contact.id ?? row.contact.name) {
                 <li class="flex flex-wrap items-center justify-between gap-2 py-2">
                   <div>
                     <p
                       class="flex items-center gap-1.5 text-sm font-bold text-surface-1000 dark:text-surface-0"
                     >
-                      {{ contact.name }}
-                      @if (contact.isDefault) {
+                      {{ row.contact.name }}
+                      @if (row.contact.isDefault) {
                         <span
                           class="inline-flex items-center gap-1 rounded-full bg-primary-100 px-2 py-0.5 text-xs font-bold text-primary-800 dark:bg-primary-1000/40 dark:text-primary-300"
                         >
@@ -251,33 +251,52 @@
                         </span>
                       }
                     </p>
-                    @if (contact.role) {
+                    @if (row.contact.role) {
                       <p class="text-xs text-surface-600 dark:text-surface-400">
-                        {{ contact.role }}
+                        {{ row.contact.role }}
                       </p>
                     }
+                    <!-- Read-only (decision 27): displays state, never
+                         grants or revokes. A revoked login reads
+                         identically to never-invited on purpose (26
+                         CP-5) — the shape can't tell them apart, so the
+                         UI doesn't try. -->
+                    <p class="mt-1 flex items-center gap-1.5">
+                      @if (row.access?.status; as status) {
+                        @if (status === 'invited' && !row.access?.lastLoginAt) {
+                          <p-tag severity="warn" value="Sin ingresar" />
+                        } @else {
+                          <p-tag
+                            [severity]="status | portalUserStatusSeverity"
+                            [value]="status | portalUserStatusLabel"
+                          />
+                        }
+                      } @else {
+                        <span class="text-xs text-surface-400">Sin acceso al portal</span>
+                      }
+                    </p>
                   </div>
                   <div class="flex items-center gap-3">
                     <div class="text-right">
-                      @if (contact.phone) {
+                      @if (row.contact.phone) {
                         <p
                           class="font-data text-sm tabular-nums text-surface-700 dark:text-surface-300"
                         >
-                          {{ contact.phone }}
+                          {{ row.contact.phone }}
                         </p>
                       }
-                      @if (contact.email) {
+                      @if (row.contact.email) {
                         <p class="text-sm text-surface-700 dark:text-surface-300">
-                          {{ contact.email }}
+                          {{ row.contact.email }}
                         </p>
                       }
                     </div>
-                    @if (!contact.isDefault) {
+                    @if (!row.contact.isDefault) {
                       <button
                         type="button"
                         class="row-action"
-                        (click)="makeDefault(contact)"
-                        [attr.aria-label]="'Marcar a ' + contact.name + ' como contacto principal'"
+                        (click)="makeDefault(row.contact)"
+                        [attr.aria-label]="'Marcar a ' + row.contact.name + ' como contacto principal'"
                         [attr.title]="'Marcar como principal'"
                       >
                         <svg lucideStar class="size-4" aria-hidden="true"></svg>
