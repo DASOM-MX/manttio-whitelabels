@@ -31,7 +31,7 @@ portalAuth.post('/login', zValidator('json', portalLoginSchema), async (c) => {
 
   // Turnstile verification (required).
   const remoteIp = c.req.header('cf-connecting-ip');
-  const verdict = await verifyTurnstileToken(c.env, input.turnstileToken, remoteIp);
+  const verdict = await verifyTurnstileToken(c.env, input.turnstileToken ?? '', remoteIp);
   if (!verdict.success) {
     return c.json({ error: 'turnstile_failed' }, 403);
   }
@@ -84,7 +84,7 @@ portalAuth.post('/forgot-password', zValidator('json', portalForgotPasswordSchem
 
   // Turnstile verification (required).
   const remoteIp = c.req.header('cf-connecting-ip');
-  const verdict = await verifyTurnstileToken(c.env, input.turnstileToken, remoteIp);
+  const verdict = await verifyTurnstileToken(c.env, input.turnstileToken ?? '', remoteIp);
   if (!verdict.success) {
     return c.json({ error: 'turnstile_failed' }, 403);
   }
