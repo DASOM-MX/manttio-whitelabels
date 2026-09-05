@@ -70,10 +70,23 @@
         </td>
         <td>{{ portalUser.email }}</td>
         <td>
-          <p-tag
-            [severity]="portalUser.status | portalUserStatusSeverity"
-            [value]="portalUser.status | portalUserStatusLabel"
-          />
+          <div class="flex flex-wrap items-center gap-1.5">
+            <p-tag
+              [severity]="portalUser.status | portalUserStatusSeverity"
+              [value]="portalUser.status | portalUserStatusLabel"
+            />
+            @if (portalUser.lockedUntil) {
+              <!-- The 2h A3 lockout is invisible to the customer by design
+                   (the login says nothing) — this is the only place staff can
+                   answer "no me deja entrar". Self-clears; no unlock action
+                   (26 §1). The backend nulls a lapsed lock before this ever
+                   arrives, so a non-null value here is always current. -->
+              <p-tag
+                severity="danger"
+                [value]="'Bloqueado hasta ' + (portalUser.lockedUntil | date: 'HH:mm')"
+              />
+            }
+          </div>
         </td>
         <td>
           <!-- Not a role: today it confers exactly one power, closing a
