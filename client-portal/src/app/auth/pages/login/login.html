@@ -28,7 +28,6 @@
             pInputText
             class="field-input w-full"
             placeholder="ejemplo@empresa.com"
-            (keyup.enter)="!form.invalid && onSubmit()"
           />
           @if (form.get('email')?.touched && form.get('email')?.errors?.['email']) {
             <p class="field-error" role="alert">
@@ -50,7 +49,6 @@
             [inputStyleClass]="'field-input w-full'"
             [feedback]="false"
             placeholder="Ingresa tu contraseña"
-            (keyup.enter)="!form.invalid && onSubmit()"
           />
           @if (form.get('password')?.touched && form.get('password')?.errors?.['required']) {
             <p class="field-error" role="alert">

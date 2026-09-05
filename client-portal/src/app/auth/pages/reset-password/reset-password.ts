@@ -1,8 +1,8 @@
-import { Component, inject, OnInit, signal, computed, effect } from '@angular/core';
+import { Component, inject, OnInit, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Store } from '@ngxs/store';
+import { select, Store } from '@ngxs/store';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -44,7 +44,7 @@ export class ResetPasswordComponent implements OnInit {
   submitted = signal(false);
   invalidToken = signal(false);
   token: string | null = null;
-  isLoading = computed(() => this.store.selectSnapshot(AuthState.loading));
+  readonly isLoading = select(AuthState.loading);
 
   ngOnInit() {
     // Extract token from query params
@@ -76,7 +76,7 @@ export class ResetPasswordComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.form.invalid || !this.token) return;
+    if (this.form.invalid || !this.token || this.isLoading()) return;
 
     const payload = {
       token: this.token,

@@ -1,9 +1,9 @@
-import { Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { Store } from '@ngxs/store';
+import { select, Store } from '@ngxs/store';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -45,8 +45,10 @@ export class ForgotPasswordComponent implements OnInit {
 
   form!: FormGroup;
   submitted = signal(false);
-  isLoading = computed(() => this.store.selectSnapshot(AuthState.loading));
+  readonly isLoading = select(AuthState.loading);
   turnstileError = signal<string>('');
+  /** Drives both the widget slot and whether a token is required. */
+  protected readonly turnstileConfigured = this.turnstileTheme.configured;
 
   ngOnInit() {
     this.form = this.fb.group({
@@ -59,16 +61,20 @@ export class ForgotPasswordComponent implements OnInit {
       .render('turnstile-widget')
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () =>
-          this.turnstileError.set('No pudimos cargar la verificación. Intenta de nuevo.'),
+        error: () => {
+          // No key configured is a supported state, not a failure to report.
+          if (this.turnstileConfigured) {
+            this.turnstileError.set('No pudimos cargar la verificación. Intenta de nuevo.');
+          }
+        },
       });
   }
 
   onSubmit() {
-    if (this.form.invalid) return;
+    if (this.form.invalid || this.isLoading()) return;
 
     const turnstileToken = this.turnstile.getToken('turnstile-widget');
-    if (!turnstileToken) {
+    if (this.turnstileConfigured && !turnstileToken) {
       this.turnstileError.set('Por favor completa la verificación');
       return;
     }
