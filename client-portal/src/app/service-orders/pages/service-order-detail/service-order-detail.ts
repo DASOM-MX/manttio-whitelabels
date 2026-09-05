@@ -15,6 +15,7 @@ import {
   ServiceOrderStatusSeverityPipe,
 } from '../../../pipes/service-order-status.pipe';
 import { ReportStatusLabelPipe, ReportStatusSeverityPipe } from '../../../pipes/report-status.pipe';
+import { VisitStatusLabelPipe, VisitStatusSeverityPipe } from '../../../pipes/visit-status.pipe';
 import { ServiceTaxRateLabelPipe } from '../../../pipes/service-tax-rate.pipe';
 import { MoneyPipe } from '../../../pipes/money.pipe';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
@@ -23,8 +24,8 @@ import { PortalGrant } from '../../../model/enums/portal-auth/portal-grants.enum
 /** Read-only service-order detail (04 §6): the order's scope lines, its
  *  linked reports and the quotation it was born from — deep-linking into
  *  each **only when the viewer holds the matching grant**, since a link into
- *  a guard rejection is worse than no link. Visits render as dates only,
- *  never the technician assignment behind them; there is no download route
+ *  a guard rejection is worse than no link. Visits render as a window and a
+ *  status, never the technician assignment behind them; there is no download route
  *  (an order is a detail page, not a document) and no priority anywhere on
  *  the wire shape (A15). */
 @Component({
@@ -38,6 +39,8 @@ import { PortalGrant } from '../../../model/enums/portal-auth/portal-grants.enum
     ServiceOrderStatusSeverityPipe,
     ReportStatusLabelPipe,
     ReportStatusSeverityPipe,
+    VisitStatusLabelPipe,
+    VisitStatusSeverityPipe,
     ServiceTaxRateLabelPipe,
     MoneyPipe,
     PageHeader,
