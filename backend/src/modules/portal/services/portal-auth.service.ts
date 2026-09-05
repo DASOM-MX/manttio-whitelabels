@@ -2,6 +2,7 @@ import type { Env } from '../../../env';
 import type { Db } from '../../database/client';
 import {
   findPortalUserByEmail,
+  findPortalUserByEmailForLogin,
   findPortalUserById,
   isPortalUserLocked,
   incrementFailedLoginAttempts,
@@ -25,6 +26,7 @@ import type {
 import type { PortalMeResponse } from '../dtos/portal-me.dto';
 import type { PortalGrant } from '../enums/portal-grants.enum';
 import { PortalUserStatus } from '../enums/portal-users.enum';
+import { PortalAccountSuspendedError } from '../http-errors/portal-account-suspended.error';
 import { findCustomerById } from '../../customers/repository/customers.repository';
 import { generateResetToken, hashResetToken } from '../utils/reset-token';
 import { sendEmail } from '../../email/services/email.service';
@@ -37,24 +39,25 @@ import { getBrand } from '../../brand/services/brand.service';
 import type { PortalLoginResult } from '../types/portal-auth.types';
 
 /**
- * Portal login with A3 lockout (5 fails → 2h cooldown). The lockout and status
- * are checked before password verification so a locked/suspended account answers
- * the same as an invalid password — no oracle.
+ * Portal login with A3 lockout (5 fails → 2h cooldown). The lockout is checked
+ * before password verification so a locked account answers the same as an
+ * invalid password — no oracle.
  *
- * Returns null when credentials don't match, are locked, or account is suspended/deleted.
+ * Returns null when credentials don't match or the account is locked; throws
+ * `PortalAccountSuspendedError` when staff suspended or revoked it.
  */
 export const portalLogin = async (
   db: Db,
   { email, password }: PortalLoginInput,
   secret: string,
 ): Promise<PortalLoginResult | null> => {
-  const user = await findPortalUserByEmail(db, email);
+  const user = await findPortalUserByEmailForLogin(db, email);
   if (!user) return null;
 
-  // Reject suspended or deleted accounts before password verification — same
-  // answer as wrong password so we don't leak account status.
+  // Suspended and revoked (soft-deleted) accounts both say so (owner
+  // 2026-09-05) — staff turned this access off, and the customer is told.
   if (user.status === PortalUserStatus.Suspended || user.deletedAt !== null) {
-    return null;
+    throw new PortalAccountSuspendedError();
   }
 
   // Check lockout before verifying the password so we don't leak whether the

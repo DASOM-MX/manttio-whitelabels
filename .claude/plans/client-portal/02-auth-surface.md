@@ -55,7 +55,7 @@ enforced one level down, on `customer_contacts` itself (01 §0).
 
 | Route | Behaviour |
 |---|---|
-| `POST /portal/auth/login` | `{ email, password }`. Invalid → `401 invalid_credentials`, the same body whether the email is unknown, the password wrong, the account suspended, **or the account locked**. A failure increments `failed_login_attempts`; the 5th sets `locked_until = now() + 2h` (A3). Success resets the counter, clears the lock and writes `last_login_at`. |
+| `POST /portal/auth/login` | `{ email, password }`. An unknown email, a wrong password **and a locked account** all answer `401 invalid_credentials` with the same body. **Amended 2026-09-05 (owner):** an account staff turned off — `suspended`, or revoked via soft delete — answers `401 account_suspended` with a human message instead, so the customer is told their access is off rather than left retyping a password that is correct. *(Superseded: one identical body for every cause, the suspended account included.)* A failure increments `failed_login_attempts`; the 5th sets `locked_until = now() + 2h` (A3). Success resets the counter, clears the lock and writes `last_login_at`. |
 | `POST /portal/auth/forgot-password` | `{ email }`. **Always `204`**, unknown address included — no account enumeration. On a match: create a `portal_password_resets` row (1h TTL, hashed token) and mail the link. |
 | `POST /portal/auth/reset-password` | `{ token, password }`. Looks up by token hash, rejects used/expired, sets the password, marks `used_at`, promotes **`invited` → `active`**, clears `must_change_password`, and **clears the A3 lockout**. A **suspended** account is never promoted and never mailed a token in the first place — otherwise the public reset is a way back in around a staff suspension (found in review, 2026-09-01). Only staff resume a suspended account. |
 
@@ -65,6 +65,12 @@ enforced one level down, on `customer_contacts` itself (01 §0).
   isolates share no state, so an in-memory counter counts nothing.
 - A locked account answers `401 invalid_credentials` like every other failure. Saying "locked"
   would confirm the address exists and hand an attacker a working oracle.
+- **The lock stays anonymous; a staff switch-off does not** (owner 2026-09-05). `suspended` and
+  revoked accounts answer `account_suspended` — a real customer is owed the reason, and staff
+  turned that access off deliberately. A *locked* account keeps the generic body: that lock is
+  usually the attacker's own doing, so naming it only helps them. The login lookup is therefore
+  the one read that sees soft-deleted rows (`findPortalUserByEmailForLogin`, live row first);
+  every other read still filters them, and forgot-password still answers 204 for all three.
 - The lock is time-based and self-clearing; no staff unlock action is required, though the
   superadmin 26 detail page shows `locked_until` so support can explain a call.
 - A **successful** login resets `failed_login_attempts` to 0 and clears `locked_until` in the
