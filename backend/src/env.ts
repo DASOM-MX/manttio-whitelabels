@@ -15,6 +15,9 @@ export type Env = {
   /** Cloudflare Turnstile secret for server-side siteverify on the public
    *  lead endpoint. Dev uses the always-pass test secret (see .dev.vars.example). */
   TURNSTILE_SECRET_KEY: string;
+  /** Local-only bypass for Turnstile verification (`'true'` to skip). Set in
+   *  `.dev.vars` only — never in wrangler.toml, so it cannot reach a deploy. */
+  DEV_SKIP_TURNSTILE?: string;
 
   ENVIRONMENT: Environment;
   CDN_BASE_URL: string;
