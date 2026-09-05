@@ -15,7 +15,7 @@ import { PORTAL_USER_STATUS_LABELS } from '../../../model/constants/portal-user/
 import { PortalGrant } from '../../../model/enums/portal-user/portal-grant.enum';
 import { PortalUserStatus } from '../../../model/enums/portal-user/portal-user-status.enum';
 import { InitialsPipe } from '../../../pipes/initials.pipe';
-import { PortalGrantLabelPipe } from '../../../pipes/portal-grant-label.pipe';
+import { PortalGrantCountPipe } from '../../../pipes/portal-grant-count.pipe';
 import { PortalInviteUnusedPipe } from '../../../pipes/portal-invite-unused.pipe';
 import { PortalUserNamePipe } from '../../../pipes/portal-user-name.pipe';
 import { PortalUserStatusLabelPipe } from '../../../pipes/portal-user-status-label.pipe';
@@ -44,7 +44,7 @@ import type { PortalUserListQuery } from '../../../data/dtos/portal-user/portal-
     TableModule,
     TagModule,
     InitialsPipe,
-    PortalGrantLabelPipe,
+    PortalGrantCountPipe,
     PortalInviteUnusedPipe,
     PortalUserNamePipe,
     PortalUserStatusLabelPipe,

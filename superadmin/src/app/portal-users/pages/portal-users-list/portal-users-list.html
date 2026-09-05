@@ -85,19 +85,17 @@
           }
         </td>
         <td>
-          <div class="flex max-w-56 flex-wrap gap-1">
-            @for (grant of portalUser.grants; track grant) {
-              <span
-                class="rounded-full bg-surface-100 px-2 py-0.5 text-xs font-bold text-surface-700 dark:bg-surface-800 dark:text-surface-300"
-                >{{ grant | portalGrantLabel }}</span
-              >
-            } @empty {
-              <!-- Allowed, and not an error — but never rendered as normal
-                   either: that account sees an explanatory home and nothing
-                   else (26 §3). -->
-              <p-tag severity="warn" value="Sin permisos" />
-            }
-          </div>
+          <!-- The count, not the labels: eight chips wrapped to four lines and
+               blew out the row height. The full set is one click away in the
+               grants editor this row opens. -->
+          @if (portalUser.grants.length) {
+            <span class="whitespace-nowrap">{{ portalUser.grants | portalGrantCount }}</span>
+          } @else {
+            <!-- Allowed, and not an error — but never rendered as normal
+                 either: that account sees an explanatory home and nothing
+                 else (26 §3). -->
+            <p-tag severity="warn" value="Sin permisos" />
+          }
         </td>
         <td>
           @if (portalUser.lastLoginAt) {
