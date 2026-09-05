@@ -1,7 +1,8 @@
 # 10-wms / 02 — API surface (backend)
 
-> **Status:** not-started · **Depends on:** 01
-> **Owner:** — · **Last updated:** 2026-07-19
+> **Status:** in-progress — **§2 warehouses + storage nodes shipped 2026-08-21**
+> (`modules/wms/`, first half of CP-1); §3 materials next · **Depends on:** 01
+> **Owner:** — · **Last updated:** 2026-08-21
 
 The complete WMS endpoint catalog: paths, role gates, validator shapes, responses, and
 error codes. Follows `backend/CLAUDE.md` to the letter: thin controllers
@@ -62,18 +63,30 @@ controller — an in-tenant editor is a later add).
 
 ## 2. Warehouses + storage nodes — `warehouses.controller.ts`
 
+**Response shape (2026-09-03, `backend/CLAUDE.md` 21 CP-1).** The three unpaged
+reads here — `GET /warehouses`, `GET /warehouses/tree`, `GET /warehouses/:id/nodes`
+— answer with a **bare array**, not an `{ items }` or `{ warehouses }` wrapper.
+They are roster reads: no page, no limit, and a `total` could only restate the
+array's own length, so the wrapper carries no information. `GET /customers/all`
+and `GET /services/all` set the precedent. `GET /warehouses/:id/stock` keeps its
+`{ entries, units, lots }` object — that is three distinct lists in one
+response, not a list wrapper. Paged reads elsewhere in this module (§3 materials,
+§4 movements, §6 replenishments) use `GenericQueryResponse<T>`
+(`{ items, total, page, limit }`) instead.
+
+
 | Endpoint | Roles | Notes |
 |---|---|---|
 | `GET /warehouses` | owner/admin/office/technician | Flat, `?parentId=` filter. Technician calls it for self-checkout source lists — service **excludes other technicians' warehouses** for them (a) |
-| `GET /warehouses/tree` | owner/admin/office | Roots with nested subs + `assignedTechnician { id, name }` + per-warehouse stock summary `{ materialCount, unitCount }` — feeds the list page |
+| `GET /warehouses/tree` | owner/admin/office | Roots with nested subs + `assignedUser { id, name, role }` + per-warehouse `stockSummary { materialCount, unitCount }` — feeds the list page. **`assignedUser` supersedes `assignedTechnician`** (user 2026-08-21): the column became `assigned_user_id` + `assignment_role`, so the badge carries WHAT the person is to the location. `materialCount` counts distinct materials across the three tracking modes (a material has exactly one, so the three counts sum exactly); `unitCount` is total on-hand amount, mixed UoM summed — a "how loaded is this place" badge, not a valuation |
 | `GET /warehouses/:id` | owner/admin/office + assigned technician (own van — 09) | Detail incl. derived `type` |
 | `POST /warehouses` | owner/admin | `{ name, parentId?, address?, notes? }` — parent must be a root (`400 invalid_parent`) |
-| `PATCH /warehouses/:id` | owner/admin | Same fields; re-parenting allowed while empty only |
+| `PATCH /warehouses/:id` | owner/admin | Same fields; re-parenting allowed while empty only. `null` CLEARS a field, `undefined` leaves it — so **the coordinate pair moves together in both directions**: dropping the pin is `{ latitude: null, longitude: null }`, and clearing one side alone is a `400` (it would violate `warehouses_coords_pair_check`). Locatability is judged on the MERGED row, so a PATCH that erases the last locator answers `400 warehouse_not_locatable` |
 | `DELETE /warehouses/:id` | owner/admin | Soft; empty-only (`409 warehouse_not_empty`); cascades soft-delete to its nodes |
-| `POST /warehouses/:id/assign-technician` | owner/admin | `{ userId: uuid \| null }` — null unassigns. FK-validates the user is a technician (`400 not_a_technician`); partial unique → `409 technician_already_assigned` |
+| `POST /warehouses/:id/assign-technician` | owner/admin | `{ userId: uuid \| null, role?: AssignmentRole }` — null unassigns (and takes no role). **Path deliberately unchanged; the body gained `role`** (user 2026-08-21): assignee and role are stored together (`warehouses_assignment_role_check`), so an assignment without one cannot exist — a body with only one side is `400`. `role: technician` is the VAN marker and carries both rules: the user must actually hold the technician role (`400 not_a_technician`) and may hold only one van (`409 technician_already_assigned`, a service rule — a supervisor or leader may hold any number, which is why the index is not unique). Unknown user → `400 assignee_not_found` |
 | `GET /warehouses/:id/nodes?parentNodeId=` | owner/admin/office + assigned technician | Lazy children (roots when param absent) with `hasChildren` |
-| `POST /warehouses/:id/nodes` | owner/admin | `{ parentNodeId?, type, name }` — rank rule (`400 invalid_parent_type`), name unique in parent (`409 duplicate_node_name`) |
-| `PATCH /warehouses/:id/nodes/:nodeId` | owner/admin | `{ name }` only — type immutable, no move in v1 |
+| `POST /warehouses/:id/nodes` | owner/admin | `{ parentNodeId?, type, name, description?, locationReference?, assignedUserId?, assignmentRole? }` — rank rule (`400 invalid_parent_type`), name unique in parent (`409 duplicate_node_name`), parent must belong to this warehouse (`400 node_warehouse_mismatch`). The last four columns landed 2026-08-21; the write surface followed in the same pass (user), since a column with no endpoint is unreachable. Assignment is level-checked — only a `warehouse` or `storage_unit` node may carry one (`400 invalid_assignment_level`) — pairs user+role or neither (`400 incomplete_assignment`), and `assignmentRole: technician` still means an actual technician (`400 not_a_technician`) |
+| `PATCH /warehouses/:id/nodes/:nodeId` | owner/admin | `{ name?, description?, locationReference?, assignedUserId?, assignmentRole? }` — **type immutable, no move in v1** (neither `type` nor `parentNodeId` is accepted). Nullable fields clear on `null`. The assignment pair is judged on the MERGED row, so `{ assignmentRole }` alone is a role change on an already-assigned node, while clearing one side alone is `400 incomplete_assignment` |
 | `DELETE /warehouses/:id/nodes/:nodeId` | owner/admin | Soft; empty-only (`409 node_not_empty`) |
 | `GET /warehouses/:id/stock?nodeId=` | owner/admin/office + assigned technician | Stock at the location: unserialized `{ material, quantity }[]` + serialized units in `in_stock` |
 
@@ -237,7 +250,10 @@ and evidence now live in dedicated buckets.) Detail + asks: `07-replenishments.m
 `not_own_report` · `report_not_editable` · `unparseable_file` · `invalid_mapping` ·
 `import_not_pending` · `import_not_ready` · `import_not_rejected` · `import_not_cancellable` · `import_has_errors` · `import_in_progress` ·
 `missing_lot` · `bad_expiry` ·
-`count_not_found` · `count_not_open` · `count_empty` (owner 2026-07-21, §6 #29) — each a typed error in `wms/http-errors/`,
+`count_not_found` · `count_not_open` · `count_empty` (owner 2026-07-21, §6 #29) ·
+`invalid_assignment_level` · `incomplete_assignment` · `assignee_not_found` ·
+`warehouse_not_locatable` (the four added with the 2026-08-21 assignment/locatability
+columns) — each a typed error in `wms/http-errors/`,
 mapped in the owning controller (400 validation · 403 role/scope · 404 missing ·
 409 conflict).
 
@@ -246,10 +262,18 @@ mapped in the owning controller (400 validation · 403 role/scope · 404 missing
 ## Checkpoints
 
 ### CP-1 — Structure + catalog endpoints
-- [ ] §2 warehouses/nodes + §3 materials live with role gates + error codes; office
-      read-only verified (mutations 403)
-- [ ] Vitest coverage per resource (fixture pattern per `backend/CLAUDE.md` Testing —
-      WMS fixtures cleaned by a `wms-test-` name prefix)
+- [x] §2 warehouses/nodes live with role gates + error codes; office read-only verified
+      (mutations 403) — 2026-08-21, `modules/wms/{controllers,services,repository,validators,http-errors}`
+- [ ] §3 materials live with role gates + error codes
+- [x] Vitest coverage for §2 (`test/wms-warehouses.test.ts`; fixtures carry the
+      `wms-test-` name prefix and are soft-deleted in `afterAll`)
+- [ ] Vitest coverage for §3
+
+**Unpaged by design (2026-08-21):** §1 says every list endpoint is paged, but §2's own
+rows never ask for `page`/`limit` while §3/§4/§6 do. Warehouses and storage nodes follow
+the services-catalog precedent (18 §4) — tens of rows, every picker wants all of them,
+and a truncated self-checkout source list would be wrong. Paging stands for materials
+and movements.
 
 ### CP-2 — Stock ops + reasons
 - [ ] §4 inbound/transfer/readjust + movements query; §5 reasons CRUD-minus-delete;
