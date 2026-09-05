@@ -30,6 +30,12 @@ export type InvitePortalUserInput = z.infer<typeof invitePortalUserSchema>;
 
 export const updatePortalUserGrantsSchema = z.object({
   grants: grantList,
+  // Optional, no default (owner, 2026-09-04). `is_admin` is not a grant
+  // (superadmin 26 §3b) — it shares this route's body only because the
+  // shipped editor saves both from one form. `.default(false)` would coerce
+  // every grants-only PATCH into demoting an existing admin; the service must
+  // see `undefined` to know the key was left out and leave the column alone.
+  isAdmin: z.boolean().optional(),
 });
 
 export type UpdatePortalUserGrantsInput = z.infer<typeof updatePortalUserGrantsSchema>;

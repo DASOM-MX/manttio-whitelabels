@@ -35,3 +35,12 @@ export interface PortalUserListItem {
   lockedUntil: string | null;
   createdAt: string;
 }
+
+/** Response body for `PATCH /portal-users/:id/grants` (owner, 2026-09-04).
+ *  `isAdmin` always reflects the row's current value: taken from the request
+ *  when that key was present, read back unchanged otherwise — a grants-only
+ *  PATCH must never move it. */
+export interface PortalUserGrantsUpdateResult {
+  grants: PortalGrant[];
+  isAdmin: boolean;
+}
