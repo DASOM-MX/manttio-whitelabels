@@ -1,0 +1,212 @@
+<p-dialog
+  [visible]="dialogOpen()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [closable]="!submitting()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="dialog-lg"
+  header="Invitar al portal"
+>
+  <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-5">
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="field-group">
+        <label class="field-label" for="invite-customer">Cliente<span aria-hidden="true"> *</span></label>
+        <app-customer-select
+          inputId="invite-customer"
+          formControlName="customerId"
+          placeholder="Elige un cliente"
+        />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="invite-contact">Contacto<span aria-hidden="true"> *</span></label>
+        @if (!customerChosen()) {
+          <p class="field-hint pt-2.5">Elige primero un cliente.</p>
+        } @else if (loadingContacts()) {
+          <span class="skeleton !h-10"></span>
+        } @else if (!hasNoContacts()) {
+          <p-select
+            inputId="invite-contact"
+            formControlName="contactId"
+            [options]="contactOptions()"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Elige un contacto"
+          />
+        }
+      </div>
+    </div>
+
+    @if (hasNoContacts()) {
+      <!-- Not a UI shortcut: an invite needs a saved contact with an email
+           on file — a client with none has nobody to invite. -->
+      <div class="callout callout--warn" role="alert">
+        <p class="font-bold">Este cliente no tiene contactos con correo registrado.</p>
+        <p class="mt-1">Agrega un contacto o corrige su correo antes de invitarlo al portal.</p>
+        <a [routerLink]="['/customers', form.controls.customerId.value]" class="link-action mt-2">
+          Ir al cliente
+        </a>
+      </div>
+    }
+
+    @if (selectedContact(); as contact) {
+      <!-- Text, never an editable field (26 §2) — a wrong address is fixed on
+           the contact, not typed into a credential. -->
+      <p class="text-sm text-surface-600 dark:text-surface-400">
+        Correo de invitación:
+        <span class="font-bold text-surface-1000 dark:text-surface-0">{{ contact.email }}</span>
+      </p>
+    }
+
+    <div>
+      <h3 class="section-heading">Permisos</h3>
+      <div class="grid gap-5 sm:grid-cols-2">
+        <fieldset class="flex flex-col gap-3">
+          <legend class="field-label mb-1">Consultar</legend>
+
+          <div class="flex items-start gap-2">
+            <p-checkbox formControlName="viewReports" [binary]="true" inputId="grant-view-reports" />
+            <label for="grant-view-reports" class="cursor-pointer">
+              <span class="block text-sm font-bold text-surface-1000 dark:text-surface-0">Reportes</span>
+              <span class="field-hint block">Consultar los reportes de servicio del cliente.</span>
+            </label>
+          </div>
+
+          <div class="flex items-start gap-2">
+            <p-checkbox formControlName="viewContracts" [binary]="true" inputId="grant-view-contracts" />
+            <label for="grant-view-contracts" class="cursor-pointer">
+              <span class="block text-sm font-bold text-surface-1000 dark:text-surface-0">Contratos</span>
+              <span class="field-hint block">Consultar los contratos vigentes del cliente.</span>
+            </label>
+          </div>
+
+          <div class="flex items-start gap-2">
+            <p-checkbox formControlName="viewQuotations" [binary]="true" inputId="grant-view-quotations" />
+            <label for="grant-view-quotations" class="cursor-pointer">
+              <span class="block text-sm font-bold text-surface-1000 dark:text-surface-0">
+                Cotizaciones
+              </span>
+              <span class="field-hint block">
+                Consultar cotizaciones enviadas.
+                @if (approveQuotationsChecked()) {
+                  Requerido por Aprobar cotizaciones — se desmarcan juntas.
+                }
+              </span>
+            </label>
+          </div>
+
+          <div class="flex items-start gap-2">
+            <p-checkbox
+              formControlName="viewServiceOrders"
+              [binary]="true"
+              inputId="grant-view-service-orders"
+            />
+            <label for="grant-view-service-orders" class="cursor-pointer">
+              <span class="block text-sm font-bold text-surface-1000 dark:text-surface-0">
+                Órdenes de servicio
+              </span>
+              <span class="field-hint block">Consultar el estado de las órdenes de servicio.</span>
+            </label>
+          </div>
+
+          <div class="flex items-start gap-2">
+            <p-checkbox formControlName="viewEquipment" [binary]="true" inputId="grant-view-equipment" />
+            <label for="grant-view-equipment" class="cursor-pointer">
+              <span class="block text-sm font-bold text-surface-1000 dark:text-surface-0">Equipos</span>
+              <span class="field-hint block">
+                Abre el catálogo de equipos instalados. Independiente de Crear solicitudes: quien
+                solicita servicio ya tiene un buscador de equipos dentro del formulario, aunque no
+                tenga este permiso.
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="flex flex-col gap-3">
+          <legend class="field-label mb-1">Actuar</legend>
+
+          <div class="flex items-start gap-2">
+            <p-checkbox
+              formControlName="approveQuotations"
+              [binary]="true"
+              inputId="grant-approve-quotations"
+            />
+            <label for="grant-approve-quotations" class="cursor-pointer">
+              <span class="block text-sm font-bold text-surface-1000 dark:text-surface-0">
+                Aprobar cotizaciones
+              </span>
+              <span class="field-hint block">
+                Aprobar o rechazar cotizaciones. Requiere Consultar cotizaciones — se marca junto con
+                este permiso, porque no tiene sentido aprobar algo que no se puede leer.
+              </span>
+            </label>
+          </div>
+
+          <div class="flex items-start gap-2">
+            <p-checkbox
+              formControlName="createServiceRequests"
+              [binary]="true"
+              inputId="grant-create-service-requests"
+            />
+            <label for="grant-create-service-requests" class="cursor-pointer">
+              <span class="block text-sm font-bold text-surface-1000 dark:text-surface-0">
+                Crear solicitudes de servicio
+              </span>
+              <span class="field-hint block">
+                Abre el formulario para solicitar servicio, con su propio buscador de equipos.
+              </span>
+            </label>
+          </div>
+
+          <div class="flex items-start gap-2">
+            <p-checkbox
+              formControlName="cancelServiceRequests"
+              [binary]="true"
+              inputId="grant-cancel-service-requests"
+            />
+            <label for="grant-cancel-service-requests" class="cursor-pointer">
+              <span class="block text-sm font-bold text-surface-1000 dark:text-surface-0">
+                Cancelar solicitudes de servicio
+              </span>
+              <span class="field-hint block">
+                Retirar solicitudes que ya están en manos del personal. Independiente de poder
+                crearlas.
+              </span>
+            </label>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div class="flex items-start gap-2">
+        <p-checkbox formControlName="isAdmin" [binary]="true" inputId="invite-admin" />
+        <label for="invite-admin" class="cursor-pointer">
+          <span class="field-label">Administra el portal de este cliente</span>
+          <span class="field-hint block">
+            Hoy confiere un solo poder: cerrar solicitudes de servicio del cliente. No es un rol
+            general y no sustituye los permisos de arriba — un cliente puede tener varios
+            administradores, o ninguno.
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <button type="button" class="btn-neutral" (click)="close()" [disabled]="submitting()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn-primary" [disabled]="!canSubmit()">
+        @if (submitting()) {
+          <span
+            class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+            aria-hidden="true"
+          ></span>
+          Enviando…
+        } @else {
+          Invitar
+        }
+      </button>
+    </div>
+  </form>
+</p-dialog>

@@ -8,7 +8,13 @@
     [customer]="customerFilter"
     [grant]="grantFilter"
   />
+  <button type="button" class="btn-primary" (click)="openInvite()">
+    <svg lucideUserPlus class="size-4" aria-hidden="true"></svg>
+    Invitar
+  </button>
 </app-page-header>
+
+<app-invite-portal-user-dialog #inviteDialog (invited)="onInvited()" />
 
 <div>
   <p-table
