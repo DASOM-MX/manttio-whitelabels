@@ -120,8 +120,14 @@ append-only tables** modelled on it (01 §6d). None of the three downloads write
   reports. **No priority column (A15)** — it is an internal dispatch signal, and exposing it
   invites an argument about it.
 - **Detail:** the order's scope lines, its linked reports (deep-linking into §3 when the user
-  also has `view_reports`), its visits as **dates only** — not technician assignment churn —
-  and the linked quotation when there is one.
+  also has `view_reports`), its visits, and the linked quotation when there is one.
+- **Visits, amended 2026-09-05 (owner):** each visit carries its **scheduled window**
+  (`scheduledStart` + nullable `scheduledEnd`) and its **status** — the customer needs to know
+  what is still coming and what has already been served. *(Superseded: dates only.)* What the
+  original rule was protecting is unchanged and still holds: **no technician**, no reassignment
+  history, no `closeReason`/`closeNote`. `closed` visits stay out — a visit that was never
+  served is replaced by a successor row, and showing both promises two appointments that were
+  really one.
 - **Timeline:** the customer does **not** see `service_order_events`. That trail is the staff
   audit; a customer-facing summary of it is a later decision, not a v1 default.
 - **Stripped:** costs, margins, **priority**, technician assignment history, internal notes,

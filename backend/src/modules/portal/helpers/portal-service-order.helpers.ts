@@ -46,5 +46,9 @@ export const toPortalServiceOrderDetail = (
   quotationId: extras.quotationId,
   lines: extras.lines,
   linkedReports: extras.linkedReports,
-  visitDates: extras.visitDates.map((d) => d.toISOString()),
+  visits: extras.visits.map((v) => ({
+    scheduledStart: v.scheduledStart.toISOString(),
+    scheduledEnd: v.scheduledEnd?.toISOString() ?? null,
+    status: v.status,
+  })),
 });

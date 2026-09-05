@@ -6,6 +6,7 @@ import type {
   PortalQuotationReviewer,
 } from '../dtos/portal-quotation.dto';
 import type { PortalServiceOrderLine } from '../dtos/portal-service-order.dto';
+import type { VisitStatus } from '../../visits/enums/visits.enum';
 import type { PortalGrant } from '../enums/portal-grants.enum';
 
 /** The portal JWT's claim set (02 §1). Signed with `PORTAL_JWT_SECRET`, never
@@ -75,11 +76,19 @@ export interface PortalServiceOrderListExtras {
   reportCount: number;
 }
 
+/** A visit row as the repository reads it — timestamps still `Date`, mapped to
+ *  the wire shape by `toPortalServiceOrderDetail`. */
+export interface PortalServiceOrderVisitRow {
+  scheduledStart: Date;
+  scheduledEnd: Date | null;
+  status: VisitStatus;
+}
+
 export interface PortalServiceOrderDetailExtras extends PortalServiceOrderListExtras {
   quotationId: string | null;
   lines: PortalServiceOrderLine[];
   linkedReports: PortalLinkedReport[];
-  visitDates: Date[];
+  visits: PortalServiceOrderVisitRow[];
 }
 
 export interface PortalEquipmentListExtras {

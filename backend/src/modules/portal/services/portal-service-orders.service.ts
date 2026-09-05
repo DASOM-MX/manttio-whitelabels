@@ -15,7 +15,7 @@ import {
   listPortalServiceOrders,
   releasedReportCountsForOrders,
   releasedReportsForOrder,
-  visitDatesForOrder,
+  visitsForOrder,
 } from '../repository/portal-service-orders.repository';
 import { mapPage } from '../utils/portal-page';
 import type { PortalServiceOrdersQuery } from '../validators/portal-reads.validator';
@@ -46,10 +46,10 @@ export const getServiceOrderForPortal = async (
   const found = await findPortalServiceOrder(db, customerId, id);
   if (!found) return null;
 
-  const [lines, linkedReports, visitDates] = await Promise.all([
+  const [lines, linkedReports, visits] = await Promise.all([
     listOrderLines(db, found.row.id),
     releasedReportsForOrder(db, found.row.id),
-    visitDatesForOrder(db, found.row.id),
+    visitsForOrder(db, found.row.id),
   ]);
 
   return toPortalServiceOrderDetail(found.row, {
@@ -60,6 +60,6 @@ export const getServiceOrderForPortal = async (
     quotationId: found.quotationId,
     lines: lines.map(toPortalServiceOrderLine),
     linkedReports,
-    visitDates,
+    visits,
   });
 };

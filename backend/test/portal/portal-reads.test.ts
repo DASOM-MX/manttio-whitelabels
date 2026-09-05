@@ -333,16 +333,19 @@ describe('portal read surfaces', () => {
       expect(body.items[0]?.reportCount).toBe(1);
     });
 
-    it('detail links only the released reports and shows visits as dates', async () => {
+    it('detail links only the released reports and shows visits with window + status', async () => {
       const res = await get(`/portal/service-orders/${ctx.openOrder.id}`, ctx.reader.token);
       expect(res.status).toBe(200);
       const body = await json<{
         linkedReports: { id: string }[];
-        visitDates: string[];
+        visits: { scheduledStart: string; scheduledEnd: string | null; status: string }[];
         lines: { serviceName: string }[];
       }>(res);
       expect(body.linkedReports.map((r) => r.id)).toEqual([ctx.releasedReport.id]);
-      expect(Array.isArray(body.visitDates)).toBe(true);
+      expect(Array.isArray(body.visits)).toBe(true);
+      for (const visit of body.visits) {
+        expect(Object.keys(visit).sort()).toEqual(['scheduledEnd', 'scheduledStart', 'status']);
+      }
       expect(body.lines.length).toBe(1);
       expect(Object.keys(body)).not.toContain('comments');
     });

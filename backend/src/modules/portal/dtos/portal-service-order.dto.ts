@@ -1,4 +1,5 @@
 import type { ServiceOrderStatus } from '../../service-orders/enums/service-orders.enum';
+import type { VisitStatus } from '../../visits/enums/visits.enum';
 import type { PortalLinkedReport } from './portal-report.dto';
 import type { PortalPricedLine } from './portal-priced-line.dto';
 
@@ -21,12 +22,22 @@ export interface PortalServiceOrderListItem {
   createdAt: string;
 }
 
+/** One visit on the order (04 §6, amended 2026-09-05): when it is booked, and
+ *  how it went. Still no technician — the assignment churn behind a visit stays
+ *  staff-side. `closed` visits never reach here; their successor row does. */
+export interface PortalServiceOrderVisit {
+  scheduledStart: string;
+  scheduledEnd: string | null;
+  status: VisitStatus;
+}
+
 /** `comments` is absent by design: the order's staff-side dispatch notes are
  *  exactly the "internal notes" 04 §6 strips. */
 export interface PortalServiceOrderDetail extends PortalServiceOrderListItem {
   quotationId: string | null;
   lines: PortalServiceOrderLine[];
   linkedReports: PortalLinkedReport[];
-  /** Dates only (04 §6) — never the technician assignment churn behind them. */
-  visitDates: string[];
+  /** Date, window and status (04 §6, amended 2026-09-05) — never the
+   *  technician assignment churn behind them. */
+  visits: PortalServiceOrderVisit[];
 }
