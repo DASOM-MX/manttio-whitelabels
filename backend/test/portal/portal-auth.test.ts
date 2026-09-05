@@ -439,4 +439,70 @@ describe('portal auth', () => {
       expect(after!.status).toBe(PortalUserStatus.Suspended);
     });
   });
+  /**
+   * Suspended and revoked accounts name themselves at login (owner 2026-09-05,
+   * superseding 02 §3's identical body). A locked account still does not — that
+   * lock is usually the attacker's own doing.
+   */
+  describe('accounts staff turned off', () => {
+    const db = () => createDb((env as unknown as WorkerEnv).DATABASE_URL);
+
+    async function login(email: string, password: string) {
+      return request('/portal/auth/login', {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: JSON.stringify({ email, password, turnstileToken: 'tok-test' }),
+      });
+    }
+
+    it('tells a suspended account it is disabled, right password or not', async () => {
+      const user = await seedPortalUser();
+      await db()
+        .update(portalUsers)
+        .set({ status: PortalUserStatus.Suspended })
+        .where(eq(portalUsers.id, user.id));
+
+      const right = await login(user.email, user.password);
+      expect(right.status).toBe(401);
+      const body = await json<{ error: string; message?: string }>(right);
+      expect(body.error).toBe('account_suspended');
+      expect(body.message).toBeTruthy();
+
+      // The refusal precedes password verification, so it is no password
+      // oracle and never feeds the A3 counter.
+      const wrong = await login(user.email, 'wrong-password');
+      expect(wrong.status).toBe(401);
+      expect((await json<{ error: string }>(wrong)).error).toBe('account_suspended');
+
+      const [after] = await db()
+        .select()
+        .from(portalUsers)
+        .where(eq(portalUsers.id, user.id));
+      expect(after!.failedLoginAttempts).toBe(0);
+    });
+
+    it('answers the same for a revoked account the login lookup still sees', async () => {
+      const user = await seedPortalUser();
+      await db()
+        .update(portalUsers)
+        .set({ deletedAt: new Date() })
+        .where(eq(portalUsers.id, user.id));
+
+      const res = await login(user.email, user.password);
+      expect(res.status).toBe(401);
+      expect((await json<{ error: string }>(res)).error).toBe('account_suspended');
+    });
+
+    it('still hides a locked account behind invalid_credentials', async () => {
+      const user = await seedPortalUser();
+      await db()
+        .update(portalUsers)
+        .set({ lockedUntil: new Date(Date.now() + 60 * 60 * 1000) })
+        .where(eq(portalUsers.id, user.id));
+
+      const res = await login(user.email, user.password);
+      expect(res.status).toBe(401);
+      expect((await json<{ error: string }>(res)).error).toBe('invalid_credentials');
+    });
+  });
 });

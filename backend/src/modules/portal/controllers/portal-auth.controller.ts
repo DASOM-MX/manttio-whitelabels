@@ -17,13 +17,15 @@ import {
 } from '../services/portal-auth.service';
 import { portalJwtMiddleware } from '../middleware/portal-jwt.middleware';
 import { verifyTurnstileToken } from '../../turnstile/services/turnstile.service';
+import { PortalAccountSuspendedError } from '../http-errors/portal-account-suspended.error';
 
 export const portalAuth = new Hono<AppBindings>();
 
 /**
  * POST /portal/auth/login — portal credentials with A3 lockout.
- * Invalid credentials (email unknown, password wrong, locked account, or
- * suspended/deleted) all answer 401 invalid_credentials.
+ * Unknown email, wrong password and a locked account all answer 401
+ * invalid_credentials. An account staff turned off — suspended or revoked — is
+ * the one exception and says so: 401 account_suspended (owner 2026-09-05).
  */
 portalAuth.post('/login', zValidator('json', portalLoginSchema), async (c) => {
   const db = createDb(c.env.DATABASE_URL);
@@ -36,11 +38,24 @@ portalAuth.post('/login', zValidator('json', portalLoginSchema), async (c) => {
     return c.json({ error: 'turnstile_failed' }, 403);
   }
 
-  const result = await portalLogin(db, input, c.env.PORTAL_JWT_SECRET);
-  if (!result) {
-    return c.json({ error: 'invalid_credentials' }, 401);
+  try {
+    const result = await portalLogin(db, input, c.env.PORTAL_JWT_SECRET);
+    if (!result) {
+      return c.json({ error: 'invalid_credentials' }, 401);
+    }
+    return c.json(result);
+  } catch (err) {
+    if (err instanceof PortalAccountSuspendedError) {
+      return c.json(
+        {
+          error: 'account_suspended',
+          message: 'Tu cuenta está deshabilitada. Contacta a tu proveedor.',
+        },
+        401,
+      );
+    }
+    throw err;
   }
-  return c.json(result);
 });
 
 /**

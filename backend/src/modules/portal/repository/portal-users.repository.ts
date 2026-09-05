@@ -27,6 +27,23 @@ export async function findPortalUserByEmail(db: Db, email: string) {
 }
 
 /**
+ * The login lookup: same email, soft-deleted rows included, live row first.
+ * Login is the one read that must see a revoked account — it answers those
+ * `account_suspended` rather than "wrong password" (owner 2026-09-05). Every
+ * other read stays on `findPortalUserByEmail`.
+ */
+export async function findPortalUserByEmailForLogin(db: Db, email: string) {
+  const result = await db
+    .select()
+    .from(portalUsers)
+    .where(eq(portalUsers.email, email))
+    .orderBy(sql`${portalUsers.deletedAt} nulls first`, desc(portalUsers.createdAt))
+    .limit(1);
+
+  return result[0] ?? null;
+}
+
+/**
  * Find the live portal user for a contact, if any.
  *
  * This — not email — is the key `portal_users_contact_active_idx` enforces
