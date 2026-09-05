@@ -37,6 +37,10 @@ export type QuotationEmailHtmlParams = {
    *  The copy has to differ — telling someone to approve a quote they have no
    *  token to approve is a support ticket. */
   isReviewer: boolean;
+  /** Set only for a recipient with a live portal user — renders a second,
+   *  smaller link under the CTA. Absent, the email is unchanged from before
+   *  the portal existed (00 §3.9). */
+  portalLink?: string;
   palette: QuotationEmailPalette;
 };
 
@@ -98,6 +102,11 @@ export const quotationEmailHtml = (p: QuotationEmailHtmlParams): string => {
           <p style="margin:12px 0 0;font-size:12px;line-height:1.6;color:${c.muted}">
             El total es indicativo e incluye IVA según la tasa de cada partida. La cotización pierde vigencia el ${escapeHtml(p.validUntil)}.
           </p>
+          ${
+            p.portalLink
+              ? `<p style="margin:8px 0 0;font-size:12px;line-height:1.6;color:${c.muted}">También puedes consultarla desde el <a href="${escapeHtml(p.portalLink)}" style="color:${c.accent}">portal de clientes</a>.</p>`
+              : ''
+          }
         </td></tr>
         <tr><td style="background:${c.accent};padding:16px 28px">
           <p style="margin:0;font-size:12px;color:${c.footerText}">${brand}</p>

@@ -104,6 +104,8 @@ portalUsers.get('/:id', requireRole(ADMIN_TIER), async (c) => {
 /**
  * PATCH /portal-users/:id/grants — update a portal user's grants.
  * Revokes grants not in the new list, adds grants in the new list.
+ * `isAdmin` is optional (owner, 2026-09-04): sent, it writes `is_admin`
+ * directly; omitted, the column is left exactly as it was.
  */
 portalUsers.patch(
   '/:id/grants',
@@ -118,8 +120,8 @@ portalUsers.patch(
     const input = c.req.valid('json');
 
     try {
-      const grants = await updatePortalUserGrants(db, actor, id.data, input.grants);
-      return c.json({ grants });
+      const result = await updatePortalUserGrants(db, actor, id.data, input.grants, input.isAdmin);
+      return c.json(result);
     } catch (err) {
       if (err instanceof PortalUserNotFoundError) {
         return c.json({ error: 'not_found' }, 404);

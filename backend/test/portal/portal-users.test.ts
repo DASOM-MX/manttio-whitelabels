@@ -9,6 +9,7 @@ import {
   seedCustomer,
   seedContact,
   seedTechnician,
+  seedPortalUser,
 } from '../helpers/fixtures';
 import { request, json, jsonHeaders } from '../helpers/request';
 import { mockResend, lastResendSend } from '../helpers/resend';
@@ -231,6 +232,71 @@ describe('Portal Users (Staff) — CP-4', () => {
       });
 
       expect(res.status).toBe(404);
+    });
+
+    // Owner, 2026-09-04: a grants-only PATCH (what the shipped editor sends on
+    // every ordinary save) must leave is_admin exactly as it was — absent is
+    // not the same as false.
+    it('leaves is_admin untouched when the key is omitted from the PATCH', async () => {
+      const contact = await seedContact(customerId);
+      const res1 = await request('/portal-users', {
+        method: 'POST',
+        headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({
+          contactId: contact.id,
+          grants: ['view_reports'],
+          isAdmin: true,
+        }),
+      });
+      const { id: userId } = await json<any>(res1);
+
+      // Grants-only PATCH, no isAdmin key at all.
+      const res2 = await request(`/portal-users/${userId}/grants`, {
+        method: 'PATCH',
+        headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({
+          grants: ['view_reports', 'view_quotations'],
+        }),
+      });
+
+      expect(res2.status).toBe(200);
+      const body = await json<any>(res2);
+      expect(body.isAdmin).toBe(true);
+
+      const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
+      const [row] = await db.select().from(portalUsers).where(eq(portalUsers.id, userId));
+      expect(row!.isAdmin).toBe(true);
+    });
+
+    it('writes is_admin when the key is present in the PATCH', async () => {
+      const contact = await seedContact(customerId);
+      const res1 = await request('/portal-users', {
+        method: 'POST',
+        headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({
+          contactId: contact.id,
+          grants: ['view_reports'],
+          isAdmin: false,
+        }),
+      });
+      const { id: userId } = await json<any>(res1);
+
+      const res2 = await request(`/portal-users/${userId}/grants`, {
+        method: 'PATCH',
+        headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({
+          grants: ['view_reports'],
+          isAdmin: true,
+        }),
+      });
+
+      expect(res2.status).toBe(200);
+      const body = await json<any>(res2);
+      expect(body.isAdmin).toBe(true);
+
+      const db = createDb((env as { DATABASE_URL: string }).DATABASE_URL);
+      const [row] = await db.select().from(portalUsers).where(eq(portalUsers.id, userId));
+      expect(row!.isAdmin).toBe(true);
     });
   });
 
@@ -583,5 +649,61 @@ describe('Portal Users (Staff) — CP-4', () => {
       // 01 §3: approving a document you cannot open is not a state we represent.
       expect(res.status).toBe(400);
     });
+  });
+});
+
+describe('GET /customers/:id/portal-access — per-contact indicator (26 §6, CP-5)', () => {
+  mockResend();
+
+  it('returns every live contact, with status null for one with no portal user', async () => {
+    const { token: adminToken } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const withAccess = await seedContact(customer.id);
+    const without = await seedContact(customer.id);
+    await seedPortalUser({ customerId: customer.id, contactId: withAccess.id });
+
+    const res = await request(`/customers/${customer.id}/portal-access`, {
+      headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+    });
+    expect(res.status).toBe(200);
+    const body = await json<any[]>(res);
+
+    const withRow = body.find((r) => r.contactId === withAccess.id);
+    const withoutRow = body.find((r) => r.contactId === without.id);
+    expect(withRow?.status).toBe('invited');
+    expect(withRow?.portalUserId).toBeTruthy();
+    expect(withoutRow?.status).toBeNull();
+    expect(withoutRow?.portalUserId).toBeNull();
+    expect(withoutRow?.lastLoginAt).toBeNull();
+  });
+
+  it('reports no access after the portal user is revoked (soft-deleted)', async () => {
+    const { token: adminToken } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const contact = await seedContact(customer.id);
+    const portalUser = await seedPortalUser({ customerId: customer.id, contactId: contact.id });
+
+    await request(`/portal-users/${portalUser.id}`, {
+      method: 'DELETE',
+      headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ deleteComment: 'test revoke' }),
+    });
+
+    const res = await request(`/customers/${customer.id}/portal-access`, {
+      headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+    });
+    const body = await json<any[]>(res);
+    const row = body.find((r) => r.contactId === contact.id);
+    expect(row?.status).toBeNull();
+    expect(row?.portalUserId).toBeNull();
+  });
+
+  it('404s for an unknown customer', async () => {
+    const { token: adminToken } = await seedAdminAndLogin();
+    const res = await request(
+      '/customers/00000000-0000-0000-0000-000000000000/portal-access',
+      { headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` } },
+    );
+    expect(res.status).toBe(404);
   });
 });

@@ -2,6 +2,7 @@ import type { Db } from '../../database/client';
 import type { Env } from '../../../env';
 import { findServicesByIds } from '../../services/repository/services.repository';
 import { findContactsForCustomer } from '../../customers/repository/customer-contacts.repository';
+import { findContactIdsWithLivePortalUser } from '../../portal/repository/portal-users.repository';
 import { getBrand } from '../../brand/services/brand.service';
 import { sendEmail } from '../../email/services/email.service';
 import { generateAccessToken } from '../../reports/utils/access-token';
@@ -45,6 +46,7 @@ import {
 import { deriveStatus, tallyOf } from '../utils/quotation-status';
 import { discountExceedsLine, lineSubtotal, quotationTotals } from '../utils/quotation-totals';
 import {
+  portalLoginLink,
   renderQuotationEmailHTML,
   renderQuotationEmailSubject,
   renderQuotationEmailText,
@@ -469,6 +471,15 @@ export const sendQuotation = async (
     }),
   );
 
+  // Superadmin 26 §6 rollout companion: a recipient with a live portal user
+  // gets a second link to it in the email, alongside the token page.
+  const contactIdsWithPortalAccess = new Set(
+    await findContactIdsWithLivePortalUser(
+      db,
+      saved.map((recipient) => recipient.contactId),
+    ),
+  );
+
   // Mails go out concurrently, and `allSettled` because one bad address must
   // not cancel the rest of the send.
   const results = await Promise.allSettled(
@@ -485,6 +496,9 @@ export const sendQuotation = async (
         token: recipient.token,
         isReviewer: recipient.isReviewer,
         message: input.message,
+        portalLink: contactIdsWithPortalAccess.has(recipient.contactId)
+          ? portalLoginLink(env.PORTAL_BASE_URL)
+          : undefined,
       };
       await sendEmail({
         apiKey: env.RESEND_API_KEY,
@@ -645,6 +659,8 @@ export const remindReviewer = async (
   ]);
   if (!detail) return null;
 
+  const hasPortalAccess = (await findContactIdsWithLivePortalUser(db, [contactId])).length > 0;
+
   const params = {
     brand: { name: brand.name, logoUrl: brand.logoUrl, colors: brand.colors },
     apiBaseUrl: env.API_BASE_URL,
@@ -656,6 +672,7 @@ export const remindReviewer = async (
     lineCount: detail.lines.length,
     token: match.recipient.token,
     isReviewer: true,
+    portalLink: hasPortalAccess ? portalLoginLink(env.PORTAL_BASE_URL) : undefined,
   };
   await sendEmail({
     apiKey: env.RESEND_API_KEY,

@@ -9,6 +9,7 @@ import type { NewPortalUser, PortalUserListRow } from '../types/portal.types';
 import type { ListPortalUsersQuery } from '../validators/portal-users-query.validator';
 import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 import { customers } from '../../customers/models/customers.model';
+import { customerContacts } from '../../customers/models/customer-contacts.model';
 import { users } from '../../users/models/users.model';
 
 /**
@@ -45,6 +46,26 @@ export async function findPortalUserByContactId(db: Db, contactId: string) {
 }
 
 /**
+ * Which of these contact ids currently hold a live portal user — the
+ * quotation-send email's portal link (superadmin 26 §6 rollout companion).
+ * "Live" means not soft-deleted; a revoked account is no different from never
+ * having had one for this purpose. Batched, mirroring
+ * `findContactsForCustomer`, rather than one round trip per recipient.
+ */
+export async function findContactIdsWithLivePortalUser(
+  db: Db,
+  contactIds: string[],
+): Promise<string[]> {
+  if (contactIds.length === 0) return [];
+  const rows = await db
+    .select({ contactId: portalUsers.contactId })
+    .from(portalUsers)
+    .where(and(inArray(portalUsers.contactId, contactIds), isNull(portalUsers.deletedAt)));
+
+  return rows.map((r) => r.contactId);
+}
+
+/**
  * Find a portal user by ID, filtering out soft-deleted rows.
  */
 export async function findPortalUserById(db: Db, id: string) {
@@ -72,6 +93,37 @@ export async function listPortalUsersByCustomer(db: Db, customerId: string) {
     );
 
   return result;
+}
+
+/**
+ * Every live contact of a customer (07), left-joined to their portal user if
+ * one exists — backs the customer detail page's per-contact access indicator
+ * (superadmin 26 §6, CP-5). Every contact gets a row, whether or not they
+ * were ever invited; `status`/`portalUserId`/`lastLoginAt` come back null
+ * when there is none.
+ *
+ * Keyed on `contactId`, never email: `portal_users.email` is independent of
+ * the contact's own address after invite (see `invitePortalUser`'s own
+ * comment), so an email join would report "no access" for someone who can
+ * still log in.
+ *
+ * A soft-deleted portal user is excluded from the join, same as every other
+ * read here — a revoked login is no access, not a stale status.
+ */
+export async function findPortalAccessForCustomerContacts(db: Db, customerId: string) {
+  return db
+    .select({
+      contactId: customerContacts.id,
+      portalUserId: portalUsers.id,
+      status: portalUsers.status,
+      lastLoginAt: portalUsers.lastLoginAt,
+    })
+    .from(customerContacts)
+    .leftJoin(
+      portalUsers,
+      and(eq(portalUsers.contactId, customerContacts.id), isNull(portalUsers.deletedAt)),
+    )
+    .where(and(eq(customerContacts.customerId, customerId), isNull(customerContacts.deletedAt)));
 }
 
 /**
@@ -304,6 +356,30 @@ export async function setPortalUserTempPassword(
       // separate, explicit staff action.
       failedLoginAttempts: 0,
       lockedUntil: null,
+      updatedAt: now,
+    })
+    .where(and(eq(portalUsers.id, portalUserId), isNull(portalUsers.deletedAt)))
+    .returning();
+
+  return updated[0] ?? null;
+}
+
+/**
+ * Staff operation: set `is_admin` independently of the grants (superadmin 26
+ * §3b). Not a `portal_user_grants` row — a plain column write, called only
+ * when the caller actually included the key. Returns the updated row or null
+ * if not found.
+ */
+export async function updatePortalUserIsAdmin(
+  db: DbOrTx,
+  portalUserId: string,
+  isAdmin: boolean,
+) {
+  const now = new Date();
+  const updated = await db
+    .update(portalUsers)
+    .set({
+      isAdmin,
       updatedAt: now,
     })
     .where(and(eq(portalUsers.id, portalUserId), isNull(portalUsers.deletedAt)))
