@@ -72,7 +72,7 @@ export class LoginComponent implements OnInit {
   protected logoAlt = computed(() => this.brand()?.name ?? 'Logo');
 
   form!: FormGroup;
-  isLoading = computed(() => this.store.selectSnapshot(AuthState.loading));
+  readonly isLoading = select(AuthState.loading);
   turnstileError = signal<string>('');
   /** Drives both the widget slot and whether a token is required. */
   protected readonly turnstileConfigured = this.turnstileTheme.configured;
@@ -113,7 +113,7 @@ export class LoginComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.form.invalid) return;
+    if (this.form.invalid || this.isLoading()) return;
 
     const turnstileToken = this.turnstile.getToken('turnstile-widget');
     if (this.turnstileConfigured && !turnstileToken) {
