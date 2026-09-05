@@ -10,6 +10,7 @@ import type {
   QuotationRow,
 } from '../../src/modules/quotations/types/quotations.types';
 import { ReportStatus } from '../../src/modules/reports/enums/reports.enum';
+import { VisitStatus } from '../../src/modules/visits/enums/visits.enum';
 import { ServiceTaxRate, ServiceUom } from '../../src/modules/services/enums/services.enum';
 import type { ReportDetailRow, ReportRow } from '../../src/modules/reports/types/reports.types';
 import {
@@ -401,13 +402,19 @@ describe('portal service order DTOs', () => {
     ]);
   });
 
-  it('detail adds scope, reports and visit dates only', () => {
+  it('detail adds scope, reports and visits — window and status, no technician', () => {
     const result = toPortalServiceOrderDetail(serviceOrderRow, {
       ...orderListExtras,
       quotationId: quotationRow.id,
       lines: [toPortalServiceOrderLine(serviceOrderLineRow)],
       linkedReports: [],
-      visitDates: [new Date('2026-09-10T09:00:00Z')],
+      visits: [
+        {
+          scheduledStart: new Date('2026-09-10T09:00:00Z'),
+          scheduledEnd: new Date('2026-09-10T12:00:00Z'),
+          status: VisitStatus.Scheduled,
+        },
+      ],
     });
     expect(keysOf(result)).toEqual([
       'createdAt',
@@ -421,8 +428,11 @@ describe('portal service order DTOs', () => {
       'quotationId',
       'reportCount',
       'status',
-      'visitDates',
+      'visits',
     ]);
+    // The visit carries when and how it went, and nothing else — a technician
+    // field appearing here is the leak 04 §6 forbids.
+    expect(keysOf(result.visits[0]!)).toEqual(['scheduledEnd', 'scheduledStart', 'status']);
   });
 
   it('never carries priority, dispatch notes or a tombstone', () => {
@@ -432,7 +442,7 @@ describe('portal service order DTOs', () => {
         quotationId: null,
         lines: [],
         linkedReports: [],
-        visitDates: [],
+        visits: [],
       }),
     );
     expect(json).not.toContain(ServiceOrderPriority.Urgent);

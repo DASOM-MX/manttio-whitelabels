@@ -8,6 +8,7 @@ import { scheduledVisits } from '../../visits/models/visits.model';
 import { VisitStatus } from '../../visits/enums/visits.enum';
 import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 import type { PortalLinkedReport } from '../dtos/portal-report.dto';
+import type { PortalServiceOrderVisitRow } from '../types/portal.types';
 import {
   PORTAL_REPORT_STATUSES,
   PORTAL_SERVICE_ORDER_STATUSES,
@@ -156,16 +157,20 @@ export const releasedReportsForOrder = async (
   }));
 };
 
-/** Visit **dates only** (04 §6) — never the technician assignment behind them.
- *  `closed` visits drop out: one that was never served is replaced by a
- *  successor row, and showing both would promise the customer two appointments
- *  that were really one. */
-export const visitDatesForOrder = async (
+/** The order's visits (04 §6, amended 2026-09-05): when, and how each went.
+ *  Never the technician assignment behind them. `closed` visits drop out: one
+ *  that was never served is replaced by a successor row, and showing both would
+ *  promise the customer two appointments that were really one. */
+export const visitsForOrder = async (
   db: Db,
   serviceOrderId: string,
-): Promise<Date[]> => {
+): Promise<PortalServiceOrderVisitRow[]> => {
   const rows = await db
-    .select({ scheduledStart: scheduledVisits.scheduledStart })
+    .select({
+      scheduledStart: scheduledVisits.scheduledStart,
+      scheduledEnd: scheduledVisits.scheduledEnd,
+      status: scheduledVisits.status,
+    })
     .from(scheduledVisits)
     .where(
       and(
@@ -175,5 +180,5 @@ export const visitDatesForOrder = async (
       ),
     )
     .orderBy(asc(scheduledVisits.scheduledStart));
-  return rows.map((r) => r.scheduledStart);
+  return rows;
 };
