@@ -69,6 +69,27 @@ export const routes: Routes = [
           },
         ],
       },
+      {
+        path: 'quotations',
+        canActivate: [grantGuard(PortalGrant.ViewQuotations)],
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./quotations/pages/quotations-list/quotations-list').then(
+                (m) => m.QuotationsList,
+              ),
+          },
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./quotations/pages/quotation-detail/quotation-detail').then(
+                (m) => m.QuotationDetail,
+              ),
+          },
+        ],
+      },
       { path: '**', redirectTo: 'home' },
     ],
   },

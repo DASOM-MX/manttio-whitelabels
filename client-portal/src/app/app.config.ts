@@ -25,6 +25,7 @@ import { AuthLoadMe } from '../state/auth/auth.actions';
 import { BrandState } from '../state/brand/brand.state';
 import { ReportsState } from '../state/reports/reports.state';
 import { ContractsState } from '../state/contracts/contracts.state';
+import { QuotationsState } from '../state/quotations/quotations.state';
 import { LoadBrand } from '../state/brand/brand.actions';
 import { portalTokenInterceptor } from './services/http/portal-token.interceptor';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
@@ -52,7 +53,7 @@ export const appConfig: ApplicationConfig = {
     ConfirmationService,
     MessageService,
     provideStore(
-      [AppState, AuthState, BrandState, ReportsState, ContractsState],
+      [AppState, AuthState, BrandState, ReportsState, ContractsState, QuotationsState],
       // Persist app state (dark mode, sidebar) and the whole auth slice, so a
       // returning session paints the nav immediately; `AuthLoadMe` below
       // refreshes it against the backend on every boot.
