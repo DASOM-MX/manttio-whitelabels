@@ -150,9 +150,17 @@ apps had to perform and is simply born on the far side of it.
 - `deploy:cf` refuses to run without an explicit tenant
   (`CF_WORKER_NAME=<tenant> npm run deploy:cf`), guard first in the script so an unset variable
   fails in a second rather than after a full production build.
-- **There is no compiled `apiUrl` literal in this app.** It reads `GET /__config` at boot
+- ~~**There is no compiled `apiUrl` literal in this app.** It reads `GET /__config` at boot
   (25 §3), so the repo's "never commit `environment.development.ts`" rule has nothing to bite on
-  here — the file that rule exists to protect is not created in the first place.
+  here — the file that rule exists to protect is not created in the first place.~~
+  **Superseded 2026-09-05 (owner).** The rule was right about production and wrong about dev:
+  under `ng serve` there is no Worker, so `/__config` answers with the SPA shell and
+  `localStorage` is empty on a fresh origin — every rung failed, and the app booted with no API
+  at all. `src/environments/` now exists and is swapped by `fileReplacements`, exactly as
+  superadmin does it. **Production is unchanged in substance:** `environment.ts` ships `apiUrl`
+  empty, so no tenant host is ever compiled in and `GET /__config` remains the only production
+  source. The repo's skip-worktree convention now does apply here, for anyone pointing
+  `environment.development.ts` at a live API.
 - Root `CLAUDE.md`'s deployable-apps table gains a `client-portal/` row (Hosting: **CF Workers**,
   not Pages), and the app gets its own `client-portal/CLAUDE.md` pointing at this suite (ship
   both with CP-1).

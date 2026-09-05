@@ -20,11 +20,11 @@ This is the **Portal de clientes** app — a customer-facing logged-in surface f
 
 - `npm run build` → `dist/client-portal/` (browser + server bundle)
 
-**No `environment.ts` file; no compiled `apiUrl` literal.** Config reads from `GET /__config` at boot (plan 25 §3), then falls back to `localStorage`. There is no third rung — an unresolved `apiUrl` stays empty rather than pinning the app to a host. The `deploy:cf` script and the tenant smoke pass land in CP-4.
+**No compiled `apiUrl` literal in the production build.** Config reads from `GET /__config` at boot (plan 25 §3), falls back to `localStorage`, then to `environment.ts` — which ships `apiUrl` **empty**, so an unresolved host stays empty rather than pinning every tenant to one API. **Amended 2026-09-05 (owner):** `src/environments/` now exists for the sake of `ng serve`, where there is no Worker and both earlier rungs fail by design; `environment.development.ts` carries the local API and is swapped in by `fileReplacements`, the same mechanism superadmin uses. Point it at a live API only with `git update-index --skip-worktree`. The `deploy:cf` script and the tenant smoke pass land in CP-4.
 
 ## Key files & directories
 
-- **`src/app/config/runtime-config.ts`** — fetches `/__config` at boot, falls back to `localStorage`, then gives up
+- **`src/app/config/runtime-config.ts`** — fetches `/__config` at boot, falls back to `localStorage`, then to the compiled `environment` (empty in production, the local API under `ng serve`)
 - **`src/cloudflare/worker.ts`** — Worker entry; answers `/__config` from the per-tenant `env.API_URL` binding (`?? null` when unset — never a fallback host) before delegating to the Angular engine
 - **`wrangler.jsonc`** — Worker config: placeholder `name`, `keep_vars: true`, `not_found_handling` at its default
 - **`src/app/theme/manttio-preset.ts`** — PrimeNG Aura tokens repointed to `--brand-primary-*` CSS vars
