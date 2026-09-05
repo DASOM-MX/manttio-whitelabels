@@ -1,0 +1,113 @@
+<app-page-header title="Contrato" backLink="/contracts" backLabel="Volver a contratos">
+  <span meta class="contents">
+    @if (contract(); as c) {
+      <span class="font-data text-sm text-surface-600 dark:text-surface-400">{{ c.folio }}</span>
+      <p-tag
+        [severity]="c.validity | contractValiditySeverity"
+        [value]="c.validity | contractValidityLabel"
+      />
+    }
+  </span>
+</app-page-header>
+
+@if (contract(); as c) {
+  <div class="grid gap-4 xl:grid-cols-3">
+    <section class="card-section xl:col-span-2" aria-labelledby="contract-detail-title">
+      <h2 id="contract-detail-title" class="micro-label">Ficha</h2>
+
+      <p class="mt-3 text-lg font-bold text-surface-1000 dark:text-surface-0">{{ c.name }}</p>
+      @if (c.description) {
+        <p class="mt-1 text-sm text-surface-600 dark:text-surface-400">{{ c.description }}</p>
+      }
+
+      <dl class="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+        <div>
+          <dt class="micro-label">Tipo</dt>
+          <dd class="mt-0.5 text-sm font-bold text-surface-1000 dark:text-surface-0">
+            {{ c.type | contractTypeLabel }}
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Vigente desde</dt>
+          <dd class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0">
+            {{ c.validFromDate | date: 'dd/MM/y' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="micro-label">Vence</dt>
+          <dd class="mt-0.5 font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0">
+            @if (c.expiryDate) {
+              {{ c.expiryDate | date: 'dd/MM/y' }}
+            } @else {
+              <span class="text-surface-600 dark:text-surface-400">Sin vencimiento</span>
+            }
+          </dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="card-section" aria-labelledby="contract-file-title">
+      <h2 id="contract-file-title" class="micro-label">Documento</h2>
+
+      <div class="mt-3 flex items-start gap-3">
+        <span class="icon-chip shrink-0">
+          @switch (c.fileType | contractFileGlyph) {
+            @case ('spreadsheet') {
+              <svg lucideFileSpreadsheet class="size-4" aria-hidden="true"></svg>
+            }
+            @default {
+              <svg lucideFileText class="size-4" aria-hidden="true"></svg>
+            }
+          }
+        </span>
+        <div class="min-w-0">
+          <p class="truncate text-sm font-bold text-surface-1000 dark:text-surface-0">
+            {{ c.fileName }}
+          </p>
+          <p class="mt-0.5 text-xs text-surface-600 dark:text-surface-400">
+            {{ c.fileType }} · {{ c.fileSize | fileSize }}
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="btn-primary mt-4 w-full justify-center"
+        (click)="download()"
+        [disabled]="downloading()"
+      >
+        <svg lucideDownload class="size-4" aria-hidden="true"></svg>
+        @if (downloading()) {
+          Descargando…
+        } @else {
+          Descargar
+        }
+      </button>
+    </section>
+  </div>
+} @else if (notFound()) {
+  <div class="card-section mt-5 flex flex-col items-center gap-3 py-12 text-center">
+    <span class="empty-icon">
+      <svg lucideFileSignature class="size-5" aria-hidden="true"></svg>
+    </span>
+    <h2 class="text-lg font-bold text-surface-1000 dark:text-surface-0">
+      No pudimos encontrar este contrato
+    </h2>
+    <p class="max-w-sm text-sm text-surface-600 dark:text-surface-400">
+      Puede que ya no esté disponible o que no tengas acceso a él.
+    </p>
+    <a routerLink="/contracts" class="btn-neutral">Volver a contratos</a>
+  </div>
+} @else {
+  <div class="grid gap-4 xl:grid-cols-3">
+    <div class="card-section xl:col-span-2">
+      <span class="skeleton"></span>
+      <span class="skeleton mt-3 block"></span>
+      <span class="skeleton mt-3 block"></span>
+    </div>
+    <div class="card-section">
+      <span class="skeleton"></span>
+      <span class="skeleton mt-3 block"></span>
+    </div>
+  </div>
+}
