@@ -57,8 +57,12 @@ These are owner decisions from 00 §3/§4b. Implement them; do not improve on th
    Cloudflare Worker per tenant** (Workers Static Assets), `apiUrl` read from `GET /__config`
    at boot per `../superadmin/25-runtime-config.md`. It is **born on the far side** of the
    Pages→Workers migration; do not scaffold a Pages build.
-2. **There is no compiled `apiUrl` literal and no `environment.development.ts`** in this app.
-   Do not create one. Config comes from `/__config` at runtime.
+2. **No compiled `apiUrl` literal reaches production.** `environment.ts` ships `apiUrl`
+   empty; `GET /__config` is the only production source, one host per tenant.
+   **Amended 2026-09-05 (owner):** `src/environments/` *does* exist, for `ng serve` only —
+   `environment.development.ts` holds the local API and is swapped in by `fileReplacements`,
+   the same mechanism superadmin uses, because with no Worker in front of the dev server every
+   other rung fails. Never put a tenant host in `environment.ts`.
 3. **`wrangler.jsonc` carries a placeholder `name`, zero tenant values in the repo.**
    `keep_vars: true` is load-bearing. `not_found_handling` stays **at its default** — setting
    it to `single-page-application` bypasses the Worker and breaks `/__config`.

@@ -1,13 +1,18 @@
+import { environment } from '../../environments/environment';
 import type { RuntimeOverrides } from '../data/types/config/runtime-overrides';
 
 /** Runtime configuration, resolved at boot (plan 25, 03 §6).
  *
- *  Neither `apiUrl` nor `turnstileSiteKey` is compiled into this app — both come
- *  from Cloudflare env vars, served by the Worker at `GET /__config` and read
- *  once before the app starts.
- *  No `environment.ts` file exists here (fork rule: the portal is born on the far
- *  side of the Pages→Workers migration, with no compiled literal to migrate away
- *  from).
+ *  In production both `apiUrl` and `turnstileSiteKey` come from Cloudflare env
+ *  vars, served by the Worker at `GET /__config` and read once before the app
+ *  starts — `environment.ts` ships them **empty**, so a tenant's host is never
+ *  compiled in.
+ *
+ *  `environment.development.ts` (owner, 2026-09-05) supersedes the original
+ *  "no compiled literal at all" rule: under `ng serve` there is no Worker, so
+ *  `/__config` answers with the SPA shell and every earlier rung fails by
+ *  design. The dev literal is the only thing that makes local work, and it is
+ *  the same mechanism superadmin uses.
  *
  *  This is a mutable module object rather than a DI token or signal on purpose:
  *  every consumer reads it lazily (see the `base` getters in the http services),
@@ -17,10 +22,14 @@ const CONFIG_ENDPOINT = '/__config';
 const CONFIG_TIMEOUT_MS = 3000;
 const STORAGE_KEY = 'runtime.config';
 
-/** Starts empty; `loadRuntimeConfig()` fills it from the edge, storage, or (if
- *  both fail) leaves it empty. Empty means the value is not known yet — the app
- *  must not proceed with a guess, for either field. */
-export const runtimeConfig: RuntimeOverrides = { apiUrl: '', turnstileSiteKey: '' };
+/** Starts as the compiled defaults — empty in a production build, the local
+ *  API under `ng serve`. `loadRuntimeConfig()` overlays the edge's answer on
+ *  top. Never reassigned: consumers hold this reference. An empty `apiUrl`
+ *  still means "not known yet", and the app must not proceed with a guess. */
+export const runtimeConfig: RuntimeOverrides = {
+  apiUrl: environment.apiUrl,
+  turnstileSiteKey: environment.turnstileSiteKey,
+};
 
 /** Applies an override set, ignoring anything malformed. Returns whether
  *  anything was actually taken.
@@ -59,12 +68,13 @@ function writeCached(overrides: RuntimeOverrides): void {
 }
 
 /** Resolve runtime config before the app boots. Fallback chain (25 §3):
- *  `/__config` → last known-good from storage → empty (no guessing).
+ *  `/__config` → last known-good from storage → the compiled literal.
  *
  *  Never rejects. Every rung failing is a supported state — a network failure,
- *  an unset Worker var, or corrupted localStorage. An empty `apiUrl` means the
- *  app must not attempt requests; an empty `turnstileSiteKey` means the public
- *  auth pages must not draw a challenge. */
+ *  an unset Worker var, corrupted localStorage, or simply `ng serve`, where
+ *  there is no Worker and the dev literal is meant to win. An empty `apiUrl`
+ *  means the app must not attempt requests; an empty `turnstileSiteKey` means
+ *  the public auth pages must not draw a challenge. */
 export async function loadRuntimeConfig(): Promise<void> {
   try {
     const res = await fetch(CONFIG_ENDPOINT, {
@@ -74,7 +84,8 @@ export async function loadRuntimeConfig(): Promise<void> {
     });
     // A 200 response is authoritative. If it carries a valid apiUrl, apply it.
     // If it's malformed, the apply() call silently rejects it and the next rung
-    // (storage) is tried.
+    // (storage) is tried. Under `ng serve` this resolves 200 with the SPA
+    // shell, so `.json()` throwing is the normal dev path, not an error.
     if (res.ok && apply(await res.json())) {
       writeCached({
         apiUrl: runtimeConfig.apiUrl,
