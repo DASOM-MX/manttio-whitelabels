@@ -2,25 +2,300 @@
 
 @if (hasGrants()) {
   <div class="card-section">
-    <p class="text-base text-zinc-700 dark:text-zinc-300">
+    <p class="text-base text-surface-700 dark:text-surface-300">
       @if (contactName(); as name) {
         Bienvenido, {{ name }}.
       } @else {
         Bienvenido.
       }
-      Usa el menú para consultar tus reportes, contratos, cotizaciones, órdenes de servicio y
-      equipos, y para levantar solicitudes de servicio.
+      Este es un resumen de tu cuenta. Usa el menú para consultar el detalle de cada sección.
     </p>
+  </div>
+
+  <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    @if (canViewReports()) {
+      <section class="card-section" aria-labelledby="home-reports-title">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex items-center gap-3">
+            <span class="icon-chip">
+              <svg lucideFileText class="size-4" aria-hidden="true"></svg>
+            </span>
+            <div>
+              <h2 id="home-reports-title" class="text-sm font-bold text-surface-1000 dark:text-surface-0">
+                Reportes
+              </h2>
+              @if (reportsSummary(); as s) {
+                <p class="font-data text-xs tabular-nums text-surface-600 dark:text-surface-400">
+                  {{ s.total }} en total
+                </p>
+              }
+            </div>
+          </div>
+          <a routerLink="/reports" class="link-action text-sm">Ver todo</a>
+        </div>
+        @if (reportsSummary(); as s) {
+          @if (s.items.length) {
+            <ul class="mt-4 divide-y divide-surface-200 dark:divide-surface-800">
+              @for (report of s.items; track report.id) {
+                <li class="py-2">
+                  <a
+                    [routerLink]="['/reports', report.id]"
+                    class="flex items-center justify-between gap-2 hover:text-primary-700 dark:hover:text-primary-300"
+                  >
+                    <span class="font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0">{{
+                      report.id
+                    }}</span>
+                    <p-tag
+                      [severity]="report.status | reportStatusSeverity"
+                      [value]="report.status | reportStatusLabel"
+                    />
+                  </a>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="mt-4 text-sm text-surface-600 dark:text-surface-400">
+              Aún no tienes reportes disponibles.
+            </p>
+          }
+        } @else {
+          <div class="mt-4 flex flex-col gap-2">
+            <span class="skeleton"></span>
+            <span class="skeleton"></span>
+          </div>
+        }
+      </section>
+    }
+
+    @if (canViewContracts()) {
+      <section class="card-section" aria-labelledby="home-contracts-title">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex items-center gap-3">
+            <span class="icon-chip">
+              <svg lucideFileSignature class="size-4" aria-hidden="true"></svg>
+            </span>
+            <div>
+              <h2 id="home-contracts-title" class="text-sm font-bold text-surface-1000 dark:text-surface-0">
+                Contratos
+              </h2>
+              @if (contractsSummary(); as s) {
+                <p class="font-data text-xs tabular-nums text-surface-600 dark:text-surface-400">
+                  {{ s.total }} en total
+                </p>
+              }
+            </div>
+          </div>
+          <a routerLink="/contracts" class="link-action text-sm">Ver todo</a>
+        </div>
+        @if (contractsSummary(); as s) {
+          @if (s.items.length) {
+            <ul class="mt-4 divide-y divide-surface-200 dark:divide-surface-800">
+              @for (contract of s.items; track contract.id) {
+                <li class="py-2">
+                  <a
+                    [routerLink]="['/contracts', contract.id]"
+                    class="flex items-center justify-between gap-2 hover:text-primary-700 dark:hover:text-primary-300"
+                  >
+                    <span class="truncate text-sm font-bold text-surface-1000 dark:text-surface-0">{{
+                      contract.name
+                    }}</span>
+                    <p-tag
+                      [severity]="contract.validity | contractValiditySeverity"
+                      [value]="contract.validity | contractValidityLabel"
+                    />
+                  </a>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="mt-4 text-sm text-surface-600 dark:text-surface-400">
+              Aún no tienes contratos disponibles.
+            </p>
+          }
+        } @else {
+          <div class="mt-4 flex flex-col gap-2">
+            <span class="skeleton"></span>
+            <span class="skeleton"></span>
+          </div>
+        }
+      </section>
+    }
+
+    @if (canViewQuotations()) {
+      <section class="card-section" aria-labelledby="home-quotations-title">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex items-center gap-3">
+            <span class="icon-chip">
+              <svg lucideReceipt class="size-4" aria-hidden="true"></svg>
+            </span>
+            <div>
+              <h2 id="home-quotations-title" class="text-sm font-bold text-surface-1000 dark:text-surface-0">
+                Cotizaciones
+              </h2>
+              @if (quotationsSummary(); as s) {
+                <p class="font-data text-xs tabular-nums text-surface-600 dark:text-surface-400">
+                  {{ s.total }} en total
+                </p>
+              }
+            </div>
+          </div>
+          <a routerLink="/quotations" class="link-action text-sm">Ver todo</a>
+        </div>
+        @if (quotationsSummary(); as s) {
+          @if (s.items.length) {
+            <ul class="mt-4 divide-y divide-surface-200 dark:divide-surface-800">
+              @for (quotation of s.items; track quotation.id) {
+                <li class="py-2">
+                  <a
+                    [routerLink]="['/quotations', quotation.id]"
+                    class="flex items-center justify-between gap-2 hover:text-primary-700 dark:hover:text-primary-300"
+                  >
+                    <span class="font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0">{{
+                      quotation.folio
+                    }}</span>
+                    <span class="flex items-center gap-2">
+                      <span class="font-data text-sm tabular-nums text-surface-700 dark:text-surface-300">{{
+                        quotation.total | money
+                      }}</span>
+                      <p-tag
+                        [severity]="quotation.status | quotationStatusSeverity"
+                        [value]="quotation.status | quotationStatusLabel"
+                      />
+                    </span>
+                  </a>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="mt-4 text-sm text-surface-600 dark:text-surface-400">
+              Aún no tienes cotizaciones disponibles.
+            </p>
+          }
+        } @else {
+          <div class="mt-4 flex flex-col gap-2">
+            <span class="skeleton"></span>
+            <span class="skeleton"></span>
+          </div>
+        }
+      </section>
+    }
+
+    @if (canViewServiceOrders()) {
+      <section class="card-section" aria-labelledby="home-orders-title">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex items-center gap-3">
+            <span class="icon-chip">
+              <svg lucideWrench class="size-4" aria-hidden="true"></svg>
+            </span>
+            <div>
+              <h2 id="home-orders-title" class="text-sm font-bold text-surface-1000 dark:text-surface-0">
+                Órdenes de servicio
+              </h2>
+              @if (serviceOrdersSummary(); as s) {
+                <p class="font-data text-xs tabular-nums text-surface-600 dark:text-surface-400">
+                  {{ s.total }} en total
+                </p>
+              }
+            </div>
+          </div>
+          <a routerLink="/service-orders" class="link-action text-sm">Ver todo</a>
+        </div>
+        @if (serviceOrdersSummary(); as s) {
+          @if (s.items.length) {
+            <ul class="mt-4 divide-y divide-surface-200 dark:divide-surface-800">
+              @for (order of s.items; track order.id) {
+                <li class="py-2">
+                  <a
+                    [routerLink]="['/service-orders', order.id]"
+                    class="flex items-center justify-between gap-2 hover:text-primary-700 dark:hover:text-primary-300"
+                  >
+                    <span class="font-data text-sm font-bold tabular-nums text-surface-1000 dark:text-surface-0">{{
+                      order.folio
+                    }}</span>
+                    <p-tag
+                      [severity]="order.status | serviceOrderStatusSeverity"
+                      [value]="order.status | serviceOrderStatusLabel"
+                    />
+                  </a>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="mt-4 text-sm text-surface-600 dark:text-surface-400">
+              Aún no tienes órdenes de servicio disponibles.
+            </p>
+          }
+        } @else {
+          <div class="mt-4 flex flex-col gap-2">
+            <span class="skeleton"></span>
+            <span class="skeleton"></span>
+          </div>
+        }
+      </section>
+    }
+
+    @if (canViewEquipment()) {
+      <section class="card-section" aria-labelledby="home-equipment-title">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex items-center gap-3">
+            <span class="icon-chip">
+              <svg lucideBoxes class="size-4" aria-hidden="true"></svg>
+            </span>
+            <div>
+              <h2 id="home-equipment-title" class="text-sm font-bold text-surface-1000 dark:text-surface-0">
+                Equipos
+              </h2>
+              @if (equipmentSummary(); as s) {
+                <p class="font-data text-xs tabular-nums text-surface-600 dark:text-surface-400">
+                  {{ s.total }} en total
+                </p>
+              }
+            </div>
+          </div>
+          <a routerLink="/equipment" class="link-action text-sm">Ver todo</a>
+        </div>
+        @if (equipmentSummary(); as s) {
+          @if (s.items.length) {
+            <ul class="mt-4 divide-y divide-surface-200 dark:divide-surface-800">
+              @for (unit of s.items; track unit.id) {
+                <li class="py-2">
+                  <a
+                    [routerLink]="['/equipment', unit.id]"
+                    class="flex items-center justify-between gap-2 hover:text-primary-700 dark:hover:text-primary-300"
+                  >
+                    <span class="truncate text-sm font-bold text-surface-1000 dark:text-surface-0">{{
+                      unit.name || 'Equipo'
+                    }}</span>
+                    <span class="text-sm text-surface-600 dark:text-surface-400">{{
+                      unit.location || '—'
+                    }}</span>
+                  </a>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="mt-4 text-sm text-surface-600 dark:text-surface-400">
+              Aún no tienes equipos registrados.
+            </p>
+          }
+        } @else {
+          <div class="mt-4 flex flex-col gap-2">
+            <span class="skeleton"></span>
+            <span class="skeleton"></span>
+          </div>
+        }
+      </section>
+    }
   </div>
 } @else {
   <div class="card-section flex flex-col items-center gap-3 py-12 text-center">
     <span class="icon-chip">
       <svg lucideLockKeyhole class="size-5" aria-hidden="true"></svg>
     </span>
-    <h2 class="text-lg font-bold text-zinc-950 dark:text-zinc-50">
+    <h2 class="text-lg font-bold text-surface-1000 dark:text-surface-0">
       Aún no tienes acceso a ninguna sección
     </h2>
-    <p class="max-w-sm text-sm text-zinc-600 dark:text-zinc-400">
+    <p class="max-w-sm text-sm text-surface-600 dark:text-surface-400">
       @if (customerName(); as name) {
         Contacta a {{ name }} para solicitar acceso a tus reportes, contratos, cotizaciones u
         otra información de tu cuenta.
