@@ -34,6 +34,12 @@
           </span>
         </label>
       </div>
+      @if (showLastAdminWarning()) {
+        <div class="callout callout--warn" role="alert">
+          Es el único administrador de este cliente. Si le quitas el rol, nadie podrá cerrar sus
+          solicitudes de servicio.
+        </div>
+      }
       @if (showAdminWarning()) {
         <div class="callout callout--warn" role="alert">
           Este administrador no tiene Crear solicitudes de servicio — no verá solicitudes que

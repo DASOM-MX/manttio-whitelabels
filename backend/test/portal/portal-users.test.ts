@@ -515,6 +515,62 @@ describe('Portal Users (Staff) — CP-4', () => {
       expect(body.user.status).toBe('invited');
     });
 
+    // `isOnlyAdmin` drives the warning on the 26 §3b toggle: a customer with no
+    // admin has nobody who can close its service requests (01 §4).
+    const invite = async (isAdmin: boolean) => {
+      const contact = await seedContact(customerId);
+      const res = await request('/portal-users', {
+        method: 'POST',
+        headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({ contactId: contact.id, grants: ['view_reports'], isAdmin }),
+      });
+      const { id } = await json<any>(res);
+      return id as string;
+    };
+
+    const readUser = async (id: string) => {
+      const res = await request(`/portal-users/${id}`, {
+        method: 'GET',
+        headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+      });
+      const body = await json<any>(res);
+      return body.user;
+    };
+
+    it("should flag the customer's sole admin as isOnlyAdmin", async () => {
+      const id = await invite(true);
+
+      expect((await readUser(id)).isOnlyAdmin).toBe(true);
+    });
+
+    it('should not flag either admin once the customer has two', async () => {
+      const first = await invite(true);
+      const second = await invite(true);
+
+      expect((await readUser(first)).isOnlyAdmin).toBe(false);
+      expect((await readUser(second)).isOnlyAdmin).toBe(false);
+    });
+
+    it('should never flag a non-admin', async () => {
+      const id = await invite(false);
+
+      expect((await readUser(id)).isOnlyAdmin).toBe(false);
+    });
+
+    it('should ignore a suspended admin when counting', async () => {
+      const active = await invite(true);
+      const suspended = await invite(true);
+
+      await request(`/portal-users/${suspended}/suspend`, {
+        method: 'PATCH',
+        headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+      });
+
+      // A suspended admin cannot log in, so it cannot close a request either —
+      // counting it would silence the warning in the case that needs it.
+      expect((await readUser(active)).isOnlyAdmin).toBe(true);
+    });
+
     it('should reject with 404 if portal user not found', async () => {
       const res = await request('/portal-users/00000000-0000-0000-0000-000000000000', {
         method: 'GET',

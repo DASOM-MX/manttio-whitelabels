@@ -120,6 +120,12 @@ export class PortalUserDetail implements HasPendingChanges {
     () => this.isAdminValue() && !this.hasCreateServiceRequests(),
   );
 
+  /** §3b: a customer may have no admin, but then nobody can close its service
+   *  requests — staff have no close action (01 §4). Reads the loaded row, not
+   *  the live control, so it stays up while the box is unticked and about to
+   *  be saved; `submit` reloads the row so it clears once that lands. */
+  protected showLastAdminWarning = computed(() => this.selected()?.isOnlyAdmin ?? false);
+
   constructor() {
     effect(() => {
       const id = this.userId();
@@ -176,6 +182,8 @@ export class PortalUserDetail implements HasPendingChanges {
         this.saving.set(false);
         this.grantsForm.markAsPristine();
         this.isAdminControl.markAsPristine();
+        // `isOnlyAdmin` is server-computed; the write may have changed it.
+        this.store.dispatch(new LoadPortalUser(user.id));
         if (isAdmin && !grants.includes(PortalGrant.CreateServiceRequests)) {
           this.messages.add({
             severity: 'warn',

@@ -35,6 +35,10 @@ export interface PortalUserDetail {
   name: string;
   status: PortalUserStatus;
   isAdmin: boolean;
+  /** True only while this user is the customer's *last* effective admin, so
+   *  the toggle can warn before staff strand the customer with nobody who can
+   *  close its service requests (26 §3b). Suspended admins do not count. */
+  isOnlyAdmin: boolean;
   /** Live grants only — same contract as the list row. */
   grants: PortalGrant[];
 }

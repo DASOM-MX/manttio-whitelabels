@@ -90,6 +90,14 @@ person may do with records, this says who speaks for the customer
   grant revocation.
 - A customer may have **several** portal admins, or none. There is no "must have one" rule: a
   customer with no admin simply never closes requests, and staff still cannot close for them.
+  **Amended 2026-09-06 (owner):** still no rule — but the editor **warns** before staff clear
+  the customer's last admin, because that dead end is reachable by a single misclick and
+  nothing else in the product announces it. The detail read carries `isOnlyAdmin`, computed
+  from *effective* admins (soft-deleted and `suspended` rows excluded — a suspended admin
+  cannot log in, so counting it would silence the warning in exactly the case that needs it).
+  Warning only: staff may still save. The same dead end is reachable through **suspend** and
+  **revoke**, and those stay silent by decision the same day — the warning lives on the toggle
+  alone.
 
 ## 4. Lifecycle actions
 
