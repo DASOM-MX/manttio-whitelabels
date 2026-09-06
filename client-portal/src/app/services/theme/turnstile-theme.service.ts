@@ -19,6 +19,16 @@ export class TurnstileThemeService {
   private readonly store = inject(Store);
   private readonly turnstile = inject(TurnstileService);
 
+  /** Whether this deploy has a Turnstile key at all. `/__config` ships an
+   *  empty key when the tenant has none, and 25 §3's contract is that an empty
+   *  key means the public auth pages must not draw a challenge — so they must
+   *  not demand a token either, or the page blocks on a widget that was never
+   *  drawn. The backend still decides: it refuses the request unless it is
+   *  itself configured to skip verification. */
+  get configured(): boolean {
+    return !!runtimeConfig.turnstileSiteKey;
+  }
+
   /** Emits once the visitor passes the challenge. An Observable rather than the
    *  promise underneath: the caller subscribes and returns, so a challenge that
    *  never resolves cannot hold a component's `ngOnInit` open, and the

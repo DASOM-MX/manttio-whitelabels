@@ -1,8 +1,8 @@
-import { Component, inject, signal, computed, effect, OnInit } from '@angular/core';
+import { Component, inject, signal, effect, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Store } from '@ngxs/store';
+import { select, Store } from '@ngxs/store';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
@@ -36,7 +36,7 @@ export class ForcePasswordDialogComponent implements OnInit {
 
   form!: FormGroup;
   visible = signal(false);
-  isLoading = computed(() => this.store.selectSnapshot(AuthState.loading));
+  readonly isLoading = select(AuthState.loading);
 
   constructor() {
     // Show dialog when mustChangePassword is true and user is authenticated
@@ -74,7 +74,7 @@ export class ForcePasswordDialogComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.form.invalid) return;
+    if (this.form.invalid || this.isLoading()) return;
 
     const payload = {
       password: this.form.get('password')?.value,
