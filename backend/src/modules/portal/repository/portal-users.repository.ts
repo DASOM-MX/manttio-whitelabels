@@ -75,6 +75,30 @@ export async function findPortalUserById(db: Db, id: string) {
 }
 
 /**
+ * How many portal users can still act as this customer's admin.
+ *
+ * Counts effective admins, not rows: a suspended admin cannot log in, so it
+ * cannot close a request either, and counting it would silence the warning in
+ * exactly the case that needs it. Soft-deleted rows are out for the same reason.
+ * `invited` counts — that account has a working temp password.
+ */
+export async function countEffectiveCustomerAdmins(db: Db, customerId: string): Promise<number> {
+  const result = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(portalUsers)
+    .where(
+      and(
+        eq(portalUsers.customerId, customerId),
+        eq(portalUsers.isAdmin, true),
+        isNull(portalUsers.deletedAt),
+        ne(portalUsers.status, PortalUserStatus.Suspended),
+      ),
+    );
+
+  return result[0]?.count ?? 0;
+}
+
+/**
  * List active portal users for a customer.
  */
 export async function listPortalUsersByCustomer(db: Db, customerId: string) {

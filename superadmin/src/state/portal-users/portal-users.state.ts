@@ -70,16 +70,23 @@ export class PortalUsersState {
   }
 
   /** Replaces the live grant list; the backend turns the diff into
-   *  revoke/add rows, never a DELETE (26 §3), so this can't lose history. */
+   *  revoke/add rows, never a DELETE (26 §3), so this can't lose history.
+   *  `isAdmin` rides the same request (26 §3b, PR #215) — the response's
+   *  `isAdmin` is patched in as read back from the row, never as an echo of
+   *  what this action sent. */
   @Action(UpdatePortalUserGrants)
   updatePortalUserGrants(
     ctx: StateContext<PortalUsersStateModel>,
-    { id, grants }: UpdatePortalUserGrants,
+    { id, grants, isAdmin }: UpdatePortalUserGrants,
   ) {
-    return this.api.updateGrants(id, grants).pipe(
-      tap((grants) => {
+    return this.api.updateGrants(id, grants, isAdmin).pipe(
+      tap((result) => {
         const selected = ctx.getState().selected;
-        if (selected && selected.id === id) ctx.patchState({ selected: { ...selected, grants } });
+        if (selected && selected.id === id) {
+          ctx.patchState({
+            selected: { ...selected, grants: result.grants, isAdmin: result.isAdmin },
+          });
+        }
       }),
     );
   }

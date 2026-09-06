@@ -1,9 +1,10 @@
 import { Component, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { FormBuilder } from '@angular/forms';
+import { FormBuilder, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { map } from 'rxjs';
 import { TagModule } from 'primeng/tag';
+import { CheckboxModule } from 'primeng/checkbox';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import {
   LucideKeyRound,
@@ -30,17 +31,20 @@ import { PortalGrantsFieldset } from '../../components/portal-grants-fieldset/po
 import { RevokePortalUserAccessDialog } from '../../components/revoke-portal-user-access-dialog/revoke-portal-user-access-dialog';
 import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
 
-/** The standalone grants + lifecycle page (26 CP-3/CP-4) — a portal user's
- *  permissions, admin status and account state, reached from a list row.
- *  `GET /portal-users/:id` is deliberately thin (26 §3's DTO comment): no
- *  customer name, no last-login — those stay on the list row (26 §1).
+/** The standalone grants + lifecycle page (26 CP-3/CP-4/§3b) — a portal
+ *  user's permissions, admin status and account state, reached from a list
+ *  row. `GET /portal-users/:id` is deliberately thin (26 §3's DTO comment):
+ *  no customer name, no last-login — those stay on the list row (26 §1).
  *
- *  `is_admin` renders outside the grants block, exactly as read (26 §3b) —
- *  **not** an editable control here: the backend has no route to change it
- *  after invite (client-portal 02 CP-4 never shipped one, despite 01 §1
- *  calling it "editable in superadmin 26"). Flagged as a backend gap in the
- *  CP-3 report rather than invented. The no-request-grant warning still
- *  works off the real, loaded value.
+ *  `is_admin` renders outside the grants block (26 §3b), in the same form
+ *  and the same "Guardar" as the grants below, but visually separated by
+ *  its own heading and a divider — it is a checkbox on `portal_users`, not
+ *  a `portal_user_grants` row. `isAdmin` rides the same `PATCH .../grants`
+ *  request (PR #215): optional with no default, so omitting it would leave
+ *  the column untouched — this page always sends its current value since it
+ *  always displays and edits both together. The no-request-grant warning is
+ *  live off the checkbox, not the loaded value, so it reacts before Guardar
+ *  is even clicked.
  *
  *  Lifecycle (26 §4): reenviar/restablecer are the same backend action
  *  (`POST /:id/password`) shown under two contexts; suspend/resume are the
@@ -52,7 +56,9 @@ import type { HasPendingChanges } from '../../../guards/pending-changes.guard';
 @Component({
   selector: 'app-portal-user-detail',
   imports: [
+    ReactiveFormsModule,
     TagModule,
+    CheckboxModule,
     PortalUserStatusLabelPipe,
     PortalUserStatusSeverityPipe,
     PageHeader,
@@ -94,17 +100,31 @@ export class PortalUserDetail implements HasPendingChanges {
     Object.fromEntries(Object.values(PortalGrant).map((grant) => [grant, false])),
   );
 
+  /** Outside the grants block on purpose (26 §3b) — a column on
+   *  `portal_users`, not a grant row. Editable since PR #215. */
+  protected isAdminControl = new FormControl(false, { nonNullable: true });
+
   private hasCreateServiceRequests = toSignal(
     this.grantsForm.controls[PortalGrant.CreateServiceRequests].valueChanges,
     { initialValue: this.grantsForm.controls[PortalGrant.CreateServiceRequests].value },
   );
 
+  private isAdminValue = toSignal(this.isAdminControl.valueChanges, {
+    initialValue: this.isAdminControl.value,
+  });
+
   /** §3b: an admin with no request grant sees no requests to close — warned,
-   *  not blocked. Live off the form, so it shows before Guardar is even
-   *  clicked, not just after. */
+   *  not blocked. Live off both controls, so it reacts to a tick in either
+   *  direction before Guardar is even clicked, not just after. */
   protected showAdminWarning = computed(
-    () => !!this.selected()?.isAdmin && !this.hasCreateServiceRequests(),
+    () => this.isAdminValue() && !this.hasCreateServiceRequests(),
   );
+
+  /** §3b: a customer may have no admin, but then nobody can close its service
+   *  requests — staff have no close action (01 §4). Reads the loaded row, not
+   *  the live control, so it stays up while the box is unticked and about to
+   *  be saved; `submit` reloads the row so it clears once that lands. */
+  protected showLastAdminWarning = computed(() => this.selected()?.isOnlyAdmin ?? false);
 
   constructor() {
     effect(() => {
@@ -134,11 +154,16 @@ export class PortalUserDetail implements HasPendingChanges {
       );
       this.grantsForm.patchValue(patch);
       this.grantsForm.markAsPristine();
+      // Default emitEvent (true): `isAdminValue` above is a `valueChanges`
+      // signal and must see this write, exactly like the grants form's own
+      // hydration above.
+      this.isAdminControl.setValue(user.isAdmin);
+      this.isAdminControl.markAsPristine();
     });
   }
 
   hasPendingChanges(): boolean {
-    return this.grantsForm.dirty && !this.saving();
+    return (this.grantsForm.dirty || this.isAdminControl.dirty) && !this.saving();
   }
 
   protected submit(): void {
@@ -149,29 +174,33 @@ export class PortalUserDetail implements HasPendingChanges {
     const grants = Object.entries(raw)
       .filter(([, checked]) => checked)
       .map(([grant]) => grant as PortalGrant);
+    const isAdmin = this.isAdminControl.value;
 
     this.saving.set(true);
-    this.store.dispatch(new UpdatePortalUserGrants(user.id, grants)).subscribe({
+    this.store.dispatch(new UpdatePortalUserGrants(user.id, grants, isAdmin)).subscribe({
       next: () => {
         this.saving.set(false);
         this.grantsForm.markAsPristine();
-        if (user.isAdmin && !grants.includes(PortalGrant.CreateServiceRequests)) {
+        this.isAdminControl.markAsPristine();
+        // `isOnlyAdmin` is server-computed; the write may have changed it.
+        this.store.dispatch(new LoadPortalUser(user.id));
+        if (isAdmin && !grants.includes(PortalGrant.CreateServiceRequests)) {
           this.messages.add({
             severity: 'warn',
-            summary: 'Permisos guardados',
+            summary: 'Cambios guardados',
             detail:
               'Este administrador no tiene Crear solicitudes de servicio — no verá solicitudes que cerrar.',
             life: 8000,
           });
           return;
         }
-        this.messages.add({ severity: 'success', summary: 'Permisos guardados' });
+        this.messages.add({ severity: 'success', summary: 'Cambios guardados' });
       },
       error: (err) => {
         this.saving.set(false);
         this.messages.add({
           severity: 'error',
-          summary: 'No se pudieron guardar los permisos',
+          summary: 'No se pudieron guardar los cambios',
           detail: errorMessage(err, 'Inténtalo de nuevo.'),
         });
       },

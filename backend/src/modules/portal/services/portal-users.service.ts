@@ -6,6 +6,7 @@ import { hashPassword } from '../../auth/services/password.service';
 import { isUniqueViolation } from '../../database/db-errors';
 import type { GenericQueryResponse } from '../../shared/types/generic-query-response.types';
 import type { PortalUserGrantsUpdateResult, PortalUserListItem } from '../dtos/portal-user-list.dto';
+import type { PortalUserAdminDetail } from '../dtos/portal-user-detail.dto';
 import type { ListPortalUsersQuery } from '../validators/portal-users-query.validator';
 // CSPRNG-backed and unbiased (nanoid customAlphabet), and already the temp
 // password every staff-created user gets. A portal credential is not the place
@@ -15,6 +16,7 @@ import {
   createPortalUser,
   createPortalUserGrants,
   findPortalUserById,
+  countEffectiveCustomerAdmins,
   findGrantsByPortalUser,
   updatePortalUserStatus,
   updatePortalUserIsAdmin,
@@ -249,11 +251,14 @@ export async function revokePortalUserAccess(
 export async function getPortalUserForAdmin(
   db: Db,
   portalUserId: string,
-): Promise<{ id: string; email: string; name: string; status: string; isAdmin: boolean; grants: PortalGrant[] } | null> {
+): Promise<PortalUserAdminDetail | null> {
   const user = await findPortalUserById(db, portalUserId);
   if (!user) return null;
 
   const grants = await findGrantsByPortalUser(db, portalUserId);
+
+  // Only asked when it can be true — a non-admin is never the last admin.
+  const admins = user.isAdmin ? await countEffectiveCustomerAdmins(db, user.customerId) : 0;
 
   return {
     id: user.id,
@@ -261,6 +266,7 @@ export async function getPortalUserForAdmin(
     name: user.name,
     status: user.status,
     isAdmin: user.isAdmin,
+    isOnlyAdmin: user.isAdmin && admins <= 1,
     grants: grants.map((g) => g.grant as PortalGrant),
   };
 }
