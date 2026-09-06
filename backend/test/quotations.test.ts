@@ -7,6 +7,7 @@ import {
   seedCustomer,
   seedOfficeAndLogin,
   seedOwnerAndLogin,
+  seedPortalUser,
   seedTechnicianAndLogin,
   uniqueServiceName,
 } from './helpers/fixtures';
@@ -345,6 +346,26 @@ describe('quotations — send + recipients (20 §4)', () => {
     // A reviewer is told they can respond; the link is the public token page.
     expect(sends[0]?.text).toContain('/public/quotations/');
     expect(sends[0]?.text).toContain('aprobarla o rechazarla');
+    // No portal user for this contact — no mention of the portal at all (26 §6).
+    expect(sends[0]?.text).not.toContain('portal de clientes');
+    expect(sends[0]?.html).not.toContain('portal de clientes');
+  });
+
+  // Superadmin 26 §6 rollout companion: a recipient with a live portal user
+  // gets a second link to it, alongside the token page they get today.
+  test('mails a portal login link only to a recipient with a live portal user', async () => {
+    const { quote, token, customer, contact } = await scenario();
+    await seedPortalUser({ customerId: customer.id, contactId: contact.id });
+
+    await sendAndGetTokens(token, quote.id, [{ contactId: contact.id, isReviewer: true }]);
+
+    const sent = lastResendSend();
+    expect(sent?.to).toBe(contact.email);
+    expect(sent?.text).toContain('portal de clientes');
+    expect(sent?.html).toContain('portal de clientes');
+    // The token link stays — the portal is a second entrance, not a
+    // replacement (00 §3.9).
+    expect(sent?.text).toContain('/public/quotations/');
   });
 
   test('never returns a recipient token to staff', async () => {

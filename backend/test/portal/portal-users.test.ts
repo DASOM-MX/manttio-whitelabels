@@ -9,6 +9,7 @@ import {
   seedCustomer,
   seedContact,
   seedTechnician,
+  seedPortalUser,
 } from '../helpers/fixtures';
 import { request, json, jsonHeaders } from '../helpers/request';
 import { mockResend, lastResendSend } from '../helpers/resend';
@@ -704,5 +705,61 @@ describe('Portal Users (Staff) — CP-4', () => {
       // 01 §3: approving a document you cannot open is not a state we represent.
       expect(res.status).toBe(400);
     });
+  });
+});
+
+describe('GET /customers/:id/portal-access — per-contact indicator (26 §6, CP-5)', () => {
+  mockResend();
+
+  it('returns every live contact, with status null for one with no portal user', async () => {
+    const { token: adminToken } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const withAccess = await seedContact(customer.id);
+    const without = await seedContact(customer.id);
+    await seedPortalUser({ customerId: customer.id, contactId: withAccess.id });
+
+    const res = await request(`/customers/${customer.id}/portal-access`, {
+      headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+    });
+    expect(res.status).toBe(200);
+    const body = await json<any[]>(res);
+
+    const withRow = body.find((r) => r.contactId === withAccess.id);
+    const withoutRow = body.find((r) => r.contactId === without.id);
+    expect(withRow?.status).toBe('invited');
+    expect(withRow?.portalUserId).toBeTruthy();
+    expect(withoutRow?.status).toBeNull();
+    expect(withoutRow?.portalUserId).toBeNull();
+    expect(withoutRow?.lastLoginAt).toBeNull();
+  });
+
+  it('reports no access after the portal user is revoked (soft-deleted)', async () => {
+    const { token: adminToken } = await seedAdminAndLogin();
+    const customer = await seedCustomer();
+    const contact = await seedContact(customer.id);
+    const portalUser = await seedPortalUser({ customerId: customer.id, contactId: contact.id });
+
+    await request(`/portal-users/${portalUser.id}`, {
+      method: 'DELETE',
+      headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ deleteComment: 'test revoke' }),
+    });
+
+    const res = await request(`/customers/${customer.id}/portal-access`, {
+      headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` },
+    });
+    const body = await json<any[]>(res);
+    const row = body.find((r) => r.contactId === contact.id);
+    expect(row?.status).toBeNull();
+    expect(row?.portalUserId).toBeNull();
+  });
+
+  it('404s for an unknown customer', async () => {
+    const { token: adminToken } = await seedAdminAndLogin();
+    const res = await request(
+      '/customers/00000000-0000-0000-0000-000000000000/portal-access',
+      { headers: { ...jsonHeaders(), authorization: `Bearer ${adminToken}` } },
+    );
+    expect(res.status).toBe(404);
   });
 });
