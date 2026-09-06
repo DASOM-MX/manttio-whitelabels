@@ -6,6 +6,7 @@ import {
   seedOfficeAndLogin,
   seedOwnerAndLogin,
   seedTechnicianAndLogin,
+  serviceFixturePrefix,
   uniqueServiceCode,
   uniqueServiceName,
 } from './helpers/fixtures';
@@ -67,7 +68,7 @@ afterAll(async () => {
   await db
     .update(services)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
-    .where(and(like(services.name, 'test+%'), isNull(services.deletedAt)));
+    .where(and(like(services.name, `${serviceFixturePrefix('svc')}%`), isNull(services.deletedAt)));
 });
 
 const createService = (token: string, body: object) =>
