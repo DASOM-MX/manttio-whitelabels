@@ -22,14 +22,22 @@ const visible = (customerId: string): SQL =>
 
 // Newest RELEASED report against this unit. Unreleased work is invisible in the
 // portal, so it must not date a unit either.
-const lastServiceExpr = sql<Date | string | null>`(
-  select max(coalesce(${reports.dateArrival}, ${reports.finishedAt}, ${reports.createdAt}))
-  from ${equipmentReports}
-  join ${reports} on ${reports.id} = ${equipmentReports.reportId}
-  where ${equipmentReports.equipmentId} = ${equipment.id}
-    and ${reports.deletedAt} is null
-    and ${inArray(reports.status, PORTAL_REPORT_STATUSES)}
-)`;
+// Query builder, not a raw template: Drizzle leaves an interpolated column
+// unqualified in a single-table select, which made this subquery ambiguous.
+const lastServiceExpr = (db: Db): SQL<Date | string | null> =>
+  sql<Date | string | null>`${db
+    .select({
+      lastService: sql`max(coalesce(${reports.dateArrival}, ${reports.finishedAt}, ${reports.createdAt}))`,
+    })
+    .from(equipmentReports)
+    .innerJoin(reports, eq(reports.id, equipmentReports.reportId))
+    .where(
+      and(
+        eq(equipmentReports.equipmentId, equipment.id),
+        isNull(reports.deletedAt),
+        inArray(reports.status, PORTAL_REPORT_STATUSES),
+      ),
+    )}`;
 
 // pg hands back a Date for timestamptz, but the aggregate is typed loosely —
 // normalize once here so the mapper only ever sees a Date.
@@ -39,8 +47,9 @@ const toDate = (value: Date | string | null): Date | null => {
 };
 
 // One select shape and one mapper for the list and the detail, so the two
-// cannot drift apart.
-const equipmentColumns = { row: equipment, lastServiceDate: lastServiceExpr };
+// cannot drift apart. Takes `db` because the correlated subquery is built with
+// the query builder.
+const equipmentColumns = (db: Db) => ({ row: equipment, lastServiceDate: lastServiceExpr(db) });
 
 const toPortalEquipmentRow = (r: PortalEquipmentSelectRow): PortalEquipmentRow => ({
   row: r.row,
@@ -75,7 +84,7 @@ export const listPortalEquipment = async (
     where,
     q,
     db
-      .select(equipmentColumns)
+      .select(equipmentColumns(db))
       .from(equipment)
       .where(where)
       .orderBy(desc(equipment.createdAt))
@@ -91,7 +100,7 @@ export const findPortalEquipment = async (
 ): Promise<PortalEquipmentRow | null> =>
   portalRow(
     db
-      .select(equipmentColumns)
+      .select(equipmentColumns(db))
       .from(equipment)
       .where(and(eq(equipment.id, id), visible(customerId)))
       .$dynamic(),
