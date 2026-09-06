@@ -29,6 +29,7 @@ import { customerQuotations } from './modules/quotations/controllers/customer-qu
 import { customerPortalAccess } from './modules/portal/controllers/customer-portal-access.controller';
 import { visits } from './modules/visits/controllers/visits.controller';
 import { warehouses } from './modules/wms/controllers/warehouses.controller';
+import { materials } from './modules/wms/controllers/materials.controller';
 import { publicCms } from './modules/cms/controllers/public-cms.controller';
 import { publicLeads } from './modules/customers/controllers/public-leads.controller';
 import { publicServices } from './modules/services/controllers/public-services.controller';
@@ -112,6 +113,7 @@ app.use('/quotations/*', jwtMiddleware);
 app.use('/service-orders/*', jwtMiddleware);
 app.use('/visits/*', jwtMiddleware);
 app.use('/warehouses/*', jwtMiddleware);
+app.use('/materials/*', jwtMiddleware);
 
 app.route('/users', users);
 app.route('/portal-users', portalUsers);
@@ -136,6 +138,7 @@ app.route('/quotations', quotations);
 app.route('/service-orders', serviceOrders);
 app.route('/visits', visits);
 app.route('/warehouses', warehouses);
+app.route('/materials', materials);
 
 app.onError((err, c) => {
   if (err instanceof SyntaxError || /JSON/i.test(err.message)) {

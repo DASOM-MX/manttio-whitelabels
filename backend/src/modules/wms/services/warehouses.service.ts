@@ -235,6 +235,11 @@ export const editWarehouse = async (
     longitude: merged(input.longitude, current.warehouse.longitude),
   });
 
+  // A PATCH that changes nothing is a no-op, not an error: drizzle refuses an
+  // empty `.set({})`, and an editor that submits the whole form unchanged — or
+  // re-states the one immutable field — would otherwise get a 500.
+  if (Object.keys(fields).length === 0) return toWarehouseDTO(current);
+
   const row = await updateWarehouseRow(db, id, fields);
   if (!row) return null;
   return toWarehouseDTO({ warehouse: row, assigneeName: current.assigneeName });
